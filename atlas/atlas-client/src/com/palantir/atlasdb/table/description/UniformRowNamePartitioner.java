@@ -1,0 +1,137 @@
+// Copyright 2015 Palantir Technologies
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package com.palantir.atlasdb.table.description;
+
+import java.util.List;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+
+public class UniformRowNamePartitioner implements RowNamePartitioner {
+    final ValueType valueType;
+
+    public UniformRowNamePartitioner(ValueType valueType) {
+        this.valueType = valueType;
+    }
+
+    private boolean isVarLong() {
+        return valueType == ValueType.VAR_LONG;
+    }
+
+    private boolean isNullable() {
+        return valueType == ValueType.NULLABLE_FIXED_LONG;
+    }
+
+    @Override
+    public List<byte[]> getPartitions(int numberRanges) {
+        if (numberRanges <= 1) {
+            return ImmutableList.of(new byte[] {0});
+        }
+        int highestOne = Integer.highestOneBit(numberRanges);
+        if (highestOne != numberRanges) {
+            numberRanges = highestOne*2;
+        }
+        switch (valueType) {
+        case VAR_LONG:
+        case FIXED_LONG:
+        case BLOB:
+        case SHA256HASH:
+        case FIXED_LONG_LITTLE_ENDIAN:
+        case NULLABLE_FIXED_LONG:
+            return getRangesForLongs(numberRanges);
+        default:
+            throw new UnsupportedOperationException("Atlas does not yet support this type. (But can if you need it)");
+        }
+    }
+
+    public static boolean allowsUniformPartitioner(ValueType type) {
+        switch (type) {
+        case VAR_LONG:
+        case FIXED_LONG:
+        case BLOB:
+        case SHA256HASH:
+        case FIXED_LONG_LITTLE_ENDIAN:
+        case NULLABLE_FIXED_LONG:
+            return true;
+        default:
+            return false;
+        }
+    }
+
+    /**
+     * numberRanges must be a power of 2 greater than 1.
+     */
+    private List<byte[]> getRangesForLongs(int numberRanges) {
+        int shift = Integer.numberOfTrailingZeros(numberRanges);
+        if (!isVarLong()) {
+            shift--;
+        }
+        long increment = Long.MIN_VALUE >>> shift;
+        List<byte[]> ret = Lists.newArrayList();
+        for (int i = 0 ; i < numberRanges ; i++) {
+            long val = increment * i;
+            if (isVarLong()) {
+                ret.add(valueType.convertFromJava(val));
+            } else if (isNullable()) {
+                if (val == 0L) {
+                    ret.add(valueType.convertFromJava(null));
+                } else {
+                    ret.add(valueType.convertFromJava(val));
+                }
+            } else {
+                ret.add(ValueType.FIXED_LONG.convertFromJava(val));
+            }
+        }
+        return ret;
+    }
+
+    @Override
+    public boolean isHotSpot() {
+        return false;
+    }
+
+    @Override
+    public List<RowNamePartitioner> compound(RowNamePartitioner next) {
+        return ImmutableList.<RowNamePartitioner>of(this);
+    }
+
+    @Override
+    public String toString() {
+        return "UniformRowNamePartitioner [valueType=" + valueType + "]";
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((valueType == null) ? 0 : valueType.hashCode());
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        UniformRowNamePartitioner other = (UniformRowNamePartitioner) obj;
+        if (valueType != other.valueType)
+            return false;
+        return true;
+    }
+
+}

@@ -1,0 +1,10 @@
+buildscript {
+  apply plugin: PalantirRepoPlugin
+  repositories {
+    ptrepo()
+  }
+
+  dependencies {
+    // classpath "com.palantir.gradle:pt-java-plugin:0.3.2"
+  }
+}

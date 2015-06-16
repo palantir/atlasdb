@@ -1,0 +1,600 @@
+// Copyright 2015 Palantir Technologies
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package com.palantir.common.concurrent;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.WeakHashMap;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionHandler;
+import java.util.concurrent.RunnableFuture;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.ThreadPoolExecutor.AbortPolicy;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+/**
+ * Please always use the static methods in this class instead of the ones in {@link
+ * java.util.concurrent.Executors}, because the executors returned by these methods will propagate
+ * {@link ExecutorInheritableThreadLocal} variables.
+ *
+ * @author jtamer
+ */
+public final class PTExecutors {
+
+    private static final String FILE_NAME_FOR_THIS_CLASS = PTExecutors.class.getSimpleName() + ".java";
+
+    /**
+     * Default keep-alive time on thread pool executors handed out by this class. This timeout is
+     * applied to core pool threads as well.
+     * <p>
+     * Note that this particular timeout is set to be quite low in order to be conservative. We've
+     * run into a number of issues (e.g., QA-44927) where thread pool mismanagement has lead to
+     * OutOfMemoryExceptions.
+     */
+    private static final int DEFAULT_THREAD_POOL_TIMEOUT_MILLIS = 100;
+
+    private static final RejectedExecutionHandler defaultHandler = new AbortPolicy();
+
+    /**
+     * Creates a thread pool that creates new threads as needed, but will reuse previously
+     * constructed threads when they are available. These pools will typically improve the
+     * performance of programs that execute many short-lived asynchronous tasks. Calls to
+     * <tt>execute</tt> will reuse previously constructed threads if available. If no existing
+     * thread is available, a new thread will be created and added to the pool. Threads that have
+     * not been used for sixty seconds are terminated and removed from the cache. Thus, a pool that
+     * remains idle for long enough will not consume any resources. Note that pools with similar
+     * properties but different details (for example, timeout parameters) may be created using
+     * {@link java.util.concurrent.ThreadPoolExecutor} constructors.
+     *
+     * @return the newly created thread pool
+     */
+    public static ThreadPoolExecutor newCachedThreadPool() {
+        return newThreadPoolExecutor(
+                0,
+                Integer.MAX_VALUE,
+                DEFAULT_THREAD_POOL_TIMEOUT_MILLIS,
+                TimeUnit.MILLISECONDS,
+                new SynchronousQueue<Runnable>(),
+                newNamedThreadFactory());
+    }
+
+    /**
+     * Creates a thread pool that creates new threads as needed, but will reuse previously
+     * constructed threads when they are available, and uses the provided ThreadFactory to create
+     * new threads when needed.
+     *
+     * @param threadFactory the factory to use when creating new threads
+     * @return the newly created thread pool
+     * @throws NullPointerException if threadFactory is null
+     */
+    public static ThreadPoolExecutor newCachedThreadPool(ThreadFactory threadFactory) {
+        return newThreadPoolExecutor(
+                0,
+                Integer.MAX_VALUE,
+                DEFAULT_THREAD_POOL_TIMEOUT_MILLIS,
+                TimeUnit.MILLISECONDS,
+                new SynchronousQueue<Runnable>(),
+                threadFactory);
+    }
+
+    /**
+     * Creates a thread pool that creates new threads as needed, but will reuse previously
+     * constructed threads when they are available, and uses the provided ThreadFactory to create
+     * new threads when needed.
+     * <p>
+     * Important note: unless you know you have specific performance reasons for specifying a
+     * timeout value, use newCachedThreadPool(threadFactory)
+     *
+     * @param threadFactory the factory to use when creating new threads
+     * @return the newly created thread pool
+     * @throws NullPointerException if threadFactory is null
+     */
+    public static ThreadPoolExecutor newCachedThreadPool(ThreadFactory threadFactory, int threadTimeoutMillis) {
+        return newThreadPoolExecutor(
+                0,
+                Integer.MAX_VALUE,
+                threadTimeoutMillis,
+                TimeUnit.MILLISECONDS,
+                new SynchronousQueue<Runnable>(),
+                threadFactory);
+    }
+
+    /**
+     * Creates a thread pool that reuses a fixed number of threads operating off a shared unbounded
+     * queue.  At any point, at most <tt>nThreads</tt> threads will be active processing tasks.  If
+     * additional tasks are submitted when all threads are active, they will wait in the queue until
+     * a thread is available.  If any thread terminates due to a failure during execution prior to
+     * shutdown, a new one will take its place if needed to execute subsequent tasks.  The threads
+     * in the pool will exist until it is explicitly {@link
+     * java.util.concurrent.ExecutorService#shutdown shutdown}.
+     *
+     * @param nThreads the number of threads in the pool
+     * @return the newly created thread pool
+     * @throws IllegalArgumentException if <tt>nThreads &lt;= 0</tt>
+     */
+    public static ThreadPoolExecutor newFixedThreadPool(int nThreads) {
+        return newThreadPoolExecutor(nThreads, nThreads,
+                DEFAULT_THREAD_POOL_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS,
+                new LinkedBlockingQueue<Runnable>(), newNamedThreadFactory());
+    }
+
+    /**
+     * Creates a thread pool that reuses a fixed number of threads operating off a shared unbounded
+     * queue, using the provided ThreadFactory to create new threads when needed.  At any point, at
+     * most <tt>nThreads</tt> threads will be active processing tasks.  If additional tasks are
+     * submitted when all threads are active, they will wait in the queue until a thread is
+     * available.  If any thread terminates due to a failure during execution prior to shutdown, a
+     * new one will take its place if needed to execute subsequent tasks.  The threads in the pool
+     * will exist until it is explicitly {@link java.util.concurrent.ExecutorService#shutdown}.
+     *
+     * @param nThreads the number of threads in the pool
+     * @param threadFactory the factory to use when creating new threads
+     * @return the newly created thread pool
+     * @throws NullPointerException if threadFactory is null
+     * @throws IllegalArgumentException if <tt>nThreads &lt;= 0</tt>
+     */
+    public static ThreadPoolExecutor newFixedThreadPool(int nThreads, ThreadFactory threadFactory) {
+        return newThreadPoolExecutor(nThreads, nThreads,
+                DEFAULT_THREAD_POOL_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS,
+                new LinkedBlockingQueue<Runnable>(), threadFactory);
+    }
+
+    /**
+     * Creates a thread pool that can schedule commands to run after a given delay, or to execute
+     * periodically.  @param corePoolSize the number of threads to keep in the pool, even if they
+     * are idle.
+     *
+     * @return a newly created scheduled thread pool
+     * @throws IllegalArgumentException if <tt>corePoolSize &lt; 0</tt>
+     */
+    public static ScheduledThreadPoolExecutor newScheduledThreadPool(int corePoolSize) {
+        return newScheduledThreadPoolExecutor(corePoolSize, newNamedThreadFactory(true));
+    }
+
+    /**
+     * Creates a thread pool that can schedule commands to run after a given delay, or to execute
+     * periodically.
+     *
+     * @param corePoolSize the number of threads to keep in the pool, even if they are idle.
+     * @param threadFactory the factory to use when the executor creates a new thread.
+     * @return a newly created scheduled thread pool
+     * @throws IllegalArgumentException if <tt>corePoolSize &lt; 0</tt>
+     * @throws NullPointerException if threadFactory is null
+     */
+    public static ScheduledThreadPoolExecutor newScheduledThreadPool(int corePoolSize,
+            ThreadFactory threadFactory) {
+        return newScheduledThreadPoolExecutor(corePoolSize, threadFactory);
+    }
+
+    /**
+     * Creates an Executor that uses a single worker thread operating off an unbounded queue. (Note
+     * however that if this single thread terminates due to a failure during execution prior to
+     * shutdown, a new one will take its place if needed to execute subsequent tasks.)  Tasks are
+     * guaranteed to execute sequentially, and no more than one task will be active at any given
+     * time. Unlike the otherwise equivalent <tt>newFixedThreadPool(1)</tt> the returned executor is
+     * guaranteed not to be reconfigurable to use additional threads.
+     *
+     * @return the newly created single-threaded Executor
+     */
+    public static ExecutorService newSingleThreadExecutor() {
+        return Executors.unconfigurableExecutorService(newFixedThreadPool(1));
+    }
+
+    /**
+     * Creates an Executor that uses a single worker thread operating off an unbounded queue. (Note
+     * however that if this single thread terminates due to a failure during execution prior to
+     * shutdown, a new one will take its place if needed to execute subsequent tasks.)  Tasks are
+     * guaranteed to execute sequentially, and no more than one task will be active at any given
+     * time. Unlike the otherwise equivalent <tt>newFixedThreadPool(1)</tt> the returned executor is
+     * guaranteed not to be reconfigurable to use additional threads.
+     *
+     * @param isDaemon denotes if the thread should be run as a daemon or not
+     * @return the newly created single-threaded Executor
+     */
+    public static ExecutorService newSingleThreadExecutor(boolean isDaemon) {
+        return Executors.unconfigurableExecutorService(newFixedThreadPool(1, newNamedThreadFactory(isDaemon)));
+    }
+
+    /**
+     * Creates an Executor that uses a single worker thread operating off an unbounded queue, and
+     * uses the provided ThreadFactory to create a new thread when needed. Unlike the otherwise
+     * equivalent <tt>newFixedThreadPool(1, threadFactory)</tt> the returned executor is guaranteed
+     * not to be reconfigurable to use additional threads.
+     *
+     * @param threadFactory the factory to use when creating new threads
+     * @return the newly created single-threaded Executor
+     * @throws NullPointerException if threadFactory is null
+     */
+    public static ExecutorService newSingleThreadExecutor(ThreadFactory threadFactory) {
+        return Executors.unconfigurableExecutorService(newFixedThreadPool(1, threadFactory));
+    }
+
+    /**
+     * Creates a single-threaded executor that can schedule commands to run after a given delay, or
+     * to execute periodically.  (Note however that if this single thread terminates due to a
+     * failure during execution prior to shutdown, a new one will take its place if needed to
+     * execute subsequent tasks.)  Tasks are guaranteed to execute sequentially, and no more than
+     * one task will be active at any given time. Unlike the otherwise equivalent
+     * <tt>newScheduledThreadPool(1)</tt> the returned executor is guaranteed not to be
+     * reconfigurable to use additional threads.
+     *
+     * @return the newly created scheduled executor
+     */
+    public static ScheduledExecutorService newSingleThreadScheduledExecutor() {
+        return wrap(Executors.newSingleThreadScheduledExecutor(newNamedThreadFactory(true)));
+    }
+
+    /**
+     * Creates a single-threaded executor that can schedule commands to run after a given delay, or
+     * to execute periodically.  (Note however that if this single thread terminates due to a
+     * failure during execution prior to shutdown, a new one will take its place if needed to
+     * execute subsequent tasks.)  Tasks are guaranteed to execute sequentially, and no more than
+     * one task will be active at any given time. Unlike the otherwise equivalent
+     * <tt>newScheduledThreadPool(1, threadFactory)</tt> the returned executor is guaranteed not to
+     * be reconfigurable to use additional threads.
+     *
+     * @param threadFactory the factory to use when creating new threads
+     * @return a newly created scheduled executor
+     * @throws NullPointerException if threadFactory is null
+     */
+    public static ScheduledExecutorService newSingleThreadScheduledExecutor(
+            ThreadFactory threadFactory) {
+        return wrap(Executors.newSingleThreadScheduledExecutor(threadFactory));
+    }
+
+    /**
+     * Creates a new <tt>ThreadPoolExecutor</tt> with the given initial parameters and default
+     * thread factory and rejected execution handler.  It may be more convenient to use one of the
+     * {@link java.util.concurrent.Executors} factory methods instead of this general purpose
+     * constructor.
+     *
+     * @param corePoolSize the number of threads to keep in the pool, even if they are idle.
+     * @param maximumPoolSize the maximum number of threads to allow in the pool.
+     * @param keepAliveTime when the number of threads is greater than the core, this is the maximum
+     *        time that excess idle threads will wait for new tasks before terminating.
+     * @param unit the time unit for the keepAliveTime argument.
+     * @param workQueue the queue to use for holding tasks before they are executed. This queue will
+     *        hold only the <tt>Runnable</tt> tasks submitted by the <tt>execute</tt> method.
+     * @throws IllegalArgumentException if corePoolSize or keepAliveTime less than zero, or if
+     *         maximumPoolSize less than or equal to zero, or if corePoolSize greater than
+     *         maximumPoolSize.
+     * @throws NullPointerException if <tt>workQueue</tt> is null
+     */
+    public static ThreadPoolExecutor newThreadPoolExecutor(int corePoolSize, int maximumPoolSize,
+            long keepAliveTime, TimeUnit unit, BlockingQueue<Runnable> workQueue) {
+        return newThreadPoolExecutor(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue,
+                newNamedThreadFactory(), defaultHandler);
+    }
+
+    /**
+     * Creates a new <tt>ThreadPoolExecutor</tt> with the given initial parameters and default
+     * rejected execution handler.
+     *
+     * @param corePoolSize the number of threads to keep in the pool, even if they are idle.
+     * @param maximumPoolSize the maximum number of threads to allow in the pool.
+     * @param keepAliveTime the maximum time that idle threads will wait for new tasks before
+     *        terminating.
+     * @param unit the time unit for the keepAliveTime argument.
+     * @param workQueue the queue to use for holding tasks before they are executed. This queue will
+     *        hold only the <tt>Runnable</tt> tasks submitted by the <tt>execute</tt> method.
+     * @param threadFactory the factory to use when the executor creates a new thread.
+     * @throws IllegalArgumentException if corePoolSize or keepAliveTime less than zero, or if
+     *         maximumPoolSize less than or equal to zero, or if corePoolSize greater than
+     *         maximumPoolSize.
+     * @throws NullPointerException if <tt>workQueue</tt> or <tt>threadFactory</tt> are null.
+     */
+    public static ThreadPoolExecutor newThreadPoolExecutor(int corePoolSize, int maximumPoolSize,
+            long keepAliveTime, TimeUnit unit, BlockingQueue<Runnable> workQueue,
+            ThreadFactory threadFactory) {
+        return newThreadPoolExecutor(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue,
+                threadFactory, defaultHandler);
+    }
+
+    /**
+     * Creates a new <tt>ThreadPoolExecutor</tt> with the given initial parameters and default
+     * thread factory.
+     *
+     * @param corePoolSize the number of threads to keep in the pool, even if they are idle.
+     * @param maximumPoolSize the maximum number of threads to allow in the pool.
+     * @param keepAliveTime the maximum time that idle threads will wait for new tasks before
+     *        terminating.
+     * @param unit the time unit for the keepAliveTime argument.
+     * @param workQueue the queue to use for holding tasks before they are executed. This queue will
+     *        hold only the <tt>Runnable</tt> tasks submitted by the <tt>execute</tt> method.
+     * @param handler the handler to use when execution is blocked because the thread bounds and
+     *        queue capacities are reached.
+     * @throws IllegalArgumentException if corePoolSize or keepAliveTime less than zero, or if
+     *         maximumPoolSize less than or equal to zero, or if corePoolSize greater than
+     *         maximumPoolSize.
+     * @throws NullPointerException if <tt>workQueue</tt> or <tt>handler</tt> are null.
+     */
+    public static ThreadPoolExecutor newThreadPoolExecutor(int corePoolSize, int maximumPoolSize,
+            long keepAliveTime, TimeUnit unit, BlockingQueue<Runnable> workQueue,
+            RejectedExecutionHandler handler) {
+        return newThreadPoolExecutor(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue,
+                newNamedThreadFactory(), handler);
+    }
+
+    /**
+     * Creates a new <tt>ThreadPoolExecutor</tt> with the given initial parameters.
+     *
+     * @param corePoolSize the number of threads to keep in the pool, even if they are idle.
+     * @param maximumPoolSize the maximum number of threads to allow in the pool.
+     * @param keepAliveTime the maximum time that idle threads will wait for new tasks before
+     *        terminating.
+     * @param unit the time unit for the keepAliveTime argument.
+     * @param workQueue the queue to use for holding tasks before they are executed. This queue will
+     *        hold only the <tt>Runnable</tt> tasks submitted by the <tt>execute</tt> method.
+     * @param threadFactory the factory to use when the executor creates a new thread.
+     * @param handler the handler to use when execution is blocked because the thread bounds and
+     *        queue capacities are reached.
+     * @throws IllegalArgumentException if corePoolSize or keepAliveTime less than zero, or if
+     *         maximumPoolSize less than or equal to zero, or if corePoolSize greater than
+     *         maximumPoolSize.
+     * @throws NullPointerException if <tt>workQueue</tt> or <tt>threadFactory</tt> or
+     *         <tt>handler</tt> are null.
+     */
+    public static ThreadPoolExecutor newThreadPoolExecutor(int corePoolSize, int maximumPoolSize,
+            long keepAliveTime, TimeUnit unit, BlockingQueue<Runnable> workQueue,
+            ThreadFactory threadFactory, RejectedExecutionHandler handler) {
+        ThreadPoolExecutor e = new ThreadPoolExecutor(corePoolSize, maximumPoolSize, keepAliveTime, unit, // (authorized)
+                workQueue, threadFactory, handler) {
+            @Override
+            public void execute(Runnable command) {
+                super.execute(wrap(command));
+            }
+        };
+        // QA-49019 - always allow core pool threads to timeout.
+        if (keepAliveTime > 0) {
+            e.allowCoreThreadTimeOut(true);
+        }
+        return e;
+    }
+
+    /**
+     * Creates a new ScheduledThreadPoolExecutor with the given core pool size.
+     *
+     * @param corePoolSize the number of threads to keep in the pool, even if they are idle
+     * @throws IllegalArgumentException if <tt>corePoolSize &lt; 0</tt>
+     */
+    public static ScheduledThreadPoolExecutor newScheduledThreadPoolExecutor(int corePoolSize) {
+        return newScheduledThreadPoolExecutor(corePoolSize, newNamedThreadFactory(true),
+                defaultHandler);
+    }
+
+    /**
+     * Creates a new ScheduledThreadPoolExecutor with the given initial parameters.
+     *
+     * @param corePoolSize the number of threads to keep in the pool, even if they are idle
+     * @param threadFactory the factory to use when the executor creates a new thread
+     * @throws IllegalArgumentException if <tt>corePoolSize &lt; 0</tt>
+     * @throws NullPointerException if threadFactory is null
+     */
+    public static ScheduledThreadPoolExecutor newScheduledThreadPoolExecutor(int corePoolSize,
+            ThreadFactory threadFactory) {
+        return newScheduledThreadPoolExecutor(corePoolSize, threadFactory, defaultHandler);
+    }
+
+    /**
+     * Creates a new ScheduledThreadPoolExecutor with the given initial parameters.
+     *
+     * @param corePoolSize the number of threads to keep in the pool, even if they are idle
+     * @param handler the handler to use when execution is blocked because the thread bounds and
+     *        queue capacities are reached
+     * @throws IllegalArgumentException if <tt>corePoolSize &lt; 0</tt>
+     * @throws NullPointerException if handler is null
+     */
+    public static ScheduledThreadPoolExecutor newScheduledThreadPoolExecutor(int corePoolSize,
+            RejectedExecutionHandler handler) {
+        return newScheduledThreadPoolExecutor(corePoolSize, newNamedThreadFactory(true), handler);
+    }
+
+    /**
+     * Creates a new ScheduledThreadPoolExecutor with the given initial parameters.
+     *
+     * @param corePoolSize the number of threads to keep in the pool, even if they are idle
+     * @param threadFactory the factory to use when the executor creates a new thread
+     * @param handler the handler to use when execution is blocked because the thread bounds and
+     *        queue capacities are reached.
+     * @throws IllegalArgumentException if <tt>corePoolSize &lt; 0</tt>
+     * @throws NullPointerException if threadFactory or handler is null
+     */
+    public static ScheduledThreadPoolExecutor newScheduledThreadPoolExecutor(int corePoolSize,
+            ThreadFactory threadFactory, RejectedExecutionHandler handler) {
+        if (corePoolSize == 0) {
+            corePoolSize = 1;
+        }
+        ScheduledThreadPoolExecutor ret = new ScheduledThreadPoolExecutor(corePoolSize, threadFactory, handler) {
+            @Override
+            public void execute(Runnable command) {
+                super.execute(wrap(command));
+            }
+        };
+        ret.setKeepAliveTime(DEFAULT_THREAD_POOL_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
+        return ret;
+    }
+
+    /**
+     * Wraps the given {@code ExecutorService} so that {@link ExecutorInheritableThreadLocal}
+     * variables are propagated through.
+     */
+    public static ExecutorService wrap(final ExecutorService executorService) {
+        return new AbstractForwardingExecutorService() {
+            @Override protected ExecutorService delegate() {
+                return executorService;
+            }
+        };
+    }
+
+    /**
+     * Wraps the given {@code ScheduledExecutorService} so that {@link
+     * ExecutorInheritableThreadLocal} variables are propagated through.
+     */
+    public static ScheduledExecutorService wrap(
+            final ScheduledExecutorService scheduledExecutorService) {
+        return new AbstractForwardingScheduledExecutorService() {
+            @Override protected ScheduledExecutorService delegate() {
+                return scheduledExecutorService;
+            }
+        };
+    }
+
+    /**
+     * Wraps the given {@code Runnable} so that {@link ExecutorInheritableThreadLocal} variables are
+     * propagated through.  If {@code runnable} implements the {@link java.util.concurrent.Future}
+     * interface, then the returned {@code Runnable} will also implement {@code Future}.
+     */
+    public static Runnable wrap(final Runnable runnable) {
+        final WeakHashMap<ExecutorInheritableThreadLocal<?>, Object> mapForNewThread =
+                ExecutorInheritableThreadLocal.getMapForNewThread();
+        if (runnable instanceof Future<?>) {
+            @SuppressWarnings("unchecked")
+            Future<Object> unsafeFuture = (Future<Object>) runnable;
+            return new ForwardingRunnableFuture<Object>(unsafeFuture) {
+                @Override
+                public void run() {
+                    WeakHashMap<ExecutorInheritableThreadLocal<?>, Object> oldMap =
+                        ExecutorInheritableThreadLocal.installMapOnThread(mapForNewThread);
+                    try {
+                        super.run();
+                    } finally {
+                        ExecutorInheritableThreadLocal.uninstallMapOnThread(oldMap);
+                    }
+                }
+            };
+        }
+        return new Runnable() {
+            @Override
+            public void run() {
+                    WeakHashMap<ExecutorInheritableThreadLocal<?>, Object> oldMap =
+                        ExecutorInheritableThreadLocal.installMapOnThread(mapForNewThread);
+                try {
+                    runnable.run();
+                } finally {
+                    ExecutorInheritableThreadLocal.uninstallMapOnThread(oldMap);
+                }
+            }
+        };
+    }
+
+    public static <T> RunnableFuture<T> wrap(RunnableFuture<T> rf) {
+        final WeakHashMap<ExecutorInheritableThreadLocal<?>, Object> mapForNewThread =
+                ExecutorInheritableThreadLocal.getMapForNewThread();
+        return new ForwardingRunnableFuture<T>(rf) {
+            @Override
+            public void run() {
+                WeakHashMap<ExecutorInheritableThreadLocal<?>, Object> oldMap =
+                    ExecutorInheritableThreadLocal.installMapOnThread(mapForNewThread);
+                try {
+                    super.run();
+                } finally {
+                    ExecutorInheritableThreadLocal.uninstallMapOnThread(oldMap);
+                }
+            }
+        };
+    }
+
+    /**
+     * Wraps the given {@code Callable} so that {@link ExecutorInheritableThreadLocal} variables are
+     * propagated through.
+     */
+    public static <T> Callable<T> wrap(final Callable<? extends T> callable) {
+        final WeakHashMap<ExecutorInheritableThreadLocal<?>, Object> mapForNewThread =
+                ExecutorInheritableThreadLocal.getMapForNewThread();
+        return new Callable<T>() {
+            @Override
+            public T call() throws Exception {
+                    WeakHashMap<ExecutorInheritableThreadLocal<?>, Object> oldMap =
+                        ExecutorInheritableThreadLocal.installMapOnThread(mapForNewThread);
+                try {
+                    return callable.call();
+                } finally {
+                    ExecutorInheritableThreadLocal.uninstallMapOnThread(oldMap);
+                }
+            }
+        };
+    }
+
+    /**
+     * Wraps the given {@code Callable}s so that {@link ExecutorInheritableThreadLocal} variables
+     * are propagated through.
+     */
+    public static <T> Collection<Callable<T>> wrap(
+            Collection<? extends Callable<? extends T>> tasks) {
+        Collection<Callable<T>> wrapped = new ArrayList<Callable<T>>(tasks.size());
+        for (Callable<? extends T> task : tasks) {
+            wrapped.add(wrap(task));
+        }
+        return wrapped;
+    }
+
+    public static ThreadFactory newNamedThreadFactory() {
+        return newNamedThreadFactory(false, null);
+    }
+
+    public static ThreadFactory newNamedThreadFactory(boolean isDaemon) {
+        return newNamedThreadFactory(isDaemon, null);
+    }
+
+    public static ThreadFactory newNamedThreadFactory(boolean isDaemon, Class<?> classToIgnore) {
+        String fileNameToIgnore = (classToIgnore == null) ? null
+                : classToIgnore.getSimpleName() + ".java";
+        StackTraceElement[] stackTrace = new Throwable().getStackTrace();
+        if (stackTrace != null) {
+            for (StackTraceElement stackTraceElement : stackTrace) {
+                String fileName = stackTraceElement.getFileName();
+                if ((fileName != null) && !fileName.equals(FILE_NAME_FOR_THIS_CLASS)
+                        && !fileName.equals(fileNameToIgnore)) {
+                    return new NamedThreadFactory(fileName + ":" + stackTraceElement.getLineNumber(),
+                            isDaemon);
+                }
+            }
+        }
+        String errorMessage = "Can't figure out what name to use for this thread factory!";
+        Logger.getLogger(PTExecutors.class.getName()).log(Level.WARNING, errorMessage);
+        return new NamedThreadFactory("Unnamed thread", isDaemon);
+    }
+
+    public static ThreadFactory newThreadFactory(final String prefix, final int priority, final boolean isDaemon) {
+        ThreadFactory threadFactory = new ThreadFactory() {
+            private final AtomicInteger nextThreadId = new AtomicInteger();
+            @Override
+            public Thread newThread(Runnable r) {
+                Thread t = new Thread(r, prefix + "-" + nextThreadId.getAndIncrement());
+                t.setPriority(priority);
+                t.setDaemon(isDaemon);
+                return t;
+            }
+        };
+
+        return threadFactory;
+    }
+
+    private PTExecutors() {
+        throw new AssertionError("uninstantiable");
+    }
+}

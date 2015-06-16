@@ -1,0 +1,32 @@
+apply plugin: 'java'
+apply plugin: 'eclipse'
+apply plugin: PalantirRepoPlugin
+
+repositories {
+    ptrepo()
+}
+
+sourceSets.main.java.srcDirs=[file('src')]
+sourceSets.test.java.srcDirs=[file('test-src')]
+libsDirName = file('build/artifacts')
+sourceCompatibility = "1.6"
+targetCompatibility = "1.6"
+dependencies {
+  compile(group: "com.google.code.findbugs",
+          name: "jsr305",
+          version: "1.3.9",
+          configuration: "default")
+  compile(group: "com.google.guava",
+          name: "guava",
+          version: "18.0",
+          configuration: "default")
+  compile(group: "org.slf4j",
+          name: "slf4j-api",
+          version: "1.7.5",
+          configuration: "default")
+  compile(project(":commons-executors"))
+  testCompile(group: "junit",
+              name: "junit",
+              version: "4.11",
+              configuration: "default")
+}
