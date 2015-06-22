@@ -59,6 +59,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
+import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
@@ -1199,7 +1200,7 @@ public abstract class AbstractTransactionTest {
     public void testTableMetadata() {
         byte[] metadataForTable = keyValueService.getMetadataForTable(TEST_TABLE);
         assertTrue(metadataForTable == null || Arrays.equals(PtBytes.EMPTY_BYTE_ARRAY, metadataForTable));
-        byte[] bytes = new byte[] {1,2,3,4,5,2,3,41,23,4};
+        byte[] bytes = new TableMetadata().persistToBytes();
         keyValueService.putMetadataForTable(TEST_TABLE, bytes);
         byte[] bytesRead = keyValueService.getMetadataForTable(TEST_TABLE);
         assertTrue(Arrays.equals(bytes, bytesRead));

@@ -30,6 +30,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import javax.annotation.Nullable;
 
+import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.Cassandra.Client;
 import org.apache.cassandra.thrift.CfDef;
@@ -92,6 +93,7 @@ import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.property.AtlasSystemPropertyManager;
 import com.palantir.atlasdb.schema.UpgradeFailedException;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
@@ -122,6 +124,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     private final ConsistencyLevel writeConsistency = ConsistencyLevel.EACH_QUORUM;
     private final ConsistencyLevel deleteConsistency = ConsistencyLevel.ALL;
 
+    private static final long TRANSACTION_TS = 0L;
 
     public static CassandraKeyValueService create(Set<String> hosts,
                                                   final int port,
@@ -762,7 +765,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                                 }
 
                                 Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey = CassandraKeyValueServices.getColsByKey(firstPage);
-                                return resultsExtractor.get().getPageFromRangeResults(colsByKey, timestamp, selection, endExclusive);
+                                TokenBackedBasicResultsPage<RowResult<U>, byte[]> ret = resultsExtractor.get().getPageFromRangeResults(colsByKey, timestamp, selection, endExclusive);
+                                return ret;
                             }
                         });
                     }
@@ -1017,9 +1021,40 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     @Override
-    public void putUnlessExists(String tableName, Map<Cell, byte[]> values)
+    public void putUnlessExists(final String tableName, final Map<Cell, byte[]> values)
             throws KeyAlreadyExistsException {
-        throw new UnsupportedOperationException();
+        Validate.isTrue(TransactionConstants.TRANSACTION_TABLE.equals(tableName));
+        try {
+            clientPool.runWithPooledResource(new FunctionCheckedException<Client, Void, Exception>() {
+                @Override
+                public Void apply(Client client) throws Exception {
+                    for (Map.Entry<Cell, byte[]> e : values.entrySet()) {
+                        ByteBuffer rowName = ByteBuffer.wrap(e.getKey().getRowName());
+                        byte[] contents = e.getValue();
+                        long timestamp = TRANSACTION_TS;
+                        byte[] colName = CassandraKeyValueServices.makeComposite(e.getKey().getColumnName(), timestamp);
+                        Column col = new Column();
+                        col.setName(colName);
+                        col.setValue(contents);
+                        col.setTimestamp(timestamp);
+                        CASResult casResult = client.cas(
+                                rowName,
+                                tableName,
+                                ImmutableList.<Column>of(),
+                                ImmutableList.of(col),
+                                ConsistencyLevel.SERIAL,
+                                writeConsistency);
+                        if (!casResult.isSuccess()) {
+                            throw new KeyAlreadyExistsException("This transaction row already exists.", ImmutableList.of(e.getKey()));
+                        }
+                    }
+                    return null;
+                }
+            });
+        } catch (Exception e) {
+            throw Throwables.throwUncheckedException(e);
+        }
+
     }
 
     private void trySchemaMutationLock() throws InterruptedException, TimeoutException {

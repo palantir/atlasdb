@@ -98,6 +98,7 @@ import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.property.AtlasSystemPropertyManager;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
@@ -141,6 +142,8 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     private static final String COL_NAME_COL = "column1";
     private static final String TS_COL = "column2";
     private static final String VALUE_COL = "value";
+
+    private static final long TRANSACTION_TS = 0L;
 
     public static CQLKeyValueService create(Set<String> hosts,
                                             final int port,
@@ -694,22 +697,15 @@ public class CQLKeyValueService extends AbstractKeyValueService {
 
     @Override
     public void put(final String tableName, final Map<Cell, byte[]> values, final long timestamp) {
-        try {
-            putInternal(
-                    tableName,
-                    KeyValueServices.toConstantTimestampValues(values.entrySet(), timestamp));
-        } catch (Throwable t) {
-            throw Throwables.throwUncheckedException(t);
-        }
+        putInternal(
+                tableName,
+                KeyValueServices.toConstantTimestampValues(values.entrySet(), timestamp),
+                false);
     }
 
     @Override
     public void putWithTimestamps(String tableName, Multimap<Cell, Value> values) {
-        try {
-            putInternal(tableName, values.entries());
-        } catch (Throwable t) {
-            throw Throwables.throwUncheckedException(t);
-        }
+        putInternal(tableName, values.entries(), false);
     }
 
     @Override
@@ -744,7 +740,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                     public Entry<Cell, Value> apply(Entry<Cell, byte[]> input) {
                         return Maps.immutableEntry(input.getKey(), Value.create(input.getValue(), timestamp));
                     }});
-                resultSetFutures.put(getPutPartitionResultSetFuture(table, partition), table);
+                resultSetFutures.put(getPutPartitionResultSetFuture(table, partition, false), table);
             }
         }
 
@@ -756,16 +752,14 @@ public class CQLKeyValueService extends AbstractKeyValueService {
             } catch (Throwable t) {
                 throw Throwables.throwUncheckedException(t);
             }
-            logTracedQuery(getPutQuery(resultSetFutures.get(resultSetFuture)), resultSet);
+            logTracedQuery(getPutQuery(resultSetFutures.get(resultSetFuture), false), resultSet);
         }
     }
 
     private final long TS_SIZE = 4L;
 
-    private void putInternal(final String tableName, final Iterable<Map.Entry<Cell, Value>> values)
-            throws Exception {
-        final String putQuery = "INSERT INTO " + getFullTableName(tableName) + " (" + ROW_NAME
-                + ", " + COL_NAME_COL + ", " + TS_COL + ", " + VALUE_COL + ") VALUES (?, ?, ?, ?)";
+    private void putInternal(final String tableName, final Iterable<Map.Entry<Cell, Value>> values, boolean addNotExists)
+            throws KeyAlreadyExistsException {
         Function<Entry<Cell, Value>, Long> sizingFunction = new Function<Entry<Cell, Value>, Long>() {
             @Override
             public Long apply(@Nullable Entry<Cell, Value> input) {
@@ -781,28 +775,38 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                 mutationBatchSizeBytes,
                 tableName,
                 sizingFunction)) {
-            resultSetFutures.add(getPutPartitionResultSetFuture(tableName, partition));
+            resultSetFutures.add(getPutPartitionResultSetFuture(tableName, partition, addNotExists));
         }
         for (ResultSetFuture resultSetFuture : resultSetFutures) {
             ResultSet resultSet;
             try {
                 resultSet = resultSetFuture.getUninterruptibly();
                 resultSet.all();
+                if (!resultSet.wasApplied()) {
+                    throw new KeyAlreadyExistsException("We already have a value for this timestamp");
+                }
+            } catch (KeyAlreadyExistsException t) {
+                throw t;
             } catch (Throwable t) {
                 throw Throwables.throwUncheckedException(t);
             }
-            logTracedQuery(putQuery, resultSet);
+            logTracedQuery(getPutQuery(tableName, addNotExists), resultSet);
         }
     }
 
-    private String getPutQuery(String tableName) {
-        return "INSERT INTO " + getFullTableName(tableName) + " (" + ROW_NAME + ", " + COL_NAME_COL
-                + ", " + TS_COL + ", " + VALUE_COL + ") VALUES (?, ?, ?, ?)";
+    private String getPutQuery(String tableName, boolean addNotExists) {
+        StringBuilder sb = new StringBuilder("INSERT INTO " + getFullTableName(tableName) + " (" + ROW_NAME + ", " + COL_NAME_COL
+                + ", " + TS_COL + ", " + VALUE_COL + ") VALUES (?, ?, ?, ?)");
+        if (addNotExists) {
+            sb.append(" IF NOT EXISTS");
+        }
+        return sb.toString();
     }
 
     private ResultSetFuture getPutPartitionResultSetFuture(String tableName,
-                                                           List<Entry<Cell, Value>> partition) {
-        PreparedStatement preparedStatement = getPreparedStatement(getPutQuery(tableName));
+                                                           List<Entry<Cell, Value>> partition,
+                                                           boolean addNotExists) {
+        PreparedStatement preparedStatement = getPreparedStatement(getPutQuery(tableName, addNotExists));
         preparedStatement.setConsistencyLevel(writeConsistency);
 
         // Be mindful when using the atomicity semantics of UNLOGGED batch statements.
@@ -1204,19 +1208,15 @@ public class CQLKeyValueService extends AbstractKeyValueService {
 
     @Override
     public void addGarbageCollectionSentinelValues(String tableName, Set<Cell> cells) {
-        try {
-            final Value value = Value.create(new byte[0], Value.INVALID_VALUE_TIMESTAMP);
-            putInternal(
-                    tableName,
-                    Iterables.transform(cells, new Function<Cell, Map.Entry<Cell, Value>>() {
-                        @Override
-                        public Entry<Cell, Value> apply(Cell cell) {
-                            return Maps.immutableEntry(cell, value);
-                        }
-                    }));
-        } catch (Throwable t) {
-            throw Throwables.throwUncheckedException(t);
-        }
+        final Value value = Value.create(PtBytes.EMPTY_BYTE_ARRAY, Value.INVALID_VALUE_TIMESTAMP);
+        putInternal(
+                tableName,
+                Iterables.transform(cells, new Function<Cell, Map.Entry<Cell, Value>>() {
+                    @Override
+                    public Entry<Cell, Value> apply(Cell cell) {
+                        return Maps.immutableEntry(cell, value);
+                    }
+                }), false);
     }
 
     @Override
@@ -1235,7 +1235,10 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     @Override
     public void putUnlessExists(String tableName, Map<Cell, byte[]> values)
             throws KeyAlreadyExistsException {
-        throw new UnsupportedOperationException();
+        Validate.isTrue(TransactionConstants.TRANSACTION_TABLE.equals(tableName));
+        putInternal(tableName,
+                KeyValueServices.toConstantTimestampValues(values.entrySet(), TRANSACTION_TS),
+                true);
     }
 
     private String getFullTableName(String tableName) {

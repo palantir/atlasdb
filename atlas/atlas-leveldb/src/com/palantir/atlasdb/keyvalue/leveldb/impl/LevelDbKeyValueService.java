@@ -65,6 +65,7 @@ import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.NonIdempotent;
 import com.palantir.common.base.ClosableIterator;
@@ -87,7 +88,7 @@ public final class LevelDbKeyValueService implements KeyValueService {
     private static final byte[] COMMIT_TS_COLUMN = PtBytes.toBytes("t");
     private static final int MAX_SMALL_TABLE_SIZE = 8;
     private static final String LOCK_FILE_PREFIX = ".pt_kv_lock";
-    private static final String TRANSACTION_TABLE = "_transactions";
+    private static final String TRANSACTION_TABLE = TransactionConstants.TRANSACTION_TABLE;
 
     private final DB db;
     private final FileLock lock;
