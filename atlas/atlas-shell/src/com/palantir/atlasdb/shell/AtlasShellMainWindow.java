@@ -108,19 +108,16 @@ public class AtlasShellMainWindow implements AtlasShellToolBar.Actions {
 
     @Override
     public void doConnect() {
-        if (model.shouldConnect()) {
-            String rawScriptlet = String.format(
-                    "connect(:type=>'%s',:host=>'%s',:port=>'%s',:identifier=>'%s',:username=>'%s',:password=>'@PASSWORD@')",
-                    model.getTypeText(),
-                    model.getHostText(),
-                    model.getPortText(),
-                    model.getIdentifierText(),
-                    model.getUsernameText());
-            AtlasShellRubyScriptlet atlasShellRubyScriptlet = new AtlasShellRubyScriptlet(
-                    rawScriptlet);
-            atlasShellRubyScriptlet.substitute("@PASSWORD@", String.valueOf(model.getPasswordText()));
-            newShell(model.getConnectionNameText(), atlasShellRubyScriptlet);
-        }
+        String rawScriptlet = String.format(
+                "connect(:type=>'%s',:host=>'%s',:port=>'%s',:identifier=>'%s',:username=>'%s',:password=>'@PASSWORD@')",
+                "MEMORY",
+                "",
+                "",
+                "",
+                "");
+        AtlasShellRubyScriptlet atlasShellRubyScriptlet = new AtlasShellRubyScriptlet(rawScriptlet);
+        atlasShellRubyScriptlet.substitute("@PASSWORD@", String.valueOf(""));
+        newShell("in memory", atlasShellRubyScriptlet);
     }
 
     @Override

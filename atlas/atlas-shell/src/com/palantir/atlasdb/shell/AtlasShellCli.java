@@ -92,4 +92,8 @@ public class AtlasShellCli {
         }
         return scriptlet;
     }
+
+    public static void main(String[] args) {
+        AtlasShellCli.create(new InMemoryAtlasShellContextFactory()).run(args);
+    }
 }

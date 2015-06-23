@@ -20,11 +20,6 @@ import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Bytes;
 import com.google.common.primitives.UnsignedBytes;
-import com.palantir.common.base.AbortingVisitor;
-import com.palantir.common.base.AbortingVisitors;
-import com.palantir.common.base.BatchingVisitable;
-import com.palantir.common.concurrent.NamedThreadFactory;
-import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
@@ -32,7 +27,11 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.table.description.UniformRowNamePartitioner;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.Transaction;
-import com.palantir.util.Futures;
+import com.palantir.common.base.AbortingVisitor;
+import com.palantir.common.base.AbortingVisitors;
+import com.palantir.common.base.BatchingVisitable;
+import com.palantir.common.concurrent.NamedThreadFactory;
+import com.palantir.common.concurrent.PTExecutors;
 
 /**
  * This class wraps a more Ruby-friendly interface around {@link Transaction}
@@ -147,7 +146,9 @@ final public class AtlasShellTransactionAdapter {
             }));
         }
 
-        Futures.waitForAllFutures(futures);
+        for (Future<Void> future : futures) {
+            future.get();
+        }
         executor.shutdown();
     }
 

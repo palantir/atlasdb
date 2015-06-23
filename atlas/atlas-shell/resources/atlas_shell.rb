@@ -14,25 +14,20 @@ java_import com.google.common.collect.Maps
 java_import com.google.common.collect.Multimap
 java_import com.palantir.atlasdb.shell.AtlasShellRubyHelpers
 java_import com.palantir.atlasdb.shell.AtlasShellRubyHelpers::ProtoToMapHelper
-java_import com.palantir.metropolis.keyvalue.api.Cell
-java_import com.palantir.metropolis.keyvalue.api.RangeRequests
-java_import com.palantir.metropolis.encoding.PtBytes
+java_import com.palantir.atlasdb.keyvalue.api.Cell
+java_import com.palantir.atlasdb.keyvalue.api.RangeRequests
+java_import com.palantir.atlasdb.encoding.PtBytes
+java_import com.google.common.io.BaseEncoding
 java_import com.palantir.atlasdb.protos.generated.TableMetadataPersistence::ValueByteOrder
 
 # For streams
-java_import com.palantir.util.BasicDataUtils
-java_import com.palantir.metropolis.stream.StreamStoreImpl
+java_import com.palantir.atlasdb.stream.GenericStreamStore
 
 # For interactively prompting connection info
 java_import com.palantir.atlasdb.shell.AtlasShellConnectionType
 
-# For loading connection info from prefs files
-java_import com.palantir.util.PTConfiguration
-java_import com.palantir.util.server.SecureServer
-java_import com.palantir.nexus.db.manager.DatabaseConstants
-
 # For configuring chunking strategy when performing parallel range requests
-java_import com.palantir.metropolis.table.description.ValueType
+java_import com.palantir.atlasdb.table.description.ValueType
 
 module AtlasDBShell
 
@@ -339,14 +334,22 @@ module AtlasDBShell
 
     # TODO(jaapweel): implement this stuff on the Java side
 
+    def decodeHex hex
+      return BaseEncoding.base16().lowerCase().decode(hex);
+    end
+
+    def encodeHex bytes
+      return BaseEncoding.base16().lowerCase().encode(bytes);
+    end
+
     def hex_to_row_name hex
-      java_bytes = PtBytes.decodeHex(hex)
+      java_bytes = decodeHex(hex)
       return @metadata.getRowMetadata.renderToJson(java_bytes)
     end
 
     def hex_to_column_name hex
       if @metadata.getColumns.getDynamicColumn
-        java_bytes = PtBytes.decodeHex(hex)
+        java_bytes = decodeHex(hex)
         dynamic_column_description =  @metadata.getColumns.getDynamicColumn
         name_metadata_desc = dynamic_column_description.getColumnNameDesc
         return name_metadata_desc.renderToJson(java_bytes)
@@ -355,7 +358,7 @@ module AtlasDBShell
         short_name = named_column_description.getShortName
         long_name = named_column_description.getLongName
         short_bytes = short_name.bytes.to_a.to_java(:byte)
-        short_hex = PtBytes.encodeHexString(short_bytes)
+        short_hex = encodeHex(short_bytes)
         if short_hex == hex
           return long_name
         end
@@ -364,7 +367,7 @@ module AtlasDBShell
     end
 
     def hex_to_column_value hex, column_name = nil
-      java_bytes = PtBytes.decodeHex(hex)
+      java_bytes = decodeHex(hex)
       if @metadata.getColumns.getDynamicColumn
         dynamic_column_description =  @metadata.getColumns.getDynamicColumn
         column_value_description = dynamic_column_description.getValue
@@ -384,19 +387,19 @@ module AtlasDBShell
     def row_name_to_hex row_obj
       java_bytes = _row_obj_to_bytes(row_obj)
       return nil if java_bytes.nil?
-      PtBytes.encodeHexString(java_bytes)
+      encodeHex(java_bytes)
     end
 
     def column_name_to_hex column_obj
       java_bytes = _column_obj_to_column_bytes(column_obj)
       return nil if java_bytes.nil?
-      PtBytes.encodeHexString(java_bytes)
+      encodeHex(java_bytes)
     end
 
     def column_value_to_hex value_obj, column_name = nil
       column_bytes, value_bytes = _column_obj_and_value_obj_to_column_bytes_and_value_bytes(column_name, value_obj)
       return nil if value_bytes.nil?
-      PtBytes.encodeHexString(value_bytes)
+      encodeHex(value_bytes)
     end
 
     def _row_obj_to_bytes row_obj
@@ -659,7 +662,7 @@ module AtlasDBShell
     end
 
     def row_name_hex
-      PtBytes.encodeHexString(@raw_row.getRowName)
+      encodeHex(@raw_row.getRowName)
     end
 
     def column_names_hex
@@ -667,7 +670,7 @@ module AtlasDBShell
         d = @table.metadata.getColumns.getDynamicColumn
         es = @raw_row.getColumns.collect do |k,v|
           key = OkJson.decode(d.getColumnNameDesc.renderToJson(k))
-          value = PtBytes.encodeHexString(k)
+          value = encodeHex(k)
           [key, value]
         end
         Hash[es]
@@ -675,7 +678,7 @@ module AtlasDBShell
         Hash[
           @table.metadata.getColumns.getNamedColumns.collect do |nc|
             [nc.getLongName,
-              PtBytes.encodeHexString(PtBytes.toBytes(nc.getShortName))
+              encodeHex(PtBytes.toBytes(nc.getShortName))
             ]
           end
         ]
@@ -883,7 +886,7 @@ module AtlasDBShell
   end
 
   class Streams
-    BLOCK_SIZE_IN_BYTES = StreamStoreImpl::BLOCK_SIZE_IN_BYTES
+    BLOCK_SIZE_IN_BYTES = GenericStreamStore::BLOCK_SIZE_IN_BYTES
 
     def initialize connection
       @connection = connection
@@ -910,16 +913,6 @@ module AtlasDBShell
     def get_stream_raw id
       hex_string = get_stream_as_hex(id)
       hex_string_to_java_bytes(hex_string)
-    end
-
-    def get_stream_uncompressed id
-      java_bytes = get_stream_raw(id)
-      begin
-        BasicDataUtils.decompress(java_bytes)
-      rescue => e
-        $stderr.puts 'Stream could not be decompressed, returned raw stream'
-        java_bytes
-      end
     end
   end
 
@@ -1228,7 +1221,5 @@ class << self
 end
 
 include AtlasDBShell
-
-load 'pg_utility_methods.rb'
 
 puts "Welcome to the AtlasDB shell.  Type 'help' for help with commands.\n\n"

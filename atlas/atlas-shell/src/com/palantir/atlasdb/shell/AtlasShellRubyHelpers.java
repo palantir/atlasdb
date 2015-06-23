@@ -20,16 +20,15 @@ import com.google.protobuf.DynamicMessage;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.googlecode.protobuf.format.JsonFormat;
 import com.googlecode.protobuf.format.JsonFormat.ParseException;
-import com.palantir.atlasdb.shell.AtlasShellRubyHelpers.JsonFormatAdaptor.TokenizerAdaptor;
-import com.palantir.common.persist.Persistable;
 import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.shell.AtlasShellRubyHelpers.JsonFormatAdaptor.TokenizerAdaptor;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
-import com.palantir.proto.fork.ForkedJsonFormat;
+import com.palantir.common.persist.Persistable;
 import com.palantir.ptoss.util.Throwables;
 
 /**
@@ -80,7 +79,7 @@ public class AtlasShellRubyHelpers {
                     DynamicMessage dynamicMessage = DynamicMessage.parseFrom(
                             protoDescriptor,
                             uncompressed);
-                    String theAllegedAnswer = ForkedJsonFormat.printToString(dynamicMessage);
+                    String theAllegedAnswer = JsonFormat.printToString(dynamicMessage);
                     return ProtobufJavaFormatWorkaround.cleanupJsonWithInvalidEscapes(theAllegedAnswer);
                 } catch (InvalidProtocolBufferException e) {
                     throw Throwables.throwUncheckedException(e);
