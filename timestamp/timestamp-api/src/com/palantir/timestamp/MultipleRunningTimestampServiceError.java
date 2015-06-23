@@ -25,4 +25,12 @@ public class MultipleRunningTimestampServiceError extends Error {
     public MultipleRunningTimestampServiceError(String message) {
         super(message);
     }
+
+    public MultipleRunningTimestampServiceError(String message, Throwable t) {
+        super(message, t);
+    }
+
+    public MultipleRunningTimestampServiceError(Throwable t) {
+        super(t);
+    }
 }

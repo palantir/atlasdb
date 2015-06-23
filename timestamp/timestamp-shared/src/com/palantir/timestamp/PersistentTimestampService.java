@@ -86,10 +86,13 @@ final class PersistentTimestampService implements TimestampService {
         long newLimit = lastReturnedTimestamp.get() + ALLOCATION_BUFFER_SIZE;
         store.storeUpperLimit(newLimit);
         // Prevent upper limit from falling behind stored upper limit.
+        advanceAtomicLongToValue(upperLimitToHandOutInclusive, newLimit);
+    }
+
+    private static void advanceAtomicLongToValue(AtomicLong toAdvance, long val) {
         while (true) {
-            long oldUpper = upperLimitToHandOutInclusive.get();
-            if (newLimit <= oldUpper
-                    || upperLimitToHandOutInclusive.compareAndSet(oldUpper, newLimit)) {
+            long oldUpper = toAdvance.get();
+            if (val <= oldUpper || toAdvance.compareAndSet(oldUpper, val)) {
                 return;
             }
         }
@@ -107,6 +110,10 @@ final class PersistentTimestampService implements TimestampService {
                         lastAllocatedTime = clock.getTimeMillis();
                         allocationFailure = null;
                     } catch (Throwable e) { // (authorized)
+                        if (e instanceof MultipleRunningTimestampServiceError) {
+                            // don't allow any more handout until we resolve this
+                            advanceAtomicLongToValue(lastReturnedTimestamp, upperLimitToHandOutInclusive.get());
+                        }
                         createdException.initCause(e);
                         if (allocationFailure != null
                                 && e.getClass().equals(allocationFailure.getClass())) {
