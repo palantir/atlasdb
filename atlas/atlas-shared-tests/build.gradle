@@ -6,16 +6,7 @@ repositories {
     ptrepo()
 }
 sourceSets.test.java.srcDirs=[file('test-src')]
-configurations {
-    testArtifacts.extendsFrom testRuntime
-}
-task testJar(type: Jar) {
-    classifier "test"
-    from sourceSets.test.output
-}
-artifacts {
-    testArtifacts testJar
-}
+configurations.create('test').extendsFrom(configurations.testRuntime)
 sourceCompatibility = "1.6"
 targetCompatibility = "1.6"
 dependencies {
@@ -28,4 +19,6 @@ dependencies {
               name: "jmock",
               version: "2.5.1",
               configuration: "default")
+  test sourceSets.test.output
+
 }

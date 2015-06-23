@@ -15,5 +15,5 @@ dependencies {
   compile(project(":atlas:atlas-client"))
   compile(project(":commons-cassandra"))
   compile(project(":timestamp:timestamp-api"))
-  testCompile project(path: ":atlas:atlas-shared-tests", configuration: 'testArtifacts')
+  testCompile project(path: ":atlas:atlas-shared-tests", configuration: 'test')
 }

@@ -22,5 +22,5 @@ dependencies {
               version: "4.11",
               configuration: "default")
 
-  testCompile project(path: ":atlas:atlas-shared-tests", configuration: 'testArtifacts')
+  testCompile project(path: ":atlas:atlas-shared-tests", configuration: 'test')
 }
