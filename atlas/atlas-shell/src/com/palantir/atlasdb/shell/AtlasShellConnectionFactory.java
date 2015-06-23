@@ -1,12 +1,11 @@
 package com.palantir.atlasdb.shell;
 
-import com.palantir.lock.LockClient;
-import com.palantir.lock.LockService;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.impl.ShellAwareReadOnlyTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SnapshotTransactionManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
-import com.palantir.nexus.db.DbConnectionInfo;
+import com.palantir.lock.LockClient;
+import com.palantir.lock.LockService;
 import com.palantir.timestamp.TimestampService;
 
 /**
@@ -94,18 +93,6 @@ public final class AtlasShellConnectionFactory {
         return AtlasShellConnection.createAtlasShellConnection(atlasContext);
     }
 
-    /**
-     * Create an {@link AtlasShellConnection} with a {@link ShellAwareReadOnlyTransactionManager} in
-     * it by connecting to a database
-     *
-     * @param host host to connect to (see {@link DbConnectionInfo})
-     * @param port port to connect to (see {@link DbConnectionInfo})
-     * @param sid SID to log in with (see {@link DbConnectionInfo})
-     * @param type type of database (see {@link DbConnectionInfo})
-     * @param username user name to log in with (see {@link DbConnectionInfo})
-     * @param password password to log in with (see {@link DbConnectionInfo})
-     * @return an {@link AtlasShellConnection}
-     */
     public AtlasShellConnection withShellAwareReadOnlyTransactionManagerFromDb(String host,
                                                                                String port,
                                                                                String sid,

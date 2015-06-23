@@ -41,10 +41,10 @@ import org.jruby.demo.TextAreaReadline;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
-import com.palantir.atlasdb.shell.audit.AuditLoggingConnection;
-import com.palantir.common.swing.PTSwingRunnables;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.shell.audit.AuditLoggingConnection;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.ptoss.util.Throwables;
 
 
@@ -109,7 +109,7 @@ public class AtlasShellPanel extends JPanel implements AtlasShellGuiCallback {
                              final boolean limitedResults) {
                 assert !SwingUtilities.isEventDispatchThread();
                 try {
-                    PTSwingRunnables.invokeAndWait(new Runnable() {
+                    SwingUtilities.invokeAndWait(PTExecutors.wrap(new Runnable() {
                         @Override
                         public void run() {
                             AtlasShellPanel.this.graphicalView(
@@ -119,7 +119,7 @@ public class AtlasShellPanel extends JPanel implements AtlasShellGuiCallback {
                                     rows,
                                     limitedResults);
                         }
-                    });
+                    }));
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                 } catch (InvocationTargetException e) {

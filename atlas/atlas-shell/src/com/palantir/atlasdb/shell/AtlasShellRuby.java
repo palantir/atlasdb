@@ -10,8 +10,6 @@ import java.util.Set;
 
 import javax.script.ScriptException;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.jruby.Ruby;
 import org.jruby.RubyModule;
 import org.jruby.RubyString;
@@ -24,17 +22,17 @@ import org.jruby.runtime.Arity;
 import org.jruby.runtime.Block;
 import org.jruby.runtime.builtin.IRubyObject;
 import org.jruby.runtime.callback.Callback;
-import org.springframework.remoting.RemoteConnectFailureException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.shell.audit.AuditLoggingConnection;
 import com.palantir.atlasdb.shell.audit.AuditLoggingSession;
 import com.palantir.atlasdb.shell.audit.AuditingInputStream;
 import com.palantir.atlasdb.shell.audit.AuditingOutputStream;
-import com.palantir.common.base.Throwables;
-import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.table.description.TableMetadata;
 
 final public class AtlasShellRuby {
@@ -163,25 +161,16 @@ final public class AtlasShellRuby {
         this.thread = new Thread(new Runnable() {
             @Override
             public void run() {
-                // Outer try handles connection-errors
                 try {
-                    // Inner try handles user-errors
-                    try {
-                        String script = generateRubyScript(scriptlet.preprocess(), interactive);
-                        messageWithoutAuditing("%s\n", scriptlet.getRawScriptlet());
-                        auditLogger.userExecutedScriptlet(scriptlet.getRawScriptlet());
-                        returnValue = scriptingContainer.runScriptlet(script);
-                        auditLogger.flushStreamLoggers();
-                    } catch (IOException e) {
-                        error(e);
-                    } catch (RuntimeException e) {
-                        Throwables.throwIfInstance(e, RemoteConnectFailureException.class);
-                        Throwables.throwIfInstance(e.getCause(), RemoteConnectFailureException.class);
-                        error(e);
-                    }
-                } catch (RemoteConnectFailureException e) {
-                    log.error("Could not connect to server", e);
-                    messageWithoutAuditing("Could not connect to server: %s\n", e.getMessage());
+                    String script = generateRubyScript(scriptlet.preprocess(), interactive);
+                    messageWithoutAuditing("%s\n", scriptlet.getRawScriptlet());
+                    auditLogger.userExecutedScriptlet(scriptlet.getRawScriptlet());
+                    returnValue = scriptingContainer.runScriptlet(script);
+                    auditLogger.flushStreamLoggers();
+                } catch (IOException e) {
+                    error(e);
+                } catch (RuntimeException e) {
+                    error(e);
                 } finally {
                     messageWithoutAuditing("DONE\n");
                 }

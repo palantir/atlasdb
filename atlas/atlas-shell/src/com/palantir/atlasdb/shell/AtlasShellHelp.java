@@ -12,12 +12,13 @@ import javax.swing.JEditorPane;
 import javax.swing.JFrame;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
+import javax.swing.SwingUtilities;
 
 import com.github.rjeschke.txtmark.Processor;
 import com.google.common.collect.Lists;
 import com.google.common.io.CharStreams;
 import com.google.common.io.Resources;
-import com.palantir.common.swing.PTSwingRunnables;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.ptoss.util.Throwables;
 import com.palantir.util.Pair;
 
@@ -34,12 +35,12 @@ final class AtlasShellHelp {
             JEditorPane jEditorPane = new JEditorPane("text/html", htmlContents);
             jEditorPane.setEditable(false);
             final JScrollPane jScrollPane = new JScrollPane(jEditorPane);
-            PTSwingRunnables.invokeLater(new Runnable() {
+            SwingUtilities.invokeLater(PTExecutors.wrap(new Runnable() {
                 @Override
                 public void run() {
                     jScrollPane.getVerticalScrollBar().setValue(0);
                 }
-             });
+             }));
             jTabbedPane.addTab(title, jScrollPane);
         }
         JFrame jFrame = new JFrame("AtlasDB Shell Help");

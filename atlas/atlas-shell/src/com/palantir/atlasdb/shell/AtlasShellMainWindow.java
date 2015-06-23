@@ -108,9 +108,6 @@ public class AtlasShellMainWindow implements AtlasShellToolBar.Actions {
 
     @Override
     public void doConnect() {
-        AtlasShellConnectionDialogModel model = new AtlasShellConnectionDialogModel();
-        AtlasShellConnectionDialogView.create(model);
-
         if (model.shouldConnect()) {
             String rawScriptlet = String.format(
                     "connect(:type=>'%s',:host=>'%s',:port=>'%s',:identifier=>'%s',:username=>'%s',:password=>'@PASSWORD@')",
