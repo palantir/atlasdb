@@ -28,12 +28,6 @@ public interface TimestampService {
     TimestampRange getFreshTimestamps(int numTimestampsRequested);
 
     /**
-     * @return True if and only if this service is fetching timestamps from the database matching
-     * this identifier.
-     */
-    boolean isRunningAgainstExpectedDatabase(DatabaseIdentifier id);
-
-    /**
      * @return True if this service is in sync with its backing store.
      */
     boolean isTimestampStoreStillValid();

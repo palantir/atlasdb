@@ -41,11 +41,6 @@ public class InMemoryTimestampService implements TimestampService {
     }
 
     @Override
-    public boolean isRunningAgainstExpectedDatabase(DatabaseIdentifier id) {
-        return false;
-    }
-
-    @Override
     public boolean isTimestampStoreStillValid() {
         return true;
     }

@@ -67,11 +67,6 @@ class RateLimitedTimestampService implements TimestampService {
     }
 
     @Override
-    public boolean isRunningAgainstExpectedDatabase(DatabaseIdentifier id) {
-        return delegate.isRunningAgainstExpectedDatabase(id);
-    }
-
-    @Override
     public boolean isTimestampStoreStillValid() {
         return delegate.isTimestampStoreStillValid();
     }

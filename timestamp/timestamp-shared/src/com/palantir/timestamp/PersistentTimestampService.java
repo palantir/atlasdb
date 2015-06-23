@@ -42,19 +42,16 @@ final class PersistentTimestampService implements TimestampService {
     private final AtomicLong lastReturnedTimestamp;
     private final AtomicLong upperLimitToHandOutInclusive;
 
-    private final DatabaseIdentifier databaseId;
-
     private final ExecutorService executor;
     private final AtomicBoolean isAllocationTaskSubmitted;
 
     private Clock clock;
     private long lastAllocatedTime;
 
-    protected static TimestampService create(TimestampBoundStore tbs, DatabaseIdentifier databaseId) {
+    protected static TimestampService create(TimestampBoundStore tbs) {
         PersistentTimestampService ts = new PersistentTimestampService(
                 tbs,
                 tbs.getUpperLimit(),
-                databaseId,
                 new Clock() {
                     @Override
                     public long getTimeMillis() {
@@ -65,8 +62,8 @@ final class PersistentTimestampService implements TimestampService {
     }
 
     @VisibleForTesting
-    protected static TimestampService create(TimestampBoundStore tbs, DatabaseIdentifier databaseId, Clock clock) {
-        PersistentTimestampService ts = new PersistentTimestampService(tbs, tbs.getUpperLimit(), databaseId, clock);
+    protected static TimestampService create(TimestampBoundStore tbs, Clock clock) {
+        PersistentTimestampService ts = new PersistentTimestampService(tbs, tbs.getUpperLimit(), clock);
         return init(ts);
     }
 
@@ -75,10 +72,9 @@ final class PersistentTimestampService implements TimestampService {
         return ts;
     }
 
-    private PersistentTimestampService(TimestampBoundStore tbs, long lastUpperBound, DatabaseIdentifier databaseId, Clock clock) {
+    private PersistentTimestampService(TimestampBoundStore tbs, long lastUpperBound, Clock clock) {
         store = tbs;
         lastReturnedTimestamp = new AtomicLong(lastUpperBound);
-        this.databaseId = databaseId;
         upperLimitToHandOutInclusive = new AtomicLong(lastUpperBound);
         executor = PTExecutors.newSingleThreadExecutor(PTExecutors.newThreadFactory("Timestamp allocator", Thread.NORM_PRIORITY, true));
         isAllocationTaskSubmitted = new AtomicBoolean(false);
@@ -179,12 +175,6 @@ final class PersistentTimestampService implements TimestampService {
         }
     }
 
-    @Override
-    public boolean isRunningAgainstExpectedDatabase(DatabaseIdentifier id) {
-        return databaseId != null && databaseId.semanticEquals(id);
-    }
-
-    @Override
     public synchronized boolean isTimestampStoreStillValid() {
         return upperLimitToHandOutInclusive.get() == store.getUpperLimit();
     }
