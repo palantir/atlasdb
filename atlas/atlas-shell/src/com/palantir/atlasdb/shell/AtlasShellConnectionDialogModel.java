@@ -17,7 +17,6 @@ import com.google.common.io.Files;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
-import com.palantir.nexus.db.DbConnectionInfo;
 import com.palantir.ptoss.cinch.core.DefaultBindableModel;
 import com.palantir.ptoss.util.Throwables;
 

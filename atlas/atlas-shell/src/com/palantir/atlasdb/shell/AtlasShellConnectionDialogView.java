@@ -78,6 +78,21 @@ public class AtlasShellConnectionDialogView {
             identifierText.setVisible(false);
             identifierLabel.setVisible(false);
         }
+        if (connectionType == AtlasShellConnectionType.MEMORY) {
+            hostText.setText(null);
+            hostText.setVisible(false);
+            hostLabel.setVisible(false);
+
+            portText.setText(null);
+            portText.setVisible(false);
+            portLabel.setVisible(false);
+        } else {
+            hostText.setVisible(true);
+            hostLabel.setVisible(true);
+
+            portLabel.setVisible(true);
+            portText.setVisible(true);
+        }
     }
 
     @Bound(to = "identifierText")
@@ -89,6 +104,10 @@ public class AtlasShellConnectionDialogView {
     private final JPasswordField passwordText = createJPasswordField();
 
     private final JLabel identifierLabel = new JLabel("Identifier:");
+    private final JLabel hostLabel = new JLabel("Host:");
+    private final JLabel portLabel = new JLabel("Port:");
+    private final JLabel usernameLabel = new JLabel("Username:");
+    private final JLabel passwordLabel = new JLabel("Password (not saved):");
 
     private AtlasShellConnectionDialogView(AtlasShellConnectionDialogModel model) {
         this.model = model;
@@ -189,17 +208,17 @@ public class AtlasShellConnectionDialogView {
         JPanel createConnPanel = panelOf(
                 new JLabel("Connection Name:"),
                 connectionNameText,
-                new JLabel("Host:"),
-                hostText,
-                new JLabel("Port:"),
-                portText,
                 new JLabel("Type:"),
                 typeText,
+                hostLabel,
+                hostText,
+                portLabel,
+                portText,
                 identifierLabel,
                 identifierText,
-                new JLabel("Username:"),
+                usernameLabel,
                 usernameText,
-                new JLabel("Password (not saved):"),
+                passwordLabel,
                 passwordText,
                 buttonPanel);
         createConnPanel.setLayout(new BoxLayout(createConnPanel, BoxLayout.Y_AXIS));

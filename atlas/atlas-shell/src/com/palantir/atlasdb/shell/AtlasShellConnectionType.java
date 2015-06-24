@@ -11,9 +11,11 @@ enum IDENTIFIER_REQUIRED {
 
 public enum AtlasShellConnectionType {
 
-    ORACLE(IDENTIFIER_REQUIRED.YES, "SID", "localhost", 1521),
-    POSTGRESQL(IDENTIFIER_REQUIRED.YES, "dbname", "localhost", 5432),
-    DISPATCH(IDENTIFIER_REQUIRED.NO, null, "localhost", 3280);
+    MEMORY(IDENTIFIER_REQUIRED.NO, null, "localhost", 1521),
+//    ORACLE(IDENTIFIER_REQUIRED.YES, "SID", "localhost", 1521),
+//    POSTGRESQL(IDENTIFIER_REQUIRED.YES, "dbname", "localhost", 5432),
+//    DISPATCH(IDENTIFIER_REQUIRED.NO, null, "localhost", 3280)
+    ;
 
     private final IDENTIFIER_REQUIRED identifierRequired;
     private final String identifierName;
