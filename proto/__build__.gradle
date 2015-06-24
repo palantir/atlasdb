@@ -1,17 +1,15 @@
-apply plugin: 'pt-java'
-apply plugin: 'pt-repos'
-apply plugin: 'ptecj'
+apply plugin: 'java'
+apply plugin: 'eclipse'
+apply plugin: PalantirRepoPlugin
+
 repositories {
-    ptRepo('artifactory-third-party')
-    ptRepo('ivy-core')
-    ptRepo('artifactory-release')
+    ptrepo()
 }
 sourceSets.main.java.srcDirs=[file('src')]
 sourceSets.test.java.srcDirs=[file('test-src')]
 libsDirName = file('build/artifacts')
 sourceCompatibility = "1.6"
 targetCompatibility = "1.6"
-ptecj.ecjDependency = "org.eclipse.jdt.core.compiler:ecj:4.4.1"
 dependencies {
   compile(group: "com.google.protobuf",
           name: "protobuf-java",
