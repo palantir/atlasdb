@@ -25,7 +25,7 @@ by other tools to inspect the values.  Schema tables can be rendered to java
 classes to easily access tables and keep indexes up to date given the schema.
 
 #Shell
-Since everything is now stored efficiently as encoding byte arrays, inspecting
+Since everything is now stored efficiently as encoded byte arrays, inspecting
 the data becomes hard.  Atlas Shell is a ruby command line that can inspect the
 schema for each table and display the values in a readable way.  It can even
 parse the stored protobufs values because the proto description for each column
