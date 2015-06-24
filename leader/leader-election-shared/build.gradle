@@ -18,7 +18,7 @@ dependencies {
           name: "commons-lang",
           version: "2.6",
           configuration: "default")
-  compile(group: "commons-io",
+  testCompile(group: "commons-io",
           name: "commons-io",
           version: "2.1",
           configuration: "default")

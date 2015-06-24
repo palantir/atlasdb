@@ -19,8 +19,4 @@ dependencies {
   {
     transitive = false
   }
-  compile(group: "commons-io",
-          name: "commons-io",
-          version: "2.1",
-          configuration: "default")
 }

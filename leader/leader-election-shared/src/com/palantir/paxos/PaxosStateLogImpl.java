@@ -30,14 +30,14 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import javax.annotation.Nullable;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
+import com.google.common.io.Closeables;
+import com.google.common.io.Files;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
@@ -45,6 +45,7 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.persist.Persistable;
 import com.palantir.paxos.persistence.generated.PaxosPersistence;
 import com.palantir.util.crypto.Sha256Hash;
+import com.palantir.util.file.FileUtils;
 
 public class PaxosStateLogImpl<V extends Persistable & Versionable> implements PaxosStateLog<V> {
 
@@ -88,12 +89,12 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
     public PaxosStateLogImpl(String path) {
         this.path = path;
         try {
-            FileUtils.forceMkdir(new File(path));
+            FileUtils.mkdirsWithRetry(new File(path));
             if (getGreatestLogEntry() == PaxosAcceptor.NO_LOG_ENTRY) {
                 // For a brand new log, we create a lowest entry so #getLeastLogEntry will return the right thing
                 // If we didn't add this then we could miss seq 0 and accept seq 1, then when we restart we will
                 // start ignoring seq 0 which may cause things to get stalled
-                FileUtils.touch(new File(path, getFilenameFromSeq(PaxosAcceptor.NO_LOG_ENTRY)));
+                Files.touch(new File(path, getFilenameFromSeq(PaxosAcceptor.NO_LOG_ENTRY)));
             }
         } catch (IOException e) {
             throw Throwables.throwUncheckedException(e);
@@ -140,7 +141,7 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
             log.error("problem writing paxos state", e);
             throw Throwables.throwUncheckedException(e);
         } finally {
-            IOUtils.closeQuietly(fileOut);
+            try { fileOut.close(); } catch (IOException e) {}
         }
 
         // overwrite file with tmp
@@ -267,7 +268,7 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
                 log.error("problem reading paxos state");
                 throw Throwables.rewrap(e);
             } finally {
-                IOUtils.closeQuietly(fileIn);
+                Closeables.closeQuietly(fileIn);
             }
         } finally {
             lock.unlock();

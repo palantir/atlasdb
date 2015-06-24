@@ -31,7 +31,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,7 +69,6 @@ import com.palantir.util.ByteArrayIOStream;
 import com.palantir.util.crypto.Sha256Hash;
 import com.palantir.util.file.DeleteOnCloseFileInputStream;
 import com.palantir.util.file.FileUtils;
-
 
 public class StreamTestStreamStore implements PersistentStreamStore<Long> {
     public static final int BLOCK_SIZE_IN_BYTES = 1000000; // 1MB. DO NOT CHANGE THIS WITHOUT AN UPGRADE TASK
@@ -415,7 +413,7 @@ public class StreamTestStreamStore implements PersistentStreamStore<Long> {
             log.error("Could not finish streaming blocks to file for stream " + id, e);
             throw Throwables.rewrapAndThrowUncheckedException("Error writing blocks while opening a stream.", e);
         } finally {
-            IOUtils.closeQuietly(fos);
+            try { fos.close(); } catch (IOException e) {}
         }
     }
 
@@ -702,7 +700,6 @@ public class StreamTestStreamStore implements PersistentStreamStore<Long> {
      * {@link FileUtils}
      * {@link HashMultimap}
      * {@link IOException}
-     * {@link IOUtils}
      * {@link ImmutableMap}
      * {@link ImmutableSet}
      * {@link InputStream}

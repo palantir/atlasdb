@@ -31,7 +31,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -614,7 +613,7 @@ public class StreamStoreRenderer {
                         _("log.error(\"Could not finish streaming blocks to file for stream \" + id, e);");
                         _("throw Throwables.rewrapAndThrowUncheckedException(\"Error writing blocks while opening a stream.\", e);");
                     } _("} finally {"); {
-                        _("IOUtils.closeQuietly(fos);");
+                        _("try { fos.close(); } catch (IOException e) {}");
                     } _("}");
                 } _("}");
             }
@@ -996,10 +995,10 @@ public class StreamStoreRenderer {
                 _();
                 _("import com.google.common.collect.Lists;");
                 _("import com.google.common.collect.Sets;");
-                _("import com.palantir.atlasdb.protos.generated.StreamPersistence.Status;");
-                _("import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;");
                 _("import com.palantir.atlasdb.cleaner.api.OnCleanupTask;");
                 _("import com.palantir.atlasdb.keyvalue.api.Cell;");
+                _("import com.palantir.atlasdb.protos.generated.StreamPersistence.Status;");
+                _("import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;");
                 _("import com.palantir.atlasdb.table.description.ValueType;");
                 _("import com.palantir.atlasdb.transaction.api.Transaction;");
 
@@ -1047,7 +1046,6 @@ public class StreamStoreRenderer {
         Entry.class,
         Set.class,
         TimeUnit.class,
-        IOUtils.class,
         Logger.class,
         LoggerFactory.class,
         Preconditions.class,

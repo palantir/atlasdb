@@ -15,6 +15,7 @@
 package com.palantir.leader.proxy;
 
 import java.io.Closeable;
+import java.io.IOException;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -23,7 +24,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -110,10 +110,10 @@ public final class AwaitingLeadershipProxy implements InvocationHandler {
         }
     }
 
-    private void clearDelegate() {
+    private void clearDelegate() throws IOException {
         Object delegate = delegateRef.getAndSet(null);
         if (delegate instanceof Closeable) {
-            IOUtils.closeQuietly((Closeable) delegate);
+            ((Closeable) delegate).close();
         }
     }
 
