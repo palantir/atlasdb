@@ -17,7 +17,7 @@ package com.palantir.atlasdb.transaction.service;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 
 public class TransactionServices {
-	public static SimpleTransactionService createTransactionService(
+	public static TransactionService createTransactionService(
 			KeyValueService keyValueService) {
 		return new SimpleTransactionService(keyValueService);
 	}

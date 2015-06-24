@@ -179,12 +179,19 @@ public class AtlasShellConnectionDialogModel extends DefaultBindableModel {
     }
 
     public boolean validateCurrentConnectionForConnect() {
-        return validateCurrentConnectionForSave() && passwordText.length > 0;
+        if (typeText.isEmpty()) {
+            return false;
+        }
+        AtlasShellConnectionType type = AtlasShellConnectionType.valueOf(typeText);
+        if (type == AtlasShellConnectionType.MEMORY) {
+            return true;
+        }
+        return !hostText.isEmpty() && !portText.isEmpty()
+                && !typeText.isEmpty() && validateIdentifier();
     }
 
     public boolean validateCurrentConnectionForSave() {
-        return !connectionNameText.isEmpty() && !hostText.isEmpty() && !portText.isEmpty()
-                && !typeText.isEmpty() && validateIdentifier() && !usernameText.isEmpty();
+        return validateCurrentConnectionForConnect() && !connectionNameText.isEmpty();
     }
 
     private boolean validateIdentifier() {

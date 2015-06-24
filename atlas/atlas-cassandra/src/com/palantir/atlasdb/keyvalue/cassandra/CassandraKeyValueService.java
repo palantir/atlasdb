@@ -191,7 +191,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 client = CassandraKeyValueServices.getClientInternal(host, port, isSsl);
                 String partitioner = client.describe_partitioner();
                 if (!safetyDisabled) {
-                    Validate.isTrue("com.palantir.atlasdb.keyvalue.cassandra.dht.AtlasDbPartitioner".equals(partitioner),
+                    Validate.isTrue(CassandraConstants.PARTITIONER.equals(partitioner)
+                            || CassandraConstants.PARTITIONER2.equals(partitioner),
                             "partitioner is: " + partitioner);
                 }
                 KsDef ks = null;

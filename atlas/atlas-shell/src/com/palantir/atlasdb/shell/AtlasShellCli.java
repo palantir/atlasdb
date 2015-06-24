@@ -94,6 +94,7 @@ public class AtlasShellCli {
     }
 
     public static void main(String[] args) {
-        AtlasShellCli.create(new InMemoryAtlasShellContextFactory()).run(args);
+        System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "WARN");
+        AtlasShellCli.create(new DefaultAtlasShellContextFactory()).run(args);
     }
 }

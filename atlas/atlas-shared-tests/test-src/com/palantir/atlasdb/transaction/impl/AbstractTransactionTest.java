@@ -59,6 +59,11 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
+import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
+import com.palantir.atlasdb.table.description.ColumnValueDescription;
+import com.palantir.atlasdb.table.description.DynamicColumnDescription;
+import com.palantir.atlasdb.table.description.NameComponentDescription;
+import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -87,6 +92,16 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 public abstract class AbstractTransactionTest {
     protected static final String TEST_TABLE = "table1";
+    protected static final TableMetadata TEST_TABLE_METADATA = new TableMetadata(
+            new NameMetadataDescription(ImmutableList.of(new NameComponentDescription(
+                    "row_name",
+                    ValueType.STRING))),
+            new ColumnMetadataDescription(new DynamicColumnDescription(
+                    new NameMetadataDescription(ImmutableList.of(new NameComponentDescription(
+                            "col_name",
+                            ValueType.STRING))),
+                    ColumnValueDescription.forType(ValueType.STRING))),
+            ConflictHandler.RETRY_ON_WRITE_WRITE);
 
     protected static LockClient lockClient = null;
     protected static LockServiceImpl lockService = null;
@@ -127,7 +142,9 @@ public abstract class AbstractTransactionTest {
         keyValueService.dropTable(TEST_TABLE);
         keyValueService.dropTable(TransactionConstants.TRANSACTION_TABLE);
         keyValueService.createTable(TEST_TABLE, Integer.MAX_VALUE);
+        keyValueService.putMetadataForTable(TEST_TABLE, TEST_TABLE_METADATA.persistToBytes());
         keyValueService.createTable(TransactionConstants.TRANSACTION_TABLE, ValueType.VAR_LONG.getMaxValueSize());
+        keyValueService.putMetadataForTable(TransactionConstants.TRANSACTION_TABLE, TransactionConstants.TRANSACTION_TABLE_METADATA.persistToBytes());
         transactionService = TransactionServices.createTransactionService(keyValueService);
         conflictDetectionManager = ConflictDetectionManagers.createDefault(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
@@ -1199,7 +1216,7 @@ public abstract class AbstractTransactionTest {
     @Test
     public void testTableMetadata() {
         byte[] metadataForTable = keyValueService.getMetadataForTable(TEST_TABLE);
-        assertTrue(metadataForTable == null || Arrays.equals(PtBytes.EMPTY_BYTE_ARRAY, metadataForTable));
+        assertTrue(metadataForTable == null || Arrays.equals(TEST_TABLE_METADATA.persistToBytes(), metadataForTable));
         byte[] bytes = new TableMetadata().persistToBytes();
         keyValueService.putMetadataForTable(TEST_TABLE, bytes);
         byte[] bytesRead = keyValueService.getMetadataForTable(TEST_TABLE);

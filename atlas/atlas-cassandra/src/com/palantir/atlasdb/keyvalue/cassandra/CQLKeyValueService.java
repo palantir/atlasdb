@@ -301,8 +301,9 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                 clusterName));
 
         if (!safetyDisabled) {
-            Validate.isTrue(CassandraConstants.PARTITIONER.equals(partitioner), "partitioner is: "
-                    + partitioner);
+            Validate.isTrue(CassandraConstants.PARTITIONER.equals(partitioner)
+                            || CassandraConstants.PARTITIONER2.equals(partitioner),
+                    "partitioner is: " + partitioner);
         }
     }
 
@@ -332,7 +333,8 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                 String partitioner = client.describe_partitioner();
                 if (!safetyDisabled) {
                     Validate.isTrue(
-                            CassandraConstants.PARTITIONER.equals(partitioner),
+                            CassandraConstants.PARTITIONER.equals(partitioner)
+                                    || CassandraConstants.PARTITIONER2.equals(partitioner),
                             "partitioner is: " + partitioner);
                 }
                 KsDef ks = null;

@@ -70,6 +70,7 @@ public class AtlasShellConnectionDialogView {
         AtlasShellConnectionType connectionType =
             AtlasShellConnectionType.valueOf((String) typeText.getSelectedItem());
         if (connectionType.isIdentifierRequired()) {
+            identifierText.setText(connectionType.getDefaultIdentifier());
             identifierText.setVisible(true);
             identifierLabel.setVisible(true);
             identifierLabel.setText(connectionType.getIdentifierName() + ":");
@@ -87,9 +88,11 @@ public class AtlasShellConnectionDialogView {
             portText.setVisible(false);
             portLabel.setVisible(false);
         } else {
+            hostText.setText(connectionType.getDefaultHostname());
             hostText.setVisible(true);
             hostLabel.setVisible(true);
 
+            portText.setText(connectionType.getDefaultPort());
             portLabel.setVisible(true);
             portText.setVisible(true);
         }
@@ -216,10 +219,6 @@ public class AtlasShellConnectionDialogView {
                 portText,
                 identifierLabel,
                 identifierText,
-                usernameLabel,
-                usernameText,
-                passwordLabel,
-                passwordText,
                 buttonPanel);
         createConnPanel.setLayout(new BoxLayout(createConnPanel, BoxLayout.Y_AXIS));
         createConnPanel.setBorder(new EmptyBorder(10, 10, 10, 10));

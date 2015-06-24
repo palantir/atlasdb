@@ -10,8 +10,8 @@ enum IDENTIFIER_REQUIRED {
 }
 
 public enum AtlasShellConnectionType {
-
-    MEMORY(IDENTIFIER_REQUIRED.NO, null, "localhost", 1521),
+    MEMORY(IDENTIFIER_REQUIRED.NO, null, null, null, null),
+    CASSANDRA(IDENTIFIER_REQUIRED.YES, "keyspace", "atlas", "localhost", "9160"),
 //    ORACLE(IDENTIFIER_REQUIRED.YES, "SID", "localhost", 1521),
 //    POSTGRESQL(IDENTIFIER_REQUIRED.YES, "dbname", "localhost", 5432),
 //    DISPATCH(IDENTIFIER_REQUIRED.NO, null, "localhost", 3280)
@@ -19,8 +19,9 @@ public enum AtlasShellConnectionType {
 
     private final IDENTIFIER_REQUIRED identifierRequired;
     private final String identifierName;
+    private final String defaultIdentifier;
     private final String defaultHostname;
-    private final Integer defaultPort;
+    private final String defaultPort;
 
     public static List<String> getTypeList() {
         List<String> typeList = Lists.newArrayList();
@@ -32,10 +33,12 @@ public enum AtlasShellConnectionType {
 
     private AtlasShellConnectionType(IDENTIFIER_REQUIRED identifierRequired,
                                      String identifierText,
+                                     String defaultIdentifier,
                                      String defaultHostname,
-                                     Integer defaultPort) {
+                                     String defaultPort) {
         this.identifierRequired = identifierRequired;
         this.identifierName = identifierText;
+        this.defaultIdentifier = defaultIdentifier;
         this.defaultHostname = defaultHostname;
         this.defaultPort = defaultPort;
     }
@@ -52,7 +55,11 @@ public enum AtlasShellConnectionType {
         return defaultHostname;
     }
 
-    public Integer getDefaultPort() {
+    public String getDefaultIdentifier() {
+        return defaultIdentifier;
+    }
+
+    public String getDefaultPort() {
         return defaultPort;
     }
 

@@ -44,25 +44,8 @@ module AtlasDBShell
       Connection.new $atlas_shell_connection_factory.withSnapshotTransactionManagerInMemory, true
     end
 
-    # Connect to a blank in-memory key-value store; supports read-only transactions
-    def self.readonly_in_memory
-      Connection.new $atlas_shell_connection_factory.withShellAwareReadOnlyTransactionManagerInMemory, false
-    end
-
-    # Connect through a Dispatch server; supports full snapshot transactions
-    def self.snapshot_from_dispatch host, port, user, pass
-      Connection.new $atlas_shell_connection_factory.withSnapshotTransactionManagerFromDispatch(
-        host, port, user, pass), true
-    end
-
-    def self.snapshot_from_dispatch_prefs
-      Connection.new $atlas_shell_connection_factory.withSnapshotTransactionManagerFromDispatchPrefs, true
-    end
-
-    # Connect directly to a key-value store; supports read-only transactions
-    def self.readonly_from_db host, port, identifier, type, username, password
-      Connection.new $atlas_shell_connection_factory.withShellAwareReadOnlyTransactionManagerFromDb(
-        host, port, identifier, type, username, password), false
+    def self.readonly_from_cassandra host, port, identifier
+      Connection.new $atlas_shell_connection_factory.withReadOnlyTransactionManagerCassandra(host, port, identifier), false
     end
 
     # Names of Atlas tables
@@ -1007,29 +990,15 @@ module AtlasDBShell
       return nil
     elsif prefs[:type] == "MEMORY"
       $db = Connection.snapshot_in_memory
-    elsif prefs[:type] == "DISPATCH"
-      missing_prefs = [:host,:port,:username,:password] - prefs.keys
+    elsif prefs[:type] == "CASSANDRA"
+      missing_prefs = [:host,:port,:identifier] - prefs.keys
       if missing_prefs.empty?
-        $db = Connection.snapshot_from_dispatch(
+        $db = Connection.readonly_from_cassandra(
           prefs[:host],
           prefs[:port].to_s,
-          prefs[:username],
-          prefs[:password])
+          prefs[:identifier])
       else
         $stderr.puts "Please provide #{missing_prefs.inspect} in the connection information."
-        return nil
-      end
-    elsif prefs[:type] == "ORACLE" || prefs[:type] == "POSTGRESQL"
-      if !prefs[:identifier].nil?
-        $db = Connection.readonly_from_db(
-          prefs[:host],
-          prefs[:port].to_s,
-          prefs[:identifier],
-          prefs[:type],
-          prefs[:username],
-          prefs[:password])
-      else
-        $stderr.puts "Please provide an :identifier field when connecting to ORACLE or POSTGRESQL."
         return nil
       end
     else
@@ -1044,13 +1013,6 @@ module AtlasDBShell
     end
   rescue Exception => e
     $stderr.puts "AtlasDB Shell could not connect using the provided connection information.\nError: #{e.message}"
-  end
-
-  def connect_with_dispatch_prefs
-    $db = Connection.snapshot_from_dispatch_prefs
-    $db.table_names.each do |table_name|
-      assign_table_variable table_name
-    end
   end
 
   def assign_table_variable table_name

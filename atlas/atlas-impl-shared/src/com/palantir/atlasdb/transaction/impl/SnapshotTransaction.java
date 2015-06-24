@@ -860,8 +860,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 case IGNORE:
                     break;
                 case THROW_EXCEPTION:
-                    throw new TransactionFailedRetriableException("Tried to read a value that has been deleted." +
-                            "Transaction time stamp is too old, meaning this transaction probably took too long, or" +
+                    throw new TransactionFailedRetriableException("Tried to read a value that has been deleted. " +
+                            " This can be caused by hard delete transactions using the type " +
+                            TransactionType.AGGRESSIVE_HARD_DELETE +
+                            ". It can also be caused by transactions taking too long, or" +
                             " its locks expired. Retrying it should work.");
                 default:
                     throw new IllegalStateException("Invalid read sentinel behavior " + readSentinelBehavior);

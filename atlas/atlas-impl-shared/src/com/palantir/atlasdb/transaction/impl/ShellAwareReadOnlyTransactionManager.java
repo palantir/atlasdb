@@ -32,8 +32,7 @@ public class ShellAwareReadOnlyTransactionManager extends ReadOnlyTransactionMan
     public <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task) throws E,
             TransactionFailedRetriableException {
         throw new UnsupportedOperationException("AtlasDB Shell only supports write operations if connected" +
-                " through a Dispatch server; write operations are not supported if the shell is connected directly" +
-                " to the underlying database.");
+                " to lock and timestamp servers also.");
     }
 
 }

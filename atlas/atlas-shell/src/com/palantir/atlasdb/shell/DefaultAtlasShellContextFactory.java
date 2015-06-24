@@ -2,8 +2,10 @@ package com.palantir.atlasdb.shell;
 
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -20,43 +22,8 @@ import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampService;
 
-public class InMemoryAtlasShellContextFactory implements AtlasShellContextFactory {
+public class DefaultAtlasShellContextFactory implements AtlasShellContextFactory {
     private final AtlasDbConstraintCheckingMode atlasdbConstraintCheckingMode = AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS;
-
-    @Override
-    public AtlasContext withShellAwareReadOnlyTransactionManagerFromDb(String host,
-                                                                       String port,
-                                                                       String sid,
-                                                                       String type,
-                                                                       String username,
-                                                                       String password) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public AtlasContext withSnapshotTransactionManagerFromDispatchPrefs() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public AtlasContext withSnapshotTransactionManagerFromDispatch(String host,
-                                                                   String port,
-                                                                   String user,
-                                                                   String pass) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public AtlasContext withShellAwareReadOnlyTransactionManagerInMemory() {
-        KeyValueService keyValueService = new InMemoryKeyValueService(false);
-        TransactionService transactionService = TransactionServices.createTransactionService(keyValueService);
-        keyValueService.initializeFromFreshInstance();
-        SnapshotTransactionManager.createTables(keyValueService);
-        AtlasContext atlasContext = withShellAwareReadOnlyTransactionManager(
-                keyValueService,
-                transactionService);
-        return atlasContext;
-    }
 
     @Override
     public AtlasContext withSnapshotTransactionManagerInMemory() {
@@ -82,8 +49,8 @@ public class InMemoryAtlasShellContextFactory implements AtlasShellContextFactor
                 timestampService);
     }
 
-    @Override
-    public AtlasContext withShellAwareReadOnlyTransactionManager(KeyValueService keyValueService,
+    public AtlasContext withShellAwareReadOnlyTransactionManager(
+                                                                 KeyValueService keyValueService,
                                                                  TransactionService transactionService) {
         TransactionManager transactionManager = new ShellAwareReadOnlyTransactionManager(
                 keyValueService,
@@ -93,6 +60,28 @@ public class InMemoryAtlasShellContextFactory implements AtlasShellContextFactor
     }
 
     @Override
+    public AtlasContext withReadOnlyTransactionManagerCassandra(String host, String port, String keyspace) {
+        CassandraKeyValueService kv = CassandraKeyValueService.create(
+                ImmutableSet.of(host),
+                Integer.parseInt(port),
+                100,
+                keyspace,
+                false,
+                1,
+                10000,
+                10000000,
+                1000,
+                false,
+                false,
+                null);
+        TransactionService transactionService = TransactionServices.createTransactionService(kv);
+        TransactionManager transactionManager = new ShellAwareReadOnlyTransactionManager(
+                kv,
+                transactionService,
+                atlasdbConstraintCheckingMode);
+        return getAtlasContext(kv, transactionManager);
+    }
+
     public AtlasContext withSnapshotTransactionManager(KeyValueService keyValueService,
                                                        TransactionService transactionService,
                                                        LockClient lockClient,

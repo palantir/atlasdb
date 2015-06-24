@@ -18,7 +18,7 @@ public class CassandraKeyValueServiceSerializableTransactionTest extends
                 10000,
                 10000000,
                 1000,
-                true,
+                false,
                 false,
                 null);
     }
