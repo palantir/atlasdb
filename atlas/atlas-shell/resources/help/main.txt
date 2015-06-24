@@ -1,0 +1,121 @@
+GETTING STARTED
+---------------
+
+    Here are some typical ways to use AtlasDB Shell. For more detailed
+    information, review the help sections on the individual classes,
+    listed below.
+
+     Making a connection (note that the GUI can do this for you):
+
+        info = { :type=>"ORACLE", :host=>"my_db_host", :port=>"1521", :identifier=>"my_sid",
+             :username=>"my_username", :password=>"my_password" }
+
+        info = { :type=>"DISPATCH", :host=>"my_dispatch_host", :port=>"3280",
+             :username=>"my_username", :password=>"my_password" }
+
+        info = prompt_connection_info # interactive prompt for gathering connection info
+
+        info = load_dispatch_connection_info("dispatch.prefs") # load connection info from prefs file
+
+        connect(info) # stores a Connection object in global variable $db
+                      # and each table object in $whatever_the_table_name_is
+
+     Getting table names
+
+        $db.table_names                 # all the table names
+
+     Working with table objects
+
+        $db.table 'obj_fragment'        # get a table object the clean way
+        $obj_fragment                   # or the dirty way
+
+        $table_name.describe            # get an overview of the table's schema
+
+     Viewing data in the GUI
+
+        $table_name.view                     # first 100 rows
+        $table_name.view 1000                # first 1000 rows
+        $table_name.get_range(a, b).view     # range from a to b
+        $table_name.get_range_prefix(a).view # row names starting with a
+        $table_name.first.view               # only the first row
+
+     Reading and writing data
+
+        $table_name.get_row('{"k1": v1, "k2": v2, ...}')   # use json
+        $table_name.get_row({"k1" => v1, "k2" => k2, ...}) # or a ruby hash
+        $table_name.get_range(start_row_inc, end_row_exc)  # returns Range object
+        $table_name.get_range_prefix(row_prefix)           # retrieve by prefix
+
+        $table_name.delete(                                # delete fields from a row
+            {"row_field" => row_value, ...},
+            ["col_name1",
+             "col_name2",
+             {"dyn_colname_field" => x, ...},
+             '{"dyn_colname_field_in_json":y, ...}'])
+
+        $table_name.put(                                   # write fields to a row
+            {"row_field" => row_value, ...},
+            {"col_name1" => val1,
+             "col_name2" => val2,
+             {"dyn_colname_field"=>val, ...} => val3,
+             '{"dyn_colname_field_in_json":val2, ...}' => val4})
+
+     What to do when you have a row object
+
+        row.row_name                            # full row name
+        row.row_name["comp1"]                   # component of row name
+        row.columns                             # column->value hash
+        row.columns["comp1"]                    # named column
+        row.columns[{"comp1" => value1, ...}]   # dynamic column
+
+     What to do with a range object
+
+        range.first                             # get the first row
+        range.take                              # retrieve all rows
+        range.take 3                            # retrieve the first 3 rows
+        range.take! 3                           # retrieve 3 rows and advance the range (modifies the range in place)
+        range.each {|row| ...}                  # operate on all rows
+
+TRANSACTIONS
+------------
+
+    To execute code inside a proper transaction, you must use ruby
+    blocks. Note that you are now calling methods of the Transaction
+    object that is passed to your block, not methods of the Table
+    object, so you have to pass in a table object as an additional first
+    argument.
+
+        $db.run do |tx|
+          tx.delete(table, ...)
+          tx.put(table, ...)
+          tx.get_row(table, ...)
+        end
+
+    Use $db.try to attempt the transaction only once, $db.run to keep
+    trying until it succeeds without a write/write conflict, $db.read to
+    execute a readonly transaction, or $db.unsafe if you just want a
+    readonly transaction and not have to deal with getting it passed
+    into a block. See "shelp :connection" and "shelp :transaction" for
+    details.
+
+LOADING OBJECTS
+---------------
+
+    $db.objects.load(realm_id, object_id, data_event_id)
+          This loads an object at exactly the data_event_id provided. Right now
+          This only loads properties.
+
+    $db.objects.events(realm_id, object_id)
+          Get all the data_event_ids that this object can be loaded at.
+
+LOADING STREAMS
+---------------
+
+    $db.streams.get_stream_raw(id)
+          This loads a stream as the raw bytes stored in the stream table.
+
+    $db.streams.get_stream_uncompressed(id)
+          This loads a stream and decompresses it. If the stream could not be
+          decompressed, this will return the raw stream. Not all streams are
+          compressed.
+

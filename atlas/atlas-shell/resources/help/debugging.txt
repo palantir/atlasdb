@@ -1,0 +1,18 @@
+DEBUGGING
+---------
+
+    parse_hex_string(str)
+        Parses the hex string and returns a map of valid types to their values
+
+    java_to_hex_string(java_obj, value_type_enum_class)
+        Calls the convertFromJava method on a ValueType
+
+    get_row_name_from_hex_string(table, str)
+        Gets the row name hash for the table on the hex string
+
+    hex_string_to_java_bytes(str)
+        Gets the hex string as a byte[]
+
+    bytes_to_hex_string(bytes)
+        Converts a byte[] to a hex string
+
