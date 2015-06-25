@@ -7,7 +7,7 @@ The compile dependencies for the atlas client are:
 org.xerial.snappy snappy-java (apache 2.0)
 protobuf (new bsd)
 protobuf-java-format (new bsd)
-json-1.0.p2.jar (bundled locally for java6) (http://www.json.org/license.html) (MIT plus "don't use for evil" clause)
+json-simple (apache 2)
 commons-lang (apache 2)
 
 The dependency for leveldb is: org.fusesource.leveldbjni (new bsd)

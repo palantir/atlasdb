@@ -14,7 +14,7 @@
 
 package com.palantir.atlasdb.table.description;
 
-import org.json.JSONObject;
+import org.json.simple.JSONValue;
 
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -470,7 +470,7 @@ public enum ValueType {
         @Override
         public Pair<String, Integer> convertToJson(byte[] value, int offset) {
             Pair<String, Integer> p = convertToString(value, offset);
-            return Pair.create(JSONObject.quote(p.getLhSide()), p.getRhSide());
+            return Pair.create(JSONValue.toJSONString(p.getLhSide()), p.getRhSide());
         }
 
         @Override
@@ -480,7 +480,9 @@ public enum ValueType {
 
         @Override
         public byte[] convertFromJson(String jsonValue) {
-            return convertFromString(unquote(jsonValue));
+            Object s = JSONValue.parse(jsonValue);
+            Preconditions.checkArgument(s instanceof String, "%s must be a json string", jsonValue);
+            return convertFromString((String) s);
         }
 
         @Override
@@ -545,7 +547,7 @@ public enum ValueType {
         @Override
         public Pair<String, Integer> convertToJson(byte[] value, int offset) {
             Pair<String, Integer> p = convertToString(value, offset);
-            return Pair.create(JSONObject.quote(p.getLhSide()), p.getRhSide());
+            return Pair.create(JSONValue.toJSONString(p.getLhSide()), p.getRhSide());
         }
 
         @Override
@@ -555,7 +557,9 @@ public enum ValueType {
 
         @Override
         public byte[] convertFromJson(String jsonValue) {
-            return convertFromString(unquote(jsonValue));
+            Object s = JSONValue.parse(jsonValue);
+            Preconditions.checkArgument(s instanceof String, "%s must be a json string", jsonValue);
+            return convertFromString((String) s);
         }
 
         @Override
@@ -880,48 +884,4 @@ public enum ValueType {
     }
 
     public abstract Class<?> getTypeClass();
-
-    // JSONObject is kind enough to provide a function for quoting arbitrary strings, but
-    // isn't kind enough to provide any way to unquote them...
-    public static String unquote(String s) {
-        int length = s.length();
-        StringBuilder sb = new StringBuilder(length);
-        for (int i = 1; i < length - 1; i++) {
-            char c = s.charAt(i);
-            if (c == '\\') {
-                char n = s.charAt(i + 1);
-                switch (n) {
-                case '"':
-                case '\\':
-                case '/':
-                    sb.append(n);
-                    break;
-                case 'b':
-                    sb.append('\b');
-                    break;
-                case 't':
-                    sb.append('\t');
-                    break;
-                case 'n':
-                    sb.append('\n');
-                    break;
-                case 'f':
-                    sb.append('\f');
-                    break;
-                case 'r':
-                    sb.append('\r');
-                    break;
-                case 'u':
-                    String hex = s.substring(i + 2, i + 6);
-                    sb.append((char) Integer.parseInt(hex, 16));
-                    i += 4;
-                    break;
-                }
-                i++;
-            } else {
-                sb.append(c);
-            }
-        }
-        return sb.toString();
-    }
 }

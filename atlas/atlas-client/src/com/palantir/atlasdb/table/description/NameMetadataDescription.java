@@ -21,9 +21,9 @@ import java.util.List;
 import javax.annotation.concurrent.Immutable;
 
 import org.apache.commons.lang.Validate;
-import org.json.JSONException;
-import org.json.JSONObject;
-import org.json.JSONTokener;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -125,7 +125,7 @@ public class NameMetadataDescription {
 
     public byte[] parseFromJson(String json, boolean allowPrefix) {
         try {
-            JSONObject obj = new JSONObject(new JSONTokener(json));
+            JSONObject obj = (JSONObject) new JSONParser().parse(json);
             int numDefinedFields = countNumDefinedFields(obj);
             byte[][] bytes = new byte[numDefinedFields][];
 
@@ -149,7 +149,7 @@ public class NameMetadataDescription {
             }
 
             return com.google.common.primitives.Bytes.concat(bytes);
-        } catch (JSONException e) {
+        } catch (ParseException e) {
             throw Throwables.throwUncheckedException(e);
         }
     }
@@ -157,14 +157,14 @@ public class NameMetadataDescription {
     private int countNumDefinedFields(JSONObject obj) {
         int numFields = 0;
         for (; numFields < rowParts.size(); ++numFields) {
-            if (!obj.has(rowParts.get(numFields).getComponentName())) {
+            if (!obj.containsKey(rowParts.get(numFields).getComponentName())) {
                 break;
             }
         }
 
         for (int i = numFields + 1; i < rowParts.size(); ++i) {
             String componentName = rowParts.get(i).getComponentName();
-            if (obj.has(componentName)) {
+            if (obj.containsKey(componentName)) {
                 throw new IllegalArgumentException("JSON object is missing field: " + rowParts.get(i-1).getComponentName());
             }
         }
