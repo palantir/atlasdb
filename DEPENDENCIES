@@ -1,36 +1,39 @@
 the compile dependencies for the atlas client
-guava
-snappy
-protobuf
-protobuf-java-format
-json-1.0.p2.jar (bundled locally for java6)
-jsr305
-commons-lang
+guava (apache 2.0)
+org.xerial.snappy snappy-java (apache 2.0)
+protobuf (new bsd)
+protobuf-java-format (new bsd)
+json-1.0.p2.jar (bundled locally for java6) (http://www.json.org/license.html) (public domain plus "don't use for evil" clause)
+jsr305 (https://code.google.com/p/jsr-305/source/browse/trunk/ri/LICENSE new bsd)
+commons-lang (apache 2)
+slf4j (MIT license)
 
-The dependency for leveldb is: org.fusesource.leveldbjni
+The dependency for leveldb is: org.fusesource.leveldbjni (new bsd)
+changed because this bug: https://github.com/fusesource/leveldbjni/issues/2
 
 The dependencies for cassandra are:
-org.apache.thrift (bundled locally for java6)
-datastax cassandra driver (bundled locally to shadow dependencies)
+org.apache.thrift (bundled locally for java6) (apache 2)
+datastax cassandra driver (bundled locally to shadow dependencies) (apache 2)
+(these deps and their liscenses are all found in META-INF/license)
 
 The dependencies for lock server:
-trove3-3.0.3-p5.jar (bundled locally with offheap patches: https://github.com/palantirtech/trove-3.0.3)
+trove3-3.0.3-p5.jar (bundled locally with offheap patches: https://github.com/palantirtech/trove-3.0.3) (LGPL 2.1)
 
 The dependencies for atlas shell are all of the above plus:
-ptoss-cinch-1.0-SNAPSHOT-16eb547.jar (included from https://github.com/palantir/Cinch)
-okjson.rb file from https://github.com/kr/okjson
-com.github.rjeschke/txtmark/0.11/txtmark-0.11.jar
-commons-cli/commons-cli/1.3.1/commons-cli-1.3.1.jar
-com.google.code.gson/gson/2.2.4/gson-2.2.4.jar
-org.jruby/jruby-stdlib/1.6.7.2/jruby-stdlib-1.6.7.2.jar
-org.jruby/jruby-core/1.6.7.2/jruby-core-1.6.7.2.jar
-asm/asm/3.2/asm-3.2.jar
+ptoss-cinch-1.0-SNAPSHOT-16eb547.jar (included from https://github.com/palantir/Cinch) (apache 2)
+okjson.rb file from https://github.com/kr/okjson (public with attribution https://github.com/kr/okjson/blob/master/okjson.rb)
+com.github.rjeschke/txtmark/0.11/txtmark-0.11.jar (apache v2)
+commons-cli/commons-cli/1.3.1/commons-cli-1.3.1.jar (apache v2)
+com.google.code.gson/gson/2.2.4/gson-2.2.4.jar (apache v2)
+org.jruby/jruby-stdlib/1.6.7.2/jruby-stdlib-1.6.7.2.jar (lgpl or epl)
+org.jruby/jruby-core/1.6.7.2/jruby-core-1.6.7.2.jar (lgpl or epl)
+asm/asm/3.2/asm-3.2.jar (new bsd)
 asm/asm-commons/3.2/asm-commons-3.2.jar
 asm/asm-tree/3.2/asm-tree-3.2.jar
-jline/jline/1.0/jline-1.0.jar
-joda-time/joda-time/2.0/joda-time-2.0.jar
-org.yaml/snakeyaml/1.13/snakeyaml-1.13.jar
-org.slf4j/slf4j-simple/1.7.5/slf4j-simple-1.7.5.jar
+jline/jline/1.0/jline-1.0.jar 
+joda-time/joda-time/2.0/joda-time-2.0.jar (apache 2)
+org.yaml/snakeyaml/1.13/snakeyaml-1.13.jar (apache 2)
+org.slf4j/slf4j-simple/1.7.5/slf4j-simple-1.7.5.jar (apache 2)
 org.jruby.joni/joni/1.1.7/joni-1.1.7.jar
 org.jruby.extras/jnr-netdb/1.0.3/jnr-netdb-1.0.3.jar
 org.jruby.ext.posix/jnr-posix/1.1.9/jnr-posix-1.1.9.jar
@@ -40,11 +43,10 @@ org.jruby.jcodings/jcodings/1.0.7/jcodings-1.0.7.jar
 org.jruby.extras/jffi/1.0.8/jffi-1.0.8.jar
 org.jruby.extras/jffi/1.0.8/jffi-1.0.8-native.jar
 org.jruby.extras/jaffl/0.5.11/jaffl-0.5.11.jar
-org.slf4j/slf4j-api/1.7.5/slf4j-api-1.7.5.jar
 org.jruby.extras/jnr-x86asm/1.0.0/jnr-x86asm-1.0.0.jar
 
 
 The test dependencies for atlas are:
-junit
-jmock
-commons-io
+junit (EPL)
+jmock (new bsd)
+commons-io (apache 2)
