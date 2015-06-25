@@ -14,18 +14,27 @@
 
 package com.palantir.timestamp;
 
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.QueryParam;
+
+@Path("/timestamp")
 public interface TimestampService {
     /**
      * This will get a fresh timestamp that is guaranteed to be newer than any other timestamp
      * handed out before this method was called.
      */
+    @GET
+    @Path("fresh-timestamp")
     long getFreshTimestamp();
 
     /**
      * @return never null. Inclusive LongRange of timestamps.  Will always have at least 1 value.
      * This range may have less than the requested amount.
      */
-    TimestampRange getFreshTimestamps(int numTimestampsRequested);
+    @GET
+    @Path("fresh-timestamps")
+    TimestampRange getFreshTimestamps(@QueryParam("number") int numTimestampsRequested);
 
     /**
      * @return True if this service is in sync with its backing store.

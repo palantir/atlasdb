@@ -11,3 +11,8 @@ sourceSets.test.java.srcDirs=[file('test-src')]
 libsDirName = file('build/artifacts')
 sourceCompatibility = "1.6"
 targetCompatibility = "1.6"
+dependencies {
+  compile 'javax.ws.rs:javax.ws.rs-api:2.0.1'
+  compile 'com.fasterxml.jackson.core:jackson-annotations:2.5.0'
+
+}

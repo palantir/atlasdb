@@ -16,6 +16,9 @@ package com.palantir.timestamp;
 
 import java.io.Serializable;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * A TimestampRange represents an inclusive range of longs.
  *
@@ -40,7 +43,9 @@ public class TimestampRange implements Serializable {
      * @param boundTwo second number in range, inclusive
      * @return a new inclusive TimestampRange
      */
-    public static TimestampRange createInclusiveRange(long boundOne, long boundTwo) {
+    @JsonCreator
+    public static TimestampRange createInclusiveRange(@JsonProperty("lowerBound") long boundOne,
+                                                      @JsonProperty("upperBound") long boundTwo) {
         if (boundTwo < boundOne) {
             return new TimestampRange(boundTwo, boundOne);
         } else {
