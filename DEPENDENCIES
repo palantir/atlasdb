@@ -1,12 +1,14 @@
-the compile dependencies for the atlas client
+The compile dependencies for atlas commons and atlas-api are: 
 guava (apache 2.0)
+jsr305 (https://code.google.com/p/jsr-305/source/browse/trunk/ri/LICENSE new bsd)
+slf4j (MIT license)
+
+The compile dependencies for the atlas client are:
 org.xerial.snappy snappy-java (apache 2.0)
 protobuf (new bsd)
 protobuf-java-format (new bsd)
 json-1.0.p2.jar (bundled locally for java6) (http://www.json.org/license.html) (MIT plus "don't use for evil" clause)
-jsr305 (https://code.google.com/p/jsr-305/source/browse/trunk/ri/LICENSE new bsd)
 commons-lang (apache 2)
-slf4j (MIT license)
 
 The dependency for leveldb is: org.fusesource.leveldbjni (new bsd)
 changed from CDDL because we asked: https://github.com/fusesource/leveldbjni/issues/2
@@ -17,10 +19,10 @@ datastax cassandra driver (bundled locally to shadow dependencies) (apache 2)
 (these deps and their liscenses are all found in META-INF/license)
 
 The dependencies for lock server:
-trove3-3.0.3-p5.jar (offheap patches forced back out by LGPL: https://github.com/palantirtech/trove-3.0.3) (LGPL 2.1)
+trove3-3.0.3-p5.jar (bundled locally cause it's not published) (offheap patches forced back out by LGPL: https://github.com/palantirtech/trove-3.0.3) (LGPL 2.1)
 
 The dependencies for atlas shell are all of the above plus:
-palantir cinch (included from https://github.com/palantir/Cinch) (apache 2)
+palantir cinch (bundled locally cause it's not published) (included from https://github.com/palantir/Cinch) (apache 2)
 okjson.rb file from https://github.com/kr/okjson (public with attribution https://github.com/kr/okjson/blob/master/okjson.rb)
 com.github.rjeschke txtmark (apache v2)
 apache commons-cli (apache 2)
