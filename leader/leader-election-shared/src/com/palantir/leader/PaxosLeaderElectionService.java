@@ -57,7 +57,7 @@ import com.palantir.paxos.PaxosValue;
  *
  * @author rullman
  */
-public class PaxosLeaderElectionService implements PingableLeaderElectionService {
+public class PaxosLeaderElectionService implements PingableLeader, LeaderElectionService {
     private static final Logger log = LoggerFactory.getLogger(PaxosLeaderElectionService.class);
 
     public static final long DEFAULT_UPDATE_POLLING_WAIT_IN_MS = 1000;
@@ -69,7 +69,7 @@ public class PaxosLeaderElectionService implements PingableLeaderElectionService
     final PaxosProposer proposer;
     final PaxosLearner knowledge;
 
-    final List<PingableLeaderElectionService> potentialLeaders;
+    final List<PingableLeader> potentialLeaders;
     final ImmutableList<PaxosAcceptor> acceptors;
     final ImmutableList<PaxosLearner> learners;
 
@@ -79,11 +79,11 @@ public class PaxosLeaderElectionService implements PingableLeaderElectionService
 
     final Executor executor;
 
-    final ConcurrentMap<String, PingableLeaderElectionService> uuidToServiceCache = Maps.newConcurrentMap();
+    final ConcurrentMap<String, PingableLeader> uuidToServiceCache = Maps.newConcurrentMap();
 
     public PaxosLeaderElectionService(PaxosProposer proposer,
                                       PaxosLearner knowledge,
-                                      List<PingableLeaderElectionService> potentialLeaders,
+                                      List<PingableLeader> potentialLeaders,
                                       ImmutableList<PaxosAcceptor> acceptors,
                                       ImmutableList<PaxosLearner> learners,
                                       Executor executor,
@@ -103,8 +103,8 @@ public class PaxosLeaderElectionService implements PingableLeaderElectionService
     }
 
     @VisibleForTesting
-    void addPeer(PingableLeaderElectionService peer) {
-        for (PingableLeaderElectionService leader : potentialLeaders) {
+    void addPeer(PingableLeader peer) {
+        for (PingableLeader leader : potentialLeaders) {
             if (leader.equals(peer)) {
                 return;
             }
@@ -113,8 +113,8 @@ public class PaxosLeaderElectionService implements PingableLeaderElectionService
     }
 
     @VisibleForTesting
-    void removePeer(PingableLeaderElectionService peer) {
-        for (PingableLeaderElectionService leader : potentialLeaders) {
+    void removePeer(PingableLeader peer) {
+        for (PingableLeader leader : potentialLeaders) {
             if (leader.equals(peer)) {
                 potentialLeaders.remove(peer);
                 return;
@@ -161,7 +161,7 @@ public class PaxosLeaderElectionService implements PingableLeaderElectionService
     }
 
     private boolean pingLeader() {
-        final PingableLeaderElectionService leader = getSuspectedLeader();
+        final PingableLeader leader = getSuspectedLeader();
         if (leader == null) {
             return false;
         }
@@ -190,7 +190,7 @@ public class PaxosLeaderElectionService implements PingableLeaderElectionService
         }
     }
 
-    private PingableLeaderElectionService getSuspectedLeader() {
+    private PingableLeader getSuspectedLeader() {
         PaxosValue value = knowledge.getGreatestLearnedValue();
         if (value == null) {
             return null;
@@ -205,17 +205,17 @@ public class PaxosLeaderElectionService implements PingableLeaderElectionService
         return getSuspectedLeaderOverNetwork(uuid);
     }
 
-    private PingableLeaderElectionService getSuspectedLeaderOverNetwork(String uuid) {
-        CompletionService<Entry<String, PingableLeaderElectionService>> pingService = new ExecutorCompletionService<Entry<String, PingableLeaderElectionService>>(
+    private PingableLeader getSuspectedLeaderOverNetwork(String uuid) {
+        CompletionService<Entry<String, PingableLeader>> pingService = new ExecutorCompletionService<Entry<String, PingableLeader>>(
                 executor);
 
         // kick off requests to get leader uuids
-        List<Future<Entry<String, PingableLeaderElectionService>>> allFutures = Lists.newArrayList();
-        for (final PingableLeaderElectionService potentialLeader : potentialLeaders) {
-            allFutures.add(pingService.submit(new Callable<Entry<String, PingableLeaderElectionService>>() {
+        List<Future<Entry<String, PingableLeader>>> allFutures = Lists.newArrayList();
+        for (final PingableLeader potentialLeader : potentialLeaders) {
+            allFutures.add(pingService.submit(new Callable<Entry<String, PingableLeader>>() {
                 @Override
-                public Entry<String, PingableLeaderElectionService> call() throws Exception {
-                    return new AbstractMap.SimpleEntry<String, PingableLeaderElectionService>(
+                public Entry<String, PingableLeader> call() throws Exception {
+                    return new AbstractMap.SimpleEntry<String, PingableLeader>(
                             potentialLeader.getUUID(),
                             potentialLeader);
                 }
@@ -229,7 +229,7 @@ public class PaxosLeaderElectionService implements PingableLeaderElectionService
                     + TimeUnit.MILLISECONDS.toNanos(leaderPingResponseWaitMs);
             for (;;) {
                 try {
-                    Future<Entry<String, PingableLeaderElectionService>> pingFuture = pingService.poll(
+                    Future<Entry<String, PingableLeader>> pingFuture = pingService.poll(
                             deadline - System.nanoTime(),
                             TimeUnit.NANOSECONDS);
                     if (pingFuture == null) {
@@ -237,8 +237,8 @@ public class PaxosLeaderElectionService implements PingableLeaderElectionService
                     }
 
                     // cache remote leader uuid
-                    Entry<String, PingableLeaderElectionService> cacheEntry = pingFuture.get();
-                    PingableLeaderElectionService service = uuidToServiceCache.putIfAbsent(
+                    Entry<String, PingableLeader> cacheEntry = pingFuture.get();
+                    PingableLeader service = uuidToServiceCache.putIfAbsent(
                             cacheEntry.getKey(),
                             cacheEntry.getValue());
                     throwIfInvalidSetup(service, cacheEntry.getValue(), cacheEntry.getKey());
@@ -257,10 +257,10 @@ public class PaxosLeaderElectionService implements PingableLeaderElectionService
             }
 
             // poll for extra completed futures
-            Future<Entry<String, PingableLeaderElectionService>> future;
+            Future<Entry<String, PingableLeader>> future;
             while ((future = pingService.poll()) != null) {
                 try {
-                    Entry<String, PingableLeaderElectionService> cacheEntry = future.get();
+                    Entry<String, PingableLeader> cacheEntry = future.get();
                     uuidToServiceCache.putIfAbsent(cacheEntry.getKey(), cacheEntry.getValue());
                 } catch (InterruptedException e) {
                     log.warn("uuid request interrupted", e);
@@ -273,7 +273,7 @@ public class PaxosLeaderElectionService implements PingableLeaderElectionService
 
         } finally {
             // cancel pending futures
-            for (Future<Entry<String, PingableLeaderElectionService>> future : allFutures) {
+            for (Future<Entry<String, PingableLeader>> future : allFutures) {
                 future.cancel(false);
             }
 
@@ -286,8 +286,8 @@ public class PaxosLeaderElectionService implements PingableLeaderElectionService
         return null;
     }
 
-    private void throwIfInvalidSetup(PingableLeaderElectionService cachedService,
-                                     PingableLeaderElectionService pingedService,
+    private void throwIfInvalidSetup(PingableLeader cachedService,
+                                     PingableLeader pingedService,
                                      String pingedServiceUuid) {
         if (cachedService == null) {
             return;

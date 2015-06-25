@@ -14,7 +14,7 @@
 
 package com.palantir.leader;
 
-public interface PingableLeaderElectionService extends LeaderElectionService {
+public interface PingableLeader {
 
     /**
      * If this call returns then the server is reachable.

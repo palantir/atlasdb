@@ -26,7 +26,7 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PaxosLeaderElectionService;
-import com.palantir.leader.PingableLeaderElectionService;
+import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.SimulatingFailingServerProxy;
 import com.palantir.leader.proxy.ToggleableExceptionProxy;
 
@@ -77,7 +77,7 @@ public final class PaxosConsensusTestUtils {
             PaxosLeaderElectionService leader = new PaxosLeaderElectionService(
                     proposer,
                     learners.get(i),
-                    new ArrayList<PingableLeaderElectionService>(),
+                    new ArrayList<PingableLeader>(),
                     ImmutableList.<PaxosAcceptor> copyOf(acceptors),
                     ImmutableList.<PaxosLearner> copyOf(learners),
                     executor,
