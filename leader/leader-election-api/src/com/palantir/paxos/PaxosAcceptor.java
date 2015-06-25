@@ -14,6 +14,14 @@
 
 package com.palantir.paxos;
 
+import javax.ws.rs.Consumes;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
+
+@Path("/acceptor")
 public interface PaxosAcceptor {
     public final static long NO_LOG_ENTRY = -1L;
 
@@ -26,7 +34,11 @@ public interface PaxosAcceptor {
      * @return a paxos promise not to accept lower numbered proposals
      * @throws TruncatedStateLogException seq-th round has been truncated from the state logs
      */
-    public PaxosPromise prepare(long seq, PaxosProposalId pid);
+    @POST
+    @Path("prepare/{seq:.+}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+    public PaxosPromise prepare(@PathParam("seq") long seq, PaxosProposalId pid);
 
     /**
      * The acceptor decides whether to accept or reject a given proposal.
@@ -36,7 +48,11 @@ public interface PaxosAcceptor {
      * @return a paxos message indicating if the proposal was accepted or rejected
      * @throws TruncatedStateLogException seq-th round has been truncated from the state logs
      */
-    public PaxosResponse accept(long seq, PaxosProposal proposal);
+    @POST
+    @Path("accept/{seq:.+}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+    public BooleanPaxosResponse accept(@PathParam("seq") long seq, PaxosProposal proposal);
 
     /**
      * Gets the sequence number of the acceptor's most recent known round.
@@ -44,5 +60,8 @@ public interface PaxosAcceptor {
      * @return the sequence number of the most recent round or {@value NO_LOG_ENTRY} if this
      *         acceptor has not prepared or accepted any rounds
      */
+    @POST // This is marked as a POST because we cannot accept stale or cached results for this method.
+    @Path("latest-sequence-prepared-or-accepted")
+    @Produces(MediaType.APPLICATION_JSON)
     public long getLatestSequencePreparedOrAccepted();
 }

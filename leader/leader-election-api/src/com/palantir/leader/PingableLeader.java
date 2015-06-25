@@ -14,6 +14,12 @@
 
 package com.palantir.leader;
 
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
+
+@Path("/leader")
 public interface PingableLeader {
 
     /**
@@ -21,10 +27,16 @@ public interface PingableLeader {
      *
      * @return true if the remote server thinks it is the leader, otherwise false
      */
+    @GET
+    @Path("ping")
+    @Produces(MediaType.APPLICATION_JSON)
     boolean ping();
 
     /**
      * @return a unique string identifier for the leader election service
      */
+    @GET
+    @Path("uuid")
+    @Produces(MediaType.APPLICATION_JSON)
     String getUUID();
 }

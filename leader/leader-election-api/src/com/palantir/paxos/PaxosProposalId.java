@@ -20,6 +20,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.commons.lang.builder.CompareToBuilder;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
 import com.palantir.common.annotation.Immutable;
 import com.palantir.paxos.persistence.generated.PaxosPersistence;
@@ -33,11 +34,12 @@ import com.palantir.paxos.persistence.generated.PaxosPersistence;
 public class PaxosProposalId implements Comparable<PaxosProposalId>, Serializable {
     private static final long serialVersionUID = 1L;
 
-    final long number;
+    private final long number;
     @Nonnull
-    final String proposerUUID;
+    private final String proposerUUID;
 
-    public PaxosProposalId(long number, String proposerUUID) {
+    public PaxosProposalId(@JsonProperty("number") long number,
+                           @JsonProperty("proposerUUID") String proposerUUID) {
         this.number = number;
         this.proposerUUID = Preconditions.checkNotNull(proposerUUID);
     }
@@ -45,15 +47,15 @@ public class PaxosProposalId implements Comparable<PaxosProposalId>, Serializabl
     @Override
     public int compareTo(PaxosProposalId o) {
         return new CompareToBuilder()
-            .append(number, o.number)
-            .append(proposerUUID, o.proposerUUID)
+            .append(getNumber(), o.getNumber())
+            .append(getProposerUUID(), o.getProposerUUID())
             .toComparison();
     }
 
     public PaxosPersistence.PaxosProposalId persistToProto() {
         return PaxosPersistence.PaxosProposalId.newBuilder()
-                .setNumber(number)
-                .setProposerUUID(proposerUUID)
+                .setNumber(getNumber())
+                .setProposerUUID(getProposerUUID())
                 .build();
     }
 
@@ -64,5 +66,13 @@ public class PaxosProposalId implements Comparable<PaxosProposalId>, Serializabl
             proposerUUID = message.getProposerUUID();
         }
         return new PaxosProposalId(number, proposerUUID);
+    }
+
+    public long getNumber() {
+        return number;
+    }
+
+    public String getProposerUUID() {
+        return proposerUUID;
     }
 }

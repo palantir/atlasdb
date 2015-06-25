@@ -19,6 +19,9 @@ import javax.annotation.Nullable;
 
 import org.apache.commons.lang.builder.CompareToBuilder;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.base.Preconditions;
 import com.palantir.common.annotation.Immutable;
 
 /**
@@ -37,7 +40,7 @@ public class PaxosPromise implements Comparable<PaxosPromise>, PaxosResponse {
 
     public PaxosPromise(PaxosProposalId promisedId) {
         ack = false;
-        this.promisedId = promisedId;
+        this.promisedId = Preconditions.checkNotNull(promisedId);
         lastAcceptedId = null;
         lastAcceptedValue = null;
     }
@@ -46,9 +49,21 @@ public class PaxosPromise implements Comparable<PaxosPromise>, PaxosResponse {
                         PaxosProposalId lastAcceptedId,
                         PaxosValue val) {
         ack = true;
-        this.promisedId = promisedId;
+        this.promisedId = Preconditions.checkNotNull(promisedId);
         this.lastAcceptedId = lastAcceptedId;
         this.lastAcceptedValue = val;
+    }
+
+    @JsonCreator
+    public static PaxosPromise create(@JsonProperty("successful") boolean ack,
+                                      @JsonProperty("promisedId") PaxosProposalId promisedId,
+                                      @JsonProperty("lastAcceptedId") PaxosProposalId lastAcceptedId,
+                                      @JsonProperty("lastAcceptedValue") PaxosValue val) {
+        if (ack) {
+            return new PaxosPromise(promisedId, lastAcceptedId, val);
+        } else {
+            return new PaxosPromise(promisedId);
+        }
     }
 
     @Override
@@ -60,5 +75,17 @@ public class PaxosPromise implements Comparable<PaxosPromise>, PaxosResponse {
     @Override
     public boolean isSuccessful() {
         return ack;
+    }
+
+    public PaxosProposalId getPromisedId() {
+        return promisedId;
+    }
+
+    public PaxosProposalId getLastAcceptedId() {
+        return lastAcceptedId;
+    }
+
+    public PaxosValue getLastAcceptedValue() {
+        return lastAcceptedValue;
     }
 }

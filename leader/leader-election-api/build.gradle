@@ -21,4 +21,6 @@ dependencies {
           name: "protobuf-java",
           version: "2.6.0",
           configuration: "default")
+  compile 'javax.ws.rs:javax.ws.rs-api:2.0.1'
+  compile 'com.fasterxml.jackson.core:jackson-annotations:2.5.0'
 }

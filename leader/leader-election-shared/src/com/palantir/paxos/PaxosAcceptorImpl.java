@@ -81,12 +81,12 @@ public class PaxosAcceptorImpl implements PaxosAcceptor {
     }
 
     @Override
-    public PaxosResponse accept(long seq, PaxosProposal proposal) {
+    public BooleanPaxosResponse accept(long seq, PaxosProposal proposal) {
         try {
             checkLogIfNeeded(seq);
         } catch (Exception e) {
             logger.error("log read failed for request: " + seq, e);
-            return new PaxosResponseImpl(false); // nack
+            return new BooleanPaxosResponse(false); // nack
         }
 
         for (;;) {
@@ -94,7 +94,7 @@ public class PaxosAcceptorImpl implements PaxosAcceptor {
 
             // nack
             if (oldState != null && proposal.id.compareTo(oldState.lastPromisedId) < 0) {
-                return new PaxosResponseImpl(false);
+                return new BooleanPaxosResponse(false);
             }
 
             // ack
@@ -102,7 +102,7 @@ public class PaxosAcceptorImpl implements PaxosAcceptor {
             if ((oldState == null && state.putIfAbsent(seq, newState) == null)
                     || (oldState != null && state.replace(seq, oldState, newState))) {
                 log.writeRound(seq, newState);
-                return new PaxosResponseImpl(true);
+                return new BooleanPaxosResponse(true);
             }
         }
     }

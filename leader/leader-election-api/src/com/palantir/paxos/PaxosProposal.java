@@ -18,6 +18,7 @@ import java.io.Serializable;
 
 import javax.annotation.Nonnull;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
 import com.palantir.common.annotation.Immutable;
 
@@ -34,8 +35,17 @@ public class PaxosProposal implements Serializable {
     @Nonnull
     final PaxosValue val;
 
-    public PaxosProposal(PaxosProposalId id, PaxosValue val) {
-        this.id = id;
+    public PaxosProposal(@JsonProperty("id") PaxosProposalId id,
+                         @JsonProperty("value") PaxosValue val) {
+        this.id = Preconditions.checkNotNull(id);
         this.val = Preconditions.checkNotNull(val);
+    }
+
+    public PaxosProposalId getId() {
+        return id;
+    }
+
+    public PaxosValue getValue() {
+        return val;
     }
 }

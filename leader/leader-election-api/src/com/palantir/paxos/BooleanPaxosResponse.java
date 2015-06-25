@@ -14,15 +14,16 @@
 
 package com.palantir.paxos;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.palantir.common.annotation.Immutable;
 
 @Immutable
-public class PaxosResponseImpl implements PaxosResponse {
+public class BooleanPaxosResponse implements PaxosResponse {
     private static final long serialVersionUID = 1L;
 
     final boolean ack;
 
-    public PaxosResponseImpl(boolean ack) {
+    public BooleanPaxosResponse(@JsonProperty("successful") boolean ack) {
         this.ack = ack;
     }
 

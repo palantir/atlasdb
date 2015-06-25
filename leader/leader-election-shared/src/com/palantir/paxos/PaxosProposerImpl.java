@@ -146,10 +146,10 @@ public class PaxosProposerImpl implements PaxosProposer {
             for (PaxosPromise promise : receivedPromises) {
                 while (true) {
                     long curNum = proposalNum.get();
-                    if (promise.promisedId.number <= curNum) {
+                    if (promise.promisedId.getNumber() <= curNum) {
                         break;
                     }
-                    if (proposalNum.compareAndSet(curNum, promise.promisedId.number)) {
+                    if (proposalNum.compareAndSet(curNum, promise.promisedId.getNumber())) {
                         break;
                     }
                 }
