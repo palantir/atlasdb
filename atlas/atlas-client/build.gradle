@@ -12,6 +12,7 @@ libsDirName = file('build/artifacts')
 sourceCompatibility = "1.6"
 targetCompatibility = "1.6"
 dependencies {
+  compile fileTree(dir: 'lib', include: ['*.jar'])
   compile(project(":atlas-commons"))
   compile(project(":atlas:atlas-api"))
   compile(project(":atlas:atlas-client-protobufs"))
@@ -19,7 +20,6 @@ dependencies {
           name: "commons-lang",
           version: "2.6",
           configuration: "default")
-  compile fileTree(dir: 'lib', include: ['*.jar'])
   compile(group: "org.xerial.snappy",
           name: "snappy-java",
           version: "1.1.0.1",
