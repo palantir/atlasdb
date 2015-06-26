@@ -140,7 +140,7 @@ public final class AwaitingLeadershipProxy implements InvocationHandler {
         } while (leading == StillLeadingStatus.NO_QUORUM);
 
         if (leading == StillLeadingStatus.NOT_LEADING) {
-            markAsNotLeading(leadershipToken);
+            markAsNotLeading(leadershipToken, null);
         }
 
         if (isClosed) {
@@ -153,13 +153,13 @@ public final class AwaitingLeadershipProxy implements InvocationHandler {
         } catch (InvocationTargetException e) {
             if (e.getCause() instanceof ServiceNotAvailableException
                     || e.getCause() instanceof NotCurrentLeaderException) {
-                markAsNotLeading(leadershipToken);
+                markAsNotLeading(leadershipToken, e.getCause());
             }
             throw e.getCause();
         }
     }
 
-    private void markAsNotLeading(final LeadershipToken leadershipToken) throws IOException {
+    private void markAsNotLeading(final LeadershipToken leadershipToken, Throwable cause) {
         if (leadershipTokenRef.compareAndSet(leadershipToken, null)) {
             try {
                 clearDelegate();
@@ -168,7 +168,7 @@ public final class AwaitingLeadershipProxy implements InvocationHandler {
             }
             tryToGainLeadership();
         }
-        throw new NotCurrentLeaderException("method invoked on a non-leader (leadership lost)");
+        throw new NotCurrentLeaderException("method invoked on a non-leader (leadership lost)", cause);
     }
 
 }
