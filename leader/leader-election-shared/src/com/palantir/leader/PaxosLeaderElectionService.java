@@ -25,9 +25,11 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.GuardedBy;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,12 +43,12 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.palantir.common.base.Throwables;
+import com.palantir.paxos.BooleanPaxosResponse;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosQuorumChecker;
 import com.palantir.paxos.PaxosResponse;
-import com.palantir.paxos.BooleanPaxosResponse;
 import com.palantir.paxos.PaxosRoundFailureException;
 import com.palantir.paxos.PaxosUpdate;
 import com.palantir.paxos.PaxosValue;
@@ -349,8 +351,67 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         }
     }
 
+    static class StillLeadingCall {
+        final AtomicInteger requestCount = new AtomicInteger(0);
+        @GuardedBy("this") boolean isPopulated = false;
+        @GuardedBy("this") StillLeadingStatus status;
+        @GuardedBy("this") LeadershipToken token;
+
+        public void populate(StillLeadingStatus status, LeadershipToken token) {
+            this.status = status;
+            this.token = token;
+            this.isPopulated = true;
+        }
+
+        /**
+         * @return true if we are included in the batch and false otherwise
+         */
+        public boolean incrementRequestCount() {
+            if (requestCount.get() < 0) {
+                return false;
+            }
+            int val = requestCount.incrementAndGet();
+            return val > 0;
+        }
+
+        public int getRequestCountAndSetInvalid() {
+            return requestCount.getAndSet(Integer.MIN_VALUE);
+        }
+    }
+
+    private volatile StillLeadingCall currentIsStillLeadingCall = new StillLeadingCall();
+
     @Override
     public StillLeadingStatus isStillLeading(LeadershipToken token) {
+        while (true) {
+            StillLeadingCall batch = currentIsStillLeadingCall;
+            if (!batch.incrementRequestCount()) {
+                // We didn't get included in this batch so we should just get in on the next one.
+                continue;
+            }
+            synchronized (batch) {
+                if (!batch.isPopulated) {
+                    populateStillLeadingCall(batch, token);
+                }
+                if (token.sameAs(batch.token)) {
+                    return batch.status;
+                }
+            }
+        }
+    }
+
+    private synchronized void populateStillLeadingCall(StillLeadingCall batch, LeadershipToken token) {
+        currentIsStillLeadingCall = new StillLeadingCall();
+
+        int numThreadsInBatch = batch.getRequestCountAndSetInvalid();
+
+        // NOTE: At this point, we are sure no new requests for still leading
+        // can come in. We can now safely check if we are still leading for this batch.
+        batch.populate(isStillLeading(token), token);
+    }
+
+
+    private StillLeadingStatus isStillLeadingInternal(LeadershipToken token) {
         Preconditions.checkNotNull(token);
 
         final PaxosValue mostRecentValue = knowledge.getGreatestLearnedValue();
