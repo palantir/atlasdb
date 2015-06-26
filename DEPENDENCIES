@@ -9,6 +9,8 @@ protobuf (new bsd)
 protobuf-java-format (new bsd)
 json-simple (apache 2)
 commons-lang (apache 2)
+jackson (apache 2)
+jax rs (GPLv2 with classpath exception)
 
 The dependency for leveldb is: org.fusesource.leveldbjni (new bsd)
 changed from CDDL because we asked: https://github.com/fusesource/leveldbjni/issues/2

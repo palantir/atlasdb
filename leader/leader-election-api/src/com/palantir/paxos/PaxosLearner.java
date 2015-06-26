@@ -18,9 +18,17 @@ import java.util.Collection;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
 
 import com.palantir.common.annotation.Inclusive;
 
+@Path("/learner")
 public interface PaxosLearner {
 
     /**
@@ -29,18 +37,27 @@ public interface PaxosLearner {
      * @param seq round in question
      * @param val value learned for that round
      */
-    public void learn(long seq, PaxosValue val);
+    @POST
+    @Path("learn/{seq:.+}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public void learn(@PathParam("seq") long seq, PaxosValue val);
 
     /**
      * @return learned value or null if non-exists
      */
     @Nullable
-    public PaxosValue getLearnedValue(long seq);
+    @GET
+    @Path("learned-value/{seq:.+}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public PaxosValue getLearnedValue(@PathParam("seq") long seq);
 
     /**
      * @return the learned value for the greatest known round or null if nothing has been learned
      */
     @Nullable
+    @GET
+    @Path("greatest-learned-value")
+    @Produces(MediaType.APPLICATION_JSON)
     public PaxosValue getGreatestLearnedValue();
 
     /**
@@ -50,6 +67,9 @@ public interface PaxosLearner {
      * @return some set of learned values for rounds since the seq-th round
      */
     @Nonnull
-    Collection<PaxosValue> getLearnedValuesSince(@Inclusive long seq);
+    @GET
+    @Path("learned-values-since/{seq:.+}")
+    @Produces(MediaType.APPLICATION_JSON)
+    Collection<PaxosValue> getLearnedValuesSince(@PathParam("seq") @Inclusive long seq);
 
 }

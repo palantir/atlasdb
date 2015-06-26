@@ -18,6 +18,7 @@ import java.io.Serializable;
 
 import javax.annotation.Nullable;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Defaults;
 import com.google.common.base.Preconditions;
 import com.google.protobuf.ByteString;
@@ -48,10 +49,12 @@ public class PaxosValue implements Persistable, Versionable, Serializable {
         }
     };
 
-    public PaxosValue(String leaderUUID, long seq, @Nullable byte[] val) {
+    public PaxosValue(@JsonProperty("leaderUUID") String leaderUUID,
+                      @JsonProperty("seq") long seq,
+                      @JsonProperty("data") @Nullable byte[] data) {
         this.leaderUUID = Preconditions.checkNotNull(leaderUUID);
         this.seq = seq;
-        this.data = val;
+        this.data = data;
     }
 
     public String getLeaderUUID() {
