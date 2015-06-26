@@ -994,6 +994,11 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     @Override
+    public void teardown() {
+        close();
+    }
+
+    @Override
     public void addGarbageCollectionSentinelValues(String tableName, Set<Cell> cells) {
         try {
             final Value value = Value.create(new byte[0], Value.INVALID_VALUE_TIMESTAMP);
