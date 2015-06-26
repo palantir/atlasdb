@@ -407,7 +407,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
 
         // NOTE: At this point, we are sure no new requests for still leading
         // can come in. We can now safely check if we are still leading for this batch.
-        batch.populate(isStillLeading(token), token);
+        batch.populate(isStillLeadingInternal(token), token);
     }
 
 
