@@ -323,6 +323,11 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         super.close();
     }
 
+    @Override
+    public void teardown() {
+        close();
+    }
+
     private void initializeFromFreshInstance(List<String> hosts, int replicationFactor) {
         Map<String, Throwable> errorsByHost = Maps.newHashMap();
         initializeConnectionPoolWithNewAPI(ImmutableSet.copyOf(hosts));
