@@ -11,7 +11,7 @@ public class CQLKeyValueServiceTransactionTest extends AbstractTransactionTest {
         return CQLKeyValueService.create(
                 ImmutableSet.of("localhost"),
                 9160,
-                1000,
+                20,
                 1000,
                 "atlas",
                 false,

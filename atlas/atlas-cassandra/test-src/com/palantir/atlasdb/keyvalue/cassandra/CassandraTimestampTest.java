@@ -11,21 +11,22 @@ import com.palantir.timestamp.TimestampBoundStore;
 public class CassandraTimestampTest {
     private static final String TIMESTAMP_TABLE = "_timestamp";
 
-    CassandraKeyValueService kv = CassandraKeyValueService.create(
-            ImmutableSet.of("localhost"),
-            9160,
-            100,
-            "atlas", false,
-            1,
-            10000,
-            10000000,
-            1000,
-            true,
-            false,
-            null);
+    private CassandraKeyValueService kv;
 
     @Before
     public void setUp() {
+        kv = CassandraKeyValueService.create(
+                ImmutableSet.of("localhost"),
+                9160,
+                20,
+                "atlas", false,
+                1,
+                10000,
+                10000000,
+                1000,
+                true,
+                false,
+                null);
         kv.initializeFromFreshInstance();
         kv.dropTable(TIMESTAMP_TABLE);
     }

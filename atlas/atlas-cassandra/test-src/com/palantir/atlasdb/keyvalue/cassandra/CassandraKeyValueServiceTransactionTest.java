@@ -11,7 +11,7 @@ public class CassandraKeyValueServiceTransactionTest extends AbstractTransaction
         return CassandraKeyValueService.create(
                 ImmutableSet.of("localhost"),
                 9160,
-                100,
+                20,
                 "atlas",
                 false,
                 1,
