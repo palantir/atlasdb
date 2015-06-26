@@ -44,9 +44,24 @@ public class ClientSplitLockService extends ForwardingLockService {
     }
 
     @Override
+    public LockResponse lockAnonymously(LockRequest request) throws InterruptedException {
+        return lock(LockClient.ANONYMOUS, request);
+    }
+
+    @Override
+    public LockResponse lockWithClient(String client, LockRequest request)
+            throws InterruptedException {
+        return lock(LockClient.of(client), request);
+    }
+
+    @Override
     public LockResponse lock(LockClient client, LockRequest request) throws InterruptedException {
         if (request.getBlockingMode() == BlockingMode.DO_NOT_BLOCK) {
-            return delegate().lock(client, request);
+            if (client == LockClient.ANONYMOUS) {
+                return nonBlockingClient.lockAnonymously(request);
+            } else {
+                return nonBlockingClient.lockWithClient(client.getClientId(), request);
+            }
         }
 
         // Let's try sending this request as a non-blocking request.
@@ -58,13 +73,22 @@ public class ClientSplitLockService extends ForwardingLockService {
             if (request.getVersionId() != null) {
                 newRequest.withLockedInVersionId(request.getVersionId());
             }
-            LockResponse response = nonBlockingClient.lock(client, newRequest.build());
+            final LockResponse response;
+            if (client == LockClient.ANONYMOUS) {
+                response = nonBlockingClient.lockAnonymously(request);
+            } else {
+                response = nonBlockingClient.lockWithClient(client.getClientId(), request);
+            }
             if (response.success()) {
                 return response;
             }
         }
 
         // No choice but to send it as a blocking request.
-        return blockingClient.lock(client, request);
+        if (client == LockClient.ANONYMOUS) {
+            return blockingClient.lockAnonymously(request);
+        } else {
+            return blockingClient.lockWithClient(client.getClientId(), request);
+        }
     }
 }

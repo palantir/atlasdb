@@ -29,8 +29,7 @@ import com.palantir.common.annotation.NonIdempotent;
  *
  * @author jtamer
  */
-@Beta public interface LockService {
-
+@Beta public interface LockService extends RemoteLockService {
     /**
      * Attempts to acquire the requested set of locks. The locks are
      * acquired reentrantly as long as the lock client is not
@@ -39,6 +38,7 @@ import com.palantir.common.annotation.NonIdempotent;
      * @return a token for the set of locks that were acquired, or <code>null</code>
      *         if no locks were acquired
      */
+    @Override
     @CancelableServerCall
     @NonIdempotent
     LockResponse lock(LockClient client, LockRequest request) throws InterruptedException;
@@ -50,21 +50,6 @@ import com.palantir.common.annotation.NonIdempotent;
     @Deprecated
     @NonIdempotent boolean unlock(HeldLocksToken token);
 
-    /**
-     * Attempts to release the set of locks represented by the
-     * <code>token</code> parameter. For locks which
-     * have been locked multiple times reentrantly, this method decrements the
-     * lock hold counts by one.
-     * <p>
-     * Prefer this over {@link #unlock(HeldLocksToken)} because it sends less
-     * data over the wire.
-     *
-     * @return <code>true<code> if the locks were unlocked by this call,
-     *         <code>false</code> if the token was invalid,
-     *         either because it was already unlocked, or because it expired or
-     *         was converted to a lock grant
-     */
-    @NonIdempotent boolean unlockSimple(SimpleHeldLocksToken token);
     /**
      * Unlocks the set of locks represented by the <code>token</code>
      * parameter.
@@ -118,17 +103,6 @@ import com.palantir.common.annotation.NonIdempotent;
      */
     @Deprecated
     @Idempotent Set<HeldLocksToken> refreshTokens(Iterable<HeldLocksToken> tokens);
-
-    /**
-     * Refreshes the given lock tokens.
-     * <p>
-     * This method transfers less data over the wire but does the same work as {@link #refreshTokens(Iterable)}.
-     * {@link HeldLocksToken} objects can be pretty heavyweight because they have a set of locks in them that
-     * can be large.
-     *
-     * @return the subset of tokens which are still valid after being refreshed.
-     */
-    @Idempotent Set<LockRefreshToken> refreshLockRefreshTokens(Iterable<LockRefreshToken> tokens);
 
     /**
      * Refreshes the given lock grant.
@@ -190,22 +164,8 @@ import com.palantir.common.annotation.NonIdempotent;
     @Deprecated
     @Idempotent @Nullable Long getMinLockedInVersionId();
 
-    /**
-     * Returns the minimum version ID for all locks that are currently acquired
-     * (by everyone), or {@code null} if none of these active locks specified a
-     * version ID in their {@link LockRequest}s.
-     */
-    @Idempotent @Nullable Long getMinLockedInVersionId(LockClient client);
-
     /** Returns the options used to configure the lock server. */
     @Idempotent LockServerOptions getLockServerOptions();
-
-    /** Returns the current time in milliseconds on the server. */
-    @Idempotent long currentTimeMillis();
-
-    void logCurrentState();
-
-    void logCurrentStateInconsistent();
 
     boolean isDelayRequired();
 

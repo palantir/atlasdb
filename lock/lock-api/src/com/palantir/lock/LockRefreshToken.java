@@ -19,6 +19,7 @@ import java.math.BigInteger;
 
 import javax.annotation.concurrent.Immutable;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
 
 @Immutable
@@ -28,7 +29,8 @@ public final class LockRefreshToken implements Serializable {
     private final BigInteger tokenId;
     private final long expirationDateMs;
 
-    public LockRefreshToken(BigInteger tokenId, long expirationDateMs) {
+    public LockRefreshToken(@JsonProperty("tokenId") BigInteger tokenId,
+                            @JsonProperty("expirationDateMs") long expirationDateMs) {
         this.tokenId = Preconditions.checkNotNull(tokenId);
         this.expirationDateMs = expirationDateMs;
     }

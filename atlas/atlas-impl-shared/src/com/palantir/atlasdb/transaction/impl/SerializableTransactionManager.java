@@ -23,7 +23,7 @@ import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
-import com.palantir.lock.LockService;
+import com.palantir.lock.RemoteLockService;
 import com.palantir.timestamp.TimestampService;
 
 public class SerializableTransactionManager extends SnapshotTransactionManager {
@@ -31,7 +31,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
     public SerializableTransactionManager(KeyValueService keyValueService,
                                           TimestampService timestampService,
                                           LockClient lockClient,
-                                          LockService lockService,
+                                          RemoteLockService lockService,
                                           TransactionService transactionService,
                                           Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
                                           ConflictDetectionManager conflictDetectionManager,

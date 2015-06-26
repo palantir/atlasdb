@@ -17,14 +17,17 @@ package com.palantir.lock;
 import java.io.Serializable;
 import java.math.BigInteger;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.base.Preconditions;
+
 public class SimpleHeldLocksToken implements Serializable {
     private static final long serialVersionUID = 1L;
     private final BigInteger tokenId;
     private final long creationDateMs;
 
-    private SimpleHeldLocksToken(BigInteger tokenId,
-                                 long creationDateMs) {
-        this.tokenId = tokenId;
+    public SimpleHeldLocksToken(@JsonProperty("tokenId") BigInteger tokenId,
+                                @JsonProperty("creationDateMs") long creationDateMs) {
+        this.tokenId = Preconditions.checkNotNull(tokenId);
         this.creationDateMs = creationDateMs;
     }
 
@@ -60,18 +63,23 @@ public class SimpleHeldLocksToken implements Serializable {
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj)
+        if (this == obj) {
             return true;
-        if (obj == null)
+        }
+        if (obj == null) {
             return false;
-        if (getClass() != obj.getClass())
+        }
+        if (getClass() != obj.getClass()) {
             return false;
+        }
         SimpleHeldLocksToken other = (SimpleHeldLocksToken) obj;
         if (tokenId == null) {
-            if (other.tokenId != null)
+            if (other.tokenId != null) {
                 return false;
-        } else if (!tokenId.equals(other.tokenId))
+            }
+        } else if (!tokenId.equals(other.tokenId)) {
             return false;
+        }
         return true;
     }
 }

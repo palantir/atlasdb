@@ -20,7 +20,7 @@ import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRequest;
-import com.palantir.lock.LockService;
+import com.palantir.lock.RemoteLockService;
 
 public abstract class ForwardingLockAwareTransactionManager extends
         ForwardingTransactionManager implements LockAwareTransactionManager {
@@ -53,7 +53,7 @@ public abstract class ForwardingLockAwareTransactionManager extends
     }
 
     @Override
-    public LockService getLockService() {
+    public RemoteLockService getLockService() {
         return delegate().getLockService();
     }
 }

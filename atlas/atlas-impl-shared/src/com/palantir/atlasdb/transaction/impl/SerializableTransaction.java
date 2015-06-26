@@ -74,7 +74,7 @@ import com.palantir.common.base.BatchingVisitableView;
 import com.palantir.common.collect.IterableUtils;
 import com.palantir.common.collect.Maps2;
 import com.palantir.lock.HeldLocksToken;
-import com.palantir.lock.LockService;
+import com.palantir.lock.RemoteLockService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.util.Pair;
 
@@ -97,7 +97,7 @@ public class SerializableTransaction extends SnapshotTransaction {
     final ConcurrentMap<String, Set<RowRead>> rowsRead = Maps.newConcurrentMap();
 
     public SerializableTransaction(KeyValueService keyValueService,
-                                   LockService lockService,
+                                   RemoteLockService lockService,
                                    TimestampService timestampService,
                                    TransactionService transactionService,
                                    Cleaner cleaner,

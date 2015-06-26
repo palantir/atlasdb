@@ -309,6 +309,17 @@ import com.palantir.util.Pair;
     }
 
     @Override
+    public LockResponse lockAnonymously(LockRequest request) throws InterruptedException {
+        return lock(LockClient.ANONYMOUS, request);
+    }
+
+    @Override
+    public LockResponse lockWithClient(String client, LockRequest request)
+            throws InterruptedException {
+        return lock(LockClient.of(client), request);
+    }
+
+    @Override
     public LockResponse lock(LockClient client, LockRequest request) throws InterruptedException {
         Preconditions.checkNotNull(client);
         Preconditions.checkArgument(client != INTERNAL_LOCK_GRANT_CLIENT);

@@ -64,7 +64,7 @@ public class SimpleCleaner implements Cleaner {
             // QA-85267 We cannot propagate the exception because the client doesn't have the exception type
             // that cassandra throws thrift.UnavailableException.
             // Instead we log so we won't lose the error and throw a generic exception back to the user.
-            throw new RuntimeException(message, e);
+            throw new RuntimeException(message);
         }
     }
 

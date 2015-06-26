@@ -107,11 +107,12 @@ import com.palantir.common.collect.Maps2;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.HeldLocksToken;
-import com.palantir.lock.LockClient;
+import com.palantir.lock.HeldLocksTokens;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
+import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
-import com.palantir.lock.LockService;
+import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.util.AssertUtils;
@@ -153,14 +154,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
     protected final TimestampService timestampService;
     final KeyValueService keyValueService;
-    protected final LockService lockService;
+    protected final RemoteLockService lockService;
     final TransactionService defaultTransactionService;
     private final Cleaner cleaner;
     private final Supplier<Long> startTimestamp;
 
     protected final long immutableTimestamp;
     protected final ImmutableSet<HeldLocksToken> externalLocksTokens;
-    protected final LockClient lockClient = LockClient.ANONYMOUS;
 
     protected final long timeCreated = System.currentTimeMillis();
 
@@ -195,7 +195,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      * @param constraintCheckingEnabled
      */
     public SnapshotTransaction(KeyValueService keyValueService,
-                               LockService lockService,
+                               RemoteLockService lockService,
                                TimestampService timestampService,
                                TransactionService transactionService,
                                Cleaner cleaner,
@@ -226,7 +226,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     // TEST ONLY
     SnapshotTransaction(KeyValueService keyValueService,
-                        LockService lockService,
+                        RemoteLockService lockService,
                         TimestampService timestampService,
                         TransactionService transactionService,
                         Cleaner cleaner,
@@ -253,7 +253,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     @Deprecated
     public static SnapshotTransaction createReadOnly(KeyValueService keyValueService,
                                                      TransactionService transactionService,
-                                                     LockService lockService,
+                                                     RemoteLockService lockService,
                                                      long startTimeStamp,
                                                      AtlasDbConstraintCheckingMode constraintCheckingEnabled) {
         return new SnapshotTransaction(
@@ -271,7 +271,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      */
     protected SnapshotTransaction(KeyValueService keyValueService,
                                   TransactionService transactionService,
-                                  LockService lockService,
+                                  RemoteLockService lockService,
                                   long startTimeStamp,
                                   AtlasDbConstraintCheckingMode constraintCheckingMode,
                                   TransactionReadSentinelBehavior readSentinelBehavior) {
@@ -280,7 +280,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     protected SnapshotTransaction(KeyValueService keyValueService,
                                   TransactionService transactionService,
-                                  LockService lockService,
+                                  RemoteLockService lockService,
                                   long startTimeStamp,
                                   AtlasDbConstraintCheckingMode constraintCheckingMode,
                                   TransactionReadSentinelBehavior readSentinelBehavior,
@@ -1138,7 +1138,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             putCommitTimestamp(commitTimestamp, commitLocksToken, transactionService);
             long millisForCommitTs = watch.elapsed(TimeUnit.MILLISECONDS);
 
-            Set<HeldLocksToken> expiredLocks = refreshExternalAndCommitLocks(commitLocksToken);
+            Set<LockRefreshToken> expiredLocks = refreshExternalAndCommitLocks(commitLocksToken);
             if (!expiredLocks.isEmpty()) {
                 String errorMessage =
                     "This isn't a bug but it should happen very infrequently.  Required locks are no longer" +
@@ -1181,14 +1181,14 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private String getExpiredLocksErrorString(@Nullable HeldLocksToken commitLocksToken,
-                                              Set<HeldLocksToken> expiredLocks) {
+                                              Set<LockRefreshToken> expiredLocks) {
         return "The following external locks were required: " + externalLocksTokens +
             "; the following commit locks were required: " + commitLocksToken +
             "; the following locks are no longer valid: " + expiredLocks;
     }
 
     private void throwIfExternalAndCommitLocksNotValid(@Nullable HeldLocksToken commitLocksToken) {
-        Set<HeldLocksToken> expiredLocks = refreshExternalAndCommitLocks(commitLocksToken);
+        Set<LockRefreshToken> expiredLocks = refreshExternalAndCommitLocks(commitLocksToken);
         if (!expiredLocks.isEmpty()) {
             String errorMessage =
                 "Required locks are no longer valid.  " + getExpiredLocksErrorString(commitLocksToken, expiredLocks);
@@ -1202,20 +1202,20 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      * @param commitLocksToken
      * @return set of locks that could not be refreshed
      */
-    private Set<HeldLocksToken> refreshExternalAndCommitLocks(@Nullable HeldLocksToken commitLocksToken) {
-        ImmutableSet<HeldLocksToken> toRefresh;
+    private Set<LockRefreshToken> refreshExternalAndCommitLocks(@Nullable HeldLocksToken commitLocksToken) {
+        ImmutableSet<LockRefreshToken> toRefresh;
         if (commitLocksToken == null) {
-            toRefresh = externalLocksTokens;
+            toRefresh = ImmutableSet.copyOf(Iterables.transform(externalLocksTokens, HeldLocksTokens.getRefreshTokenFun()));
         } else {
-            toRefresh = ImmutableSet.<HeldLocksToken>builder()
-                    .addAll(externalLocksTokens)
-                    .add(commitLocksToken).build();
+            toRefresh = ImmutableSet.<LockRefreshToken>builder()
+                    .addAll(Iterables.transform(externalLocksTokens, HeldLocksTokens.getRefreshTokenFun()))
+                    .add(commitLocksToken.getLockRefreshToken()).build();
         }
         if (toRefresh.isEmpty()) {
             return ImmutableSet.of();
         }
 
-        return Sets.difference(toRefresh, lockService.refreshTokens(toRefresh)).immutableCopy();
+        return Sets.difference(toRefresh, lockService.refreshLockRefreshTokens(toRefresh)).immutableCopy();
     }
 
     /**
@@ -1435,7 +1435,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected HeldLocksToken acquireLocksForCommit() {
         SortedMap<LockDescriptor, LockMode> lockMap = getLocksForWrites();
         try {
-            return lockService.lock(lockClient, LockRequest.builder(lockMap).build()).getToken();
+            return lockService.lockAnonymously(LockRequest.builder(lockMap).build()).getToken();
         } catch (InterruptedException e) {
             throw Throwables.throwUncheckedException(e);
         }
@@ -1491,8 +1491,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         // TODO: This can have better performance if we have a blockAndReturn method in lock server
         // However lock server blocking is an issue if we fill up all our requests
         try {
-            lockService.lock(lockClient,
-                    LockRequest.builder(builder.build()).lockAndRelease().build());
+            lockService.lockAnonymously(LockRequest.builder(builder.build()).lockAndRelease().build());
         } catch (InterruptedException e) {
             throw Throwables.throwUncheckedException(e);
         }
@@ -1584,7 +1583,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 // for putUnlessExists did a retry and we had committed already
                 return;
             }
-            Set<HeldLocksToken> expiredLocks = refreshExternalAndCommitLocks(commitLocksToken);
+            Set<LockRefreshToken> expiredLocks = refreshExternalAndCommitLocks(commitLocksToken);
             if (!expiredLocks.isEmpty()) {
                 throw new TransactionLockTimeoutException("Our commit was already rolled back at commit time " +
                         "because our locks timed out.  startTs: " + getStartTimestamp() + ".  " +

@@ -40,7 +40,7 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockResponse;
-import com.palantir.lock.LockService;
+import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.timestamp.TimestampService;
 
@@ -50,7 +50,7 @@ public class SnapshotTransactionManager extends AbstractLockAwareTransactionMana
     final KeyValueService keyValueService;
     final TransactionService transactionService;
     final TimestampService timestampService;
-    final LockService lockService;
+    final RemoteLockService lockService;
     final ConflictDetectionManager conflictDetectionManager;
     final SweepStrategyManager sweepStrategyManager;
     final LockClient lockClient;
@@ -62,7 +62,7 @@ public class SnapshotTransactionManager extends AbstractLockAwareTransactionMana
     public SnapshotTransactionManager(KeyValueService keyValueService,
                                       TimestampService timestampService,
                                       LockClient lockClient,
-                                      LockService lockService,
+                                      RemoteLockService lockService,
                                       TransactionService transactionService,
                                       Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
                                       ConflictDetectionManager conflictDetectionManager,
@@ -75,7 +75,7 @@ public class SnapshotTransactionManager extends AbstractLockAwareTransactionMana
     public SnapshotTransactionManager(KeyValueService keyValueService,
                                       TimestampService timestampService,
                                       LockClient lockClient,
-                                      LockService lockService,
+                                      RemoteLockService lockService,
                                       TransactionService transactionService,
                                       Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
                                       ConflictDetectionManager conflictDetectionManager,
@@ -113,7 +113,7 @@ public class SnapshotTransactionManager extends AbstractLockAwareTransactionMana
         final T result;
         final SnapshotTransaction t;
         try {
-            lock = lockService.lock(lockClient, lockRequest);
+            lock = lockService.lockWithClient(lockClient.getClientId(), lockRequest);
         } catch (InterruptedException e) {
             throw Throwables.throwUncheckedException(e);
         }
@@ -185,7 +185,7 @@ public class SnapshotTransactionManager extends AbstractLockAwareTransactionMana
     }
 
     @Override
-    public LockService getLockService() {
+    public RemoteLockService getLockService() {
         return lockService;
     }
 

@@ -31,13 +31,13 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockResponse;
-import com.palantir.lock.LockService;
+import com.palantir.lock.RemoteLockService;
 
 public class AssertLockedKeyValueService extends ForwardingKeyValueService {
     final KeyValueService delegate;
-    final LockService lockService;
+    final RemoteLockService lockService;
 
-    public AssertLockedKeyValueService(KeyValueService delegate, LockService lockService) {
+    public AssertLockedKeyValueService(KeyValueService delegate, RemoteLockService lockService) {
         this.delegate = delegate;
         this.lockService = lockService;
     }

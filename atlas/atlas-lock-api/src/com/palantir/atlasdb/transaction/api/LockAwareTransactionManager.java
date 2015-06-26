@@ -17,7 +17,7 @@ package com.palantir.atlasdb.transaction.api;
 import com.google.common.base.Supplier;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRequest;
-import com.palantir.lock.LockService;
+import com.palantir.lock.RemoteLockService;
 
 public interface LockAwareTransactionManager extends TransactionManager {
     /**
@@ -49,6 +49,6 @@ public interface LockAwareTransactionManager extends TransactionManager {
                                                                LockAwareTransactionTask<T, E> task) throws E, TransactionFailedRetriableException;
 
 
-    LockService getLockService();
+    RemoteLockService getLockService();
 
 }

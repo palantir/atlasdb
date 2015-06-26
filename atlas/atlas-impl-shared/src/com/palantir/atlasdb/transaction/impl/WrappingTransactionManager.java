@@ -22,7 +22,7 @@ import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRequest;
-import com.palantir.lock.LockService;
+import com.palantir.lock.RemoteLockService;
 
 public abstract class WrappingTransactionManager implements LockAwareTransactionManager {
     private final LockAwareTransactionManager delegate;
@@ -55,7 +55,7 @@ public abstract class WrappingTransactionManager implements LockAwareTransaction
     }
 
     @Override
-    public LockService getLockService() {
+    public RemoteLockService getLockService() {
         return delegate.getLockService();
     }
 
