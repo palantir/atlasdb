@@ -1,10 +1,9 @@
 apply plugin: 'java'
 apply plugin: 'eclipse'
-apply plugin: PalantirRepoPlugin
 apply plugin: "jacoco"
 
 repositories {
-    ptrepo()
+    mavenCentral()
 }
 
 sourceSets.main.java.srcDirs=[file('src')]
@@ -17,6 +16,7 @@ dependencies {
   compile(project(":commons-cassandra"))
   compile(project(":timestamp:timestamp-api"))
   testCompile project(path: ":atlas:atlas-shared-tests", configuration: 'test')
+  testCompile 'org.apache.cassandra:cassandra-all:2.1.5'
 }
 
 jacoco {
