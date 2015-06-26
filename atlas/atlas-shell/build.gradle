@@ -1,9 +1,8 @@
 apply plugin: 'java'
 apply plugin: 'eclipse'
-apply plugin: PalantirRepoPlugin
 
 repositories {
-    ptrepo()
+    mavenCentral()
 }
 
 sourceSets.main.java.srcDirs=[file('src'), file('resources')]
