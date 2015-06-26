@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
@@ -139,11 +140,7 @@ public final class AwaitingLeadershipProxy implements InvocationHandler {
         } while (leading == StillLeadingStatus.NO_QUORUM);
 
         if (leading == StillLeadingStatus.NOT_LEADING) {
-            if (leadershipTokenRef.compareAndSet(leadershipToken, null)) {
-                clearDelegate();
-                tryToGainLeadership();
-            }
-            throw new NotCurrentLeaderException("method invoked on a non-leader (leadership lost)");
+            markAsNotLeading(leadershipToken);
         }
 
         if (isClosed) {
@@ -154,8 +151,24 @@ public final class AwaitingLeadershipProxy implements InvocationHandler {
         try {
             return method.invoke(delegate, args);
         } catch (InvocationTargetException e) {
+            if (e.getCause() instanceof ServiceNotAvailableException
+                    || e.getCause() instanceof NotCurrentLeaderException) {
+                markAsNotLeading(leadershipToken);
+            }
             throw e.getCause();
         }
+    }
+
+    private void markAsNotLeading(final LeadershipToken leadershipToken) throws IOException {
+        if (leadershipTokenRef.compareAndSet(leadershipToken, null)) {
+            try {
+                clearDelegate();
+            } catch (Throwable t) {
+                // If close fails we should still try to gain leadership
+            }
+            tryToGainLeadership();
+        }
+        throw new NotCurrentLeaderException("method invoked on a non-leader (leadership lost)");
     }
 
 }

@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.common.time.Clock;
 import com.palantir.exception.PalantirInterruptedException;
 
@@ -106,14 +107,14 @@ final class PersistentTimestampService implements TimestampService {
                 @Override
                 public void run() {
                     try {
+                        if (allocationFailure instanceof MultipleRunningTimestampServiceError) {
+                            // We cannot allocate timestamps anymore because another server is running.
+                            return;
+                        }
                         allocateMoreTimestamps();
                         lastAllocatedTime = clock.getTimeMillis();
                         allocationFailure = null;
                     } catch (Throwable e) { // (authorized)
-                        if (e instanceof MultipleRunningTimestampServiceError) {
-                            // don't allow any more handout until we resolve this
-                            advanceAtomicLongToValue(lastReturnedTimestamp, upperLimitToHandOutInclusive.get());
-                        }
                         createdException.initCause(e);
                         if (allocationFailure != null
                                 && e.getClass().equals(allocationFailure.getClass())) {
@@ -122,7 +123,7 @@ final class PersistentTimestampService implements TimestampService {
                         } else {
                             log.error("Throwable while allocating timestamps.", createdException);
                         }
-                        allocationFailure = createdException;
+                        allocationFailure = e;
                     } finally {
                         isAllocationTaskSubmitted.set(false);
                     }
@@ -154,7 +155,9 @@ final class PersistentTimestampService implements TimestampService {
             if (lastVal >= upperLimit) {
                 submitAllocationTask();
                 Throwable possibleFailure = allocationFailure;
-                if (possibleFailure != null) {
+                if (possibleFailure instanceof MultipleRunningTimestampServiceError) {
+                    throw new ServiceNotAvailableException("This server is no longer valid because another is running.", possibleFailure);
+                } else if (possibleFailure != null) {
                     throw new RuntimeException("failed to allocate more timestamps", possibleFailure);
                 }
                 if (!hasLogged) {
@@ -182,6 +185,7 @@ final class PersistentTimestampService implements TimestampService {
         }
     }
 
+    @Override
     public synchronized boolean isTimestampStoreStillValid() {
         return upperLimitToHandOutInclusive.get() == store.getUpperLimit();
     }

@@ -94,12 +94,6 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
         clientPool.runWithPooledResource(new FunctionCheckedException<Client, Void, RuntimeException>() {
             @Override
             public Void apply(Client client) {
-                if (lastWriteException instanceof MultipleRunningTimestampServiceError) {
-                    throw new MultipleRunningTimestampServiceError(lastWriteException);
-                } else if (lastWriteException != null) {
-                    // If we failed to write the last time, the currentLimit may be wrong and this will reset it.
-                    getUpperLimit();
-                }
                 cas(client, currentLimit, limit);
                 return null;
             }

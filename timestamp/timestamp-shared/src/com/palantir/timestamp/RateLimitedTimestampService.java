@@ -52,11 +52,11 @@ class RateLimitedTimestampService implements TimestampService {
                 continue;
             }
             synchronized (batch) {
-                if (!batch.isPopulated()) {
+                if (!batch.isPopulated) {
                     populateBatchAndInstallNewBatch(batch);
                 }
+                result = batch.getValue();
             }
-            result = batch.getValue();
         } while (result == null);
         return result;
     }
@@ -76,12 +76,12 @@ class RateLimitedTimestampService implements TimestampService {
 
         currentBatch = new TimestampHolder();
 
+        int numTimestampsToGet = batch.getRequestCountAndSetInvalid();
+
         // NOTE: At this point, we are sure no new requests for fresh timestamps
         // for "batch" can come in. We can now safely populate the batch
         // with fresh timestamps without violating any freshness guarantees.
 
-        // TODO: probably need to adjust this formula
-        int numTimestampsToGet = batch.getRequestCountAndSetInvalid();
         batch.populate(delegate.getFreshTimestamps(numTimestampsToGet));
 
         lastRequestTimeNanos = System.nanoTime();
@@ -112,13 +112,13 @@ class RateLimitedTimestampService implements TimestampService {
         @GuardedBy("this") long endInclusive;
         @GuardedBy("this") long valueToReturnNext;
 
-        public synchronized void populate(TimestampRange range) {
+        public void populate(TimestampRange range) {
             this.endInclusive = range.getUpperBound();
             this.valueToReturnNext = range.getLowerBound();
             isPopulated = true;
         }
 
-        public synchronized Long getValue() {
+        public Long getValue() {
             Preconditions.checkState(isPopulated);
             if (!hasNext()) {
                 return null;
@@ -130,15 +130,13 @@ class RateLimitedTimestampService implements TimestampService {
             return valueToReturnNext <= endInclusive;
         }
 
-        public synchronized boolean isPopulated() {
-            return isPopulated;
-        }
-
-
         /**
          * @return true if we are included in the batch and false otherwise
          */
         public boolean incrementRequestCount() {
+            if (requestCount.get() < 0) {
+                return false;
+            }
             int val = requestCount.incrementAndGet();
             return val > 0;
         }
