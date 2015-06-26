@@ -98,7 +98,19 @@ public final class AwaitingLeadershipProxy implements InvocationHandler {
     private void gainLeadership() {
         try {
             LeadershipToken leadershipToken = leaderElectionService.blockOnBecomingLeader();
-            delegateRef.set(delegateSupplier.get());
+            // We are now the leader, we should create a delegate so we can service calls
+            Object delegate = null;
+            while (delegate == null) {
+                try {
+                    delegate = delegateSupplier.get();
+                } catch (Throwable t) {
+                    log.error("problem creating delegate", t);
+                    if (isClosed) {
+                        return;
+                    }
+                }
+            }
+            delegateRef.set(delegate);
             if (isClosed) {
                 clearDelegate();
             } else {
