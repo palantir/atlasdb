@@ -35,9 +35,4 @@ public interface TimestampService {
     @GET
     @Path("fresh-timestamps")
     TimestampRange getFreshTimestamps(@QueryParam("number") int numTimestampsRequested);
-
-    /**
-     * @return True if this service is in sync with its backing store.
-     */
-    boolean isTimestampStoreStillValid();
 }

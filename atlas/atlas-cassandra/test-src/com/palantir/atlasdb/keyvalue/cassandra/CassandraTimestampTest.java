@@ -65,13 +65,15 @@ public class CassandraTimestampTest {
         }
         Assert.assertEquals(limit + 20, ts.getUpperLimit());
         Assert.assertEquals(limit + 20, ts2.getUpperLimit());
+
+        ts.storeUpperLimit(limit + 30);
+        Assert.assertEquals(limit + 30, ts.getUpperLimit());
+
         try {
-            ts2.storeUpperLimit(limit + 20);
+            ts2.storeUpperLimit(limit + 40);
             Assert.fail();
         } catch (MultipleRunningTimestampServiceError e) {
             // expected
         }
-        ts.storeUpperLimit(limit + 30);
-        Assert.assertEquals(limit + 30, ts.getUpperLimit());
     }
 }

@@ -66,11 +66,6 @@ class RateLimitedTimestampService implements TimestampService {
         return delegate.getFreshTimestamps(numTimestampsRequested);
     }
 
-    @Override
-    public boolean isTimestampStoreStillValid() {
-        return delegate.isTimestampStoreStillValid();
-    }
-
     private synchronized void populateBatchAndInstallNewBatch(TimestampHolder batch) {
         sleepForRateLimiting();
 

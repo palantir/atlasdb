@@ -184,9 +184,4 @@ final class PersistentTimestampService implements TimestampService {
             }
         }
     }
-
-    @Override
-    public synchronized boolean isTimestampStoreStillValid() {
-        return upperLimitToHandOutInclusive.get() == store.getUpperLimit();
-    }
 }

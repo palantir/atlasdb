@@ -39,9 +39,4 @@ public class InMemoryTimestampService implements TimestampService {
         long topValue = counter.addAndGet(timestampsToGet);
         return TimestampRange.createInclusiveRange(topValue - timestampsToGet + 1, topValue);
     }
-
-    @Override
-    public boolean isTimestampStoreStillValid() {
-        return true;
-    }
 }
