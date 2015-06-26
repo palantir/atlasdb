@@ -1,9 +1,8 @@
 apply plugin: 'java'
 apply plugin: 'eclipse'
-apply plugin: PalantirRepoPlugin
 
 repositories {
-    ptrepo()
+    mavenCentral()
 }
 sourceSets.test.java.srcDirs=[file('test-src')]
 configurations.create('test').extendsFrom(configurations.testRuntime)
