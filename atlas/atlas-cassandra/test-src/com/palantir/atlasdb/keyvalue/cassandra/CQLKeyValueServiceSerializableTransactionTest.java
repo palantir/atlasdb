@@ -8,12 +8,13 @@ import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest
 
 public class CQLKeyValueServiceSerializableTransactionTest extends
         AbstractSerializableTransactionTest {
+
     @Override
     protected KeyValueService getKeyValueService() {
         return CQLKeyValueService.create(
                 ImmutableSet.of("localhost"),
                 9160,
-                1000,
+                20,
                 1000,
                 "atlas",
                 false,
@@ -35,6 +36,5 @@ public class CQLKeyValueServiceSerializableTransactionTest extends
     @Ignore
     public void testRangePaging() {
     }
-
 
 }
