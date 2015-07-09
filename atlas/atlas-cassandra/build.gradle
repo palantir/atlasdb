@@ -32,6 +32,9 @@ test {
     }
 
     include '**/*Suite.class'
+
+    testLogging.showStandardStreams = true
+    systemProperties 'logback.configurationFile' : new File(projectDir,'test-src/logback-test.xml').absolutePath
 }
 
 jacocoTestReport {
