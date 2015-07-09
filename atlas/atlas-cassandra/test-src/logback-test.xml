@@ -11,6 +11,6 @@
   <logger name="org.apache.cassandra" level="WARN"/>
 
   <root level="info">
-    <appender-ref ref="STDOUT" />
+    <appender-ref ref="STDERR" />
   </root>
 </configuration>
