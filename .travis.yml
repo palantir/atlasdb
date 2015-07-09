@@ -4,7 +4,7 @@ jdk:
   - oraclejdk7
 script:
   - ./gradlew assemble
-  - ./gradlew --stacktrace check
+  - ./gradlew --stacktrace --info check
 cache:
   directories:
   - $HOME/.gradle/wrapper
