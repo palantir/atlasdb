@@ -39,6 +39,8 @@ test {
     }
     systemProperties 'logback.configurationFile' : new File(projectDir,'test-src/logback-test.xml').absolutePath
     systemProperties 'cassandra-foreground' : 'true'
+
+    maxParallelForks 1
 }
 
 jacocoTestReport {
