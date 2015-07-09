@@ -38,9 +38,6 @@ test {
         showStackTraces = true
     }
     systemProperties 'logback.configurationFile' : new File(projectDir,'test-src/logback-test.xml').absolutePath
-    systemProperties 'cassandra-foreground' : 'true'
-    systemProperties 'cassandra.boot_without_jna' : 'true'
-
     maxParallelForks 1
 }
 

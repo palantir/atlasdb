@@ -20,6 +20,8 @@ public class CassandraTestSuite {
 
     @BeforeClass
     public static void setup() throws IOException, InterruptedException {
+        System.setProperty("cassandra-foreground", "true");
+        System.setProperty("cassandra.boot_without_jna", "false");
         CassandraService.start();
     }
 
