@@ -16,9 +16,16 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
 import java.nio.file.Files;
 
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
+import javax.management.StandardMBean;
+
 import org.apache.cassandra.service.CassandraDaemon;
+import org.apache.cassandra.service.NativeAccessMBean;
+import org.apache.cassandra.service.CassandraDaemon.NativeAccess;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,6 +69,30 @@ public final class CassandraService {
     private static class TestCassandraDaemon extends CassandraDaemon {
         private static final Logger logger = LoggerFactory.getLogger(CassandraService.TestCassandraDaemon.class);
 
+        @Override
+        public void activate() {
+            String pidFile = System.getProperty("cassandra-pidfile");
+
+            try {
+                
+                setup();
+
+                if (pidFile != null) {
+                    new File(pidFile).deleteOnExit();
+                }
+
+                start();
+            } catch (Throwable e) {
+                logger.error("Exception encountered during startup", e);
+
+                // try to warn user on stdout too, if we haven't already detached
+                e.printStackTrace();
+                System.out.println("Exception encountered during startup: " + e.getMessage());
+
+                // System.exit(3);
+            }
+        }
+        
         // Copied from CassandraDaemon::stop to fix issue on Windows
         @Override
         public void stop() {
