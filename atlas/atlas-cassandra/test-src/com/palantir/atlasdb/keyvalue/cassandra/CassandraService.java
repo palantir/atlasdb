@@ -16,16 +16,9 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.management.ManagementFactory;
 import java.nio.file.Files;
 
-import javax.management.MBeanServer;
-import javax.management.ObjectName;
-import javax.management.StandardMBean;
-
 import org.apache.cassandra.service.CassandraDaemon;
-import org.apache.cassandra.service.NativeAccessMBean;
-import org.apache.cassandra.service.CassandraDaemon.NativeAccess;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,13 +67,10 @@ public final class CassandraService {
             String pidFile = System.getProperty("cassandra-pidfile");
 
             try {
-                
                 setup();
-
                 if (pidFile != null) {
                     new File(pidFile).deleteOnExit();
                 }
-
                 start();
             } catch (Throwable e) {
                 logger.error("Exception encountered during startup", e);
@@ -108,13 +98,10 @@ public final class CassandraService {
             // if (FBUtilities.isWindows())
             //    System.exit(0);
 
-            if (jmxServer != null)
-            {
-                try
-                {
+            if (jmxServer != null) {
+                try {
                     jmxServer.stop();
-                } catch (IOException e)
-                {
+                } catch (IOException e) {
                     logger.error("Error shutting down local JMX server: ", e);
                 }
             }
