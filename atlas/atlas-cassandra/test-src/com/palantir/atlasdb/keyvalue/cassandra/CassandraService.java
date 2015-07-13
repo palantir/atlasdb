@@ -17,6 +17,8 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.cassandra.service.CassandraDaemon;
 import org.slf4j.Logger;
@@ -26,6 +28,7 @@ public final class CassandraService {
     private static final String CASSANDRA_CONFIG = "./cassandra.yaml";
 
     private static CassandraDaemon daemon;
+    private static Semaphore flag = new Semaphore(1);
 
     private CassandraService() {
         // do not instantiate
@@ -36,6 +39,11 @@ public final class CassandraService {
     }
 
     public static synchronized void start() {
+        try {
+            flag.acquire();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
         File tempDir;
         try {
             tempDir = Files.createTempDirectory("cassandra").toFile();
@@ -57,6 +65,7 @@ public final class CassandraService {
         }
         daemon.deactivate();
         daemon = null;
+        flag.release();
     }
 
     private static class TestCassandraDaemon extends CassandraDaemon {
