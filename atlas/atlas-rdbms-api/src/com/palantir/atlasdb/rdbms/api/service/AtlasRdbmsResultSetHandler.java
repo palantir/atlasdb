@@ -7,6 +7,7 @@ import javax.annotation.CheckForNull;
 
 /**
  * Implementations of this interface convert ResultSets into other objects.
+ * @author mharris
  */
 public interface AtlasRdbmsResultSetHandler<T> {
 
@@ -17,8 +18,7 @@ public interface AtlasRdbmsResultSetHandler<T> {
      * before being passed to this method.
      *
      * @return An Object initialized with <code>ResultSet</code> data. It is
-     * legal for implementations to return <code>null</code> if the
-     * <code>ResultSet</code> contained 0 rows.
+     * legal for implementations to return <code>null</code>
      *
      * @throws SQLException if a database access error occurs
      */

@@ -106,38 +106,6 @@ public interface AtlasRdbmsConnection {
     int[] batch(String sql, Object[][] params) throws SQLException;
 
     /**
-     * Executes the provided sql statements
-     * @param sqlStatements Sql statements separated by ';'
-     * @throws SQLException If a DB error occurs
-     */
-    void executeSqlStatements(String sqlStatements) throws SQLException;
-
-    /**
-     * Gets the current version of the schema of this RDBMS
-     * @return The current version of the schema
-     * @throws SQLException If a DB error occurs
-     */
-    AtlasRdbmsSchemaVersion getDbSchemaVersion() throws SQLException;
-
-    /**
-     * Gets a system property from this RDBMS
-     * @param property The name of a system property to retrieve
-     * @return The value of the specified system property or
-     * null if no such system property exists
-     * @throws SQLException If a DB error occurs
-     */
-    @CheckForNull
-    String getDbSystemProperty(String property) throws SQLException;
-
-    /**
-     * Sets the value of a system property
-     * @param property The name of the system property to set
-     * @param value The value of the system property to set
-     * @throws SQLException If a DB error occurs
-     */
-    void setDbSystemProperty(String property, String value) throws SQLException;
-
-    /**
      * If a DB error occurs during any operations performed on
      * this connection, and this connection has auto-commit
      * turned off, meaning it is running in a transaction, then
@@ -155,6 +123,8 @@ public interface AtlasRdbmsConnection {
      * only if auto-commit is turned off
      * @return True if this transaction has auto-commit
      * turned on, false otherwise.
+     * @throws SQLException If an error occurs while checking
+     * auto-commit status
      */
-    boolean isAutoCommit();
+    boolean isAutoCommit() throws SQLException;
 }

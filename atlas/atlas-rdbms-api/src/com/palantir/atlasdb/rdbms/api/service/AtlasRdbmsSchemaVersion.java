@@ -7,7 +7,7 @@ package com.palantir.atlasdb.rdbms.api.service;
  * @author mharris
  *
  */
-public class AtlasRdbmsSchemaVersion {
+public class AtlasRdbmsSchemaVersion implements Comparable<AtlasRdbmsSchemaVersion> {
 
     private final long majorVersion;
     private final long hotfixVersion;
@@ -57,7 +57,21 @@ public class AtlasRdbmsSchemaVersion {
 
     @Override
     public String toString() {
-        return "DbSchemaVersion [majorVersion=" + majorVersion + ", hotfixVersion=" + hotfixVersion
-                + "]";
+        return majorVersion + "." + hotfixVersion;
+    }
+
+    @Override
+    public int compareTo(AtlasRdbmsSchemaVersion o) {
+        if (majorVersion < o.majorVersion) {
+            return -1;
+        } else if (majorVersion > o.majorVersion) {
+            return -1;
+        } else if (hotfixVersion < o.hotfixVersion) {
+            return -1;
+        } else if (hotfixVersion > o.hotfixVersion) {
+            return 1;
+        } else {
+            return 0;
+        }
     }
 }
