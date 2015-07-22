@@ -24,6 +24,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.partition.api.TableAwarePartitionMapApi;
 import com.palantir.atlasdb.keyvalue.partition.util.PeekingIteratorComparator;
 import com.palantir.atlasdb.keyvalue.partition.util.RangeComparator;
@@ -292,7 +293,7 @@ public class PartitionedKeyValueService implements KeyValueService {
     public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(String tableName,
                                                                                                     Iterable<RangeRequest> rangeRequests,
                                                                                                     long timestamp) {
-        throw new NotImplementedException();
+        return KeyValueServices.getFirstBatchForRangesUsingGetRange(this, tableName, rangeRequests, timestamp);
     }
 
     @Override
