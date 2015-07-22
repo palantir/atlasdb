@@ -1,0 +1,887 @@
+// Copyright 2015 Palantir Technologies
+//
+// Licensed under the BSD-3 License (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://opensource.org/licenses/BSD-3-Clause
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package com.palantir.atlasdb.table.description;
+
+import org.json.simple.JSONValue;
+
+import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.ptobject.EncodingUtils;
+import com.palantir.util.Pair;
+import com.palantir.util.crypto.Sha256Hash;
+
+public enum ValueType {
+    /**
+     * Value type for variable-encoded non-negative longs. Numbers closer to
+     * zero will require less space.
+     *
+     * Use {@link #VAR_SIGNED_LONG} instead if you need negative numbers.
+     *
+     * This value type supports range scans.
+     */
+    VAR_LONG {
+        @Override
+        public int getMaxValueSize() {
+            return 10;
+        }
+
+        @Override
+        public Long convertToJava(byte[] value, int offset) {
+            return EncodingUtils.decodeUnsignedVarLong(value, offset);
+        }
+
+        @Override
+        public Pair<String, Integer> convertToString(byte[] value, int offset) {
+            long val = EncodingUtils.decodeVarLong(value, offset);
+            return Pair.create(String.valueOf(val), EncodingUtils.sizeOfVarLong(val));
+        }
+
+        @Override
+        public Pair<String, Integer> convertToJson(byte[] value, int offset) {
+            return convertToString(value, offset);
+        }
+
+        @Override
+        public byte[] convertFromString(String strValue) {
+            return EncodingUtils.encodeVarLong(Long.parseLong(strValue));
+        }
+
+        @Override
+        public byte[] convertFromJson(String jsonValue) {
+            return convertFromString(jsonValue);
+        }
+
+        @Override
+        public String getJavaClassName() {
+            return "long";
+        }
+
+        @Override
+        public String getJavaObjectClassName() {
+            return "Long";
+        }
+
+        @Override
+        public String getHydrateCode(String inputName, String indexName) {
+            return "EncodingUtils.decodeUnsignedVarLong(" + inputName + ", " + indexName + ")";
+        }
+
+        @Override
+        public String getFlippedHydrateCode(String inputName, String indexName) {
+            return "EncodingUtils.decodeFlippedUnsignedVarLong(" + inputName + ", " + indexName + ")";
+        }
+
+        @Override
+        public String getHydrateSizeCode(String variableName) {
+            return "EncodingUtils.sizeOfUnsignedVarLong(" + variableName + ")";
+        }
+
+        @Override
+        public byte[] convertFromJava(Object value) {
+            Preconditions.checkArgument(value instanceof Long);
+            return EncodingUtils.encodeUnsignedVarLong((Long)value);
+        }
+
+        @Override
+        public int sizeOf(Object value) {
+            Preconditions.checkArgument(value instanceof Long);
+            return EncodingUtils.sizeOfUnsignedVarLong((Long)value);
+        }
+
+        @Override
+        public String getPersistCode(String variableName) {
+            return "EncodingUtils.encodeUnsignedVarLong(" + variableName + ")";
+        }
+
+        @Override
+        public Class<?> getTypeClass() {
+            return Long.class;
+        }
+    },
+    /**
+     * This value type supports range scans. Neighboring number will be written next to each other.
+     * This efficiently encodes negative numbers as well as positive numbers.  The closer the number
+     * is to zero, the more efficiently it is encoded.  This also does correct sorting of negative
+     * numbers, so they occur before positive numbers.
+     */
+    VAR_SIGNED_LONG {
+        @Override
+        public int getMaxValueSize() {
+            return 10;
+        }
+
+        @Override
+        public Long convertToJava(byte[] value, int offset) {
+            return EncodingUtils.decodeSignedVarLong(value, offset);
+        }
+
+        @Override
+        public Pair<String, Integer> convertToString(byte[] value, int offset) {
+            long val = EncodingUtils.decodeSignedVarLong(value, offset);
+            return Pair.create(String.valueOf(val), EncodingUtils.sizeOfSignedVarLong(val));
+        }
+
+        @Override
+        public Pair<String, Integer> convertToJson(byte[] value, int offset) {
+            return convertToString(value, offset);
+        }
+
+        @Override
+        public byte[] convertFromString(String strValue) {
+            return EncodingUtils.encodeSignedVarLong(Long.parseLong(strValue));
+        }
+
+        @Override
+        public byte[] convertFromJson(String jsonValue) {
+            return convertFromString(jsonValue);
+        }
+
+        @Override
+        public String getJavaClassName() {
+            return "long";
+        }
+
+        @Override
+        public String getJavaObjectClassName() {
+            return "Long";
+        }
+
+        @Override
+        public String getHydrateCode(String inputName, String indexName) {
+            return "EncodingUtils.decodeSignedVarLong(" + inputName + ", " + indexName + ")";
+        }
+
+        @Override
+        public String getFlippedHydrateCode(String inputName, String indexName) {
+            return "EncodingUtils.decodeFlippedSignedVarLong(" + inputName + ", " + indexName + ")";
+        }
+
+        @Override
+        public String getHydrateSizeCode(String variableName) {
+            return "EncodingUtils.sizeOfSignedVarLong(" + variableName + ")";
+        }
+
+        @Override
+        public byte[] convertFromJava(Object value) {
+            Preconditions.checkArgument(value instanceof Long);
+            return EncodingUtils.encodeSignedVarLong((Long)value);
+        }
+
+        @Override
+        public int sizeOf(Object value) {
+            Preconditions.checkArgument(value instanceof Long);
+            return EncodingUtils.sizeOfSignedVarLong((Long)value);
+        }
+
+        @Override
+        public String getPersistCode(String variableName) {
+            return "EncodingUtils.encodeSignedVarLong(" + variableName + ")";
+        }
+
+        @Override
+        public Class<?> getTypeClass() {
+            return Long.class;
+        }
+    },
+    /**
+     * This value type supports range scans.  Sequential numbers will be written next to each other.
+     * This encoding is for fixed long values.  It is always 8 bytes.
+     * It correctly sorts negative numbers before positive numbers in it's encoding.
+     */
+    FIXED_LONG {
+        @Override
+        public int getMaxValueSize() {
+            return 8;
+        }
+
+        @Override
+        public Long convertToJava(byte[] value, int offset) {
+            return Long.MIN_VALUE^PtBytes.toLong(value, offset);
+        }
+
+        @Override
+        public Pair<String, Integer> convertToString(byte[] value, int offset) {
+            long val = Long.MIN_VALUE^PtBytes.toLong(value, offset);
+            return Pair.create(String.valueOf(val), PtBytes.SIZEOF_LONG);
+        }
+
+        @Override
+        public Pair<String, Integer> convertToJson(byte[] value, int offset) {
+            return convertToString(value, offset);
+        }
+
+        @Override
+        public byte[] convertFromString(String strValue) {
+            return PtBytes.toBytes(Long.MIN_VALUE ^ Long.parseLong(strValue));
+        }
+
+        @Override
+        public byte[] convertFromJson(String jsonValue) {
+            return convertFromString(jsonValue);
+        }
+
+        @Override
+        public String getJavaClassName() {
+            return "long";
+        }
+
+        @Override
+        public String getJavaObjectClassName() {
+            return "Long";
+        }
+
+        @Override
+        public String getHydrateCode(String inputName, String indexName) {
+            return "Long.MIN_VALUE ^ PtBytes.toLong(" + inputName + ", " + indexName + ")";
+        }
+
+        @Override
+        public String getFlippedHydrateCode(String inputName, String indexName) {
+            return "Long.MAX_VALUE ^ PtBytes.toLong(" + inputName + ", " + indexName + ")";
+        }
+
+        @Override
+        public String getHydrateSizeCode(String input) {
+            return "8";
+        }
+
+        @Override
+        public byte[] convertFromJava(Object value) {
+            Preconditions.checkArgument(value instanceof Long);
+            return PtBytes.toBytes(Long.MIN_VALUE ^ (Long)value);
+        }
+
+        @Override
+        public int sizeOf(Object value) {
+            Preconditions.checkArgument(value instanceof Long);
+            return 8;
+        }
+
+        @Override
+        public String getPersistCode(String variableName) {
+            return "PtBytes.toBytes(Long.MIN_VALUE ^ " + variableName + ")";
+        }
+
+        @Override
+        public Class<?> getTypeClass() {
+            return Long.class;
+        }
+    },
+    /**
+     * This value type does NOT support range scans. This encoding is {@link PtBytes#toBytes(long)} but with
+     * the bytes reversed. This type is good if you don't need to support range scans because keys next
+     * to each other won't be written next to each other.  This is good because it will spread out
+     * the load of writes to many different ranges.
+     */
+    FIXED_LONG_LITTLE_ENDIAN {
+        @Override
+        public int getMaxValueSize() {
+            return 8;
+        }
+
+        @Override
+        public Long convertToJava(byte[] value, int offset) {
+            return EncodingUtils.decodeLittleEndian(value, offset);
+        }
+
+        @Override
+        public Pair<String, Integer> convertToString(byte[] value, int offset) {
+            long val = EncodingUtils.decodeLittleEndian(value, offset);
+            return Pair.create(String.valueOf(val), PtBytes.SIZEOF_LONG);
+        }
+
+        @Override
+        public Pair<String, Integer> convertToJson(byte[] value, int offset) {
+            return convertToString(value, offset);
+        }
+
+        @Override
+        public byte[] convertFromString(String strValue) {
+            return EncodingUtils.encodeLittleEndian(Long.parseLong(strValue));
+        }
+
+        @Override
+        public byte[] convertFromJson(String jsonValue) {
+            return convertFromString(jsonValue);
+        }
+
+        @Override
+        public String getJavaClassName() {
+            return "long";
+        }
+
+        @Override
+        public String getJavaObjectClassName() {
+            return "Long";
+        }
+
+        @Override
+        public String getHydrateCode(String inputName, String indexName) {
+            return "EncodingUtils.decodeLittleEndian(" + inputName + ", " + indexName + ")";
+        }
+
+        @Override
+        public String getFlippedHydrateCode(String inputName, String indexName) {
+            return "-1L ^ EncodingUtils.decodeLittleEndian(" + inputName + ", " + indexName + ")";
+        }
+
+        @Override
+        public String getHydrateSizeCode(String input) {
+            return "8";
+        }
+
+        @Override
+        public byte[] convertFromJava(Object value) {
+            Preconditions.checkArgument(value instanceof Long);
+            return EncodingUtils.encodeLittleEndian((Long)value);
+        }
+
+        @Override
+        public int sizeOf(Object value) {
+            Preconditions.checkArgument(value instanceof Long);
+            return 8;
+        }
+
+        @Override
+        public String getPersistCode(String variableName) {
+            return "EncodingUtils.encodeLittleEndian(" + variableName + ")";
+        }
+
+        @Override
+        public boolean supportsRangeScans() {
+            return false;
+        }
+        @Override
+        public Class<?> getTypeClass() {
+            return Long.class;
+        }
+    },
+    /**
+     * This value type supports range scans.  Sequential numbers will be written next to each other.
+     * This encoding is for 256 bits.  It is always 32 bytes, and treats it as unsigned.
+     * It was made for hashes.
+     *
+     * Until Sha256Hash gets moved, you'll need to manually import Sha256Hash to your rendered class.
+     */
+    SHA256HASH {
+        @Override
+        public int getMaxValueSize() {
+            return 32;
+        }
+
+        @Override
+        public Sha256Hash convertToJava(byte[] value, int offset) {
+            return new Sha256Hash(EncodingUtils.get32Bytes(value, offset));
+        }
+
+        @Override
+        public Pair<String, Integer> convertToString(byte[] value, int offset) {
+            int size = 32;
+            return Pair.create(PtBytes.encodeBase64String(value, offset, size), 32);
+        }
+
+        @Override
+        public Pair<String, Integer> convertToJson(byte[] value, int offset) {
+            Pair<String, Integer> p = convertToString(value, offset);
+            return Pair.create("\"" + p.getLhSide() + "\"", p.getRhSide());
+        }
+
+        @Override
+        public byte[] convertFromString(String strValue) {
+            return PtBytes.decodeBase64(strValue);
+        }
+
+        @Override
+        public byte[] convertFromJson(String jsonValue) {
+            return convertFromString(jsonValue.substring(1, jsonValue.length() - 1));
+        }
+
+        @Override
+        public String getJavaClassName() {
+            return "Sha256Hash";
+        }
+
+        @Override
+        public byte[] convertFromJava(Object value) {
+            Preconditions.checkArgument(value instanceof Sha256Hash);
+            return ((Sha256Hash) value).getBytes();
+        }
+
+        @Override
+        public int sizeOf(Object value) {
+            Preconditions.checkArgument(value instanceof Sha256Hash);
+            return 32;
+        }
+
+        @Override
+        public String getPersistCode(String variableName) {
+            return variableName + ".getBytes()";
+        }
+
+        @Override
+        public String getHydrateCode(String inputName, String indexName) {
+            return "new Sha256Hash(EncodingUtils.get32Bytes(" + inputName + ", " + indexName + "))";
+        }
+
+        @Override
+        public String getFlippedHydrateCode(String inputName, String indexName) {
+            return "new Sha256Hash(EncodingUtils.flipAllBitsInPlace(EncodingUtils.get32Bytes(" + inputName + ", " + indexName + ")))";
+        }
+
+        @Override
+        public String getHydrateSizeCode(String input) {
+            return "32";
+        }
+
+        @Override
+        public Class<?> getTypeClass() {
+            return Sha256Hash.class;
+        }
+    },
+    /**
+     * This value type DOES NOT support range scans.
+     * Strings are sorted first by length and then alphabetically, which is probably not what you expected
+     */
+    VAR_STRING {
+        @Override
+        public Pair<String, Integer> convertToString(byte[] value, int offset) {
+            String str = EncodingUtils.decodeVarString(value, offset);
+            return Pair.create(str, EncodingUtils.sizeOfVarString(str));
+        }
+
+        @Override
+        public String convertToJava(byte[] value, int offset) {
+            return EncodingUtils.decodeVarString(value, offset);
+        }
+
+        @Override
+        public Pair<String, Integer> convertToJson(byte[] value, int offset) {
+            Pair<String, Integer> p = convertToString(value, offset);
+            return Pair.create(JSONValue.toJSONString(p.getLhSide()), p.getRhSide());
+        }
+
+        @Override
+        public byte[] convertFromString(String strValue) {
+            return EncodingUtils.encodeVarString(strValue);
+        }
+
+        @Override
+        public byte[] convertFromJson(String jsonValue) {
+            Object s = JSONValue.parse(jsonValue);
+            Preconditions.checkArgument(s instanceof String, "%s must be a json string", jsonValue);
+            return convertFromString((String) s);
+        }
+
+        @Override
+        public String getJavaClassName() {
+            return "String";
+        }
+
+        @Override
+        public String getHydrateCode(String inputName, String indexName) {
+            return "EncodingUtils.decodeVarString(" + inputName + ", " + indexName + ")";
+        }
+
+        @Override
+        public String getFlippedHydrateCode(String inputName, String indexName) {
+            return "EncodingUtils.decodeFlippedVarString(" + inputName + ", " + indexName + ")";
+        }
+
+        @Override
+        public boolean supportsRangeScans() {
+            return false;
+        }
+
+        @Override
+        public String getHydrateSizeCode(String variableName) {
+            return "EncodingUtils.sizeOfVarString(" + variableName + ")";
+        }
+
+        @Override
+        public byte[] convertFromJava(Object value) {
+            Preconditions.checkArgument(value instanceof String);
+            return EncodingUtils.encodeVarString((String) value);
+        }
+
+        @Override
+        public int sizeOf(Object value) {
+            Preconditions.checkArgument(value instanceof String);
+            return EncodingUtils.sizeOfVarString((String)value);
+        }
+
+        @Override
+        public String getPersistCode(String variableName) {
+            return "EncodingUtils.encodeVarString(" + variableName + ")";
+        }
+
+        @Override
+        public Class<?> getTypeClass() {
+            return String.class;
+        }
+    },
+    STRING {
+        @Override
+        public Pair<String, Integer> convertToString(byte[] value, int offset) {
+            int size = value.length - offset;
+            return Pair.create(PtBytes.toString(value, offset, size), size);
+        }
+
+        @Override
+        public String convertToJava(byte[] value, int offset) {
+            return PtBytes.toString(value, offset, value.length - offset);
+        }
+
+        @Override
+        public Pair<String, Integer> convertToJson(byte[] value, int offset) {
+            Pair<String, Integer> p = convertToString(value, offset);
+            return Pair.create(JSONValue.toJSONString(p.getLhSide()), p.getRhSide());
+        }
+
+        @Override
+        public byte[] convertFromString(String strValue) {
+            return PtBytes.toBytes(strValue);
+        }
+
+        @Override
+        public byte[] convertFromJson(String jsonValue) {
+            Object s = JSONValue.parse(jsonValue);
+            Preconditions.checkArgument(s instanceof String, "%s must be a json string", jsonValue);
+            return convertFromString((String) s);
+        }
+
+        @Override
+        public String getJavaClassName() {
+            return "String";
+        }
+
+        @Override
+        public String getHydrateCode(String inputName, String indexName) {
+            return "PtBytes.toString(" + inputName + ", " + indexName + ", " + inputName + ".length" + "-" + indexName + ")";
+        }
+
+        @Override
+        public String getFlippedHydrateCode(String inputName, String indexName) {
+            // All bits after the index can be flipped because string is always the last thing
+            return "PtBytes.toString(EncodingUtils.flipAllBitsInPlace(" + inputName + ", " + indexName + "), " + indexName + ", " + inputName + ".length" + "-" + indexName + ")";
+        }
+
+        @Override
+        public String getHydrateSizeCode(String variableName) {
+            // This value doesn't matter because string is always the last thing
+            return "0";
+        }
+
+        @Override
+        public byte[] convertFromJava(Object value) {
+            Preconditions.checkArgument(value instanceof String);
+            return PtBytes.toBytes((String)value);
+        }
+
+        @Override
+        public int sizeOf(Object value) {
+            Preconditions.checkArgument(value instanceof String);
+            // This value doesn't matter because string is always the last thing
+            return 0;
+        }
+
+        @Override
+        public String getPersistCode(String variableName) {
+            return "PtBytes.toBytes(" + variableName + ")";
+        }
+
+        @Override
+        public Class<?> getTypeClass() {
+            return String.class;
+        }
+    },
+    BLOB {
+        @Override
+        public Pair<String, Integer> convertToString(byte[] value, int offset) {
+            int size = value.length - offset;
+            return Pair.create(PtBytes.encodeBase64String(value, offset, size), size);
+        }
+
+        @Override
+        public Pair<String, Integer> convertToJson(byte[] value, int offset) {
+            Pair<String, Integer> p = convertToString(value, offset);
+            return Pair.create("\"" + p.getLhSide() + "\"", p.getRhSide());
+        }
+
+        @Override
+        public byte[] convertToJava(byte[] value, int offset) {
+            return EncodingUtils.getBytesFromOffsetToEnd(value, offset);
+        }
+
+        @Override
+        public byte[] convertFromString(String strValue) {
+            return PtBytes.decodeBase64(strValue);
+        }
+
+        @Override
+        public byte[] convertFromJson(String jsonValue) {
+            return convertFromString(jsonValue.substring(1, jsonValue.length() - 1));
+        }
+
+        @Override
+        public String getJavaClassName() {
+            return "byte[]";
+        }
+
+        @Override
+        public byte[] convertFromJava(Object value) {
+            Preconditions.checkArgument(value instanceof byte[]);
+            return (byte[]) value;
+        }
+
+        @Override
+        public int sizeOf(Object value) {
+            Preconditions.checkArgument(value instanceof byte[]);
+            // This value doesn't matter because blob is always the last thing
+            return 0;
+        }
+
+        @Override
+        public String getPersistCode(String variableName) {
+            return variableName;
+        }
+
+        @Override
+        public String getHydrateCode(String inputName, String indexName) {
+            return "EncodingUtils.getBytesFromOffsetToEnd(" + inputName + ", " + indexName + ")";
+        }
+
+        @Override
+        public String getFlippedHydrateCode(String inputName, String indexName) {
+            // All bits after the index can be flipped because blob is always the last thing
+            return "EncodingUtils.flipAllBitsInPlace(EncodingUtils.getBytesFromOffsetToEnd(" + inputName + ", " + indexName + "))";
+        }
+
+        @Override
+        public String getHydrateSizeCode(String variableName) {
+            // This value doesn't matter because blob is always the last thing
+            return "0";
+        }
+
+        @Override
+        public Class<?> getTypeClass() {
+            return byte[].class;
+        }
+    },
+    /**
+     * This value type DOES NOT support range scans.
+     */
+    SIZED_BLOB {
+        @Override
+        public Pair<String, Integer> convertToString(byte[] value, int offset) {
+            byte[] bytes = EncodingUtils.decodeSizedBytes(value, offset);
+            return Pair.create(PtBytes.encodeBase64String(bytes), EncodingUtils.sizeOfSizedBytes(bytes));
+        }
+
+        @Override
+        public Pair<String, Integer> convertToJson(byte[] value, int offset) {
+            Pair<String, Integer> p = convertToString(value, offset);
+            return Pair.create("\"" + p.getLhSide() + "\"", p.getRhSide());
+        }
+
+        @Override
+        public byte[] convertToJava(byte[] value, int offset) {
+            return EncodingUtils.decodeSizedBytes(value, offset);
+        }
+
+        @Override
+        public byte[] convertFromString(String strValue) {
+            return EncodingUtils.encodeSizedBytes(PtBytes.decodeBase64(strValue));
+        }
+
+        @Override
+        public byte[] convertFromJson(String jsonValue) {
+            return convertFromString(jsonValue.substring(1, jsonValue.length() - 1));
+        }
+
+        @Override
+        public String getJavaClassName() {
+            return "byte[]";
+        }
+
+        @Override
+        public byte[] convertFromJava(Object value) {
+            Preconditions.checkArgument(value instanceof byte[]);
+            return EncodingUtils.encodeSizedBytes((byte[]) value);
+        }
+
+        @Override
+        public int sizeOf(Object value) {
+            Preconditions.checkArgument(value instanceof byte[]);
+            return EncodingUtils.sizeOfSizedBytes((byte[]) value);
+        }
+
+        @Override
+        public String getPersistCode(String variableName) {
+            return "EncodingUtils.encodeSizedBytes(" + variableName + ")";
+        }
+
+        @Override
+        public String getHydrateCode(String inputName, String indexName) {
+            return "EncodingUtils.decodeSizedBytes(" + inputName + ", " + indexName + ")";
+        }
+
+        @Override
+        public String getFlippedHydrateCode(String inputName, String indexName) {
+            return "EncodingUtils.decodeFlippedSizedBytes(" + inputName + ", " + indexName + ")";
+        }
+
+        @Override
+        public boolean supportsRangeScans() {
+            return false;
+        }
+
+        @Override
+        public String getHydrateSizeCode(String variableName) {
+            return "EncodingUtils.sizeOfSizedBytes(" + variableName + ")";
+        }
+
+        @Override
+        public Class<?> getTypeClass() {
+            return byte[].class;
+        }
+    },
+    NULLABLE_FIXED_LONG {
+        @Override
+        public int getMaxValueSize() {
+            return 9;
+        }
+
+        @Override
+        public Long convertToJava(byte[] value, int offset) {
+            return EncodingUtils.decodeNullableFixedLong(value, offset);
+        }
+
+        @Override
+        public Pair<String, Integer> convertToString(byte[] value, int offset) {
+            return Pair.create(
+                    String.valueOf(EncodingUtils.decodeNullableFixedLong(value, offset)),
+                    9);
+        }
+
+        @Override
+        public Pair<String, Integer> convertToJson(byte[] value, int offset) {
+            return convertToString(value, offset);
+        }
+
+        @Override
+        public byte[] convertFromString(String strValue) {
+            return convertFromJava(strValue == null ? null : Long.parseLong(strValue));
+        }
+
+        @Override
+        public byte[] convertFromJson(String jsonValue) {
+            return convertFromString(jsonValue);
+        }
+
+        @Override
+        public String getJavaClassName() {
+            return "Long";
+        }
+
+        @Override
+        public String getHydrateCode(String inputName, String indexName) {
+            return String.format(
+                    "EncodingUtils.decodeNullableFixedLong(%s,%s)",
+                    inputName,
+                    indexName);
+        }
+
+        @Override
+        public String getFlippedHydrateCode(String inputName, String indexName) {
+            return String.format(
+                    "EncodingUtils.decodeFlippedNullableFixedLong(%s,%s)",
+                    inputName,
+                    indexName);
+        }
+
+        @Override
+        public String getHydrateSizeCode(String input) {
+            return "9";
+        }
+
+        @Override
+        public byte[] convertFromJava(Object value) {
+            Preconditions.checkArgument(value == null || value instanceof Long);
+            return EncodingUtils.encodeNullableFixedLong((Long) value);
+        }
+
+        @Override
+        public int sizeOf(Object value) {
+            Preconditions.checkArgument(value == null || value instanceof Long);
+            return 9;
+        }
+
+        @Override
+        public String getPersistCode(String variableName) {
+            return String.format("EncodingUtils.encodeNullableFixedLong(%s)", variableName);
+        }
+
+        @Override
+        public Class<?> getTypeClass() {
+            return Long.class;
+        }
+    },
+    ;
+
+    public abstract Object convertToJava(byte[] value, int offset);
+    public abstract Pair<String, Integer> convertToJson(byte[] value, int offset);
+    public abstract Pair<String, Integer> convertToString(byte[] value, int offset);
+    public abstract byte[] convertFromString(String strValue);
+    public abstract byte[] convertFromJava(Object value);
+    public abstract byte[] convertFromJson(String jsonValue);
+    public abstract int sizeOf(Object value);
+
+    public String convertToJson(byte[] value) {
+        return convertToJson(value, 0).getLhSide();
+    }
+
+    public String convertToString(byte[] value) {
+        return convertToString(value, 0).getLhSide();
+    }
+
+    public boolean supportsRangeScans() {
+        return true;
+    }
+
+    public abstract String getJavaClassName();
+    public String getJavaObjectClassName() {
+        return getJavaClassName();
+    }
+    public abstract String getPersistCode(String variableName);
+    public abstract String getHydrateCode(String inputName, String indexName);
+    public abstract String getFlippedHydrateCode(String inputName, String indexName);
+    public abstract String getHydrateSizeCode(String variableName);
+
+
+    public int getMaxValueSize() {
+        return Integer.MAX_VALUE;
+    }
+
+    public TableMetadataPersistence.ValueType persistToProto() {
+        return TableMetadataPersistence.ValueType.valueOf(name());
+    }
+
+    public static ValueType hydrateFromProto(TableMetadataPersistence.ValueType message) {
+        return valueOf(message.name());
+    }
+
+    public abstract Class<?> getTypeClass();
+}

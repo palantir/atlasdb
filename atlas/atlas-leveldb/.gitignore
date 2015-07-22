@@ -1,0 +1,3 @@
+/.ecbuild/
+testdb
+.pt_kv_lock_testdb

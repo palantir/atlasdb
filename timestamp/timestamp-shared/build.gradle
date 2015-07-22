@@ -1,0 +1,16 @@
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+repositories {
+    mavenCentral()
+}
+
+sourceSets.main.java.srcDirs=[file('src')]
+sourceSets.test.java.srcDirs=[file('test-src')]
+libsDirName = file('build/artifacts')
+sourceCompatibility = "1.6"
+targetCompatibility = "1.6"
+dependencies {
+  compile(project(":atlas-commons"))
+  compile(project(":timestamp:timestamp-api"))
+}

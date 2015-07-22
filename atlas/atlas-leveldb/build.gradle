@@ -1,0 +1,25 @@
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+repositories {
+    mavenCentral()
+}
+
+sourceSets.main.java.srcDirs=[file('src')]
+sourceSets.test.java.srcDirs=[file('test-src')]
+libsDirName = file('build/artifacts')
+sourceCompatibility = "1.6"
+targetCompatibility = "1.6"
+dependencies {
+  compile(project(":atlas:atlas-client"))
+  compile(group: "org.fusesource.leveldbjni",
+          name: "leveldbjni-all",
+          version: "1.7",
+          configuration: "default")
+  testCompile(group: "junit",
+              name: "junit",
+              version: "4.11",
+              configuration: "default")
+
+  testCompile project(path: ":atlas:atlas-shared-tests", configuration: 'test')
+}

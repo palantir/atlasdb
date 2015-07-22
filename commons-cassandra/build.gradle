@@ -1,0 +1,35 @@
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+repositories {
+    mavenCentral()
+}
+
+sourceSets.main.java.srcDirs=[file('src')]
+sourceSets.test.java.srcDirs=[file('test-src')]
+libsDirName = file('build/artifacts')
+sourceCompatibility = "1.6"
+targetCompatibility = "1.6"
+dependencies {
+  // compile(group: "apache",
+  //         name: "cassandra-thrift",
+  //         version: "2.1.2-java6",
+  //         configuration: "default")
+  // {
+  //   transitive = false
+  // }
+  compile(group: "org.apache.thrift",
+          name: "libthrift",
+          version: "0.9.1",
+          configuration: "default")
+  // compile(group: "com.datastax.cassandra",
+  //         name: "cassandra-driver-core",
+  //         version: "2.1.5-palantir-2",
+  //         configuration: "default")
+  compile(group: "org.slf4j",
+          name: "slf4j-api",
+          version: "1.7.5",
+          configuration: "default")
+  compile(project(":atlas-commons"))
+  compile fileTree(dir: 'lib', include: ['*.jar'])
+}

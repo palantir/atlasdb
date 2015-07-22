@@ -1,0 +1,111 @@
+// Copyright 2015 Palantir Technologies
+//
+// Licensed under the BSD-3 License (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://opensource.org/licenses/BSD-3-Clause
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package com.palantir.atlasdb.table.generation;
+
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
+import com.google.common.collect.Sets;
+import com.google.protobuf.GeneratedMessage;
+import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.table.api.ColumnValue;
+import com.palantir.common.base.Throwables;
+import com.palantir.common.persist.Persistable;
+import com.palantir.common.persist.Persistable.Hydrator;
+
+public class ColumnValues {
+
+    private ColumnValues(){
+        //should not be instantiated
+    }
+
+    public static <T extends Persistable, V extends ColumnValue<?>> Map<Cell, byte[]> toCellValues(Multimap<T, V> map) {
+        return toCellValues(map, Cell.INVALID_TTL, Cell.INVALID_TTL_TYPE);
+    }
+
+    public static <T extends Persistable, V extends ColumnValue<?>> Map<Cell, byte[]> toCellValues(Multimap<T, V> map, long duration, TimeUnit durationTimeUnit) {
+        Map<Cell, byte[]> ret = Maps.newHashMapWithExpectedSize(map.size());
+        for (Entry<T, Collection<V>> e : map.asMap().entrySet()) {
+            byte[] rowName = e.getKey().persistToBytes();
+            for (V val : e.getValue()) {
+                ret.put(Cell.create(rowName, val.persistColumnName(), duration, durationTimeUnit), val.persistValue());
+            }
+        }
+        return ret;
+    }
+
+    public static <T extends Persistable> Entry<Cell, byte[]> toCellValue(T key, ColumnValue<?> value) {
+        Multimap<T, ? extends ColumnValue<?>> singletonMultimap =
+                Multimaps.forMap(Collections.singletonMap(key, value));
+        Map<Cell, byte[]> cellValues = toCellValues(singletonMultimap);
+        return Iterables.getOnlyElement(cellValues.entrySet());
+    }
+
+    public static <T extends Persistable> Set<Cell> toCells(Multimap<T, ? extends Persistable> map) {
+        Set<Cell> ret = Sets.newHashSet();
+        for (T key : map.keySet()) {
+            byte[] rowName = key.persistToBytes();
+            for (Persistable val : map.get(key)) {
+                ret.add(Cell.create(rowName, val.persistToBytes()));
+            }
+        }
+        return ret;
+    }
+
+    public static <T> Function<ColumnValue<T>, T> getValuesFun() {
+        return new Function<ColumnValue<T>, T>() {
+            @Override
+            public T apply(ColumnValue<T> input) {
+                return input.getValue();
+            }
+        };
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T extends GeneratedMessage> T parseProtoBuf(Class<T> clazz, byte[] msg) {
+        try {
+            Method parseMethod = clazz.getMethod("parseFrom", byte[].class);
+            return (T) parseMethod.invoke(null, msg);
+        } catch (Exception e) {
+            throw Throwables.throwUncheckedException(e);
+        }
+    }
+
+    public static <T extends Persistable> T parsePersistable(Class<T> persistableClazz, byte[] bytes) {
+        try {
+            Field f = persistableClazz.getDeclaredField(Persistable.HYDRATOR_NAME);
+            @SuppressWarnings("unchecked")
+            Hydrator<T> hydrator = (Hydrator<T>)f.get(null);
+            return hydrator.hydrateFromBytes(bytes);
+        } catch (SecurityException e) {
+            throw Throwables.throwUncheckedException(e);
+        } catch (NoSuchFieldException e) {
+            throw Throwables.throwUncheckedException(e);
+        } catch (IllegalAccessException e) {
+            throw Throwables.throwUncheckedException(e);
+        }
+    }
+}

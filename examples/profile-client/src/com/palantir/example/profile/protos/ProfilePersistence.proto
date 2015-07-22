@@ -1,0 +1,6 @@
+package com.palantir.example.profile.protos.generated;
+
+message UserProfile {
+    required string name = 1;
+    required sint64 birthEpochDay = 2;
+} 

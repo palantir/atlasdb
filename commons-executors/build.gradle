@@ -1,0 +1,22 @@
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+repositories {
+    mavenCentral()
+}
+
+sourceSets.main.java.srcDirs=[file('src')]
+sourceSets.test.java.srcDirs=[file('test-src')]
+libsDirName = file('build/artifacts')
+sourceCompatibility = "1.6"
+targetCompatibility = "1.6"
+dependencies {
+  testCompile(group: "junit",
+              name: "junit",
+              version: "4.11",
+              configuration: "default")
+  testCompile(group: "com.google.guava",
+              name: "guava",
+              version: "18.0",
+              configuration: "default")
+}

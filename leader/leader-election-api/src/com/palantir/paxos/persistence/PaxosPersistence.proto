@@ -1,0 +1,22 @@
+package com.palantir.paxos.persistence.generated;
+
+message PaxosHeader {
+    required bytes checksum = 1;
+}
+
+message PaxosValue {
+    optional bytes bytes = 1;
+    optional int64 seq = 2;
+    optional string leaderUUID = 3;
+}
+
+message PaxosAcceptorState {
+    optional PaxosProposalId lastPromisedId = 1;
+    optional PaxosProposalId lastAcceptedId = 2;
+    optional PaxosValue lastAcceptedValue = 3;
+}
+
+message PaxosProposalId {
+    required int64 number = 1;
+    optional string proposerUUID = 2;
+}

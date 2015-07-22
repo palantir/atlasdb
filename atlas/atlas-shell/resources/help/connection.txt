@@ -1,0 +1,60 @@
+CONNECTION OBJECTS
+------------------
+
+    class Connection
+     Class that manages the connection to the underlying database. There
+     are 4 static methods to create various flavors of connection.
+
+        Connection.snapshot_in_memory
+         connect to an empty in-memory database handling snapshot transactions
+
+        Connection.readonly_in_memory
+         connect to an empty in-memory database handling only readonly transactions
+
+        Connection.snapshot_from_dispatch host, port, user, pass
+         connect to real database handling snapshot transactions through dispatch
+
+        Connection.readonly_from_db host, port, sid, type, username, password
+         connect to real database handling only readonly transactions directly
+
+        connection.table_names
+         get all table names in the schema
+
+        connection.table table_name (returns Table)
+         retrieve a table object by name
+
+        connection.run &block (passes Transaction to block)
+         run the given block as a snapshot transaction, with retry
+         e.g. connection.run {|tx| tx.get_row(...)}
+
+        connection.try &block (passes Transaction to block)
+         run the given block as a snapshot transaction, without retry
+         e.g. connection.try {|tx| tx.get_row(...)}
+
+        connection.read &block (passes Transaction to block)
+         run the given block as a readonly transaction, without retry
+         e.g. connection.read {|tx| tx.get_row(...)}
+
+        connection.unsafe (returns Transaction)
+         return a bare Transaction object directly (be careful!)
+         e.g. connection.read {|tx| tx.get_row(...)}
+
+CONVENIENCE GLOBAL VARIABLES
+----------------------------
+
+    There is also a convenience method connect() that you can use like so.
+    It sets up global variables: $db to hold the Connection object, and
+    one $<TABLE_NAME> for each table name to hold the Table object.
+
+    You can use it like so:
+
+      connect(:type=>"ORACLE", :host=>"my_db_host", :port=>"1521", :sid=>"my_sid",
+              :username=>"my_username", :password=>"my_password")
+      $obj_fragment.view             # view the obj_fragment table
+      $db.table('obj_fragment').view # same thing
+
+    or to connect through dispatch
+
+      connect(:type=>"DISPATCH", :host=>"my_dispatch_host", :port=>"3280",
+              :username=>"pg_username", :password=>"pg_password")
+

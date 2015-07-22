@@ -1,0 +1,21 @@
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+repositories {
+    mavenCentral()
+}
+
+sourceSets.main.java.srcDirs=[file('src')]
+sourceSets.test.java.srcDirs=[file('test-src')]
+libsDirName = file('build/artifacts')
+sourceCompatibility = "1.6"
+targetCompatibility = "1.6"
+dependencies {
+  compile(project(":lock:lock-api"))
+  compile(project(":atlas-commons"))
+  compile fileTree(dir: 'lib', include: ['*.jar'])
+  testCompile(group: "junit",
+              name: "junit",
+              version: "4.11",
+              configuration: "default")
+}

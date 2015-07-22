@@ -1,0 +1,13 @@
+package com.palantir.atlasdb.protos.generated;
+
+enum Status {
+    STORING = 1;
+    STORED = 2;
+    FAILED = 3;
+}
+
+message StreamMetadata {
+    required Status status = 1;
+    required int64 length = 2;
+    required bytes hash = 3;
+}
