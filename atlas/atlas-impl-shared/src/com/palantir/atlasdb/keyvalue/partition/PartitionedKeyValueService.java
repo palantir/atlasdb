@@ -11,6 +11,7 @@ import javax.annotation.Nonnull;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -178,6 +179,23 @@ public class PartitionedKeyValueService implements KeyValueService {
     }
 
     @Nonnull
+    private Map<KeyValueService, Multimap<Cell, Value>> whoHasCellsForWrite(String tableName, Multimap<Cell, Value> cells) {
+        Map<KeyValueService, Multimap<Cell, Value>> result = Maps.newHashMap();
+        for (Map.Entry<Cell, Value> e : cells.entries()) {
+            final Cell cell = e.getKey();
+            final Value val = e.getValue();
+            Set<KeyValueService> services = tpm.getServicesForWrite(tableName, cell.getRowName());
+            for (KeyValueService kvs : services) {
+                if (!result.containsKey(kvs)) {
+                    result.put(kvs, HashMultimap.<Cell, Value>create());
+                }
+                result.get(kvs).put(cell, val);
+            }
+        }
+        return result;
+    }
+
+    @Nonnull
     private Map<KeyValueService, Map<Cell, byte[]>> whoHasCellsForWrite(String tableName, Map<Cell, byte[]> cells) {
         Map<KeyValueService, Map<Cell, byte[]>> result = Maps.newHashMap();
         for (Map.Entry<Cell, byte[]> e : cells.entrySet()) {
@@ -299,11 +317,23 @@ public class PartitionedKeyValueService implements KeyValueService {
     @NonIdempotent
     public void putWithTimestamps(String tableName, Multimap<Cell, Value> cellValues)
             throws KeyAlreadyExistsException {
-        for (Map.Entry<Cell, Value> e : cellValues.entries()) {
-            final Cell cell = e.getKey();
-            final byte[] value = e.getValue().getContents();
-            final long timestamp = e.getValue().getTimestamp();
-            putCell(tableName, cell, value, timestamp);
+        Map<KeyValueService, Multimap<Cell, Value>> whoHasWhat = whoHasCellsForWrite(tableName, cellValues);
+        Map<Value, Integer> numberOfWrites = Maps.newHashMap();
+        for (Map.Entry<KeyValueService, Multimap<Cell, Value>> e : whoHasWhat.entrySet()) {
+            final KeyValueService kvs = e.getKey();
+            final Multimap<Cell, Value> kvsCells = e.getValue();
+            kvs.putWithTimestamps(tableName, kvsCells);
+            for (Value val : kvsCells.values()) {
+                if (numberOfWrites.containsKey(val)) {
+                    numberOfWrites.put(val, 0);
+                }
+                numberOfWrites.put(val, numberOfWrites.get(val) + 1);
+            }
+        }
+        for (Integer i : numberOfWrites.values()) {
+            if (i < writeFactor) {
+                throw new RuntimeException("Could not get enough writes.");
+            }
         }
     }
 
