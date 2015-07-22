@@ -251,7 +251,7 @@ public class PartitionedKeyValueService implements KeyValueService {
 
             @Override
             protected RowResult<Value> computeNext() {
-                if (!rowsIterator.hasNext()) {
+                while (!rowsIterator.hasNext()) {
                     if (!rangesIterator.hasNext()) {
                         return endOfData();
                     } else {
@@ -374,7 +374,11 @@ public class PartitionedKeyValueService implements KeyValueService {
     @Override
     public void multiPut(Map<String, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp)
             throws KeyAlreadyExistsException {
-        throw new NotImplementedException();
+        for (Map.Entry<String, ? extends Map<Cell, byte[]>> e : valuesByTable.entrySet()) {
+            final String tableName = e.getKey();
+            final Map<Cell, byte[]> values = e.getValue();
+            put(tableName, values, timestamp);
+        }
     }
 
     @Override

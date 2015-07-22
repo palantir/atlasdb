@@ -79,6 +79,9 @@ public class AllInOnePartitionMap implements TableAwarePartitionMapApi {
     }
 
     static boolean lessThan(byte[] a1, byte[] a2) {
+        if (a2.length == 0) {
+            return true;
+        }
         return UnsignedBytes.lexicographicalComparator().compare(a1, a2) < 0;
     }
 
@@ -87,7 +90,6 @@ public class AllInOnePartitionMap implements TableAwarePartitionMapApi {
                                                                            RangeRequest range) {
         // Just support the simple case for now
         Preconditions.checkArgument(range.isReverse() == false);
-        Preconditions.checkArgument(range.getEndExclusive().length > 0);
 
         final Multimap<RangeRequest, KeyValueService> result = HashMultimap.create();
         byte[] key = range.getStartInclusive();
@@ -109,7 +111,9 @@ public class AllInOnePartitionMap implements TableAwarePartitionMapApi {
                     currentRange,
                     getServicesForRead(tableName, key));
             key = endRange;
-            endRange = ring.higherKey(endRange);
+            if (endRange != null) {
+                endRange = ring.higherKey(endRange);
+            }
         }
 
         return result;
