@@ -1,11 +1,12 @@
 package com.palantir.atlasdb.keyvalue.partition;
 
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
+
+import javax.annotation.Nonnull;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.AbstractIterator;
@@ -129,6 +130,53 @@ public class PartitionedKeyValueService implements KeyValueService {
         }
     }
 
+    @Nonnull
+    private Map<KeyValueService, Set<byte[]>> whoHasRows(String tableName, Iterable<byte[]> rows) {
+        Map<KeyValueService, Set<byte[]>> whoHasWhat = Maps.newHashMap();
+        for (byte[] row : rows) {
+            Set<KeyValueService> services = tpm.getServicesForRead(tableName, row);
+            for (KeyValueService kvs : services) {
+                if (!whoHasWhat.containsKey(kvs)) {
+                    whoHasWhat.put(kvs, Sets.<byte[]>newHashSet());
+                }
+                whoHasWhat.get(kvs).add(row);
+            }
+        }
+        return whoHasWhat;
+    }
+
+    @Nonnull
+    private Map<KeyValueService, Set<Cell>> whoHasCells(String tableName, Iterable<Cell> cells) {
+        Map<KeyValueService, Set<Cell>> whoHasWhat = Maps.newHashMap();
+        for (Cell cell : cells) {
+            Set<KeyValueService> services = tpm.getServicesForRead(tableName, cell.getRowName());
+            for (KeyValueService kvs : services) {
+                if (!whoHasWhat.containsKey(kvs)) {
+                    whoHasWhat.put(kvs, Sets.<Cell>newHashSet());
+                }
+                whoHasWhat.get(kvs).add(cell);
+            }
+        }
+        return whoHasWhat;
+    }
+
+    @Nonnull
+    private Map<KeyValueService, Map<Cell, Long>> whoHasCells(String tableName, Map<Cell, Long> cellsByTimestamp) {
+        Map<KeyValueService, Map<Cell, Long>> whoHasWhat = Maps.newHashMap();
+        for (Map.Entry<Cell, Long> e : cellsByTimestamp.entrySet()) {
+            final Cell cell = e.getKey();
+            final Long timestamp = e.getValue();
+            Set<KeyValueService> services = tpm.getServicesForRead(tableName, cell.getRowName());
+            for (KeyValueService kvs : services) {
+                if (!whoHasWhat.containsKey(kvs)) {
+                    whoHasWhat.put(kvs, Maps.<Cell, Long>newHashMap());
+                }
+                whoHasWhat.get(kvs).put(cell, timestamp);
+            }
+        }
+        return whoHasWhat;
+    }
+
     @Override
     @Idempotent
     public Map<Cell, Value> getRows(String tableName,
@@ -141,17 +189,7 @@ public class PartitionedKeyValueService implements KeyValueService {
 
         final Map<Cell, Value> overallResult = Maps.newHashMap();
         final Map<Cell, Integer> numberOfReads = Maps.newHashMap();
-        final Map<KeyValueService, Set<byte[]>> whoHasWhat = Maps.newHashMap();
-
-        for (byte[] row : rows) {
-            Set<KeyValueService> services = tpm.getServicesForRead(tableName, row);
-            for (KeyValueService kvs : services) {
-                if (!whoHasWhat.containsKey(kvs)) {
-                    whoHasWhat.put(kvs, Sets.<byte[]>newHashSet());
-                }
-                whoHasWhat.get(kvs).add(row);
-            }
-        }
+        final Map<KeyValueService, Set<byte[]>> whoHasWhat = whoHasRows(tableName, rows);
 
         for (Map.Entry<KeyValueService, Set<byte[]>> e : whoHasWhat.entrySet()) {
             final KeyValueService kvs = e.getKey();
@@ -176,8 +214,8 @@ public class PartitionedKeyValueService implements KeyValueService {
             Map.Entry<Cell, Integer> e = it.next();
             if (e.getValue() < readFactor) {
                 System.err.println("Skipping row due to not enough reads.");
+                it.remove();
             }
-            it.remove();
         }
 
         return overallResult;
@@ -186,14 +224,32 @@ public class PartitionedKeyValueService implements KeyValueService {
     @Override
     @Idempotent
     public Map<Cell, Value> get(String tableName, Map<Cell, Long> timestampByCell) {
-        HashMap<Cell, Value> result = Maps.newHashMap();
-        for (Map.Entry<Cell, Long> e : timestampByCell.entrySet()) {
+        Map<Cell, Value> result = Maps.newHashMap();
+        Map<Cell, Integer> numberOfReads = Maps.newHashMap();
+        Map<KeyValueService, Map<Cell, Long>> whoHasWhat = whoHasCells(tableName, timestampByCell);
+        for (Map.Entry<KeyValueService, Map<Cell, Long>> e : whoHasWhat.entrySet()) {
+            final KeyValueService kvs = e.getKey();
+            final Map<Cell, Long> kvsTimestampByCell = e.getValue();
+            final Map<Cell, Value> kvsResult = kvs.get(tableName, kvsTimestampByCell);
+            for (Map.Entry<Cell, Value> v : kvsResult.entrySet()) {
+                final Cell cell = v.getKey();
+                final Value val = v.getValue();
+                if (!result.containsKey(cell) || result.get(cell).getTimestamp() < val.getTimestamp()) {
+                    result.put(cell, val);
+                }
+                if (!numberOfReads.containsKey(cell)) {
+                    numberOfReads.put(cell, 1);
+                } else {
+                    numberOfReads.put(cell, numberOfReads.get(cell) + 1);
+                }
+            }
+        }
+
+        for (Map.Entry<Cell, Integer> e : numberOfReads.entrySet()) {
             final Cell cell = e.getKey();
-            final long timestamp = e.getValue();
-            final Value val = getCell(tableName, cell, timestamp);
-            // `Values that do not exist are simply not returned'
-            if (val != null) {
-                result.put(cell, val);
+            if (e.getValue() < readFactor) {
+                System.err.println("Skipping cell due to not enough reads.");
+                result.remove(cell);
             }
         }
         return result;
