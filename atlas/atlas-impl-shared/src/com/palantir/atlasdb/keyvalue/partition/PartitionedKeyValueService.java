@@ -176,7 +176,11 @@ public class PartitionedKeyValueService implements KeyValueService {
         for (Map.Entry<Cell, Long> e : timestampByCell.entrySet()) {
             final Cell cell = e.getKey();
             final long timestamp = e.getValue();
-            result.put(cell, getCell(tableName, cell, timestamp));
+            final Value val = getCell(tableName, cell, timestamp);
+            // `Values that do not exist are simply not returned'
+            if (val != null) {
+                result.put(cell, val);
+            }
         }
         return result;
     }
