@@ -7,6 +7,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
 import javax.annotation.Nonnull;
+import javax.ws.rs.NotSupportedException;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.AbstractIterator;
@@ -340,11 +341,7 @@ public class PartitionedKeyValueService implements KeyValueService {
     @Override
     public void putUnlessExists(String tableName, Map<Cell, byte[]> values)
             throws KeyAlreadyExistsException {
-        for (Map.Entry<Cell, byte[]> e : values.entrySet()) {
-            final Cell cell = e.getKey();
-            final byte[] value = e.getValue();
-            putCellUnlessExists(tableName, cell, value);
-        }
+        throw new NotSupportedException();
     }
 
     @Override
