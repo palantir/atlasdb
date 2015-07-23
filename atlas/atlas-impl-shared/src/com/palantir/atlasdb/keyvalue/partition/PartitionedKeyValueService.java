@@ -321,14 +321,15 @@ public class PartitionedKeyValueService implements KeyValueService {
         void handleSuccess(Future<FutureReturnType> future) {
             Preconditions.checkArgument(futureToCells.containsKey(future));
             Preconditions.checkState(failure == false);
-            for (Cell cell : futureToCells.get(future)) {
+            Iterable<Cell> cellsThatSucceeded = futureToCells.get(future);
+            for (Cell cell : cellsThatSucceeded) {
                 if (numberOfRemainingSuccessesForSuccess.containsKey(cell)) {
                     int newValue = numberOfRemainingSuccessesForSuccess.get(cell) - 1;
                     if (newValue == 0) {
                         numberOfRemainingSuccessesForSuccess.remove(cell);
                         numberOfRemainingFailuresForFailure.remove(cell);
                     } else {
-                        numberOfRemainingFailuresForFailure.put(cell, newValue);
+                        numberOfRemainingSuccessesForSuccess.put(cell, newValue);
                     }
                 }
             }
@@ -359,11 +360,11 @@ public class PartitionedKeyValueService implements KeyValueService {
         }
 
         boolean success() {
-            return !failure && numberOfRemainingSuccessesForSuccess.isEmpty();
+            return !failure() && numberOfRemainingSuccessesForSuccess.isEmpty();
         }
 
         boolean finished() {
-            return failure && success();
+            return failure() || success();
         }
     }
 
