@@ -4,7 +4,11 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
 import javax.annotation.Nonnull;
 import javax.ws.rs.NotSupportedException;
@@ -37,6 +41,7 @@ import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.NonIdempotent;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
+import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
@@ -291,26 +296,124 @@ public class PartitionedKeyValueService implements KeyValueService {
         return result;
     }
 
+    ExecutorService executor = PTExecutors.newCachedThreadPool();
+
+    class QuorumTracker<FutureReturnType> {
+
+        private final Map<Cell, Integer> numberOfRemainingSuccessesForSuccess;
+        private final Map<Cell, Integer> numberOfRemainingFailuresForFailure;
+        private final Map<Future<FutureReturnType>, Iterable<Cell>> futureToCells;
+        private boolean failure;
+
+        QuorumTracker(Iterable<Cell> allCells, final int successFactor) {
+            numberOfRemainingFailuresForFailure = Maps.newHashMap();
+            numberOfRemainingSuccessesForSuccess = Maps.newConcurrentMap();
+            futureToCells = Maps.newHashMap();
+
+            for (Cell cell : allCells) {
+                numberOfRemainingFailuresForFailure.put(cell, replicationFactor - successFactor);
+                numberOfRemainingSuccessesForSuccess.put(cell, successFactor);
+            }
+
+            failure = false;
+        }
+
+        void handleSuccess(Future<FutureReturnType> future) {
+            Preconditions.checkArgument(futureToCells.containsKey(future));
+            Preconditions.checkState(failure == false);
+            for (Cell cell : futureToCells.get(future)) {
+                if (numberOfRemainingSuccessesForSuccess.containsKey(cell)) {
+                    int newValue = numberOfRemainingSuccessesForSuccess.get(cell) - 1;
+                    if (newValue == 0) {
+                        numberOfRemainingSuccessesForSuccess.remove(cell);
+                        numberOfRemainingFailuresForFailure.remove(cell);
+                    } else {
+                        numberOfRemainingFailuresForFailure.put(cell, newValue);
+                    }
+                }
+            }
+        }
+
+        void handleFailure(Future<FutureReturnType> future) {
+            Preconditions.checkArgument(futureToCells.containsKey(future));
+            Preconditions.checkState(failure == false);
+            for (Cell cell : futureToCells.get(future)) {
+                if (numberOfRemainingFailuresForFailure.containsKey(cell)) {
+                    int newValue = numberOfRemainingFailuresForFailure.get(cell) - 1;
+                    if (newValue == 0) {
+                        failure = true;
+                        break;
+                    } else {
+                        numberOfRemainingFailuresForFailure.put(cell, newValue);
+                    }
+                }
+            }
+        }
+
+        void registerFuture(Future<FutureReturnType> future, Iterable<Cell> cells) {
+            futureToCells.put(future, cells);
+        }
+
+        boolean failure() {
+            return failure;
+        }
+
+        boolean success() {
+            return !failure && numberOfRemainingSuccessesForSuccess.isEmpty();
+        }
+
+        boolean finished() {
+            return failure && success();
+        }
+    }
+
     @Override
-    public void put(String tableName, Map<Cell, byte[]> values, long timestamp) {
-        Map<KeyValueService, Map<Cell, byte[]>> whoHasWhat = whoHasCellsForWrite(tableName, values);
-        Map<Cell, Integer> numberOfWrites = Maps.newHashMap();
+    public void put(final String tableName, Map<Cell, byte[]> values, final long timestamp) {
+        // Data to write per individual endpoint kvs
+        final Map<KeyValueService, Map<Cell, byte[]>> whoHasWhat = whoHasCellsForWrite(tableName, values);
+        final ExecutorCompletionService<Void> writeService = new ExecutorCompletionService<Void>(executor);
+        final QuorumTracker<Void> tracker = new QuorumTracker<Void>(values.keySet(), writeFactor);
+
         for (Map.Entry<KeyValueService, Map<Cell, byte[]>> e : whoHasWhat.entrySet()) {
             final KeyValueService kvs = e.getKey();
             final Map<Cell, byte[]> cells = e.getValue();
-            kvs.put(tableName, cells, timestamp);
-            for (Cell cell : cells.keySet()) {
-                if (!numberOfWrites.containsKey(cell)) {
-                    numberOfWrites.put(cell, 0);
+            final Future<Void> future = writeService.submit(new Callable<Void> () {
+                @Override
+                public Void call() throws Exception {
+                    kvs.put(tableName, cells, timestamp);
+                    return null;
                 }
-                numberOfWrites.put(cell, numberOfWrites.get(cell) + 1);
+            });
+            tracker.registerFuture(future, cells.keySet());
+        }
+
+        while (!tracker.finished()) {
+            boolean success = false;
+            Future<Void> future = null;
+            try {
+                future = writeService.take();
+                future.get();
+                success = true;
+            } catch (InterruptedException e) {
+                Throwables.throwUncheckedException(e);
+            } catch (ExecutionException e) {
+                System.err.println("Write failed: " + e);
+            } finally {
+                if (success) {
+                    assert(future != null);
+                    tracker.handleSuccess(future);
+                } else {
+                    if (future != null) {
+                        tracker.handleFailure(future);
+                    } else {
+                        // Thread was interrupted. Propagate in catch block.
+                    }
+                }
             }
         }
-        for (Integer i : numberOfWrites.values()) {
-            if (i < writeFactor) {
-                // TODO: Rethrow one of the exceptions from above
-                throw new RuntimeException("Could not get enough writes.");
-            }
+
+        if (tracker.failure()) {
+            throw new RuntimeException("Could not get enough writes.");
         }
     }
 
