@@ -7,7 +7,7 @@ Patent Grant
 
 "Palantir" means Palantir Technologies Inc., together with any Entity in whatever country organized, that controls, is controlled by or is under common control of Palantir Technologies Inc. The term "control" means possession, direct or indirect, of the power to direct or cause the direction of the management and policies of an Entity, whether by contract or otherwise.
 
-"Software" means the Atlas software, in binary, source, or object form, including any modifications or additions to the Atlas software submitted for inclusion in the software.
+"Software" means the AtlasDB software, in binary, source, or object form, including any modifications or additions to the AtlasDB software submitted for inclusion in the software.
 
 "You" means each Enity that is a recipient of the Software.
 
