@@ -12,10 +12,10 @@ libsDirName = file('build/artifacts')
 sourceCompatibility = "1.6"
 targetCompatibility = "1.6"
 dependencies {
-  compile(project(":atlas:atlas-client"))
+  compile(project(":atlas-client"))
   compile(project(":commons-cassandra"))
-  compile(project(":timestamp:timestamp-api"))
-  testCompile project(path: ":atlas:atlas-shared-tests", configuration: 'test')
+  compile(project(":timestamp-api"))
+  testCompile project(path: ":atlas-tests-shared", configuration: 'test')
   testCompile 'org.apache.cassandra:cassandra-all:2.1.5'
 }
 

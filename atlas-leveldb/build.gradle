@@ -11,7 +11,7 @@ libsDirName = file('build/artifacts')
 sourceCompatibility = "1.6"
 targetCompatibility = "1.6"
 dependencies {
-  compile(project(":atlas:atlas-client"))
+  compile(project(":atlas-client"))
   compile(group: "org.fusesource.leveldbjni",
           name: "leveldbjni-all",
           version: "1.7",
@@ -21,5 +21,5 @@ dependencies {
               version: "4.11",
               configuration: "default")
 
-  testCompile project(path: ":atlas:atlas-shared-tests", configuration: 'test')
+  testCompile project(path: ":atlas-tests-shared", configuration: 'test')
 }

@@ -6,13 +6,11 @@ repositories {
 }
 
 sourceSets.main.java.srcDirs=[file('src')]
+sourceSets.test.java.srcDirs=[file('test-src')]
 libsDirName = file('build/artifacts')
 sourceCompatibility = "1.6"
 targetCompatibility = "1.6"
 dependencies {
-  compile(project(":atlas:atlas-client"))
-  compile(project(":atlas:atlas-lock-api"))
-  compile(project(":timestamp:timestamp-api"))
   compile(project(":atlas-commons"))
-  compile(project(":lock:lock-server"))
+  compile(project(":timestamp-api"))
 }

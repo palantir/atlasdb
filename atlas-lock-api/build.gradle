@@ -11,11 +11,6 @@ libsDirName = file('build/artifacts')
 sourceCompatibility = "1.6"
 targetCompatibility = "1.6"
 dependencies {
-  compile(project(":atlas-client"))
-  compile(project(":examples:profile-client-protobufs"))
-  testCompile(project(":atlas-impl-shared"))
-  testCompile(group: "junit",
-              name: "junit",
-              version: "4.11",
-              configuration: "default")
+  compile(project(":atlas-api"))
+  compile(project(":lock-api"))
 }

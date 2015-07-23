@@ -4,18 +4,20 @@ apply plugin: 'eclipse'
 repositories {
     mavenCentral()
 }
-
-sourceSets.main.java.srcDirs=[file('src')]
 sourceSets.test.java.srcDirs=[file('test-src')]
-libsDirName = file('build/artifacts')
+configurations.create('test').extendsFrom(configurations.testRuntime)
 sourceCompatibility = "1.6"
 targetCompatibility = "1.6"
 dependencies {
-  compile(project(":lock:lock-api"))
-  compile(project(":atlas-commons"))
-  compile fileTree(dir: 'lib', include: ['*.jar'])
+  testCompile(project(":atlas-impl-shared"))
   testCompile(group: "junit",
               name: "junit",
               version: "4.11",
               configuration: "default")
+  testCompile(group: "org.jmock",
+              name: "jmock",
+              version: "2.5.1",
+              configuration: "default")
+  test sourceSets.test.output
+
 }
