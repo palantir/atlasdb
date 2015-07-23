@@ -24,7 +24,7 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.util.crypto.Sha256Hash;
 
 /**
- * Interface for storing streams specifically for atlas.
+ * Interface for storing streams specifically for atlasdb.
  */
 public interface ExpiringStreamStore<ID> extends GenericStreamStore<ID> {
     Sha256Hash storeStream(ID id, InputStream stream, long duration, TimeUnit durationUnit);

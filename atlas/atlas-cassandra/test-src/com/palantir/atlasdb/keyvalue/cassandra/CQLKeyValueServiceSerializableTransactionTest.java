@@ -16,7 +16,7 @@ public class CQLKeyValueServiceSerializableTransactionTest extends
                 9160,
                 20,
                 1000,
-                "atlas",
+                "atlasdb",
                 false,
                 1,
                 1000,

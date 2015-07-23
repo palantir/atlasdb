@@ -12,7 +12,7 @@ public class CassandraKeyValueServiceTransactionTest extends AbstractTransaction
                 ImmutableSet.of("localhost"),
                 9160,
                 20,
-                "atlas",
+                "atlasdb",
                 false,
                 1,
                 10000,

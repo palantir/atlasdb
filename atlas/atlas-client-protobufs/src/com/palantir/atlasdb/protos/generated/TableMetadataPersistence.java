@@ -7586,7 +7586,7 @@ public final class TableMetadataPersistence {
   static {
     java.lang.String[] descriptorData = {
       "\n:com/palantir/atlasdb/protos/TableMetad" +
-      "ataPersistence.proto\022%com.palantir.atlas" +
+      "ataPersistence.proto\022%com.palantir.atlasdb" +
       "db.protos.generated\"\313\004\n\rTableMetadata\022O\n" +
       "\007rowName\030\001 \002(\0132>.com.palantir.atlasdb.pr" +
       "otos.generated.NameMetadataDescription\022Q" +
@@ -7619,7 +7619,7 @@ public final class TableMetadataPersistence {
       "ription\"\300\001\n\030DynamicColumnDescription\022V\n\016" +
       "columnNameDesc\030\001 \002(\0132>.com.palantir.atla" +
       "sdb.protos.generated.NameMetadataDescrip" +
-      "tion\022L\n\005value\030\002 \002(\0132=.com.palantir.atlas" +
+      "tion\022L\n\005value\030\002 \002(\0132=.com.palantir.atlasdb" +
       "db.protos.generated.ColumnValueDescripti" +
       "on\"\213\001\n\026NamedColumnDescription\022\021\n\tshortNa" +
       "me\030\001 \002(\t\022\020\n\010longName\030\002 \002(\t\022L\n\005value\030\003 \002(" +

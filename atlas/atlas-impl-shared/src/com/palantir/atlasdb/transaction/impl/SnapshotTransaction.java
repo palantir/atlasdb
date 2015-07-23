@@ -825,7 +825,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
         if (isTempTable(tableName) || (AtlasDbConstants.SKIP_POSTFILTER_TABLES.contains(tableName) && allowHiddenTableAccess)) {
             // If we are reading from a temp table, we can just bypass postfiltering
-            // or skip postfiltering if reading the transaction or namespace table from atlas shell
+            // or skip postfiltering if reading the transaction or namespace table from atlasdb shell
             for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
                 results.put(e.getKey(), transformer.apply(e.getValue()));
             }
@@ -1571,7 +1571,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             TransactionCommitFailedException commitFailedEx = new TransactionCommitFailedException(
                     "This transaction failed writing the commit timestamp. " +
                     "It might have been committed, but it may not have.", e);
-            log.error("failed to commit an atlas transaction", commitFailedEx);
+            log.error("failed to commit an atlasdb transaction", commitFailedEx);
             throw commitFailedEx;
         }
     }

@@ -19,7 +19,7 @@ import java.util.concurrent.ExecutorService;
 import com.google.common.collect.Multimap;
 
 /*
- * All dynamic atlas tables should implement this interface.
+ * All dynamic atlasdb tables should implement this interface.
  */
 public interface AtlasDbDynamicImmutableTable<ROW, COLUMN, COLUMN_VALUE, ROW_RESULT> extends
             AtlasDbImmutableTable<ROW, COLUMN_VALUE, ROW_RESULT> {

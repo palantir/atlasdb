@@ -64,7 +64,7 @@ public interface TransactionManager {
     <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task) throws E, TransactionFailedRetriableException;
 
     /**
-     * Most atlas TransactionManagers will provide {@link Transaction} objects that have less than full
+     * Most atlasdb TransactionManagers will provide {@link Transaction} objects that have less than full
      * serializability. The most common is snapshot isolation (SI).  SI has a start timestamp and a commit timestamp
      * and an open transaction can only read values that were committed before it's start timestamp.
      * <p>

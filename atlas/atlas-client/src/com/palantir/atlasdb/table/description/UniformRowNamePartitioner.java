@@ -52,7 +52,7 @@ public class UniformRowNamePartitioner implements RowNamePartitioner {
         case NULLABLE_FIXED_LONG:
             return getRangesForLongs(numberRanges);
         default:
-            throw new UnsupportedOperationException("Atlas does not yet support this type. (But can if you need it)");
+            throw new UnsupportedOperationException("AtlasDB does not yet support this type. (But can if you need it)");
         }
     }
 

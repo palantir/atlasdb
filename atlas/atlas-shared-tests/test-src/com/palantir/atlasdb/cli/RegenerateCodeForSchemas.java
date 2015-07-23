@@ -25,7 +25,7 @@ import com.palantir.atlasdb.schema.indexing.IndexTestSchema;
 import com.palantir.atlasdb.schema.stream.StreamTestSchema;
 
 /**
- * Regenerate all atlas schemas, useful when you touch TableRenderer.
+ * Regenerate all atlasdb schemas, useful when you touch TableRenderer.
  * You'll still need to manually fix up DeprecatedReadStateService's stuff and DeprecatedPacmanNote01 because of past mistakes.
  *
  * @author clockfort

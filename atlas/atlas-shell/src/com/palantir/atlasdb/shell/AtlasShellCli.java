@@ -79,7 +79,7 @@ public class AtlasShellCli {
         if (scriptlet.endsWith(".rb")) {
             File file = new File(scriptlet); // looks in the dispatchServer directory if running from the shell
             if (!file.exists()) {
-                String atlasShellDir = System.getProperty("atlas-shell.dir");
+                String atlasShellDir = System.getProperty("atlasdb-shell.dir");
                 if (!Strings.isNullOrEmpty(atlasShellDir)) {
                     file = new File(atlasShellDir, scriptlet);
                 }

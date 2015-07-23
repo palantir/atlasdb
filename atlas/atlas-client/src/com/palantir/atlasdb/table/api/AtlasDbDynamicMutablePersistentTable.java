@@ -17,7 +17,7 @@ package com.palantir.atlasdb.table.api;
 import com.google.common.collect.Multimap;
 
 /*
- * All dynamic atlas tables should implement this interface.
+ * All dynamic atlasdb tables should implement this interface.
  */
 public interface AtlasDbDynamicMutablePersistentTable<ROW, COLUMN, COLUMN_VALUE, ROW_RESULT> extends
             AtlasDbDynamicMutableTable<ROW, COLUMN, COLUMN_VALUE, ROW_RESULT>,

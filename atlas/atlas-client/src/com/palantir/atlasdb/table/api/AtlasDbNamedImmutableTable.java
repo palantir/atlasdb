@@ -21,7 +21,7 @@ import com.google.common.base.Optional;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 
 /*
- * All named atlas tables should implement this interface.
+ * All named atlasdb tables should implement this interface.
  */
 public interface AtlasDbNamedImmutableTable<ROW, COLUMN_VALUE, ROW_RESULT> extends
             AtlasDbImmutableTable<ROW, COLUMN_VALUE, ROW_RESULT> {

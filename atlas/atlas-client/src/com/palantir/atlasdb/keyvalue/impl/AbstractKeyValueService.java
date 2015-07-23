@@ -141,7 +141,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
                     @Override
                     public Void call() {
                         String originalName = Thread.currentThread().getName();
-                        Thread.currentThread().setName("Atlas multiPut of " + p.size() + " cells into " + table);
+                        Thread.currentThread().setName("AtlasDB multiPut of " + p.size() + " cells into " + table);
                         try {
                             put(table, Maps2.fromEntries(p), timestamp);
                             return null;

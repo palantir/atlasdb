@@ -25,7 +25,7 @@ import com.palantir.atlasdb.shell.audit.AuditLoggingConnection;
 import com.palantir.common.concurrent.PTExecutors;
 
 /**
- * Main entry point for an Atlas Shell.
+ * Main entry point for an AtlasDB Shell.
  */
 public class AtlasShellRun {
     private final AtlasShellContextFactory atlasShellContextFactory;

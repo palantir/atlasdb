@@ -91,7 +91,7 @@ public class InMemoryAtlasDb {
                 return false;
             }
         }));
-        LockClient client = LockClient.of("in memory atlas instance");
+        LockClient client = LockClient.of("in memory atlasdb instance");
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.createDefault(keyValueService);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
 

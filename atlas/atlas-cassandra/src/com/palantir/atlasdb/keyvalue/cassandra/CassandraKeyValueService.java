@@ -253,7 +253,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 }
             } else if (!tableName.equals(CassandraConstants.METADATA_TABLE)) { // only expected case
                 // Possible to get here from a race condition with another dispatch starting up and performing schema upgrades concurrent with us doing this check
-                throw new RuntimeException(new UpgradeFailedException("Found a table " + tableName + " that did not have persisted Atlas metadata. If you recently did a Palantir update, try waiting until schema upgrades are completed on all backend CLIs/dispatches etc and restarting this service. If this error re-occurs on subsequent attempted startups, please contact Palantir support."));
+                throw new RuntimeException(new UpgradeFailedException("Found a table " + tableName + " that did not have persisted AtlasDB metadata. If you recently did a Palantir update, try waiting until schema upgrades are completed on all backend CLIs/dispatches etc and restarting this service. If this error re-occurs on subsequent attempted startups, please contact Palantir support."));
             }
         }
 

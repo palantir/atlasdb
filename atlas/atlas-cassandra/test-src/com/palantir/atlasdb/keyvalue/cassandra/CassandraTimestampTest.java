@@ -19,7 +19,7 @@ public class CassandraTimestampTest {
                 ImmutableSet.of("localhost"),
                 9160,
                 20,
-                "atlas", false,
+                "atlasdb", false,
                 1,
                 10000,
                 10000000,

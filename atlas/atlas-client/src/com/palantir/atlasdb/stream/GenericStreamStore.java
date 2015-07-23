@@ -23,7 +23,7 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.util.crypto.Sha256Hash;
 
 /**
- * Interface for storing streams specifically for atlas.
+ * Interface for storing streams specifically for atlasdb.
  */
 public interface GenericStreamStore<ID> {
     static int BLOCK_SIZE_IN_BYTES = 1000000; // 1MB. DO NOT CHANGE THIS WITHOUT AN UPGRADE TASK

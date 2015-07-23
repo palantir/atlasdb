@@ -13,7 +13,7 @@ public class CQLKeyValueServiceTransactionTest extends AbstractTransactionTest {
                 9160,
                 20,
                 1000,
-                "atlas",
+                "atlasdb",
                 false,
                 1,
                 1000,

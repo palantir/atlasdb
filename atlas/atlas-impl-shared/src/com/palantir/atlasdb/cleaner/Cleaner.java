@@ -23,7 +23,7 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 /**
  * A {@link Cleaner} is good for two things: it scrubs and it punches. Scrubbing is an on-demand
  * operation, deleting things you particularly badly want gone, and it lets you configure just how
- * badly you want them gone. Punching is associating atlas timestamps with wallclock time.
+ * badly you want them gone. Punching is associating atlasdb timestamps with wallclock time.
  *
  * @author jweel
  */

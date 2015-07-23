@@ -22,7 +22,7 @@ import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
 
 /**
- * Interface for storing streams specifically for atlas.
+ * Interface for storing streams specifically for atlasdb.
  */
 public interface PersistentStreamStore extends GenericStreamStore<Long> {
 

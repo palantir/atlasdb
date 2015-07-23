@@ -13,7 +13,7 @@ public class CassandraKeyValueServiceSerializableTransactionTest extends
                 ImmutableSet.of("localhost"),
                 9160,
                 20,
-                "atlas", false,
+                "atlasdb", false,
                 1,
                 10000,
                 10000000,

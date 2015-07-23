@@ -28,7 +28,7 @@ public class DefaultAtlasShellContextFactory implements AtlasShellContextFactory
     @Override
     public AtlasContext withSnapshotTransactionManagerInMemory() {
         KeyValueService keyValueService = new InMemoryKeyValueService(false);
-        LockClient lockClient = LockClient.of("in memory atlas instance");
+        LockClient lockClient = LockClient.of("in memory atlasdb instance");
         LockService lockService = LockServiceImpl.create(new LockServerOptions() {
             private final static long serialVersionUID = 5836783944180764369L;
 

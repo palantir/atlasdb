@@ -29,7 +29,7 @@ import com.google.common.collect.Multimap;
  * - This does not fulfill the same goals/legal requirements as hard delete for sensitive data. (though data written by this service can itself be deleted by normal hard delete routines)
  * - // todo Only tables marked with 'AllowsSelfExpiringData' in their schema may use these features
  *
- * - Normal atlas guarantees may be broken. Data written with expiration times are:
+ * - Normal atlasdb guarantees may be broken. Data written with expiration times are:
  * 1. not guaranteed to expire atomically with the entire row or at any other level of granularity
  * 2. not guaranteed to exist at any time after being written (as this feature implicitly requires distributed wall clock time)
  * 3. not guaranteed to be deleted after the specified expiration time

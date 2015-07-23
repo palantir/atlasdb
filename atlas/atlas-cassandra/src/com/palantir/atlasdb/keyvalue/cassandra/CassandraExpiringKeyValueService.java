@@ -107,7 +107,7 @@ public class CassandraExpiringKeyValueService extends CassandraKeyValueService i
                 callables.add(new Callable<Void>() {
                     @Override
                     public Void call() {
-                        Thread.currentThread().setName("Atlas expiry multiPut of " + p.size() + " cells into " + table);
+                        Thread.currentThread().setName("AtlasDB expiry multiPut of " + p.size() + " cells into " + table);
                         put(table, Maps2.fromEntries(p), timestamp, time, unit);
                         return null;
                     }

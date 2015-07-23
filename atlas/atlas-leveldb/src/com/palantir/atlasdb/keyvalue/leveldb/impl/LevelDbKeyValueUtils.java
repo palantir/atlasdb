@@ -46,7 +46,7 @@ final class LevelDbKeyValueUtils {
 
             @Override
             public String name() {
-                return "atlas comparator";
+                return "atlasdb comparator";
             }
 
             @Override

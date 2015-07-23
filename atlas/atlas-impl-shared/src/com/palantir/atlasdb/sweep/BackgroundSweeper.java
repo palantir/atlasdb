@@ -319,7 +319,7 @@ public class BackgroundSweeper implements Runnable {
                 return previousLocks;
             }
         } else {
-            LockDescriptor lock = StringLockDescriptor.of("atlas sweep");
+            LockDescriptor lock = StringLockDescriptor.of("atlasdb sweep");
             LockRequest request = LockRequest.builder(ImmutableSortedMap.of(lock, LockMode.WRITE)).doNotBlock().build();
             LockResponse response = txManager.getLockService().lock(LockClient.ANONYMOUS, request);
             if (response.success()) {

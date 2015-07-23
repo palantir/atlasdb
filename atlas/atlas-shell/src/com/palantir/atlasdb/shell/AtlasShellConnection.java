@@ -25,7 +25,7 @@ import com.palantir.ptoss.util.Throwables;
 
 /**
  * An {@link AtlasShellConnection} encapsulates the knowledge of the outside world that must be
- * available for Atlas Shell to manipulate a database. Refer to {@link AtlasShellConnectionFactory}
+ * available for AtlasDB Shell to manipulate a database. Refer to {@link AtlasShellConnectionFactory}
  * for factory methods.
  */
 final public class AtlasShellConnection {
