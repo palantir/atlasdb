@@ -30,6 +30,10 @@ class QuorumTracker<FutureReturnType> {
         failure = false;
     }
 
+    static <T> QuorumTracker<T> of(Iterable<Cell> allCells, final int replicationFactor, final int successFactor) {
+        return new QuorumTracker<T>(allCells, replicationFactor, successFactor);
+    }
+
     void handleSuccess(Future<FutureReturnType> future) {
         Preconditions.checkArgument(futureToCells.containsKey(future));
         Preconditions.checkState(failure == false);

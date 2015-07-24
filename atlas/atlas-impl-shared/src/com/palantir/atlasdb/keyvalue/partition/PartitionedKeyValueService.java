@@ -272,8 +272,9 @@ public class PartitionedKeyValueService implements KeyValueService {
         // Data to write per individual endpoint kvs
         final Map<KeyValueService, Map<Cell, byte[]>> whoHasWhat = whoHasCellsForWrite(tableName, values);
         final ExecutorCompletionService<Void> writeService = new ExecutorCompletionService<Void>(executor);
-        final QuorumTracker<Void> tracker = new QuorumTracker<Void>(values.keySet(), replicationFactor, writeFactor);
+        final QuorumTracker<Void> tracker = QuorumTracker.of(values.keySet(), replicationFactor, writeFactor);
 
+        // Send the requests.
         for (Map.Entry<KeyValueService, Map<Cell, byte[]>> e : whoHasWhat.entrySet()) {
             final KeyValueService kvs = e.getKey();
             final Map<Cell, byte[]> cells = e.getValue();
@@ -287,6 +288,7 @@ public class PartitionedKeyValueService implements KeyValueService {
             tracker.registerFuture(future, cells.keySet());
         }
 
+        // Wait until we can conclude success or failure.
         while (!tracker.finished()) {
             boolean success = false;
             Future<Void> future = null;
