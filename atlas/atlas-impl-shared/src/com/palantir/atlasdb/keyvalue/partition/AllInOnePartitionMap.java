@@ -104,7 +104,7 @@ public class AllInOnePartitionMap implements TableAwarePartitionMapApi {
          * the ring (which can be retrieved using getServicesForRead).
          */
 
-        final Multimap<RangeRequest, KeyValueService> result = TreeMultimap.create(
+        final TreeMultimap<RangeRequest, KeyValueService> result = TreeMultimap.create(
                 RangeComparator.Instance(),
                 Ordering.arbitrary());
 
@@ -115,20 +115,20 @@ public class AllInOnePartitionMap implements TableAwarePartitionMapApi {
             byte[] endRange;
             if (range.isReverse()) {
                 endRange = ring.lowerKey(key);
+                if (endRange == null ||
+                        UnsignedBytes.lexicographicalComparator().compare(endRange, range.getEndExclusive()) < 0) {
+                    endRange = range.getEndExclusive();
+                }
             } else {
                 endRange = ring.higherKey(key);
+                if (endRange == null ||
+                        UnsignedBytes.lexicographicalComparator().compare(endRange, range.getEndExclusive()) > 0) {
+                    endRange = range.getEndExclusive();
+                }
             }
             RangeRequest.Builder rangeBuilder = range.isReverse() ? RangeRequest.reverseBuilder() : RangeRequest.builder();
             rangeBuilder = rangeBuilder.startRowInclusive(key);
-            if (endRange != null) {
-                // Bounded case
-                int cmp = UnsignedBytes.lexicographicalComparator().compare(endRange, range.getEndExclusive());
-                // This is the corner case; mainly for unit tests purpose
-                if ((range.isReverse() && cmp < 0) || (!range.isReverse() && cmp > 0)) {
-                    endRange = range.getEndExclusive();
-                }
-                rangeBuilder = rangeBuilder.endRowExclusive(endRange);
-            }
+            rangeBuilder = rangeBuilder.endRowExclusive(endRange);
             result.putAll(
                     rangeBuilder.build(),
                     getServicesForRead(tableName, key));
