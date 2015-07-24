@@ -1,5 +1,6 @@
 package com.palantir.atlasdb.keyvalue.partition;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -15,6 +16,7 @@ import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.api.TableAwarePartitionMapApi;
 import com.palantir.atlasdb.keyvalue.partition.util.RangeComparator;
 
@@ -47,14 +49,18 @@ public class AllInOnePartitionMap implements TableAwarePartitionMapApi {
         return new AllInOnePartitionMap(repf, readf, writef, services, points);
     }
 
-    // private AllInOnePartitionMap(int repf, int readf, int writef, Collection<KeyValueService> services, byte[] maxKey) {
-
-    // }
-
-    // public static AllInOnePartitionMap Create() {
-    //     // TODO
-    //     return new AllInOnePartitionMap(3, 2, 2, null, null);
-    // }
+    public static AllInOnePartitionMap Create(int repf, int read, int writef, int numOfServices) {
+        Preconditions.checkArgument(numOfServices < 255);
+        KeyValueService[] services = new KeyValueService[numOfServices];
+        byte[][] points = new byte[numOfServices][];
+        for (int i=0; i<numOfServices; ++i) {
+            services[i] = new InMemoryKeyValueService(false);
+        }
+        for (int i=0; i<numOfServices; ++i) {
+            points[i] = new byte[] {(byte) (i + 1)};
+        }
+        return new AllInOnePartitionMap(repf, read, writef, Arrays.asList(services), points);
+    }
 
     private Set<KeyValueService> getServiceWithKey(byte[] prefix) {
         Set<KeyValueService> result = Sets.newHashSet();
