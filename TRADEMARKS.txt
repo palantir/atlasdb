@@ -1,4 +1,10 @@
-Palantir Technologies Inc. ("Palantir") does not grant permission to use the trade names, trademarks, service marks, or product names of Palantir, including AtlasDB, (collectively Palantir's "trademarks"), without specific prior written permission, except as required to describe the origin of the AtlasDB software in accordance with fair use under trademark law and in accordance with the below rules and policies. All uses of Palantir's trademarks, and all goodwill associated therewith, will inure solely to the benefit of Palantir.
+Palantir Technologies Inc. ("Palantir") does not grant permission to use the
+trade names, trademarks, service marks, or product names of Palantir, including
+AtlasDB, (collectively Palantir's "trademarks"), without specific prior written
+permission, except as required to describe the origin of the AtlasDB software
+in accordance with fair use under trademark law and in accordance with the
+below rules and policies. All uses of Palantir's trademarks, and all goodwill
+associated therewith, will inure solely to the benefit of Palantir.
 
 Rules and Policies Applicable to Palantir's Trademarks:
 
@@ -24,5 +30,10 @@ Rules and Policies Applicable to Palantir's Trademarks:
 
   * Do not use Palantir's trademarks in keyword advertising.
 
-You may use the AtlasDB trademark to distribute unmodified AtlasDB software without additional permission from Palantir as long as your distribution is not subject to a fee, or tied to subscribing or purchasing a service, or the collection of personal information.  You may not redistribute products derived from the AtlasDB software under any Palantir trademark without Palantir's prior written consent.     
+You may use the AtlasDB trademark to distribute unmodified AtlasDB software
+without additional permission from Palantir as long as your distribution is not
+subject to a fee, or tied to subscribing or purchasing a service, or the
+collection of personal information.  You may not redistribute products derived
+from the AtlasDB software under any Palantir trademark without Palantir's prior
+written consent.     
 
