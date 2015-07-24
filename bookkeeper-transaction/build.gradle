@@ -1,0 +1,29 @@
+apply from: "../gradle/shared.gradle"
+
+buildscript {
+    repositories { jcenter() }
+    dependencies { classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.1' }
+}
+
+apply plugin: 'com.github.johnrengelman.shadow'
+
+
+libsDirName = file('build/artifacts')
+dependencies {
+  compile(project(":atlasdb-impl-shared"))
+  compile('org.apache.bookkeeper:bookkeeper-server:4.3.1') {
+    exclude(group:'junit')
+  }
+
+}
+
+configurations.matching({ it.name in ['compile', 'runtime'] }).all {
+    resolutionStrategy {
+        force 'org.slf4j:slf4j-api:' + libVersions.slf4j
+        force 'log4j:log4j:1.2.16'
+        force 'org.slf4j:slf4j-log4j12:1.6.4'
+        force 'io.netty:netty:3.9.4.Final'
+        force 'commons-lang:commons-lang:2.6'
+        force 'commons-logging:commons-logging:1.1.1'
+    }
+}

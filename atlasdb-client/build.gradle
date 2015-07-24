@@ -17,7 +17,9 @@ dependencies {
   compile(group: "com.googlecode.json-simple",
           name: "json-simple",
           version: "1.1.1",
-          configuration: "default")
+          configuration: "default") {
+      exclude(group: 'junit')
+  }
   compile(group: "commons-lang",
           name: "commons-lang",
           version: "2.6",

@@ -24,3 +24,13 @@ dependencies {
   compile(group: 'org.yaml', name: 'snakeyaml', version: '1.13', configuration: 'default')
 }
 
+
+configurations.matching({ it.name in ['compile', 'runtime'] }).all {
+    resolutionStrategy {
+        force 'org.yaml:snakeyaml:1.13'
+        force 'org.jruby.extras:jaffl:0.5.11'
+        force 'org.jruby.jcodings:jcodings:1.0.7'
+        force 'org.jruby.extras:jffi:1.0.8'
+        force 'org.fusesource.leveldbjni:leveldbjni:1.7'
+    }
+}

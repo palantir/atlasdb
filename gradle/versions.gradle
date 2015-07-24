@@ -5,8 +5,8 @@ ext.libVersions = [
     junit:   '4.11'
 ]
 
-//configurations.matching({ it.name in ['compile', 'runtime'] }).all {
-//    resolutionStrategy {
-//        failOnVersionConflict()
-//    }
-//}
+configurations.matching({ it.name in ['compile', 'runtime'] }).all {
+    resolutionStrategy {
+        failOnVersionConflict()
+    }
+}
