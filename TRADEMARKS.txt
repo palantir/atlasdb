@@ -1,0 +1,28 @@
+Palantir Technologies Inc. ("Palantir") does not grant permission to use the trade names, trademarks, service marks, or product names of Palantir, including AtlasDB, (collectively Palantir's "trademarks"), without specific prior written permission, except as required to describe the origin of the AtlasDB software in accordance with fair use under trademark law and in accordance with the below rules and policies. All uses of Palantir's trademarks, and all goodwill associated therewith, will inure solely to the benefit of Palantir.
+
+Rules and Policies Applicable to Palantir's Trademarks:
+
+  • Do not use Palantir's trademarks more prominently than your own company, product or service name.
+
+  • Do not combine or merge any other trademarks with Palantir's trademarks.
+
+  • Do not use Palantir's trademarks in any manner that suggests an inaccurate relationship, affiliation, sponsorship or endorsement of you by Palantir.
+
+  • Do not use or register Palantir's trademarks as or incorporated in social media account names, profiles, or similar monikers.
+
+  • Do not incorporate the Palantir's trademarks into any domain names (including, as top-, second-, or third-level domain).
+
+  • Do not use Palantir's trademarks as part of your product name
+
+  • Do not incorporate Palantir's trademarks into your logos or designs.
+
+  • Do not use Palantir's trademarks in a way that would disparage Palantir or tarnish Palantir's reputation (e.g., untruthful advertising, false/misleading promotional materials, etc.).
+
+  • Do not alter or modify Palantir's trademarks.
+
+  • Do not use Palantir's trademarks in any manner that otherwise violates applicable law or regulation.
+
+  • Do not use Palantir's trademarks in keyword advertising.
+
+You may use the AtlasDB trademark to distribute unmodified AtlasDB software without additional permission from Palantir as long as your distribution is not subject to a fee, or tied to subscribing or purchasing a service, or the collection of personal information.  You may not redistribute products derived from the AtlasDB software under any Palantir trademark without Palantir's prior written consent.     
+
