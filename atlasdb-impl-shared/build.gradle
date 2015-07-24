@@ -9,9 +9,9 @@ libsDirName = file('build/artifacts')
 sourceCompatibility = "1.6"
 targetCompatibility = "1.6"
 dependencies {
-  compile(project(":atlas-client"))
-  compile(project(":atlas-lock-api"))
+  compile(project(":atlasdb-client"))
+  compile(project(":atlasdb-lock-api"))
   compile(project(":timestamp-api"))
-  compile(project(":atlas-commons"))
+  compile(project(":atlasdb-commons"))
   compile(project(":lock-server"))
 }

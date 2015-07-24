@@ -28,6 +28,6 @@ dependencies {
           name: "slf4j-api",
           version: "1.7.5",
           configuration: "default")
-  compile(project(":atlas-commons"))
+  compile(project(":atlasdb-commons"))
   compile fileTree(dir: 'lib', include: ['*.jar'])
 }

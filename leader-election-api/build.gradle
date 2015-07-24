@@ -9,7 +9,7 @@ libsDirName = file('build/artifacts')
 sourceCompatibility = "1.6"
 targetCompatibility = "1.6"
 dependencies {
-  compile(project(":atlas-commons"))
+  compile(project(":atlasdb-commons"))
   compile(group: "commons-lang",
           name: "commons-lang",
           version: "2.6",

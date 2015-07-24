@@ -10,7 +10,7 @@ sourceCompatibility = "1.6"
 targetCompatibility = "1.6"
 dependencies {
   compile(project(":lock-api"))
-  compile(project(":atlas-commons"))
+  compile(project(":atlasdb-commons"))
   compile fileTree(dir: 'lib', include: ['*.jar'])
   testCompile(group: "junit",
               name: "junit",
