@@ -79,23 +79,24 @@ public class AllInOnePartitionMap implements TableAwarePartitionMapApi {
         return getServicesForRead(tableName, row);
     }
 
-    static boolean inRange(byte[] position, byte[] endExclusive) {
-        Preconditions.checkNotNull(endExclusive);
+    static boolean inRange(byte[] position, RangeRequest rangeRequest) {
+        Preconditions.checkNotNull(rangeRequest);
         if (position == null) {
             return false;
         }
         // Unbounded case - always in range
-        if (endExclusive.length == 0) {
+        if (rangeRequest.getEndExclusive().length == 0) {
             return true;
         }
-        return UnsignedBytes.lexicographicalComparator().compare(position, endExclusive) < 0;
+        int cmp = UnsignedBytes.lexicographicalComparator().compare(position, rangeRequest.getEndExclusive());
+        return (rangeRequest.isReverse() && cmp > 0) || (!rangeRequest.isReverse() && cmp < 0);
     }
 
     @Override
     public Multimap<RangeRequest, KeyValueService> getServicesForRangeRead(String tableName,
                                                                            RangeRequest range) {
         // Just support the simple case for now
-        Preconditions.checkArgument(range.isReverse() == false);
+        // Preconditions.checkArgument(range.isReverse() == false);
 
         /* The idea here is to traverse the ring. Each interval in the
          * ring becomes a key in the resulting map.
@@ -103,32 +104,33 @@ public class AllInOnePartitionMap implements TableAwarePartitionMapApi {
          * the ring (which can be retrieved using getServicesForRead).
          */
 
-        //final Multimap<RangeRequest, KeyValueService> result = HashMultimap.create();
-        final Multimap<RangeRequest, KeyValueService> result = TreeMultimap.create(RangeComparator.Instance(), Ordering.arbitrary());
+        final Multimap<RangeRequest, KeyValueService> result = TreeMultimap.create(
+                RangeComparator.Instance(),
+                Ordering.arbitrary());
 
         // This is the pointer to current position on the ring.
         byte[] key = range.getStartInclusive();
 
-        while (inRange(key, range.getEndExclusive())) {
-            byte[] endRange = ring.higherKey(key);
-            RangeRequest currentInterval;
+        while (inRange(key, range)) {
+            byte[] endRange;
+            if (range.isReverse()) {
+                endRange = ring.lowerKey(key);
+            } else {
+                endRange = ring.higherKey(key);
+            }
+            RangeRequest.Builder rangeBuilder = range.isReverse() ? RangeRequest.reverseBuilder() : RangeRequest.builder();
+            rangeBuilder = rangeBuilder.startRowInclusive(key);
             if (endRange != null) {
                 // Bounded case
-                if (UnsignedBytes.lexicographicalComparator().compare(endRange, range.getEndExclusive()) > 0) {
+                int cmp = UnsignedBytes.lexicographicalComparator().compare(endRange, range.getEndExclusive());
+                // This is the corner case; mainly for unit tests purpose
+                if ((range.isReverse() && cmp < 0) || (!range.isReverse() && cmp > 0)) {
                     endRange = range.getEndExclusive();
                 }
-                currentInterval = RangeRequest.builder()
-                    .startRowInclusive(key)
-                    .endRowExclusive(endRange)
-                    .build();
-            } else {
-                // Unbounded case
-                currentInterval = RangeRequest.builder()
-                        .startRowInclusive(key)
-                        .build();
+                rangeBuilder = rangeBuilder.endRowExclusive(endRange);
             }
             result.putAll(
-                    currentInterval,
+                    rangeBuilder.build(),
                     getServicesForRead(tableName, key));
             // Jump to the next interval
             key = endRange;

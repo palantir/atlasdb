@@ -95,11 +95,10 @@ public class AllInOnePartitionMapTest {
     }
 
     void testRangeIntervalsOk(RangeRequest rangeRequest) {
+        if (rangeRequest.isReverse() == false) {
+            return;
+        }
         Preconditions.checkArgument(rangeRequest.getEndExclusive() != null && rangeRequest.getEndExclusive().length > 0);
-        Preconditions.checkArgument(rangeRequest.isReverse() == false);
-        Preconditions.checkArgument(UnsignedBytes.lexicographicalComparator().compare(
-                rangeRequest.getStartInclusive(),
-                rangeRequest.getEndExclusive()) < 0);
         byte[] start = rangeRequest.getStartInclusive();
         byte[] end = rangeRequest.getEndExclusive();
         System.err.println("start=" + Arrays.toString(start));
@@ -107,6 +106,7 @@ public class AllInOnePartitionMapTest {
         byte[] old = start;
         byte[] oldEnd = null;
         Multimap<RangeRequest, KeyValueService> result = tpm.getServicesForRangeRead(TABLE1, rangeRequest);
+        assertTrue(rangeRequest.isEmptyRange() || result.size() > 0);
         // Make sure that the ranges are non-overlapping subranges of the original range and that their
         // union equals the original range.
         for (Map.Entry<RangeRequest, KeyValueService> e : result.entries()) {
@@ -117,7 +117,13 @@ public class AllInOnePartitionMapTest {
             System.err.println("currrent=" + Arrays.toString(current));
             System.err.println("currentEnd=" + Arrays.toString(currentEnd));
             if (oldEnd == null) {
-                assertTrue(Arrays.equals(current, start));
+                // If this is the first interval
+                // FIXME: This should fail on reverse range (!!)
+                if (rangeRequest.isReverse()) {
+                    assertTrue(Arrays.equals(currentEnd, end));
+                } else {
+                    assertTrue(Arrays.equals(current, start));
+                }
             }
             assertTrue(UnsignedBytes.lexicographicalComparator().compare(currentEnd, end) <= 0);
             assertTrue(UnsignedBytes.lexicographicalComparator().compare(current, old) >= 0);
@@ -191,6 +197,22 @@ public class AllInOnePartitionMapTest {
                 },
                 new byte[][] {
                         newByteArray(0x01),
+                        newByteArray(0x01)
+                },
+                new byte[][] {
+                        newByteArray(0xff),
+                        newByteArray(0x00)
+                },
+                new byte[][] {
+                        newByteArray(0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a),
+                        newByteArray(0x01, 0x00)
+                },
+                new byte[][] {
+                        newByteArray(0x01, 0x02),
+                        newByteArray(0x01, 0x00)
+                },
+                new byte[][] {
+                        newByteArray(0x01),
                         newByteArray(0xff, 0xaa)
                 },
                 new byte[][] {
@@ -198,9 +220,12 @@ public class AllInOnePartitionMapTest {
                         newByteArray(0x02, 0x03)
                 }
         };
+
         final RangeRequest[] requests = new RangeRequest[sampleRangesArr.length];
         for (int i = 0; i < requests.length; i++) {
-            requests[i] = RangeRequest.builder()
+            int cmp = UnsignedBytes.lexicographicalComparator().compare(sampleRangesArr[i][0], sampleRangesArr[i][1]);
+            RangeRequest.Builder builder = cmp >= 0 ? RangeRequest.reverseBuilder() : RangeRequest.builder();
+            requests[i] = builder
                     .startRowInclusive(sampleRangesArr[i][0])
                     .endRowExclusive(sampleRangesArr[i][1])
                     .build();
