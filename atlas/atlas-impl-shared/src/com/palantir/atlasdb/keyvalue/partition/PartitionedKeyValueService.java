@@ -56,7 +56,9 @@ public class PartitionedKeyValueService implements KeyValueService {
     final int writeFactor = 2;
 
     private PartitionedKeyValueService(ExecutorService executor) {
-        tpm = AllInOnePartitionMap.Create();
+        // TODO
+        // tpm = AllInOnePartitionMap.Create();
+        tpm = null;
     }
 
     private PartitionedKeyValueService() {

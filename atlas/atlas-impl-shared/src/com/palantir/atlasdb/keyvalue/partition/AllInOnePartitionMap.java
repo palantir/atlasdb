@@ -1,20 +1,22 @@
 package com.palantir.atlasdb.keyvalue.partition;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
+import com.google.common.collect.TreeMultimap;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
-import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.api.TableAwarePartitionMapApi;
+import com.palantir.atlasdb.keyvalue.partition.util.RangeComparator;
 
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
@@ -26,34 +28,33 @@ public class AllInOnePartitionMap implements TableAwarePartitionMapApi {
     final int replicationFactor;
     final int readFactor;
     final int writeFactor;
-    final static byte[][] points = new byte[][] {
-        new byte[] {0},
-        new byte[] {(byte) 0xff},
-        new byte[] {(byte) 0xff, (byte) 0xff},
-        new byte[] {(byte) 0xff, (byte) 0xff, (byte) 0xff},
-        new byte[] {(byte) 0xff, (byte) 0xff, (byte) 0xff},
-        new byte[] {(byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff},
-        new byte[] {(byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff},
-        new byte[] {(byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff},
-        new byte[] {(byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff},
-    };
-    // This is (table name + row name + column name + timestamp)
-    public final static int MAX_KEY_LEN = 1500;
 
-    private AllInOnePartitionMap(int repf, int readf, int writef) {
+    private AllInOnePartitionMap(int repf, int readf, int writef, Collection<KeyValueService> services, byte[][] points) {
+        Preconditions.checkArgument(readf + writef > repf);
+        Preconditions.checkArgument(services.size() >= repf);
         replicationFactor = repf;
         readFactor = readf;
         writeFactor = writef;
         tableMetadata = Maps.newHashMap();
         ring = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
-        for (int i = 0; i < repf; ++i) {
-            ring.put(points[i], new InMemoryKeyValueService(false));
+        int i = 0;
+        for (KeyValueService kvs : services) {
+            ring.put(points[i++], kvs);
         }
     }
 
-    public static AllInOnePartitionMap Create() {
-        return new AllInOnePartitionMap(3, 2, 2);
+    public static AllInOnePartitionMap Create(int repf, int readf, int writef, Collection<KeyValueService> services, byte[][] points) {
+        return new AllInOnePartitionMap(repf, readf, writef, services, points);
     }
+
+    // private AllInOnePartitionMap(int repf, int readf, int writef, Collection<KeyValueService> services, byte[] maxKey) {
+
+    // }
+
+    // public static AllInOnePartitionMap Create() {
+    //     // TODO
+    //     return new AllInOnePartitionMap(3, 2, 2, null, null);
+    // }
 
     private Set<KeyValueService> getServiceWithKey(byte[] prefix) {
         Set<KeyValueService> result = Sets.newHashSet();
@@ -78,11 +79,16 @@ public class AllInOnePartitionMap implements TableAwarePartitionMapApi {
         return getServicesForRead(tableName, row);
     }
 
-    static boolean lessThan(byte[] a1, byte[] a2) {
-        if (a2.length == 0) {
+    static boolean inRange(byte[] position, byte[] endExclusive) {
+        Preconditions.checkNotNull(endExclusive);
+        if (position == null) {
+            return false;
+        }
+        // Unbounded case - always in range
+        if (endExclusive.length == 0) {
             return true;
         }
-        return UnsignedBytes.lexicographicalComparator().compare(a1, a2) < 0;
+        return UnsignedBytes.lexicographicalComparator().compare(position, endExclusive) < 0;
     }
 
     @Override
@@ -91,29 +97,41 @@ public class AllInOnePartitionMap implements TableAwarePartitionMapApi {
         // Just support the simple case for now
         Preconditions.checkArgument(range.isReverse() == false);
 
-        final Multimap<RangeRequest, KeyValueService> result = HashMultimap.create();
-        byte[] key = range.getStartInclusive();
-        byte[] endRange = ring.higherKey(key);
+        /* The idea here is to traverse the ring. Each interval in the
+         * ring becomes a key in the resulting map.
+         * The values for a given interval is repf higher keys on
+         * the ring (which can be retrieved using getServicesForRead).
+         */
 
-        while (key != null && lessThan(key, range.getEndExclusive())) {
-            RangeRequest currentRange;
+        //final Multimap<RangeRequest, KeyValueService> result = HashMultimap.create();
+        final Multimap<RangeRequest, KeyValueService> result = TreeMultimap.create(RangeComparator.Instance(), Ordering.arbitrary());
+
+        // This is the pointer to current position on the ring.
+        byte[] key = range.getStartInclusive();
+
+        while (inRange(key, range.getEndExclusive())) {
+            byte[] endRange = ring.higherKey(key);
+            RangeRequest currentInterval;
             if (endRange != null) {
-                currentRange = RangeRequest.builder()
+                // Bounded case
+                if (UnsignedBytes.lexicographicalComparator().compare(endRange, range.getEndExclusive()) > 0) {
+                    endRange = range.getEndExclusive();
+                }
+                currentInterval = RangeRequest.builder()
                     .startRowInclusive(key)
                     .endRowExclusive(endRange)
                     .build();
             } else {
-                currentRange = RangeRequest.builder()
+                // Unbounded case
+                currentInterval = RangeRequest.builder()
                         .startRowInclusive(key)
                         .build();
             }
             result.putAll(
-                    currentRange,
+                    currentInterval,
                     getServicesForRead(tableName, key));
+            // Jump to the next interval
             key = endRange;
-            if (endRange != null) {
-                endRange = ring.higherKey(endRange);
-            }
         }
 
         return result;
