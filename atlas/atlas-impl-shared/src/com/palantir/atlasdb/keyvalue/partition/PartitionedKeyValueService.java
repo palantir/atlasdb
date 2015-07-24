@@ -90,38 +90,6 @@ public class PartitionedKeyValueService implements KeyValueService {
         return newestVal;
     }
 
-    private void putCell(String tableName, Cell cell, byte[] value, long timestamp) {
-        int succWrites = 0;
-
-        final Map<Cell, byte[]> request = Maps.newHashMap();
-        request.put(cell, value);
-
-        for (KeyValueService kvs : tpm.getServicesForWrite(tableName, cell.getRowName())) {
-            kvs.put(tableName, request, timestamp);
-            succWrites += 1;
-        }
-
-        if (succWrites < writeFactor) {
-            throw new RuntimeException("Could not get enough writes");
-        }
-    }
-
-    private void putCellUnlessExists(String tableName, Cell cell, byte[] value) {
-        int succWrites = 0;
-
-        final Map<Cell, byte[]> request = Maps.newHashMap();
-        request.put(cell, value);
-
-        for (KeyValueService kvs : tpm.getServicesForWrite(tableName, cell.getRowName())) {
-            kvs.putUnlessExists(tableName, request);
-            succWrites += 1;
-        }
-
-        if (succWrites < writeFactor) {
-            throw new RuntimeException("Could not get enough writes");
-        }
-    }
-
     private void deleteCell(String tableName, Cell cell, long timestamp) {
         int succWrites = 0;
         Multimap<Cell, Long> request = ArrayListMultimap.create();
