@@ -349,27 +349,37 @@ public class PartitionedKeyValueService implements KeyValueService {
 
     @Override
     @NonIdempotent
-    public void putWithTimestamps(String tableName, Multimap<Cell, Value> cellValues)
+    public void putWithTimestamps(final String tableName, Multimap<Cell, Value> cellValues)
             throws KeyAlreadyExistsException {
-        Map<KeyValueService, Multimap<Cell, Value>> whoHasWhat = whoHasCellsForWrite(
-                tableName,
-                cellValues);
-        Map<Value, Integer> numberOfWrites = Maps.newHashMap();
-        for (Map.Entry<KeyValueService, Multimap<Cell, Value>> e : whoHasWhat.entrySet()) {
-            final KeyValueService kvs = e.getKey();
-            final Multimap<Cell, Value> kvsCells = e.getValue();
-            kvs.putWithTimestamps(tableName, kvsCells);
-            for (Value val : kvsCells.values()) {
-                if (numberOfWrites.containsKey(val)) {
-                    numberOfWrites.put(val, 0);
+        final Map<KeyValueService, Multimap<Cell, Value>> tasks = null;
+        final ExecutorCompletionService<Void> execSvc = new ExecutorCompletionService<Void>(executor);
+        final QuorumTracker<Future<Void>> tracker = QuorumTracker.of(null, replicationFactor, readFactor);
+
+        for (final Map.Entry<KeyValueService, Multimap<Cell, Value>> e : tasks.entrySet()) {
+            Future<Void> future = execSvc.submit(new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    e.getKey().putWithTimestamps(tableName, e.getValue());
+                    return null;
                 }
-                numberOfWrites.put(val, numberOfWrites.get(val) + 1);
+            });
+            tracker.registerRef(future, null);
+        }
+
+        while (!tracker.finished()) {
+            Future<Void> future = null;
+            try {
+                future = execSvc.take();
+                future.get();
+            } catch (InterruptedException e) {
+                Throwables.throwUncheckedException(e);
+            } catch (ExecutionException e1) {
+                System.err.println("getRows failed.");
             }
         }
-        for (Integer i : numberOfWrites.values()) {
-            if (i < writeFactor) {
-                throw new RuntimeException("Could not get enough writes.");
-            }
+
+        if (tracker.failure()) {
+            throw new RuntimeException("Could not get enough reads.");
         }
     }
 
