@@ -202,44 +202,45 @@ public class PartitionedKeyValueService implements KeyValueService {
 
     @Override
     @Idempotent
-    public Map<Cell, Value> getRows(String tableName,
+    public Map<Cell, Value> getRows(final String tableName,
                                     Iterable<byte[]> rows,
-                                    ColumnSelection columnSelection,
-                                    long timestamp) {
-        Preconditions.checkArgument(tableName != null);
-        Preconditions.checkArgument(rows != null);
-        Preconditions.checkArgument(columnSelection != null);
-
+                                    final ColumnSelection columnSelection,
+                                    final long timestamp) {
         final Map<Cell, Value> overallResult = Maps.newHashMap();
-        final Map<Cell, Integer> numberOfReads = Maps.newHashMap();
-        final Map<KeyValueService, Set<byte[]>> whoHasWhat = whoHasRowsForRead(tableName, rows);
+        final ExecutorCompletionService<Map<Cell, Value>> execSvc = new ExecutorCompletionService<Map<Cell, Value>>(
+                executor);
+        final Map<KeyValueService, Iterable<byte[]>> tasks = null;
+        final RowQuorumTracker<Future<Map<Cell, Value>>> tracker = RowQuorumTracker.of(
+                rows,
+                replicationFactor,
+                readFactor);
 
-        for (Map.Entry<KeyValueService, Set<byte[]>> e : whoHasWhat.entrySet()) {
-            final KeyValueService kvs = e.getKey();
-            final Iterable<byte[]> kvsRows = e.getValue();
-            Map<Cell, Value> kvsResult = kvs.getRows(tableName, kvsRows, columnSelection, timestamp);
-            for (Map.Entry<Cell, Value> r : kvsResult.entrySet()) {
-                final Cell cell = r.getKey();
-                final Value val = r.getValue();
-                if (!overallResult.containsKey(cell)
-                        || overallResult.get(cell).getTimestamp() < val.getTimestamp()) {
-                    overallResult.put(cell, val);
+        // Schedule tasks for execution
+        for (final Map.Entry<KeyValueService, Iterable<byte[]>> e : tasks.entrySet()) {
+            Future<Map<Cell, Value>> future = execSvc.submit(new Callable<Map<Cell, Value>>() {
+                @Override
+                public Map<Cell, Value> call() throws Exception {
+                    return e.getKey().getRows(tableName, e.getValue(), columnSelection, timestamp);
                 }
-                if (!numberOfReads.containsKey(cell)) {
-                    numberOfReads.put(cell, 1);
-                } else {
-                    numberOfReads.put(cell, numberOfReads.get(cell) + 1);
-                }
+            });
+            tracker.registerRef(future);
+        }
+
+        // Wait until we can conclude success or failure
+        while (!tracker.finished()) {
+            try {
+                Future<Map<Cell, Value>> future = execSvc.take();
+                Map<Cell, Value> result = future.get();
+                mergeMapIntoMap(overallResult, result);
+            } catch (InterruptedException e) {
+                Throwables.throwUncheckedException(e);
+            } catch (ExecutionException e) {
+                System.err.println("Could not complete getRow request.");
             }
         }
 
-        // Remove rows that could not be retrieved from at least readFactor endpoints
-        for (Iterator<Map.Entry<Cell, Integer>> it = numberOfReads.entrySet().iterator(); it.hasNext();) {
-            Map.Entry<Cell, Integer> e = it.next();
-            if (e.getValue() < readFactor) {
-                System.err.println("Skipping row due to not enough reads.");
-                it.remove();
-            }
+        if (tracker.failure()) {
+            throw new RuntimeException("Could not get enough reads.");
         }
 
         return overallResult;
@@ -249,14 +250,17 @@ public class PartitionedKeyValueService implements KeyValueService {
     @Idempotent
     public Map<Cell, Value> get(final String tableName, Map<Cell, Long> timestampByCell) {
         Map<KeyValueService, Map<Cell, Long>> tasks = null;
-        ExecutorCompletionService<Map<Cell, Value>> execSvc = new ExecutorCompletionService<Map<Cell,Value>>(executor);
-        QuorumTracker<Future<Map<Cell, Value>>> tracker =
-                QuorumTracker.of(timestampByCell.keySet(), replicationFactor, readFactor);
+        ExecutorCompletionService<Map<Cell, Value>> execSvc = new ExecutorCompletionService<Map<Cell, Value>>(
+                executor);
+        QuorumTracker<Future<Map<Cell, Value>>> tracker = QuorumTracker.of(
+                timestampByCell.keySet(),
+                replicationFactor,
+                readFactor);
         Map<Cell, Value> globalResult = Maps.newHashMap();
 
         // Schedule the tasks
         for (final Map.Entry<KeyValueService, Map<Cell, Long>> e : tasks.entrySet()) {
-            Future<Map<Cell, Value>> future = execSvc.submit(new Callable<Map<Cell,Value>>() {
+            Future<Map<Cell, Value>> future = execSvc.submit(new Callable<Map<Cell, Value>>() {
                 @Override
                 public Map<Cell, Value> call() throws Exception {
                     return e.getKey().get(tableName, e.getValue());
@@ -277,7 +281,7 @@ public class PartitionedKeyValueService implements KeyValueService {
                 Throwables.throwUncheckedException(e);
             } catch (ExecutionException e) {
                 System.err.println("Could not complete a get request");
-                assert(future != null);
+                assert (future != null);
                 tracker.handleFailure(future);
             }
         }
@@ -333,7 +337,7 @@ public class PartitionedKeyValueService implements KeyValueService {
                 Throwables.throwUncheckedException(e);
             } catch (ExecutionException e) {
                 System.err.println("Write failed: " + e);
-                assert(future != null);
+                assert (future != null);
                 tracker.handleFailure(future);
             }
         }
