@@ -106,17 +106,39 @@ public class PartitionedKeyValueService implements KeyValueService {
         }
     }
 
+    private <K, V> void addOrCreateAndAdd(Map<K, Set<V>> map, K key, V val) {
+        if (!map.containsKey(key)) {
+            map.put(key, Sets.<V>newHashSet());
+        }
+        map.get(key).add(val);
+    }
+
+    private <K, I, J> void addOrCreateAndAdd(Map<K, Map<I, J>> map, K key, I i, J j) {
+        if (!map.containsKey(key)) {
+            map.put(key, Maps.<I, J>newHashMap());
+        }
+        map.get(key).put(i, j);
+    }
+
+    private <S, I> void whoHasWhat(Map<S, Set<I>> result, Iterable<S> services, I item) {
+        Preconditions.checkNotNull(result);
+        for (S service : services) {
+            addOrCreateAndAdd(result, service, item);
+        }
+    }
+
+    private <S, I, J> void whoHasWhat(Map<S, Map<I, J>> result, Iterable<S> services, I key, J value) {
+        Preconditions.checkNotNull(result);
+        for (S service : services) {
+            addOrCreateAndAdd(result, service, key, value);
+        }
+    }
+
     @Nonnull
     private Map<KeyValueService, Set<byte[]>> whoHasRowsForRead(String tableName, Iterable<byte[]> rows) {
         Map<KeyValueService, Set<byte[]>> whoHasWhat = Maps.newHashMap();
         for (byte[] row : rows) {
-            Set<KeyValueService> services = tpm.getServicesForRead(tableName, row);
-            for (KeyValueService kvs : services) {
-                if (!whoHasWhat.containsKey(kvs)) {
-                    whoHasWhat.put(kvs, Sets.<byte[]>newHashSet());
-                }
-                whoHasWhat.get(kvs).add(row);
-            }
+            whoHasWhat(whoHasWhat, tpm.getServicesForRead(tableName, row), row);
         }
         return whoHasWhat;
     }
@@ -125,13 +147,7 @@ public class PartitionedKeyValueService implements KeyValueService {
     private Map<KeyValueService, Set<Cell>> whoHasCellsForRead(String tableName, Iterable<Cell> cells) {
         Map<KeyValueService, Set<Cell>> whoHasWhat = Maps.newHashMap();
         for (Cell cell : cells) {
-            Set<KeyValueService> services = tpm.getServicesForRead(tableName, cell.getRowName());
-            for (KeyValueService kvs : services) {
-                if (!whoHasWhat.containsKey(kvs)) {
-                    whoHasWhat.put(kvs, Sets.<Cell>newHashSet());
-                }
-                whoHasWhat.get(kvs).add(cell);
-            }
+            whoHasWhat(whoHasWhat, tpm.getServicesForRead(tableName, cell.getRowName()), cell);
         }
         return whoHasWhat;
     }
@@ -142,15 +158,20 @@ public class PartitionedKeyValueService implements KeyValueService {
         for (Map.Entry<Cell, Long> e : cellsByTimestamp.entrySet()) {
             final Cell cell = e.getKey();
             final Long timestamp = e.getValue();
-            Set<KeyValueService> services = tpm.getServicesForRead(tableName, cell.getRowName());
-            for (KeyValueService kvs : services) {
-                if (!whoHasWhat.containsKey(kvs)) {
-                    whoHasWhat.put(kvs, Maps.<Cell, Long>newHashMap());
-                }
-                whoHasWhat.get(kvs).put(cell, timestamp);
-            }
+            whoHasWhat(whoHasWhat, tpm.getServicesForRead(tableName, cell.getRowName()), cell, timestamp);
         }
         return whoHasWhat;
+    }
+
+    @Nonnull
+    private Map<KeyValueService, Map<Cell, byte[]>> whoHasCellsForWrite(String tableName, Map<Cell, byte[]> cells) {
+        Map<KeyValueService, Map<Cell, byte[]>> result = Maps.newHashMap();
+        for (Map.Entry<Cell, byte[]> e : cells.entrySet()) {
+            final Cell cell = e.getKey();
+            final byte[] val = e.getValue();
+            whoHasWhat(result, tpm.getServicesForWrite(tableName, cell.getRowName()), cell, val);
+        }
+        return result;
     }
 
     @Nonnull
@@ -163,23 +184,6 @@ public class PartitionedKeyValueService implements KeyValueService {
             for (KeyValueService kvs : services) {
                 if (!result.containsKey(kvs)) {
                     result.put(kvs, HashMultimap.<Cell, Value>create());
-                }
-                result.get(kvs).put(cell, val);
-            }
-        }
-        return result;
-    }
-
-    @Nonnull
-    private Map<KeyValueService, Map<Cell, byte[]>> whoHasCellsForWrite(String tableName, Map<Cell, byte[]> cells) {
-        Map<KeyValueService, Map<Cell, byte[]>> result = Maps.newHashMap();
-        for (Map.Entry<Cell, byte[]> e : cells.entrySet()) {
-            final Cell cell = e.getKey();
-            final byte[] val = e.getValue();
-            Set<KeyValueService> services = tpm.getServicesForWrite(tableName, cell.getRowName());
-            for (KeyValueService kvs : services) {
-                if (!result.containsKey(kvs)) {
-                    result.put(kvs, Maps.<Cell, byte[]>newHashMap());
                 }
                 result.get(kvs).put(cell, val);
             }
