@@ -108,14 +108,14 @@ public class PartitionedKeyValueService implements KeyValueService {
 
     private <K, V> void addOrCreateAndAdd(Map<K, Set<V>> map, K key, V val) {
         if (!map.containsKey(key)) {
-            map.put(key, Sets.<V>newHashSet());
+            map.put(key, Sets.<V> newHashSet());
         }
         map.get(key).add(val);
     }
 
     private <K, I, J> void addOrCreateAndAdd(Map<K, Map<I, J>> map, K key, I i, J j) {
         if (!map.containsKey(key)) {
-            map.put(key, Maps.<I, J>newHashMap());
+            map.put(key, Maps.<I, J> newHashMap());
         }
         map.get(key).put(i, j);
     }
@@ -135,7 +135,8 @@ public class PartitionedKeyValueService implements KeyValueService {
     }
 
     @Nonnull
-    private Map<KeyValueService, Set<byte[]>> whoHasRowsForRead(String tableName, Iterable<byte[]> rows) {
+    private Map<KeyValueService, Set<byte[]>> whoHasRowsForRead(String tableName,
+                                                                Iterable<byte[]> rows) {
         Map<KeyValueService, Set<byte[]>> whoHasWhat = Maps.newHashMap();
         for (byte[] row : rows) {
             whoHasWhat(whoHasWhat, tpm.getServicesForRead(tableName, row), row);
@@ -144,7 +145,8 @@ public class PartitionedKeyValueService implements KeyValueService {
     }
 
     @Nonnull
-    private Map<KeyValueService, Set<Cell>> whoHasCellsForRead(String tableName, Iterable<Cell> cells) {
+    private Map<KeyValueService, Set<Cell>> whoHasCellsForRead(String tableName,
+                                                               Iterable<Cell> cells) {
         Map<KeyValueService, Set<Cell>> whoHasWhat = Maps.newHashMap();
         for (Cell cell : cells) {
             whoHasWhat(whoHasWhat, tpm.getServicesForRead(tableName, cell.getRowName()), cell);
@@ -153,18 +155,24 @@ public class PartitionedKeyValueService implements KeyValueService {
     }
 
     @Nonnull
-    private Map<KeyValueService, Map<Cell, Long>> whoHasCellsForReads(String tableName, Map<Cell, Long> cellsByTimestamp) {
+    private Map<KeyValueService, Map<Cell, Long>> whoHasCellsForReads(String tableName,
+                                                                      Map<Cell, Long> cellsByTimestamp) {
         Map<KeyValueService, Map<Cell, Long>> whoHasWhat = Maps.newHashMap();
         for (Map.Entry<Cell, Long> e : cellsByTimestamp.entrySet()) {
             final Cell cell = e.getKey();
             final Long timestamp = e.getValue();
-            whoHasWhat(whoHasWhat, tpm.getServicesForRead(tableName, cell.getRowName()), cell, timestamp);
+            whoHasWhat(
+                    whoHasWhat,
+                    tpm.getServicesForRead(tableName, cell.getRowName()),
+                    cell,
+                    timestamp);
         }
         return whoHasWhat;
     }
 
     @Nonnull
-    private Map<KeyValueService, Map<Cell, byte[]>> whoHasCellsForWrite(String tableName, Map<Cell, byte[]> cells) {
+    private Map<KeyValueService, Map<Cell, byte[]>> whoHasCellsForWrite(String tableName,
+                                                                        Map<Cell, byte[]> cells) {
         Map<KeyValueService, Map<Cell, byte[]>> result = Maps.newHashMap();
         for (Map.Entry<Cell, byte[]> e : cells.entrySet()) {
             final Cell cell = e.getKey();
@@ -175,7 +183,8 @@ public class PartitionedKeyValueService implements KeyValueService {
     }
 
     @Nonnull
-    private Map<KeyValueService, Multimap<Cell, Value>> whoHasCellsForWrite(String tableName, Multimap<Cell, Value> cells) {
+    private Map<KeyValueService, Multimap<Cell, Value>> whoHasCellsForWrite(String tableName,
+                                                                            Multimap<Cell, Value> cells) {
         Map<KeyValueService, Multimap<Cell, Value>> result = Maps.newHashMap();
         for (Map.Entry<Cell, Value> e : cells.entries()) {
             final Cell cell = e.getKey();
@@ -183,7 +192,7 @@ public class PartitionedKeyValueService implements KeyValueService {
             Set<KeyValueService> services = tpm.getServicesForWrite(tableName, cell.getRowName());
             for (KeyValueService kvs : services) {
                 if (!result.containsKey(kvs)) {
-                    result.put(kvs, HashMultimap.<Cell, Value>create());
+                    result.put(kvs, HashMultimap.<Cell, Value> create());
                 }
                 result.get(kvs).put(cell, val);
             }
@@ -194,9 +203,9 @@ public class PartitionedKeyValueService implements KeyValueService {
     @Override
     @Idempotent
     public Map<Cell, Value> getRows(String tableName,
-                             Iterable<byte[]> rows,
-                             ColumnSelection columnSelection,
-                             long timestamp) {
+                                    Iterable<byte[]> rows,
+                                    ColumnSelection columnSelection,
+                                    long timestamp) {
         Preconditions.checkArgument(tableName != null);
         Preconditions.checkArgument(rows != null);
         Preconditions.checkArgument(columnSelection != null);
@@ -212,7 +221,8 @@ public class PartitionedKeyValueService implements KeyValueService {
             for (Map.Entry<Cell, Value> r : kvsResult.entrySet()) {
                 final Cell cell = r.getKey();
                 final Value val = r.getValue();
-                if (!overallResult.containsKey(cell) || overallResult.get(cell).getTimestamp() < val.getTimestamp()) {
+                if (!overallResult.containsKey(cell)
+                        || overallResult.get(cell).getTimestamp() < val.getTimestamp()) {
                     overallResult.put(cell, val);
                 }
                 if (!numberOfReads.containsKey(cell)) {
@@ -224,7 +234,7 @@ public class PartitionedKeyValueService implements KeyValueService {
         }
 
         // Remove rows that could not be retrieved from at least readFactor endpoints
-        for (Iterator<Map.Entry<Cell, Integer>> it = numberOfReads.entrySet().iterator(); it.hasNext(); ) {
+        for (Iterator<Map.Entry<Cell, Integer>> it = numberOfReads.entrySet().iterator(); it.hasNext();) {
             Map.Entry<Cell, Integer> e = it.next();
             if (e.getValue() < readFactor) {
                 System.err.println("Skipping row due to not enough reads.");
@@ -237,84 +247,94 @@ public class PartitionedKeyValueService implements KeyValueService {
 
     @Override
     @Idempotent
-    public Map<Cell, Value> get(String tableName, Map<Cell, Long> timestampByCell) {
-        Map<Cell, Value> result = Maps.newHashMap();
-        Map<Cell, Integer> numberOfReads = Maps.newHashMap();
-        Map<KeyValueService, Map<Cell, Long>> whoHasWhat =whoHasCellsForReads(tableName, timestampByCell);
-        for (Map.Entry<KeyValueService, Map<Cell, Long>> e : whoHasWhat.entrySet()) {
-            final KeyValueService kvs = e.getKey();
-            final Map<Cell, Long> kvsTimestampByCell = e.getValue();
-            final Map<Cell, Value> kvsResult = kvs.get(tableName, kvsTimestampByCell);
-            for (Map.Entry<Cell, Value> v : kvsResult.entrySet()) {
-                final Cell cell = v.getKey();
-                final Value val = v.getValue();
-                if (!result.containsKey(cell) || result.get(cell).getTimestamp() < val.getTimestamp()) {
-                    result.put(cell, val);
+    public Map<Cell, Value> get(final String tableName, Map<Cell, Long> timestampByCell) {
+        Map<KeyValueService, Map<Cell, Long>> tasks = null;
+        ExecutorCompletionService<Map<Cell, Value>> execSvc = new ExecutorCompletionService<Map<Cell,Value>>(executor);
+        QuorumTracker<Future<Map<Cell, Value>>> tracker =
+                QuorumTracker.of(timestampByCell.keySet(), replicationFactor, readFactor);
+        Map<Cell, Value> globalResult = Maps.newHashMap();
+
+        // Schedule the tasks
+        for (final Map.Entry<KeyValueService, Map<Cell, Long>> e : tasks.entrySet()) {
+            Future<Map<Cell, Value>> future = execSvc.submit(new Callable<Map<Cell,Value>>() {
+                @Override
+                public Map<Cell, Value> call() throws Exception {
+                    return e.getKey().get(tableName, e.getValue());
                 }
-                if (!numberOfReads.containsKey(cell)) {
-                    numberOfReads.put(cell, 1);
-                } else {
-                    numberOfReads.put(cell, numberOfReads.get(cell) + 1);
-                }
+            });
+            tracker.registerRef(future, e.getValue().keySet());
+        }
+
+        // Wait until success or failure can be concluded
+        while (!tracker.finished()) {
+            Future<Map<Cell, Value>> future = null;
+            try {
+                future = execSvc.take();
+                Map<Cell, Value> result = future.get();
+                mergeMapIntoMap(globalResult, result);
+                tracker.handleSuccess(future);
+            } catch (InterruptedException e) {
+                Throwables.throwUncheckedException(e);
+            } catch (ExecutionException e) {
+                System.err.println("Could not complete a get request");
+                assert(future != null);
+                tracker.handleFailure(future);
             }
         }
 
-        for (Map.Entry<Cell, Integer> e : numberOfReads.entrySet()) {
-            final Cell cell = e.getKey();
-            if (e.getValue() < readFactor) {
-                System.err.println("Skipping cell due to not enough reads.");
-                result.remove(cell);
+        return globalResult;
+    }
+
+    private boolean shouldUpdateMapping(Map<Cell, Value> map, Map.Entry<Cell, Value> newEntry) {
+        return !map.containsKey(newEntry.getKey())
+                || map.get(newEntry.getKey()).getTimestamp() < newEntry.getValue().getTimestamp();
+    }
+
+    private void mergeMapIntoMap(Map<Cell, Value> globalResult, Map<Cell, Value> partResult) {
+        for (Map.Entry<Cell, Value> e : partResult.entrySet()) {
+            if (shouldUpdateMapping(globalResult, e)) {
+                globalResult.put(e.getKey(), e.getValue());
             }
         }
-        return result;
     }
 
     ExecutorService executor = PTExecutors.newCachedThreadPool();
 
     @Override
     public void put(final String tableName, Map<Cell, byte[]> values, final long timestamp) {
-        // Data to write per individual endpoint kvs
-        final Map<KeyValueService, Map<Cell, byte[]>> whoHasWhat = whoHasCellsForWrite(tableName, values);
-        final ExecutorCompletionService<Void> writeService = new ExecutorCompletionService<Void>(executor);
-        final QuorumTracker<Void> tracker = QuorumTracker.of(values.keySet(), replicationFactor, writeFactor);
+        final Map<KeyValueService, Map<Cell, byte[]>> tasks = null;
+        final ExecutorCompletionService<Void> writeService = new ExecutorCompletionService<Void>(
+                executor);
+        final QuorumTracker<Future<Void>> tracker = QuorumTracker.of(
+                values.keySet(),
+                replicationFactor,
+                writeFactor);
 
-        // Send the requests.
-        for (Map.Entry<KeyValueService, Map<Cell, byte[]>> e : whoHasWhat.entrySet()) {
-            final KeyValueService kvs = e.getKey();
-            final Map<Cell, byte[]> cells = e.getValue();
-            final Future<Void> future = writeService.submit(new Callable<Void> () {
+        // Schedule the requests
+        for (final Map.Entry<KeyValueService, Map<Cell, byte[]>> e : tasks.entrySet()) {
+            Future<Void> future = writeService.submit(new Callable<Void>() {
                 @Override
                 public Void call() throws Exception {
-                    kvs.put(tableName, cells, timestamp);
+                    e.getKey().put(tableName, e.getValue(), timestamp);
                     return null;
                 }
             });
-            tracker.registerFuture(future, cells.keySet());
+            tracker.registerRef(future, e.getValue().keySet());
         }
 
         // Wait until we can conclude success or failure.
         while (!tracker.finished()) {
-            boolean success = false;
             Future<Void> future = null;
             try {
                 future = writeService.take();
                 future.get();
-                success = true;
+                tracker.handleSuccess(future);
             } catch (InterruptedException e) {
                 Throwables.throwUncheckedException(e);
             } catch (ExecutionException e) {
                 System.err.println("Write failed: " + e);
-            } finally {
-                if (success) {
-                    assert(future != null);
-                    tracker.handleSuccess(future);
-                } else {
-                    if (future != null) {
-                        tracker.handleFailure(future);
-                    } else {
-                        // Thread was interrupted. Propagate in catch block.
-                    }
-                }
+                assert(future != null);
+                tracker.handleFailure(future);
             }
         }
 
@@ -327,7 +347,9 @@ public class PartitionedKeyValueService implements KeyValueService {
     @NonIdempotent
     public void putWithTimestamps(String tableName, Multimap<Cell, Value> cellValues)
             throws KeyAlreadyExistsException {
-        Map<KeyValueService, Multimap<Cell, Value>> whoHasWhat = whoHasCellsForWrite(tableName, cellValues);
+        Map<KeyValueService, Multimap<Cell, Value>> whoHasWhat = whoHasCellsForWrite(
+                tableName,
+                cellValues);
         Map<Value, Integer> numberOfWrites = Maps.newHashMap();
         for (Map.Entry<KeyValueService, Multimap<Cell, Value>> e : whoHasWhat.entrySet()) {
             final KeyValueService kvs = e.getKey();
@@ -366,10 +388,12 @@ public class PartitionedKeyValueService implements KeyValueService {
     @Override
     @Idempotent
     public ClosableIterator<RowResult<Value>> getRange(final String tableName,
-                                                final RangeRequest rangeRequest,
-                                                final long timestamp) {
+                                                       final RangeRequest rangeRequest,
+                                                       final long timestamp) {
 
-        final Multimap<RangeRequest, KeyValueService> services = tpm.getServicesForRangeRead(tableName, rangeRequest);
+        final Multimap<RangeRequest, KeyValueService> services = tpm.getServicesForRangeRead(
+                tableName,
+                rangeRequest);
         final TreeMultimap<RangeRequest, PeekingIterator<RowResult<Value>>> peekingIterators = TreeMultimap.create(
                 RangeComparator.Instance(),
                 PeekingIteratorComparator.WithComparator(RowResultComparator.Instance()));
@@ -382,13 +406,12 @@ public class PartitionedKeyValueService implements KeyValueService {
             peekingIterators.put(range, Iterators.peekingIterator(it));
         }
 
-        return ClosableIterators.<RowResult<Value>>wrap(new AbstractIterator<RowResult<Value>>() {
+        return ClosableIterators.<RowResult<Value>> wrap(new AbstractIterator<RowResult<Value>>() {
 
             Iterator<RangeRequest> rangesIterator = peekingIterators.keySet().iterator();
-            PeekingIterator<RowResult<Value>> rowsIterator = Iterators.peekingIterator(
-                    Iterators.mergeSorted(peekingIterators.get(
-                            rangesIterator.next()),
-                            RowResultComparator.Instance()));
+            PeekingIterator<RowResult<Value>> rowsIterator = Iterators.peekingIterator(Iterators.mergeSorted(
+                    peekingIterators.get(rangesIterator.next()),
+                    RowResultComparator.Instance()));
 
             @Override
             protected RowResult<Value> computeNext() {
@@ -396,10 +419,9 @@ public class PartitionedKeyValueService implements KeyValueService {
                     if (!rangesIterator.hasNext()) {
                         return endOfData();
                     } else {
-                        rowsIterator = Iterators.peekingIterator(
-                                Iterators.mergeSorted(peekingIterators.get(
-                                    rangesIterator.next()),
-                                    RowResultComparator.Instance()));
+                        rowsIterator = Iterators.peekingIterator(Iterators.mergeSorted(
+                                peekingIterators.get(rangesIterator.next()),
+                                RowResultComparator.Instance()));
                     }
                 }
                 return RowResultUtil.mergeResults(rowsIterator);
@@ -410,16 +432,16 @@ public class PartitionedKeyValueService implements KeyValueService {
     @Override
     @Idempotent
     public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(String tableName,
-                                                                RangeRequest rangeRequest,
-                                                                long timestamp) {
+                                                                       RangeRequest rangeRequest,
+                                                                       long timestamp) {
         throw new NotImplementedException();
     }
 
     @Override
     @Idempotent
     public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(String tableName,
-                                                                RangeRequest rangeRequest,
-                                                                long timestamp)
+                                                                       RangeRequest rangeRequest,
+                                                                       long timestamp)
             throws InsufficientConsistencyException {
         throw new NotImplementedException();
     }
@@ -427,9 +449,13 @@ public class PartitionedKeyValueService implements KeyValueService {
     @Override
     @Idempotent
     public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(String tableName,
-                                                                                                    Iterable<RangeRequest> rangeRequests,
-                                                                                                    long timestamp) {
-        return KeyValueServices.getFirstBatchForRangesUsingGetRange(this, tableName, rangeRequests, timestamp);
+                                                                                                           Iterable<RangeRequest> rangeRequests,
+                                                                                                           long timestamp) {
+        return KeyValueServices.getFirstBatchForRangesUsingGetRange(
+                this,
+                tableName,
+                rangeRequests,
+                timestamp);
     }
 
     @Override
