@@ -15,6 +15,9 @@ group = rootProject.group
 
 repositories {
     mavenCentral()
+    maven {
+        url 'http://dl.bintray.com/palantir/releases/'
+    }
 }
 
 checkstyle {
