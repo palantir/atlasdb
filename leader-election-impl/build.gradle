@@ -1,3 +1,5 @@
+apply from: "../gradle/shared.gradle"
+
 apply plugin: 'java'
 apply plugin: 'eclipse'
 
@@ -23,8 +25,4 @@ dependencies {
           name: "protobuf-java",
           version: "2.6.0",
           configuration: "default")
-  testCompile(group: "junit",
-              name: "junit",
-              version: "4.11",
-              configuration: "default")
 }

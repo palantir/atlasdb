@@ -3,6 +3,7 @@ ecbuild
 .DS_Store
 Thumbs.db
 *.swp
+*.swo
 *.log
 *.prefs
 *.class

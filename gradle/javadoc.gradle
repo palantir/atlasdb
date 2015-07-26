@@ -1,0 +1,7 @@
+// apply this file to a task of type Javadoc, e.g.
+//
+//     apply from: javadoc.gradle, to: javadoc
+
+exclude '**/examples/**'
+options.links 'https://docs.oracle.com/javase/7/docs/api/'
+options.links 'http://www.slf4j.org/apidocs/'

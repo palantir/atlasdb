@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC
+          "-//Puppy Crawl//DTD Check Configuration 1.3//EN"
+          "http://www.puppycrawl.com/dtds/configuration_1_3.dtd">
+<module name="Checker">
+    <!--
+        If you set the basedir property below, then all reported file
+        names will be relative to the specified directory. See
+        http://checkstyle.sourceforge.net/5.x/config.html#Checker
+
+        <property name="basedir" value="${basedir}"/>
+    -->
+    <module name="TreeWalker">
+        <!-- Checks for imports                              -->
+        <!-- See http://checkstyle.sf.net/config_import.html -->
+        <module name="AvoidStarImport"/>
+        <module name="RedundantImport"/>
+        <module name="ImportOrder">
+          <!-- The ordering on the groups should match
+               the ordering in eclipse's preferences menu
+               at Java->Code Style->Organize Imports -->
+          <!-- eclipse ordering that seems to work with this:
+                 (static java)
+                 (static javax)
+                 (static org)
+                 (static com)
+                 (static *)
+                 java
+                 javax
+                 org
+                 com
+                 *
+                                                           -->
+          <property name="groups" value="java,javax,org,com"/>
+          <!-- statics on top! -->
+          <property name="option" value="top"/>
+          <property name="ordered" value="true"/>
+        </module>
+    </module>
+
+</module>

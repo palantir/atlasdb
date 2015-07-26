@@ -1,0 +1,63 @@
+apply plugin: 'java'
+apply plugin: 'eclipse'
+apply plugin: 'checkstyle'
+apply plugin: 'maven'
+apply plugin: 'maven-publish'
+//apply plugin: 'jacoco-coverage'
+
+//apply plugin: 'com.github.hierynomus.license'
+
+sourceCompatibility = 1.6
+targetCompatibility = 1.6
+
+version = rootProject.version
+group = rootProject.group
+
+repositories {
+    mavenCentral()
+}
+
+checkstyle {
+    configFile rootProject.file('config/checkstyle/checkstyle.xml')
+}
+
+apply from: rootProject.file('gradle/versions.gradle')
+
+dependencies {
+    checkstyle 'com.puppycrawl.tools:checkstyle:6.6'
+    testCompile group: 'junit', name: 'junit', version: libVersions.junit
+}
+
+apply from: rootProject.file('gradle/javadoc.gradle'), to: javadoc
+
+//license {
+//    header rootProject.file('config/HEADER')
+//    skipExistingHeaders true
+//
+//    ext.year = Calendar.getInstance().get(Calendar.YEAR)
+//
+//    include '**/*.java'
+//}
+
+task sourceJar(type: Jar) {
+    from sourceSets.main.allSource
+    classifier 'sources'
+}
+
+publishing {
+    publications {
+        local(MavenPublication) {
+            from components.java
+
+            artifact(sourceJar) {
+                classifier 'sources'
+            }
+        }
+    }
+
+    repositories {
+        maven {
+            url localPublishDir
+        }
+    }
+}
