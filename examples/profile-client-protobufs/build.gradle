@@ -1,5 +1,3 @@
-apply from: "../../gradle/shared.gradle"
-
 apply plugin: 'java'
 apply plugin: 'eclipse'
 
@@ -7,6 +5,7 @@ repositories {
     mavenCentral()
 }
 libsDirName = file('build/artifacts')
+sourceSets.main.java.srcDirs=[file('src')]
 dependencies {
   compile(group: "com.google.protobuf",
           name: "protobuf-java",

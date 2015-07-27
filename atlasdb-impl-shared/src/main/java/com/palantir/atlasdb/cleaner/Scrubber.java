@@ -68,8 +68,6 @@ import com.palantir.common.concurrent.PTExecutors;
  *
  * @author jweel
  */
-// TODO (ejin): Rename 'scrubbing' to 'purging' and 'sweeping' to 'garbage collection'?
-// TODO (ejin): Remove Vineet's GC framework so that Jaap's is canonical?
 public final class Scrubber {
     private static final Logger log = LoggerFactory.getLogger(Scrubber.class);
     private static final int AGGRESSIVE_SCRUB_FREQUENCY_IN_MILLIS = 5 * 60 * 1000; // 5 min

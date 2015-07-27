@@ -5,6 +5,7 @@ repositories {
     mavenCentral()
 }
 libsDirName = file('build/artifacts')
+sourceSets.main.java.srcDirs=[file('src')]
 sourceCompatibility = "1.6"
 targetCompatibility = "1.6"
 dependencies {
