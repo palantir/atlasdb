@@ -1,9 +1,14 @@
 package com.palantir.atlasdb.keyvalue.partition;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.NavigableSet;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
@@ -11,18 +16,19 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 import javax.annotation.Nonnull;
-import javax.ws.rs.NotSupportedException;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.AbstractIterator;
+import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
 import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.Sets;
-import com.google.common.collect.TreeMultimap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
@@ -33,14 +39,13 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.partition.api.TableAwarePartitionMapApi;
-import com.palantir.atlasdb.keyvalue.partition.util.PeekingIteratorComparator;
+import com.palantir.atlasdb.keyvalue.partition.util.ClosablePeekingIterator;
 import com.palantir.atlasdb.keyvalue.partition.util.RangeComparator;
 import com.palantir.atlasdb.keyvalue.partition.util.RowResultComparator;
 import com.palantir.atlasdb.keyvalue.partition.util.RowResultUtil;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.NonIdempotent;
 import com.palantir.common.base.ClosableIterator;
-import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -58,10 +63,12 @@ public class PartitionedKeyValueService implements KeyValueService {
     private PartitionedKeyValueService(ExecutorService executor) {
         // TODO
         tpm = AllInOnePartitionMap.Create(replicationFactor, readFactor, writeFactor, 10);
+        this.executor = executor;
     }
 
     private PartitionedKeyValueService() {
-        this(PTExecutors.newFixedThreadPool(16, PTExecutors.newNamedThreadFactory(true)));
+        this(PTExecutors.newCachedThreadPool());
+        //this(PTExecutors.newFixedThreadPool(16, PTExecutors.newNamedThreadFactory(true)));
     }
 
     @Override
@@ -302,7 +309,7 @@ public class PartitionedKeyValueService implements KeyValueService {
         }
     }
 
-    private ExecutorService executor = PTExecutors.newCachedThreadPool();
+    private final ExecutorService executor;
 
     @Override
     public void put(final String tableName, Map<Cell, byte[]> values, final long timestamp) {
@@ -389,7 +396,7 @@ public class PartitionedKeyValueService implements KeyValueService {
     @Override
     public void putUnlessExists(String tableName, Map<Cell, byte[]> values)
             throws KeyAlreadyExistsException {
-        throw new NotSupportedException();
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -436,39 +443,66 @@ public class PartitionedKeyValueService implements KeyValueService {
         final Multimap<RangeRequest, KeyValueService> services = tpm.getServicesForRangeRead(
                 tableName,
                 rangeRequest);
-        final TreeMultimap<RangeRequest, PeekingIterator<RowResult<Value>>> peekingIterators = TreeMultimap.create(
-                RangeComparator.Instance(),
-                PeekingIteratorComparator.WithComparator(RowResultComparator.Instance()));
+        final ListMultimap<RangeRequest, ClosablePeekingIterator<RowResult<Value>>> rangeIterators = Multimaps.newListMultimap(
+                new TreeMap<RangeRequest, Collection<ClosablePeekingIterator<RowResult<Value>>>>(RangeComparator.Instance()),
+                new Supplier<List<ClosablePeekingIterator<RowResult<Value>>>>() {
+                    @Override
+                    public List<ClosablePeekingIterator<RowResult<Value>>> get() {
+                        return Lists.newArrayList();
+                    }
+                });
 
-        // Get all the (range -> iterator) mappings into the map
+        // Open a set of iterators for each sub-range of the ring.
         for (Map.Entry<RangeRequest, KeyValueService> e : services.entries()) {
             final RangeRequest range = e.getKey();
             final KeyValueService kvs = e.getValue();
             ClosableIterator<RowResult<Value>> it = kvs.getRange(tableName, range, timestamp);
-            peekingIterators.put(range, Iterators.peekingIterator(it));
+            rangeIterators.put(range, ClosablePeekingIterator.of(it));
         }
 
-        return ClosableIterators.<RowResult<Value>> wrap(new AbstractIterator<RowResult<Value>>() {
+        return new ClosableIterator<RowResult<Value>>() {
 
-            Iterator<RangeRequest> rangesIterator = peekingIterators.keySet().iterator();
-            PeekingIterator<RowResult<Value>> rowsIterator = Iterators.peekingIterator(Iterators.mergeSorted(
-                    peekingIterators.get(rangesIterator.next()),
-                    RowResultComparator.Instance()));
+            // TODO: Close iterators ASAP, open iterators ALAP.
+
+            Iterator<RangeRequest> currentRange = rangeIterators.keySet().iterator();
+            PeekingIterator<RowResult<Value>> rowIterator = Iterators.peekingIterator(Collections.<RowResult<Value>>emptyIterator());
+
+            private void prepareNextRange() {
+                Preconditions.checkArgument(currentRange.hasNext());
+                Preconditions.checkArgument(!rowIterator.hasNext());
+                RangeRequest newRange = currentRange.next();
+                List<ClosablePeekingIterator<RowResult<Value>>> newRangeIterators = rangeIterators.get(newRange);
+                rowIterator = Iterators.peekingIterator(
+                        Iterators.mergeSorted(newRangeIterators, RowResultComparator.instance())
+                );
+            }
 
             @Override
-            protected RowResult<Value> computeNext() {
-                while (!rowsIterator.hasNext()) {
-                    if (!rangesIterator.hasNext()) {
-                        return endOfData();
-                    } else {
-                        rowsIterator = Iterators.peekingIterator(Iterators.mergeSorted(
-                                peekingIterators.get(rangesIterator.next()),
-                                RowResultComparator.Instance()));
-                    }
+            public boolean hasNext() {
+                if (!rowIterator.hasNext() && currentRange.hasNext()) {
+                    prepareNextRange();
                 }
-                return RowResultUtil.mergeResults(rowsIterator);
+                return rowIterator.hasNext();
             }
-        });
+
+            @Override
+            public RowResult<Value> next() {
+                Preconditions.checkState(hasNext());
+                return RowResultUtil.mergeResults(rowIterator);
+            }
+
+            @Override
+            public void remove() {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public void close() {
+                for (Map.Entry<RangeRequest, ClosablePeekingIterator<RowResult<Value>>> e : rangeIterators.entries()) {
+                    e.getValue().close();
+                }
+            }
+        };
     }
 
     @Override
@@ -476,7 +510,68 @@ public class PartitionedKeyValueService implements KeyValueService {
     public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(String tableName,
                                                                        RangeRequest rangeRequest,
                                                                        long timestamp) {
-        throw new NotImplementedException();
+        final Multimap<RangeRequest, KeyValueService> services = tpm.getServicesForRangeRead(
+                tableName,
+                rangeRequest);
+        final ListMultimap<RangeRequest, ClosablePeekingIterator<RowResult<Set<Value>>>> rangeIterators = Multimaps.newListMultimap(
+                new TreeMap<RangeRequest, Collection<ClosablePeekingIterator<RowResult<Set<Value>>>>>(),
+                new Supplier<List<ClosablePeekingIterator<RowResult<Set<Value>>>>>() {
+                    @Override
+                    public List<ClosablePeekingIterator<RowResult<Set<Value>>>> get() {
+                        return Lists.newArrayList();
+                    }
+                });
+
+        // Get all the (range -> iterator) mappings into the map
+        for (Map.Entry<RangeRequest, KeyValueService> e : services.entries()) {
+            final RangeRequest range = e.getKey();
+            final KeyValueService kvs = e.getValue();
+            ClosableIterator<RowResult<Set<Value>>> it = kvs.getRangeWithHistory(tableName, range, timestamp);
+            rangeIterators.put(range, ClosablePeekingIterator.of(it));
+        }
+
+        return new ClosableIterator<RowResult<Set<Value>>>() {
+
+            // TODO: Close iterators ASAP, open iterators as late as possible.
+
+            Iterator<RangeRequest> currentRange = rangeIterators.keySet().iterator();
+            PeekingIterator<RowResult<Set<Value>>> rowIterator = Iterators.peekingIterator(Collections.<RowResult<Set<Value>>>emptyIterator());
+
+            private void prepareNextRange() {
+                Preconditions.checkArgument(currentRange.hasNext());
+                Preconditions.checkArgument(!rowIterator.hasNext());
+                RangeRequest newRange = currentRange.next();
+                NavigableSet<ClosablePeekingIterator<RowResult<Set<Value>>>> newRangeIterators = rangeIterators.get(newRange);
+                rowIterator = Iterators.<RowResult<Set<Value>>>peekingIterator(
+                        Iterators.mergeSorted(newRangeIterators, RowResultComparator.instance()));
+            }
+
+            @Override
+            public boolean hasNext() {
+                if (!rowIterator.hasNext() && currentRange.hasNext()) {
+                    prepareNextRange();
+                }
+                return rowIterator.hasNext();
+            }
+
+            @Override
+            public RowResult<Set<Value>> next() {
+                Preconditions.checkState(hasNext());
+                return RowResultUtil.allResults(rowIterator);
+            }
+
+            @Override
+            public void remove() {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public void close() {
+                for (Entry<RangeRequest, ClosablePeekingIterator<RowResult<Set<Value>>>> e : rangeIterators.entries()) {
+                    e.getValue().close();
+                }
+            }
+        };
     }
 
     @Override
@@ -485,7 +580,7 @@ public class PartitionedKeyValueService implements KeyValueService {
                                                                        RangeRequest rangeRequest,
                                                                        long timestamp)
             throws InsufficientConsistencyException {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -534,24 +629,24 @@ public class PartitionedKeyValueService implements KeyValueService {
     @Override
     @Idempotent
     public void addGarbageCollectionSentinelValues(String tableName, Set<Cell> cells) {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @Override
     @Idempotent
     public Multimap<Cell, Long> getAllTimestamps(String tableName, Set<Cell> cells, long timestamp)
             throws InsufficientConsistencyException {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public void compactInternally(String tableName) {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public void close() {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -561,7 +656,7 @@ public class PartitionedKeyValueService implements KeyValueService {
 
     @Override
     public Collection<? extends KeyValueService> getDelegates() {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @Override

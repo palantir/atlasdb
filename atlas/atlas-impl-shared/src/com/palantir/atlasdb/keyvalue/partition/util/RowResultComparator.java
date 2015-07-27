@@ -4,12 +4,11 @@ import java.util.Comparator;
 
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.Value;
 
-public class RowResultComparator implements Comparator<RowResult<Value>> {
+public class RowResultComparator implements Comparator<RowResult<?>> {
 
     @Override
-    public int compare(RowResult<Value> o1, RowResult<Value> o2) {
+    public int compare(RowResult<?> o1, RowResult<?> o2) {
         final int cmpRow = UnsignedBytes.lexicographicalComparator().compare(
                 o1.getRowName(),
                 o2.getRowName());
@@ -19,12 +18,12 @@ public class RowResultComparator implements Comparator<RowResult<Value>> {
         return Integer.compare(o1.hashCode(), o2.hashCode());
     }
 
-    private static RowResultComparator instance;
-
     private RowResultComparator() {
     }
 
-    public static RowResultComparator Instance() {
+    private static RowResultComparator instance;
+
+    public static RowResultComparator instance() {
         if (instance == null) {
             instance = new RowResultComparator();
         }

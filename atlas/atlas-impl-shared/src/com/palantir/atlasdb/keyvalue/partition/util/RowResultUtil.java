@@ -2,11 +2,14 @@ package com.palantir.atlasdb.keyvalue.partition.util;
 
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Set;
+import java.util.SortedMap;
 import java.util.TreeMap;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.collect.PeekingIterator;
+import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -31,6 +34,9 @@ public class RowResultUtil {
 
     }
 
+    /* Get all values for the row of the first returned value. Return the newest value.
+     *
+     */
     public static RowResult<Value> mergeResults(PeekingIterator<RowResult<Value>> it) {
         Preconditions.checkArgument(it.hasNext());
 
@@ -59,4 +65,21 @@ public class RowResultUtil {
         return RowResult.create(row, result);
     }
 
+    public static RowResult<Set<Value>> allResults(PeekingIterator<RowResult<Set<Value>>> it) {
+        Preconditions.checkArgument(it.hasNext());
+
+        final byte[] row = it.peek().getRowName();
+        SortedMap<byte[], Set<Value>> result = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
+        while (it.hasNext() && Arrays.equals(row, it.peek().getRowName())) {
+            RowResult<Set<Value>> kvsResult = it.next();
+            for (Map.Entry<Cell, Set<Value>> e : kvsResult.getCells()) {
+                final byte[] col = e.getKey().getColumnName();
+                if (!result.containsKey(col)) {
+                    result.put(col, Sets.<Value>newHashSet());
+                }
+                result.get(col).addAll(e.getValue());
+            }
+        }
+        return RowResult.<Set<Value>>create(row, result);
+    }
 }
