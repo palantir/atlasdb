@@ -4,23 +4,22 @@ import java.util.Map;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
-import com.palantir.atlasdb.keyvalue.api.Cell;
 
-class QuorumTracker <T> {
+class QuorumTracker <T, U> {
 
-    private final Map<Cell, Integer> numberOfRemainingSuccessesForSuccess;
-    private final Map<Cell, Integer> numberOfRemainingFailuresForFailure;
-    private final Map<T, Iterable<Cell>> cellsByReference;
+    private final Map<U, Integer> numberOfRemainingSuccessesForSuccess;
+    private final Map<U, Integer> numberOfRemainingFailuresForFailure;
+    private final Map<T, Iterable<U>> cellsByReference;
     private boolean failure;
 
     /*
      * successFactor - minimum number of successes per cell
      */
-    QuorumTracker(Iterable<Cell> allCells, final int replicationFactor, final int successFactor) {
+    QuorumTracker(Iterable<U> allUs, final int replicationFactor, final int successFactor) {
         numberOfRemainingFailuresForFailure = Maps.newHashMap();
         numberOfRemainingSuccessesForSuccess = Maps.newConcurrentMap();
 
-        for (Cell cell : allCells) {
+        for (U cell : allUs) {
             numberOfRemainingFailuresForFailure.put(cell, replicationFactor - successFactor);
             numberOfRemainingSuccessesForSuccess.put(cell, successFactor);
         }
@@ -29,14 +28,14 @@ class QuorumTracker <T> {
         failure = false;
     }
 
-    static <V> QuorumTracker<V> of(Iterable<Cell> allCells, final int replicationFactor, final int successFactor) {
-        return new QuorumTracker<V>(allCells, replicationFactor, successFactor);
+    static <V, W> QuorumTracker<V, W> of(Iterable<W> allUs, final int replicationFactor, final int successFactor) {
+        return new QuorumTracker<V, W>(allUs, replicationFactor, successFactor);
     }
 
     void handleSuccess(T ref) {
         Preconditions.checkState(failure() == false && success() == false);
         Preconditions.checkArgument(cellsByReference.containsKey(ref));
-        for (Cell cell : cellsByReference.get(ref)) {
+        for (U cell : cellsByReference.get(ref)) {
             if (numberOfRemainingSuccessesForSuccess.containsKey(cell)) {
                 int newValue = numberOfRemainingSuccessesForSuccess.get(cell) - 1;
                 if (newValue == 0) {
@@ -52,7 +51,7 @@ class QuorumTracker <T> {
     void handleFailure(T ref) {
         Preconditions.checkState(failure() == false && success() == false);
         Preconditions.checkArgument(cellsByReference.containsKey(ref));
-        for (Cell cell : cellsByReference.get(ref)) {
+        for (U cell : cellsByReference.get(ref)) {
             if (numberOfRemainingFailuresForFailure.containsKey(cell)) {
                 int newValue = numberOfRemainingFailuresForFailure.get(cell) - 1;
                 if (newValue == 0) {
@@ -65,7 +64,7 @@ class QuorumTracker <T> {
         }
     }
 
-    void registerRef(T ref, Iterable<Cell> cells) {
+    void registerRef(T ref, Iterable<U> cells) {
         Preconditions.checkState(failure() == false && success() == false);
         cellsByReference.put(ref, cells);
     }
