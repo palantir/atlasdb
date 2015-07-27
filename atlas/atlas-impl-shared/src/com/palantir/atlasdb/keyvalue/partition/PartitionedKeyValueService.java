@@ -391,7 +391,7 @@ public class PartitionedKeyValueService implements KeyValueService {
         }
 
         if (tracker.failure()) {
-            throw new RuntimeException("Could not get enough reads.");
+            throw new RuntimeException("Could not get enough writes.");
         }
     }
 
@@ -403,11 +403,36 @@ public class PartitionedKeyValueService implements KeyValueService {
 
     @Override
     @Idempotent
-    public void delete(String tableName, Multimap<Cell, Long> keys) {
-        for (Map.Entry<Cell, Long> e : keys.entries()) {
-            final Cell cell = e.getKey();
-            final long timestamp = e.getValue();
-            deleteCell(tableName, cell, timestamp);
+    public void delete(final String tableName, Multimap<Cell, Long> keys) {
+        final Map<KeyValueService, Multimap<Cell, Long>> tasks = null;
+        final QuorumTracker<Future<Void>, Map.Entry<Cell, Long>> tracker = QuorumTracker.of(keys.entries(), replicationFactor, readFactor);
+        final ExecutorCompletionService<Void> execSvc = new ExecutorCompletionService<Void>(executor);
+
+        for (final Map.Entry<KeyValueService, Multimap<Cell, Long>> e : tasks.entrySet()) {
+            final Future<Void> future = execSvc.submit(new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    e.getKey().delete(tableName, e.getValue());
+                    return null;
+                }
+            });
+            tracker.registerRef(future, e.getValue().entries());
+        }
+
+        while (!tracker.finished()) {
+            try {
+                Future<Void> future = execSvc.take();
+                future.get();
+            } catch (InterruptedException e) {
+                Throwables.throwUncheckedException(e);
+            } catch (ExecutionException e) {
+                System.err.println("Error deleting item.");
+                // This should cause tracker to immediately finish with failure.
+            }
+        }
+
+        if (tracker.failure()) {
+            throw new RuntimeException("Could not get enough writes for delete");
         }
     }
 
