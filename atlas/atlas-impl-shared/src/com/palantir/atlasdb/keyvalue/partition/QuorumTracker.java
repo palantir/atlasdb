@@ -5,7 +5,7 @@ import java.util.Map;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
-class QuorumTracker <T, U> {
+public class QuorumTracker <T, U> {
 
     private final Map<U, Integer> numberOfRemainingSuccessesForSuccess;
     private final Map<U, Integer> numberOfRemainingFailuresForFailure;

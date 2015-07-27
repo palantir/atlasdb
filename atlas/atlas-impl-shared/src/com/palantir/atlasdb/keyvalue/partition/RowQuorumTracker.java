@@ -7,16 +7,12 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
-import com.palantir.atlasdb.keyvalue.api.Cell;
 
-class RowQuorumTracker<T> {
+public class RowQuorumTracker<T> {
 
-    private final Map<Cell, Integer> numberOfRemainingSuccessesForSuccess;
-    private final Map<Cell, Integer> numberOfRemainingFailuresForFailure;
-    private final Map<T, Set<Cell>> cellsByReference;
-    private final Set<Cell> cellsSeen;
-    private final Set<byte[]> rowsSeen;
-    private final Set<byte[]> allRows;
+    private final Map<byte[], Integer> numberOfRemainingSuccessesForSuccess;
+    private final Map<byte[], Integer> numberOfRemainingFailuresForFailure;
+    private final Map<T, Set<byte[]>> rowsByReference;
     private boolean failure;
     private final int replicationFactor;
     private final int successFactor;
@@ -24,84 +20,73 @@ class RowQuorumTracker<T> {
     /*
      * successFactor - minimum number of successes per cell
      */
-    RowQuorumTracker(Set<byte[]> allRows, final int replicationFactor, final int successFactor) {
-        numberOfRemainingFailuresForFailure = Maps.newHashMap();
-        numberOfRemainingSuccessesForSuccess = Maps.newConcurrentMap();
-        cellsByReference = Maps.newHashMap();
-        cellsSeen = Sets.newHashSet();
-        rowsSeen = Sets.newTreeSet(UnsignedBytes.lexicographicalComparator());
+    RowQuorumTracker(Iterable<byte[]> allRows, final int replicationFactor, final int successFactor) {
+        numberOfRemainingFailuresForFailure = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
+        numberOfRemainingSuccessesForSuccess = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
+        rowsByReference = Maps.newHashMap();
         failure = false;
         this.replicationFactor = replicationFactor;
         this.successFactor = successFactor;
-        this.allRows = allRows;
-    }
-
-    static <V> RowQuorumTracker<V> of(Iterable<byte[]> allRows, final int replicationFactor, final int successFactor) {
-        Set<byte[]> allRowsSet = Sets.newTreeSet(UnsignedBytes.lexicographicalComparator());
         for (byte[] row : allRows) {
-            allRowsSet.add(row);
+            numberOfRemainingSuccessesForSuccess.put(row, successFactor);
+            numberOfRemainingFailuresForFailure.put(row, replicationFactor - successFactor);
         }
-        return new RowQuorumTracker<V>(allRowsSet, replicationFactor, successFactor);
     }
 
-    private void registerIfUnknown(T ref, Cell cell) {
-        cellsByReference.get(ref).add(cell);
-        if (cellsSeen.contains(cell)) {
-            return;
-        }
-        cellsSeen.add(cell);
-        Preconditions.checkArgument(allRows.contains(cell.getRowName()));
-        rowsSeen.add(cell.getRowName());
-        numberOfRemainingFailuresForFailure.put(cell, replicationFactor - successFactor);
-        numberOfRemainingSuccessesForSuccess.put(cell, successFactor);
+    public static <V> RowQuorumTracker<V> of(Iterable<byte[]> allRows, final int replicationFactor, final int successFactor) {
+        return new RowQuorumTracker<V>(allRows, replicationFactor, successFactor);
     }
 
-    void handleSuccess(T ref, Set<Cell> cells) {
+    public void handleSuccess(T ref) {
         Preconditions.checkState(failure() == false && success() == false);
-        for (Cell cell : cellsByReference.get(ref)) {
-            registerIfUnknown(ref, cell);
-            if (numberOfRemainingSuccessesForSuccess.containsKey(cell)) {
-                int newValue = numberOfRemainingSuccessesForSuccess.get(cell) - 1;
+        Preconditions.checkState(rowsByReference.containsKey(ref));
+        for (byte[] row : rowsByReference.get(ref)) {
+            if (numberOfRemainingSuccessesForSuccess.containsKey(row)) {
+                int newValue = numberOfRemainingSuccessesForSuccess.get(row) - 1;
                 if (newValue == 0) {
-                    numberOfRemainingSuccessesForSuccess.remove(cell);
-                    numberOfRemainingFailuresForFailure.remove(cell);
+                    numberOfRemainingSuccessesForSuccess.remove(row);
+                    numberOfRemainingFailuresForFailure.remove(row);
                 } else {
-                    numberOfRemainingSuccessesForSuccess.put(cell, newValue);
+                    numberOfRemainingSuccessesForSuccess.put(row, newValue);
                 }
             }
         }
     }
 
-    void handleFailure(T ref) {
+    public void handleFailure(T ref) {
         Preconditions.checkState(failure() == false && success() == false);
-        Preconditions.checkArgument(cellsByReference.containsKey(ref));
-        for (Cell cell : cellsByReference.get(ref)) {
-            if (numberOfRemainingFailuresForFailure.containsKey(cell)) {
-                int newValue = numberOfRemainingFailuresForFailure.get(cell) - 1;
+        Preconditions.checkArgument(rowsByReference.containsKey(ref));
+        for (byte[] row : rowsByReference.get(ref)) {
+            if (numberOfRemainingFailuresForFailure.containsKey(row)) {
+                int newValue = numberOfRemainingFailuresForFailure.get(row) - 1;
                 if (newValue == 0) {
                     failure = true;
                     break;
                 } else {
-                    numberOfRemainingFailuresForFailure.put(cell, newValue);
+                    numberOfRemainingFailuresForFailure.put(row, newValue);
                 }
             }
         }
     }
 
-    void registerRef(T ref) {
+    public void registerRef(T ref, Iterable<byte[]> rows) {
         Preconditions.checkState(failure() == false && success() == false);
-        cellsByReference.put(ref, Sets.<Cell>newHashSet());
+        Set<byte[]> set = Sets.newTreeSet(UnsignedBytes.lexicographicalComparator());
+        for (byte[] row : rows) {
+            set.add(row);
+        }
+        rowsByReference.put(ref, set);
     }
 
-    boolean failure() {
+    public boolean failure() {
         return failure;
     }
 
-    boolean success() {
-        return !failure() && numberOfRemainingSuccessesForSuccess.isEmpty() && rowsSeen.size() == allRows.size();
+    public boolean success() {
+        return !failure() && numberOfRemainingSuccessesForSuccess.isEmpty();
     }
 
-    boolean finished() {
+    public boolean finished() {
         return failure() || success();
     }
 }

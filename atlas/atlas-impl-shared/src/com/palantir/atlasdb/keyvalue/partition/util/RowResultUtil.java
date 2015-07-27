@@ -4,7 +4,6 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.TreeMap;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
@@ -41,30 +40,33 @@ public class RowResultUtil {
         Preconditions.checkArgument(it.hasNext());
 
         byte[] row = it.peek().getRowName();
-        final Map<Cell, Value> mapResult = Maps.newHashMap();
+        final SortedMap<byte[], Value> result = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
+        int failCount = 0;
 
-        while (it.hasNext()) {
-            if (Arrays.equals(it.peek().getRowName(), row) == false) {
-                break;
+        while (it.hasNext() && Arrays.equals(it.peek().getRowName(), row)) {
+            try {
+                failCount++;
+                Map<Cell, Value> newestCurrentResult = getNewestValue(it.next());
+                for (Map.Entry<Cell, Value> e : newestCurrentResult.entrySet()) {
+                    final byte[] col = e.getKey().getColumnName();
+                    if (!result.containsKey(col)
+                            || result.get(col).getTimestamp() < e.getValue().getTimestamp()) {
+                        result.put(col, e.getValue());
+                    }
             }
-            final Map<Cell, Value> newestCurrentResult = getNewestValue(it.next());
-            for (Map.Entry<Cell, Value> e : newestCurrentResult.entrySet()) {
-                final Cell cell = e.getKey();
-                final Value val = e.getValue();
-                if (!mapResult.containsKey(cell) || mapResult.get(cell).getTimestamp() < val.getTimestamp()) {
-                    mapResult.put(cell, val);
-                }
+                failCount--;
+            } catch (Exception e) {
+                System.err.println("Could not read for rangeRequest.");
+            }
+            // TODO
+            if (failCount > 1) {
+                throw new RuntimeException("Could not get enough reads.");
             }
         }
-
-        final TreeMap<byte[], Value> result = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
-        for (Map.Entry<Cell, Value> e : mapResult.entrySet()) {
-            result.put(e.getKey().getColumnName(), e.getValue());
-        }
-
         return RowResult.create(row, result);
     }
 
+    // Any failure will cause an exception
     public static RowResult<Set<Value>> allResults(PeekingIterator<RowResult<Set<Value>>> it) {
         Preconditions.checkArgument(it.hasNext());
 
@@ -80,6 +82,24 @@ public class RowResultUtil {
                 result.get(col).addAll(e.getValue());
             }
         }
-        return RowResult.<Set<Value>>create(row, result);
+        return RowResult.create(row, result);
+    }
+
+    // Any failure will cause an exception
+    public static RowResult<Set<Long>> allTimestamps(PeekingIterator<RowResult<Set<Long>>> it) {
+        Preconditions.checkArgument(it.hasNext());
+
+        final byte[] row = it.peek().getRowName();
+        final SortedMap<byte[], Set<Long>> result = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
+        while (it.hasNext() && Arrays.equals(row, it.peek().getRowName())) {
+            RowResult<Set<Long>> kvsResult = it.next();
+            for (Map.Entry<Cell, Set<Long>> e : kvsResult.getCells()) {
+                if (!result.containsKey(e.getKey().getColumnName())) {
+                    result.put(e.getKey().getColumnName(), Sets.<Long>newHashSet());
+                }
+                result.get(e.getKey().getColumnName()).addAll(e.getValue());
+            }
+        }
+        return RowResult.create(row, result);
     }
 }
