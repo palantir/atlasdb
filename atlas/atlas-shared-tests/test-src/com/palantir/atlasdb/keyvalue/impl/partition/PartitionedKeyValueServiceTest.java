@@ -8,7 +8,7 @@ public class PartitionedKeyValueServiceTest extends AbstractAtlasDbKeyValueServi
 
     @Override
     protected KeyValueService getKeyValueService() {
-        return PartitionedKeyValueService.Create();
+        return PartitionedKeyValueService.create();
     }
 
 }

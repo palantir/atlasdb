@@ -625,11 +625,11 @@ public class PartitionedKeyValueService implements KeyValueService {
         }
     }
 
-    public static PartitionedKeyValueService Create() {
+    public static PartitionedKeyValueService create() {
         return new PartitionedKeyValueService();
     }
 
-    public static PartitionedKeyValueService Create(ExecutorService executor) {
+    public static PartitionedKeyValueService create(ExecutorService executor) {
         return new PartitionedKeyValueService(executor);
     }
 
