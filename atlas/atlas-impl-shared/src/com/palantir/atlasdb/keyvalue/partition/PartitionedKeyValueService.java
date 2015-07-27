@@ -43,7 +43,6 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.util.Pair;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
@@ -303,7 +302,7 @@ public class PartitionedKeyValueService implements KeyValueService {
         }
     }
 
-    ExecutorService executor = PTExecutors.newCachedThreadPool();
+    private ExecutorService executor = PTExecutors.newCachedThreadPool();
 
     @Override
     public void put(final String tableName, Map<Cell, byte[]> values, final long timestamp) {
@@ -348,22 +347,14 @@ public class PartitionedKeyValueService implements KeyValueService {
         }
     }
 
-    private static <U, V> Iterable<Pair<U, V>> multimapToPairs(Multimap<U, V> mmap) {
-        Set<Pair<U, V>> result = Sets.newHashSet();
-        for (Map.Entry<U, V> e : mmap.entries()) {
-            result.add(new Pair<U, V>(e.getKey(), e.getValue()));
-        }
-        return result;
-    }
-
     @Override
     @NonIdempotent
     public void putWithTimestamps(final String tableName, Multimap<Cell, Value> cellValues)
             throws KeyAlreadyExistsException {
         final Map<KeyValueService, Multimap<Cell, Value>> tasks = null;
         final ExecutorCompletionService<Void> execSvc = new ExecutorCompletionService<Void>(executor);
-        final QuorumTracker<Future<Void>, Pair<Cell, Value>> tracker =
-                QuorumTracker.of(multimapToPairs(cellValues), replicationFactor, readFactor);
+        final QuorumTracker<Future<Void>, Map.Entry<Cell, Value>> tracker =
+                QuorumTracker.of(cellValues.entries(), replicationFactor, writeFactor);
 
         for (final Map.Entry<KeyValueService, Multimap<Cell, Value>> e : tasks.entrySet()) {
             Future<Void> future = execSvc.submit(new Callable<Void>() {
@@ -373,7 +364,7 @@ public class PartitionedKeyValueService implements KeyValueService {
                     return null;
                 }
             });
-            tracker.registerRef(future, multimapToPairs(e.getValue()));
+            tracker.registerRef(future, e.getValue().entries());
         }
 
         while (!tracker.finished()) {
@@ -405,7 +396,7 @@ public class PartitionedKeyValueService implements KeyValueService {
     @Idempotent
     public void delete(final String tableName, Multimap<Cell, Long> keys) {
         final Map<KeyValueService, Multimap<Cell, Long>> tasks = null;
-        final QuorumTracker<Future<Void>, Map.Entry<Cell, Long>> tracker = QuorumTracker.of(keys.entries(), replicationFactor, readFactor);
+        final QuorumTracker<Future<Void>, Map.Entry<Cell, Long>> tracker = QuorumTracker.of(keys.entries(), replicationFactor, replicationFactor);
         final ExecutorCompletionService<Void> execSvc = new ExecutorCompletionService<Void>(executor);
 
         for (final Map.Entry<KeyValueService, Multimap<Cell, Long>> e : tasks.entrySet()) {
