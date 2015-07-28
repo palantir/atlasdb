@@ -11,6 +11,9 @@ import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ListMultimap;
@@ -40,6 +43,8 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 public class PartitionedKeyValueService implements KeyValueService {
+
+    private static final Logger log = LoggerFactory.getLogger(PartitionedKeyValueService.class);
 
     final TableAwarePartitionMapApi tpm;
 
@@ -98,6 +103,7 @@ public class PartitionedKeyValueService implements KeyValueService {
                     mergeCellValueMapIntoMap(overallResult, result);
                     tracker.handleSuccess(future);
                 } catch (ExecutionException e) {
+                    log.warn("Could not complete read request in table " + tableName);
                     tracker.handleFailure(future);
                     if (tracker.failure()) {
                         throw Throwables.rewrapAndThrowUncheckedException("Could not get enough reads.", e.getCause());
@@ -150,7 +156,7 @@ public class PartitionedKeyValueService implements KeyValueService {
             } catch (InterruptedException e) {
                 Throwables.throwUncheckedException(e);
             } catch (ExecutionException e) {
-                System.err.println("Could not complete a get request");
+                log.warn("Could not complete read in table " + tableName);
                 assert (future != null);
                 tracker.handleFailure(future);
             }
@@ -214,7 +220,7 @@ public class PartitionedKeyValueService implements KeyValueService {
             } catch (InterruptedException e) {
                 Throwables.throwUncheckedException(e);
             } catch (ExecutionException e) {
-                System.err.println("Write failed: " + e);
+                log.warn("Could not complete write request in table " + tableName);
                 assert (future != null);
                 tracker.handleFailure(future);
             }
@@ -255,7 +261,7 @@ public class PartitionedKeyValueService implements KeyValueService {
             } catch (InterruptedException e) {
                 Throwables.throwUncheckedException(e);
             } catch (ExecutionException e1) {
-                System.err.println("getRows failed.");
+                log.warn("Could not complete write request in table " + tableName);
                 tracker.handleFailure(future);
             }
         }
@@ -296,7 +302,7 @@ public class PartitionedKeyValueService implements KeyValueService {
             } catch (InterruptedException e) {
                 Throwables.throwUncheckedException(e);
             } catch (ExecutionException e) {
-                System.err.println("Error deleting item.");
+                log.warn("Could not complete write request in table " + tableName);
                 // This should cause tracker to immediately finish with failure.
             }
         }
@@ -412,6 +418,13 @@ public class PartitionedKeyValueService implements KeyValueService {
 
     @Override
     @Idempotent
+    public Multimap<Cell, Long> getAllTimestamps(String tableName, Set<Cell> cells, long timestamp)
+            throws InsufficientConsistencyException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    @Idempotent
     public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(String tableName,
                                                                                                            Iterable<RangeRequest> rangeRequests,
                                                                                                            long timestamp) {
@@ -456,13 +469,6 @@ public class PartitionedKeyValueService implements KeyValueService {
     @Override
     @Idempotent
     public void addGarbageCollectionSentinelValues(String tableName, Set<Cell> cells) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    @Idempotent
-    public Multimap<Cell, Long> getAllTimestamps(String tableName, Set<Cell> cells, long timestamp)
-            throws InsufficientConsistencyException {
         throw new UnsupportedOperationException();
     }
 
@@ -512,7 +518,7 @@ public class PartitionedKeyValueService implements KeyValueService {
             } catch (InterruptedException e) {
                 Throwables.throwUncheckedException(e);
             } catch (ExecutionException e) {
-                System.err.println("Could not get latest timestamp read");
+                log.warn("Could not complete read request in table " + tableName);
             }
         }
 
