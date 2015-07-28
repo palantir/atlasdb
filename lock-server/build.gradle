@@ -11,5 +11,5 @@ libsDirName = file('build/artifacts')
 dependencies {
   compile(project(":lock-api"))
   compile(project(":atlasdb-commons"))
-  compile fileTree(dir: 'lib', include: ['*.jar'])
+  compile 'com.palantir.patches.sourceforge:trove3:3.0.3-p5'
 }
