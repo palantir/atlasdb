@@ -45,7 +45,7 @@ public class AtlasDbConstants {
     public static final char SCRUB_TABLE_SEPARATOR_CHAR = '\0';
 
     public static final int PUNCH_INTERVAL_MILLIS = 2000;
-    public static final long SCRUBBER_RETRY_DELAY_MILLIS = 2000L;
+    public static final long SCRUBBER_RETRY_DELAY_MILLIS = 1000L;
     public static final int DEFAULT_SCRUBBER_BATCH_SIZE = 1000;
     public static final int DEFAULT_SCRUBBER_THREAD_COUNT = 8;
     public static final int DEFAULT_SWEEPER_BATCH_SIZE = 1000;
