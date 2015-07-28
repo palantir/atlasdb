@@ -2,6 +2,7 @@ package com.palantir.atlasdb.keyvalue.partition;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Future;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
@@ -13,7 +14,7 @@ public class RowQuorumTracker<T> {
 
     private final Map<byte[], Integer> numberOfRemainingSuccessesForSuccess;
     private final Map<byte[], Integer> numberOfRemainingFailuresForFailure;
-    private final Map<T, Set<byte[]>> rowsByReference;
+    private final Map<Future<T>, Set<byte[]>> rowsByReference;
     private boolean failure;
 
     /*
@@ -34,7 +35,7 @@ public class RowQuorumTracker<T> {
         return new RowQuorumTracker<V>(allRows, qrp);
     }
 
-    public void handleSuccess(T ref) {
+    public void handleSuccess(Future<T> ref) {
         Preconditions.checkState(failure() == false && success() == false);
         Preconditions.checkState(rowsByReference.containsKey(ref));
         for (byte[] row : rowsByReference.get(ref)) {
@@ -48,9 +49,10 @@ public class RowQuorumTracker<T> {
                 }
             }
         }
+        rowsByReference.remove(ref);
     }
 
-    public void handleFailure(T ref) {
+    public void handleFailure(Future<T> ref) {
         Preconditions.checkState(failure() == false && success() == false);
         Preconditions.checkArgument(rowsByReference.containsKey(ref));
         for (byte[] row : rowsByReference.get(ref)) {
@@ -64,15 +66,22 @@ public class RowQuorumTracker<T> {
                 }
             }
         }
+        rowsByReference.remove(ref);
     }
 
-    public void registerRef(T ref, Iterable<byte[]> rows) {
+    public void registerRef(Future<T> ref, Iterable<byte[]> rows) {
         Preconditions.checkState(failure() == false && success() == false);
         Set<byte[]> set = Sets.newTreeSet(UnsignedBytes.lexicographicalComparator());
         for (byte[] row : rows) {
             set.add(row);
         }
         rowsByReference.put(ref, set);
+    }
+
+    public void cancel(boolean mayInterruptIfRunning) {
+        for (Future<T> f : rowsByReference.keySet()) {
+            f.cancel(mayInterruptIfRunning);
+        }
     }
 
     public boolean failure() {

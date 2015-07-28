@@ -76,7 +76,7 @@ public class PartitionedKeyValueService implements KeyValueService {
         final ExecutorCompletionService<Map<Cell, Value>> execSvc = new ExecutorCompletionService<Map<Cell, Value>>(
                 executor);
         final Map<KeyValueService, Iterable<byte[]>> tasks = tpm.getServicesForRowsRead(tableName, rows);
-        final RowQuorumTracker<Future<Map<Cell, Value>>> tracker = RowQuorumTracker.of(
+        final RowQuorumTracker<Map<Cell, Value>> tracker = RowQuorumTracker.of(
                 rows,
                 quorumParameters.getReadRequestParameters());
 
@@ -102,20 +102,17 @@ public class PartitionedKeyValueService implements KeyValueService {
                 } catch (ExecutionException e) {
                     log.warn("Could not complete read request in table " + tableName);
                     tracker.handleFailure(future);
+                    // Check if the failure is fatal
                     if (tracker.failure()) {
                         throw Throwables.rewrapAndThrowUncheckedException("Could not get enough reads.", e.getCause());
                     }
                 }
             }
-
-            if (tracker.failure()) {
-                throw new RuntimeException("Could not get enough reads.");
-            }
             return overallResult;
         } catch (InterruptedException e) {
             throw Throwables.throwUncheckedException(e);
         } finally {
-            // TODO: finally tracker.cancel(true)
+            tracker.cancel(true);
         }
     }
 
