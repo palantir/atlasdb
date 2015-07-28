@@ -22,12 +22,12 @@ import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
-import com.palantir.atlasdb.keyvalue.partition.AllInOnePartitionMap;
+import com.palantir.atlasdb.keyvalue.partition.BasicPartitionMap;
 
-public class AllInOnePartitionMapTest {
+public class BasicPartitionMapTest {
 
 //    TableAwarePartitionMapApi tpm;
-    AllInOnePartitionMap tpm;
+    BasicPartitionMap tpm;
     static final String TABLE1 = "table1";
     static final int TABLE1_MAXSIZE = 128;
     static final int REPF = 3;
@@ -56,7 +56,7 @@ public class AllInOnePartitionMapTest {
     @Before
     public void setUp() {
         assert(services.size() == points.length);
-        tpm = AllInOnePartitionMap.Create(REPF, READF, WRITEF, services, points);
+        tpm = BasicPartitionMap.Create(REPF, READF, WRITEF, services, points);
         tpm.addTable(TABLE1, TABLE1_MAXSIZE);
     }
 

@@ -25,7 +25,7 @@ import com.palantir.atlasdb.keyvalue.partition.util.RangeComparator;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 
-public class AllInOnePartitionMap implements TableAwarePartitionMapApi {
+public class BasicPartitionMap implements TableAwarePartitionMapApi {
 
     final Map<String, byte[]> tableMetadata;
     final NavigableMap<byte[], KeyValueService> ring;
@@ -33,7 +33,7 @@ public class AllInOnePartitionMap implements TableAwarePartitionMapApi {
     final int readFactor;
     final int writeFactor;
 
-    private AllInOnePartitionMap(int repf, int readf, int writef, Collection<KeyValueService> services, byte[][] points) {
+    private BasicPartitionMap(int repf, int readf, int writef, Collection<KeyValueService> services, byte[][] points) {
         Preconditions.checkArgument(readf + writef > repf);
         Preconditions.checkArgument(services.size() >= repf);
         replicationFactor = repf;
@@ -47,11 +47,11 @@ public class AllInOnePartitionMap implements TableAwarePartitionMapApi {
         }
     }
 
-    public static AllInOnePartitionMap Create(int repf, int readf, int writef, Collection<KeyValueService> services, byte[][] points) {
-        return new AllInOnePartitionMap(repf, readf, writef, services, points);
+    public static BasicPartitionMap Create(int repf, int readf, int writef, Collection<KeyValueService> services, byte[][] points) {
+        return new BasicPartitionMap(repf, readf, writef, services, points);
     }
 
-    public static AllInOnePartitionMap Create(int repf, int read, int writef, int numOfServices) {
+    public static BasicPartitionMap Create(int repf, int read, int writef, int numOfServices) {
         Preconditions.checkArgument(numOfServices < 255);
         KeyValueService[] services = new KeyValueService[numOfServices];
         byte[][] points = new byte[numOfServices][];
@@ -61,7 +61,7 @@ public class AllInOnePartitionMap implements TableAwarePartitionMapApi {
         for (int i=0; i<numOfServices; ++i) {
             points[i] = new byte[] {(byte) (i + 1)};
         }
-        return new AllInOnePartitionMap(repf, read, writef, Arrays.asList(services), points);
+        return new BasicPartitionMap(repf, read, writef, Arrays.asList(services), points);
     }
 
     private Set<KeyValueService> getServiceWithKey(byte[] prefix) {
