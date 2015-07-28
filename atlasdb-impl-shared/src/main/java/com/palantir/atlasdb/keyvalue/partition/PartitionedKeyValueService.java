@@ -63,27 +63,6 @@ public class PartitionedKeyValueService implements KeyValueService {
         // TODO
     }
 
-    private Value getCell(String tableName, Cell cell, long timestamp) {
-        int succReads = 0;
-        Value newestVal = null;
-        final Map<Cell, Long> request = Maps.newHashMap();
-        request.put(cell, timestamp);
-
-        for (KeyValueService kvs : tpm.getServicesForRead(tableName, cell.getRowName())) {
-            Value result = kvs.get(tableName, request).get(cell);
-            if (newestVal == null || newestVal.getTimestamp() < result.getTimestamp()) {
-                newestVal = result;
-            }
-            succReads += 1;
-        }
-
-        if (succReads < readFactor) {
-            throw new RuntimeException("Could not get enough reads.");
-        }
-
-        return newestVal;
-    }
-
     @Override
     @Idempotent
     public Map<Cell, Value> getRows(final String tableName,
@@ -93,7 +72,7 @@ public class PartitionedKeyValueService implements KeyValueService {
         final Map<Cell, Value> overallResult = Maps.newHashMap();
         final ExecutorCompletionService<Map<Cell, Value>> execSvc = new ExecutorCompletionService<Map<Cell, Value>>(
                 executor);
-        final Map<KeyValueService, Iterable<byte[]>> tasks = null;
+        final Map<KeyValueService, Iterable<byte[]>> tasks = tpm.getServicesForRowsRead(tableName, rows);
         final RowQuorumTracker<Future<Map<Cell, Value>>> tracker = RowQuorumTracker.of(
                 rows,
                 replicationFactor,
@@ -140,7 +119,7 @@ public class PartitionedKeyValueService implements KeyValueService {
     @Override
     @Idempotent
     public Map<Cell, Value> get(final String tableName, Map<Cell, Long> timestampByCell) {
-        Map<KeyValueService, Map<Cell, Long>> tasks = null;
+        Map<KeyValueService, Map<Cell, Long>> tasks = tpm.getServicesForCellsRead(tableName, timestampByCell);
         ExecutorCompletionService<Map<Cell, Value>> execSvc = new ExecutorCompletionService<Map<Cell, Value>>(
                 executor);
         QuorumTracker<Future<Map<Cell, Value>>, Cell> tracker = QuorumTracker.of(
@@ -205,7 +184,7 @@ public class PartitionedKeyValueService implements KeyValueService {
 
     @Override
     public void put(final String tableName, Map<Cell, byte[]> values, final long timestamp) {
-        final Map<KeyValueService, Map<Cell, byte[]>> tasks = null;
+        final Map<KeyValueService, Map<Cell, byte[]>> tasks = tpm.getServicesForCellsWrite(tableName, values);
         final ExecutorCompletionService<Void> writeService = new ExecutorCompletionService<Void>(
                 executor);
         final QuorumTracker<Future<Void>, Cell> tracker = QuorumTracker.of(
@@ -251,7 +230,7 @@ public class PartitionedKeyValueService implements KeyValueService {
     @NonIdempotent
     public void putWithTimestamps(final String tableName, Multimap<Cell, Value> cellValues)
             throws KeyAlreadyExistsException {
-        final Map<KeyValueService, Multimap<Cell, Value>> tasks = null;
+        final Map<KeyValueService, Multimap<Cell, Value>> tasks = tpm.getServicesForTimestampsWrite(tableName, cellValues);
         final ExecutorCompletionService<Void> execSvc = new ExecutorCompletionService<Void>(executor);
         final QuorumTracker<Future<Void>, Map.Entry<Cell, Value>> tracker =
                 QuorumTracker.of(cellValues.entries(), replicationFactor, writeFactor);
@@ -295,7 +274,7 @@ public class PartitionedKeyValueService implements KeyValueService {
     @Override
     @Idempotent
     public void delete(final String tableName, Multimap<Cell, Long> keys) {
-        final Map<KeyValueService, Multimap<Cell, Long>> tasks = null;
+        final Map<KeyValueService, Multimap<Cell, Long>> tasks = tpm.getServicesForDelete(tableName, keys);
         final QuorumTracker<Future<Void>, Map.Entry<Cell, Long>> tracker = QuorumTracker.of(keys.entries(), replicationFactor, replicationFactor);
         final ExecutorCompletionService<Void> execSvc = new ExecutorCompletionService<Void>(executor);
 

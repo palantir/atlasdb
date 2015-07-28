@@ -13,9 +13,11 @@ import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 import com.google.common.collect.TreeMultimap;
 import com.google.common.primitives.UnsignedBytes;
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.api.TableAwarePartitionMapApi;
 import com.palantir.atlasdb.keyvalue.partition.util.RangeComparator;
@@ -73,16 +75,6 @@ public class AllInOnePartitionMap implements TableAwarePartitionMapApi {
             point = ring.higherKey(point);
         }
         return result;
-    }
-
-    @Override
-    public Set<KeyValueService> getServicesForRead(String tableName, byte[] row) {
-        return getServiceWithKey(row);
-    }
-
-    @Override
-    public Set<KeyValueService> getServicesForWrite(String tableName, byte[] row) {
-        return getServicesForRead(tableName, row);
     }
 
     static boolean inRange(byte[] position, RangeRequest rangeRequest) {
@@ -143,6 +135,11 @@ public class AllInOnePartitionMap implements TableAwarePartitionMapApi {
         }
 
         return result;
+    }
+
+    private Iterable<? extends KeyValueService> getServicesForRead(String tableName, byte[] key) {
+        // TODO Auto-generated method stub
+        return null;
     }
 
     @Override
@@ -234,5 +231,40 @@ public class AllInOnePartitionMap implements TableAwarePartitionMapApi {
     @Override
     public void close() {
         throw new NotImplementedException();
+    }
+
+    @Override
+    public Map<KeyValueService, Iterable<byte[]>> getServicesForRowsRead(String tableName,
+                                                                         Iterable<byte[]> rows) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public Map<KeyValueService, Map<Cell, Long>> getServicesForCellsRead(String tableName,
+                                                                         Map<Cell, Long> timestampByCell) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public Map<KeyValueService, Map<Cell, byte[]>> getServicesForCellsWrite(String tableName,
+                                                                            Map<Cell, byte[]> values) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public Map<KeyValueService, Multimap<Cell, Value>> getServicesForTimestampsWrite(String tableName,
+                                                                                     Multimap<Cell, Value> cellValues) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public Map<KeyValueService, Multimap<Cell, Long>> getServicesForDelete(String tableName,
+                                                                           Multimap<Cell, Long> keys) {
+        // TODO Auto-generated method stub
+        return null;
     }
 }
