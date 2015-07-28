@@ -51,7 +51,7 @@ public class BasicPartitionMap implements TableAwarePartitionMapApi {
         return new BasicPartitionMap(repf, readf, writef, services, points);
     }
 
-    public static BasicPartitionMap Create(int repf, int read, int writef, int numOfServices) {
+    public static BasicPartitionMap Create(QuorumParameters quorumParameters, int numOfServices) {
         Preconditions.checkArgument(numOfServices < 255);
         KeyValueService[] services = new KeyValueService[numOfServices];
         byte[][] points = new byte[numOfServices][];
@@ -61,7 +61,8 @@ public class BasicPartitionMap implements TableAwarePartitionMapApi {
         for (int i=0; i<numOfServices; ++i) {
             points[i] = new byte[] {(byte) (i + 1)};
         }
-        return new BasicPartitionMap(repf, read, writef, Arrays.asList(services), points);
+        return new BasicPartitionMap(quorumParameters.getReplicationFactor(), quorumParameters.getReadFactor(), quorumParameters.getWriteFactor(),
+                Arrays.asList(services), points);
     }
 
     private Set<KeyValueService> getServiceWithKey(byte[] prefix) {
