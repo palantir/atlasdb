@@ -117,7 +117,7 @@ public class PartitionedKeyValueService implements KeyValueService {
             try {
                 Future<Map<Cell, Value>> future = execSvc.take();
                 Map<Cell, Value> result = future.get();
-                mergeMapIntoMap(overallResult, result);
+                mergeCellValueMapIntoMap(overallResult, result);
                 tracker.handleSuccess(future);
             } catch (InterruptedException e) {
                 Throwables.throwUncheckedException(e);
@@ -162,7 +162,7 @@ public class PartitionedKeyValueService implements KeyValueService {
             try {
                 future = execSvc.take();
                 Map<Cell, Value> result = future.get();
-                mergeMapIntoMap(globalResult, result);
+                mergeCellValueMapIntoMap(globalResult, result);
                 tracker.handleSuccess(future);
             } catch (InterruptedException e) {
                 Throwables.throwUncheckedException(e);
@@ -181,9 +181,17 @@ public class PartitionedKeyValueService implements KeyValueService {
                 || map.get(newEntry.getKey()).getTimestamp() < newEntry.getValue().getTimestamp();
     }
 
-    private void mergeMapIntoMap(Map<Cell, Value> globalResult, Map<Cell, Value> partResult) {
+    private void mergeCellValueMapIntoMap(Map<Cell, Value> globalResult, Map<Cell, Value> partResult) {
         for (Map.Entry<Cell, Value> e : partResult.entrySet()) {
             if (shouldUpdateMapping(globalResult, e)) {
+                globalResult.put(e.getKey(), e.getValue());
+            }
+        }
+    }
+
+    private void mergeLatestTimestampMapIntoMap(Map<Cell, Long> globalResult, Map<Cell, Long> partResult) {
+        for (Map.Entry<Cell, Long> e : partResult.entrySet()) {
+            if (!globalResult.containsKey(e.getKey()) || globalResult.get(e.getKey()) < e.getValue()) {
                 globalResult.put(e.getKey(), e.getValue());
             }
         }
@@ -496,17 +504,38 @@ public class PartitionedKeyValueService implements KeyValueService {
 
     @Override
     @Idempotent
-    public Map<Cell, Long> getLatestTimestamps(String tableName, Map<Cell, Long> timestampByCell) {
+    public Map<Cell, Long> getLatestTimestamps(final String tableName, Map<Cell, Long> timestampByCell) {
         Map<Cell, Long> result = Maps.newHashMap();
-        for (Map.Entry<Cell, Long> e : timestampByCell.entrySet()) {
-            final Cell cell = e.getKey();
-            final long ts = e.getValue();
-            Value val = getCell(tableName, cell, ts);
+        Map<KeyValueService, Map<Cell, Long>> tasks = null;
+        QuorumTracker<Future<Map<Cell, Long>>, Cell> tracker = QuorumTracker.of(timestampByCell.keySet(), replicationFactor, readFactor);
+        ExecutorCompletionService<Map<Cell, Long>> execSvc = new ExecutorCompletionService<Map<Cell,Long>>(executor);
 
-            if (val != null) {
-                result.put(cell, val.getTimestamp());
+        for (final Map.Entry<KeyValueService, Map<Cell, Long>> e : tasks.entrySet()) {
+            Future<Map<Cell, Long>> future = execSvc.submit(new Callable<Map<Cell, Long>>() {
+                @Override
+                public Map<Cell, Long> call() throws Exception {
+                    return e.getKey().getLatestTimestamps(tableName, e.getValue());
+                }
+            });
+            tracker.registerRef(future, e.getValue().keySet());
+        }
+
+        while (!tracker.finished()) {
+            try {
+                Future<Map<Cell, Long>> future = execSvc.take();
+                Map<Cell, Long> kvsResult = future.get();
+                mergeLatestTimestampMapIntoMap(result, kvsResult);
+            } catch (InterruptedException e) {
+                Throwables.throwUncheckedException(e);
+            } catch (ExecutionException e) {
+                System.err.println("Could not get latest timestamp read");
             }
         }
+
+        if (tracker.failure()) {
+            throw new RuntimeException("Could not get enough reads");
+        }
+
         return result;
     }
 
