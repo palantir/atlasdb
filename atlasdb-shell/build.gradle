@@ -11,9 +11,9 @@ libsDirName = file('build/artifacts')
 sourceCompatibility = "1.6"
 targetCompatibility = "1.6"
 dependencies {
-  compile fileTree(dir: 'lib', include: ['*.jar'])
   runtime(group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.5', configuration: 'default')
   compile(group: 'com.github.rjeschke', name: 'txtmark', version: '0.11', configuration: 'default')
+  compile(group: 'com.palantir.opensource', name: 'ptoss-cinch', version: '1.1', configuration: 'default')
   compile(project(":atlasdb-impl-shared"))
   compile(project(":atlasdb-leveldb"))
   compile(project(":atlasdb-cassandra"))

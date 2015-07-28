@@ -14,7 +14,7 @@ dependencies {
   compile(project(":atlasdb-commons"))
   compile(group: "commons-lang",
           name: "commons-lang",
-          version: "2.6",
+          version: libVersions.commons_lang,
           configuration: "default")
   compile(group: "com.google.protobuf",
           name: "protobuf-java",

@@ -22,7 +22,7 @@ dependencies {
   }
   compile(group: "commons-lang",
           name: "commons-lang",
-          version: "2.6",
+          version: libVersions.commons_lang,
           configuration: "default")
   compile(group: "org.xerial.snappy",
           name: "snappy-java",
