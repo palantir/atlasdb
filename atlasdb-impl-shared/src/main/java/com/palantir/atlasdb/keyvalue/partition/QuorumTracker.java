@@ -4,6 +4,7 @@ import java.util.Map;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
+import com.palantir.atlasdb.keyvalue.partition.QuorumParameters.QuorumRequestParameters;
 
 public class QuorumTracker <T, U> {
 
@@ -15,21 +16,21 @@ public class QuorumTracker <T, U> {
     /*
      * successFactor - minimum number of successes per cell
      */
-    QuorumTracker(Iterable<U> allUs, final int replicationFactor, final int successFactor) {
+    QuorumTracker(Iterable<U> allUs, QuorumRequestParameters qrp) {
         numberOfRemainingFailuresForFailure = Maps.newHashMap();
         numberOfRemainingSuccessesForSuccess = Maps.newConcurrentMap();
 
         for (U cell : allUs) {
-            numberOfRemainingFailuresForFailure.put(cell, replicationFactor - successFactor);
-            numberOfRemainingSuccessesForSuccess.put(cell, successFactor);
+            numberOfRemainingFailuresForFailure.put(cell, qrp.getReplicationFator() - qrp.getSuccessFactor());
+            numberOfRemainingSuccessesForSuccess.put(cell, qrp.getSuccessFactor());
         }
 
         cellsByReference = Maps.newHashMap();
         failure = false;
     }
 
-    static <V, W> QuorumTracker<V, W> of(Iterable<W> allUs, final int replicationFactor, final int successFactor) {
-        return new QuorumTracker<V, W>(allUs, replicationFactor, successFactor);
+    static <V, W> QuorumTracker<V, W> of(Iterable<W> allUs, QuorumRequestParameters qrp) {
+        return new QuorumTracker<V, W>(allUs, qrp);
     }
 
     void handleSuccess(T ref) {

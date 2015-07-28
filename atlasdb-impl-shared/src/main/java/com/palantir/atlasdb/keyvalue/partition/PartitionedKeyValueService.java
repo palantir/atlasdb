@@ -128,8 +128,7 @@ public class PartitionedKeyValueService implements KeyValueService {
                 executor);
         QuorumTracker<Future<Map<Cell, Value>>, Cell> tracker = QuorumTracker.of(
                 timestampByCell.keySet(),
-                quorumParameters.getReplicationFactor(),
-                quorumParameters.getReadFactor());
+                quorumParameters.getReadRequestParameters());
         Map<Cell, Value> globalResult = Maps.newHashMap();
 
         // Schedule the tasks
@@ -193,8 +192,7 @@ public class PartitionedKeyValueService implements KeyValueService {
                 executor);
         final QuorumTracker<Future<Void>, Cell> tracker = QuorumTracker.of(
                 values.keySet(),
-                quorumParameters.getReplicationFactor(),
-                quorumParameters.getWriteFactor());
+                quorumParameters.getWriteRequestParameters());
 
         // Schedule the requests
         for (final Map.Entry<KeyValueService, Map<Cell, byte[]>> e : tasks.entrySet()) {
@@ -237,7 +235,7 @@ public class PartitionedKeyValueService implements KeyValueService {
         final Map<KeyValueService, Multimap<Cell, Value>> tasks = tpm.getServicesForTimestampsWrite(tableName, cellValues);
         final ExecutorCompletionService<Void> execSvc = new ExecutorCompletionService<Void>(executor);
         final QuorumTracker<Future<Void>, Map.Entry<Cell, Value>> tracker =
-                QuorumTracker.of(cellValues.entries(), quorumParameters.getReplicationFactor(), quorumParameters.getWriteFactor());
+                QuorumTracker.of(cellValues.entries(), quorumParameters.getWriteRequestParameters());
 
         for (final Map.Entry<KeyValueService, Multimap<Cell, Value>> e : tasks.entrySet()) {
             Future<Void> future = execSvc.submit(new Callable<Void>() {
@@ -280,7 +278,7 @@ public class PartitionedKeyValueService implements KeyValueService {
     public void delete(final String tableName, Multimap<Cell, Long> keys) {
         final Map<KeyValueService, Multimap<Cell, Long>> tasks = tpm.getServicesForDelete(tableName, keys);
         final QuorumTracker<Future<Void>, Map.Entry<Cell, Long>> tracker = QuorumTracker.of(
-                keys.entries(), quorumParameters.getReplicationFactor(), quorumParameters.getReplicationFactor());
+                keys.entries(), quorumParameters.getWriteRequestParameters());
         final ExecutorCompletionService<Void> execSvc = new ExecutorCompletionService<Void>(executor);
 
         for (final Map.Entry<KeyValueService, Multimap<Cell, Long>> e : tasks.entrySet()) {
@@ -497,7 +495,7 @@ public class PartitionedKeyValueService implements KeyValueService {
         Map<Cell, Long> result = Maps.newHashMap();
         Map<KeyValueService, Map<Cell, Long>> tasks = null;
         QuorumTracker<Future<Map<Cell, Long>>, Cell> tracker = QuorumTracker.of(
-                timestampByCell.keySet(), quorumParameters.getReplicationFactor(), quorumParameters.getReadFactor());
+                timestampByCell.keySet(), quorumParameters.getReadRequestParameters());
         ExecutorCompletionService<Map<Cell, Long>> execSvc = new ExecutorCompletionService<Map<Cell,Long>>(executor);
 
         for (final Map.Entry<KeyValueService, Map<Cell, Long>> e : tasks.entrySet()) {
