@@ -37,9 +37,11 @@ public class RangeComparator implements Comparator<RangeRequest> {
     private static RangeComparator instance;
 
     public static RangeComparator Instance() {
-        if (instance == null) {
-            instance = new RangeComparator();
+        RangeComparator ret = instance;
+        if (ret == null) {
+            ret = new RangeComparator();
+            instance = ret;
         }
-        return instance;
+        return ret;
     }
 }
