@@ -10,8 +10,8 @@ public class ClosablePeekingIterator<T> implements ClosableIterator<T>, PeekingI
         return new ClosablePeekingIterator<V>(it);
     }
 
-    private ClosableIterator<T> ci;
-    private PeekingIterator<T> pi;
+    private final ClosableIterator<T> ci;
+    private final PeekingIterator<T> pi;
 
     public ClosablePeekingIterator(ClosableIterator<T> ci) {
         this.ci = ci;

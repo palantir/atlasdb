@@ -16,28 +16,27 @@ public abstract class PartitionedRangedIterator<T> implements ClosableIterator<R
 
     final Multimap<RangeRequest, ClosablePeekingIterator<RowResult<T>>> rangeIterators;
     Iterator<RangeRequest> currentRange;
-    protected PeekingIterator<RowResult<T>> rowIterator = Iterators.peekingIterator(Collections.<RowResult<T>> emptyIterator());
+    private PeekingIterator<RowResult<T>> rowIterator = Iterators.peekingIterator(Collections.<RowResult<T>> emptyIterator());
 
     public PartitionedRangedIterator(Multimap<RangeRequest, ClosablePeekingIterator<RowResult<T>>> rangeIterators) {
         this.rangeIterators = rangeIterators;
         this.currentRange = rangeIterators.keySet().iterator();
     }
 
-    protected void prepareNextRange() {
+    private void prepareNextRange() {
         Preconditions.checkArgument(currentRange.hasNext());
-        Preconditions.checkArgument(!rowIterator.hasNext());
+        Preconditions.checkArgument(!getRowIterator().hasNext());
         RangeRequest newRange = currentRange.next();
         Collection<ClosablePeekingIterator<RowResult<T>>> newRangeIterators = rangeIterators.get(newRange);
-        rowIterator = Iterators.<RowResult<T>>peekingIterator(
-                Iterators.mergeSorted(newRangeIterators, RowResultComparator.instance()));
+        rowIterator = Iterators.<RowResult<T>>peekingIterator(Iterators.mergeSorted(newRangeIterators, RowResultComparator.instance()));
     }
 
     @Override
     public boolean hasNext() {
-        if (!rowIterator.hasNext() && currentRange.hasNext()) {
+        if (!getRowIterator().hasNext() && currentRange.hasNext()) {
             prepareNextRange();
         }
-        return rowIterator.hasNext();
+        return getRowIterator().hasNext();
     }
 
     @Override
@@ -55,5 +54,8 @@ public abstract class PartitionedRangedIterator<T> implements ClosableIterator<R
         }
     }
 
+    protected PeekingIterator<RowResult<T>> getRowIterator() {
+        return rowIterator;
+    }
 
 }

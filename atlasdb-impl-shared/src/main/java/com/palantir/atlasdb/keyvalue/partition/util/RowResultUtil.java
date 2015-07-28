@@ -46,14 +46,13 @@ public class RowResultUtil {
         while (it.hasNext() && Arrays.equals(it.peek().getRowName(), row)) {
             try {
                 failCount++;
-                Map<Cell, Value> newestCurrentResult = getNewestValue(it.next());
-                for (Map.Entry<Cell, Value> e : newestCurrentResult.entrySet()) {
+                for (Map.Entry<Cell, Value> e : it.next().getCells()) {
                     final byte[] col = e.getKey().getColumnName();
                     if (!result.containsKey(col)
                             || result.get(col).getTimestamp() < e.getValue().getTimestamp()) {
                         result.put(col, e.getValue());
                     }
-            }
+                }
                 failCount--;
             } catch (Exception e) {
                 System.err.println("Could not read for rangeRequest.");

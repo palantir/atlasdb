@@ -222,7 +222,7 @@ public interface KeyValueService {
      * best effort attempt to delete the values.
      * <p>
      * Some systems may require more nodes to be up to ensure that a delete is successful. If this
-     * is the case then this method may throw if the delete can't be completed completely.
+     * is the case then this method may throw if the delete can't be completed on all nodes.
      *
      * @param tableName the name of the table to delete values from.
      * @param keys map containing the keys to delete values for; the map should specify, for each

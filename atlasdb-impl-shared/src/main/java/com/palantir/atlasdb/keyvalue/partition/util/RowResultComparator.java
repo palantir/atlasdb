@@ -9,13 +9,7 @@ public class RowResultComparator implements Comparator<RowResult<?>> {
 
     @Override
     public int compare(RowResult<?> o1, RowResult<?> o2) {
-        final int cmpRow = UnsignedBytes.lexicographicalComparator().compare(
-                o1.getRowName(),
-                o2.getRowName());
-        if (cmpRow != 0) {
-            return cmpRow;
-        }
-        return Integer.compare(o1.hashCode(), o2.hashCode());
+        return UnsignedBytes.lexicographicalComparator().compare(o1.getRowName(), o2.getRowName());
     }
 
     private RowResultComparator() {
@@ -24,9 +18,11 @@ public class RowResultComparator implements Comparator<RowResult<?>> {
     private static RowResultComparator instance;
 
     public static RowResultComparator instance() {
-        if (instance == null) {
-            instance = new RowResultComparator();
+        RowResultComparator ret = instance;
+        if (ret == null) {
+            ret = new RowResultComparator();
+            instance = ret;
         }
-        return instance;
+        return ret;
     }
 }

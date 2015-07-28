@@ -110,25 +110,31 @@ public class PartitionedKeyValueService implements KeyValueService {
             tracker.registerRef(future, e.getValue());
         }
 
-        // Wait until we can conclude success or failure
-        while (!tracker.finished()) {
-            try {
+        try {
+            // Wait until we can conclude success or failure
+            while (!tracker.finished()) {
                 Future<Map<Cell, Value>> future = execSvc.take();
-                Map<Cell, Value> result = future.get();
-                mergeCellValueMapIntoMap(overallResult, result);
-                tracker.handleSuccess(future);
-            } catch (InterruptedException e) {
-                Throwables.throwUncheckedException(e);
-            } catch (ExecutionException e) {
-                System.err.println("Could not complete getRow request.");
+                try {
+                    Map<Cell, Value> result = future.get();
+                    mergeCellValueMapIntoMap(overallResult, result);
+                    tracker.handleSuccess(future);
+                } catch (ExecutionException e) {
+                    tracker.handleFailure(future);
+                    if (tracker.failure()) {
+                        throw Throwables.rewrapAndThrowUncheckedException("Could not get enough reads.", e.getCause());
+                    }
+                }
             }
-        }
 
-        if (tracker.failure()) {
-            throw new RuntimeException("Could not get enough reads.");
+            if (tracker.failure()) {
+                throw new RuntimeException("Could not get enough reads.");
+            }
+            return overallResult;
+        } catch (InterruptedException e) {
+            throw Throwables.throwUncheckedException(e);
+        } finally {
+            // TODO: finally tracker.cancel(true)
         }
-
-        return overallResult;
     }
 
     @Override
@@ -234,6 +240,7 @@ public class PartitionedKeyValueService implements KeyValueService {
                 tracker.handleFailure(future);
             }
         }
+        // finally only cancel on falure
 
         if (tracker.failure()) {
             throw new RuntimeException("Could not get enough writes.");
@@ -350,7 +357,7 @@ public class PartitionedKeyValueService implements KeyValueService {
             @Override
             public RowResult<Value> next() {
                 Preconditions.checkState(hasNext());
-                return RowResultUtil.mergeResults(rowIterator);
+                return RowResultUtil.mergeResults(getRowIterator());
             }
         };
     }
@@ -384,7 +391,7 @@ public class PartitionedKeyValueService implements KeyValueService {
             @Override
             public RowResult<Set<Value>> next() {
                 Preconditions.checkState(hasNext());
-                return RowResultUtil.allResults(rowIterator);
+                return RowResultUtil.allResults(getRowIterator());
             }
         };
     }
@@ -419,7 +426,7 @@ public class PartitionedKeyValueService implements KeyValueService {
             @Override
             public RowResult<Set<Long>> next() {
                 Preconditions.checkState(hasNext());
-                return RowResultUtil.allTimestamps(rowIterator);
+                return RowResultUtil.allTimestamps(getRowIterator());
             }
         };
     }
