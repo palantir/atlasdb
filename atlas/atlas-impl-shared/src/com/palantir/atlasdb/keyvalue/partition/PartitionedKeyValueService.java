@@ -39,8 +39,6 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
-
 public class PartitionedKeyValueService implements KeyValueService {
 
     final TableAwarePartitionMapApi tpm;
@@ -552,13 +550,13 @@ public class PartitionedKeyValueService implements KeyValueService {
     @Override
     @Idempotent
     public void truncateTable(String tableName) throws InsufficientConsistencyException {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @Override
     @Idempotent
     public void truncateTables(Set<String> tableNames) throws InsufficientConsistencyException {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @Override
