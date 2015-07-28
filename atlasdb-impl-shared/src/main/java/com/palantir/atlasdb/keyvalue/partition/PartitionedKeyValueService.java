@@ -78,8 +78,7 @@ public class PartitionedKeyValueService implements KeyValueService {
         final Map<KeyValueService, Iterable<byte[]>> tasks = tpm.getServicesForRowsRead(tableName, rows);
         final RowQuorumTracker<Future<Map<Cell, Value>>> tracker = RowQuorumTracker.of(
                 rows,
-                quorumParameters.getReplicationFactor(),
-                quorumParameters.getReadFactor());
+                quorumParameters.getReadRequestParameters());
 
         // Schedule tasks for execution
         for (final Map.Entry<KeyValueService, Iterable<byte[]>> e : tasks.entrySet()) {
@@ -278,7 +277,7 @@ public class PartitionedKeyValueService implements KeyValueService {
     public void delete(final String tableName, Multimap<Cell, Long> keys) {
         final Map<KeyValueService, Multimap<Cell, Long>> tasks = tpm.getServicesForDelete(tableName, keys);
         final CellQuorumTracker<Future<Void>, Map.Entry<Cell, Long>> tracker = CellQuorumTracker.of(
-                keys.entries(), quorumParameters.getWriteRequestParameters());
+                keys.entries(), quorumParameters.getNoFailureRequestParameters());
         final ExecutorCompletionService<Void> execSvc = new ExecutorCompletionService<Void>(executor);
 
         for (final Map.Entry<KeyValueService, Multimap<Cell, Long>> e : tasks.entrySet()) {

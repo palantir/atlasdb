@@ -21,8 +21,8 @@ public class CellQuorumTracker <T, U> {
         numberOfRemainingSuccessesForSuccess = Maps.newConcurrentMap();
 
         for (U cell : allUs) {
-            numberOfRemainingFailuresForFailure.put(cell, qrp.getReplicationFator() - qrp.getSuccessFactor());
             numberOfRemainingSuccessesForSuccess.put(cell, qrp.getSuccessFactor());
+            numberOfRemainingFailuresForFailure.put(cell, qrp.getFailureFactor());
         }
 
         cellsByReference = Maps.newHashMap();

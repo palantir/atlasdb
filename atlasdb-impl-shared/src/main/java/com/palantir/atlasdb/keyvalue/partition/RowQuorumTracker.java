@@ -7,6 +7,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
+import com.palantir.atlasdb.keyvalue.partition.QuorumParameters.QuorumRequestParameters;
 
 public class RowQuorumTracker<T> {
 
@@ -14,27 +15,23 @@ public class RowQuorumTracker<T> {
     private final Map<byte[], Integer> numberOfRemainingFailuresForFailure;
     private final Map<T, Set<byte[]>> rowsByReference;
     private boolean failure;
-    private final int replicationFactor;
-    private final int successFactor;
 
     /*
      * successFactor - minimum number of successes per cell
      */
-    RowQuorumTracker(Iterable<byte[]> allRows, final int replicationFactor, final int successFactor) {
+    RowQuorumTracker(Iterable<byte[]> allRows, QuorumRequestParameters qrp) {
         numberOfRemainingFailuresForFailure = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
         numberOfRemainingSuccessesForSuccess = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
         rowsByReference = Maps.newHashMap();
         failure = false;
-        this.replicationFactor = replicationFactor;
-        this.successFactor = successFactor;
         for (byte[] row : allRows) {
-            numberOfRemainingSuccessesForSuccess.put(row, successFactor);
-            numberOfRemainingFailuresForFailure.put(row, replicationFactor - successFactor);
+            numberOfRemainingSuccessesForSuccess.put(row, qrp.getSuccessFactor());
+            numberOfRemainingFailuresForFailure.put(row, qrp.getFailureFactor());
         }
     }
 
-    public static <V> RowQuorumTracker<V> of(Iterable<byte[]> allRows, final int replicationFactor, final int successFactor) {
-        return new RowQuorumTracker<V>(allRows, replicationFactor, successFactor);
+    public static <V> RowQuorumTracker<V> of(Iterable<byte[]> allRows, QuorumRequestParameters qrp) {
+        return new RowQuorumTracker<V>(allRows, qrp);
     }
 
     public void handleSuccess(T ref) {
