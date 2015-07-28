@@ -4,7 +4,7 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
 import com.palantir.common.base.ClosableIterator;
 
-public class ClosablePeekingIterator<T> implements ClosableIterator<T>, PeekingIterator<T> {
+public final class ClosablePeekingIterator<T> implements ClosableIterator<T>, PeekingIterator<T> {
 
     public static <V> ClosablePeekingIterator<V> of(ClosableIterator<V> it) {
         return new ClosablePeekingIterator<V>(it);
@@ -13,7 +13,7 @@ public class ClosablePeekingIterator<T> implements ClosableIterator<T>, PeekingI
     private final ClosableIterator<T> ci;
     private final PeekingIterator<T> pi;
 
-    public ClosablePeekingIterator(ClosableIterator<T> ci) {
+    private ClosablePeekingIterator(ClosableIterator<T> ci) {
         this.ci = ci;
         this.pi = Iterators.peekingIterator(ci);
     }
