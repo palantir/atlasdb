@@ -25,6 +25,7 @@ checkstyle {
 }
 
 apply from: rootProject.file('gradle/versions.gradle')
+libsDirName = file('build/artifacts')
 
 dependencies {
     checkstyle 'com.puppycrawl.tools:checkstyle:6.6'
