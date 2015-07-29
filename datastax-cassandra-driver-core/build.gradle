@@ -19,6 +19,7 @@ shadowJar {
     relocate 'com.google', 'com.datastax.palantirshaded.google'
     relocate 'com.codahale.metrics', 'com.datastax.palantirshaded.metrics'
     relocate 'org.jboss.netty', 'com.datastax.shaded.netty'
+    from "NOTICE"
 }
 
 publishing {
