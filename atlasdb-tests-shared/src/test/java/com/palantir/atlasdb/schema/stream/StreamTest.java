@@ -54,9 +54,7 @@ public class StreamTest extends AtlasDbTestCase {
                     store.loadStream(t, 1L).read(data, 0, data.length);
                 } catch (IllegalArgumentException e) {
                     // expected
-                    return null;
                 }
-                Assert.fail();
                 return streamId;
             }
         });
