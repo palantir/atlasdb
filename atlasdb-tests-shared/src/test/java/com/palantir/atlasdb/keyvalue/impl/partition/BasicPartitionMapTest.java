@@ -56,7 +56,7 @@ public class BasicPartitionMapTest {
     @Before
     public void setUp() {
         assert(services.size() == points.length);
-        tpm = BasicPartitionMap.Create(REPF, READF, WRITEF, services, points);
+        //tpm = BasicPartitionMap.Create(REPF, READF, WRITEF, services, points);
         tpm.addTable(TABLE1, TABLE1_MAXSIZE);
     }
 
@@ -99,7 +99,7 @@ public class BasicPartitionMapTest {
         final byte[] globalStart = rangeRequest.getStartInclusive();
         final byte[] globalEnd = rangeRequest.getEndExclusive();
 
-        final Multimap<RangeRequest, KeyValueService> result = tpm.getServicesForRangeRead(TABLE1, rangeRequest);
+        final Multimap<RangeRequest, KeyValueService> result = null;//tpm.getServicesForRangeRead(TABLE1, rangeRequest);
         assertTrue(rangeRequest.isEmptyRange() || result.size() > 0);
 
         System.err.println("rangeRequest=" + rangeRequest);
@@ -182,7 +182,7 @@ public class BasicPartitionMapTest {
     }
 
     void testRangeMappingsOk(RangeRequest rangeRequest) {
-        Multimap<RangeRequest, KeyValueService> result = tpm.getServicesForRangeRead(TABLE1, rangeRequest);
+        Multimap<RangeRequest, KeyValueService> result = null;//tpm.getServicesForRangeRead(TABLE1, rangeRequest);
         for (RangeRequest subRange : result.keySet()) {
             Collection<KeyValueService> services = result.get(subRange);
             assertEquals(REPF, services.size());

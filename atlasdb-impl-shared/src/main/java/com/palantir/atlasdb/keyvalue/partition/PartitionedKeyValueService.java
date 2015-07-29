@@ -47,7 +47,7 @@ public class PartitionedKeyValueService implements KeyValueService {
 
     private PartitionedKeyValueService(ExecutorService executor) {
         // TODO
-        tpm = BasicPartitionMap.Create(quorumParameters, 10);
+        tpm = BasicPartitionMap.create(quorumParameters, 10);
         this.executor = executor;
     }
 
@@ -70,13 +70,13 @@ public class PartitionedKeyValueService implements KeyValueService {
         final Map<Cell, Value> overallResult = Maps.newHashMap();
         final ExecutorCompletionService<Map<Cell, Value>> execSvc = new ExecutorCompletionService<Map<Cell, Value>>(
                 executor);
-        final Map<KeyValueService, Iterable<byte[]>> tasks = tpm.getServicesForRowsRead(tableName, rows);
+        final Map<KeyValueService, ? extends Iterable<byte[]>> tasks = tpm.getServicesForRowsRead(tableName, rows);
         final RowQuorumTracker<Map<Cell, Value>> tracker = RowQuorumTracker.of(
                 rows,
                 quorumParameters.getReadRequestParameters());
 
         // Schedule tasks for execution
-        for (final Map.Entry<KeyValueService, Iterable<byte[]>> e : tasks.entrySet()) {
+        for (final Map.Entry<KeyValueService, ? extends Iterable<byte[]>> e : tasks.entrySet()) {
             Future<Map<Cell, Value>> future = execSvc.submit(new Callable<Map<Cell, Value>>() {
                 @Override
                 public Map<Cell, Value> call() throws Exception {
