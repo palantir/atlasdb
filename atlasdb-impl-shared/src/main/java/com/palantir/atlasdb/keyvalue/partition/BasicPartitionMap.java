@@ -20,7 +20,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.api.TableAwarePartitionMapApi;
-import com.palantir.atlasdb.keyvalue.partition.util.RangeComparator;
+import com.palantir.atlasdb.keyvalue.partition.util.ConsistentRingRangeComparator;
 
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
@@ -92,7 +92,7 @@ public class BasicPartitionMap implements TableAwarePartitionMapApi {
     }
 
     @Override
-    public Multimap<RangeRequest, KeyValueService> getServicesForRangeRead(String tableName,
+    public Multimap<ConsistentRingRangeRequest, KeyValueService> getServicesForRangeRead(String tableName,
                                                                            RangeRequest range) {
         // Just support the simple case for now
         // Preconditions.checkArgument(range.isReverse() == false);
@@ -103,8 +103,8 @@ public class BasicPartitionMap implements TableAwarePartitionMapApi {
          * the ring (which can be retrieved using getServicesForRead).
          */
 
-        final TreeMultimap<RangeRequest, KeyValueService> result = TreeMultimap.create(
-                RangeComparator.Instance(),
+        final TreeMultimap<ConsistentRingRangeRequest, KeyValueService> result = TreeMultimap.create(
+                ConsistentRingRangeComparator.instance(),
                 Ordering.arbitrary());
 
         // This is the pointer to current position on the ring.
@@ -129,7 +129,7 @@ public class BasicPartitionMap implements TableAwarePartitionMapApi {
             rangeBuilder = rangeBuilder.startRowInclusive(key);
             rangeBuilder = rangeBuilder.endRowExclusive(endRange);
             result.putAll(
-                    rangeBuilder.build(),
+                    ConsistentRingRangeRequest.of(rangeBuilder.build()),
                     getServicesForRead(tableName, key));
             // Jump to the next interval
             key = endRange;
@@ -144,7 +144,7 @@ public class BasicPartitionMap implements TableAwarePartitionMapApi {
     }
 
     @Override
-    public Multimap<RangeRequest, KeyValueService> getServicesForRangeWrite(String tableName,
+    public Multimap<ConsistentRingRangeRequest, KeyValueService> getServicesForRangeWrite(String tableName,
                                                                             RangeRequest range) {
         return getServicesForRangeRead(tableName, range);
     }

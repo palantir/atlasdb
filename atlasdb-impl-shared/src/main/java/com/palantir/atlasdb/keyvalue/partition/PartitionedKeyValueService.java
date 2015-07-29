@@ -1,10 +1,8 @@
 package com.palantir.atlasdb.keyvalue.partition;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
@@ -15,13 +13,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Supplier;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
@@ -34,7 +29,6 @@ import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.partition.api.TableAwarePartitionMapApi;
 import com.palantir.atlasdb.keyvalue.partition.util.ClosablePeekingIterator;
 import com.palantir.atlasdb.keyvalue.partition.util.PartitionedRangedIterator;
-import com.palantir.atlasdb.keyvalue.partition.util.RangeComparator;
 import com.palantir.atlasdb.keyvalue.partition.util.RowResultUtil;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.NonIdempotent;
@@ -324,103 +318,86 @@ public class PartitionedKeyValueService implements KeyValueService {
     @Override
     @Idempotent
     public ClosableIterator<RowResult<Value>> getRange(final String tableName,
-                                                       final RangeRequest rangeRequest,
+                                                       RangeRequest rangeRequest,
                                                        final long timestamp) {
 
-        final Multimap<RangeRequest, KeyValueService> services = tpm.getServicesForRangeRead(
+        final Multimap<ConsistentRingRangeRequest, KeyValueService> services = tpm.getServicesForRangeRead(
                 tableName,
                 rangeRequest);
-        final ListMultimap<RangeRequest, ClosablePeekingIterator<RowResult<Value>>> rangeIterators = Multimaps.newListMultimap(
-                new TreeMap<RangeRequest, Collection<ClosablePeekingIterator<RowResult<Value>>>>(RangeComparator.Instance()),
-                new Supplier<List<ClosablePeekingIterator<RowResult<Value>>>>() {
-                    @Override
-                    public List<ClosablePeekingIterator<RowResult<Value>>> get() {
-                        return Lists.newArrayList();
-                    }
-                });
 
-        // Open a set of iterators for each sub-range of the ring.
-        for (Map.Entry<RangeRequest, KeyValueService> e : services.entries()) {
-            final RangeRequest range = e.getKey();
-            final KeyValueService kvs = e.getValue();
-            ClosableIterator<RowResult<Value>> it = kvs.getRange(tableName, range, timestamp);
-            rangeIterators.put(range, ClosablePeekingIterator.of(it));
-        }
-
-        return new PartitionedRangedIterator<Value>(rangeIterators) {
+        return new PartitionedRangedIterator<Value>(services.keySet()) {
             @Override
             public RowResult<Value> computeNext() {
                 Preconditions.checkState(hasNext());
                 return RowResultUtil.mergeResults(getRowIterator());
             }
-        };
-    }
 
-    @Override
-    @Idempotent
-    public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(String tableName,
-                                                                       RangeRequest rangeRequest,
-                                                                       long timestamp) {
-        final Multimap<RangeRequest, KeyValueService> services = tpm.getServicesForRangeRead(
-                tableName,
-                rangeRequest);
-        final ListMultimap<RangeRequest, ClosablePeekingIterator<RowResult<Set<Value>>>> rangeIterators = Multimaps.newListMultimap(
-                new TreeMap<RangeRequest, Collection<ClosablePeekingIterator<RowResult<Set<Value>>>>>(),
-                new Supplier<List<ClosablePeekingIterator<RowResult<Set<Value>>>>>() {
-                    @Override
-                    public List<ClosablePeekingIterator<RowResult<Set<Value>>>> get() {
-                        return Lists.newArrayList();
-                    }
-                });
-
-        // Open a set of iterators for each sub-range of the ring.
-        for (Map.Entry<RangeRequest, KeyValueService> e : services.entries()) {
-            final RangeRequest range = e.getKey();
-            final KeyValueService kvs = e.getValue();
-            ClosableIterator<RowResult<Set<Value>>> it = kvs.getRangeWithHistory(tableName, range, timestamp);
-            rangeIterators.put(range, ClosablePeekingIterator.of(it));
-        }
-
-        return new PartitionedRangedIterator<Set<Value>>(rangeIterators) {
             @Override
-            public RowResult<Set<Value>> computeNext() {
-                Preconditions.checkState(hasNext());
-                return RowResultUtil.allResults(getRowIterator());
+            protected Set<ClosablePeekingIterator<RowResult<Value>>> computeNextRange(ConsistentRingRangeRequest range) {
+                Set<ClosablePeekingIterator<RowResult<Value>>> result = Sets.newHashSet();
+                for (KeyValueService kvs : services.get(range)) {
+                    ClosableIterator<RowResult<Value>> it = kvs.getRange(tableName, range.get(), timestamp);
+                    result.add(ClosablePeekingIterator.of(it));
+                }
+                return result;
             }
         };
     }
 
     @Override
     @Idempotent
-    public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(String tableName,
+    public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(final String tableName,
                                                                        RangeRequest rangeRequest,
-                                                                       long timestamp)
-            throws InsufficientConsistencyException {
-        final Multimap<RangeRequest, KeyValueService> services = tpm.getServicesForRangeRead(
+                                                                       final long timestamp) {
+        final Multimap<ConsistentRingRangeRequest, KeyValueService> services = tpm.getServicesForRangeRead(
                 tableName,
                 rangeRequest);
-        final ListMultimap<RangeRequest, ClosablePeekingIterator<RowResult<Set<Long>>>> rangeIterators = Multimaps.newListMultimap(
-                new TreeMap<RangeRequest, Collection<ClosablePeekingIterator<RowResult<Set<Long>>>>>(),
-                new Supplier<List<ClosablePeekingIterator<RowResult<Set<Long>>>>>() {
-                    @Override
-                    public List<ClosablePeekingIterator<RowResult<Set<Long>>>> get() {
-                        return Lists.newArrayList();
-                    }
-                });
 
-        // Open a set of iterators for each sub-range of the ring.
-        for (Map.Entry<RangeRequest, KeyValueService> e : services.entries()) {
-            final RangeRequest range = e.getKey();
-            final KeyValueService kvs = e.getValue();
-            ClosableIterator<RowResult<Set<Long>>> it = kvs.getRangeOfTimestamps(tableName, rangeRequest, timestamp);
-            rangeIterators.put(range, ClosablePeekingIterator.of(it));
-        }
+        return new PartitionedRangedIterator<Set<Value>>(services.keySet()) {
+            @Override
+            public RowResult<Set<Value>> computeNext() {
+                Preconditions.checkState(hasNext());
+                return RowResultUtil.allResults(getRowIterator());
+            }
 
-        return new PartitionedRangedIterator<Set<Long>>(rangeIterators) {
+            @Override
+            protected Set<ClosablePeekingIterator<RowResult<Set<Value>>>> computeNextRange(ConsistentRingRangeRequest range) {
+                Set<ClosablePeekingIterator<RowResult<Set<Value>>>> result = Sets.newHashSet();
+                for (KeyValueService kvs : services.get(range)) {
+                    ClosableIterator<RowResult<Set<Value>>> it = kvs.getRangeWithHistory(tableName, range.get(), timestamp);
+                    result.add(ClosablePeekingIterator.of(it));
+                }
+                return result;
+            }
+        };
+    }
+
+    @Override
+    @Idempotent
+    public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(final String tableName,
+                                                                       RangeRequest rangeRequest,
+                                                                       final long timestamp)
+            throws InsufficientConsistencyException {
+        final Multimap<ConsistentRingRangeRequest, KeyValueService> services = tpm.getServicesForRangeRead(
+                tableName,
+                rangeRequest);
+
+        return new PartitionedRangedIterator<Set<Long>>(services.keySet()) {
             @Override
             public RowResult<Set<Long>> computeNext() {
                 Preconditions.checkState(hasNext());
                 return RowResultUtil.allTimestamps(getRowIterator());
+            }
+
+            @Override
+            protected Set<ClosablePeekingIterator<RowResult<Set<Long>>>> computeNextRange(ConsistentRingRangeRequest range) {
+                Set<ClosablePeekingIterator<RowResult<Set<Long>>>> result = Sets.newHashSet();
+                for (KeyValueService kvs : services.get(range)) {
+                    ClosablePeekingIterator<RowResult<Set<Long>>> it =
+                            ClosablePeekingIterator.of(kvs.getRangeOfTimestamps(tableName, range.get(), timestamp));
+                    result.add(it);
+                }
+                return result;
             }
         };
     }

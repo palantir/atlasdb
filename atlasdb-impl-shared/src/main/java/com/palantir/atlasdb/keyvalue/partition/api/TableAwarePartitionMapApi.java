@@ -9,11 +9,12 @@ import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.partition.ConsistentRingRangeRequest;
 
 public interface TableAwarePartitionMapApi {
 
-    Multimap<RangeRequest, KeyValueService> getServicesForRangeRead(String tableName, RangeRequest range);
-    Multimap<RangeRequest, KeyValueService> getServicesForRangeWrite(String tableName, RangeRequest range);
+    Multimap<ConsistentRingRangeRequest, KeyValueService> getServicesForRangeRead(String tableName, RangeRequest range);
+    Multimap<ConsistentRingRangeRequest, KeyValueService> getServicesForRangeWrite(String tableName, RangeRequest range);
 
     void insertServices(String tableName, Set<KeyValueService> kvs);
     void removeServices(String tableName, Set<KeyValueService> kvs);

@@ -5,11 +5,14 @@ import java.util.Comparator;
 import com.google.common.base.Preconditions;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.partition.ConsistentRingRangeRequest;
 
-public class RangeComparator implements Comparator<RangeRequest> {
+public class ConsistentRingRangeComparator implements Comparator<ConsistentRingRangeRequest> {
 
     @Override
-    public int compare(RangeRequest r1, RangeRequest r2) {
+    public int compare(ConsistentRingRangeRequest cr1, ConsistentRingRangeRequest cr2) {
+        final RangeRequest r1 = cr1.get();
+        final RangeRequest r2 = cr2.get();
         Preconditions.checkArgument(
                 // Case 1: Sample interval
                 r1.equals(r2) ||
@@ -31,15 +34,15 @@ public class RangeComparator implements Comparator<RangeRequest> {
                 r2.getStartInclusive());
     }
 
-    private RangeComparator() {
+    private ConsistentRingRangeComparator() {
     }
 
-    private static RangeComparator instance;
+    private static ConsistentRingRangeComparator instance;
 
-    public static RangeComparator Instance() {
-        RangeComparator ret = instance;
+    public static ConsistentRingRangeComparator instance() {
+        ConsistentRingRangeComparator ret = instance;
         if (ret == null) {
-            ret = new RangeComparator();
+            ret = new ConsistentRingRangeComparator();
             instance = ret;
         }
         return ret;

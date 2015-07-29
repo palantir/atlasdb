@@ -3,37 +3,44 @@ package com.palantir.atlasdb.keyvalue.partition.util;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.Set;
+import java.util.SortedSet;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Multimap;
 import com.google.common.collect.PeekingIterator;
+import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
-import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.partition.ConsistentRingRangeRequest;
 import com.palantir.common.base.ClosableIterator;
 
 public abstract class PartitionedRangedIterator<T> implements ClosableIterator<RowResult<T>> {
 
-    final Multimap<RangeRequest, ClosablePeekingIterator<RowResult<T>>> rangeIterators;
-    Iterator<RangeRequest> currentRange;
+    final SortedSet<ConsistentRingRangeRequest> ranges;
+    Set<ClosablePeekingIterator<RowResult<T>>> currentRangeIterators;
+    Iterator<ConsistentRingRangeRequest> currentRange;
     private PeekingIterator<RowResult<T>> rowIterator = Iterators.peekingIterator(Collections.<RowResult<T>> emptyIterator());
 
-    public PartitionedRangedIterator(Multimap<RangeRequest, ClosablePeekingIterator<RowResult<T>>> rangeIterators) {
-        this.rangeIterators = rangeIterators;
-        this.currentRange = rangeIterators.keySet().iterator();
+    public PartitionedRangedIterator(Collection<ConsistentRingRangeRequest> ranges) {
+        this.ranges = Sets.newTreeSet(ConsistentRingRangeComparator.instance());
+        this.ranges.addAll(ranges);
+        this.currentRange = ranges.iterator();
     }
 
     private void prepareNextRange() {
         Preconditions.checkArgument(currentRange.hasNext());
         Preconditions.checkArgument(!getRowIterator().hasNext());
-        RangeRequest newRange = currentRange.next();
-        Collection<ClosablePeekingIterator<RowResult<T>>> newRangeIterators = rangeIterators.get(newRange);
+        ConsistentRingRangeRequest newRange = currentRange.next();
+        closeCurrentRangeIterators();
+        Set<ClosablePeekingIterator<RowResult<T>>> newRangeIterators = computeNextRange(newRange);
         rowIterator = Iterators.<RowResult<T>>peekingIterator(Iterators.mergeSorted(newRangeIterators, RowResultComparator.instance()));
     }
 
+    protected abstract Set<ClosablePeekingIterator<RowResult<T>>> computeNextRange(ConsistentRingRangeRequest range);
+
     @Override
-    public boolean hasNext() {
+    public final boolean hasNext() {
         if (!getRowIterator().hasNext() && currentRange.hasNext()) {
             prepareNextRange();
         }
@@ -65,8 +72,12 @@ public abstract class PartitionedRangedIterator<T> implements ClosableIterator<R
 
     @Override
     public void close() {
-        for (ClosableIterator<?> it : rangeIterators.values()) {
-           it.close();
+        closeCurrentRangeIterators();
+    }
+
+    private void closeCurrentRangeIterators() {
+        for (ClosableIterator<?> it : currentRangeIterators) {
+            it.close();
         }
     }
 
