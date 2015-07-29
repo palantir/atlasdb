@@ -1,25 +1,8 @@
-apply plugin: 'java'
-apply plugin: 'eclipse'
-apply plugin: 'checkstyle'
-apply plugin: 'maven'
-apply plugin: 'maven-publish'
-
-sourceCompatibility = 1.7
-targetCompatibility = 1.7
-
-version = rootProject.version
-group = rootProject.group
+apply from: "../gradle/shared.gradle"
 
 buildscript {
     repositories { jcenter() }
     dependencies { classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.1' }
-}
-
-repositories {
-    mavenCentral()
-    maven {
-        url 'http://dl.bintray.com/palantir/releases/'
-    }
 }
 
 apply plugin: 'com.github.johnrengelman.shadow'
@@ -41,12 +24,7 @@ shadowJar {
 publishing {
     publications {
         local(MavenPublication) {
-            artifact shadowJar
-        }
-    }
-    repositories {
-        maven {
-            url localPublishDir
+            artifacts = [shadowJar]
         }
     }
 }
