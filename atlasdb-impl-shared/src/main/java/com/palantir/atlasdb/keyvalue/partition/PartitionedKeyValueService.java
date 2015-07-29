@@ -340,7 +340,7 @@ public class PartitionedKeyValueService implements KeyValueService {
 
         return new PartitionedRangedIterator<Value>(rangeIterators) {
             @Override
-            public RowResult<Value> next() {
+            public RowResult<Value> computeNext() {
                 Preconditions.checkState(hasNext());
                 return RowResultUtil.mergeResults(getRowIterator());
             }
@@ -374,7 +374,7 @@ public class PartitionedKeyValueService implements KeyValueService {
 
         return new PartitionedRangedIterator<Set<Value>>(rangeIterators) {
             @Override
-            public RowResult<Set<Value>> next() {
+            public RowResult<Set<Value>> computeNext() {
                 Preconditions.checkState(hasNext());
                 return RowResultUtil.allResults(getRowIterator());
             }
@@ -409,7 +409,7 @@ public class PartitionedKeyValueService implements KeyValueService {
 
         return new PartitionedRangedIterator<Set<Long>>(rangeIterators) {
             @Override
-            public RowResult<Set<Long>> next() {
+            public RowResult<Set<Long>> computeNext() {
                 Preconditions.checkState(hasNext());
                 return RowResultUtil.allTimestamps(getRowIterator());
             }

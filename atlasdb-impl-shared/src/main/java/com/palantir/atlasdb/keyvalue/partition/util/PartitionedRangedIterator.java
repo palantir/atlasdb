@@ -8,6 +8,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.PeekingIterator;
+import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.common.base.ClosableIterator;
@@ -39,8 +40,23 @@ public abstract class PartitionedRangedIterator<T> implements ClosableIterator<R
         return getRowIterator().hasNext();
     }
 
+    RowResult<T> cachedResult;
     @Override
-    public abstract RowResult<T> next();
+    public final RowResult<T> next() {
+        RowResult<T> newResult = computeNext();
+        if (cachedResult != null) {
+            Preconditions.checkState(
+                    UnsignedBytes.lexicographicalComparator().compare(
+                            cachedResult.getRowName(),
+                            newResult.getRowName()
+                    ) >= 0,
+                    "Row must be non-descending.");
+        }
+        cachedResult = newResult;
+        return cachedResult;
+    }
+
+    protected abstract RowResult<T> computeNext();
 
     @Override
     public void remove() {
