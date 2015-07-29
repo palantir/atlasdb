@@ -41,9 +41,7 @@ shadowJar {
 publishing {
     publications {
         local(MavenPublication) {
-            artifact(shadowJar) {
-                extension "jar"
-            }
+            artifact shadowJar
         }
     }
     repositories {
