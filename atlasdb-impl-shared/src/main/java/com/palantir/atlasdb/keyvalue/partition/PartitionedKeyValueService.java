@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -176,6 +177,14 @@ public class PartitionedKeyValueService implements KeyValueService {
     private void mergeLatestTimestampMapIntoMap(Map<Cell, Long> globalResult, Map<Cell, Long> partResult) {
         for (Map.Entry<Cell, Long> e : partResult.entrySet()) {
             if (!globalResult.containsKey(e.getKey()) || globalResult.get(e.getKey()) < e.getValue()) {
+                globalResult.put(e.getKey(), e.getValue());
+            }
+        }
+    }
+
+    private void mergeAllTimestampsMapIntoMap(Multimap<Cell, Long> globalResult, Multimap<Cell, Long> partResult) {
+        for (Map.Entry<Cell, Long> e : partResult.entries()) {
+            if (!globalResult.containsEntry(e.getKey(), e.getValue())) {
                 globalResult.put(e.getKey(), e.getValue());
             }
         }
@@ -418,9 +427,49 @@ public class PartitionedKeyValueService implements KeyValueService {
 
     @Override
     @Idempotent
-    public Multimap<Cell, Long> getAllTimestamps(String tableName, Set<Cell> cells, long timestamp)
+    public Multimap<Cell, Long> getAllTimestamps(final String tableName,
+                                                 final Set<Cell> cells,
+                                                 final long timestamp)
             throws InsufficientConsistencyException {
-        throw new UnsupportedOperationException();
+        Map<KeyValueService, Set<Cell>> services = tpm.getServicesForCellsRead(tableName, cells, timestamp);
+        ExecutorCompletionService<Multimap<Cell, Long>> execSvc = new ExecutorCompletionService<Multimap<Cell,Long>>(executor);
+        CellQuorumTracker<Multimap<Cell, Long>, Cell> tracker = CellQuorumTracker.of(cells, quorumParameters.getNoFailureRequestParameters());
+        Multimap<Cell, Long> globalResult = HashMultimap.create();
+
+        for (final Map.Entry<KeyValueService, Set<Cell>> e : services.entrySet()) {
+            Future<Multimap<Cell, Long>> future = execSvc.submit(new Callable<Multimap<Cell,Long>>() {
+                @Override
+                public Multimap<Cell, Long> call() throws Exception {
+                    return e.getKey().getAllTimestamps(tableName, cells, timestamp);
+                }
+            });
+            tracker.registerRef(future, e.getValue());
+        }
+
+        try {
+            while (!tracker.finished()) {
+                Future<Multimap<Cell, Long>> future = execSvc.take();
+                try {
+                    Multimap<Cell, Long> kvsReslt = future.get();
+                    mergeAllTimestampsMapIntoMap(globalResult, kvsReslt);
+                    tracker.handleSuccess(future);
+                }
+                catch (ExecutionException e) {
+                    tracker.handleFailure(future);
+                    assert(tracker.failure());
+                    if (tracker.failure()) {
+                        tracker.cancel(true);
+                        Throwables.rewrapAndThrowUncheckedException(e.getCause());
+                    }
+                }
+            }
+        } catch (InterruptedException e) {
+            Throwables.throwUncheckedException(e);
+        } finally {
+            tracker.cancel(true);
+        }
+
+        return globalResult;
     }
 
     @Override

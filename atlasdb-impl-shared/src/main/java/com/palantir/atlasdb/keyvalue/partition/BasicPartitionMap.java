@@ -268,4 +268,12 @@ public class BasicPartitionMap implements TableAwarePartitionMapApi {
         // TODO Auto-generated method stub
         return null;
     }
+
+    @Override
+    public Map<KeyValueService, Set<Cell>> getServicesForCellsRead(String tableName,
+                                                                   Set<Cell> cells,
+                                                                   long timestamp) {
+        // TODO Auto-generated method stub
+        return null;
+    }
 }
