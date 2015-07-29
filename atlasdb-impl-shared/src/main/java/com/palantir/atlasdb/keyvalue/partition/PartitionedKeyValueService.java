@@ -122,7 +122,7 @@ public class PartitionedKeyValueService implements KeyValueService {
         Map<KeyValueService, Map<Cell, Long>> tasks = tpm.getServicesForCellsRead(tableName, timestampByCell);
         ExecutorCompletionService<Map<Cell, Value>> execSvc = new ExecutorCompletionService<Map<Cell, Value>>(
                 executor);
-        CellQuorumTracker<Future<Map<Cell, Value>>, Cell> tracker = CellQuorumTracker.of(
+        CellQuorumTracker<Map<Cell, Value>, Cell> tracker = CellQuorumTracker.of(
                 timestampByCell.keySet(),
                 quorumParameters.getReadRequestParameters());
         Map<Cell, Value> globalResult = Maps.newHashMap();
@@ -139,33 +139,35 @@ public class PartitionedKeyValueService implements KeyValueService {
         }
 
         // Wait until success or failure can be concluded
-        while (!tracker.finished()) {
-            Future<Map<Cell, Value>> future = null;
-            try {
-                future = execSvc.take();
-                Map<Cell, Value> result = future.get();
-                mergeCellValueMapIntoMap(globalResult, result);
-                tracker.handleSuccess(future);
-            } catch (InterruptedException e) {
-                Throwables.throwUncheckedException(e);
-            } catch (ExecutionException e) {
-                log.warn("Could not complete read in table " + tableName);
-                assert (future != null);
-                tracker.handleFailure(future);
+        try {
+            while (!tracker.finished()) {
+                Future<Map<Cell, Value>> future = execSvc.take();
+                try {
+                    Map<Cell, Value> result = future.get();
+                    mergeCellValueMapIntoMap(globalResult, result);
+                    tracker.handleSuccess(future);
+                } catch (ExecutionException e) {
+                    log.warn("Could not complete read in table " + tableName);
+                    tracker.handleFailure(future);
+                    // Check if the failure was fatal
+                    if (tracker.failure()) {
+                        throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
+                    }
+                }
             }
+        } catch (InterruptedException e) {
+            Throwables.throwUncheckedException(e);
+        } finally {
+            tracker.cancel(true);
         }
 
         return globalResult;
     }
 
-    private boolean shouldUpdateMapping(Map<Cell, Value> map, Map.Entry<Cell, Value> newEntry) {
-        return !map.containsKey(newEntry.getKey())
-                || map.get(newEntry.getKey()).getTimestamp() < newEntry.getValue().getTimestamp();
-    }
-
     private void mergeCellValueMapIntoMap(Map<Cell, Value> globalResult, Map<Cell, Value> partResult) {
         for (Map.Entry<Cell, Value> e : partResult.entrySet()) {
-            if (shouldUpdateMapping(globalResult, e)) {
+            if (!globalResult.containsKey(e.getKey())
+            || globalResult.get(e.getKey()).getTimestamp() < e.getValue().getTimestamp()) {
                 globalResult.put(e.getKey(), e.getValue());
             }
         }
@@ -186,7 +188,7 @@ public class PartitionedKeyValueService implements KeyValueService {
         final Map<KeyValueService, Map<Cell, byte[]>> tasks = tpm.getServicesForCellsWrite(tableName, values);
         final ExecutorCompletionService<Void> writeService = new ExecutorCompletionService<Void>(
                 executor);
-        final CellQuorumTracker<Future<Void>, Cell> tracker = CellQuorumTracker.of(
+        final CellQuorumTracker<Void, Cell> tracker = CellQuorumTracker.of(
                 values.keySet(),
                 quorumParameters.getWriteRequestParameters());
 
@@ -203,24 +205,23 @@ public class PartitionedKeyValueService implements KeyValueService {
         }
 
         // Wait until we can conclude success or failure.
-        while (!tracker.finished()) {
-            Future<Void> future = null;
-            try {
-                future = writeService.take();
-                future.get();
-                tracker.handleSuccess(future);
-            } catch (InterruptedException e) {
-                Throwables.throwUncheckedException(e);
-            } catch (ExecutionException e) {
-                log.warn("Could not complete write request in table " + tableName);
-                assert (future != null);
-                tracker.handleFailure(future);
+        try {
+            while (!tracker.finished()) {
+                Future<Void> future = writeService.take();
+                try {
+                    future.get();
+                    tracker.handleSuccess(future);
+                } catch (ExecutionException e) {
+                    log.warn("Could not complete write request in table " + tableName);
+                    tracker.handleFailure(future);
+                    if (tracker.failure()) {
+                        tracker.cancel(false);
+                        Throwables.rewrapAndThrowUncheckedException(e.getCause());
+                    }
+                }
             }
-        }
-        // finally only cancel on falure
-
-        if (tracker.failure()) {
-            throw new RuntimeException("Could not get enough writes.");
+        } catch (InterruptedException e) {
+            Throwables.throwUncheckedException(e);
         }
     }
 
@@ -230,7 +231,7 @@ public class PartitionedKeyValueService implements KeyValueService {
             throws KeyAlreadyExistsException {
         final Map<KeyValueService, Multimap<Cell, Value>> tasks = tpm.getServicesForTimestampsWrite(tableName, cellValues);
         final ExecutorCompletionService<Void> execSvc = new ExecutorCompletionService<Void>(executor);
-        final CellQuorumTracker<Future<Void>, Map.Entry<Cell, Value>> tracker =
+        final CellQuorumTracker<Void, Map.Entry<Cell, Value>> tracker =
                 CellQuorumTracker.of(cellValues.entries(), quorumParameters.getWriteRequestParameters());
 
         for (final Map.Entry<KeyValueService, Multimap<Cell, Value>> e : tasks.entrySet()) {
@@ -244,22 +245,23 @@ public class PartitionedKeyValueService implements KeyValueService {
             tracker.registerRef(future, e.getValue().entries());
         }
 
-        while (!tracker.finished()) {
-            Future<Void> future = null;
-            try {
-                future = execSvc.take();
-                future.get();
-                tracker.handleSuccess(future);
-            } catch (InterruptedException e) {
-                Throwables.throwUncheckedException(e);
-            } catch (ExecutionException e1) {
-                log.warn("Could not complete write request in table " + tableName);
-                tracker.handleFailure(future);
+        try {
+            while (!tracker.finished()) {
+                Future<Void> future = execSvc.take();
+                try {
+                    future.get();
+                    tracker.handleSuccess(future);
+                } catch (ExecutionException e) {
+                    log.warn("Could not complete write request in table " + tableName);
+                    tracker.handleFailure(future);
+                    if (tracker.failure()) {
+                        tracker.cancel(true);
+                        Throwables.rewrapAndThrowUncheckedException(e.getCause());
+                    }
+                }
             }
-        }
-
-        if (tracker.failure()) {
-            throw new RuntimeException("Could not get enough writes.");
+        } catch (InterruptedException e) {
+            Throwables.throwUncheckedException(e.getCause());
         }
     }
 
@@ -273,7 +275,7 @@ public class PartitionedKeyValueService implements KeyValueService {
     @Idempotent
     public void delete(final String tableName, Multimap<Cell, Long> keys) {
         final Map<KeyValueService, Multimap<Cell, Long>> tasks = tpm.getServicesForDelete(tableName, keys);
-        final CellQuorumTracker<Future<Void>, Map.Entry<Cell, Long>> tracker = CellQuorumTracker.of(
+        final CellQuorumTracker<Void, Map.Entry<Cell, Long>> tracker = CellQuorumTracker.of(
                 keys.entries(), quorumParameters.getNoFailureRequestParameters());
         final ExecutorCompletionService<Void> execSvc = new ExecutorCompletionService<Void>(executor);
 
@@ -288,20 +290,25 @@ public class PartitionedKeyValueService implements KeyValueService {
             tracker.registerRef(future, e.getValue().entries());
         }
 
-        while (!tracker.finished()) {
-            try {
+        try {
+            while (!tracker.finished()) {
                 Future<Void> future = execSvc.take();
-                future.get();
-            } catch (InterruptedException e) {
-                Throwables.throwUncheckedException(e);
-            } catch (ExecutionException e) {
-                log.warn("Could not complete write request in table " + tableName);
-                // This should cause tracker to immediately finish with failure.
+                try {
+                    future.get();
+                } catch (InterruptedException e) {
+                    Throwables.throwUncheckedException(e);
+                } catch (ExecutionException e) {
+                    log.warn("Could not complete write request in table " + tableName);
+                    // This should cause tracker to immediately finish with failure.
+                    assert(tracker.failure());
+                    if (tracker.failure()) {
+                        tracker.cancel(true);
+                        Throwables.rewrapAndThrowUncheckedException(e.getCause());
+                    }
+                }
             }
-        }
-
-        if (tracker.failure()) {
-            throw new RuntimeException("Could not get enough writes for delete");
+        } catch (InterruptedException e) {
+            Throwables.throwUncheckedException(e);
         }
     }
 
@@ -490,7 +497,7 @@ public class PartitionedKeyValueService implements KeyValueService {
     public Map<Cell, Long> getLatestTimestamps(final String tableName, Map<Cell, Long> timestampByCell) {
         Map<Cell, Long> result = Maps.newHashMap();
         Map<KeyValueService, Map<Cell, Long>> tasks = null;
-        CellQuorumTracker<Future<Map<Cell, Long>>, Cell> tracker = CellQuorumTracker.of(
+        CellQuorumTracker<Map<Cell, Long>, Cell> tracker = CellQuorumTracker.of(
                 timestampByCell.keySet(), quorumParameters.getReadRequestParameters());
         ExecutorCompletionService<Map<Cell, Long>> execSvc = new ExecutorCompletionService<Map<Cell,Long>>(executor);
 
@@ -504,20 +511,25 @@ public class PartitionedKeyValueService implements KeyValueService {
             tracker.registerRef(future, e.getValue().keySet());
         }
 
-        while (!tracker.finished()) {
-            try {
+        try {
+            while (!tracker.finished()) {
                 Future<Map<Cell, Long>> future = execSvc.take();
-                Map<Cell, Long> kvsResult = future.get();
-                mergeLatestTimestampMapIntoMap(result, kvsResult);
-            } catch (InterruptedException e) {
-                Throwables.throwUncheckedException(e);
-            } catch (ExecutionException e) {
-                log.warn("Could not complete read request in table " + tableName);
+                try {
+                    Map<Cell, Long> kvsResult = future.get();
+                    mergeLatestTimestampMapIntoMap(result, kvsResult);
+                    tracker.handleSuccess(future);
+                } catch (ExecutionException e) {
+                    log.warn("Could not complete read request in table " + tableName);
+                    tracker.handleFailure(future);
+                    if (tracker.failure()) {
+                        Throwables.rewrapAndThrowUncheckedException(e.getCause());
+                    }
+                }
             }
-        }
-
-        if (tracker.failure()) {
-            throw new RuntimeException("Could not get enough reads");
+        } catch (InterruptedException e) {
+            Throwables.throwUncheckedException(e);
+        } finally {
+            tracker.cancel(true);
         }
 
         return result;

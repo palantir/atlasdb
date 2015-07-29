@@ -1,6 +1,7 @@
 package com.palantir.atlasdb.keyvalue.partition;
 
 import java.util.Map;
+import java.util.concurrent.Future;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
@@ -10,7 +11,7 @@ public class CellQuorumTracker <T, U> {
 
     private final Map<U, Integer> numberOfRemainingSuccessesForSuccess;
     private final Map<U, Integer> numberOfRemainingFailuresForFailure;
-    private final Map<T, Iterable<U>> cellsByReference;
+    private final Map<Future<T>, Iterable<U>> cellsByReference;
     private boolean failure;
 
     /*
@@ -33,7 +34,7 @@ public class CellQuorumTracker <T, U> {
         return new CellQuorumTracker<V, W>(allUs, qrp);
     }
 
-    void handleSuccess(T ref) {
+    void handleSuccess(Future<T> ref) {
         Preconditions.checkState(failure() == false && success() == false);
         Preconditions.checkArgument(cellsByReference.containsKey(ref));
         for (U cell : cellsByReference.get(ref)) {
@@ -47,9 +48,10 @@ public class CellQuorumTracker <T, U> {
                 }
             }
         }
+        cellsByReference.remove(ref);
     }
 
-    void handleFailure(T ref) {
+    void handleFailure(Future<T> ref) {
         Preconditions.checkState(failure() == false && success() == false);
         Preconditions.checkArgument(cellsByReference.containsKey(ref));
         for (U cell : cellsByReference.get(ref)) {
@@ -63,11 +65,18 @@ public class CellQuorumTracker <T, U> {
                 }
             }
         }
+        cellsByReference.remove(ref);
     }
 
-    void registerRef(T ref, Iterable<U> cells) {
+    void registerRef(Future<T> ref, Iterable<U> cells) {
         Preconditions.checkState(failure() == false && success() == false);
         cellsByReference.put(ref, cells);
+    }
+
+    void cancel(boolean mayInterruptIfRunning) {
+        for (Future<T> f : cellsByReference.keySet()) {
+            f.cancel(mayInterruptIfRunning);
+        }
     }
 
     boolean failure() {
