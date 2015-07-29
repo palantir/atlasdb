@@ -4,6 +4,7 @@ ecbuild
 Thumbs.db
 *.swp
 *.swo
+*.swn
 *.log
 *.prefs
 *.class
