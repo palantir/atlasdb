@@ -8,8 +8,6 @@ repositories {
 }
 
 libsDirName = file('build/artifacts')
-sourceCompatibility = "1.6"
-targetCompatibility = "1.6"
 dependencies {
   compile(group: "org.apache.thrift",
           name: "libthrift",
@@ -19,8 +17,13 @@ dependencies {
   }
   compile(group: "org.slf4j",
           name: "slf4j-api",
-          version: "1.7.5",
+          version: libVersions.slf4j,
           configuration: "default")
   compile(project(":atlasdb-commons"))
+  compile('org.apache.cassandra:cassandra-thrift:2.1.2') {
+    exclude(module:"slf4j-api")
+  }
+
   compile fileTree(dir: 'lib', include: ['*.jar'])
 }
+

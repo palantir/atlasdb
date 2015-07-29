@@ -7,8 +7,6 @@ repositories {
     mavenCentral()
 }
 configurations.create('test').extendsFrom(configurations.testRuntime)
-sourceCompatibility = "1.6"
-targetCompatibility = "1.6"
 dependencies {
   testCompile(project(":atlasdb-impl-shared"))
   testCompile(group: "org.jmock",

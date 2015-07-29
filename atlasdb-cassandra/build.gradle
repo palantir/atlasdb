@@ -9,8 +9,6 @@ repositories {
 }
 
 libsDirName = file('build/artifacts')
-sourceCompatibility = "1.6"
-targetCompatibility = "1.6"
 dependencies {
   compile(project(":atlasdb-client"))
   compile(project(":commons-cassandra"))

@@ -8,8 +8,6 @@ repositories {
 }
 
 libsDirName = file('build/artifacts')
-sourceCompatibility = "1.6"
-targetCompatibility = "1.6"
 dependencies {
   compile(project(":atlasdb-commons"))
   compile 'javax.ws.rs:javax.ws.rs-api:2.0.1'
