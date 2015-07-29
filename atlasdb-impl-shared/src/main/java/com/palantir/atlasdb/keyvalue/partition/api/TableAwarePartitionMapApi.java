@@ -36,6 +36,8 @@ public interface TableAwarePartitionMapApi {
     Map<KeyValueService, Set<Cell>> getServicesForCellsRead(String tableName, Set<Cell> cells, long timestamp);
     Map<KeyValueService, Map<Cell, byte[]>> getServicesForCellsWrite(String tableName,
                                                                      Map<Cell, byte[]> values);
+    Map<KeyValueService, Set<Cell>> getServicesForCellsWrite(String tableName,
+                                                                     Set<Cell> cells);
     Map<KeyValueService, Multimap<Cell, Value>> getServicesForTimestampsWrite(String tableName,
                                                                               Multimap<Cell, Value> cellValues);
     Map<KeyValueService, Multimap<Cell, Long>> getServicesForDelete(String tableName,

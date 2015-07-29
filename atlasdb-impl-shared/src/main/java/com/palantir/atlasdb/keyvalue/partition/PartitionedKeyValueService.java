@@ -517,8 +517,39 @@ public class PartitionedKeyValueService implements KeyValueService {
 
     @Override
     @Idempotent
-    public void addGarbageCollectionSentinelValues(String tableName, Set<Cell> cells) {
-        throw new UnsupportedOperationException();
+    public void addGarbageCollectionSentinelValues(final String tableName, Set<Cell> cells) {
+        Map<KeyValueService, Set<Cell>> services = tpm.getServicesForCellsWrite(tableName, cells);
+        ExecutorCompletionService<Void> execSvc = new ExecutorCompletionService<Void>(executor);
+        CellQuorumTracker<Void, Cell> tracker = CellQuorumTracker.of(cells, quorumParameters.getWriteRequestParameters());
+
+        for (final Map.Entry<KeyValueService, Set<Cell>> e : services.entrySet()) {
+            Future<Void> future = execSvc.submit(new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    e.getKey().addGarbageCollectionSentinelValues(tableName, e.getValue());
+                    return null;
+                }
+            });
+            tracker.registerRef(future, e.getValue());
+        }
+
+        try {
+            while (!tracker.finished()) {
+                Future<Void> future = execSvc.take();
+                try {
+                    future.get();
+                    tracker.handleSuccess(future);
+                } catch (ExecutionException e) {
+                    tracker.handleFailure(future);
+                    if (tracker.failure()) {
+                        tracker.cancel(true);
+                        Throwables.rewrapAndThrowUncheckedException(e.getCause());
+                    }
+                }
+            }
+        } catch (InterruptedException e) {
+            Throwables.throwUncheckedException(e);
+        }
     }
 
     @Override
