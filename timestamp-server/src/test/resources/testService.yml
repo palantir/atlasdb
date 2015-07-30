@@ -1,0 +1,7 @@
+server:
+  #rootPath: /api/*
+  #applicationContextPath: /
+  #adminContextPath: /
+  applicationConnectors:
+    - type: http
+      port: 3828

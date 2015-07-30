@@ -1,0 +1,7 @@
+apply from: "../gradle/shared.gradle"
+
+dependencies {
+    compile project(':timestamp-impl')
+    compile "io.dropwizard:dropwizard-core:" + libVersions.dropwizard
+    testCompile "io.dropwizard:dropwizard-testing:" + libVersions.dropwizard
+}

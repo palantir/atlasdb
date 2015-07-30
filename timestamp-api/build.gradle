@@ -1,13 +1,5 @@
 apply from: "../gradle/shared.gradle"
 
-apply plugin: 'java'
-apply plugin: 'eclipse'
-
-repositories {
-    mavenCentral()
-}
-
-libsDirName = file('build/artifacts')
 dependencies {
   compile 'javax.ws.rs:javax.ws.rs-api:2.0.1'
   compile 'com.fasterxml.jackson.core:jackson-annotations:2.5.0'
