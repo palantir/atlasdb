@@ -7,6 +7,8 @@ buildscript {
 
 apply plugin: 'com.github.johnrengelman.shadow'
 
+group = 'com.palantir.shaded.com.datastax.cassandra'
+
 dependencies {
     compile(group: 'com.datastax.cassandra', name: 'cassandra-driver-core', version: '2.1.5', configuration: 'default') {
         exclude(module:"snappy-java")
@@ -26,6 +28,10 @@ publishing {
     publications {
         local(MavenPublication) {
             artifacts = [shadowJar]
+            pom.withXml {
+                def node = asNode();
+                node.remove(node.get('licenses'));
+            }
         }
     }
 }

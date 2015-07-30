@@ -15,6 +15,7 @@ dependencies {
   compile project(path: ':datastax-cassandra-driver-core', configuration: 'shadow')
 }
 
+// Add a classifier to properly pick up the datastax dependency
 publishing {
     publications {
         local(MavenPublication) {
@@ -22,8 +23,6 @@ publishing {
                 def node = asNode();
                 node.depthFirst().each { n ->
                     if (n instanceof Node && n.text() == "datastax-cassandra-driver-core") {
-                        println n;
-                        println n.parent();
                         n.parent().appendNode('classifier', 'all')
                         return;
                     }
