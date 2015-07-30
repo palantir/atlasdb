@@ -20,7 +20,7 @@ apply from: 'gradle/versions.gradle'
 group = 'com.palantir.atlasdb'
 
 ext.localPublishDir = "${buildDir}/localpublish"
-version = '0.1-pre3'
+version = '0.1-pre4'
 
 task distZip(type: Zip) {
     from (localPublishDir) {
