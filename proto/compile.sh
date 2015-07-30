@@ -25,7 +25,7 @@ for SOURCE_DIR in "$@"; do
     printf "Using $PROTOC as protoc\n"
 
     rm -rf $TARGET_DIR
-    mkdir -p $TARGET_DIR/src
+    mkdir -p $TARGET_DIR/src/main/java
     TEMPLATES=$(dirname $(echo "$0"))/*__*
     for n in $TEMPLATES; do
         sed \
@@ -33,7 +33,7 @@ for SOURCE_DIR in "$@"; do
             $n > $TARGET_DIR/$(basename $n | sed -e 's/__//g')
     done
     #find $SOURCE_DIR -name \*.proto -exec $PROTOC --java_out=$TARGET_DIR/src '{}' +
-    find $SOURCE_DIR -name \*.proto | grep -E -v "/e?c?build/" | xargs -n1 $PROTOC --java_out=$TARGET_DIR/src -I $SOURCE_DIR/$SUB_DIR
+    find $SOURCE_DIR -name \*.proto | grep -E -v "/e?c?build/" | xargs -n1 $PROTOC --java_out=$TARGET_DIR/src/main/java -I $SOURCE_DIR/$SUB_DIR
 
     cat <<EOF
 In ${SOURCE_DIR}/.classpath, make sure you have something like:
