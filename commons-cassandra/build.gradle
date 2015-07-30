@@ -12,7 +12,23 @@ dependencies {
   compile(group: "org.xerial.snappy", name: "snappy-java", version: "1.1.0.1", configuration: "default") {
     exclude(group: "osgi.osgi")
   }
-  //compile project(path: ':datastax-cassandra-driver-core', configuration: 'shadow')
-  compile('com.palantir.atlasdb:datastax-cassandra-driver-core:0.1-pre2:all')
+  compile project(path: ':datastax-cassandra-driver-core', configuration: 'shadow')
 }
 
+publishing {
+    publications {
+        local(MavenPublication) {
+            pom.withXml {
+                def node = asNode();
+                node.depthFirst().each { n ->
+                    if (n instanceof Node && n.text() == "datastax-cassandra-driver-core") {
+                        println n;
+                        println n.parent();
+                        n.parent().appendNode('classifier', 'all')
+                        return;
+                    }
+                }
+            }
+        }
+    }
+}
