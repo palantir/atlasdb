@@ -10,12 +10,12 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.primitives.UnsignedBytes;
@@ -23,16 +23,18 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.BasicPartitionMap;
+import com.palantir.atlasdb.keyvalue.partition.ConsistentRingRangeRequest;
+import com.palantir.atlasdb.keyvalue.partition.QuorumParameters;
 
 public class BasicPartitionMapTest {
 
-//    TableAwarePartitionMapApi tpm;
     BasicPartitionMap tpm;
     static final String TABLE1 = "table1";
     static final int TABLE1_MAXSIZE = 128;
     static final int REPF = 3;
     static final int READF = 2;
     static final int WRITEF = 2;
+    static final QuorumParameters qp = new QuorumParameters(REPF, READF, WRITEF);
 
     final static byte[][] points = new byte[][] {
             newByteArray(0x00, 0x00),
@@ -56,7 +58,7 @@ public class BasicPartitionMapTest {
     @Before
     public void setUp() {
         assert(services.size() == points.length);
-        //tpm = BasicPartitionMap.Create(REPF, READF, WRITEF, services, points);
+        tpm = BasicPartitionMap.create(qp, services, points);
         tpm.addTable(TABLE1, TABLE1_MAXSIZE);
     }
 
@@ -72,12 +74,12 @@ public class BasicPartitionMapTest {
             }
         }
 
-        Set<KeyValueService> result = null;//tpm.getServicesForRead(TABLE1, key);
+        Map<KeyValueService, ? extends Iterable<byte[]>> result = tpm.getServicesForRowsRead(TABLE1, ImmutableSet.of(key));
 
         assertEquals(REPF, result.size());
         for (int i = 0; i < REPF; ++i) {
             int j = (higherPtIdx + i) % services.size();
-            assertTrue(result.contains(services.get(j)));
+            assertTrue(result.keySet().contains(services.get(j)));
         }
     }
 
@@ -99,7 +101,7 @@ public class BasicPartitionMapTest {
         final byte[] globalStart = rangeRequest.getStartInclusive();
         final byte[] globalEnd = rangeRequest.getEndExclusive();
 
-        final Multimap<RangeRequest, KeyValueService> result = null;//tpm.getServicesForRangeRead(TABLE1, rangeRequest);
+        Multimap<ConsistentRingRangeRequest, KeyValueService> result = tpm.getServicesForRangeRead(TABLE1, rangeRequest);
         assertTrue(rangeRequest.isEmptyRange() || result.size() > 0);
 
         System.err.println("rangeRequest=" + rangeRequest);
@@ -110,37 +112,37 @@ public class BasicPartitionMapTest {
         byte[] oldSubEnd = null;
 
         System.err.println("Ranges are:");
-        for (Map.Entry<RangeRequest, ?> e : result.entries()) {
-            System.err.println("[START=" + Arrays.toString(e.getKey().getStartInclusive()) + "; END="
-                               + Arrays.toString(e.getKey().getEndExclusive()) + "]");
+        for (Map.Entry<ConsistentRingRangeRequest, ?> e : result.entries()) {
+            System.err.println("[START=" + Arrays.toString(e.getKey().get().getStartInclusive()) + "; END="
+                               + Arrays.toString(e.getKey().get().getEndExclusive()) + "]");
         }
 
         if (rangeRequest.isEmptyRange() == false) {
             // Check the first sub-interval
             if (!reverse) {
-                byte[] firstSubStart = result.entries().iterator().next().getKey().getStartInclusive();
+                byte[] firstSubStart = result.entries().iterator().next().getKey().get().getStartInclusive();
                 assertTrue(Arrays.equals(firstSubStart, globalStart));
             } else {
-                byte[] firstSubEnd = result.entries().iterator().next().getKey().getEndExclusive();
+                byte[] firstSubEnd = result.entries().iterator().next().getKey().get().getEndExclusive();
                 System.err.println("firstSubEnd=" + Arrays.toString(firstSubEnd));
                 assertTrue(Arrays.equals(firstSubEnd, globalEnd));
             }
 
             // Check the last sub-interval
             if (!reverse) {
-                Iterator<Entry<RangeRequest, KeyValueService>> it = result.entries().iterator();
+                Iterator<Entry<ConsistentRingRangeRequest, KeyValueService>> it = result.entries().iterator();
                 byte[] lastSubEnd = null;
                 while (it.hasNext()) {
-                    lastSubEnd = it.next().getKey().getEndExclusive();
+                    lastSubEnd = it.next().getKey().get().getEndExclusive();
                 }
                 assertNotNull(lastSubEnd);
                 System.err.println("lastSubEnd=" + Arrays.toString(lastSubEnd));
                 assertTrue(Arrays.equals(lastSubEnd, globalEnd));
             } else {
-                Iterator<Entry<RangeRequest, KeyValueService>> it = result.entries().iterator();
+                Iterator<Entry<ConsistentRingRangeRequest, KeyValueService>> it = result.entries().iterator();
                 byte[] lastSubStart = null;
                 while (it.hasNext()) {
-                    lastSubStart = it.next().getKey().getStartInclusive();
+                    lastSubStart = it.next().getKey().get().getStartInclusive();
                 }
                 assertTrue(Arrays.equals(lastSubStart, globalStart));
             }
@@ -148,9 +150,9 @@ public class BasicPartitionMapTest {
 
         // Make sure that the ranges are non-overlapping subranges of the original range and that their
         // union equals the original range.
-        for (Map.Entry<RangeRequest, KeyValueService> e : result.entries()) {
-            byte[] subStart = e.getKey().getStartInclusive();
-            byte[] subEnd = e.getKey().getEndExclusive();
+        for (Entry<ConsistentRingRangeRequest, KeyValueService> e : result.entries()) {
+            byte[] subStart = e.getKey().get().getStartInclusive();
+            byte[] subEnd = e.getKey().get().getEndExclusive();
 
             System.err.println("oldSubStart=" + Arrays.toString(oldSubStart));
             System.err.println("oldSubEnd=" + Arrays.toString(oldSubEnd));
