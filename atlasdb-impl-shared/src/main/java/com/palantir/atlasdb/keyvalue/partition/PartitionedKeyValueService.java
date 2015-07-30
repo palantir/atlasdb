@@ -553,7 +553,7 @@ public class PartitionedKeyValueService implements KeyValueService {
     @Idempotent
     public Map<Cell, Long> getLatestTimestamps(final String tableName, Map<Cell, Long> timestampByCell) {
         Map<Cell, Long> result = Maps.newHashMap();
-        Map<KeyValueService, Map<Cell, Long>> tasks = null;
+        Map<KeyValueService, Map<Cell, Long>> tasks = tpm.getServicesForCellsRead(tableName, timestampByCell);
         CellQuorumTracker<Map<Cell, Long>, Cell> tracker = CellQuorumTracker.of(
                 timestampByCell.keySet(), quorumParameters.getReadRequestParameters());
         ExecutorCompletionService<Map<Cell, Long>> execSvc = new ExecutorCompletionService<Map<Cell,Long>>(executor);
