@@ -15,6 +15,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest.Builder;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.api.TableAwarePartitionMapApi;
@@ -89,15 +90,14 @@ public final class BasicPartitionMap implements TableAwarePartitionMapApi {
 
     static boolean inRange(byte[] position, RangeRequest rangeRequest) {
         Preconditions.checkNotNull(rangeRequest);
-        if (position == null) {
-            return false;
+        Preconditions.checkNotNull(position);
+        int cmpStart = UnsignedBytes.lexicographicalComparator().compare(position, rangeRequest.getStartInclusive());
+        int cmpEnd = UnsignedBytes.lexicographicalComparator().compare(position, rangeRequest.getEndExclusive());
+        if (rangeRequest.isReverse()) {
+            return (rangeRequest.getStartInclusive().length == 0 || cmpStart <= 0) && cmpEnd > 0;
+        } else {
+            return cmpStart >= 0 && (rangeRequest.getEndExclusive().length == 0 || cmpEnd < 0);
         }
-        // Unbounded case - always in range
-        if (rangeRequest.getEndExclusive().length == 0) {
-            return true;
-        }
-        int cmp = UnsignedBytes.lexicographicalComparator().compare(position, rangeRequest.getEndExclusive());
-        return (rangeRequest.isReverse() && cmp > 0) || (!rangeRequest.isReverse() && cmp < 0);
     }
 
     @Override
@@ -188,8 +188,24 @@ public final class BasicPartitionMap implements TableAwarePartitionMapApi {
             key = rangeRing.nextKey(range.getStartInclusive());
         }
 
-        while (inRange(key, range)) {
+        byte[] startingKey = key;
 
+        while (inRange(key, range)) {
+            Set<KeyValueService> services = Sets.newHashSet();
+            Builder builder = range.isReverse() ? RangeRequest.reverseBuilder() : RangeRequest.builder();
+            builder = builder.startRowInclusive(key);
+            builder = builder.endRowExclusive(rangeRing.nextKey(key));
+            ConsistentRingRangeRequest crrr = ConsistentRingRangeRequest.of(builder.build());
+            byte[] kvsKey = rangeRing.nextKey(key);
+            for (int i = 0; i < quorumParameters.getReplicationFactor(); ++i) {
+                services.add(rangeRing.get(kvsKey));
+                kvsKey = rangeRing.nextKey(kvsKey);
+            }
+            result.putAll(crrr, services);
+            key = rangeRing.nextKey(key);
+            if (Arrays.equals(key, startingKey)) {
+                break;
+            }
         }
 
         return result;
