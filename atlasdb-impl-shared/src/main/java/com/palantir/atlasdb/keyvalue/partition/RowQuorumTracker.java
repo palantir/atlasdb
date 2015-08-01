@@ -58,7 +58,7 @@ public class RowQuorumTracker<T> {
         for (byte[] row : rowsByReference.get(ref)) {
             if (numberOfRemainingFailuresForFailure.containsKey(row)) {
                 int newValue = numberOfRemainingFailuresForFailure.get(row) - 1;
-                if (newValue == 0) {
+                if (newValue < 0) {
                     failure = true;
                     break;
                 } else {

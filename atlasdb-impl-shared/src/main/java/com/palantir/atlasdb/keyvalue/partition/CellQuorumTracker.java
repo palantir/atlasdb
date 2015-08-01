@@ -57,7 +57,7 @@ public class CellQuorumTracker <T, U> {
         for (U cell : cellsByReference.get(ref)) {
             if (numberOfRemainingFailuresForFailure.containsKey(cell)) {
                 int newValue = numberOfRemainingFailuresForFailure.get(cell) - 1;
-                if (newValue == 0) {
+                if (newValue < 0) {
                     failure = true;
                     break;
                 } else {

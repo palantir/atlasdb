@@ -59,7 +59,7 @@ public class FailableKeyValueService implements KeyValueService {
 
     @Override
     public void teardown() {
-        validateNotBroken();
+//        validateNotBroken();
         backingKvs.teardown();
     }
 
@@ -184,7 +184,7 @@ public class FailableKeyValueService implements KeyValueService {
     @Override
     @Idempotent
     public void dropTable(String tableName) throws InsufficientConsistencyException {
-        validateNotBroken();
+//        validateNotBroken();
         backingKvs.dropTable(tableName);
     }
 
