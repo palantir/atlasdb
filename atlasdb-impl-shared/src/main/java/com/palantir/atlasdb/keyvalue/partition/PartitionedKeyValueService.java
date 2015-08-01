@@ -2,6 +2,7 @@ package com.palantir.atlasdb.keyvalue.partition;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -17,6 +18,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
+import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
@@ -40,25 +42,16 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 public class PartitionedKeyValueService implements KeyValueService {
 
     private static final Logger log = LoggerFactory.getLogger(PartitionedKeyValueService.class);
+    private final TableAwarePartitionMapApi tpm;
+    private final QuorumParameters quorumParameters = new QuorumParameters(3, 2, 2);
 
-    final TableAwarePartitionMapApi tpm;
-
-    final QuorumParameters quorumParameters = new QuorumParameters(3, 2, 2);
-
-    private PartitionedKeyValueService(ExecutorService executor) {
-        // TODO
-        tpm = BasicPartitionMap.create(quorumParameters, 10);
+    private PartitionedKeyValueService(NavigableMap<byte[], KeyValueService> ring, ExecutorService executor) {
+        this.tpm = BasicPartitionMap.create(quorumParameters, ring);
         this.executor = executor;
-    }
-
-    private PartitionedKeyValueService() {
-        this(PTExecutors.newCachedThreadPool());
-        //this(PTExecutors.newFixedThreadPool(16, PTExecutors.newNamedThreadFactory(true)));
     }
 
     @Override
     public void initializeFromFreshInstance() {
-        // TODO
     }
 
     @Override
@@ -637,12 +630,31 @@ public class PartitionedKeyValueService implements KeyValueService {
         }
     }
 
-    public static PartitionedKeyValueService create() {
-        return new PartitionedKeyValueService();
+    public static PartitionedKeyValueService create(Set<? extends KeyValueService> svcPool) {
+        Preconditions.checkArgument(svcPool.size() == 4);
+        NavigableMap<byte[], KeyValueService> ring = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
+
+        final byte[][] points = new byte[][] {
+                new byte[] {(byte) 0x00},
+                new byte[] {(byte) 0x40},
+                new byte[] {(byte) 0x80},
+                new byte[] {(byte) 0xC0}
+        };
+
+        int i = 0;
+        for (KeyValueService kvs : svcPool) {
+            ring.put(points[i++], kvs);
+        }
+
+        return create(ring);
     }
 
-    public static PartitionedKeyValueService create(ExecutorService executor) {
-        return new PartitionedKeyValueService(executor);
+    public static PartitionedKeyValueService create(NavigableMap<byte[], KeyValueService> ring) {
+        return create(ring, PTExecutors.newCachedThreadPool());
+    }
+
+    public static PartitionedKeyValueService create(NavigableMap<byte[], KeyValueService> ring, ExecutorService executor) {
+        return new PartitionedKeyValueService(ring, executor);
     }
 
 }

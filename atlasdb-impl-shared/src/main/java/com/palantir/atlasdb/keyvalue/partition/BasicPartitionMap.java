@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Set;
 
 import com.google.common.base.Preconditions;
@@ -33,6 +34,7 @@ public final class BasicPartitionMap implements TableAwarePartitionMapApi {
     final CycleMap<byte[], KeyValueService> ring;
     final QuorumParameters quorumParameters;
 
+    @Deprecated
     private BasicPartitionMap(QuorumParameters quorumParameters, Collection<KeyValueService> services, byte[][] points) {
         Preconditions.checkArgument(services.size() > 0);
         Preconditions.checkArgument(services.size() == points.length);
@@ -45,10 +47,22 @@ public final class BasicPartitionMap implements TableAwarePartitionMapApi {
         }
     }
 
+    private BasicPartitionMap(QuorumParameters quorumParameters, NavigableMap<byte[], KeyValueService> ring) {
+        tableMetadata = Maps.newHashMap();
+        this.quorumParameters = quorumParameters;
+        this.ring = CycleMap.wrap(ring);
+    }
+
+    public static BasicPartitionMap create(QuorumParameters quorumParameters, NavigableMap<byte[], KeyValueService> ring) {
+        return new BasicPartitionMap(quorumParameters, ring);
+    }
+
+    @Deprecated
     public static BasicPartitionMap create(QuorumParameters quorumParameter, Collection<KeyValueService> services, byte[][] points) {
         return new BasicPartitionMap(quorumParameter, services, points);
     }
 
+    @Deprecated
     public static BasicPartitionMap create(QuorumParameters quorumParameters, int numOfServices) {
         Preconditions.checkArgument(numOfServices < 255);
         KeyValueService[] services = new KeyValueService[numOfServices];

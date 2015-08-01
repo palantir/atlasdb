@@ -192,7 +192,7 @@ public class FailableKeyValueService implements KeyValueService {
     @Idempotent
     public void createTable(String tableName, int maxValueSizeInBytes)
             throws InsufficientConsistencyException {
-        validateNotBroken();
+//        validateNotBroken();
         backingKvs.createTable(tableName, maxValueSizeInBytes);
     }
 
