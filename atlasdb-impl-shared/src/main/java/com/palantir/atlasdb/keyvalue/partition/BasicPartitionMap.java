@@ -1,14 +1,19 @@
 package com.palantir.atlasdb.keyvalue.partition;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Supplier;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -19,6 +24,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest.Builder;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.api.TableAwarePartitionMapApi;
+import com.palantir.atlasdb.keyvalue.partition.util.ConsistentRingRangeComparator;
 
 
 public final class BasicPartitionMap implements TableAwarePartitionMapApi {
@@ -83,8 +89,12 @@ public final class BasicPartitionMap implements TableAwarePartitionMapApi {
     }
 
     private Set<KeyValueService> getServicesHavingRow(byte[] key) {
-        Set<KeyValueService> result = getServicesHavingPrefix(key);
-        Preconditions.checkArgument(result.size() == quorumParameters.getReplicationFactor());
+        Set<KeyValueService> result = Sets.newHashSet();
+        byte[] point = ring.nextKey(key);
+        for (int i=0; i<quorumParameters.getReplicationFactor(); ++i) {
+            result.add(ring.get(point));
+            point = ring.nextKey(point);
+        }
         return result;
     }
 
@@ -177,24 +187,35 @@ public final class BasicPartitionMap implements TableAwarePartitionMapApi {
     @Override
     public Multimap<ConsistentRingRangeRequest, KeyValueService> getServicesForRangeRead(String tableName,
                                                                                          RangeRequest range) {
-        Multimap<ConsistentRingRangeRequest, KeyValueService> result = HashMultimap.create();
+        ListMultimap<ConsistentRingRangeRequest, KeyValueService> result = Multimaps.newListMultimap(
+                Maps.<ConsistentRingRangeRequest, ConsistentRingRangeRequest, Collection<KeyValueService>>newTreeMap(ConsistentRingRangeComparator.instance()),
+                new Supplier<List<KeyValueService>>() {
+                    @Override
+                    public List<KeyValueService> get() {
+                        return new ArrayList<KeyValueService>();
+                    }
+                });
         CycleMap<byte[], KeyValueService> rangeRing = ring;
         if (range.isReverse()) {
             rangeRing = rangeRing.descendingMap();
         }
 
-        byte[] key = rangeRing.firstKey();
+        byte[] key = new byte[0];
         if (range.getStartInclusive().length > 0) {
-            key = rangeRing.nextKey(range.getStartInclusive());
+            key = range.getStartInclusive();
         }
 
         byte[] startingKey = key;
 
-        while (inRange(key, range)) {
+        while (key != null && inRange(key, range)) {
             Set<KeyValueService> services = Sets.newHashSet();
             Builder builder = range.isReverse() ? RangeRequest.reverseBuilder() : RangeRequest.builder();
             builder = builder.startRowInclusive(key);
-            builder = builder.endRowExclusive(rangeRing.nextKey(key));
+            if (rangeRing.higherKey(key) != null) {
+                builder = builder.endRowExclusive(rangeRing.nextKey(key));
+            } else {
+                // unbounded
+            }
             ConsistentRingRangeRequest crrr = ConsistentRingRangeRequest.of(builder.build());
             byte[] kvsKey = rangeRing.nextKey(key);
             for (int i = 0; i < quorumParameters.getReplicationFactor(); ++i) {
@@ -202,10 +223,7 @@ public final class BasicPartitionMap implements TableAwarePartitionMapApi {
                 kvsKey = rangeRing.nextKey(kvsKey);
             }
             result.putAll(crrr, services);
-            key = rangeRing.nextKey(key);
-            if (Arrays.equals(key, startingKey)) {
-                break;
-            }
+            key = rangeRing.higherKey(key);
         }
 
         return result;

@@ -14,4 +14,7 @@ import com.palantir.common.annotation.Immutable;
     public static ConsistentRingRangeRequest of(RangeRequest rangeRequest) {
         return new ConsistentRingRangeRequest(rangeRequest);
     }
+    public String toString() {
+        return "CRRR=[" + rangeRequest + "]";
+    }
 }
