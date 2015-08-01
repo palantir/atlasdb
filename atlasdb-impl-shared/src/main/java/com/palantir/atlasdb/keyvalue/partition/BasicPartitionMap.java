@@ -62,32 +62,6 @@ public final class BasicPartitionMap implements TableAwarePartitionMapApi {
         return new BasicPartitionMap(quorumParameters, Arrays.asList(services), points);
     }
 
-    private static boolean isPrefixOf(byte[] prefix, byte[] entireArray) {
-        if (entireArray.length < prefix.length) {
-            return false;
-        }
-        for (int i=0; i < prefix.length; ++i) {
-            if (prefix[i] != entireArray[i]) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private Set<KeyValueService> getServicesHavingPrefix(byte[] prefix) {
-        Set<KeyValueService> result = Sets.newHashSet();
-        byte[] point = ring.nextKey(prefix);
-        while (isPrefixOf(prefix, point)) {
-            result.add(ring.get(point));
-            point = ring.nextKey(point);
-        }
-        for (int i=0; i<quorumParameters.getReplicationFactor(); ++i) {
-            result.add(ring.get(point));
-            point = ring.nextKey(point);
-        }
-        return result;
-    }
-
     private Set<KeyValueService> getServicesHavingRow(byte[] key) {
         Set<KeyValueService> result = Sets.newHashSet();
         byte[] point = ring.nextKey(key);
@@ -181,7 +155,10 @@ public final class BasicPartitionMap implements TableAwarePartitionMapApi {
 
     @Override
     public void close() {
-        throw new UnsupportedOperationException();
+        Set<KeyValueService> services = Sets.newHashSet(ring.values());
+        for (KeyValueService keyValueService : services) {
+            keyValueService.close();
+        }
     }
 
     @Override
@@ -204,8 +181,6 @@ public final class BasicPartitionMap implements TableAwarePartitionMapApi {
         if (range.getStartInclusive().length > 0) {
             key = range.getStartInclusive();
         }
-
-        byte[] startingKey = key;
 
         while (key != null && inRange(key, range)) {
             Set<KeyValueService> services = Sets.newHashSet();
