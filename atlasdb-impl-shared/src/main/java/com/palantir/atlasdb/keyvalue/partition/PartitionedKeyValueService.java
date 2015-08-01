@@ -531,12 +531,12 @@ public class PartitionedKeyValueService implements KeyValueService {
 
     @Override
     public void compactInternally(String tableName) {
-        throw new UnsupportedOperationException();
+        tpm.compactInternally(tableName);
     }
 
     @Override
     public void close() {
-        throw new UnsupportedOperationException();
+        tpm.close();
     }
 
     @Override
@@ -546,7 +546,7 @@ public class PartitionedKeyValueService implements KeyValueService {
 
     @Override
     public Collection<? extends KeyValueService> getDelegates() {
-        throw new UnsupportedOperationException();
+        return tpm.getDelegates();
     }
 
     @Override
@@ -605,13 +605,13 @@ public class PartitionedKeyValueService implements KeyValueService {
     @Override
     @Idempotent
     public void truncateTable(String tableName) throws InsufficientConsistencyException {
-        throw new UnsupportedOperationException();
+        tpm.truncateTable(tableName);
     }
 
     @Override
     @Idempotent
     public void truncateTables(Set<String> tableNames) throws InsufficientConsistencyException {
-        throw new UnsupportedOperationException();
+        tpm.truncateTables(tableNames);
     }
 
     @Override

@@ -146,17 +146,12 @@ public final class BasicPartitionMap implements TableAwarePartitionMapApi {
     }
 
     private Set<KeyValueService> getAllServices() {
-        final Set<KeyValueService> result = Sets.newHashSet();
-        for (Map.Entry<byte[], KeyValueService> e : ring.entrySet()) {
-            result.add(e.getValue());
-        }
-        return result;
+        return Sets.newHashSet(ring.values());
     }
 
     @Override
     public void close() {
-        Set<KeyValueService> services = Sets.newHashSet(ring.values());
-        for (KeyValueService keyValueService : services) {
+        for (KeyValueService keyValueService : getAllServices()) {
             keyValueService.close();
         }
     }
@@ -322,5 +317,17 @@ public final class BasicPartitionMap implements TableAwarePartitionMapApi {
             }
         }
         return result;
+    }
+
+    @Override
+    public Set<? extends KeyValueService> getDelegates() {
+        return Sets.newHashSet(ring.values());
+    }
+
+    @Override
+    public void compactInternally(String tableName) {
+        for (KeyValueService kvs : getAllServices()) {
+            kvs.compactInternally(tableName);
+        }
     }
 }

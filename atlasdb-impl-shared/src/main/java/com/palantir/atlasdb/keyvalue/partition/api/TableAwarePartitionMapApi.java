@@ -45,5 +45,7 @@ public interface TableAwarePartitionMapApi {
 
     Map<KeyValueService, Multimap<Cell, Long>> getServicesForDelete(String tableName,
                                                                     Multimap<Cell, Long> keys);
+    Set<? extends KeyValueService> getDelegates();
+    void compactInternally(String tableName);
 
 }
