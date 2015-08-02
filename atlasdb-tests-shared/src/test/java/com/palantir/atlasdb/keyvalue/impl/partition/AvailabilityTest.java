@@ -29,7 +29,10 @@ public class AvailabilityTest extends AbstractAtlasDbKeyValueServiceTest {
                     false));
             services[i] = service;
         }
-        services[0].stop();
+//        services[0].stop();
+//        services[1].stop();
+        services[2].stop();
+//        services[3].stop();
         kvs = PartitionedKeyValueService.create(ImmutableSet.<FailableKeyValueService> copyOf(services));
     }
 

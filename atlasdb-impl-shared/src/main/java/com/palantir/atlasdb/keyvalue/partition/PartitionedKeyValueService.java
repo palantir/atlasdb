@@ -64,9 +64,7 @@ public class PartitionedKeyValueService implements KeyValueService {
         final ExecutorCompletionService<Map<Cell, Value>> execSvc = new ExecutorCompletionService<Map<Cell, Value>>(
                 executor);
         final Map<KeyValueService, ? extends Iterable<byte[]>> tasks = tpm.getServicesForRowsRead(tableName, rows);
-        final RowQuorumTracker<Map<Cell, Value>> tracker = RowQuorumTracker.of(
-                rows,
-                quorumParameters.getReadRequestParameters());
+        final QuorumTracker<Map<Cell, Value>, byte[]> tracker = QuorumTracker.of(rows, quorumParameters.getReadRequestParameters());
 
         // Schedule tasks for execution
         for (final Map.Entry<KeyValueService, ? extends Iterable<byte[]>> e : tasks.entrySet()) {
@@ -110,7 +108,7 @@ public class PartitionedKeyValueService implements KeyValueService {
         Map<KeyValueService, Map<Cell, Long>> tasks = tpm.getServicesForCellsRead(tableName, timestampByCell);
         ExecutorCompletionService<Map<Cell, Value>> execSvc = new ExecutorCompletionService<Map<Cell, Value>>(
                 executor);
-        CellQuorumTracker<Map<Cell, Value>, Cell> tracker = CellQuorumTracker.of(
+        QuorumTracker<Map<Cell, Value>, Cell> tracker = QuorumTracker.of(
                 timestampByCell.keySet(),
                 quorumParameters.getReadRequestParameters());
         Map<Cell, Value> globalResult = Maps.newHashMap();
@@ -184,7 +182,7 @@ public class PartitionedKeyValueService implements KeyValueService {
         final Map<KeyValueService, Map<Cell, byte[]>> tasks = tpm.getServicesForCellsWrite(tableName, values);
         final ExecutorCompletionService<Void> writeService = new ExecutorCompletionService<Void>(
                 executor);
-        final CellQuorumTracker<Void, Cell> tracker = CellQuorumTracker.of(
+        final QuorumTracker<Void, Cell> tracker = QuorumTracker.of(
                 values.keySet(),
                 quorumParameters.getWriteRequestParameters());
 
@@ -227,8 +225,8 @@ public class PartitionedKeyValueService implements KeyValueService {
             throws KeyAlreadyExistsException {
         final Map<KeyValueService, Multimap<Cell, Value>> tasks = tpm.getServicesForTimestampsWrite(tableName, cellValues);
         final ExecutorCompletionService<Void> execSvc = new ExecutorCompletionService<Void>(executor);
-        final CellQuorumTracker<Void, Map.Entry<Cell, Value>> tracker =
-                CellQuorumTracker.of(cellValues.entries(), quorumParameters.getWriteRequestParameters());
+        final QuorumTracker<Void, Map.Entry<Cell, Value>> tracker =
+                QuorumTracker.of(cellValues.entries(), quorumParameters.getWriteRequestParameters());
 
         for (final Map.Entry<KeyValueService, Multimap<Cell, Value>> e : tasks.entrySet()) {
             Future<Void> future = execSvc.submit(new Callable<Void>() {
@@ -271,7 +269,7 @@ public class PartitionedKeyValueService implements KeyValueService {
     @Idempotent
     public void delete(final String tableName, Multimap<Cell, Long> keys) {
         final Map<KeyValueService, Multimap<Cell, Long>> tasks = tpm.getServicesForDelete(tableName, keys);
-        final CellQuorumTracker<Void, Map.Entry<Cell, Long>> tracker = CellQuorumTracker.of(
+        final QuorumTracker<Void, Map.Entry<Cell, Long>> tracker = QuorumTracker.of(
                 keys.entries(), quorumParameters.getNoFailureRequestParameters());
         final ExecutorCompletionService<Void> execSvc = new ExecutorCompletionService<Void>(executor);
 
@@ -403,7 +401,7 @@ public class PartitionedKeyValueService implements KeyValueService {
             throws InsufficientConsistencyException {
         Map<KeyValueService, Set<Cell>> services = tpm.getServicesForCellsRead(tableName, cells, timestamp);
         ExecutorCompletionService<Multimap<Cell, Long>> execSvc = new ExecutorCompletionService<Multimap<Cell,Long>>(executor);
-        CellQuorumTracker<Multimap<Cell, Long>, Cell> tracker = CellQuorumTracker.of(cells, quorumParameters.getNoFailureRequestParameters());
+        QuorumTracker<Multimap<Cell, Long>, Cell> tracker = QuorumTracker.of(cells, quorumParameters.getNoFailureRequestParameters());
         Multimap<Cell, Long> globalResult = HashMultimap.create();
 
         for (final Map.Entry<KeyValueService, Set<Cell>> e : services.entrySet()) {
@@ -490,7 +488,7 @@ public class PartitionedKeyValueService implements KeyValueService {
     public void addGarbageCollectionSentinelValues(final String tableName, Set<Cell> cells) {
         Map<KeyValueService, Set<Cell>> services = tpm.getServicesForCellsWrite(tableName, cells);
         ExecutorCompletionService<Void> execSvc = new ExecutorCompletionService<Void>(executor);
-        CellQuorumTracker<Void, Cell> tracker = CellQuorumTracker.of(cells, quorumParameters.getWriteRequestParameters());
+        QuorumTracker<Void, Cell> tracker = QuorumTracker.of(cells, quorumParameters.getWriteRequestParameters());
 
         for (final Map.Entry<KeyValueService, Set<Cell>> e : services.entrySet()) {
             Future<Void> future = execSvc.submit(new Callable<Void>() {
@@ -547,7 +545,7 @@ public class PartitionedKeyValueService implements KeyValueService {
     public Map<Cell, Long> getLatestTimestamps(final String tableName, Map<Cell, Long> timestampByCell) {
         Map<Cell, Long> result = Maps.newHashMap();
         Map<KeyValueService, Map<Cell, Long>> tasks = tpm.getServicesForCellsRead(tableName, timestampByCell);
-        CellQuorumTracker<Map<Cell, Long>, Cell> tracker = CellQuorumTracker.of(
+        QuorumTracker<Map<Cell, Long>, Cell> tracker = QuorumTracker.of(
                 timestampByCell.keySet(), quorumParameters.getReadRequestParameters());
         ExecutorCompletionService<Map<Cell, Long>> execSvc = new ExecutorCompletionService<Map<Cell,Long>>(executor);
 
