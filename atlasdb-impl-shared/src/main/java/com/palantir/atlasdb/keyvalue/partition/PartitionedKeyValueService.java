@@ -43,11 +43,13 @@ public class PartitionedKeyValueService implements KeyValueService {
 
     private static final Logger log = LoggerFactory.getLogger(PartitionedKeyValueService.class);
     private final TableAwarePartitionMapApi tpm;
-    private final QuorumParameters quorumParameters = new QuorumParameters(3, 2, 2);
+    private final QuorumParameters quorumParameters;
 
-    private PartitionedKeyValueService(NavigableMap<byte[], KeyValueService> ring, ExecutorService executor) {
+    private PartitionedKeyValueService(NavigableMap<byte[], KeyValueService> ring,
+                                       ExecutorService executor, QuorumParameters quorumParameters) {
         this.tpm = BasicPartitionMap.create(quorumParameters, ring);
         this.executor = executor;
+        this.quorumParameters = quorumParameters;
     }
 
     @Override
@@ -549,6 +551,8 @@ public class PartitionedKeyValueService implements KeyValueService {
                 timestampByCell.keySet(), quorumParameters.getReadRequestParameters());
         ExecutorCompletionService<Map<Cell, Long>> execSvc = new ExecutorCompletionService<Map<Cell,Long>>(executor);
 
+        int numInBg = 0;
+
         for (final Map.Entry<KeyValueService, Map<Cell, Long>> e : tasks.entrySet()) {
             Future<Map<Cell, Long>> future = execSvc.submit(new Callable<Map<Cell, Long>>() {
                 @Override
@@ -556,21 +560,24 @@ public class PartitionedKeyValueService implements KeyValueService {
                     return e.getKey().getLatestTimestamps(tableName, e.getValue());
                 }
             });
+            numInBg++;
             tracker.registerRef(future, e.getValue().keySet());
         }
 
         try {
             while (!tracker.finished()) {
+                assert numInBg > 0;
                 Future<Map<Cell, Long>> future = execSvc.take();
+                numInBg--;
                 try {
                     Map<Cell, Long> kvsResult = future.get();
                     mergeLatestTimestampMapIntoMap(result, kvsResult);
                     tracker.handleSuccess(future);
                 } catch (ExecutionException e) {
-                    log.warn("Could not complete read request in table " + tableName);
+                    log.warn("Could not complete read request in table " + tableName + " (future " + future + ")");
                     tracker.handleFailure(future);
                     if (tracker.failure()) {
-                        Throwables.rewrapAndThrowUncheckedException(e.getCause());
+                        Throwables.rewrapAndThrowUncheckedException("Fatal getLatestTimestamp failure", e.getCause());
                     }
                 }
             }
@@ -629,14 +636,20 @@ public class PartitionedKeyValueService implements KeyValueService {
     }
 
     public static PartitionedKeyValueService create(Set<? extends KeyValueService> svcPool) {
-        Preconditions.checkArgument(svcPool.size() == 4);
+        return create(svcPool, new QuorumParameters(3, 2, 2));
+    }
+
+    public static PartitionedKeyValueService create(Set<? extends KeyValueService> svcPool,
+                                                    QuorumParameters quorumParameters) {
+        Preconditions.checkArgument(svcPool.size() == 5);
         NavigableMap<byte[], KeyValueService> ring = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
 
         final byte[][] points = new byte[][] {
-                new byte[] {(byte) 0x00},
-                new byte[] {(byte) 0x40},
-                new byte[] {(byte) 0x80},
-                new byte[] {(byte) 0xC0}
+                new byte[] {(byte) 0x11},
+                new byte[] {(byte) 0x22},
+                new byte[] {(byte) 0x33},
+                new byte[] {(byte) 0x44},
+                new byte[] {(byte) 0x55}
         };
 
         int i = 0;
@@ -644,15 +657,18 @@ public class PartitionedKeyValueService implements KeyValueService {
             ring.put(points[i++], kvs);
         }
 
-        return create(ring);
+        return create(ring, quorumParameters);
     }
 
-    public static PartitionedKeyValueService create(NavigableMap<byte[], KeyValueService> ring) {
-        return create(ring, PTExecutors.newCachedThreadPool());
+    public static PartitionedKeyValueService create(NavigableMap<byte[], KeyValueService> ring,
+                                                    QuorumParameters quorumParameters) {
+        return create(ring, quorumParameters, PTExecutors.newCachedThreadPool());
     }
 
-    public static PartitionedKeyValueService create(NavigableMap<byte[], KeyValueService> ring, ExecutorService executor) {
-        return new PartitionedKeyValueService(ring, executor);
+    public static PartitionedKeyValueService create(NavigableMap<byte[], KeyValueService> ring,
+                                                    QuorumParameters quorumParameters,
+                                                    ExecutorService executor) {
+        return new PartitionedKeyValueService(ring, executor, quorumParameters);
     }
 
 }

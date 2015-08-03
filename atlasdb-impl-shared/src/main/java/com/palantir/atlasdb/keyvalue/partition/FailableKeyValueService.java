@@ -22,50 +22,67 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 public class FailableKeyValueService implements KeyValueService {
 
     final KeyValueService backingKvs;
-    boolean broken;
+
+    public void setBrokenRead(boolean brokenRead) {
+        this.brokenRead = brokenRead;
+    }
+
+    public void setBrokenWrite(boolean brokenWrite) {
+        this.brokenWrite = brokenWrite;
+    }
+
+    public void setBrokenMeta(boolean brokenMeta) {
+        this.brokenMeta = brokenMeta;
+    }
+
+    boolean brokenRead;
+    boolean brokenWrite;
+    boolean brokenMeta;
 
     private FailableKeyValueService(KeyValueService backingKvs) {
         this.backingKvs = backingKvs;
-        broken = false;
+        this.brokenRead = false;
+        this.brokenWrite = false;
+        this.brokenMeta = false;
     }
 
     public static FailableKeyValueService wrap(KeyValueService kvs) {
         return new FailableKeyValueService(kvs);
     }
 
-    public void stop() {
-        broken = true;
+    private void enterReadMethod() {
+        Preconditions.checkState(!brokenRead);
     }
 
-    public void start() {
-        broken = false;
+    private void enterWriteMethod() {
+        Preconditions.checkState(!brokenWrite);
     }
 
-    private void validateNotBroken() {
-        Preconditions.checkState(broken == false);
+    private void enterMetaMethod() {
+        Preconditions.checkState(!brokenMeta);
     }
 
     @Override
     public void initializeFromFreshInstance() {
-        validateNotBroken();
+        enterMetaMethod();
         backingKvs.initializeFromFreshInstance();
     }
 
     @Override
     public void close() {
-        validateNotBroken();
+        enterMetaMethod();
         backingKvs.close();
     }
 
     @Override
     public void teardown() {
-//        validateNotBroken();
+        enterMetaMethod();
         backingKvs.teardown();
     }
 
     @Override
     public Collection<? extends KeyValueService> getDelegates() {
-        validateNotBroken();
+        enterMetaMethod();
         return backingKvs.getDelegates();
     }
 
@@ -75,28 +92,28 @@ public class FailableKeyValueService implements KeyValueService {
                              Iterable<byte[]> rows,
                              ColumnSelection columnSelection,
                              long timestamp) {
-        validateNotBroken();
+        enterReadMethod();
         return backingKvs.getRows(tableName, rows, columnSelection, timestamp);
     }
 
     @Override
     @Idempotent
     public Map<Cell, Value> get(String tableName, Map<Cell, Long> timestampByCell) {
-        validateNotBroken();
+        enterReadMethod();
         return backingKvs.get(tableName, timestampByCell);
     }
 
     @Override
     @Idempotent
     public Map<Cell, Long> getLatestTimestamps(String tableName, Map<Cell, Long> timestampByCell) {
-        validateNotBroken();
+        enterReadMethod();
         return backingKvs.getLatestTimestamps(tableName, timestampByCell);
     }
 
     @Override
     public void put(String tableName, Map<Cell, byte[]> values, long timestamp)
             throws KeyAlreadyExistsException {
-        validateNotBroken();
+        enterWriteMethod();
         backingKvs.put(tableName, values, timestamp);
 
     }
@@ -104,7 +121,7 @@ public class FailableKeyValueService implements KeyValueService {
     @Override
     public void multiPut(Map<String, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp)
             throws KeyAlreadyExistsException {
-        validateNotBroken();
+        enterWriteMethod();
         backingKvs.multiPut(valuesByTable, timestamp);
     }
 
@@ -112,35 +129,35 @@ public class FailableKeyValueService implements KeyValueService {
     @NonIdempotent
     public void putWithTimestamps(String tableName, Multimap<Cell, Value> cellValues)
             throws KeyAlreadyExistsException {
-        validateNotBroken();
+        enterWriteMethod();
         backingKvs.putWithTimestamps(tableName, cellValues);
     }
 
     @Override
     public void putUnlessExists(String tableName, Map<Cell, byte[]> values)
             throws KeyAlreadyExistsException {
-        validateNotBroken();
+        enterWriteMethod();
         backingKvs.putUnlessExists(tableName, values);
     }
 
     @Override
     @Idempotent
     public void delete(String tableName, Multimap<Cell, Long> keys) {
-        validateNotBroken();
+        enterWriteMethod();
         backingKvs.delete(tableName, keys);
     }
 
     @Override
     @Idempotent
     public void truncateTable(String tableName) throws InsufficientConsistencyException {
-        validateNotBroken();
+        enterWriteMethod();
         backingKvs.truncateTable(tableName);
     }
 
     @Override
     @Idempotent
     public void truncateTables(Set<String> tableNames) throws InsufficientConsistencyException {
-        validateNotBroken();
+        enterWriteMethod();
         backingKvs.truncateTables(tableNames);
     }
 
@@ -149,7 +166,7 @@ public class FailableKeyValueService implements KeyValueService {
     public ClosableIterator<RowResult<Value>> getRange(String tableName,
                                                 RangeRequest rangeRequest,
                                                 long timestamp) {
-        validateNotBroken();
+        enterReadMethod();
         return backingKvs.getRange(tableName, rangeRequest, timestamp);
     }
 
@@ -158,7 +175,7 @@ public class FailableKeyValueService implements KeyValueService {
     public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(String tableName,
                                                                 RangeRequest rangeRequest,
                                                                 long timestamp) {
-        validateNotBroken();
+        enterReadMethod();
         return backingKvs.getRangeWithHistory(tableName, rangeRequest, timestamp);
     }
 
@@ -168,7 +185,7 @@ public class FailableKeyValueService implements KeyValueService {
                                                                 RangeRequest rangeRequest,
                                                                 long timestamp)
             throws InsufficientConsistencyException {
-        validateNotBroken();
+        enterReadMethod();
         return backingKvs.getRangeOfTimestamps(tableName, rangeRequest, timestamp);
     }
 
@@ -177,14 +194,14 @@ public class FailableKeyValueService implements KeyValueService {
     public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(String tableName,
                                                                                                     Iterable<RangeRequest> rangeRequests,
                                                                                                     long timestamp) {
-        validateNotBroken();
+        enterReadMethod();
         return backingKvs.getFirstBatchForRanges(tableName, rangeRequests, timestamp);
     }
 
     @Override
     @Idempotent
     public void dropTable(String tableName) throws InsufficientConsistencyException {
-//        validateNotBroken();
+        enterMetaMethod();
         backingKvs.dropTable(tableName);
     }
 
@@ -192,7 +209,7 @@ public class FailableKeyValueService implements KeyValueService {
     @Idempotent
     public void createTable(String tableName, int maxValueSizeInBytes)
             throws InsufficientConsistencyException {
-//        validateNotBroken();
+        enterMetaMethod();
         backingKvs.createTable(tableName, maxValueSizeInBytes);
     }
 
@@ -200,49 +217,49 @@ public class FailableKeyValueService implements KeyValueService {
     @Idempotent
     public void createTables(Map<String, Integer> tableNamesToMaxValueSizeInBytes)
             throws InsufficientConsistencyException {
-        validateNotBroken();
+        enterMetaMethod();
         backingKvs.createTables(tableNamesToMaxValueSizeInBytes);
     }
 
     @Override
     @Idempotent
     public Set<String> getAllTableNames() {
-        validateNotBroken();
+        enterMetaMethod();
         return backingKvs.getAllTableNames();
     }
 
     @Override
     @Idempotent
     public byte[] getMetadataForTable(String tableName) {
-        validateNotBroken();
+        enterMetaMethod();
         return backingKvs.getMetadataForTable(tableName);
     }
 
     @Override
     @Idempotent
     public Map<String, byte[]> getMetadataForTables() {
-        validateNotBroken();
+        enterMetaMethod();
         return backingKvs.getMetadataForTables();
     }
 
     @Override
     @Idempotent
     public void putMetadataForTable(String tableName, byte[] metadata) {
-        validateNotBroken();
+        enterMetaMethod();
         backingKvs.putMetadataForTable(tableName, metadata);
     }
 
     @Override
     @Idempotent
     public void putMetadataForTables(Map<String, byte[]> tableNameToMetadata) {
-        validateNotBroken();
+        enterMetaMethod();
         backingKvs.putMetadataForTables(tableNameToMetadata);
     }
 
     @Override
     @Idempotent
     public void addGarbageCollectionSentinelValues(String tableName, Set<Cell> cells) {
-        validateNotBroken();
+        enterMetaMethod();
         backingKvs.addGarbageCollectionSentinelValues(tableName, cells);
     }
 
@@ -250,13 +267,13 @@ public class FailableKeyValueService implements KeyValueService {
     @Idempotent
     public Multimap<Cell, Long> getAllTimestamps(String tableName, Set<Cell> cells, long timestamp)
             throws InsufficientConsistencyException {
-        validateNotBroken();
+        enterReadMethod();
         return backingKvs.getAllTimestamps(tableName, cells, timestamp);
     }
 
     @Override
     public void compactInternally(String tableName) {
-        validateNotBroken();
+        enterMetaMethod();
         backingKvs.compactInternally(tableName);
     }
 

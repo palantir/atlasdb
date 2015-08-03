@@ -38,6 +38,7 @@ public final class BasicPartitionMap implements TableAwarePartitionMapApi {
     private BasicPartitionMap(QuorumParameters quorumParameters, Collection<KeyValueService> services, byte[][] points) {
         Preconditions.checkArgument(services.size() > 0);
         Preconditions.checkArgument(services.size() == points.length);
+        Preconditions.checkArgument(quorumParameters.getReplicationFactor() <= services.size());
         this.quorumParameters = quorumParameters;
         tableMetadata = Maps.newHashMap();
         ring = CycleMap.wrap(Maps.<byte[], byte[], KeyValueService>newTreeMap(UnsignedBytes.lexicographicalComparator()));
@@ -48,6 +49,7 @@ public final class BasicPartitionMap implements TableAwarePartitionMapApi {
     }
 
     private BasicPartitionMap(QuorumParameters quorumParameters, NavigableMap<byte[], KeyValueService> ring) {
+        Preconditions.checkArgument(quorumParameters.getReplicationFactor() <= ring.keySet().size());
         tableMetadata = Maps.newHashMap();
         this.quorumParameters = quorumParameters;
         this.ring = CycleMap.wrap(ring);

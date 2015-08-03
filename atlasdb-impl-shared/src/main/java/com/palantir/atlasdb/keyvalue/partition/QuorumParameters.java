@@ -21,7 +21,7 @@ import com.palantir.common.annotation.Immutable;
         }
 
         public int getFailureFactor() {
-            return replicationFator - successFactor;
+            return replicationFator - successFactor + 1;
         }
 
         private QuorumRequestParameters(int replicationFactor, int successFactor) {
