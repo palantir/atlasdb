@@ -10,6 +10,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NavigableMap;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -17,6 +18,7 @@ import org.junit.Test;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -58,8 +60,12 @@ public class BasicPartitionMapTest {
 
     @Before
     public void setUp() {
-        assert(services.size() == points.length);
-        tpm = BasicPartitionMap.create(qp, services, points);
+        Preconditions.checkArgument(services.size() == points.length);
+        NavigableMap<byte[], KeyValueService> ring = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
+        for (int i=0; i<points.length; ++i) {
+            ring.put(points[i], services.get(i));
+        }
+        tpm = BasicPartitionMap.create(qp, ring);
         tpm.addTable(TABLE1, TABLE1_MAXSIZE);
     }
 

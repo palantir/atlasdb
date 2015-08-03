@@ -1,7 +1,6 @@
 package com.palantir.atlasdb.keyvalue.partition;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -12,6 +11,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
@@ -23,7 +23,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest.Builder;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.api.TableAwarePartitionMapApi;
 import com.palantir.atlasdb.keyvalue.partition.util.ConsistentRingRangeComparator;
 
@@ -34,48 +33,21 @@ public final class BasicPartitionMap implements TableAwarePartitionMapApi {
     final CycleMap<byte[], KeyValueService> ring;
     final QuorumParameters quorumParameters;
 
-    @Deprecated
-    private BasicPartitionMap(QuorumParameters quorumParameters, Collection<KeyValueService> services, byte[][] points) {
-        Preconditions.checkArgument(services.size() > 0);
-        Preconditions.checkArgument(services.size() == points.length);
-        Preconditions.checkArgument(quorumParameters.getReplicationFactor() <= services.size());
-        this.quorumParameters = quorumParameters;
-        tableMetadata = Maps.newHashMap();
-        ring = CycleMap.wrap(Maps.<byte[], byte[], KeyValueService>newTreeMap(UnsignedBytes.lexicographicalComparator()));
-        int i = 0;
-        for (KeyValueService kvs : services) {
-            ring.put(points[i++], kvs);
-        }
-    }
+    private static final byte[] EMPTY_METADATA = new byte[0];
 
     private BasicPartitionMap(QuorumParameters quorumParameters, NavigableMap<byte[], KeyValueService> ring) {
         Preconditions.checkArgument(quorumParameters.getReplicationFactor() <= ring.keySet().size());
-        tableMetadata = Maps.newHashMap();
+        Preconditions.checkArgument(isRingValid());
+        this.tableMetadata = Maps.newHashMap();
         this.quorumParameters = quorumParameters;
         this.ring = CycleMap.wrap(ring);
     }
 
+    /* This map CAN contain duplicate values (virtual partitions). However it is the callers responsibility
+     * to not have same kvs repeated after less than rf points.
+     */
     public static BasicPartitionMap create(QuorumParameters quorumParameters, NavigableMap<byte[], KeyValueService> ring) {
         return new BasicPartitionMap(quorumParameters, ring);
-    }
-
-    @Deprecated
-    public static BasicPartitionMap create(QuorumParameters quorumParameter, Collection<KeyValueService> services, byte[][] points) {
-        return new BasicPartitionMap(quorumParameter, services, points);
-    }
-
-    @Deprecated
-    public static BasicPartitionMap create(QuorumParameters quorumParameters, int numOfServices) {
-        Preconditions.checkArgument(numOfServices < 255);
-        KeyValueService[] services = new KeyValueService[numOfServices];
-        byte[][] points = new byte[numOfServices][];
-        for (int i=0; i<numOfServices; ++i) {
-            services[i] = new InMemoryKeyValueService(false);
-        }
-        for (int i=0; i<numOfServices; ++i) {
-            points[i] = new byte[] {(byte) (i + 1)};
-        }
-        return new BasicPartitionMap(quorumParameters, Arrays.asList(services), points);
     }
 
     private Set<KeyValueService> getServicesHavingRow(byte[] key) {
@@ -88,7 +60,23 @@ public final class BasicPartitionMap implements TableAwarePartitionMapApi {
         return result;
     }
 
-    static boolean inRange(byte[] position, RangeRequest rangeRequest) {
+    // Make sure that the data is not replicated onto the original machine
+    private boolean isRingValid() {
+        int repf = quorumParameters.getReplicationFactor();
+        ArrayList<KeyValueService> lastKvs = Lists.newArrayList();
+        for (Map.Entry<byte[], KeyValueService> e : ring.entrySet()) {
+            if (lastKvs.contains(e.getValue())) {
+                return false;
+            }
+            if (lastKvs.size() == repf) {
+                lastKvs.remove(0);
+            }
+            lastKvs.add(e.getValue());
+        }
+        return true;
+    }
+
+    private static boolean inRange(byte[] position, RangeRequest rangeRequest) {
         Preconditions.checkNotNull(rangeRequest);
         Preconditions.checkNotNull(position);
         int cmpStart = UnsignedBytes.lexicographicalComparator().compare(position, rangeRequest.getStartInclusive());
@@ -110,8 +98,7 @@ public final class BasicPartitionMap implements TableAwarePartitionMapApi {
         if (tableMetadata.containsKey(tableName)) {
             return;
         }
-        // Should work for HashMap
-        storeTableMetadata(tableName, null);
+        storeTableMetadata(tableName, EMPTY_METADATA);
         for (KeyValueService kvs : getAllServices()) {
             kvs.createTable(tableName, maxValueSize);
         }
