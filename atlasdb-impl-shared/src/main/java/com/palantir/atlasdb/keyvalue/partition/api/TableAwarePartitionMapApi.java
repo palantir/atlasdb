@@ -15,7 +15,7 @@ public interface TableAwarePartitionMapApi {
 
     // Tables
     Set<String> getAllTableNames();
-    void addTable(String tableName, int maxValueSize) throws InsufficientConsistencyException;
+    void createTable(String tableName, int maxValueSize) throws InsufficientConsistencyException;
     void dropTable(String tableName) throws InsufficientConsistencyException;
     void truncateTable(String tableName) throws InsufficientConsistencyException;
     void truncateTables(Set<String> tableNamess) throws InsufficientConsistencyException;

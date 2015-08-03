@@ -27,12 +27,12 @@ public class QuorumTracker <T, U> {
         failure = false;
     }
 
-    static <V, W> QuorumTracker<V, W> of(Iterable<W> allUs, QuorumRequestParameters qrp) {
+    public static <V, W> QuorumTracker<V, W> of(Iterable<W> allUs, QuorumRequestParameters qrp) {
         return new QuorumTracker<V, W>(allUs, qrp);
     }
 
-    void handleSuccess(Future<T> ref) {
-        Preconditions.checkState(failure() == false && success() == false);
+    public void handleSuccess(Future<T> ref) {
+        Preconditions.checkState(failed() == false && succeeded() == false);
         Preconditions.checkArgument(itemsByReference.containsKey(ref));
         for (U cell : itemsByReference.get(ref)) {
             if (numberOfRemainingSuccessesForSuccess.containsKey(cell)) {
@@ -48,8 +48,8 @@ public class QuorumTracker <T, U> {
         itemsByReference.remove(ref);
     }
 
-    void handleFailure(Future<T> ref) {
-        Preconditions.checkState(failure() == false && success() == false);
+    public void handleFailure(Future<T> ref) {
+        Preconditions.checkState(failed() == false && succeeded() == false);
         Preconditions.checkArgument(itemsByReference.containsKey(ref));
         for (U cell : itemsByReference.get(ref)) {
             if (numberOfRemainingFailuresForFailure.containsKey(cell)) {
@@ -65,26 +65,26 @@ public class QuorumTracker <T, U> {
         itemsByReference.remove(ref);
     }
 
-    void registerRef(Future<T> ref, Iterable<U> items) {
-        Preconditions.checkState(failure() == false && success() == false);
+    public void registerRef(Future<T> ref, Iterable<U> items) {
+        Preconditions.checkState(failed() == false && succeeded() == false);
         itemsByReference.put(ref, items);
     }
 
-    void cancel(boolean mayInterruptIfRunning) {
+    public void cancel(boolean mayInterruptIfRunning) {
         for (Future<T> f : itemsByReference.keySet()) {
             f.cancel(mayInterruptIfRunning);
         }
     }
 
-    boolean failure() {
+    public boolean failed() {
         return failure;
     }
 
-    boolean success() {
-        return !failure() && numberOfRemainingSuccessesForSuccess.isEmpty();
+    public boolean succeeded() {
+        return !failed() && numberOfRemainingSuccessesForSuccess.isEmpty();
     }
 
-    boolean finished() {
-        return failure() || success();
+    public boolean finished() {
+        return failed() || succeeded();
     }
 }

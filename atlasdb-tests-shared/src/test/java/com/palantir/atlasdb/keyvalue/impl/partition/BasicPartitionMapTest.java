@@ -66,7 +66,7 @@ public class BasicPartitionMapTest {
             ring.put(points[i], services.get(i));
         }
         tpm = BasicPartitionMap.create(qp, ring);
-        tpm.addTable(TABLE1, TABLE1_MAXSIZE);
+        tpm.createTable(TABLE1, TABLE1_MAXSIZE);
     }
 
     void testOneRead(byte[] key) {

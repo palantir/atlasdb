@@ -25,22 +25,24 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest.Builder;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.partition.api.TableAwarePartitionMapApi;
 import com.palantir.atlasdb.keyvalue.partition.util.ConsistentRingRangeComparator;
+import com.palantir.common.annotation.Idempotent;
 
 
 public final class BasicPartitionMap implements TableAwarePartitionMapApi {
 
-    final Map<String, byte[]> tableMetadata;
-    final CycleMap<byte[], KeyValueService> ring;
-    final QuorumParameters quorumParameters;
-
+    private final Map<String, byte[]> tableMetadata;
+    private final QuorumParameters quorumParameters;
+    private final CycleMap<byte[], KeyValueService> ring;
     private static final byte[] EMPTY_METADATA = new byte[0];
 
+    //*** Construction ****************************************************************************
     private BasicPartitionMap(QuorumParameters quorumParameters, NavigableMap<byte[], KeyValueService> ring) {
         Preconditions.checkArgument(quorumParameters.getReplicationFactor() <= ring.keySet().size());
-        Preconditions.checkArgument(isRingValid());
-        this.tableMetadata = Maps.newHashMap();
+        // Careful with instruction order here
         this.quorumParameters = quorumParameters;
         this.ring = CycleMap.wrap(ring);
+        Preconditions.checkArgument(isRingValid());
+        this.tableMetadata = Maps.newHashMap();
     }
 
     /* This map CAN contain duplicate values (virtual partitions). However it is the callers responsibility
@@ -49,17 +51,9 @@ public final class BasicPartitionMap implements TableAwarePartitionMapApi {
     public static BasicPartitionMap create(QuorumParameters quorumParameters, NavigableMap<byte[], KeyValueService> ring) {
         return new BasicPartitionMap(quorumParameters, ring);
     }
+    //*********************************************************************************************
 
-    private Set<KeyValueService> getServicesHavingRow(byte[] key) {
-        Set<KeyValueService> result = Sets.newHashSet();
-        byte[] point = ring.nextKey(key);
-        for (int i=0; i<quorumParameters.getReplicationFactor(); ++i) {
-            result.add(ring.get(point));
-            point = ring.nextKey(point);
-        }
-        return result;
-    }
-
+    //*** Helper methods **************************************************************************
     // Make sure that the data is not replicated onto the original machine
     private boolean isRingValid() {
         int repf = quorumParameters.getReplicationFactor();
@@ -77,31 +71,41 @@ public final class BasicPartitionMap implements TableAwarePartitionMapApi {
     }
 
     private static boolean inRange(byte[] position, RangeRequest rangeRequest) {
-        Preconditions.checkNotNull(rangeRequest);
-        Preconditions.checkNotNull(position);
-        int cmpStart = UnsignedBytes.lexicographicalComparator().compare(position, rangeRequest.getStartInclusive());
-        int cmpEnd = UnsignedBytes.lexicographicalComparator().compare(position, rangeRequest.getEndExclusive());
-        if (rangeRequest.isReverse()) {
-            return (rangeRequest.getStartInclusive().length == 0 || cmpStart <= 0) && cmpEnd > 0;
+        boolean reverse = rangeRequest.isReverse();
+        int cmpStart = ConsistentRingRangeComparator.compareBytes(position, rangeRequest.getStartInclusive(), reverse);
+        int cmpEnd = ConsistentRingRangeComparator.compareBytes(position, rangeRequest.getEndExclusive(), reverse);
+        if (reverse) {
+            return cmpStart <= 0 && cmpEnd > 0;
         } else {
-            return cmpStart >= 0 && (rangeRequest.getEndExclusive().length == 0 || cmpEnd < 0);
+            return cmpStart >= 0 && cmpEnd < 0;
         }
     }
+
+    private Set<KeyValueService> getServicesHavingRow(byte[] key) {
+        Set<KeyValueService> result = Sets.newHashSet();
+        byte[] point = key;
+        for (int i = 0; i < quorumParameters.getReplicationFactor(); ++i) {
+            point = ring.nextKey(point);
+            result.add(ring.get(point));
+        }
+        return result;
+    }
+    //*********************************************************************************************
 
     @Override
     public Set<String> getAllTableNames() {
         return tableMetadata.keySet();
     }
 
-    @Override
-    public void addTable(String tableName, int maxValueSize) throws InsufficientConsistencyException {
+    @Override @Idempotent
+    public void createTable(String tableName, int maxValueSize) throws InsufficientConsistencyException {
         if (tableMetadata.containsKey(tableName)) {
             return;
         }
-        storeTableMetadata(tableName, EMPTY_METADATA);
         for (KeyValueService kvs : getAllServices()) {
             kvs.createTable(tableName, maxValueSize);
         }
+        storeTableMetadata(tableName, EMPTY_METADATA);
     }
 
     @Override
@@ -143,6 +147,7 @@ public final class BasicPartitionMap implements TableAwarePartitionMapApi {
 
     @Override
     public void tearDown() {
+        // TODO: Do I need a deep copy?
         for (KeyValueService kvs : getAllServices()) {
             kvs.teardown();
         }
@@ -170,6 +175,8 @@ public final class BasicPartitionMap implements TableAwarePartitionMapApi {
                         return new ArrayList<KeyValueService>();
                     }
                 });
+
+        // This is either the original ring, or its reversed view (in case of reversed range req)
         CycleMap<byte[], KeyValueService> rangeRing = ring;
         if (range.isReverse()) {
             rangeRing = rangeRing.descendingMap();
@@ -180,8 +187,12 @@ public final class BasicPartitionMap implements TableAwarePartitionMapApi {
             key = range.getStartInclusive();
         }
 
+        // Note that there is no wrapping around when travering the circle with the key.
+        // Wrap around can happen when gathering further kvss for a given key.
         while (key != null && inRange(key, range)) {
             Set<KeyValueService> services = Sets.newHashSet();
+
+            // Setup the range
             Builder builder = range.isReverse() ? RangeRequest.reverseBuilder() : RangeRequest.builder();
             builder = builder.startRowInclusive(key);
             if (rangeRing.higherKey(key) != null) {
@@ -190,12 +201,17 @@ public final class BasicPartitionMap implements TableAwarePartitionMapApi {
                 // unbounded
             }
             ConsistentRingRangeRequest crrr = ConsistentRingRangeRequest.of(builder.build());
+
+            // Find kvss having this range
             byte[] kvsKey = rangeRing.nextKey(key);
             for (int i = 0; i < quorumParameters.getReplicationFactor(); ++i) {
                 services.add(rangeRing.get(kvsKey));
                 kvsKey = rangeRing.nextKey(kvsKey);
             }
+
             result.putAll(crrr, services);
+
+            // Proceed with next range
             key = rangeRing.higherKey(key);
         }
 
@@ -324,7 +340,7 @@ public final class BasicPartitionMap implements TableAwarePartitionMapApi {
 
     @Override
     public Set<? extends KeyValueService> getDelegates() {
-        return Sets.newHashSet(ring.values());
+        return getAllServices();
     }
 
     @Override

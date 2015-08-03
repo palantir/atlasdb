@@ -91,7 +91,7 @@ public class PartitionedKeyValueService implements KeyValueService {
                     log.warn("Could not complete read request in table " + tableName);
                     tracker.handleFailure(future);
                     // Check if the failure is fatal
-                    if (tracker.failure()) {
+                    if (tracker.failed()) {
                         throw Throwables.rewrapAndThrowUncheckedException("Could not get enough reads.", e.getCause());
                     }
                 }
@@ -138,7 +138,7 @@ public class PartitionedKeyValueService implements KeyValueService {
                     log.warn("Could not complete read in table " + tableName);
                     tracker.handleFailure(future);
                     // Check if the failure was fatal
-                    if (tracker.failure()) {
+                    if (tracker.failed()) {
                         throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
                     }
                 }
@@ -210,7 +210,7 @@ public class PartitionedKeyValueService implements KeyValueService {
                 } catch (ExecutionException e) {
                     log.warn("Could not complete write request in table " + tableName);
                     tracker.handleFailure(future);
-                    if (tracker.failure()) {
+                    if (tracker.failed()) {
                         tracker.cancel(false);
                         Throwables.rewrapAndThrowUncheckedException(e.getCause());
                     }
@@ -250,7 +250,7 @@ public class PartitionedKeyValueService implements KeyValueService {
                 } catch (ExecutionException e) {
                     log.warn("Could not complete write request in table " + tableName);
                     tracker.handleFailure(future);
-                    if (tracker.failure()) {
+                    if (tracker.failed()) {
                         tracker.cancel(true);
                         Throwables.rewrapAndThrowUncheckedException(e.getCause());
                     }
@@ -296,8 +296,8 @@ public class PartitionedKeyValueService implements KeyValueService {
                 } catch (ExecutionException e) {
                     log.warn("Could not complete write request in table " + tableName);
                     // This should cause tracker to immediately finish with failure.
-                    assert(tracker.failure());
-                    if (tracker.failure()) {
+                    assert(tracker.failed());
+                    if (tracker.failed()) {
                         tracker.cancel(true);
                         Throwables.rewrapAndThrowUncheckedException(e.getCause());
                     }
@@ -426,8 +426,8 @@ public class PartitionedKeyValueService implements KeyValueService {
                 }
                 catch (ExecutionException e) {
                     tracker.handleFailure(future);
-                    assert(tracker.failure());
-                    if (tracker.failure()) {
+                    assert(tracker.failed());
+                    if (tracker.failed()) {
                         tracker.cancel(true);
                         Throwables.rewrapAndThrowUncheckedException(e.getCause());
                     }
@@ -464,7 +464,7 @@ public class PartitionedKeyValueService implements KeyValueService {
     @Idempotent
     public void createTable(String tableName, int maxValueSizeInBytes)
             throws InsufficientConsistencyException {
-        tpm.addTable(tableName, maxValueSizeInBytes);
+        tpm.createTable(tableName, maxValueSizeInBytes);
     }
 
     @Override
@@ -511,7 +511,7 @@ public class PartitionedKeyValueService implements KeyValueService {
                     tracker.handleSuccess(future);
                 } catch (ExecutionException e) {
                     tracker.handleFailure(future);
-                    if (tracker.failure()) {
+                    if (tracker.failed()) {
                         tracker.cancel(true);
                         Throwables.rewrapAndThrowUncheckedException(e.getCause());
                     }
@@ -576,7 +576,7 @@ public class PartitionedKeyValueService implements KeyValueService {
                 } catch (ExecutionException e) {
                     log.warn("Could not complete read request in table " + tableName + " (future " + future + ")");
                     tracker.handleFailure(future);
-                    if (tracker.failure()) {
+                    if (tracker.failed()) {
                         Throwables.rewrapAndThrowUncheckedException("Fatal getLatestTimestamp failure", e.getCause());
                     }
                 }

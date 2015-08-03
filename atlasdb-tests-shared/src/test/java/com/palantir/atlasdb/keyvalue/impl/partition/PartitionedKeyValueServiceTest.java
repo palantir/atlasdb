@@ -13,7 +13,7 @@ public class PartitionedKeyValueServiceTest extends AbstractAtlasDbKeyValueServi
     @Override
     protected KeyValueService getKeyValueService() {
         Set<KeyValueService> svcs = Sets.newHashSet();
-        for (int i=0; i<4; ++i) {
+        for (int i=0; i<5; ++i) {
             svcs.add(new InMemoryKeyValueService(false));
         }
         return PartitionedKeyValueService.create(svcs);
