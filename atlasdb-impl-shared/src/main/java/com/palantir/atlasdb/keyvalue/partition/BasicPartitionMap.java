@@ -349,4 +349,11 @@ public final class BasicPartitionMap implements TableAwarePartitionMapApi {
             kvs.compactInternally(tableName);
         }
     }
+
+    @Override
+    public void initializeFromFreshInstance() {
+        for (KeyValueService kvs : getAllServices()) {
+            kvs.initializeFromFreshInstance();
+        }
+    }
 }

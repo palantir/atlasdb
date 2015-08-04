@@ -47,5 +47,6 @@ public interface TableAwarePartitionMapApi {
                                                                     Multimap<Cell, Long> keys);
     Set<? extends KeyValueService> getDelegates();
     void compactInternally(String tableName);
+    void initializeFromFreshInstance();
 
 }

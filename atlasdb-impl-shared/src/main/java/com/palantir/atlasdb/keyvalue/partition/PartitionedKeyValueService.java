@@ -44,6 +44,7 @@ public class PartitionedKeyValueService implements KeyValueService {
     private static final Logger log = LoggerFactory.getLogger(PartitionedKeyValueService.class);
     private final TableAwarePartitionMapApi tpm;
     private final QuorumParameters quorumParameters;
+    private final ExecutorService executor;
 
     private PartitionedKeyValueService(NavigableMap<byte[], KeyValueService> ring,
                                        ExecutorService executor, QuorumParameters quorumParameters) {
@@ -54,6 +55,7 @@ public class PartitionedKeyValueService implements KeyValueService {
 
     @Override
     public void initializeFromFreshInstance() {
+        tpm.initializeFromFreshInstance();
     }
 
     @Override
@@ -176,8 +178,6 @@ public class PartitionedKeyValueService implements KeyValueService {
             }
         }
     }
-
-    private final ExecutorService executor;
 
     @Override
     public void put(final String tableName, Map<Cell, byte[]> values, final long timestamp) {
