@@ -354,7 +354,9 @@ public class PartitionedKeyValueService implements KeyValueService {
             @Override
             public RowResult<Value> computeNext() {
                 Preconditions.checkState(hasNext());
-                return RowResultUtil.mergeResults(getRowIterator());
+                return RowResultUtil.mergeResults(
+                        getRowIterator(),
+                        quorumParameters.getReadRequestParameters());
             }
 
             @Override
@@ -629,7 +631,8 @@ public class PartitionedKeyValueService implements KeyValueService {
                     mergeLatestTimestampMapIntoMap(result, kvsResult);
                     tracker.handleSuccess(future);
                 } catch (ExecutionException e) {
-                    log.warn("Could not complete read request (getLatestTimestamps) in table " + tableName);
+                    log.warn("Could not complete read request (getLatestTimestamps) in table "
+                            + tableName);
                     tracker.handleFailure(future);
                     if (tracker.failed()) {
                         Throwables.rewrapAndThrowUncheckedException(
