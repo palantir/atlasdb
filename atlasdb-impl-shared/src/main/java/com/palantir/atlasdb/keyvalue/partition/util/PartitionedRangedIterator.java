@@ -7,6 +7,7 @@ import java.util.Set;
 import java.util.SortedSet;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.Sets;
@@ -26,6 +27,7 @@ public abstract class PartitionedRangedIterator<T> implements ClosableIterator<R
         this.ranges = Sets.newTreeSet(ConsistentRingRangeComparator.instance());
         this.ranges.addAll(ranges);
         this.currentRange = ranges.iterator();
+        this.currentRangeIterators = ImmutableSet.of();
     }
 
     private void prepareNextRange() {
@@ -33,8 +35,10 @@ public abstract class PartitionedRangedIterator<T> implements ClosableIterator<R
         Preconditions.checkArgument(!getRowIterator().hasNext());
         ConsistentRingRangeRequest newRange = currentRange.next();
         closeCurrentRangeIterators();
-        Set<ClosablePeekingIterator<RowResult<T>>> newRangeIterators = computeNextRange(newRange);
-        rowIterator = Iterators.<RowResult<T>>peekingIterator(Iterators.mergeSorted(newRangeIterators, RowResultComparator.instance()));
+        currentRangeIterators = computeNextRange(newRange);
+        rowIterator = Iterators.<RowResult<T>> peekingIterator(Iterators.mergeSorted(
+                currentRangeIterators,
+                RowResultComparator.instance()));
     }
 
     protected abstract Set<ClosablePeekingIterator<RowResult<T>>> computeNextRange(ConsistentRingRangeRequest range);

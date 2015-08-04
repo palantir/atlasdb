@@ -42,6 +42,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 public class PartitionedKeyValueService implements KeyValueService {
 
     private static final Logger log = LoggerFactory.getLogger(PartitionedKeyValueService.class);
+    private static final QuorumParameters DEFAULT_QUORUM_PARAMETERS = new QuorumParameters(3, 2, 2);
     private final PartitionMap partitionMap;
     private final QuorumParameters quorumParameters;
     private final ExecutorService executor;
@@ -320,10 +321,12 @@ public class PartitionedKeyValueService implements KeyValueService {
                 Future<Void> future = execSvc.take();
                 try {
                     future.get();
+                    tracker.handleSuccess(future);
                 } catch (InterruptedException e) {
                     Throwables.throwUncheckedException(e);
                 } catch (ExecutionException e) {
                     log.warn("Could not complete delete request (delete) in table " + tableName);
+                    tracker.handleFailure(future);
                     // This should cause tracker to immediately finish with failure.
                     assert (tracker.failed());
                     if (tracker.failed()) {
@@ -693,7 +696,7 @@ public class PartitionedKeyValueService implements KeyValueService {
     }
 
     public static PartitionedKeyValueService create(Set<? extends KeyValueService> svcPool) {
-        return create(svcPool, new QuorumParameters(3, 2, 2));
+        return create(svcPool, DEFAULT_QUORUM_PARAMETERS);
     }
 
     public static PartitionedKeyValueService create(Set<? extends KeyValueService> svcPool,
