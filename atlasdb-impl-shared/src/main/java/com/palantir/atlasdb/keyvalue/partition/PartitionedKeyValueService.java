@@ -95,7 +95,7 @@ public class PartitionedKeyValueService implements KeyValueService {
                     mergeCellValueMapIntoMap(overallResult, result);
                     tracker.handleSuccess(future);
                 } catch (ExecutionException e) {
-                    log.warn("Could not complete read request in table " + tableName);
+                    log.warn("Could not complete read request (getRows) in table " + tableName);
                     tracker.handleFailure(future);
                     // Check if the failure is fatal
                     if (tracker.failed()) {
@@ -146,11 +146,13 @@ public class PartitionedKeyValueService implements KeyValueService {
                     mergeCellValueMapIntoMap(globalResult, result);
                     tracker.handleSuccess(future);
                 } catch (ExecutionException e) {
-                    log.warn("Could not complete read in table " + tableName);
+                    log.warn("Could not complete read (get) in table " + tableName);
                     tracker.handleFailure(future);
                     // Check if the failure was fatal
                     if (tracker.failed()) {
-                        throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
+                        throw Throwables.rewrapAndThrowUncheckedException(
+                                "Could not get enough reads.",
+                                e.getCause());
                     }
                 }
             }
@@ -222,11 +224,13 @@ public class PartitionedKeyValueService implements KeyValueService {
                     future.get();
                     tracker.handleSuccess(future);
                 } catch (ExecutionException e) {
-                    log.warn("Could not complete write request in table " + tableName);
+                    log.warn("Could not complete write request (put) in table " + tableName);
                     tracker.handleFailure(future);
                     if (tracker.failed()) {
-                        tracker.cancel(false);
-                        Throwables.rewrapAndThrowUncheckedException(e.getCause());
+                        tracker.cancel(true);
+                        Throwables.rewrapAndThrowUncheckedException(
+                                "Could not get enough writes.",
+                                e.getCause());
                     }
                 }
             }
@@ -266,11 +270,14 @@ public class PartitionedKeyValueService implements KeyValueService {
                     future.get();
                     tracker.handleSuccess(future);
                 } catch (ExecutionException e) {
-                    log.warn("Could not complete write request in table " + tableName);
+                    log.warn("Could not complete write request (putWithTimestamps) in table "
+                            + tableName);
                     tracker.handleFailure(future);
                     if (tracker.failed()) {
                         tracker.cancel(true);
-                        Throwables.rewrapAndThrowUncheckedException(e.getCause());
+                        Throwables.rewrapAndThrowUncheckedException(
+                                "Could not get enough writes.",
+                                e.getCause());
                     }
                 }
             }
@@ -316,12 +323,14 @@ public class PartitionedKeyValueService implements KeyValueService {
                 } catch (InterruptedException e) {
                     Throwables.throwUncheckedException(e);
                 } catch (ExecutionException e) {
-                    log.warn("Could not complete write request in table " + tableName);
+                    log.warn("Could not complete delete request (delete) in table " + tableName);
                     // This should cause tracker to immediately finish with failure.
                     assert (tracker.failed());
                     if (tracker.failed()) {
                         tracker.cancel(true);
-                        Throwables.rewrapAndThrowUncheckedException(e.getCause());
+                        Throwables.rewrapAndThrowUncheckedException(
+                                "Could not get enough deletes.",
+                                e.getCause());
                     }
                 }
             }
@@ -460,11 +469,14 @@ public class PartitionedKeyValueService implements KeyValueService {
                     mergeAllTimestampsMapIntoMap(globalResult, kvsReslt);
                     tracker.handleSuccess(future);
                 } catch (ExecutionException e) {
+                    log.warn("Could not complete read request (getAllTimestamps) in table "
+                            + tableName);
                     tracker.handleFailure(future);
                     assert (tracker.failed());
                     if (tracker.failed()) {
-                        tracker.cancel(true);
-                        Throwables.rewrapAndThrowUncheckedException(e.getCause());
+                        Throwables.rewrapAndThrowUncheckedException(
+                                "Could not get enough reads.",
+                                e.getCause());
                     }
                 }
             }
@@ -549,10 +561,14 @@ public class PartitionedKeyValueService implements KeyValueService {
                     future.get();
                     tracker.handleSuccess(future);
                 } catch (ExecutionException e) {
+                    log.warn("Could not complete write request (addGarbageCollectionSentinelValues) in table "
+                            + tableName);
                     tracker.handleFailure(future);
                     if (tracker.failed()) {
                         tracker.cancel(true);
-                        Throwables.rewrapAndThrowUncheckedException(e.getCause());
+                        Throwables.rewrapAndThrowUncheckedException(
+                                "Could not get enough writes.",
+                                e.getCause());
                     }
                 }
             }
@@ -595,8 +611,6 @@ public class PartitionedKeyValueService implements KeyValueService {
         ExecutorCompletionService<Map<Cell, Long>> execSvc = new ExecutorCompletionService<Map<Cell, Long>>(
                 executor);
 
-        int numInBg = 0;
-
         for (final Map.Entry<KeyValueService, Map<Cell, Long>> e : tasks.entrySet()) {
             Future<Map<Cell, Long>> future = execSvc.submit(new Callable<Map<Cell, Long>>() {
                 @Override
@@ -604,26 +618,22 @@ public class PartitionedKeyValueService implements KeyValueService {
                     return e.getKey().getLatestTimestamps(tableName, e.getValue());
                 }
             });
-            numInBg++;
             tracker.registerRef(future, e.getValue().keySet());
         }
 
         try {
             while (!tracker.finished()) {
-                assert numInBg > 0;
                 Future<Map<Cell, Long>> future = execSvc.take();
-                numInBg--;
                 try {
                     Map<Cell, Long> kvsResult = future.get();
                     mergeLatestTimestampMapIntoMap(result, kvsResult);
                     tracker.handleSuccess(future);
                 } catch (ExecutionException e) {
-                    log.warn("Could not complete read request in table " + tableName + " (future "
-                            + future + ")");
+                    log.warn("Could not complete read request (getLatestTimestamps) in table " + tableName);
                     tracker.handleFailure(future);
                     if (tracker.failed()) {
                         Throwables.rewrapAndThrowUncheckedException(
-                                "Fatal getLatestTimestamp failure",
+                                "Could not get enough reads",
                                 e.getCause());
                     }
                 }
