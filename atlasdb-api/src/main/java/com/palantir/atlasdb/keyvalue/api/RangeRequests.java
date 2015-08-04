@@ -95,6 +95,23 @@ public class RangeRequests {
         }
     }
 
+    public static byte[] getFirstRowName() {
+        return new byte[] { 0 };
+    }
+
+    public static byte[] getLastRowName() {
+        byte[] ret = new byte[Cell.MAX_NAME_LENGTH];
+        for (int i = 0 ; i < ret.length ; i++) {
+            ret[i] = (byte) 0xff;
+        }
+        return ret;
+    }
+
+    public static boolean isFirstRowName(boolean reverse, @Nonnull byte[] name) {
+        return reverse ? isLastRowName(name) : isFirstRowName(name);
+    }
+
+
     public static boolean isFirstRowName(@Nonnull byte[] name) {
         return name.length == 1 && name[0] == 0;
     }

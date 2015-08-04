@@ -22,6 +22,7 @@ import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest.Builder;
+import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.partition.api.PartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.util.ConsistentRingRangeComparator;
@@ -38,6 +39,8 @@ public final class BasicPartitionMap implements PartitionMap {
     //*** Construction ****************************************************************************
     private BasicPartitionMap(QuorumParameters quorumParameters,
                               NavigableMap<byte[], KeyValueService> ring) {
+        // Ensure there are actually enough kv stores.
+        // TODO: Add rack info
         Preconditions.checkArgument(quorumParameters.getReplicationFactor() <= ring.keySet().size());
         // Careful with instruction order here
         this.quorumParameters = quorumParameters;
@@ -93,6 +96,7 @@ public final class BasicPartitionMap implements PartitionMap {
     }
     //*********************************************************************************************
 
+    //TODO: change all table create/delete/metadata operations to W=ALL R=1
     @Override
     public Set<String> getAllTableNames() {
         return tableMetadata.keySet();
@@ -183,29 +187,35 @@ public final class BasicPartitionMap implements PartitionMap {
             rangeRing = rangeRing.descendingMap();
         }
 
-        byte[] key = new byte[0];
-        if (range.getStartInclusive().length > 0) {
-            key = range.getStartInclusive();
+        byte[] key = range.getStartInclusive();
+        if (range.getStartInclusive().length == 0) {
+            key = RangeRequests.getFirstRowName();
         }
 
         // Note that there is no wrapping around when travering the circle with the key.
         // Wrap around can happen when gathering further kvss for a given key.
-        while (key != null && inRange(key, range)) {
+        while (range.inRange(key)) {
             Set<KeyValueService> services = Sets.newHashSet();
 
             // Setup the range
             Builder builder = range.isReverse() ? RangeRequest.reverseBuilder() : RangeRequest.builder();
             builder = builder.startRowInclusive(key);
             if (rangeRing.higherKey(key) != null) {
-                builder = builder.endRowExclusive(rangeRing.nextKey(key));
+                byte[] topOfRange = rangeRing.higherKey(key);
+                if (range.inRange(topOfRange)) {
+                    builder = builder.endRowExclusive(topOfRange);
+                } else {
+                    builder = builder.endRowExclusive(range.getEndExclusive());
+                }
             } else {
-                // unbounded
+                builder = builder.endRowExclusive(range.getEndExclusive());
             }
             ConsistentRingRangeRequest crrr = ConsistentRingRangeRequest.of(builder.build());
 
             // Find kvss having this range
             byte[] kvsKey = rangeRing.nextKey(key);
-            for (int i = 0; i < quorumParameters.getReplicationFactor(); ++i) {
+            while (services.size() < quorumParameters.getReplicationFactor()) {
+                // TODO: Add logic here to skip over same rack
                 services.add(rangeRing.get(kvsKey));
                 kvsKey = rangeRing.nextKey(kvsKey);
             }
@@ -214,6 +224,10 @@ public final class BasicPartitionMap implements PartitionMap {
 
             // Proceed with next range
             key = rangeRing.higherKey(key);
+            // We are out of ranges to consider.
+            if (key == null) {
+                break;
+            }
         }
 
         return result;
