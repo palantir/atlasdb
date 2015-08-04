@@ -16,10 +16,16 @@ import com.palantir.common.annotation.Immutable;
             return replicationFator;
         }
 
+        /**
+         * After this many successes a success can be concluded
+         */
         public int getSuccessFactor() {
             return successFactor;
         }
 
+        /**
+         * After this many failures a failure can be concluded
+         */
         public int getFailureFactor() {
             return replicationFator - successFactor + 1;
         }
