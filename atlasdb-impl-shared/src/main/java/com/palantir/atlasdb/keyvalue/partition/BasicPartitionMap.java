@@ -23,12 +23,12 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest.Builder;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.keyvalue.partition.api.TableAwarePartitionMapApi;
+import com.palantir.atlasdb.keyvalue.partition.api.PartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.util.ConsistentRingRangeComparator;
 import com.palantir.common.annotation.Idempotent;
 
 
-public final class BasicPartitionMap implements TableAwarePartitionMapApi {
+public final class BasicPartitionMap implements PartitionMap {
 
     private final Map<String, byte[]> tableMetadata;
     private final QuorumParameters quorumParameters;
@@ -36,7 +36,8 @@ public final class BasicPartitionMap implements TableAwarePartitionMapApi {
     private static final byte[] EMPTY_METADATA = new byte[0];
 
     //*** Construction ****************************************************************************
-    private BasicPartitionMap(QuorumParameters quorumParameters, NavigableMap<byte[], KeyValueService> ring) {
+    private BasicPartitionMap(QuorumParameters quorumParameters,
+                              NavigableMap<byte[], KeyValueService> ring) {
         Preconditions.checkArgument(quorumParameters.getReplicationFactor() <= ring.keySet().size());
         // Careful with instruction order here
         this.quorumParameters = quorumParameters;

@@ -11,7 +11,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.partition.ConsistentRingRangeRequest;
 
-public interface TableAwarePartitionMapApi {
+public interface PartitionMap {
 
     // Tables
     Set<String> getAllTableNames();
