@@ -6,7 +6,6 @@ import java.util.Set;
 
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.partition.ConsistentRingRangeRequest;
@@ -14,14 +13,14 @@ import com.palantir.atlasdb.keyvalue.partition.ConsistentRingRangeRequest;
 public interface PartitionMap {
 
     // Tables
-    Set<String> getAllTableNames();
-    void createTable(String tableName, int maxValueSize) throws InsufficientConsistencyException;
-    void dropTable(String tableName) throws InsufficientConsistencyException;
-    void truncateTable(String tableName) throws InsufficientConsistencyException;
-    void truncateTables(Set<String> tableNamess) throws InsufficientConsistencyException;
-    void putMetadataForTable(String tableName, byte[] metadata);
-    byte[] getMetadataForTable(String tableName);
-    Map<String, byte[]> getMetadataForTables();
+//    Set<String> getAllTableNames();
+//    void createTable(String tableName, int maxValueSize) throws InsufficientConsistencyException;
+//    void dropTable(String tableName) throws InsufficientConsistencyException;
+//    void truncateTable(String tableName) throws InsufficientConsistencyException;
+//    void truncateTables(Set<String> tableNamess) throws InsufficientConsistencyException;
+//    void putMetadataForTable(String tableName, byte[] metadata);
+//    byte[] getMetadataForTable(String tableName);
+//    Map<String, byte[]> getMetadataForTables();
 
     // General
     void tearDown();

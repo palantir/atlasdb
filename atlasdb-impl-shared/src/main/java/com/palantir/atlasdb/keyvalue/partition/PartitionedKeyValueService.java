@@ -10,9 +10,12 @@ import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
+import javax.annotation.Nullable;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
@@ -507,32 +510,50 @@ public class PartitionedKeyValueService implements KeyValueService {
     @Override
     @Idempotent
     public void dropTable(String tableName) throws InsufficientConsistencyException {
-        partitionMap.dropTable(tableName);
+        for (KeyValueService kvs : partitionMap.getDelegates()) {
+            kvs.dropTable(tableName);
+        }
     }
 
     @Override
     @Idempotent
     public void createTable(String tableName, int maxValueSizeInBytes)
             throws InsufficientConsistencyException {
-        partitionMap.createTable(tableName, maxValueSizeInBytes);
+        for (KeyValueService kvs : partitionMap.getDelegates()) {
+            kvs.createTable(tableName, maxValueSizeInBytes);
+        }
     }
 
     @Override
     @Idempotent
     public Set<String> getAllTableNames() {
-        return partitionMap.getAllTableNames();
+        return BasicPartitionMap.retryUntilSuccess(partitionMap.getDelegates().iterator(), new Function<KeyValueService, Set<String>>() {
+            @Override @Nullable
+            public Set<String> apply(@Nullable KeyValueService kvs) {
+                return kvs.getAllTableNames();
+            }
+        });
     }
 
     @Override
     @Idempotent
-    public byte[] getMetadataForTable(String tableName) {
-        return partitionMap.getMetadataForTable(tableName);
+    public byte[] getMetadataForTable(final String tableName) {
+        return BasicPartitionMap.retryUntilSuccess(
+                partitionMap.getDelegates().iterator(),
+                new Function<KeyValueService, byte[]>() {
+            @Override @Nullable
+            public byte[] apply(@Nullable KeyValueService kvs) {
+                return kvs.getMetadataForTable(tableName);
+            }
+        });
     }
 
     @Override
     @Idempotent
     public void putMetadataForTable(String tableName, byte[] metadata) {
-        partitionMap.putMetadataForTable(tableName, metadata);
+        for (KeyValueService kvs : partitionMap.getDelegates()) {
+            kvs.putMetadataForTable(tableName, metadata);
+        }
     }
 
     @Override
@@ -582,17 +603,23 @@ public class PartitionedKeyValueService implements KeyValueService {
 
     @Override
     public void compactInternally(String tableName) {
-        partitionMap.compactInternally(tableName);
+        for (KeyValueService kvs : partitionMap.getDelegates()) {
+            kvs.compactInternally(tableName);
+        }
     }
 
     @Override
     public void close() {
-        partitionMap.close();
+        for (KeyValueService kvs : partitionMap.getDelegates()) {
+            kvs.close();
+        }
     }
 
     @Override
     public void teardown() {
-        partitionMap.tearDown();
+        for (KeyValueService kvs : partitionMap.getDelegates()) {
+            kvs.teardown();
+        }
     }
 
     @Override
@@ -664,38 +691,48 @@ public class PartitionedKeyValueService implements KeyValueService {
     @Override
     @Idempotent
     public void truncateTable(String tableName) throws InsufficientConsistencyException {
-        partitionMap.truncateTable(tableName);
+        for (KeyValueService kvs : getDelegates()) {
+            kvs.truncateTable(tableName);
+        }
     }
 
     @Override
     @Idempotent
     public void truncateTables(Set<String> tableNames) throws InsufficientConsistencyException {
-        partitionMap.truncateTables(tableNames);
+        for (KeyValueService kvs : getDelegates()) {
+            kvs.truncateTables(tableNames);
+        }
     }
 
-    @Override
-    @Idempotent
+    @Override @Idempotent
     public void createTables(Map<String, Integer> tableNamesToMaxValueSizeInBytes)
             throws InsufficientConsistencyException {
-        for (Map.Entry<String, Integer> e : tableNamesToMaxValueSizeInBytes.entrySet()) {
-            createTable(e.getKey(), e.getValue());
+        for (KeyValueService kvs : getDelegates()) {
+            kvs.createTables(tableNamesToMaxValueSizeInBytes);
         }
     }
 
-    @Override
-    @Idempotent
+    @Override @Idempotent
     public Map<String, byte[]> getMetadataForTables() {
-        return partitionMap.getMetadataForTables();
+        return BasicPartitionMap.retryUntilSuccess(
+                partitionMap.getDelegates().iterator(),
+                new Function<KeyValueService, Map<String, byte[]>>() {
+            @Override @Nullable
+            public Map<String, byte[]> apply(@Nullable KeyValueService kvs) {
+                return kvs.getMetadataForTables();
+            }
+        });
     }
 
-    @Override
-    @Idempotent
+    @Override @Idempotent
     public void putMetadataForTables(Map<String, byte[]> tableNameToMetadata) {
-        for (Map.Entry<String, byte[]> e : tableNameToMetadata.entrySet()) {
-            putMetadataForTable(e.getKey(), e.getValue());
+        for (KeyValueService kvs : partitionMap.getDelegates()) {
+            kvs.putMetadataForTables(tableNameToMetadata);
         }
     }
 
+
+    //*** Creation *******************************************************************************
     public static PartitionedKeyValueService create(Set<? extends KeyValueService> svcPool) {
         return create(svcPool, DEFAULT_QUORUM_PARAMETERS);
     }

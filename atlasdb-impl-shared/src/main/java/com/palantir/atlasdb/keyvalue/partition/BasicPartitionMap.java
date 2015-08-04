@@ -7,8 +7,6 @@ import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Set;
 
-import javax.annotation.Nullable;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,13 +20,11 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest.Builder;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.partition.api.PartitionMap;
-import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.Throwables;
 
 
@@ -88,43 +84,7 @@ public final class BasicPartitionMap implements PartitionMap {
     }
     //*********************************************************************************************
 
-    //TODO: change all table create/delete/metadata operations to W=ALL R=1
-    @Override @Idempotent
-    public void createTable(String tableName, int maxValueSize) throws InsufficientConsistencyException {
-        for (KeyValueService kvs : getAllServices()) {
-            kvs.createTable(tableName, maxValueSize);
-        }
-    }
-
-    @Override
-    public void dropTable(String tableName) throws InsufficientConsistencyException {
-        for (KeyValueService kvs : getAllServices()) {
-            kvs.dropTable(tableName);
-        }
-    }
-
-    @Override
-    public void truncateTable(String tableName) throws InsufficientConsistencyException {
-        for (KeyValueService kvs : getAllServices()) {
-            kvs.truncateTable(tableName);
-        }
-    }
-
-    @Override
-    public void truncateTables(Set<String> tableNamess) throws InsufficientConsistencyException {
-        for (KeyValueService kvs : getAllServices()) {
-            kvs.truncateTables(tableNamess);
-        }
-    }
-
-    @Override
-    public void putMetadataForTable(String tableName, byte[] metadata) {
-        for (KeyValueService kvs : getAllServices()) {
-            kvs.putMetadataForTable(tableName, metadata);
-        }
-    }
-
-    private <T, U, V extends Iterator<U>> T retryUntilSuccess(V iterator, Function<U, T> fun) {
+    static <T, U, V extends Iterator<? extends U>> T retryUntilSuccess(V iterator, Function<U, T> fun) {
 
         while (iterator.hasNext()) {
             U service = iterator.next();
@@ -142,34 +102,13 @@ public final class BasicPartitionMap implements PartitionMap {
 
     }
 
-    @Override
-    public Set<String> getAllTableNames() {
-        return retryUntilSuccess(getAllServices().iterator(), new Function<KeyValueService, Set<String>>() {
-            @Override @Nullable
-            public Set<String> apply(@Nullable KeyValueService kvs) {
-                return kvs.getAllTableNames();
-            }
-        });
-    }
+    static <T, U, V extends Iterator<? extends U>> void doForAll(V iterator, Function<U, Void> fun) {
 
-    @Override
-    public byte[] getMetadataForTable(final String tableName) {
-        return retryUntilSuccess(getAllServices().iterator(), new Function<KeyValueService, byte[]>() {
-            @Override @Nullable
-            public byte[] apply(@Nullable KeyValueService kvs) {
-                return kvs.getMetadataForTable(tableName);
-            }
-        });
-    }
+        while (iterator.hasNext()) {
+            U service = iterator.next();
+            fun.apply(service);
+        }
 
-    @Override
-    public Map<String, byte[]> getMetadataForTables() {
-        return retryUntilSuccess(getAllServices().iterator(), new Function<KeyValueService, Map<String, byte[]>>() {
-            @Override @Nullable
-            public Map<String, byte[]> apply(@Nullable KeyValueService kvs) {
-                return kvs.getMetadataForTables();
-            }
-        });
     }
 
     @Override
@@ -180,7 +119,7 @@ public final class BasicPartitionMap implements PartitionMap {
         }
     }
 
-    private Set<KeyValueService> getAllServices() {
+    Set<KeyValueService> getAllServices() {
         return services;
     }
 
