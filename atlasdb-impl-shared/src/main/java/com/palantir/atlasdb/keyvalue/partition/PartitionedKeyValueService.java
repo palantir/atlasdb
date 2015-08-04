@@ -288,7 +288,8 @@ public class PartitionedKeyValueService implements KeyValueService {
     @Override
     public void putUnlessExists(String tableName, Map<Cell, byte[]> values)
             throws KeyAlreadyExistsException {
-        throw new UnsupportedOperationException();
+        put(tableName, values, 0L);
+        //throw new UnsupportedOperationException();
     }
 
     @Override
@@ -525,13 +526,13 @@ public class PartitionedKeyValueService implements KeyValueService {
     @Override
     @Idempotent
     public byte[] getMetadataForTable(String tableName) {
-        return partitionMap.getTableMetadata(tableName);
+        return partitionMap.getMetadataForTable(tableName);
     }
 
     @Override
     @Idempotent
     public void putMetadataForTable(String tableName, byte[] metadata) {
-        partitionMap.storeTableMetadata(tableName, metadata);
+        partitionMap.putMetadataForTable(tableName, metadata);
     }
 
     @Override
@@ -684,7 +685,7 @@ public class PartitionedKeyValueService implements KeyValueService {
     @Override
     @Idempotent
     public Map<String, byte[]> getMetadataForTables() {
-        return partitionMap.getTablesMetadata();
+        return partitionMap.getMetadataForTables();
     }
 
     @Override

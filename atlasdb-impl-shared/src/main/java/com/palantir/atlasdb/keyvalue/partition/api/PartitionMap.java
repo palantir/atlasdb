@@ -19,9 +19,9 @@ public interface PartitionMap {
     void dropTable(String tableName) throws InsufficientConsistencyException;
     void truncateTable(String tableName) throws InsufficientConsistencyException;
     void truncateTables(Set<String> tableNamess) throws InsufficientConsistencyException;
-    void storeTableMetadata(String tableName, byte[] metadata);
-    byte[] getTableMetadata(String tableName);
-    Map<String, byte[]> getTablesMetadata();
+    void putMetadataForTable(String tableName, byte[] metadata);
+    byte[] getMetadataForTable(String tableName);
+    Map<String, byte[]> getMetadataForTables();
 
     // General
     void tearDown();

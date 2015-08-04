@@ -1,11 +1,18 @@
 package com.palantir.atlasdb.keyvalue.partition;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.LinkedHashMultimap;
@@ -22,14 +29,15 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest.Builder;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.partition.api.PartitionMap;
 import com.palantir.common.annotation.Idempotent;
+import com.palantir.common.base.Throwables;
 
 
 public final class BasicPartitionMap implements PartitionMap {
 
-    private final Map<String, byte[]> tableMetadata;
+    private static final Logger log = LoggerFactory.getLogger(BasicPartitionMap.class);
     private final QuorumParameters quorumParameters;
     private final CycleMap<byte[], KeyValueService> ring;
-    private static final byte[] EMPTY_METADATA = new byte[0];
+    private final Set<KeyValueService> services;
 
     //*** Construction ****************************************************************************
     private BasicPartitionMap(QuorumParameters quorumParameters,
@@ -40,8 +48,8 @@ public final class BasicPartitionMap implements PartitionMap {
         // Careful with instruction order here
         this.quorumParameters = quorumParameters;
         this.ring = CycleMap.wrap(ring);
+        this.services = Sets.newHashSet(ring.values());
         Preconditions.checkArgument(isRingValid());
-        this.tableMetadata = Maps.newHashMap();
     }
 
     /* This map CAN contain duplicate values (virtual partitions). However it is the callers responsibility
@@ -81,20 +89,11 @@ public final class BasicPartitionMap implements PartitionMap {
     //*********************************************************************************************
 
     //TODO: change all table create/delete/metadata operations to W=ALL R=1
-    @Override
-    public Set<String> getAllTableNames() {
-        return tableMetadata.keySet();
-    }
-
     @Override @Idempotent
     public void createTable(String tableName, int maxValueSize) throws InsufficientConsistencyException {
-        if (tableMetadata.containsKey(tableName)) {
-            return;
-        }
         for (KeyValueService kvs : getAllServices()) {
             kvs.createTable(tableName, maxValueSize);
         }
-        storeTableMetadata(tableName, EMPTY_METADATA);
     }
 
     @Override
@@ -102,7 +101,6 @@ public final class BasicPartitionMap implements PartitionMap {
         for (KeyValueService kvs : getAllServices()) {
             kvs.dropTable(tableName);
         }
-        tableMetadata.remove(tableName);
     }
 
     @Override
@@ -120,18 +118,58 @@ public final class BasicPartitionMap implements PartitionMap {
     }
 
     @Override
-    public void storeTableMetadata(String tableName, byte[] metadata) {
-        tableMetadata.put(tableName, metadata);
+    public void putMetadataForTable(String tableName, byte[] metadata) {
+        for (KeyValueService kvs : getAllServices()) {
+            kvs.putMetadataForTable(tableName, metadata);
+        }
+    }
+
+    private <T, U, V extends Iterator<U>> T retryUntilSuccess(V iterator, Function<U, T> fun) {
+
+        while (iterator.hasNext()) {
+            U service = iterator.next();
+            try {
+                return fun.apply(service);
+            } catch (RuntimeException e) {
+                log.warn("retryUntilSuccess: " + e.getMessage());
+                if (!iterator.hasNext()) {
+                    Throwables.rewrapAndThrowUncheckedException("retryUntilSuccess", e);
+                }
+            }
+        }
+
+        throw new RuntimeException("This should never happen!");
+
     }
 
     @Override
-    public byte[] getTableMetadata(String tableName) {
-        return tableMetadata.get(tableName);
+    public Set<String> getAllTableNames() {
+        return retryUntilSuccess(getAllServices().iterator(), new Function<KeyValueService, Set<String>>() {
+            @Override @Nullable
+            public Set<String> apply(@Nullable KeyValueService kvs) {
+                return kvs.getAllTableNames();
+            }
+        });
     }
 
     @Override
-    public Map<String, byte[]> getTablesMetadata() {
-        return Maps.newHashMap(tableMetadata);
+    public byte[] getMetadataForTable(final String tableName) {
+        return retryUntilSuccess(getAllServices().iterator(), new Function<KeyValueService, byte[]>() {
+            @Override @Nullable
+            public byte[] apply(@Nullable KeyValueService kvs) {
+                return kvs.getMetadataForTable(tableName);
+            }
+        });
+    }
+
+    @Override
+    public Map<String, byte[]> getMetadataForTables() {
+        return retryUntilSuccess(getAllServices().iterator(), new Function<KeyValueService, Map<String, byte[]>>() {
+            @Override @Nullable
+            public Map<String, byte[]> apply(@Nullable KeyValueService kvs) {
+                return kvs.getMetadataForTables();
+            }
+        });
     }
 
     @Override
@@ -143,7 +181,7 @@ public final class BasicPartitionMap implements PartitionMap {
     }
 
     private Set<KeyValueService> getAllServices() {
-        return Sets.newHashSet(ring.values());
+        return services;
     }
 
     @Override
