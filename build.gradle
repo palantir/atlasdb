@@ -22,21 +22,6 @@ group = 'com.palantir.atlasdb'
 ext.localPublishDir = "${buildDir}/localpublish"
 version = '0.1-pre4'
 
-task distZip(type: Zip) {
-    from (localPublishDir) {
-        exclude '**/maven-metadata.xml*'
-    }
-
-    baseName = project.name
-    appendix = 'release'
-    version = project.version
-
-    destinationDir = file("${buildDir}/distributions")
-    doFirst {
-        file(destinationDir).mkdirs()
-    }
-}
-
 task clean(type: Delete) {
     delete buildDir
 }
