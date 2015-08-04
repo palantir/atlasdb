@@ -20,7 +20,6 @@ import java.lang.ref.WeakReference;
 
 /**
  *
- * @y.exclude
  *
  */
 public class KeyedWeakReference<K, V> extends WeakReference<V> implements KeyedReference {

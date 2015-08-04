@@ -21,7 +21,6 @@ import java.io.ObjectInputStream;
 
 /**
  *
- * @y.exclude
  *
  */
 public interface ObjectInputStreamFactory {

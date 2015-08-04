@@ -19,7 +19,6 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /**
  *
- * @y.exclude
  *
  */
 public class CacheStats implements CacheStatsMBean {

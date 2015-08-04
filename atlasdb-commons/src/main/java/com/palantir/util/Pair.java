@@ -40,7 +40,6 @@ public final class Pair<V, W> implements java.io.Serializable {
      * The left-hand side, or first, object
      * in the <code>Pair</code>.
      * @see #getLhSide()
-     * @see #setLhSide(Object)
      */
     public final V lhSide;
 

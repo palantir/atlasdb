@@ -17,7 +17,6 @@ package com.palantir.annotations;
 
 /**
  *
- * @y.exclude
  *
  */
 public enum PtMainType {

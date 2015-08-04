@@ -17,7 +17,6 @@ package com.palantir.util;
 
 /**
  *
- * @y.exclude
  *
  */
 public interface KeyedReference {

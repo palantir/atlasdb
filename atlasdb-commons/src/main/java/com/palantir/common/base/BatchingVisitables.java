@@ -379,8 +379,6 @@ public class BatchingVisitables {
      * This uses {@link Objects#equal(Object, Object)} to do comparisons.
      * <p>
      * null is supported bug discouraged
-     *
-     * @see ListUtils#unique(List)
      */
     public static <T> BatchingVisitableView<T> unique(final BatchingVisitable<T> visitable) {
         Preconditions.checkNotNull(visitable);

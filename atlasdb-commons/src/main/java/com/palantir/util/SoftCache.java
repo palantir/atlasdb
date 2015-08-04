@@ -37,7 +37,6 @@ import com.google.common.collect.Sets;
 /**
  * Thread Safe
  *
- * @y.exclude
  */
 public class SoftCache<K, V> implements NonDistributedCache<K, V> {
     private static final int INITIAL_SIZE = 1000;

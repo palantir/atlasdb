@@ -31,7 +31,6 @@ package com.palantir.util;
  * There are more complicated caching models with consistent caches where you push invalidates to all clients,
  * and they either all respond, or you have to wait the whole client timeout before you may do the write.
  *
- * @y.exclude
  */
 public interface DistributedCacheMgrCache<K, V> {
     public V put(K key, V value);

@@ -141,7 +141,7 @@ public class MutuallyExclusiveSetLock<T> {
     /**
      * Attempts to acquire the locks in increasing order and may block.
      *
-     * <p>Be sure that the <code>Comparator<T></code> or <code>T.compareTo()</code>
+     * <p>Be sure that the <code>Comparator&lt;T&gt;</code> or <code>T.compareTo()</code>
      * is consistent with <code>T.equals()</code>. You can only lock once on a thread
      * with a set of objects. If you wish to lock on more objects,
      * you must unlock then pass the new set of objects to be locked.
@@ -217,7 +217,7 @@ public class MutuallyExclusiveSetLock<T> {
      * If you try to unlock from another thread, no objects are unlocked.
      * @param lockState object that was returned by the
      *        <code>lockOnObjects()</code> method when you locked the objects
-     * @see #lockOnObjects(Collection)
+     * @see #lockOnObjects(Iterable)
      * @deprecated use {@link LockState#unlock()}
      */
     @Deprecated
@@ -268,9 +268,7 @@ public class MutuallyExclusiveSetLock<T> {
          * Unlocks the objects acquired from locking.
          * This method should always be in a try/finally block immediately after the lock.
          * If you try to unlock from another thread, no objects are unlocked.
-         * @param lockState object that was returned by the
-         *        <code>lockOnObjects()</code> method when you locked the objects
-         * @see #lockOnObjects(Collection)
+         * @see #lockOnObjects(Iterable)
          */
         public void unlock() {
             setLock.unlock(this);

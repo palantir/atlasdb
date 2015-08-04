@@ -55,7 +55,6 @@ import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 
 /**
- * @y.exclude
  */
 public final class JMXUtils {
     private static final Logger log = LoggerFactory.getLogger(JMXUtils.class);

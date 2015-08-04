@@ -20,7 +20,6 @@ import java.lang.ref.SoftReference;
 
 /**
  *
- * @y.exclude
  *
  */
 public class KeyedSoftReference<K, V> extends SoftReference<V> implements KeyedReference {

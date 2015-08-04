@@ -19,7 +19,6 @@ import javax.annotation.Nonnull;
 
 import com.palantir.annotations.PgNotExtendableApi;
 import com.palantir.annotations.PgPublicApi;
-import com.palantir.util.jmx.OperationTimer.TimingState;
 
 /**
  * This is a simple timer class that is asked to begin a timer and end after the operation is done.
@@ -31,7 +30,7 @@ import com.palantir.util.jmx.OperationTimer.TimingState;
  * a call to {@link #begin(String)} on thread A to pass the returned {@link TimingState} to another
  * thread and that thread may call {@link TimingState#end()}
  * <p>
- * If {@link #end(TimingState)} is called more than once, the results are undefined.
+ * If {@link TimingState#end()} is called more than once, the results are undefined.
  */
 @PgPublicApi
 @PgNotExtendableApi

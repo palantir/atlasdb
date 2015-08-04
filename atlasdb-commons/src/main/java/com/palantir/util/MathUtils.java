@@ -24,12 +24,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-/**
- *
- * @see com.palantir.workspace.documentviewer.DocumentList#combinations(List)
- *
- * @y.exclude
- */
 public class MathUtils {
     // =========================
     // COMBINATORICS

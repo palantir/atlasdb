@@ -22,7 +22,6 @@ package com.palantir.util;
  *
  * @see com.palantir.util.Visitor
  *
- * @y.exclude
  */
 public interface Visitor<T> extends VisitorCheckedException<T, RuntimeException> {
     @Override

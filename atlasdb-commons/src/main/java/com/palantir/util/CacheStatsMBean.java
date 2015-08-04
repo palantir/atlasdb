@@ -19,7 +19,6 @@ import javax.management.MXBean;
 
 /**
  *
- * @y.exclude
  *
  */
 @MXBean
