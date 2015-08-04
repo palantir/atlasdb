@@ -244,9 +244,7 @@ public class PartitionedKeyValueService implements KeyValueService {
     @NonIdempotent
     public void putWithTimestamps(final String tableName, Multimap<Cell, Value> cellValues)
             throws KeyAlreadyExistsException {
-        final Map<KeyValueService, Multimap<Cell, Value>> tasks = partitionMap.getServicesForTimestampsWrite(
-                tableName,
-                cellValues);
+        final Map<KeyValueService, Multimap<Cell, Value>> tasks = partitionMap.getServicesForWrite(tableName, cellValues);
         final ExecutorCompletionService<Void> execSvc = new ExecutorCompletionService<Void>(
                 executor);
         final QuorumTracker<Void, Map.Entry<Cell, Value>> tracker = QuorumTracker.of(
@@ -296,7 +294,7 @@ public class PartitionedKeyValueService implements KeyValueService {
     @Override
     @Idempotent
     public void delete(final String tableName, Multimap<Cell, Long> keys) {
-        final Map<KeyValueService, Multimap<Cell, Long>> tasks = partitionMap.getServicesForDelete(
+        final Map<KeyValueService, Multimap<Cell, Long>> tasks = partitionMap.getServicesForWrite(
                 tableName,
                 keys);
         final QuorumTracker<Void, Map.Entry<Cell, Long>> tracker = QuorumTracker.of(
@@ -445,8 +443,7 @@ public class PartitionedKeyValueService implements KeyValueService {
             throws InsufficientConsistencyException {
         Map<KeyValueService, Set<Cell>> services = partitionMap.getServicesForCellsRead(
                 tableName,
-                cells,
-                timestamp);
+                cells);
         ExecutorCompletionService<Multimap<Cell, Long>> execSvc = new ExecutorCompletionService<Multimap<Cell, Long>>(
                 executor);
         QuorumTracker<Multimap<Cell, Long>, Cell> tracker = QuorumTracker.of(

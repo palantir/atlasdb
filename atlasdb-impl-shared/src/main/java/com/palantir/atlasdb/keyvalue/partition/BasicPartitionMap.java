@@ -1,20 +1,17 @@
 package com.palantir.atlasdb.keyvalue.partition;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
+import java.util.NavigableSet;
 import java.util.Set;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Supplier;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ListMultimap;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -23,9 +20,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest.Builder;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
-import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.partition.api.PartitionMap;
-import com.palantir.atlasdb.keyvalue.partition.util.ConsistentRingRangeComparator;
 import com.palantir.common.annotation.Idempotent;
 
 
@@ -72,17 +67,6 @@ public final class BasicPartitionMap implements PartitionMap {
             lastKvs.add(e.getValue());
         }
         return true;
-    }
-
-    private static boolean inRange(byte[] position, RangeRequest rangeRequest) {
-        boolean reverse = rangeRequest.isReverse();
-        int cmpStart = ConsistentRingRangeComparator.compareBytes(position, rangeRequest.getStartInclusive(), reverse);
-        int cmpEnd = ConsistentRingRangeComparator.compareBytes(position, rangeRequest.getEndExclusive(), reverse);
-        if (reverse) {
-            return cmpStart <= 0 && cmpEnd > 0;
-        } else {
-            return cmpStart >= 0 && cmpEnd < 0;
-        }
     }
 
     private Set<KeyValueService> getServicesHavingRow(byte[] key) {
@@ -172,14 +156,10 @@ public final class BasicPartitionMap implements PartitionMap {
     @Override
     public Multimap<ConsistentRingRangeRequest, KeyValueService> getServicesForRangeRead(String tableName,
                                                                                          RangeRequest range) {
-        ListMultimap<ConsistentRingRangeRequest, KeyValueService> result = Multimaps.newListMultimap(
-                Maps.<ConsistentRingRangeRequest, ConsistentRingRangeRequest, Collection<KeyValueService>>newTreeMap(ConsistentRingRangeComparator.instance()),
-                new Supplier<List<KeyValueService>>() {
-                    @Override
-                    public List<KeyValueService> get() {
-                        return new ArrayList<KeyValueService>();
-                    }
-                });
+        if (range.isReverse()) {
+            throw new UnsupportedOperationException();
+        }
+        Multimap<ConsistentRingRangeRequest, KeyValueService> result = LinkedHashMultimap.create();
 
         // This is either the original ring, or its reversed view (in case of reversed range req)
         CycleMap<byte[], KeyValueService> rangeRing = ring;
@@ -234,9 +214,9 @@ public final class BasicPartitionMap implements PartitionMap {
     }
 
     @Override
-    public Map<KeyValueService, ? extends Iterable<byte[]>> getServicesForRowsRead(String tableName,
+    public Map<KeyValueService, NavigableSet<byte[]>> getServicesForRowsRead(String tableName,
                                                                          Iterable<byte[]> rows) {
-        Map<KeyValueService, Set<byte[]>> result = Maps.newHashMap();
+        Map<KeyValueService, NavigableSet<byte[]>> result = Maps.newHashMap();
         for (byte[] row : rows) {
             Set<KeyValueService> services = getServicesHavingRow(row);
             for (KeyValueService kvs : services) {
@@ -269,8 +249,7 @@ public final class BasicPartitionMap implements PartitionMap {
 
     @Override
     public Map<KeyValueService, Set<Cell>> getServicesForCellsRead(String tableName,
-                                                                   Set<Cell> cells,
-                                                                   long timestamp) {
+                                                                   Set<Cell> cells) {
         Map<KeyValueService, Set<Cell>> result = Maps.newHashMap();
         for (Cell cell : cells) {
             Set<KeyValueService> services = getServicesHavingRow(cell.getRowName());
@@ -319,32 +298,14 @@ public final class BasicPartitionMap implements PartitionMap {
         return result;
     }
 
-    @Override
-    public Map<KeyValueService, Multimap<Cell, Value>> getServicesForTimestampsWrite(String tableName,
-                                                                                     Multimap<Cell, Value> cellValues) {
-        Map<KeyValueService, Multimap<Cell, Value>> result = Maps.newHashMap();
-        for (Map.Entry<Cell, Value> e : cellValues.entries()) {
-            Set<KeyValueService> services = getServicesHavingRow(e.getKey().getRowName());
-            for (KeyValueService kvs: services) {
-                if (!result.containsKey(kvs)) {
-                    result.put(kvs, HashMultimap.<Cell, Value>create());
-                }
-                assert(!result.get(kvs).containsEntry(e.getKey(), e.getValue()));
-                result.get(kvs).put(e.getKey(), e.getValue());
-            }
-        }
-        return result;
-    }
-
-    @Override
-    public Map<KeyValueService, Multimap<Cell, Long>> getServicesForDelete(String tableName,
-                                                                           Multimap<Cell, Long> keys) {
-        Map<KeyValueService, Multimap<Cell, Long>> result = Maps.newHashMap();
-        for (Map.Entry<Cell, Long> e : keys.entries()) {
+    public <T> Map<KeyValueService, Multimap<Cell, T>> getServicesForWrite(String tableName,
+                                                                           Multimap<Cell, T> keys) {
+        Map<KeyValueService, Multimap<Cell, T>> result = Maps.newHashMap();
+        for (Map.Entry<Cell, T> e : keys.entries()) {
             Set<KeyValueService> services = getServicesHavingRow(e.getKey().getRowName());
             for (KeyValueService kvs : services) {
                if (!result.containsKey(kvs)) {
-                   result.put(kvs, HashMultimap.<Cell, Long>create());
+                   result.put(kvs, HashMultimap.<Cell, T>create());
                }
                assert(!result.get(kvs).containsEntry(e.getKey(), e.getValue()));
                result.get(kvs).put(e.getKey(), e.getValue());

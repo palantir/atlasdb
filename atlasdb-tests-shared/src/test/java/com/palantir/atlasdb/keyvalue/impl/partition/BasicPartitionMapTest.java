@@ -287,6 +287,7 @@ public class BasicPartitionMapTest {
                     .build();
         }
 
+        //TODO: failing tests due to reverse
         RangeRequest testRange = RangeRequest.reverseBuilder().startRowInclusive(
                 newByteArray(0xff, 0xff, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a)).endRowExclusive(
                 newByteArray(0x01, 0x00)).build();
