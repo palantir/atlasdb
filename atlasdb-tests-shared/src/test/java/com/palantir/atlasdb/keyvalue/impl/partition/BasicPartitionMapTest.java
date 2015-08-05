@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.NavigableMap;
 
 import org.junit.Before;
@@ -37,12 +36,27 @@ public class BasicPartitionMapTest {
     static final int READF = 2;
     static final int WRITEF = 2;
     static final QuorumParameters qp = new QuorumParameters(REPF, READF, WRITEF);
+    static final byte[][] points = new byte[][] { newByteArray(0x00, 0x00),
+            newByteArray(0x00, 0x02), newByteArray(0x00, 0x05), newByteArray(0x01, 0x01),
+            newByteArray(0x01, 0x03), newByteArray(0x01, 0x07), newByteArray(0x01, 0x0B) };
 
-    final static byte[][] points = new byte[][] { newByteArray(0x00, 0x00),
-            newByteArray(0x00, 0x01), newByteArray(0x00, 0x02), newByteArray(0x01, 0x01),
-            newByteArray(0x01, 0x02), newByteArray(0x01, 0x03), newByteArray(0x01, 0x04) };
+    static private RangeRequest rangeFromTo(byte[] from, byte[] to) {
+        boolean reverse = false;
+        if (from.length > 0 && to.length > 0 && UnsignedBytes.lexicographicalComparator().compare(from, to) > 0) {
+            reverse = true;
+        }
+        return RangeRequest.builder(reverse).startRowInclusive(from).endRowExclusive(to).build();
+    }
 
-    ArrayList<KeyValueService> services = Lists.<KeyValueService> newArrayList(
+    static private byte[] newByteArray(int... bytes) {
+        byte[] result = new byte[bytes.length];
+        for (int i = 0; i < bytes.length; ++i) {
+            result[i] = (byte) bytes[i];
+        }
+        return result;
+    }
+
+    private ArrayList<KeyValueService> services = Lists.<KeyValueService> newArrayList(
             new InMemoryKeyValueService(false),
             new InMemoryKeyValueService(false),
             new InMemoryKeyValueService(false),
@@ -51,53 +65,7 @@ public class BasicPartitionMapTest {
             new InMemoryKeyValueService(false),
             new InMemoryKeyValueService(false));
 
-    @Before
-    public void setUp() {
-        Preconditions.checkArgument(services.size() == points.length);
-        NavigableMap<byte[], KeyValueService> ring = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
-        for (int i = 0; i < points.length; ++i) {
-            ring.put(points[i], services.get(i));
-        }
-        tpm = BasicPartitionMap.create(qp, ring);
-        // TODO
-        // tpm.createTable(TABLE1, TABLE1_MAXSIZE);
-    }
-
-    void testOneRead(byte[] key) {
-        int higherPtIdx = 0;
-
-        // If the key is bigger than last point, it is assigned to the first point (wrap-around)
-        if (UnsignedBytes.lexicographicalComparator().compare(key, points[points.length - 1]) >= 0) {
-            higherPtIdx = 0;
-        } else {
-            while (UnsignedBytes.lexicographicalComparator().compare(key, points[higherPtIdx]) >= 0) {
-                higherPtIdx++;
-            }
-        }
-
-        Map<KeyValueService, ? extends Iterable<byte[]>> result = tpm.getServicesForRowsRead(
-                TABLE1,
-                ImmutableSet.of(key));
-
-        assertEquals(REPF, result.size());
-        for (int i = 0; i < REPF; ++i) {
-            int j = (higherPtIdx + i) % services.size();
-            assertTrue(result.keySet().contains(services.get(j)));
-        }
-    }
-
-    @Test
-    public void testServicesForRead() {
-        byte[] key;
-        for (int i = 0; i < points.length; ++i) {
-            key = points[i].clone();
-            testOneRead(key);
-            key[key.length - 1]--;
-            testOneRead(key);
-        }
-    }
-
-    void testRangeIntervalsOk(final RangeRequest rangeRequest) {
+    private void testRangeIntervalsOk(final RangeRequest rangeRequest) {
         Multimap<ConsistentRingRangeRequest, KeyValueService> result = tpm.getServicesForRangeRead(
                 TABLE1,
                 rangeRequest);
@@ -127,9 +95,7 @@ public class BasicPartitionMapTest {
             lastRange = it.next();
         }
         if (rangeRequest.getEndExclusive().length == 0) {
-            assertTrue(Arrays.equals(
-                    RangeRequests.getLastRowName(),
-                    lastRange.get().getEndExclusive()));
+            assertTrue(lastRange.get().getEndExclusive().length == 0);
         } else {
             assertTrue(Arrays.equals(
                     lastRange.get().getEndExclusive(),
@@ -137,22 +103,32 @@ public class BasicPartitionMapTest {
         }
 
         // Check that the adjacent intervals make sense
-        if (ranges.size() > 1) {
+        if (ranges.size() > 0) {
             it = ranges.iterator();
             ConsistentRingRangeRequest crrr = it.next();
+            int numRepeats = 1;
             while (it.hasNext()) {
-                ConsistentRingRangeRequest newCrrr = it.next();
-                if (!newCrrr.equals(crrr)) {
-                    assertTrue(Arrays.equals(
-                            crrr.get().getEndExclusive(),
-                            newCrrr.get().getStartInclusive()));
+                // Check that there is proper number of services for each subrange
+                while (numRepeats++ < REPF) {
+                    ConsistentRingRangeRequest newCrrr = it.next();
+                    assertEquals(newCrrr, crrr);
                 }
+                if (it.hasNext() == false) {
+                    break;
+                }
+
+                // Check that the next subrange is adjacent to the previous one
+                ConsistentRingRangeRequest newCrrr = it.next();
+                numRepeats = 1;
+                assertTrue(Arrays.equals(
+                    crrr.get().getEndExclusive(),
+                    newCrrr.get().getStartInclusive()));
                 crrr = newCrrr;
             }
         }
     }
 
-    void testRangeMappingsOk(RangeRequest rangeRequest) {
+    private void testRangeMappingsOk(RangeRequest rangeRequest) {
         Multimap<ConsistentRingRangeRequest, KeyValueService> result = tpm.getServicesForRangeRead(
                 TABLE1,
                 rangeRequest);
@@ -167,12 +143,19 @@ public class BasicPartitionMapTest {
         }
     }
 
-    static byte[] newByteArray(int... bytes) {
-        byte[] result = new byte[bytes.length];
-        for (int i = 0; i < bytes.length; ++i) {
-            result[i] = (byte) bytes[i];
+    @Before
+    public void setUp() {
+        Preconditions.checkArgument(services.size() == points.length);
+        NavigableMap<byte[], KeyValueService> ring = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
+        for (int i = 0; i < points.length; ++i) {
+            ring.put(points[i], services.get(i));
         }
-        return result;
+        tpm = BasicPartitionMap.create(qp, ring);
+    }
+
+    @Test
+    public void testServicesForRead() {
+        // TODO
     }
 
     @Test
@@ -200,7 +183,7 @@ public class BasicPartitionMapTest {
             int cmp = UnsignedBytes.lexicographicalComparator().compare(
                     sampleRangesArr[i][0],
                     sampleRangesArr[i][1]);
-            RangeRequest.Builder builder = cmp >= 0 ? RangeRequest.reverseBuilder() : RangeRequest.builder();
+            RangeRequest.Builder builder = RangeRequest.builder(cmp >= 0);
             requests[i] = builder.startRowInclusive(sampleRangesArr[i][0]).endRowExclusive(
                     sampleRangesArr[i][1]).build();
         }
@@ -219,6 +202,109 @@ public class BasicPartitionMapTest {
                 testRangeIntervalsOk(rangeRequest);
                 testRangeMappingsOk(rangeRequest);
             }
+        }
+    }
+
+    @Test
+    public void testIntervalDivision() {
+        RangeRequest longRange = RangeRequest.builder().startRowInclusive(newByteArray(0, 1)).endRowExclusive(
+                newByteArray(0, 7)).build();
+        RangeRequest[] longRangeSubranges = new RangeRequest[] {
+                rangeFromTo(newByteArray(0, 1), newByteArray(0, 2)),
+                rangeFromTo(newByteArray(0, 2), newByteArray(0, 5)),
+                rangeFromTo(newByteArray(0, 5), newByteArray(0, 7))
+        };
+
+        testRangeIntervalsOk(longRange);
+        testRangeMappingsOk(longRange);
+
+        Iterator<ConsistentRingRangeRequest> it = tpm.getServicesForRangeRead(TABLE1, longRange).keySet().iterator();
+        for (RangeRequest rr : longRangeSubranges) {
+            RangeRequest crr = it.next().get();
+            assertEquals(crr, rr);
+        }
+    }
+
+    @Test
+    public void testEmptyRange() {
+        RangeRequest emptyRange = rangeFromTo(newByteArray(1,1), newByteArray(1, 1));
+        testRangeIntervalsOk(emptyRange);
+        testRangeMappingsOk(emptyRange);
+        assertTrue(emptyRange.isEmptyRange());
+        assertTrue(tpm.getServicesForRangeRead(TABLE1, emptyRange).isEmpty());
+    }
+
+    @Test
+    public void testFromZero() {
+        RangeRequest fromZero = rangeFromTo(newByteArray(0, 0), newByteArray(0, 5));
+        RangeRequest[] fromZeroDivision = new RangeRequest[] {
+                rangeFromTo(newByteArray(0, 0), newByteArray(0, 2)),
+                rangeFromTo(newByteArray(0, 2), newByteArray(0, 5))
+        };
+        testRangeIntervalsOk(fromZero);
+        testRangeMappingsOk(fromZero);
+        Iterator<ConsistentRingRangeRequest> it = tpm.getServicesForRangeRead(TABLE1, fromZero).keySet().iterator();
+        for (RangeRequest rr : fromZeroDivision) {
+            RangeRequest crr = it.next().get();
+            assertEquals(crr, rr);
+        }
+    }
+
+    @Test
+    public void testNoLowerBound() {
+        RangeRequest noLowerRange = rangeFromTo(newByteArray(), newByteArray(0, 4));
+        RangeRequest[] noLowerDivision = new RangeRequest[] {
+                rangeFromTo(RangeRequests.getFirstRowName(), newByteArray(0, 0)),
+                rangeFromTo(newByteArray(0, 0), newByteArray(0, 2)),
+                rangeFromTo(newByteArray(0, 2), newByteArray(0, 4))
+        };
+        testRangeIntervalsOk(noLowerRange);
+        testRangeMappingsOk(noLowerRange);
+        Iterator<ConsistentRingRangeRequest> it = tpm.getServicesForRangeRead(TABLE1, noLowerRange).keySet().iterator();
+        for (RangeRequest rr : noLowerDivision) {
+            RangeRequest crr = it.next().get();
+            assertEquals(crr, rr);
+        }
+    }
+
+    @Test
+    public void testNoUpperBound() {
+        RangeRequest noUpperBound = rangeFromTo(newByteArray(0, 6), newByteArray());
+        RangeRequest[] noUpperDivision = new RangeRequest[] {
+                rangeFromTo(newByteArray(0, 6), newByteArray(1, 1)),
+                rangeFromTo(newByteArray(1, 1), newByteArray(1, 3)),
+                rangeFromTo(newByteArray(1, 3), newByteArray(1, 7)),
+                rangeFromTo(newByteArray(1, 7), newByteArray(1, 0x0B)),
+                rangeFromTo(newByteArray(1, 0x0B), newByteArray())
+        };
+        testRangeIntervalsOk(noUpperBound);
+        testRangeMappingsOk(noUpperBound);
+        Iterator<ConsistentRingRangeRequest> it = tpm.getServicesForRangeRead(TABLE1, noUpperBound).keySet().iterator();
+        for (RangeRequest rr : noUpperDivision) {
+            RangeRequest crr = it.next().get();
+            assertEquals(rr, crr);
+        }
+    }
+
+    @Test
+    public void testNoBound() {
+        RangeRequest allRange = RangeRequest.all();
+        RangeRequest[] allDivision = new RangeRequest[] {
+                rangeFromTo(newByteArray(0), newByteArray(0, 0)),
+                rangeFromTo(newByteArray(0, 0), newByteArray(0, 2)),
+                rangeFromTo(newByteArray(0, 2), newByteArray(0, 5)),
+                rangeFromTo(newByteArray(0, 5), newByteArray(1, 1)),
+                rangeFromTo(newByteArray(1, 1), newByteArray(1, 3)),
+                rangeFromTo(newByteArray(1, 3), newByteArray(1, 7)),
+                rangeFromTo(newByteArray(1, 7), newByteArray(1, 0x0B)),
+                rangeFromTo(newByteArray(1, 0x0B), newByteArray())
+        };
+        testRangeIntervalsOk(allRange);
+        testRangeMappingsOk(allRange);
+        Iterator<ConsistentRingRangeRequest> it = tpm.getServicesForRangeRead(TABLE1, allRange).keySet().iterator();
+        for (RangeRequest rr : allDivision) {
+            RangeRequest crr = it.next().get();
+            assertEquals(rr, crr);
         }
     }
 
