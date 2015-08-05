@@ -17,7 +17,9 @@ package com.palantir.timestamp;
 
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.MediaType;
 
 @Path("/timestamp")
 public interface TimestampService {
@@ -35,5 +37,6 @@ public interface TimestampService {
      */
     @POST // This has to be POST because we can't allow caching.
     @Path("fresh-timestamps")
+    @Produces(MediaType.APPLICATION_JSON)
     TimestampRange getFreshTimestamps(@QueryParam("number") int numTimestampsRequested);
 }
