@@ -1,0 +1,5 @@
+apply from: "../gradle/shared.gradle"
+
+dependencies {
+  compile 'org.apache.cassandra:cassandra-all:2.1.5'
+}
