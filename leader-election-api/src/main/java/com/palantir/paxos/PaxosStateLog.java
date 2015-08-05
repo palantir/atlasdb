@@ -76,18 +76,14 @@ public interface PaxosStateLog<V extends Persistable & Versionable> {
     public byte[] readRound(long seq) throws IOException;
 
     /**
-     * @return the sequence number of the least known log entry or {@value
-     *         PaxosAcceptor.NO_LOG_ENTRY} if no entry is known
-     * @throws CorruptLogFileException if the round for the given sequence number is corrupted on
-     *         disk
+     * @return the sequence number of the least known log entry or {@value PaxosAcceptor#NO_LOG_ENTRY}
+     * if no entry is known
      */
     public long getLeastLogEntry();
 
     /**
-     * @return the sequence number of the greatest known log entry or {@value
-     *         PaxosAcceptor.NO_LOG_ENTRY} if no entry is known
-     * @throws CorruptLogFileException if the round for the given sequence number is corrupted on
-     *         disk
+     * @return the sequence number of the greatest known log entry or {@value PaxosAcceptor#NO_LOG_ENTRY}
+     * if no entry is known
      */
     public long getGreatestLogEntry();
 

@@ -27,8 +27,6 @@ import com.google.common.base.Preconditions;
  * Note that this class only relays bytes to another {@link OutputStream},
  * and does not perform any buffering or multi-byte character defragmentation.
  *
- * @see AuditLoggingSession.StreamLogger
- *
  * @author dxiao
  */
 public class AuditingOutputStream extends FilterOutputStream {

@@ -68,11 +68,8 @@ public interface RemoteLockService {
      * <code>token</code> parameter. For locks which
      * have been locked multiple times reentrantly, this method decrements the
      * lock hold counts by one.
-     * <p>
-     * Prefer this over {@link #unlock(HeldLocksToken)} because it sends less
-     * data over the wire.
      *
-     * @return <code>true<code> if the locks were unlocked by this call,
+     * @return <code>true</code> if the locks were unlocked by this call,
      *         <code>false</code> if the token was invalid,
      *         either because it was already unlocked, or because it expired or
      *         was converted to a lock grant
@@ -85,10 +82,6 @@ public interface RemoteLockService {
 
     /**
      * Refreshes the given lock tokens.
-     * <p>
-     * This method transfers less data over the wire but does the same work as {@link #refreshTokens(Iterable)}.
-     * {@link HeldLocksToken} objects can be pretty heavyweight because they have a set of locks in them that
-     * can be large.
      *
      * @return the subset of tokens which are still valid after being refreshed.
      */

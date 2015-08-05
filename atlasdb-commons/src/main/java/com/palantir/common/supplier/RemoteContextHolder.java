@@ -26,19 +26,19 @@ import com.palantir.common.concurrent.ExecutorInheritableThreadLocal;
  * This class it used to send {@link ServiceContext}s to remote services.  Any contexts with non-null
  * state will be passed over the wire to the next spring remote call.
  * <p>
- * On the remote side any passed contexts will be available in {@link RemoteAttributeInbox}
+ * On the remote side any passed contexts will be available in {@link RemoteContextHolder#INBOX}
  * <p>
  * The common way to use this class is with {@link PopulateServiceContextProxy}.
  * <p>
  * <pre>
  * ProxyClass remoteProxy = ...;
  * UserToken passThisOverTheWire = ...;
- * ServiceContext<UserToken> context = RemoteContextHolder.OUTBOX.getProviderForKey(USER_TOKEN_CONTEXT_ENUM);
+ * ServiceContext&lt;UserToken&gt; context = RemoteContextHolder.OUTBOX.getProviderForKey(USER_TOKEN_CONTEXT_ENUM);
  * remoteProxy = PopulateServiceContextProxy.newProxyInstanceWithConstantValue(ProxyClass.class, remoteProxy, passThisOverTheWire, context);
  * </pre>
  * <p>
  * <pre>
- * Supplier<UserToken> passToLongLivedService = RemoteContextHolder.INBOX.getProviderForKey(USER_TOKEN_CONTEXT_ENUM);
+ * Supplier&lt;UserToken&gt; passToLongLivedService = RemoteContextHolder.INBOX.getProviderForKey(USER_TOKEN_CONTEXT_ENUM);
  * </pre>
  * @author carrino
  * @see PopulateServiceContextProxy
@@ -88,7 +88,6 @@ public class RemoteContextHolder {
      * <p>
      * {@link RemoteContextHolder#getProviderForKey(Enum)} takes an enum that implements this interface.
      * @see RemoteContextHolder
-     * @see RemoteAttributeInbox
      */
     public interface RemoteContextType<T> {
         Class<T> getValueType();

@@ -31,7 +31,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 
 /**
- * Replacement for when you would normally use Map<T, LockMode>,
+ * Replacement for when you would normally use Map&lt;T, LockMode&gt;,
  * but don't actually need the keys to be a set, or to have random
  * lookup of values.
  */

@@ -17,7 +17,7 @@ package com.palantir.atlasdb.transaction.api;
 
 /**
  * [TO COME: Interface Introduction].
- * >p>
+ * <p>
  * It is important that the {@link TransactionTask} does not modify any of its input state
  * in any non-idempotent way.  If this task gets retried, and if you modified your input, then the
  * second try might not do the right thing.  For example: if you are passed a list of objects

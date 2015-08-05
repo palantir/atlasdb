@@ -24,11 +24,10 @@ import com.palantir.common.base.Throwables;
 
 /**
  * This class only requires two methods {@link #getFirstPage()} and
- * {@link #getNextPage(BasicResultsPage)} to be implmented to make an iterable. Also consider making
- * a {@link BasicResultsPager} and passing it to {@link PagingIterable} to get the same behavior.
+ * {@link #getNextPage(BasicResultsPage)} to be implmented to make an iterable.
  *
- * @param <P>
- * @param <T>
+ * @param <P> page type
+ * @param <T> data type
  *
  * @author carrino
  */

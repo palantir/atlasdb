@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.stream;
 
 import java.io.InputStream;
-import java.util.Map;
 
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.util.Pair;
@@ -35,7 +34,7 @@ public interface PersistentStreamStore extends GenericStreamStore<Long> {
      * does reference counting.  Any streams that are unreferenced will be garbage collected.
      * <p>
      * When the stream id is returned, it should be stored in some cell with the reference
-     * so that when the reference is deleted, {@link #removeStreamsAsUsed(Map)} can be called.
+     * so that when the reference is deleted, {@link #unmarkStreamAsUsed(Transaction, long, byte[])} can be called.
      * <p>
      * This takes a transaction and marks this stream as used once it is stored. The downside is that
      * This transaction must be open for the whole time it takes to store this stream so it can't be used
@@ -48,7 +47,7 @@ public interface PersistentStreamStore extends GenericStreamStore<Long> {
     void markStreamAsUsed(Transaction t, long streamId, byte[] reference) throws StreamCleanedException;
 
     /**
-     * This removes the index references from streamId -> reference and deletes streams with no remaining references.
+     * This removes the index references from streamId -&gt; reference and deletes streams with no remaining references.
      */
     void unmarkStreamAsUsed(Transaction t, long streamId, byte[] reference);
 

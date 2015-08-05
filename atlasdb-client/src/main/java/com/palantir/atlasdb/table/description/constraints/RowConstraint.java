@@ -43,7 +43,7 @@ package com.palantir.atlasdb.table.description.constraints;
  * If I add a rowConstraint like: .addRowConstraint(RowConstraintMetadata.builder(SomeConstraint.class)
  *                                                  .addRowVariables("realm_id")
  *                                                  .addColumnVariables("data_event_id", TableRenderer.DYNAMIC_COLUMN_VALUE_VARIABLE)),
- * then the method signature should look like: public static boolean validate(long realmId, List<Long> dataEventIds, List<LinkChangeSet> linkChangeSets).
+ * then the method signature should look like: public static boolean validate(long realmId, List&lt;Long&gt; dataEventIds, List&lt;LinkChangeSet&gt; linkChangeSets).
  *
  */
 public interface RowConstraint extends Constraint{

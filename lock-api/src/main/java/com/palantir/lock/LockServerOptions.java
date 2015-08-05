@@ -43,9 +43,7 @@ import com.google.common.base.Objects;
     /**
      * Returns <code>true</code> if this is a standalone lock server or
      * <code>false</code> if the lock server code is running in-process with the only
-     * client accessing it. If this is a standalone server, then the
-     * {@link ServerStartupDelayManager} is activated. The default value is
-     * <code>true</code>.
+     * client accessing it.
      */
     public boolean isStandaloneServer() {
         return true;

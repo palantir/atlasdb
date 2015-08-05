@@ -26,8 +26,12 @@ import com.palantir.common.proxy.TimingProxy;
 import com.palantir.util.jmx.OperationTimer;
 import com.palantir.util.timer.LoggingOperationTimer;
 
+/**
+ * This uses smart batching to queue up requests and send them all as one larger batch.
+ * @author carrino
+ */
 @ThreadSafe
-class RateLimitedTimestampService implements TimestampService {
+public class RateLimitedTimestampService implements TimestampService {
     private final static OperationTimer timer = LoggingOperationTimer.create(RateLimitedTimestampService.class);
 
     @GuardedBy("this")
@@ -38,7 +42,7 @@ class RateLimitedTimestampService implements TimestampService {
 
     private volatile TimestampHolder currentBatch = new TimestampHolder();
 
-    protected RateLimitedTimestampService(TimestampService delegate, long minTimeBetweenRequestsMillis) {
+    public RateLimitedTimestampService(TimestampService delegate, long minTimeBetweenRequestsMillis) {
         this.delegate = TimingProxy.newProxyInstance(TimestampService.class, delegate, timer);
         this.minTimeBetweenRequestsMillis = minTimeBetweenRequestsMillis;
     }

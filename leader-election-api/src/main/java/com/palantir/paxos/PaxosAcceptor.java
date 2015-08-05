@@ -33,7 +33,6 @@ public interface PaxosAcceptor {
      * @param seq the number identifying this instance of paxos
      * @param pid the proposal to prepare for
      * @return a paxos promise not to accept lower numbered proposals
-     * @throws TruncatedStateLogException seq-th round has been truncated from the state logs
      */
     @POST
     @Path("prepare/{seq}")
@@ -47,7 +46,6 @@ public interface PaxosAcceptor {
      * @param seq the number identifying this instance of paxos
      * @param proposal the proposal in question
      * @return a paxos message indicating if the proposal was accepted or rejected
-     * @throws TruncatedStateLogException seq-th round has been truncated from the state logs
      */
     @POST
     @Path("accept/{seq}")

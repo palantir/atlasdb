@@ -27,8 +27,6 @@ import com.google.common.base.Supplier;
  * <p>
  * The context should be set before the service that consumes it is invoked.  The best way to ensure this is to wrap
  * it in a {@link PopulateServiceContextProxy}
- *
- * @see SupplierProxy for services that aren't set up to take a ServiceContext
  */
 public interface ServiceContext<T> extends Supplier<T> {
     /**

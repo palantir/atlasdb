@@ -472,7 +472,7 @@ public class BatchingVisitables {
 
     /**
      * This will wrap the passed visitor and return a more generic type.  Since Visitables just produce values,
-     * their type can be made more generic because a Visitable<Long> can safely be cast to a Visitable<Object>.
+     * their type can be made more generic because a Visitable&lt;Long&gt; can safely be cast to a Visitable&lt;Object&gt;.
      *
      * @see BatchingVisitableView for more helper methods
      */

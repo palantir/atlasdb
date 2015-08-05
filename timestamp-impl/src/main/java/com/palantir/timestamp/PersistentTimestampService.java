@@ -32,7 +32,7 @@ import com.palantir.common.time.Clock;
 import com.palantir.exception.PalantirInterruptedException;
 
 @ThreadSafe
-final class PersistentTimestampService implements TimestampService {
+public class PersistentTimestampService implements TimestampService {
     private static final Logger log = LoggerFactory.getLogger(PersistentTimestampService.class);
 
     private static final int MAX_REQUEST_RANGE_SIZE = 10 * 1000;
@@ -50,7 +50,7 @@ final class PersistentTimestampService implements TimestampService {
     private Clock clock;
     private long lastAllocatedTime;
 
-    protected static TimestampService create(TimestampBoundStore tbs) {
+    public static TimestampService create(TimestampBoundStore tbs) {
         PersistentTimestampService ts = new PersistentTimestampService(
                 tbs,
                 tbs.getUpperLimit(),

@@ -45,7 +45,7 @@ public interface Transaction {
      *
      * @param tableName the table to scan
      * @param rangeRequest the range of rows and columns to scan
-     * @return an array of <codeRowResult</code> objects representing the range
+     * @return an array of <code>RowResult</code> objects representing the range
      */
     @Idempotent
     BatchingVisitable<RowResult<byte[]>> getRange(String tableName, RangeRequest rangeRequest);
@@ -72,7 +72,7 @@ public interface Transaction {
 
     /**
      * Deletes values from the key-value store.
-     * @param the table from which to delete the values
+     * @param tableName the table from which to delete the values
      * @param keys the set of cells to delete from the store
      */
     @Idempotent
@@ -107,7 +107,7 @@ public interface Transaction {
     /**
      * Aborts the transaction. Can be called repeatedly.
      * <p>
-     * Cannot be called after a call to {@link #commit()}. Check {@link #isCommitted()} to be sure.
+     * Cannot be called after a call to {@link #commit()}. Check {@link #isUncommitted()} to be sure.
      */
     @Idempotent
     void abort();
@@ -139,7 +139,7 @@ public interface Transaction {
     boolean isAborted();
 
     /**
-     * @return <code>true</code> if either <code>commit()</code> or <code>abort()</code> has been called, otherwise <code>false</code>
+     * @return <code>true</code> if neither <code>commit()</code> or <code>abort()</code> have been called, otherwise <code>false</code>
      */
     @Idempotent
     boolean isUncommitted();

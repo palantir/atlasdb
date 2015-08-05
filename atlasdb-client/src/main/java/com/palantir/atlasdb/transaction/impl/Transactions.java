@@ -56,8 +56,7 @@ public class Transactions {
     }
 
     /**
-     * An empty byte array is the same as a deleted value when writing to tables using
-     * {@link #Transaction}
+     * An empty byte array is the same as a deleted value when writing to tables using {@link Transaction}
      */
     public static boolean cellValuesEqual(byte[] v1, byte[] v2) {
         boolean v1Empty = v1 == null || v1.length == 0;

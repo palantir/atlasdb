@@ -23,8 +23,6 @@ import java.io.PrintStream;
 import java.util.List;
 import java.util.Set;
 
-import javax.script.ScriptException;
-
 import org.jruby.Ruby;
 import org.jruby.RubyModule;
 import org.jruby.RubyString;
@@ -87,7 +85,6 @@ final public class AtlasShellRuby {
     /**
      * Start a Ruby interpreter for non-interactive use, i.e. not running IRB, just the scriptlet
      *
-     * @param atlasShellConnectionFactory will be bound inside ruby and used to make connections
      * @param scriptlet initial scriptlet to execute
      * @param inputStream stdin
      * @param outputStream stdout
@@ -301,8 +298,6 @@ final public class AtlasShellRuby {
      * @param method name of the method
      * @param args arguments to pass
      * @return whatever the Ruby method returned
-     * @throws NoSuchMethodException if the method is not found
-     * @throws ScriptException if a Ruby exception happened along the way
      */
     public Object call(Object object, String method, Object[] args) {
         return scriptingContainer.callMethod(object, method, args);

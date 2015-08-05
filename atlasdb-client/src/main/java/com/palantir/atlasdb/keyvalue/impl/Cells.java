@@ -17,7 +17,6 @@ package com.palantir.atlasdb.keyvalue.impl;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -28,13 +27,11 @@ import java.util.SortedSet;
 
 import javax.annotation.Nullable;
 
-import org.apache.commons.lang.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
 import com.google.common.collect.AbstractIterator;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import com.google.common.collect.PeekingIterator;
@@ -50,7 +47,6 @@ import com.palantir.atlasdb.transaction.api.TransactionConflictException.CellCon
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.collect.IterableView;
-import com.palantir.util.Pair;
 
 public class Cells {
     private static final Logger log = LoggerFactory.getLogger(Cells.class);
@@ -180,94 +176,6 @@ public class Cells {
             ret.put(k, v);
         }
         return ret;
-    }
-
-    //TODO: carrino: move this to IteratorUtils
-    /**
-     * The iterators provided to this function have to be sorted and strictly increasing.
-     * @deprecated
-     * @see
-     */
-    @Deprecated
-    public static <T> Iterator<T> mergeIterators(Iterator<? extends T> one, Iterator<? extends T> two,
-            final Comparator<? super T> ordering, final Function<? super Pair<T, T>, ? extends T> mergeFunction) {
-        Validate.notNull(mergeFunction);
-        Validate.notNull(ordering);
-        final PeekingIterator<T> a = Iterators.peekingIterator(one);
-        final PeekingIterator<T> b = Iterators.peekingIterator(two);
-        return new AbstractIterator<T>() {
-            @Override
-            protected T computeNext() {
-                if (!a.hasNext() && !b.hasNext()) {
-                    return endOfData();
-                }
-                if (!a.hasNext()) {
-                    T ret =  b.next();
-                    if (b.hasNext()) {
-                        assert ordering.compare(ret, b.peek()) < 0;
-                    }
-                    return ret;
-                }
-                if (!b.hasNext()) {
-                    T ret =  a.next();
-                    if (a.hasNext()) {
-                        assert ordering.compare(ret, a.peek()) < 0;
-                    }
-                    return ret;
-                }
-                T peekA = a.peek();
-                T peekB = b.peek();
-                int comp = ordering.compare(peekA, peekB);
-                if (comp == 0) {
-                    return mergeFunction.apply(Pair.create(a.next(), b.next()));
-                } else if (comp < 0) {
-                    T ret =  a.next();
-                    if (a.hasNext()) {
-                        assert ordering.compare(ret, a.peek()) < 0;
-                    }
-                    return ret;
-                } else {
-                    T ret =  b.next();
-                    if (b.hasNext()) {
-                        assert ordering.compare(ret, b.peek()) < 0;
-                    }
-                    return ret;
-                }
-            }
-        };
-    }
-
-    //TODO: carrino: move this to IterableUtils
-    public static <T> Iterable<T> wrapIterable(final Iterable<T> it, final Function<Iterator<T>, Iterator<T>> f) {
-        return new Iterable<T>() {
-            @Override
-            public Iterator<T> iterator() {
-                return f.apply(it.iterator());
-            }
-            @Override
-            public String toString() {
-                return Iterables.toString(this);
-            }
-        };
-    }
-
-    //TODO: carrino: move this to IterableUtils
-    public static <T> Iterable<T> mergeIterables(final Iterable<? extends T> one, final Iterable<? extends T> two,
-            final Comparator<? super T> ordering, final Function<? super Pair<T, T>, ? extends T> mergeFunction) {
-        Validate.notNull(one);
-        Validate.notNull(two);
-        Validate.notNull(mergeFunction);
-        Validate.notNull(ordering);
-        return new Iterable<T>() {
-            @Override
-            public Iterator<T> iterator() {
-                return mergeIterators(one.iterator(), two.iterator(), ordering, mergeFunction);
-            }
-            @Override
-            public String toString() {
-                return Iterables.toString(this);
-            }
-        };
     }
 
     public static long getApproxSizeOfCell(Cell cell) {

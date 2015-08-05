@@ -20,7 +20,7 @@ import com.palantir.common.supplier.RemoteContextHolder;
 /**
  * A static method to return a proxy which simulates a remote server. The
  * returned proxy is a combination of {@link SerializingProxy},
- * {@link DifferentThreadProxy}, and {@link DelayProxy}.
+ * {@link InterruptibleProxy}, and {@link DelayProxy}.
  *
  * @author jtamer
  */

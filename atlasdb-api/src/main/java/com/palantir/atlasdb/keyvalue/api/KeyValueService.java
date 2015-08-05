@@ -94,7 +94,7 @@ public interface KeyValueService {
      * Gets timestamp values from the key-value store.
      *
      * @param tableName the name of the table to retrieve values from.
-     * @param cells map containing the cells to retrieve timestamps for. The map
+     * @param timestampByCell map containing the cells to retrieve timestamps for. The map
      *        specifies, for each key, the maximum timestamp (exclusive) at which to
      *        retrieve that key's value.
      * @return map of retrieved values. cells which do not exist (either
@@ -119,9 +119,9 @@ public interface KeyValueService {
      * Usually the way around this is to bump the timestamp if you wish to retry.
      * <p>
      * Putting a null value is the same as putting the empty byte[].  If you want to delete a value
-     * try {@link #delete(String, Map)}.
+     * try {@link #delete(String, Multimap)}.
      *
-     * This method should NEVER write a value if timestamp <= gc_ts. This means that the
+     * This method should NEVER write a value if timestamp &lt;= gc_ts. This means that the
      * checkAndAct must be atomic.
      *
      * May throw KeyAlreadyExistsException, but this is not guaranteed even if the key exists - see {@link putUnlessExists}.
@@ -145,9 +145,9 @@ public interface KeyValueService {
      * Usually the way around this is to bump the timestamp if you wish to retry.
      * <p>
      * Putting a null value is the same as putting the empty byte[].  If you want to delete a value
-     * try {@link #delete(String, Map)}.
+     * try {@link #delete(String, Multimap)}.
      *
-     * This method should NEVER write a value if timestamp <= gc_ts. This means that the
+     * This method should NEVER write a value if timestamp &lt;= gc_ts. This means that the
      * checkAndAct must be atomic.
      *
      * May throw KeyAlreadyExistsException, but this is not guaranteed even if the key exists - see {@link #putUnlessExists(String, Map)}.
@@ -170,7 +170,7 @@ public interface KeyValueService {
      * call may result in failure. The way around this is to delete and retry.
      * <p>
      * Putting a null value is the same as putting the empty byte[].  If you want to delete a value
-     * try {@link #delete(String, Map)}.
+     * try {@link #delete(String, Multimap)}.
      *
      * May throw KeyAlreadyExistsException, but this is not guaranteed even if the key exists - see {@link #putUnlessExists(String, Map)}.
      *
@@ -198,7 +198,7 @@ public interface KeyValueService {
      * {@link KeyAlreadyExistsException} are not thrown spuriously.
      *
      * @param tableName the name of the table to put values into.
-     * @param puts map containing the key-value entries to put.
+     * @param values map containing the key-value entries to put.
      * @throws KeyAlreadyExistsException If you are putting a Cell with the same timestamp as
      *                                      one that already exists.
      */
@@ -249,7 +249,7 @@ public interface KeyValueService {
      * <p>
      * This can be slightly faster than truncating a single table.
      *
-     * @param tableName the name of the table to truncate.
+     * @param tableNames the name of the tables to truncate.
      *
      * @throws InsufficientConsistencyException if not all hosts respond successfully
      */
@@ -290,7 +290,7 @@ public interface KeyValueService {
 
     /**
      * Gets timestamp values from the key-value store. For each row, this returns all associated
-     * timestamps < given_ts.
+     * timestamps &lt; given_ts.
      * <p>
      * This method has stronger consistency guarantees than regular read requests. This must return
      * all timestamps stored anywhere in the system. An example of where this could happen is if we
@@ -353,8 +353,7 @@ public interface KeyValueService {
      * Creates many tables in idempotent fashion. If you are making many tables at once,
      * use this call as the implementation can be much faster on some distributed KVSs.
      *
-     * @param tableName
-     * @param maxValueSizeInBytes This may be used by the key value store to
+     * @param tableNamesToMaxValueSizeInBytes This may be used by the key value store to
      *        throw if a value is too big. It may also be used by the store as a
      *        hint for small values so we can cache them more effectively in memory.
      */
@@ -389,7 +388,7 @@ public interface KeyValueService {
 
     /**
      * Gets timestamp values from the key-value store. For each cell, this returns all associated
-     * timestamps < given_ts.
+     * timestamps &lt; given_ts.
      * <p>
      * This method has stronger consistency guarantees than regular read requests. This must return
      * all timestamps stored anywhere in the system. An example of where this could happen is if we

@@ -124,7 +124,7 @@ public class IndexDefinition extends AbstractDefinition {
 
     /**
      * Allows multiple index rows when indexing by a cell with iterable values.
-     * It doesn't support arbitrary protobuf structures - you need to be able to extract an iterable<valueType> using codeToAccessValue.
+     * It doesn't support arbitrary protobuf structures - you need to be able to extract an iterable&lt;valueType&gt; using codeToAccessValue.
      */
     public void componentFromIterableColumn(String componentName, ValueType valueType, ValueByteOrder valueByteOrder, String sourceColumnName, String codeToAccessValue) {
         addComponent(IndexComponent.createIterableFromColumn(new NameComponentDescription(componentName, valueType, valueByteOrder), sourceColumnName, codeToAccessValue));

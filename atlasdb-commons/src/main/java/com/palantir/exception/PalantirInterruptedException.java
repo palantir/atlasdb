@@ -15,16 +15,17 @@
  */
 package com.palantir.exception;
 
+import com.palantir.common.base.Throwables;
 import com.palantir.common.exception.PalantirRuntimeException;
 
-/**InterruptedExceptions are now thrown out of SQL calls. Generally speaking, we just want to propagate them.
- * Having a whole bunch of 'throws' and 'catch throws' is ugly & unnecessary (since in theory, code where an exception can
- * mess up data integrity in the db should be wrapped in a transaction).
- * <p>
+/**
  * The contract for {@link InterruptedException} states that if you don't handle the interrupt you
  * should either drop the interrupt flag on the thread or rethrow an {@link InterruptedException}.
  * If a {@link PalantirInterruptedException} is thrown instead of an {@link InterruptedException}
  * we should leave the interrupt flag set on the current thread to obey this contract.
+ * <p>
+ * This class should not be used directly, but is meant to be wrapped by
+ * {@link Throwables#throwUncheckedException(Throwable)}
  */
 public class PalantirInterruptedException extends PalantirRuntimeException {
     private static final long serialVersionUID = 1L;

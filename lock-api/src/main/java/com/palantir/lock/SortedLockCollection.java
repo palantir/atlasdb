@@ -23,7 +23,7 @@ import java.util.Set;
 import com.google.common.collect.Iterables;
 
 /**
- * Replacement for when you would normally use SortedMap<T, LockMode>,
+ * Replacement for when you would normally use SortedMap&lt;T, LockMode&gt;,
  * but don't actually need the keys to be a set, or to have random
  * lookup of values.
  */

@@ -187,13 +187,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      * @param lockService
      * @param timestampService
      * @param startTimeStamp
-     * @param tablesToWriteWrite only detect write/write conflicts for these tables
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to
      *                           grab a read lock for it because we know that no writers exist.
      * @param tokensValidForCommit These tokens need to be valid with {@link #lockService} for this transaction
      *                             to commit.  If these locks have expired then the commit will fail.
      * @param transactionTimeoutMillis
-     * @param constraintCheckingEnabled
      */
     public SnapshotTransaction(KeyValueService keyValueService,
                                RemoteLockService lockService,
@@ -909,9 +907,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     /**
      * This is protected to allow for different post filter behavior.
-     * @param keysToDeleteAndRollback for each entry added to this map the key will be deleted and the transaction with
-     * the value will be rolled back
-     * rollback happens
      */
     protected boolean shouldDeleteAndRollback() {
         Validate.notNull(lockService, "if we don't have a valid lock server we can't roll back transactions");

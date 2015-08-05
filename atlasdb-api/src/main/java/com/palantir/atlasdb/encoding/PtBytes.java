@@ -145,7 +145,7 @@ public final class PtBytes {
     }
 
     /**
-     * @return 0 if equal, < 0 if left is less than right, etc.
+     * @return 0 if equal, &lt; 0 if left is less than right, etc.
      */
     public static int compareTo(final byte[] left, final byte[] right) {
         return UnsignedBytes.lexicographicalComparator().compare(left, right);

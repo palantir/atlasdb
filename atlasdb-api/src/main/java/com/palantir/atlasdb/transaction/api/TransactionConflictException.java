@@ -17,6 +17,7 @@ package com.palantir.atlasdb.transaction.api;
 
 import java.io.Serializable;
 import java.util.Collection;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 
@@ -26,8 +27,8 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 
 /**
  * Thrown if there is a conflict detected when a transaction is committed.
- * If two concurrent transactions make calls to {@link #put(String, java.util.Map)} or
- * {@link #delete(String, java.util.Set)} for the same <code>Cell</code>, then this is a write-write conflict.
+ * If two concurrent transactions make calls to {@link Transaction#put(String, java.util.Map)} or
+ * {@link Transaction#delete(String, Set)} for the same <code>Cell</code>, then this is a write-write conflict.
  * <p>
  * The error message should be detailed about what caused the failure and what other transaction
  * conflicted with this one.

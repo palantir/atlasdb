@@ -33,7 +33,7 @@ public interface LockAwareTransactionManager extends TransactionManager {
                                                          LockAwareTransactionTask<T, E> task) throws E, InterruptedException, LockAcquisitionException;
 
     /**
-     * This method is the same as {@link #runTaskWithLocksWithRetry(Supplier, TransactionTask)}
+     * This method is the same as {@link #runTaskWithLocksWithRetry(Supplier, LockAwareTransactionTask)}
      * but it will also ensure that the existing lock tokens passed are still valid before committing.
      * <p>
      * @throws LockAcquisitionException If the supplied lock request is not successfully acquired.

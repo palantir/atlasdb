@@ -36,7 +36,7 @@ public interface LeaderElectionService {
     /**
      * This method will block until this node becomes the leader and is supported by a quorum of nodes.
      *
-     * @returns a leadership token to be used with {@link #isStillLeading}
+     * @return a leadership token to be used with {@link #isStillLeading}
      * @throws InterruptedException
      */
     LeadershipToken blockOnBecomingLeader() throws InterruptedException;
@@ -47,7 +47,7 @@ public interface LeaderElectionService {
      * may not respond to requests and must get back in line by calling {@link #blockOnBecomingLeader()}.
      *
      * @param token leadership token
-     * @returns LEADING if the token is still the leader.
+     * @return LEADING if the token is still the leader.
      */
     StillLeadingStatus isStillLeading(LeadershipToken token);
 }

@@ -19,7 +19,6 @@ import java.awt.GraphicsEnvironment;
 import java.awt.HeadlessException;
 import java.io.File;
 
-import javax.script.ScriptException;
 import javax.swing.SwingUtilities;
 
 import com.palantir.atlasdb.shell.audit.AuditLoggingConnection;
@@ -58,7 +57,6 @@ public class AtlasShellRun {
      * Run the terminal version
      *
      * @param scriptlet run this initialization Ruby code
-     * @throws ScriptException
      */
     @SuppressWarnings("deprecation")
     public void runHeadless(String scriptlet) {

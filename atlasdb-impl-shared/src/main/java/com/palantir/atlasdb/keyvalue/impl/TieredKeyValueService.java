@@ -106,7 +106,7 @@ public class TieredKeyValueService implements KeyValueService {
     /**
      * Returns the secondary key value service.
      * <p>
-     * The secondary tier is only written to by {@link TieredKvsMover} during batch operations
+     * The secondary tier is only written to by TieredKvsMover during batch operations
      * that move the contents of tiered tables from the primary tier to the secondary tier.
      */
     public KeyValueService getSecondaryTier() {

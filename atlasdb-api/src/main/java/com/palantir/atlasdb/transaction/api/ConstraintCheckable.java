@@ -37,7 +37,7 @@ public interface ConstraintCheckable {
      * information for constraint checking is given in writes. For dynamic tables, any constraint between
      * columns of a single row will probably require writes to have all columns for each given row. This
      * is intended to be used for garbage collection (where all values are being read).
-     * @param writes
+     * @param reads
      * @param constraintCheckingMode
      * @return
      */

@@ -30,21 +30,21 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
  */
 public interface Cleaner extends Closeable {
     /**
-     * @param tableNameToCells Cells that were touched as part of the hard delete transaction
+     * @param tableNameToCell Cells that were touched as part of the hard delete transaction
      * @param scrubTimestamp The start timestamp of the hard delete transaction whose
      *        cells need to be scrubbed; at the time queueCellsForScrubbing is called,
      *        the hard delete transaction will be in the process of committing
-     * @throws exceptions are simply propagated up if something goes wrong.
+     * @throws RuntimeException are simply propagated up if something goes wrong.
      */
     void queueCellsForScrubbing(Multimap<String, Cell> tableNameToCell,
                                 long scrubTimestamp);
 
     /**
-     * @param tableNameToCells Cells to be scrubbed immediately
+     * @param tableNameToCell Cells to be scrubbed immediately
      * @param scrubTimestamp The start timestamp of the hard delete transaction whose
      *        cells need to be scrubbed; at the time scrubImmediately is called, the
      *        hard delete transaction will have just committed
-     * @throws exceptions are simply propagated up if something goes wrong.
+     * @throws RuntimeException are simply propagated up if something goes wrong.
      */
     void scrubImmediately(TransactionManager txManager,
                           Multimap<String, Cell> tableNameToCell,
