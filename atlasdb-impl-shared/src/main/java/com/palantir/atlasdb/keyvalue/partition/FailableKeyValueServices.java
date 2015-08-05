@@ -4,6 +4,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Random;
 import java.util.Set;
 
@@ -46,11 +47,13 @@ public class FailableKeyValueServices {
     }
 
     public static boolean isReadMethod(Method method) {
-        return !isMetaMethod(method) && method.getName().startsWith("get") && !method.getName().startsWith("getAllTimestamps");
+        return !isMetaMethod(method) && method.getName().startsWith("get")
+                && !method.getName().startsWith("getAllTimestamps");
     }
 
     public static boolean isWriteMethod(Method method) {
-        return !isMetaMethod(method) && (method.getName().startsWith("put") || method.getName().startsWith("multiPut"));
+        return !isMetaMethod(method)
+                && (method.getName().startsWith("put") || method.getName().startsWith("multiPut"));
     }
 
     static class ShutdownClassProxy implements DelegatingInvocationHandler {
@@ -61,6 +64,9 @@ public class FailableKeyValueServices {
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
             if (isWriteMethod(method) || isReadMethod(method)) {
+                if (!enabler.enabled()) {
+                    log.warn("Failing for method " + method.getName() + " at service " + delegate);
+                }
                 Preconditions.checkState(enabler.enabled());
             }
             return method.invoke(delegate, args);
@@ -118,11 +124,14 @@ public class FailableKeyValueServices {
         Set<KeyValueService> rawSvcs = Sets.newHashSet();
         QuorumParameters quorumParameters = new QuorumParameters(5, 3, 3);
         for (int i = 0; i < 5; ++i) {
-            FailableKeyValueService fkvs = FailableKeyValueServices.wrap(new InMemoryKeyValueService(false));
+            FailableKeyValueService fkvs = FailableKeyValueServices.wrap(new InMemoryKeyValueService(
+                    false));
             svcs.add(fkvs);
             rawSvcs.add(fkvs.get());
         }
-        PartitionedKeyValueService parition = PartitionedKeyValueService.create(rawSvcs, quorumParameters);
+        PartitionedKeyValueService parition = PartitionedKeyValueService.create(
+                rawSvcs,
+                quorumParameters);
         return ShutdownNodesProxy.newProxyInstance(parition, svcs, quorumParameters);
     }
 
@@ -152,7 +161,7 @@ public class FailableKeyValueServices {
         }
 
         @Override
-        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+        public synchronized Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
             try {
                 boolean isWrite = FailableKeyValueServices.isWriteMethod(method);
                 boolean isRead = FailableKeyValueServices.isReadMethod(method);
@@ -166,13 +175,13 @@ public class FailableKeyValueServices {
                     parameters = quorumParameters.getReadRequestParameters();
                 }
 
-                log.warn("Shutting down services for method " + method.getName());
-
                 Set<FailableKeyValueService> servicesToFail = Sets.newHashSet();
                 while (servicesToFail.size() < parameters.getFailureFactor() - 1) {
                     int index = random.nextInt(services.size());
                     servicesToFail.add(services.get(index));
                 }
+                log.warn("Shutting down services for method " + method.getName() + " : "
+                        + Arrays.toString(servicesToFail.toArray()));
                 for (FailableKeyValueService fkvs : servicesToFail) {
                     fkvs.shutdown();
                 }

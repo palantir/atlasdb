@@ -3,12 +3,12 @@ package com.palantir.atlasdb.keyvalue.impl.partition;
 import java.util.Random;
 import java.util.Set;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.AbstractAtlasDbKeyValueServiceTest;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.FailableKeyValueService;
+import com.palantir.atlasdb.keyvalue.partition.FailableKeyValueServices;
 import com.palantir.atlasdb.keyvalue.partition.PartitionedKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.QuorumParameters;
 
@@ -45,17 +45,20 @@ public class AvailabilityTest extends AbstractAtlasDbKeyValueServiceTest {
 
     private void createServices() {
         for (int i = 0; i < NUM_SERVICES; ++i) {
-            FailableKeyValueService service = FailableKeyValueService.wrap(new InMemoryKeyValueService(
+            FailableKeyValueService service = FailableKeyValueServices.wrap(new InMemoryKeyValueService(
                     false));
             services[i] = service;
         }
         Set<? extends Integer> brokenServices = generateBrokenServices();
         for (Integer i : brokenServices) {
-            services[i].setBrokenRead(true);
-            services[i].setBrokenWrite(true);
+//            services[i].shutdown();
+        }
+        Set<KeyValueService> rawServices = Sets.newHashSet();
+        for (FailableKeyValueService fkvs : services) {
+            rawServices.add(fkvs.get());
         }
         kvs = PartitionedKeyValueService.create(
-                ImmutableSet.<FailableKeyValueService> copyOf(services),
+                rawServices,
                 new QuorumParameters(5, 3, 3));
     }
 
