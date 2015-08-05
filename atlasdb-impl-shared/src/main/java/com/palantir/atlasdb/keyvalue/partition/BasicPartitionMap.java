@@ -103,9 +103,6 @@ public final class BasicPartitionMap implements PartitionMap {
             byte[] rangeEnd = ring.higherKey(rangeStart);
             if (rangeEnd == null || !range.inRange(rangeEnd)) {
                 rangeEnd = range.getEndExclusive();
-                if (rangeEnd.length == 0) {
-                    rangeEnd = RangeRequests.getLastRowName();
-                }
             }
 
             ConsistentRingRangeRequest crrr = ConsistentRingRangeRequest.of(RangeRequest.builder(
