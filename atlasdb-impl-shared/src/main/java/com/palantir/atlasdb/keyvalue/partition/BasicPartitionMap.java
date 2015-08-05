@@ -67,7 +67,7 @@ public final class BasicPartitionMap implements PartitionMap {
         Set<KeyValueService> result = Sets.newHashSet();
         Set<String> racks = Sets.newHashSet();
         byte[] point = key;
-        while (result.size() < quorumParameters.getReadFactor()) {
+        while (result.size() < quorumParameters.getReplicationFactor()) {
             point = ring.nextKey(point);
             KeyValueService kvs = ring.get(point);
             String rack = rackByKvs.get(kvs);
@@ -76,6 +76,7 @@ public final class BasicPartitionMap implements PartitionMap {
                 racks.add(rack);
             }
         }
+        assert result.size() == quorumParameters.getReplicationFactor();
         return result;
     }
 
@@ -189,6 +190,7 @@ public final class BasicPartitionMap implements PartitionMap {
                 result.get(kvs).put(e.getKey(), e.getValue());
             }
         }
+        assert result.keySet().size() >= quorumParameters.getReplicationFactor();
         return result;
     }
 
