@@ -45,7 +45,7 @@ public abstract class PartitionedRangedIterator<T> implements ClosableIterator<R
 
     @Override
     public final boolean hasNext() {
-        if (!getRowIterator().hasNext() && currentRange.hasNext()) {
+        while (!getRowIterator().hasNext() && currentRange.hasNext()) {
             prepareNextRange();
         }
         return getRowIterator().hasNext();
