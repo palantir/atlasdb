@@ -55,7 +55,7 @@ public final class BasicPartitionMap implements PartitionMap {
         Map<KeyValueService, String> rackByKvs = Maps.newHashMap();
         // Assume each kvs to be in separate rack if no info is available.
         for (KeyValueService kvs : ImmutableSet.<KeyValueService> builder().addAll(ring.values()).build()) {
-            rackByKvs.put(kvs, new Integer(kvs.hashCode()).toString());
+            rackByKvs.put(kvs, "" + kvs.hashCode());
         }
         return create(quorumParameters, ring, rackByKvs);
     }
