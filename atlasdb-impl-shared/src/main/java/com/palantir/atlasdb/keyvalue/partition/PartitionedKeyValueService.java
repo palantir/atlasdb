@@ -1,8 +1,10 @@
 package com.palantir.atlasdb.keyvalue.partition;
 
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.NavigableMap;
+import java.util.NavigableSet;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -16,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
+import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
@@ -50,19 +53,51 @@ public class PartitionedKeyValueService implements KeyValueService {
     private final QuorumParameters quorumParameters;
     private final ExecutorService executor;
 
-    private PartitionedKeyValueService(NavigableMap<byte[], KeyValueService> ring,
-                                       ExecutorService executor,
-                                       QuorumParameters quorumParameters) {
-        this.partitionMap = BasicPartitionMap.create(quorumParameters, ring);
-        this.executor = executor;
-        this.quorumParameters = quorumParameters;
+    <TrackingUnit, FutureReturnType> void completeRequest(QuorumTracker<FutureReturnType, TrackingUnit> tracker,
+                                                          ExecutorCompletionService<FutureReturnType> execSvc,
+                                                          Function<FutureReturnType, Void> mergeFunction) {
+        try {
+            // Wait until we can conclude success or failure
+            while (!tracker.finished()) {
+                Future<FutureReturnType> future = execSvc.take();
+                try {
+                    FutureReturnType result = future.get();
+                    mergeFunction.apply(result);
+                    tracker.handleSuccess(future);
+                } catch (ExecutionException e) {
+                    tracker.handleFailure(future);
+                    // Check if the failure is fatal
+                    if (tracker.failed()) {
+                        Throwables.rewrapAndThrowUncheckedException(e.getCause());
+                    }
+                }
+            }
+        } catch (InterruptedException e) {
+            throw Throwables.throwUncheckedException(e);
+        }
     }
 
-    @Override
-    public void initializeFromFreshInstance() {
-        partitionMap.initializeFromFreshInstance();
+    <TrackingUnit, FutureReturnType> void completeReadRequest(QuorumTracker<FutureReturnType, TrackingUnit> tracker,
+                                                              ExecutorCompletionService<FutureReturnType> execSvc,
+                                                              Function<FutureReturnType, Void> mergeFunction) {
+        try {
+            completeRequest(tracker, execSvc, mergeFunction);
+        } finally {
+            tracker.cancel(true);
+        }
     }
 
+    <TrackingUnit> void completeWriteRequest(QuorumTracker<Void, TrackingUnit> tracker,
+                                             ExecutorCompletionService<Void> execSvc) {
+
+        try {
+            completeRequest(tracker, execSvc, Functions.<Void> identity());
+        } catch (RuntimeException e) {
+            tracker.cancel(true);
+        }
+    }
+
+    // *** Read requests *************************************************************************
     @Override
     @Idempotent
     public Map<Cell, Value> getRows(final String tableName,
@@ -72,7 +107,7 @@ public class PartitionedKeyValueService implements KeyValueService {
         final Map<Cell, Value> overallResult = Maps.newHashMap();
         final ExecutorCompletionService<Map<Cell, Value>> execSvc = new ExecutorCompletionService<Map<Cell, Value>>(
                 executor);
-        final Map<KeyValueService, ? extends Iterable<byte[]>> tasks = partitionMap.getServicesForRowsRead(
+        final Map<KeyValueService, NavigableSet<byte[]>> tasks = partitionMap.getServicesForRowsRead(
                 tableName,
                 rows);
         final QuorumTracker<Map<Cell, Value>, byte[]> tracker = QuorumTracker.of(
@@ -80,7 +115,7 @@ public class PartitionedKeyValueService implements KeyValueService {
                 quorumParameters.getReadRequestParameters());
 
         // Schedule tasks for execution
-        for (final Map.Entry<KeyValueService, ? extends Iterable<byte[]>> e : tasks.entrySet()) {
+        for (final Map.Entry<KeyValueService, NavigableSet<byte[]>> e : tasks.entrySet()) {
             Future<Map<Cell, Value>> future = execSvc.submit(new Callable<Map<Cell, Value>>() {
                 @Override
                 public Map<Cell, Value> call() throws Exception {
@@ -90,31 +125,15 @@ public class PartitionedKeyValueService implements KeyValueService {
             tracker.registerRef(future, e.getValue());
         }
 
-        try {
-            // Wait until we can conclude success or failure
-            while (!tracker.finished()) {
-                Future<Map<Cell, Value>> future = execSvc.take();
-                try {
-                    Map<Cell, Value> result = future.get();
-                    mergeCellValueMapIntoMap(overallResult, result);
-                    tracker.handleSuccess(future);
-                } catch (ExecutionException e) {
-                    log.warn("Could not complete read request (getRows) in table " + tableName);
-                    tracker.handleFailure(future);
-                    // Check if the failure is fatal
-                    if (tracker.failed()) {
-                        throw Throwables.rewrapAndThrowUncheckedException(
-                                "Could not get enough reads.",
-                                e.getCause());
-                    }
-                }
+        completeReadRequest(tracker, execSvc, new Function<Map<Cell, Value>, Void>() {
+            @Override
+            @Nullable
+            public Void apply(@Nullable Map<Cell, Value> input) {
+                mergeCellValueMapIntoMap(overallResult, input);
+                return null;
             }
-            return overallResult;
-        } catch (InterruptedException e) {
-            throw Throwables.throwUncheckedException(e);
-        } finally {
-            tracker.cancel(true);
-        }
+        });
+        return overallResult;
     }
 
     @Override
@@ -128,7 +147,7 @@ public class PartitionedKeyValueService implements KeyValueService {
         QuorumTracker<Map<Cell, Value>, Cell> tracker = QuorumTracker.of(
                 timestampByCell.keySet(),
                 quorumParameters.getReadRequestParameters());
-        Map<Cell, Value> globalResult = Maps.newHashMap();
+        final Map<Cell, Value> globalResult = Maps.newHashMap();
 
         // Schedule the tasks
         for (final Map.Entry<KeyValueService, Map<Cell, Long>> e : tasks.entrySet()) {
@@ -141,209 +160,102 @@ public class PartitionedKeyValueService implements KeyValueService {
             tracker.registerRef(future, e.getValue().keySet());
         }
 
-        // Wait until success or failure can be concluded
-        try {
-            while (!tracker.finished()) {
-                Future<Map<Cell, Value>> future = execSvc.take();
-                try {
-                    Map<Cell, Value> result = future.get();
-                    mergeCellValueMapIntoMap(globalResult, result);
-                    tracker.handleSuccess(future);
-                } catch (ExecutionException e) {
-                    log.warn("Could not complete read (get) in table " + tableName);
-                    tracker.handleFailure(future);
-                    // Check if the failure was fatal
-                    if (tracker.failed()) {
-                        throw Throwables.rewrapAndThrowUncheckedException(
-                                "Could not get enough reads.",
-                                e.getCause());
-                    }
-                }
+        completeRequest(tracker, execSvc, new Function<Map<Cell, Value>, Void>() {
+            @Override
+            @Nullable
+            public Void apply(@Nullable Map<Cell, Value> input) {
+                mergeCellValueMapIntoMap(globalResult, input);
+                return null;
             }
-        } catch (InterruptedException e) {
-            Throwables.throwUncheckedException(e);
-        } finally {
-            tracker.cancel(true);
-        }
-
+        });
         return globalResult;
     }
 
-    private void mergeCellValueMapIntoMap(Map<Cell, Value> globalResult, Map<Cell, Value> partResult) {
-        for (Map.Entry<Cell, Value> e : partResult.entrySet()) {
-            if (!globalResult.containsKey(e.getKey())
-                    || globalResult.get(e.getKey()).getTimestamp() < e.getValue().getTimestamp()) {
-                globalResult.put(e.getKey(), e.getValue());
-            }
-        }
-    }
+    @Override
+    @Idempotent
+    public Multimap<Cell, Long> getAllTimestamps(final String tableName,
+                                                 final Set<Cell> cells,
+                                                 final long timestamp)
+            throws InsufficientConsistencyException {
+        Map<KeyValueService, Set<Cell>> services = partitionMap.getServicesForCellsRead(
+                tableName,
+                cells);
+        ExecutorCompletionService<Multimap<Cell, Long>> execSvc = new ExecutorCompletionService<Multimap<Cell, Long>>(
+                executor);
+        QuorumTracker<Multimap<Cell, Long>, Cell> tracker = QuorumTracker.of(
+                cells,
+                quorumParameters.getNoFailureRequestParameters());
+        final Multimap<Cell, Long> globalResult = HashMultimap.create();
 
-    private void mergeLatestTimestampMapIntoMap(Map<Cell, Long> globalResult,
-                                                Map<Cell, Long> partResult) {
-        for (Map.Entry<Cell, Long> e : partResult.entrySet()) {
-            if (!globalResult.containsKey(e.getKey())
-                    || globalResult.get(e.getKey()) < e.getValue()) {
-                globalResult.put(e.getKey(), e.getValue());
-            }
+        for (final Map.Entry<KeyValueService, Set<Cell>> e : services.entrySet()) {
+            Future<Multimap<Cell, Long>> future = execSvc.submit(new Callable<Multimap<Cell, Long>>() {
+                @Override
+                public Multimap<Cell, Long> call() throws Exception {
+                    return e.getKey().getAllTimestamps(tableName, cells, timestamp);
+                }
+            });
+            tracker.registerRef(future, e.getValue());
         }
-    }
 
-    private void mergeAllTimestampsMapIntoMap(Multimap<Cell, Long> globalResult,
-                                              Multimap<Cell, Long> partResult) {
-        for (Map.Entry<Cell, Long> e : partResult.entries()) {
-            if (!globalResult.containsEntry(e.getKey(), e.getValue())) {
-                globalResult.put(e.getKey(), e.getValue());
+        completeReadRequest(tracker, execSvc, new Function<Multimap<Cell, Long>, Void>() {
+            @Override
+            @Nullable
+            public Void apply(@Nullable Multimap<Cell, Long> input) {
+                mergeAllTimestampsMapIntoMap(globalResult, input);
+                return null;
             }
-        }
+        });
+        return globalResult;
     }
 
     @Override
-    public void put(final String tableName, Map<Cell, byte[]> values, final long timestamp) {
-        final Map<KeyValueService, Map<Cell, byte[]>> tasks = partitionMap.getServicesForCellsWrite(
+    @Idempotent
+    public Map<Cell, Long> getLatestTimestamps(final String tableName,
+                                               Map<Cell, Long> timestampByCell) {
+        final Map<Cell, Long> globalResult = Maps.newHashMap();
+        Map<KeyValueService, Map<Cell, Long>> tasks = partitionMap.getServicesForCellsRead(
                 tableName,
-                values);
-        final ExecutorCompletionService<Void> writeService = new ExecutorCompletionService<Void>(
+                timestampByCell);
+        QuorumTracker<Map<Cell, Long>, Cell> tracker = QuorumTracker.of(
+                timestampByCell.keySet(),
+                quorumParameters.getReadRequestParameters());
+        ExecutorCompletionService<Map<Cell, Long>> execSvc = new ExecutorCompletionService<Map<Cell, Long>>(
                 executor);
-        final QuorumTracker<Void, Cell> tracker = QuorumTracker.of(
-                values.keySet(),
-                quorumParameters.getWriteRequestParameters());
 
-        // Schedule the requests
-        for (final Map.Entry<KeyValueService, Map<Cell, byte[]>> e : tasks.entrySet()) {
-            Future<Void> future = writeService.submit(new Callable<Void>() {
+        for (final Map.Entry<KeyValueService, Map<Cell, Long>> e : tasks.entrySet()) {
+            Future<Map<Cell, Long>> future = execSvc.submit(new Callable<Map<Cell, Long>>() {
                 @Override
-                public Void call() throws Exception {
-                    e.getKey().put(tableName, e.getValue(), timestamp);
-                    return null;
+                public Map<Cell, Long> call() throws Exception {
+                    return e.getKey().getLatestTimestamps(tableName, e.getValue());
                 }
             });
             tracker.registerRef(future, e.getValue().keySet());
         }
 
-        // Wait until we can conclude success or failure.
-        try {
-            while (!tracker.finished()) {
-                Future<Void> future = writeService.take();
-                try {
-                    future.get();
-                    tracker.handleSuccess(future);
-                } catch (ExecutionException e) {
-                    log.warn("Could not complete write request (put) in table " + tableName);
-                    tracker.handleFailure(future);
-                    if (tracker.failed()) {
-                        tracker.cancel(true);
-                        Throwables.rewrapAndThrowUncheckedException(
-                                "Could not get enough writes.",
-                                e.getCause());
-                    }
-                }
+        completeReadRequest(tracker, execSvc, new Function<Map<Cell, Long>, Void>() {
+            @Override
+            @Nullable
+            public Void apply(@Nullable Map<Cell, Long> input) {
+                mergeLatestTimestampMapIntoMap(globalResult, input);
+                return null;
             }
-        } catch (InterruptedException e) {
-            Throwables.throwUncheckedException(e);
-        }
-    }
-
-    @Override
-    @NonIdempotent
-    public void putWithTimestamps(final String tableName, Multimap<Cell, Value> cellValues)
-            throws KeyAlreadyExistsException {
-        final Map<KeyValueService, Multimap<Cell, Value>> tasks = partitionMap.getServicesForWrite(tableName, cellValues);
-        final ExecutorCompletionService<Void> execSvc = new ExecutorCompletionService<Void>(
-                executor);
-        final QuorumTracker<Void, Map.Entry<Cell, Value>> tracker = QuorumTracker.of(
-                cellValues.entries(),
-                quorumParameters.getWriteRequestParameters());
-
-        for (final Map.Entry<KeyValueService, Multimap<Cell, Value>> e : tasks.entrySet()) {
-            Future<Void> future = execSvc.submit(new Callable<Void>() {
-                @Override
-                public Void call() throws Exception {
-                    e.getKey().putWithTimestamps(tableName, e.getValue());
-                    return null;
-                }
-            });
-            tracker.registerRef(future, e.getValue().entries());
-        }
-
-        try {
-            while (!tracker.finished()) {
-                Future<Void> future = execSvc.take();
-                try {
-                    future.get();
-                    tracker.handleSuccess(future);
-                } catch (ExecutionException e) {
-                    log.warn("Could not complete write request (putWithTimestamps) in table "
-                            + tableName);
-                    tracker.handleFailure(future);
-                    if (tracker.failed()) {
-                        tracker.cancel(true);
-                        Throwables.rewrapAndThrowUncheckedException(
-                                "Could not get enough writes.",
-                                e.getCause());
-                    }
-                }
-            }
-        } catch (InterruptedException e) {
-            Throwables.throwUncheckedException(e.getCause());
-        }
-    }
-
-    @Override
-    public void putUnlessExists(String tableName, Map<Cell, byte[]> values)
-            throws KeyAlreadyExistsException {
-        put(tableName, values, 0L);
-        //throw new UnsupportedOperationException();
+        });
+        return globalResult;
     }
 
     @Override
     @Idempotent
-    public void delete(final String tableName, Multimap<Cell, Long> keys) {
-        final Map<KeyValueService, Multimap<Cell, Long>> tasks = partitionMap.getServicesForWrite(
+    public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(String tableName,
+                                                                                                           Iterable<RangeRequest> rangeRequests,
+                                                                                                           long timestamp) {
+        return KeyValueServices.getFirstBatchForRangesUsingGetRange(
+                this,
                 tableName,
-                keys);
-        final QuorumTracker<Void, Map.Entry<Cell, Long>> tracker = QuorumTracker.of(
-                keys.entries(),
-                quorumParameters.getNoFailureRequestParameters());
-        final ExecutorCompletionService<Void> execSvc = new ExecutorCompletionService<Void>(
-                executor);
-
-        for (final Map.Entry<KeyValueService, Multimap<Cell, Long>> e : tasks.entrySet()) {
-            final Future<Void> future = execSvc.submit(new Callable<Void>() {
-                @Override
-                public Void call() throws Exception {
-                    e.getKey().delete(tableName, e.getValue());
-                    return null;
-                }
-            });
-            tracker.registerRef(future, e.getValue().entries());
-        }
-
-        try {
-            while (!tracker.finished()) {
-                Future<Void> future = execSvc.take();
-                try {
-                    future.get();
-                    tracker.handleSuccess(future);
-                } catch (InterruptedException e) {
-                    Throwables.throwUncheckedException(e);
-                } catch (ExecutionException e) {
-                    log.warn("Could not complete delete request (delete) in table " + tableName);
-                    tracker.handleFailure(future);
-                    // This should cause tracker to immediately finish with failure.
-                    assert (tracker.failed());
-                    if (tracker.failed()) {
-                        tracker.cancel(true);
-                        Throwables.rewrapAndThrowUncheckedException(
-                                "Could not get enough deletes.",
-                                e.getCause());
-                    }
-                }
-            }
-        } catch (InterruptedException e) {
-            Throwables.throwUncheckedException(e);
-        }
+                rangeRequests,
+                timestamp);
     }
 
+    // *** Read range requests ***
     @Override
     @Idempotent
     public ClosableIterator<RowResult<Value>> getRange(final String tableName,
@@ -441,119 +353,89 @@ public class PartitionedKeyValueService implements KeyValueService {
         };
     }
 
+    // *** Write requests *************************************************************************
     @Override
-    @Idempotent
-    public Multimap<Cell, Long> getAllTimestamps(final String tableName,
-                                                 final Set<Cell> cells,
-                                                 final long timestamp)
-            throws InsufficientConsistencyException {
-        Map<KeyValueService, Set<Cell>> services = partitionMap.getServicesForCellsRead(
+    public void put(final String tableName, Map<Cell, byte[]> values, final long timestamp) {
+        final Map<KeyValueService, Map<Cell, byte[]>> tasks = partitionMap.getServicesForCellsWrite(
                 tableName,
-                cells);
-        ExecutorCompletionService<Multimap<Cell, Long>> execSvc = new ExecutorCompletionService<Multimap<Cell, Long>>(
+                values);
+        final ExecutorCompletionService<Void> writeService = new ExecutorCompletionService<Void>(
                 executor);
-        QuorumTracker<Multimap<Cell, Long>, Cell> tracker = QuorumTracker.of(
-                cells,
-                quorumParameters.getNoFailureRequestParameters());
-        Multimap<Cell, Long> globalResult = HashMultimap.create();
+        final QuorumTracker<Void, Cell> tracker = QuorumTracker.of(
+                values.keySet(),
+                quorumParameters.getWriteRequestParameters());
 
-        for (final Map.Entry<KeyValueService, Set<Cell>> e : services.entrySet()) {
-            Future<Multimap<Cell, Long>> future = execSvc.submit(new Callable<Multimap<Cell, Long>>() {
+        // Schedule the requests
+        for (final Map.Entry<KeyValueService, Map<Cell, byte[]>> e : tasks.entrySet()) {
+            Future<Void> future = writeService.submit(new Callable<Void>() {
                 @Override
-                public Multimap<Cell, Long> call() throws Exception {
-                    return e.getKey().getAllTimestamps(tableName, cells, timestamp);
+                public Void call() throws Exception {
+                    e.getKey().put(tableName, e.getValue(), timestamp);
+                    return null;
                 }
             });
-            tracker.registerRef(future, e.getValue());
+            tracker.registerRef(future, e.getValue().keySet());
         }
 
-        try {
-            while (!tracker.finished()) {
-                Future<Multimap<Cell, Long>> future = execSvc.take();
-                try {
-                    Multimap<Cell, Long> kvsReslt = future.get();
-                    mergeAllTimestampsMapIntoMap(globalResult, kvsReslt);
-                    tracker.handleSuccess(future);
-                } catch (ExecutionException e) {
-                    log.warn("Could not complete read request (getAllTimestamps) in table "
-                            + tableName);
-                    tracker.handleFailure(future);
-                    assert (tracker.failed());
-                    if (tracker.failed()) {
-                        Throwables.rewrapAndThrowUncheckedException(
-                                "Could not get enough reads.",
-                                e.getCause());
-                    }
-                }
-            }
-        } catch (InterruptedException e) {
-            Throwables.throwUncheckedException(e);
-        } finally {
-            tracker.cancel(true);
-        }
-
-        return globalResult;
+        completeWriteRequest(tracker, writeService);
     }
 
     @Override
-    @Idempotent
-    public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(String tableName,
-                                                                                                           Iterable<RangeRequest> rangeRequests,
-                                                                                                           long timestamp) {
-        return KeyValueServices.getFirstBatchForRangesUsingGetRange(
-                this,
+    @NonIdempotent
+    public void putWithTimestamps(final String tableName, Multimap<Cell, Value> cellValues)
+            throws KeyAlreadyExistsException {
+        final Map<KeyValueService, Multimap<Cell, Value>> tasks = partitionMap.getServicesForWrite(
                 tableName,
-                rangeRequests,
-                timestamp);
-    }
+                cellValues);
+        final ExecutorCompletionService<Void> execSvc = new ExecutorCompletionService<Void>(
+                executor);
+        final QuorumTracker<Void, Map.Entry<Cell, Value>> tracker = QuorumTracker.of(
+                cellValues.entries(),
+                quorumParameters.getWriteRequestParameters());
 
-    @Override
-    @Idempotent
-    public void dropTable(String tableName) throws InsufficientConsistencyException {
-        for (KeyValueService kvs : partitionMap.getDelegates()) {
-            kvs.dropTable(tableName);
+        for (final Map.Entry<KeyValueService, Multimap<Cell, Value>> e : tasks.entrySet()) {
+            Future<Void> future = execSvc.submit(new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    e.getKey().putWithTimestamps(tableName, e.getValue());
+                    return null;
+                }
+            });
+            tracker.registerRef(future, e.getValue().entries());
         }
+        completeWriteRequest(tracker, execSvc);
+    }
+
+    @Override
+    public void putUnlessExists(String tableName, Map<Cell, byte[]> values)
+            throws KeyAlreadyExistsException {
+        // TODO
+        getDelegates().iterator().next().putUnlessExists(tableName, values);
     }
 
     @Override
     @Idempotent
-    public void createTable(String tableName, int maxValueSizeInBytes)
-            throws InsufficientConsistencyException {
-        for (KeyValueService kvs : partitionMap.getDelegates()) {
-            kvs.createTable(tableName, maxValueSizeInBytes);
+    public void delete(final String tableName, Multimap<Cell, Long> keys) {
+        final Map<KeyValueService, Multimap<Cell, Long>> tasks = partitionMap.getServicesForWrite(
+                tableName,
+                keys);
+        final QuorumTracker<Void, Map.Entry<Cell, Long>> tracker = QuorumTracker.of(
+                keys.entries(),
+                quorumParameters.getNoFailureRequestParameters());
+        final ExecutorCompletionService<Void> execSvc = new ExecutorCompletionService<Void>(
+                executor);
+
+        for (final Map.Entry<KeyValueService, Multimap<Cell, Long>> e : tasks.entrySet()) {
+            final Future<Void> future = execSvc.submit(new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    e.getKey().delete(tableName, e.getValue());
+                    return null;
+                }
+            });
+            tracker.registerRef(future, e.getValue().entries());
         }
-    }
-
-    @Override
-    @Idempotent
-    public Set<String> getAllTableNames() {
-        return BasicPartitionMap.retryUntilSuccess(partitionMap.getDelegates().iterator(), new Function<KeyValueService, Set<String>>() {
-            @Override @Nullable
-            public Set<String> apply(@Nullable KeyValueService kvs) {
-                return kvs.getAllTableNames();
-            }
-        });
-    }
-
-    @Override
-    @Idempotent
-    public byte[] getMetadataForTable(final String tableName) {
-        return BasicPartitionMap.retryUntilSuccess(
-                partitionMap.getDelegates().iterator(),
-                new Function<KeyValueService, byte[]>() {
-            @Override @Nullable
-            public byte[] apply(@Nullable KeyValueService kvs) {
-                return kvs.getMetadataForTable(tableName);
-            }
-        });
-    }
-
-    @Override
-    @Idempotent
-    public void putMetadataForTable(String tableName, byte[] metadata) {
-        for (KeyValueService kvs : partitionMap.getDelegates()) {
-            kvs.putMetadataForTable(tableName, metadata);
-        }
+        completeWriteRequest(tracker, execSvc);
     }
 
     @Override
@@ -577,30 +459,124 @@ public class PartitionedKeyValueService implements KeyValueService {
             });
             tracker.registerRef(future, e.getValue());
         }
+        completeWriteRequest(tracker, execSvc);
+    }
 
-        try {
-            while (!tracker.finished()) {
-                Future<Void> future = execSvc.take();
-                try {
-                    future.get();
-                    tracker.handleSuccess(future);
-                } catch (ExecutionException e) {
-                    log.warn("Could not complete write request (addGarbageCollectionSentinelValues) in table "
-                            + tableName);
-                    tracker.handleFailure(future);
-                    if (tracker.failed()) {
-                        tracker.cancel(true);
-                        Throwables.rewrapAndThrowUncheckedException(
-                                "Could not get enough writes.",
-                                e.getCause());
-                    }
-                }
-            }
-        } catch (InterruptedException e) {
-            Throwables.throwUncheckedException(e);
+    @Override
+    public void multiPut(Map<String, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp)
+            throws KeyAlreadyExistsException {
+        for (Map.Entry<String, ? extends Map<Cell, byte[]>> e : valuesByTable.entrySet()) {
+            final String tableName = e.getKey();
+            final Map<Cell, byte[]> values = e.getValue();
+            put(tableName, values, timestamp);
         }
     }
 
+    // *** Table stuff
+    // ***********************************************************************************
+    @Override
+    @Idempotent
+    public void dropTable(String tableName) throws InsufficientConsistencyException {
+        for (KeyValueService kvs : partitionMap.getDelegates()) {
+            kvs.dropTable(tableName);
+        }
+    }
+
+    @Override
+    @Idempotent
+    public void createTable(String tableName, int maxValueSizeInBytes)
+            throws InsufficientConsistencyException {
+        for (KeyValueService kvs : partitionMap.getDelegates()) {
+            kvs.createTable(tableName, maxValueSizeInBytes);
+        }
+    }
+
+    @Override
+    @Idempotent
+    public void truncateTable(String tableName) throws InsufficientConsistencyException {
+        for (KeyValueService kvs : getDelegates()) {
+            kvs.truncateTable(tableName);
+        }
+    }
+
+    @Override
+    @Idempotent
+    public void truncateTables(Set<String> tableNames) throws InsufficientConsistencyException {
+        for (KeyValueService kvs : getDelegates()) {
+            kvs.truncateTables(tableNames);
+        }
+    }
+
+    @Override
+    @Idempotent
+    public void createTables(Map<String, Integer> tableNamesToMaxValueSizeInBytes)
+            throws InsufficientConsistencyException {
+        for (KeyValueService kvs : getDelegates()) {
+            kvs.createTables(tableNamesToMaxValueSizeInBytes);
+        }
+    }
+
+    @Override
+    @Idempotent
+    public Set<String> getAllTableNames() {
+        return retryUntilSuccess(
+                partitionMap.getDelegates().iterator(),
+                new Function<KeyValueService, Set<String>>() {
+                    @Override
+                    @Nullable
+                    public Set<String> apply(@Nullable KeyValueService kvs) {
+                        return kvs.getAllTableNames();
+                    }
+                });
+    }
+
+    // *** Metadata
+    // ****************************************************************************************
+    @Override
+    @Idempotent
+    public byte[] getMetadataForTable(final String tableName) {
+        return retryUntilSuccess(
+                partitionMap.getDelegates().iterator(),
+                new Function<KeyValueService, byte[]>() {
+                    @Override
+                    @Nullable
+                    public byte[] apply(@Nullable KeyValueService kvs) {
+                        return kvs.getMetadataForTable(tableName);
+                    }
+                });
+    }
+
+    @Override
+    @Idempotent
+    public void putMetadataForTable(String tableName, byte[] metadata) {
+        for (KeyValueService kvs : partitionMap.getDelegates()) {
+            kvs.putMetadataForTable(tableName, metadata);
+        }
+    }
+
+    @Override
+    @Idempotent
+    public Map<String, byte[]> getMetadataForTables() {
+        return retryUntilSuccess(
+                partitionMap.getDelegates().iterator(),
+                new Function<KeyValueService, Map<String, byte[]>>() {
+                    @Override
+                    @Nullable
+                    public Map<String, byte[]> apply(@Nullable KeyValueService kvs) {
+                        return kvs.getMetadataForTables();
+                    }
+                });
+    }
+
+    @Override
+    @Idempotent
+    public void putMetadataForTables(Map<String, byte[]> tableNameToMetadata) {
+        for (KeyValueService kvs : partitionMap.getDelegates()) {
+            kvs.putMetadataForTables(tableNameToMetadata);
+        }
+    }
+
+    // *** Simple forward methods ***************************************************************
     @Override
     public void compactInternally(String tableName) {
         for (KeyValueService kvs : partitionMap.getDelegates()) {
@@ -628,111 +604,13 @@ public class PartitionedKeyValueService implements KeyValueService {
     }
 
     @Override
-    @Idempotent
-    public Map<Cell, Long> getLatestTimestamps(final String tableName,
-                                               Map<Cell, Long> timestampByCell) {
-        Map<Cell, Long> result = Maps.newHashMap();
-        Map<KeyValueService, Map<Cell, Long>> tasks = partitionMap.getServicesForCellsRead(
-                tableName,
-                timestampByCell);
-        QuorumTracker<Map<Cell, Long>, Cell> tracker = QuorumTracker.of(
-                timestampByCell.keySet(),
-                quorumParameters.getReadRequestParameters());
-        ExecutorCompletionService<Map<Cell, Long>> execSvc = new ExecutorCompletionService<Map<Cell, Long>>(
-                executor);
-
-        for (final Map.Entry<KeyValueService, Map<Cell, Long>> e : tasks.entrySet()) {
-            Future<Map<Cell, Long>> future = execSvc.submit(new Callable<Map<Cell, Long>>() {
-                @Override
-                public Map<Cell, Long> call() throws Exception {
-                    return e.getKey().getLatestTimestamps(tableName, e.getValue());
-                }
-            });
-            tracker.registerRef(future, e.getValue().keySet());
-        }
-
-        try {
-            while (!tracker.finished()) {
-                Future<Map<Cell, Long>> future = execSvc.take();
-                try {
-                    Map<Cell, Long> kvsResult = future.get();
-                    mergeLatestTimestampMapIntoMap(result, kvsResult);
-                    tracker.handleSuccess(future);
-                } catch (ExecutionException e) {
-                    log.warn("Could not complete read request (getLatestTimestamps) in table "
-                            + tableName);
-                    tracker.handleFailure(future);
-                    if (tracker.failed()) {
-                        Throwables.rewrapAndThrowUncheckedException(
-                                "Could not get enough reads",
-                                e.getCause());
-                    }
-                }
-            }
-        } catch (InterruptedException e) {
-            Throwables.throwUncheckedException(e);
-        } finally {
-            tracker.cancel(true);
-        }
-
-        return result;
-    }
-
-    @Override
-    public void multiPut(Map<String, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp)
-            throws KeyAlreadyExistsException {
-        for (Map.Entry<String, ? extends Map<Cell, byte[]>> e : valuesByTable.entrySet()) {
-            final String tableName = e.getKey();
-            final Map<Cell, byte[]> values = e.getValue();
-            put(tableName, values, timestamp);
-        }
-    }
-
-    @Override
-    @Idempotent
-    public void truncateTable(String tableName) throws InsufficientConsistencyException {
+    public void initializeFromFreshInstance() {
         for (KeyValueService kvs : getDelegates()) {
-            kvs.truncateTable(tableName);
+            kvs.initializeFromFreshInstance();
         }
     }
 
-    @Override
-    @Idempotent
-    public void truncateTables(Set<String> tableNames) throws InsufficientConsistencyException {
-        for (KeyValueService kvs : getDelegates()) {
-            kvs.truncateTables(tableNames);
-        }
-    }
-
-    @Override @Idempotent
-    public void createTables(Map<String, Integer> tableNamesToMaxValueSizeInBytes)
-            throws InsufficientConsistencyException {
-        for (KeyValueService kvs : getDelegates()) {
-            kvs.createTables(tableNamesToMaxValueSizeInBytes);
-        }
-    }
-
-    @Override @Idempotent
-    public Map<String, byte[]> getMetadataForTables() {
-        return BasicPartitionMap.retryUntilSuccess(
-                partitionMap.getDelegates().iterator(),
-                new Function<KeyValueService, Map<String, byte[]>>() {
-            @Override @Nullable
-            public Map<String, byte[]> apply(@Nullable KeyValueService kvs) {
-                return kvs.getMetadataForTables();
-            }
-        });
-    }
-
-    @Override @Idempotent
-    public void putMetadataForTables(Map<String, byte[]> tableNameToMetadata) {
-        for (KeyValueService kvs : partitionMap.getDelegates()) {
-            kvs.putMetadataForTables(tableNameToMetadata);
-        }
-    }
-
-
-    //*** Creation *******************************************************************************
+    // *** Creation *******************************************************************************
     public static PartitionedKeyValueService create(Set<? extends KeyValueService> svcPool) {
         return create(svcPool, DEFAULT_QUORUM_PARAMETERS);
     }
@@ -763,6 +641,62 @@ public class PartitionedKeyValueService implements KeyValueService {
                                                     QuorumParameters quorumParameters,
                                                     ExecutorService executor) {
         return new PartitionedKeyValueService(ring, executor, quorumParameters);
+    }
+
+    private PartitionedKeyValueService(NavigableMap<byte[], KeyValueService> ring,
+                                       ExecutorService executor,
+                                       QuorumParameters quorumParameters) {
+        this.partitionMap = BasicPartitionMap.create(quorumParameters, ring);
+        this.executor = executor;
+        this.quorumParameters = quorumParameters;
+    }
+
+    // *** Helper methods *************************************************************************
+    private static <T, U, V extends Iterator<? extends U>> T retryUntilSuccess(V iterator,
+                                                                               Function<U, T> fun) {
+
+        while (iterator.hasNext()) {
+            U service = iterator.next();
+            try {
+                return fun.apply(service);
+            } catch (RuntimeException e) {
+                log.warn("retryUntilSuccess: " + e.getMessage());
+                if (!iterator.hasNext()) {
+                    Throwables.rewrapAndThrowUncheckedException("retryUntilSuccess", e);
+                }
+            }
+        }
+
+        throw new RuntimeException("This should never happen!");
+
+    }
+
+    private void mergeCellValueMapIntoMap(Map<Cell, Value> globalResult, Map<Cell, Value> partResult) {
+        for (Map.Entry<Cell, Value> e : partResult.entrySet()) {
+            if (!globalResult.containsKey(e.getKey())
+                    || globalResult.get(e.getKey()).getTimestamp() < e.getValue().getTimestamp()) {
+                globalResult.put(e.getKey(), e.getValue());
+            }
+        }
+    }
+
+    private void mergeLatestTimestampMapIntoMap(Map<Cell, Long> globalResult,
+                                                Map<Cell, Long> partResult) {
+        for (Map.Entry<Cell, Long> e : partResult.entrySet()) {
+            if (!globalResult.containsKey(e.getKey())
+                    || globalResult.get(e.getKey()) < e.getValue()) {
+                globalResult.put(e.getKey(), e.getValue());
+            }
+        }
+    }
+
+    private void mergeAllTimestampsMapIntoMap(Multimap<Cell, Long> globalResult,
+                                              Multimap<Cell, Long> partResult) {
+        for (Map.Entry<Cell, Long> e : partResult.entries()) {
+            if (!globalResult.containsEntry(e.getKey(), e.getValue())) {
+                globalResult.put(e.getKey(), e.getValue());
+            }
+        }
     }
 
 }

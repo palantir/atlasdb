@@ -12,21 +12,6 @@ import com.palantir.atlasdb.keyvalue.partition.ConsistentRingRangeRequest;
 
 public interface PartitionMap {
 
-    // Tables
-//    Set<String> getAllTableNames();
-//    void createTable(String tableName, int maxValueSize) throws InsufficientConsistencyException;
-//    void dropTable(String tableName) throws InsufficientConsistencyException;
-//    void truncateTable(String tableName) throws InsufficientConsistencyException;
-//    void truncateTables(Set<String> tableNamess) throws InsufficientConsistencyException;
-//    void putMetadataForTable(String tableName, byte[] metadata);
-//    byte[] getMetadataForTable(String tableName);
-//    Map<String, byte[]> getMetadataForTables();
-
-    // General
-    void tearDown();
-    void close();
-
-    // Requests
     Multimap<ConsistentRingRangeRequest, KeyValueService> getServicesForRangeRead(String tableName, RangeRequest range);
 
     Map<KeyValueService, NavigableSet<byte[]>> getServicesForRowsRead(String tableName, Iterable<byte[]> rows);
@@ -42,7 +27,5 @@ public interface PartitionMap {
     <T> Map<KeyValueService, Multimap<Cell, T>> getServicesForWrite(String tableName, Multimap<Cell, T> keys);
 
     Set<? extends KeyValueService> getDelegates();
-    void compactInternally(String tableName);
-    void initializeFromFreshInstance();
 
 }

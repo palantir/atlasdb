@@ -1,7 +1,6 @@
 package com.palantir.atlasdb.keyvalue.partition;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
@@ -10,7 +9,6 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.LinkedHashMultimap;
@@ -25,7 +23,6 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest.Builder;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.partition.api.PartitionMap;
-import com.palantir.common.base.Throwables;
 
 
 public final class BasicPartitionMap implements PartitionMap {
@@ -83,52 +80,6 @@ public final class BasicPartitionMap implements PartitionMap {
         return result;
     }
     //*********************************************************************************************
-
-    static <T, U, V extends Iterator<? extends U>> T retryUntilSuccess(V iterator, Function<U, T> fun) {
-
-        while (iterator.hasNext()) {
-            U service = iterator.next();
-            try {
-                return fun.apply(service);
-            } catch (RuntimeException e) {
-                log.warn("retryUntilSuccess: " + e.getMessage());
-                if (!iterator.hasNext()) {
-                    Throwables.rewrapAndThrowUncheckedException("retryUntilSuccess", e);
-                }
-            }
-        }
-
-        throw new RuntimeException("This should never happen!");
-
-    }
-
-    static <T, U, V extends Iterator<? extends U>> void doForAll(V iterator, Function<U, Void> fun) {
-
-        while (iterator.hasNext()) {
-            U service = iterator.next();
-            fun.apply(service);
-        }
-
-    }
-
-    @Override
-    public void tearDown() {
-        // TODO: Do I need a deep copy?
-        for (KeyValueService kvs : getAllServices()) {
-            kvs.teardown();
-        }
-    }
-
-    Set<KeyValueService> getAllServices() {
-        return services;
-    }
-
-    @Override
-    public void close() {
-        for (KeyValueService keyValueService : getAllServices()) {
-            keyValueService.close();
-        }
-    }
 
     @Override
     public Multimap<ConsistentRingRangeRequest, KeyValueService> getServicesForRangeRead(String tableName,
@@ -293,20 +244,6 @@ public final class BasicPartitionMap implements PartitionMap {
 
     @Override
     public Set<? extends KeyValueService> getDelegates() {
-        return getAllServices();
-    }
-
-    @Override
-    public void compactInternally(String tableName) {
-        for (KeyValueService kvs : getAllServices()) {
-            kvs.compactInternally(tableName);
-        }
-    }
-
-    @Override
-    public void initializeFromFreshInstance() {
-        for (KeyValueService kvs : getAllServices()) {
-            kvs.initializeFromFreshInstance();
-        }
+        return services;
     }
 }
