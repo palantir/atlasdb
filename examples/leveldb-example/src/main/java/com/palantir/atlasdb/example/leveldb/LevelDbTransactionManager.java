@@ -51,7 +51,7 @@ import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.client.LockRefreshingLockService;
 import com.palantir.lock.impl.LockServiceImpl;
-import com.palantir.timestamp.InMemoryTimestampService;
+import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.TimestampService;
 
 public class LevelDbTransactionManager {
@@ -69,8 +69,8 @@ public class LevelDbTransactionManager {
     }
 
     private static SnapshotTransactionManager createTransactionManagerInternal(Schema schema, Namespace namespace) {
-        KeyValueService levelKv = createKv();
-        TimestampService ts = new InMemoryTimestampService();
+        LevelDbKeyValueService levelKv = createKv();
+        TimestampService ts = PersistentTimestampService.create(LevelDbBoundStore.create(levelKv));
         KeyValueService keyValueService = createTableMappingKv(levelKv, ts);
 
         schema.createTablesAndIndexes(keyValueService);
@@ -90,7 +90,7 @@ public class LevelDbTransactionManager {
                 return false;
             }
         }));
-        LockClient client = LockClient.of("in memory atlasdb instance");
+        LockClient client = LockClient.of("single node leveldb instance");
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.createDefault(keyValueService);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
 
@@ -115,7 +115,7 @@ public class LevelDbTransactionManager {
             return NamespaceMappingKeyValueService.create(TableRemappingKeyValueService.create(kv, mapper));
     }
 
-    private static KeyValueService createKv() {
+    private static LevelDbKeyValueService createKv() {
         try {
             return LevelDbKeyValueService.create(new File("testdb"));
         } catch (DBException | IOException e) {
