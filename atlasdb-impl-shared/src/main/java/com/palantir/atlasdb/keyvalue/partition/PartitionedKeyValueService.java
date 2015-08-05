@@ -407,10 +407,32 @@ public class PartitionedKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void putUnlessExists(String tableName, Map<Cell, byte[]> values)
+    public void putUnlessExists(final String tableName, Map<Cell, byte[]> values)
             throws KeyAlreadyExistsException {
         // TODO
-        getDelegates().iterator().next().putUnlessExists(tableName, values);
+//        put(tableName, values, 0);
+        final Map<KeyValueService, Map<Cell, byte[]>> tasks = partitionMap.getServicesForCellsWrite(
+                tableName,
+                values);
+        final ExecutorCompletionService<Void> writeService = new ExecutorCompletionService<Void>(
+                executor);
+        final QuorumTracker<Void, Cell> tracker = QuorumTracker.of(
+                values.keySet(),
+                quorumParameters.getWriteRequestParameters());
+
+        // Schedule the requests
+        for (final Map.Entry<KeyValueService, Map<Cell, byte[]>> e : tasks.entrySet()) {
+            Future<Void> future = writeService.submit(new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    e.getKey().putUnlessExists(tableName, e.getValue());
+                    return null;
+                }
+            });
+            tracker.registerRef(future, e.getValue().keySet());
+        }
+
+        completeWriteRequest(tracker, writeService);
     }
 
     @Override
