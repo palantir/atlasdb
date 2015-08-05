@@ -17,13 +17,17 @@ package com.palantir.timestamp;
 
 public interface TimestampBoundStore {
     /**
+     * This will be called when the timestamp server is first created.
+     *
      * @return the current timestamp upper limit that is persisted
      */
     long getUpperLimit();
 
     /**
-     * Persists a new timestamp upper limit
+     * Persists a new timestamp upper limit.
+     *
      * @param limit the new upper limit to be stored
+     * @throws MultipleRunningTimestampServiceError if the timestamp has changed out from under us.
      */
-    void storeUpperLimit(long limit);
+    void storeUpperLimit(long limit) throws MultipleRunningTimestampServiceError;
 }

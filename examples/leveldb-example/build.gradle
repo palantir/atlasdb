@@ -1,0 +1,8 @@
+apply from: "../../gradle/shared.gradle"
+
+group = 'com.palantir.atlasdb.examples'
+dependencies {
+  compile(project(":atlasdb-client"))
+  compile(project(":atlasdb-impl-shared"))
+  compile(project(":atlasdb-leveldb"))
+}
