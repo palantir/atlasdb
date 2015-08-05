@@ -17,4 +17,12 @@ import com.palantir.common.annotation.Immutable;
     public String toString() {
         return "CRRR=[" + rangeRequest + "]";
     }
+    @Override
+    public boolean equals(Object other) {
+        if (other instanceof ConsistentRingRangeRequest == false) {
+            return false;
+        }
+        ConsistentRingRangeRequest otherCrrr = (ConsistentRingRangeRequest) other;
+        return get().equals(otherCrrr.get());
+    }
 }
