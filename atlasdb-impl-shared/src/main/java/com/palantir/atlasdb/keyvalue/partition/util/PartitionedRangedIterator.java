@@ -60,7 +60,7 @@ public abstract class PartitionedRangedIterator<T> implements ClosableIterator<R
                     UnsignedBytes.lexicographicalComparator().compare(
                             cachedResult.getRowName(),
                             newResult.getRowName()
-                    ) >= 0,
+                    ) <= 0,
                     "Row must be non-descending.");
         }
         cachedResult = newResult;
