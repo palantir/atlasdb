@@ -279,11 +279,17 @@ public class PartitionedKeyValueService implements KeyValueService {
             protected Set<ClosablePeekingIterator<RowResult<Value>>> computeNextRange(ConsistentRingRangeRequest range) {
                 Set<ClosablePeekingIterator<RowResult<Value>>> result = Sets.newHashSet();
                 for (KeyValueService kvs : services.get(range)) {
-                    ClosableIterator<RowResult<Value>> it = kvs.getRange(
-                            tableName,
-                            range.get(),
-                            timestamp);
-                    result.add(ClosablePeekingIterator.of(it));
+                    try {
+                        ClosableIterator<RowResult<Value>> it = kvs.getRange(
+                                tableName,
+                                range.get(),
+                                timestamp);
+                        result.add(ClosablePeekingIterator.of(it));
+                    } catch (RuntimeException e) {
+                        // If this failure is fatal for the range, the exception will be thrown when
+                        // retrieving data from the iterators.
+                        log.warn("Failed to getRange in table " + tableName);
+                    }
                 }
                 return result;
             }
@@ -310,11 +316,17 @@ public class PartitionedKeyValueService implements KeyValueService {
             protected Set<ClosablePeekingIterator<RowResult<Set<Value>>>> computeNextRange(ConsistentRingRangeRequest range) {
                 Set<ClosablePeekingIterator<RowResult<Set<Value>>>> result = Sets.newHashSet();
                 for (KeyValueService kvs : services.get(range)) {
-                    ClosableIterator<RowResult<Set<Value>>> it = kvs.getRangeWithHistory(
-                            tableName,
-                            range.get(),
-                            timestamp);
-                    result.add(ClosablePeekingIterator.of(it));
+                    try {
+                        ClosableIterator<RowResult<Set<Value>>> it = kvs.getRangeWithHistory(
+                                tableName,
+                                range.get(),
+                                timestamp);
+                        result.add(ClosablePeekingIterator.of(it));
+                    } catch (RuntimeException e) {
+                        // If this failure is fatal for the range, the exception will be thrown when
+                        // retrieving data from the iterators.
+                        log.warn("Failed to getRangeWithHistory in table " + tableName);
+                    }
                 }
                 return result;
             }
@@ -342,11 +354,17 @@ public class PartitionedKeyValueService implements KeyValueService {
             protected Set<ClosablePeekingIterator<RowResult<Set<Long>>>> computeNextRange(ConsistentRingRangeRequest range) {
                 Set<ClosablePeekingIterator<RowResult<Set<Long>>>> result = Sets.newHashSet();
                 for (KeyValueService kvs : services.get(range)) {
-                    ClosablePeekingIterator<RowResult<Set<Long>>> it = ClosablePeekingIterator.of(kvs.getRangeOfTimestamps(
-                            tableName,
-                            range.get(),
-                            timestamp));
-                    result.add(it);
+                    try {
+                        ClosablePeekingIterator<RowResult<Set<Long>>> it = ClosablePeekingIterator.of(kvs.getRangeOfTimestamps(
+                                tableName,
+                                range.get(),
+                                timestamp));
+                        result.add(it);
+                    } catch (RuntimeException e) {
+                        // If this failure is fatal for the range, the exception will be thrown when
+                        // retrieving data from the iterators.
+                        log.warn("Failed to getRangeOfTimestamps in table " + tableName);
+                    }
                 }
                 return result;
             }
@@ -410,7 +428,7 @@ public class PartitionedKeyValueService implements KeyValueService {
     public void putUnlessExists(final String tableName, Map<Cell, byte[]> values)
             throws KeyAlreadyExistsException {
         // TODO
-//        put(tableName, values, 0);
+        // put(tableName, values, 0);
         final Map<KeyValueService, Map<Cell, byte[]>> tasks = partitionMap.getServicesForCellsWrite(
                 tableName,
                 values);
@@ -633,6 +651,7 @@ public class PartitionedKeyValueService implements KeyValueService {
     }
 
     // *** Creation *******************************************************************************
+    @Deprecated
     public static PartitionedKeyValueService create(Set<? extends KeyValueService> svcPool) {
         return create(svcPool, DEFAULT_QUORUM_PARAMETERS);
     }
