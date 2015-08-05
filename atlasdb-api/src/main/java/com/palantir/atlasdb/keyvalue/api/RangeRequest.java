@@ -65,6 +65,10 @@ import com.palantir.util.Pair;
         return new Builder(true);
     }
 
+    public static Builder builder(boolean reverse) {
+        return new Builder(reverse);
+    }
+
     public static RangeRequest all() {
         return builder().build();
     }
