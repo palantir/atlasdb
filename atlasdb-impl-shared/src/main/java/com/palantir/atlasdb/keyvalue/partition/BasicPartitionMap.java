@@ -5,11 +5,9 @@ import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Set;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Maps;
@@ -21,15 +19,16 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.partition.api.PartitionMap;
+import com.palantir.common.annotation.Immutable;
 
-public final class BasicPartitionMap implements PartitionMap {
+@Immutable public final class BasicPartitionMap implements PartitionMap {
 
-    private static final Logger log = LoggerFactory.getLogger(BasicPartitionMap.class);
     private final QuorumParameters quorumParameters;
+    // This map is never modified
     private final CycleMap<byte[], KeyValueService> ring;
-    private final Map<KeyValueService, String> rackByKvs;
-    private final Set<KeyValueService> services;
-    private final Set<String> racks;
+    private final ImmutableMap<KeyValueService, String> rackByKvs;
+    private final ImmutableSet<KeyValueService> services;
+    private final ImmutableSet<String> racks;
 
     // *** Construction ****************************************************************************
     private BasicPartitionMap(QuorumParameters quorumParameters,
@@ -37,10 +36,9 @@ public final class BasicPartitionMap implements PartitionMap {
                               Map<KeyValueService, String> rackByKvs) {
         this.quorumParameters = quorumParameters;
         this.ring = CycleMap.wrap(ring);
-        this.rackByKvs = rackByKvs;
-        this.services = ImmutableSet.<KeyValueService> builder().addAll(ring.values()).build();
-        this.racks = ImmutableSet.<String> builder().addAll(rackByKvs.values()).build();
-
+        this.rackByKvs = ImmutableMap.copyOf(rackByKvs);
+        this.services = ImmutableSet.copyOf(ring.values());
+        this.racks = ImmutableSet.copyOf(rackByKvs.values());
         Preconditions.checkArgument(quorumParameters.getReplicationFactor() <= racks.size());
     }
 
@@ -54,7 +52,7 @@ public final class BasicPartitionMap implements PartitionMap {
                                            NavigableMap<byte[], KeyValueService> ring) {
         Map<KeyValueService, String> rackByKvs = Maps.newHashMap();
         // Assume each kvs to be in separate rack if no info is available.
-        for (KeyValueService kvs : ImmutableSet.<KeyValueService> builder().addAll(ring.values()).build()) {
+        for (KeyValueService kvs : ring.values()) {
             rackByKvs.put(kvs, "" + kvs.hashCode());
         }
         return create(quorumParameters, ring, rackByKvs);
@@ -71,9 +69,8 @@ public final class BasicPartitionMap implements PartitionMap {
             point = ring.nextKey(point);
             KeyValueService kvs = ring.get(point);
             String rack = rackByKvs.get(kvs);
-            if (!racks.contains(rack)) {
-                result.add(ring.get(point));
-                racks.add(rack);
+            if (racks.add(rack)) {
+                result.add(kvs);
             }
         }
         assert result.size() == quorumParameters.getReplicationFactor();

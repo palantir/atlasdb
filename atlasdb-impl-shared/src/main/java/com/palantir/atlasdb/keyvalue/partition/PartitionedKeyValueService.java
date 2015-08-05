@@ -34,7 +34,6 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
-import com.palantir.atlasdb.keyvalue.partition.api.PartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.util.ClosablePeekingIterator;
 import com.palantir.atlasdb.keyvalue.partition.util.PartitionedRangedIterator;
 import com.palantir.atlasdb.keyvalue.partition.util.RowResultUtil;
@@ -47,10 +46,19 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 public class PartitionedKeyValueService implements KeyValueService {
 
+    // Thread-safe (?)
     private static final Logger log = LoggerFactory.getLogger(PartitionedKeyValueService.class);
+
+    // Immutable
     private static final QuorumParameters DEFAULT_QUORUM_PARAMETERS = new QuorumParameters(3, 2, 2);
-    private final PartitionMap partitionMap;
+
+    // Immutable
+    private final BasicPartitionMap partitionMap;
+
+    // Immutable
     private final QuorumParameters quorumParameters;
+
+    // Thread-safe (?)
     private final ExecutorService executor;
 
     <TrackingUnit, FutureReturnType> void completeRequest(QuorumTracker<FutureReturnType, TrackingUnit> tracker,
