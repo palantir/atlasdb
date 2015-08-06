@@ -84,7 +84,12 @@ public class PaxosAcceptorImpl implements PaxosAcceptor {
             }
 
             // ack
-            PaxosAcceptorState newState = oldState.withState(proposal.id, proposal.id, proposal.val);
+            final PaxosAcceptorState newState;
+            if (oldState == null) {
+                newState = PaxosAcceptorState.newState(proposal);
+            } else {
+                newState = oldState.withState(proposal.id, proposal.id, proposal.val);
+            }
             if ((oldState == null && state.putIfAbsent(seq, newState) == null)
                     || (oldState != null && state.replace(seq, oldState, newState))) {
                 log.writeRound(seq, newState);

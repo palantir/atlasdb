@@ -1,6 +1,7 @@
 package com.palantir.paxos;
 
 import com.google.common.base.Defaults;
+import com.google.common.base.Preconditions;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.common.annotation.Immutable;
 import com.palantir.common.base.Throwables;
@@ -37,18 +38,22 @@ public class PaxosAcceptorState implements Persistable, Versionable {
         return new PaxosAcceptorState(pid);
     }
 
+    public static PaxosAcceptorState newState(PaxosProposal proposal) {
+        return new PaxosAcceptorState(proposal.id, proposal.id, proposal.val, 0L);
+    }
+
     private PaxosAcceptorState(PaxosProposalId pid) {
-        this.lastPromisedId = pid;
+        this.lastPromisedId = Preconditions.checkNotNull(pid);
         this.lastAcceptedId = null;
         this.lastAcceptedValue = null;
-        this.version = Defaults.defaultValue(long.class);
+        this.version = 0L;
     }
 
     private PaxosAcceptorState(PaxosProposalId pid,
-                          PaxosProposalId aid,
-                          PaxosValue val,
-                          long version) {
-        this.lastPromisedId = pid;
+                               PaxosProposalId aid,
+                               PaxosValue val,
+                               long version) {
+        this.lastPromisedId = Preconditions.checkNotNull(pid);
         this.lastAcceptedId = aid;
         this.lastAcceptedValue = val;
         this.version = version;
