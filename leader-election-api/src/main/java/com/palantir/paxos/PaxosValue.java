@@ -19,6 +19,7 @@ import java.io.Serializable;
 
 import javax.annotation.Nullable;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Defaults;
 import com.google.common.base.Preconditions;
@@ -51,10 +52,10 @@ public class PaxosValue implements Persistable, Versionable, Serializable {
     };
 
     public PaxosValue(@JsonProperty("leaderUUID") String leaderUUID,
-                      @JsonProperty("seq") long seq,
+                      @JsonProperty("round") long round,
                       @JsonProperty("data") @Nullable byte[] data) {
         this.leaderUUID = Preconditions.checkNotNull(leaderUUID);
-        this.seq = seq;
+        this.seq = round;
         this.data = data;
     }
 
@@ -101,6 +102,7 @@ public class PaxosValue implements Persistable, Versionable, Serializable {
     }
 
     @Override
+    @JsonIgnore
     public long getVersion() {
         return 0;
     }

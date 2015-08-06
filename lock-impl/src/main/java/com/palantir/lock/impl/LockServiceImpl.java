@@ -88,6 +88,7 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockResponse;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
+import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.SortedLockCollection;
@@ -101,7 +102,7 @@ import com.palantir.util.Pair;
  *
  * @author jtamer
  */
-@ThreadSafe public final class LockServiceImpl implements LockService, LockServiceImplMBean, Closeable {
+@ThreadSafe public final class LockServiceImpl implements LockService, RemoteLockService, LockServiceImplMBean, Closeable {
 
     private static final Logger log = LoggerFactory.getLogger(LockServiceImpl.class);
     private static final Logger requestLogger = LoggerFactory.getLogger("lock.request");

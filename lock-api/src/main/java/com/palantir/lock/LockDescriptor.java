@@ -47,6 +47,10 @@ public abstract class LockDescriptor implements Comparable<LockDescriptor>, Seri
         return getClass().getSimpleName() + " [" + getLockId() +"]";
     }
 
+    public byte[] getBytes() {
+        return bytes.clone();
+    }
+
     @Override
     public int hashCode() {
         final int prime = 31;

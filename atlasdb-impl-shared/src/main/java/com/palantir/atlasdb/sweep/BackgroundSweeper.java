@@ -56,7 +56,6 @@ import com.palantir.atlasdb.transaction.api.RuntimeTransactionTask;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.HeldLocksToken;
-import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
@@ -322,7 +321,7 @@ public class BackgroundSweeper implements Runnable {
         } else {
             LockDescriptor lock = StringLockDescriptor.of("atlasdb sweep");
             LockRequest request = LockRequest.builder(ImmutableSortedMap.of(lock, LockMode.WRITE)).doNotBlock().build();
-            LockResponse response = txManager.getLockService().lock(LockClient.ANONYMOUS, request);
+            LockResponse response = txManager.getLockService().lockAnonymously(request);
             if (response.success()) {
                 return Optional.of(response.getToken());
             } else {

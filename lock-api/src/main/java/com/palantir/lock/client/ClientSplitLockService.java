@@ -16,12 +16,12 @@
 package com.palantir.lock.client;
 
 import com.palantir.lock.BlockingMode;
-import com.palantir.lock.ForwardingLockService;
+import com.palantir.lock.ForwardingRemoteLockService;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockGroupBehavior;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockResponse;
-import com.palantir.lock.LockService;
+import com.palantir.lock.RemoteLockService;
 
 /**
  * This class splits its calls to two clients (which should be the same endpoint) based
@@ -29,18 +29,18 @@ import com.palantir.lock.LockService;
  * lock from starving out connections for calls like refresh or unlock which should
  * always complete quickly.
  */
-public class ClientSplitLockService extends ForwardingLockService {
+public class ClientSplitLockService extends ForwardingRemoteLockService {
 
-    private final LockService blockingClient;
-    private final LockService nonBlockingClient;
+    private final RemoteLockService blockingClient;
+    private final RemoteLockService nonBlockingClient;
 
-    public ClientSplitLockService(LockService blockingClient, LockService nonBlockinClient) {
+    public ClientSplitLockService(RemoteLockService blockingClient, RemoteLockService nonBlockinClient) {
         this.blockingClient = blockingClient;
         this.nonBlockingClient = nonBlockinClient;
     }
 
     @Override
-    protected LockService delegate() {
+    protected RemoteLockService delegate() {
         return nonBlockingClient;
     }
 
@@ -55,8 +55,7 @@ public class ClientSplitLockService extends ForwardingLockService {
         return lock(LockClient.of(client), request);
     }
 
-    @Override
-    public LockResponse lock(LockClient client, LockRequest request) throws InterruptedException {
+    private LockResponse lock(LockClient client, LockRequest request) throws InterruptedException {
         if (request.getBlockingMode() == BlockingMode.DO_NOT_BLOCK) {
             if (client == LockClient.ANONYMOUS) {
                 return nonBlockingClient.lockAnonymously(request);

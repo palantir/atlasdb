@@ -30,17 +30,10 @@ import feign.jackson.JacksonEncoder;
 import feign.jaxrs.JAXRSContract;
 import io.dropwizard.testing.junit.DropwizardAppRule;
 import io.dropwizard.testing.junit.DropwizardClientRule;
-import io.dropwizard.testing.junit.ResourceTestRule;
 
-public class RemotingTest {
+public class TimestampRemotingTest {
     @ClassRule
     public static final DropwizardAppRule<TimestampServerConfiguration> RULE = new DropwizardAppRule<>(TimestampServer.class, "src/test/resources/testService.yml");
-
-    @ClassRule
-    public static final ResourceTestRule RULE_MEM = ResourceTestRule.builder()
-//        .setTestContainerFactory(new InMemoryTestContainerFactory())
-        .addResource(new InMemoryTimestampService())
-        .build();
 
     @ClassRule
     public final static DropwizardClientRule dropwizard = new DropwizardClientRule(new InMemoryTimestampService());

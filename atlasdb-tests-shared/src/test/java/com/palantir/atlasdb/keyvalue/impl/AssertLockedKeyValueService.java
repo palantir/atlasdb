@@ -27,7 +27,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.AtlasRowLockDescriptor;
-import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
@@ -65,13 +64,13 @@ public class AssertLockedKeyValueService extends ForwardingKeyValueService {
             try {
                 if (!mapToAssertLockHeld.isEmpty()) {
                     LockRequest request = LockRequest.builder(mapToAssertLockHeld).doNotBlock().lockAsManyAsPossible().build();
-                    LockResponse lock = lockService.lock(LockClient.ANONYMOUS, request);
+                    LockResponse lock = lockService.lockAnonymously(request);
                     Validate.isTrue(!lock.success(), "these should already be held");
                 }
 
                 if (!mapToAssertLockNotHeld.isEmpty()) {
                     LockRequest request = LockRequest.builder(mapToAssertLockNotHeld).doNotBlock().build();
-                    LockResponse lock = lockService.lock(LockClient.ANONYMOUS, request);
+                    LockResponse lock = lockService.lockAnonymously(request);
                     Validate.isTrue(lock.success(), "these should already be waited for");
                 }
             } catch (InterruptedException e) {

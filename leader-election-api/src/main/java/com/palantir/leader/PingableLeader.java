@@ -38,6 +38,6 @@ public interface PingableLeader {
      */
     @GET
     @Path("uuid")
-    @Produces(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.TEXT_PLAIN)
     String getUUID();
 }

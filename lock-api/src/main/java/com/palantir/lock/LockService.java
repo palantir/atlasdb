@@ -39,7 +39,6 @@ import com.palantir.common.annotation.NonIdempotent;
      * @return a token for the set of locks that were acquired, or <code>null</code>
      *         if no locks were acquired
      */
-    @Override
     @CancelableServerCall
     @NonIdempotent
     LockResponse lock(LockClient client, LockRequest request) throws InterruptedException;

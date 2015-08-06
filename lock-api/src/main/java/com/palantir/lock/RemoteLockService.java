@@ -25,24 +25,11 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-import com.marathon.util.spring.CancelableServerCall;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.NonIdempotent;
 
 @Path("/lock")
 public interface RemoteLockService {
-    /**
-     * Attempts to acquire the requested set of locks. The locks are
-     * acquired reentrantly as long as the lock client is not
-     * {@link LockClient#ANONYMOUS}.
-     *
-     * @return a token for the set of locks that were acquired, or <code>null</code>
-     *         if no locks were acquired
-     */
-    @CancelableServerCall
-    @NonIdempotent
-    LockResponse lock(LockClient client, LockRequest request) throws InterruptedException;
-
     /**
      * This is the same as {@link #lock(LockClient, LockRequest)} but passing in {@link LockClient#ANONYMOUS}
      * as the first param.
