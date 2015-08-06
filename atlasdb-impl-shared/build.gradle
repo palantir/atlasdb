@@ -13,5 +13,5 @@ dependencies {
   compile(project(":atlasdb-lock-api"))
   compile(project(":timestamp-api"))
   compile(project(":atlasdb-commons"))
-  compile(project(":lock-server"))
+  compile(project(":lock-impl"))
 }
