@@ -43,10 +43,6 @@ public class FailableKeyValueServices {
         }
     }
 
-    public static boolean isMetaMethod(Method method) {
-        return method.getName().contains("Meta") || method.getName().contains("Table");
-    }
-
     private static final ImmutableSet<String> READ_METHODS = ImmutableSet.<String> builder().add(
             "get").add("getRows").add("getRange").add("getRangeWithHistory").add(
             "getRangeOfTimestamps").add("getFirstBatchForRanges").build();
@@ -140,43 +136,42 @@ public class FailableKeyValueServices {
         @Override
         public synchronized Object invoke(Object proxy, Method method, Object[] args)
                 throws Throwable {
+            boolean isWrite = FailableKeyValueServices.isWriteMethod(method);
+            boolean isRead = FailableKeyValueServices.isReadMethod(method);
+            if (!isWrite && !isRead) {
+                return method.invoke(delegate, args);
+            }
+
+            QuorumRequestParameters parameters = null;
+            if (isWrite) {
+                parameters = quorumParameters.getWriteRequestParameters();
+            } else {
+                // isRead
+                parameters = quorumParameters.getReadRequestParameters();
+            }
+
+            Set<FailableKeyValueService> servicesToFail = Sets.newHashSet();
+            while (servicesToFail.size() < parameters.getFailureFactor() - 1) {
+                int index = random.nextInt(services.size());
+                servicesToFail.add(services.get(index));
+            }
+
+            log.warn("Shutting down services for method " + method.getName() + " : "
+                    + Arrays.toString(servicesToFail.toArray()));
+
+            for (FailableKeyValueService fkvs : servicesToFail) {
+                fkvs.shutdown();
+            }
+
             try {
-                boolean isWrite = FailableKeyValueServices.isWriteMethod(method);
-                boolean isRead = FailableKeyValueServices.isReadMethod(method);
-                if (!isWrite && !isRead) {
-                    return method.invoke(delegate, args);
-                }
-
-                QuorumRequestParameters parameters = null;
-                if (isWrite) {
-                    parameters = quorumParameters.getWriteRequestParameters();
-                } else {
-                    // isRead
-                    parameters = quorumParameters.getReadRequestParameters();
-                }
-
-                Set<FailableKeyValueService> servicesToFail = Sets.newHashSet();
-                while (servicesToFail.size() < parameters.getFailureFactor() - 1) {
-                    int index = random.nextInt(services.size());
-                    servicesToFail.add(services.get(index));
-                }
-
-                log.warn("Shutting down services for method " + method.getName() + " : "
-                        + Arrays.toString(servicesToFail.toArray()));
-
-                for (FailableKeyValueService fkvs : servicesToFail) {
-                    fkvs.shutdown();
-                }
-
-                Object ret = method.invoke(delegate, args);
-
+                return method.invoke(delegate, args);
+            } catch (InvocationTargetException e) {
+                throw e.getCause();
+            } finally {
+                // This will be executed even if no exception is thrown
                 for (FailableKeyValueService fkvs : servicesToFail) {
                     fkvs.resume();
                 }
-
-                return ret;
-            } catch (InvocationTargetException e) {
-                throw e.getCause();
             }
         }
 

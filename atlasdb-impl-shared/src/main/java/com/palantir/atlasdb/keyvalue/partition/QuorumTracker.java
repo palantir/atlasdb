@@ -18,7 +18,7 @@ public class QuorumTracker<FutureReturnType, TrackingUnit> {
                          QuorumRequestParameters quorumRequestParameters) {
 
         numberOfRemainingFailuresForFailure = Maps.newHashMap();
-        numberOfRemainingSuccessesForSuccess = Maps.newConcurrentMap();
+        numberOfRemainingSuccessesForSuccess = Maps.newHashMap();
 
         for (TrackingUnit item : allTrackedUnits) {
             numberOfRemainingSuccessesForSuccess.put(item, quorumRequestParameters.getSuccessFactor());
@@ -56,7 +56,7 @@ public class QuorumTracker<FutureReturnType, TrackingUnit> {
     }
 
     public void handleFailure(Future<FutureReturnType> ref) {
-        Preconditions.checkState(failed() == false && succeeded() == false);
+        Preconditions.checkState(!finished());
         Preconditions.checkArgument(unitsByReference.containsKey(ref));
         for (TrackingUnit cell : unitsByReference.get(ref)) {
             if (numberOfRemainingFailuresForFailure.containsKey(cell)) {
@@ -73,7 +73,7 @@ public class QuorumTracker<FutureReturnType, TrackingUnit> {
     }
 
     public void registerRef(Future<FutureReturnType> ref, Iterable<TrackingUnit> items) {
-        Preconditions.checkState(failed() == false && succeeded() == false);
+        Preconditions.checkState(!finished());
         unitsByReference.put(ref, items);
     }
 
