@@ -354,7 +354,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                         });
 
                         if (writesByTable.get(table) != null) {
-                            // We don't want to verify any reads that we wrote to cause we will just read out own values.
+                            // We don't want to verify any reads that we wrote to cause we will just read our own values.
+                            // NB: We filter our write set out here because our normal SI checking handles this case to ensure the value hasn't changed.
                             orignalReads = Maps.filterKeys(orignalReads, Predicates.not(Predicates.in(writesByTable.get(table).keySet())));
                         }
 
@@ -368,7 +369,8 @@ public class SerializableTransaction extends SnapshotTransaction {
 
                         Map<Cell, byte[]> currentCells = Maps2.fromEntries(currentRow.getCells());
                         if (writesByTable.get(table) != null) {
-                            // We don't want to verify any reads that we wrote to cause we will just read out own values.
+                            // We don't want to verify any reads that we wrote to cause we will just read our own values.
+                            // NB: We filter our write set out here because our normal SI checking handles this case to ensure the value hasn't changed.
                             currentCells = Maps.filterKeys(currentCells, Predicates.not(Predicates.in(writesByTable.get(table).keySet())));
                         }
                         if (!areMapsEqual(orignalReads, currentCells)) {
@@ -401,7 +403,8 @@ public class SerializableTransaction extends SnapshotTransaction {
             final ConcurrentNavigableMap<Cell, byte[]> readsForTable = getReadsForTable(table);
             for (Iterable<Cell> batch : Iterables.partition(cellsRead.get(table), 1000)) {
                 if (writesByTable.get(table) != null) {
-                    // We don't want to verify any reads that we wrote to cause we will just read out own values.
+                    // We don't want to verify any reads that we wrote to cause we will just read our own values.
+                    // NB: If the value has changed between read and write, our normal SI checking handles this case
                     batch = Iterables.filter(batch, Predicates.not(Predicates.in(writesByTable.get(table).keySet())));
                 }
                 ImmutableSet<Cell> batchSet = ImmutableSet.copyOf(batch);
@@ -439,6 +442,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                         List<Entry<Cell, ByteBuffer>> ret = Lists.newArrayList();
                         for (RowResult<byte[]> row : input) {
                             for (Entry<Cell, byte[]> cell : row.getCells()) {
+
+                                // NB: We filter our write set out here because our normal SI checking handles this case to ensure the value hasn't changed.
                                 if (writes == null || !writes.containsKey(cell.getKey())) {
                                     ret.add(Maps.immutableEntry(cell.getKey(), ByteBuffer.wrap(cell.getValue())));
                                 }
@@ -522,6 +527,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                         ret.putAll(afterResults);
                     }
                 }
+                // We are ok to block here because if there is a cycle of transactions that could result in a deadlock,
+                // then at least one of them will be in the ab
                 ret.putAll(super.getCommitTimestamps(tableName, beforeStart, waitForCommitterToComplete));
                 if (containsMyStart) {
                     ret.put(myStart, commitTs);
