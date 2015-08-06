@@ -84,7 +84,7 @@ public class LevelDbBoundStore implements TimestampBoundStore {
         if (oldValue != currentLimit) {
             String msg = "Timestamp limit changed underneath us (limit in memory: " + currentLimit
                     + "). This may indicate that "
-                    + "another timestamp service is running against this cassandra!";
+                    + "another timestamp service is running against this leveldb store!";
             throw new MultipleRunningTimestampServiceError(msg);
         }
         putValue(limit);
