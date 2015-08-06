@@ -19,6 +19,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.server.config.TimestampServerConfiguration;
@@ -28,11 +29,21 @@ import feign.jackson.JacksonDecoder;
 import feign.jackson.JacksonEncoder;
 import feign.jaxrs.JAXRSContract;
 import io.dropwizard.testing.junit.DropwizardAppRule;
+import io.dropwizard.testing.junit.DropwizardClientRule;
+import io.dropwizard.testing.junit.ResourceTestRule;
 
 public class RemotingTest {
     @ClassRule
     public static final DropwizardAppRule<TimestampServerConfiguration> RULE = new DropwizardAppRule<>(TimestampServer.class, "src/test/resources/testService.yml");
 
+    @ClassRule
+    public static final ResourceTestRule RULE_MEM = ResourceTestRule.builder()
+//        .setTestContainerFactory(new InMemoryTestContainerFactory())
+        .addResource(new InMemoryTimestampService())
+        .build();
+
+    @ClassRule
+    public final static DropwizardClientRule dropwizard = new DropwizardClientRule(new InMemoryTimestampService());
 
     @Test
     public void testRemoting() {
@@ -43,6 +54,21 @@ public class RemotingTest {
                 .encoder(new JacksonEncoder(mapper))
                 .contract(new JAXRSContract())
                 .target(TimestampService.class, "http://localhost:" + RULE.getLocalPort());
+
+        long freshTimestamp = ts.getFreshTimestamp();
+        TimestampRange freshTimestamps = ts.getFreshTimestamps(100);
+    }
+
+    @Test
+    public void testSerializing() {
+        ObjectMapper mapper = new ObjectMapper();
+
+        String uri = dropwizard.baseUri().toString();
+        TimestampService ts = Feign.builder()
+                .decoder(new JacksonDecoder(mapper))
+                .encoder(new JacksonEncoder(mapper))
+                .contract(new JAXRSContract())
+                .target(TimestampService.class, uri);
 
         long freshTimestamp = ts.getFreshTimestamp();
         TimestampRange freshTimestamps = ts.getFreshTimestamps(100);
