@@ -161,6 +161,20 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
                 values.get(Cell.create(row0, column0)));
     }
 
+    @Test
+    public void testGetAllTableNames() {
+        final String anotherTable = "AnotherTable";
+        assertEquals(1, keyValueService.getAllTableNames());
+        assertEquals(TEST_TABLE, keyValueService.getAllTableNames().iterator().next());
+        keyValueService.createTable(anotherTable, 123);
+        assertEquals(2, keyValueService.getAllTableNames());
+        assertTrue(keyValueService.getAllTableNames().contains(anotherTable));
+        assertTrue(keyValueService.getAllTableNames().contains(TEST_TABLE));
+        keyValueService.dropTable(anotherTable);
+        assertEquals(1, keyValueService.getAllTableNames());
+        assertEquals(TEST_TABLE, keyValueService.getAllTableNames().iterator().next());
+    }
+
     private void putTestDataForMultipleTimestamps() {
         keyValueService.put(TEST_TABLE,
                 ImmutableMap.of(Cell.create(row0, column0), value0_t0), TEST_TIMESTAMP);
