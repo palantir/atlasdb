@@ -19,12 +19,15 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+
 /**
  * A container class to encapsulate a {@link TimeUnit} with a {@code long}
  * duration.
  *
  * @author jtamer
  */
+@JsonDeserialize(as=SimpleTimeDuration.class)
 public interface TimeDuration extends Comparable<TimeDuration> {
 
     long getTime();

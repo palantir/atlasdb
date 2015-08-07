@@ -311,14 +311,16 @@ import com.palantir.util.Pair;
     }
 
     @Override
-    public LockResponse lockAnonymously(LockRequest request) throws InterruptedException {
-        return lock(LockClient.ANONYMOUS, request);
+    public LockRefreshToken lockAnonymously(LockRequest request) throws InterruptedException {
+        LockResponse result = lock(LockClient.ANONYMOUS, request);
+        return result.success() ? result.getLockRefreshToken() : null;
     }
 
     @Override
-    public LockResponse lockWithClient(String client, LockRequest request)
+    public LockRefreshToken lockWithClient(String client, LockRequest request)
             throws InterruptedException {
-        return lock(LockClient.of(client), request);
+        LockResponse result = lock(LockClient.of(client), request);
+        return result.success() ? result.getLockRefreshToken() : null;
     }
 
     @Override
@@ -864,6 +866,11 @@ import com.palantir.util.Pair;
     @Override
     @Nullable public Long getMinLockedInVersionId() {
         return getMinLockedInVersionId(LockClient.ANONYMOUS);
+    }
+
+    @Override
+    public Long getMinLockedInVersionId(String client) {
+        return getMinLockedInVersionId(LockClient.of(client));
     }
 
     @Override

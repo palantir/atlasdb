@@ -164,6 +164,13 @@ import com.palantir.common.annotation.NonIdempotent;
     @Deprecated
     @Idempotent @Nullable Long getMinLockedInVersionId();
 
+    /**
+     * Returns the minimum version ID for all locks that are currently acquired
+     * (by everyone), or {@code null} if none of these active locks specified a
+     * version ID in their {@link LockRequest}s.
+     */
+    Long getMinLockedInVersionId(LockClient client);
+
     /** Returns the options used to configure the lock server. */
     @Idempotent LockServerOptions getLockServerOptions();
 

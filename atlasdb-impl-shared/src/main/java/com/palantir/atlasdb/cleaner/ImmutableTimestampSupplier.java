@@ -17,6 +17,7 @@ package com.palantir.atlasdb.cleaner;
 
 import java.util.concurrent.TimeUnit;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.palantir.lock.LockClient;
@@ -49,6 +50,7 @@ public class ImmutableTimestampSupplier implements Supplier<Long> {
     private ImmutableTimestampSupplier(RemoteLockService lockService,
                                       TimestampService timestampService,
                                       LockClient lockClient) {
+        Preconditions.checkArgument(lockClient != LockClient.ANONYMOUS);
         this.lockService = lockService;
         this.timestampService = timestampService;
         this.lockClient = lockClient;
@@ -57,7 +59,7 @@ public class ImmutableTimestampSupplier implements Supplier<Long> {
     @Override
     public Long get() {
         long ts = timestampService.getFreshTimestamp();
-        Long minLocked = lockService.getMinLockedInVersionId(lockClient);
+        Long minLocked = lockService.getMinLockedInVersionId(lockClient.getClientId());
         return minLocked == null ? ts : minLocked;
     }
 }

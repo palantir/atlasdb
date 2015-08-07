@@ -38,7 +38,7 @@ public interface RemoteLockService {
     @Path("lock-anonymously")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    LockResponse lockAnonymously(LockRequest request) throws InterruptedException;
+    LockRefreshToken lockAnonymously(LockRequest request) throws InterruptedException;
 
     /**
      * This is the same as {@link #lock(LockClient, LockRequest)} but passing in <code>LockClient.of(client)</code>
@@ -48,7 +48,7 @@ public interface RemoteLockService {
     @Path("lock/{client}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    LockResponse lockWithClient(@PathParam("client") String client, LockRequest request) throws InterruptedException;
+    LockRefreshToken lockWithClient(@PathParam("client") String client, LockRequest request) throws InterruptedException;
 
     /**
      * Attempts to release the set of locks represented by the
@@ -84,10 +84,10 @@ public interface RemoteLockService {
      * version ID in their {@link LockRequest}s.
      */
     @POST
-    @Path("min-locked-in-version")
+    @Path("min-locked-in-version/{client}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    @Idempotent @Nullable Long getMinLockedInVersionId(LockClient client);
+    @Idempotent @Nullable Long getMinLockedInVersionId(@PathParam("client") String client);
 
     /** Returns the current time in milliseconds on the server. */
     @POST

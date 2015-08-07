@@ -36,6 +36,10 @@ public class SimpleHeldLocksToken implements Serializable {
         return new SimpleHeldLocksToken(token.getTokenId(), token.getCreationDateMs());
     }
 
+    public static SimpleHeldLocksToken fromLockRefreshToken(LockRefreshToken token) {
+        return new SimpleHeldLocksToken(token.getTokenId(), 0L);
+    }
+
     public LockRefreshToken asLockRefreshToken() {
         return new LockRefreshToken(tokenId, 0L);
     }

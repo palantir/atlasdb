@@ -19,8 +19,8 @@ import com.palantir.lock.BlockingMode;
 import com.palantir.lock.ForwardingRemoteLockService;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockGroupBehavior;
+import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
-import com.palantir.lock.LockResponse;
 import com.palantir.lock.RemoteLockService;
 
 /**
@@ -45,17 +45,19 @@ public class ClientSplitLockService extends ForwardingRemoteLockService {
     }
 
     @Override
-    public LockResponse lockAnonymously(LockRequest request) throws InterruptedException {
-        return lock(LockClient.ANONYMOUS, request);
+    public LockRefreshToken lockAnonymously(LockRequest request) throws InterruptedException {
+        LockRefreshToken result = lock(LockClient.ANONYMOUS, request);
+        return result;
     }
 
     @Override
-    public LockResponse lockWithClient(String client, LockRequest request)
+    public LockRefreshToken lockWithClient(String client, LockRequest request)
             throws InterruptedException {
-        return lock(LockClient.of(client), request);
+        LockRefreshToken result = lock(LockClient.of(client), request);
+        return result;
     }
 
-    private LockResponse lock(LockClient client, LockRequest request) throws InterruptedException {
+    private LockRefreshToken lock(LockClient client, LockRequest request) throws InterruptedException {
         if (request.getBlockingMode() == BlockingMode.DO_NOT_BLOCK) {
             if (client == LockClient.ANONYMOUS) {
                 return nonBlockingClient.lockAnonymously(request);
@@ -73,13 +75,13 @@ public class ClientSplitLockService extends ForwardingRemoteLockService {
             if (request.getVersionId() != null) {
                 newRequest.withLockedInVersionId(request.getVersionId());
             }
-            final LockResponse response;
+            final LockRefreshToken response;
             if (client == LockClient.ANONYMOUS) {
                 response = nonBlockingClient.lockAnonymously(request);
             } else {
                 response = nonBlockingClient.lockWithClient(client.getClientId(), request);
             }
-            if (response.success()) {
+            if (response != null) {
                 return response;
             }
         }

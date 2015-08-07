@@ -18,6 +18,7 @@ package com.palantir.atlasdb.transaction.impl;
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
@@ -39,8 +40,8 @@ import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
+import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
-import com.palantir.lock.LockResponse;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.timestamp.TimestampService;
@@ -83,6 +84,7 @@ public class SnapshotTransactionManager extends AbstractLockAwareTransactionMana
                                       SweepStrategyManager sweepStrategyManager,
                                       Cleaner cleaner,
                                       boolean allowHiddenTableAccess) {
+        Preconditions.checkArgument(lockClient != LockClient.ANONYMOUS);
         this.keyValueService = keyValueService;
         this.timestampService = timestampService;
         this.lockService = lockService;
@@ -101,7 +103,7 @@ public class SnapshotTransactionManager extends AbstractLockAwareTransactionMana
     }
 
     @Override
-    public <T, E extends Exception> T runTaskWithLocksThrowOnConflict(Iterable<HeldLocksToken> lockTokens,
+    public <T, E extends Exception> T runTaskWithLocksThrowOnConflict(Iterable<LockRefreshToken> lockTokens,
                                                                       LockAwareTransactionTask<T, E> task)
             throws E, TransactionFailedRetriableException {
         long immutableLockTs = timestampService.getFreshTimestamp();
@@ -110,7 +112,7 @@ public class SnapshotTransactionManager extends AbstractLockAwareTransactionMana
         LockRequest lockRequest =
                 LockRequest.builder(ImmutableSortedMap.of(lockDesc, LockMode.READ)).withLockedInVersionId(
                         immutableLockTs).build();
-        final LockResponse lock;
+        final LockRefreshToken lock;
         final T result;
         final SnapshotTransaction t;
         try {
@@ -119,8 +121,8 @@ public class SnapshotTransactionManager extends AbstractLockAwareTransactionMana
             throw Throwables.throwUncheckedException(e);
         }
         try {
-            ImmutableList<HeldLocksToken> allTokens =
-                    ImmutableList.<HeldLocksToken> builder().add(lock.getToken()).addAll(lockTokens).build();
+            ImmutableList<LockRefreshToken> allTokens =
+                    ImmutableList.<LockRefreshToken> builder().add(lock.getToken()).addAll(lockTokens).build();
             t = createTransaction(immutableLockTs, startTimestampSupplier, allTokens);
             result = runTaskThrowOnConflict(LockAwareTransactionTasks.asLockUnaware(task, lockTokens), t);
         } finally {
@@ -220,7 +222,7 @@ public class SnapshotTransactionManager extends AbstractLockAwareTransactionMana
     }
 
     protected long getImmutableTimestampInternal(long ts) {
-        Long minLocked = lockService.getMinLockedInVersionId(lockClient);
+        Long minLocked = lockService.getMinLockedInVersionId(lockClient.getClientId());
         long ret = minLocked == null ? ts : minLocked;
         long recentTs = recentImmutableTs.get();
         while (recentTs < ret) {

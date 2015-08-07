@@ -26,25 +26,24 @@ import com.palantir.atlasdb.transaction.api.LockAwareTransactionTasks;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.common.collect.IterableUtils;
-import com.palantir.lock.HeldLocksToken;
+import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
-import com.palantir.lock.LockResponse;
 import com.palantir.lock.SimpleHeldLocksToken;
 
 public abstract class AbstractLockAwareTransactionManager extends AbstractTransactionManager implements LockAwareTransactionManager {
 
     @Override
-    public <T, E extends Exception> T runTaskWithLocksWithRetry(Iterable<HeldLocksToken> lockTokens,
+    public <T, E extends Exception> T runTaskWithLocksWithRetry(Iterable<LockRefreshToken> lockTokens,
                                                                 Supplier<LockRequest> lockSupplier,
                                                                 LockAwareTransactionTask<T, E> task) throws E, InterruptedException {
         int failureCount = 0;
         while (true) {
             LockRequest lockRequest = lockSupplier.get();
-            HeldLocksToken lockToken = null;
+            LockRefreshToken lockToken = null;
             if (lockRequest != null) {
                 Validate.isTrue(lockRequest.getVersionId() == null, "Using a version id is not allowed");
-                LockResponse response = getLockService().lockAnonymously(lockRequest);
-                if (!response.success()) {
+                LockRefreshToken response = getLockService().lockAnonymously(lockRequest);
+                if (response == null) {
                     RuntimeException e = new LockAcquisitionException("Failed to lock using the provided lock request: " + lockRequest);
                     log.warn("Could not lock successfullly", e);
                     failureCount++;
@@ -55,7 +54,7 @@ public abstract class AbstractLockAwareTransactionManager extends AbstractTransa
                     sleepForBackoff(failureCount);
                     continue;
                 }
-                lockToken = response.getToken();
+                lockToken = response;
             }
 
             try {
@@ -80,7 +79,7 @@ public abstract class AbstractLockAwareTransactionManager extends AbstractTransa
                 throw e;
             } finally {
                 if (lockToken != null) {
-                    getLockService().unlockSimple(SimpleHeldLocksToken.fromHeldLocksToken(lockToken));
+                    getLockService().unlockSimple(SimpleHeldLocksToken.fromLockRefreshToken(lockToken));
                 }
             }
 
@@ -90,14 +89,14 @@ public abstract class AbstractLockAwareTransactionManager extends AbstractTransa
 
     @Override
     public <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task) throws E {
-        return runTaskWithLocksThrowOnConflict(ImmutableList.<HeldLocksToken>of(), LockAwareTransactionTasks.asLockAware(task));
+        return runTaskWithLocksThrowOnConflict(ImmutableList.<LockRefreshToken>of(), LockAwareTransactionTasks.asLockAware(task));
     }
 
     @Override
     public <T, E extends Exception> T runTaskWithLocksWithRetry(Supplier<LockRequest> lockSupplier,
                                                                 LockAwareTransactionTask<T, E> task)
             throws E, InterruptedException {
-        return runTaskWithLocksWithRetry(ImmutableList.<HeldLocksToken>of(), lockSupplier, task);
+        return runTaskWithLocksWithRetry(ImmutableList.<LockRefreshToken>of(), lockSupplier, task);
     }
 
 }

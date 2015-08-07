@@ -1099,7 +1099,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             return;
         }
         Stopwatch watch = Stopwatch.createStarted();
-        HeldLocksToken commitLocksToken = acquireLocksForCommit();
+        LockRefreshToken commitLocksToken = acquireLocksForCommit();
         long millisForLocks = watch.elapsed(TimeUnit.MILLISECONDS);
         try {
             watch.reset().start();
@@ -1142,15 +1142,15 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 log.error(errorMessage, new TransactionFailedRetriableException(errorMessage));
             }
             long millisSinceCreation = System.currentTimeMillis() - timeCreated;
-            perfLogger.info("Committed {} bytes with {} locks, start ts {}, commit ts {}, " +
+            perfLogger.info("Committed {} bytes with locks, start ts {}, commit ts {}, " +
                     "acquiring locks took {} ms, checking for conflicts took {} ms, " +
                     "writing took {} ms, punch took {} ms, putCommitTs took {} ms, " +
                     "total time since tx creation {} ms, tables: {}.",
-                    byteCount.get(), commitLocksToken.getLocks().size(), getStartTimestamp(),
+                    byteCount.get(), getStartTimestamp(),
                     commitTimestamp, millisForLocks, millisCheckingForConflicts, millisForWrites,
                     millisForPunch, millisForCommitTs, millisSinceCreation, writesByTable.keySet());
         } finally {
-            lockService.unlockSimple(SimpleHeldLocksToken.fromHeldLocksToken(commitLocksToken));
+            lockService.unlockSimple(SimpleHeldLocksToken.fromLockRefreshToken(commitLocksToken));
         }
     }
 
@@ -1176,14 +1176,14 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return conflictDetectionManager.get().get(tableName);
     }
 
-    private String getExpiredLocksErrorString(@Nullable HeldLocksToken commitLocksToken,
+    private String getExpiredLocksErrorString(@Nullable LockRefreshToken commitLocksToken,
                                               Set<LockRefreshToken> expiredLocks) {
         return "The following external locks were required: " + externalLocksTokens +
             "; the following commit locks were required: " + commitLocksToken +
             "; the following locks are no longer valid: " + expiredLocks;
     }
 
-    private void throwIfExternalAndCommitLocksNotValid(@Nullable HeldLocksToken commitLocksToken) {
+    private void throwIfExternalAndCommitLocksNotValid(@Nullable LockRefreshToken commitLocksToken) {
         Set<LockRefreshToken> expiredLocks = refreshExternalAndCommitLocks(commitLocksToken);
         if (!expiredLocks.isEmpty()) {
             String errorMessage =
@@ -1198,14 +1198,14 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      * @param commitLocksToken
      * @return set of locks that could not be refreshed
      */
-    private Set<LockRefreshToken> refreshExternalAndCommitLocks(@Nullable HeldLocksToken commitLocksToken) {
+    private Set<LockRefreshToken> refreshExternalAndCommitLocks(@Nullable LockRefreshToken commitLocksToken) {
         ImmutableSet<LockRefreshToken> toRefresh;
         if (commitLocksToken == null) {
             toRefresh = ImmutableSet.copyOf(Iterables.transform(externalLocksTokens, HeldLocksTokens.getRefreshTokenFun()));
         } else {
             toRefresh = ImmutableSet.<LockRefreshToken>builder()
                     .addAll(Iterables.transform(externalLocksTokens, HeldLocksTokens.getRefreshTokenFun()))
-                    .add(commitLocksToken.getLockRefreshToken()).build();
+                    .add(commitLocksToken).build();
         }
         if (toRefresh.isEmpty()) {
             return ImmutableSet.of();
@@ -1217,7 +1217,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     /**
      * Make sure we have all the rows we are checking already locked before calling this.
      */
-    protected void throwIfConflictOnCommit(HeldLocksToken commitLocksToken, TransactionService transactionService) throws TransactionConflictException {
+    protected void throwIfConflictOnCommit(LockRefreshToken commitLocksToken, TransactionService transactionService) throws TransactionConflictException {
         for (String tableName : writesByTable.keySet()) {
             ConflictHandler conflictHandler = getConflictHandlerForTable(tableName);
             throwIfWriteAlreadyCommitted(tableName, writesByTable.get(tableName), conflictHandler, commitLocksToken, transactionService);
@@ -1227,7 +1227,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected void throwIfWriteAlreadyCommitted(String tableName,
                                                 Map<Cell, byte[]> writes,
                                                 ConflictHandler conflictHandler,
-                                                HeldLocksToken commitLocksToken,
+                                                LockRefreshToken commitLocksToken,
                                                 TransactionService transactionService)
             throws TransactionConflictException {
         if (writes.isEmpty() || conflictHandler == ConflictHandler.IGNORE_ALL) {
@@ -1263,7 +1263,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                              Map<Cell, byte[]> writes,
                                              Set<CellConflict> spanningWrites,
                                              Set<CellConflict> dominatingWrites,
-                                             HeldLocksToken commitLocksToken) {
+                                             LockRefreshToken commitLocksToken) {
         Map<Cell, CellConflict> cellToConflict = Maps.newHashMap();
         Map<Cell, Long> cellToTs = Maps.newHashMap();
         for (CellConflict c : Sets.union(spanningWrites, dominatingWrites)) {
@@ -1428,10 +1428,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     /**
      * This method should acquire any locks needed to do proper concurrency control at commit time.
      */
-    protected HeldLocksToken acquireLocksForCommit() {
+    protected LockRefreshToken acquireLocksForCommit() {
         SortedMap<LockDescriptor, LockMode> lockMap = getLocksForWrites();
         try {
-            return lockService.lockAnonymously(LockRequest.builder(lockMap).build()).getToken();
+            return lockService.lockAnonymously(LockRequest.builder(lockMap).build());
         } catch (InterruptedException e) {
             throw Throwables.throwUncheckedException(e);
         }
@@ -1557,7 +1557,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      * @throws TransactionLockTimeoutException If our locks timed out while trying to commit.
      * @throws TransactionCommitFailedException failed when committing in a way that isn't retriable
      */
-    private void putCommitTimestamp(long commitTimestamp, HeldLocksToken locksToken, TransactionService transactionService) throws TransactionFailedException {
+    private void putCommitTimestamp(long commitTimestamp, LockRefreshToken locksToken, TransactionService transactionService) throws TransactionFailedException {
         Validate.isTrue(commitTimestamp > getStartTimestamp(), "commitTs must be greater than startTs");
         try {
             transactionService.putUnlessExists(getStartTimestamp(), commitTimestamp);
@@ -1572,7 +1572,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
     }
 
-    private void handleKeyAlreadyExistsException(long commitTs, KeyAlreadyExistsException e, HeldLocksToken commitLocksToken) {
+    private void handleKeyAlreadyExistsException(long commitTs, KeyAlreadyExistsException e, LockRefreshToken commitLocksToken) {
         try {
             if (wasCommitSuccessful(commitTs)) {
                 // We did actually commit successfully.  This case could happen if the impl

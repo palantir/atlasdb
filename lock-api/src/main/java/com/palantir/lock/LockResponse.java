@@ -24,6 +24,9 @@ import java.util.SortedMap;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedMap;
@@ -42,6 +45,11 @@ import com.google.common.collect.ImmutableSortedMap;
     @Nullable private final HeldLocksToken token;
     private final boolean isBlockAndRelease;
     private final ImmutableSortedMap<LockDescriptor, LockClient> lockHolders;
+
+    @JsonCreator
+    public LockResponse(@JsonProperty("token") @Nullable HeldLocksToken token) {
+        this(token, ImmutableSortedMap.<LockDescriptor, LockClient>of());
+    }
 
     /**
      * This should only get created by the Lock Service.
@@ -95,6 +103,10 @@ import com.google.common.collect.ImmutableSortedMap;
         return token;
     }
 
+    @Nullable public LockRefreshToken getLockRefreshToken() {
+        return token == null ? null : token.getLockRefreshToken();
+    }
+
     /**
      * Returns a map of lock descriptors and lock clients. Each entry's key is a
      * lock which could not be acquired by the lock server, and its value is one
@@ -109,6 +121,7 @@ import com.google.common.collect.ImmutableSortedMap;
      * not be empty if the lock request specified
      * {@link LockGroupBehavior#LOCK_AS_MANY_AS_POSSIBLE}.
      */
+    @JsonIgnore
     public SortedMap<LockDescriptor, LockClient> getLockHolders() {
         return lockHolders;
     }

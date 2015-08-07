@@ -18,6 +18,9 @@ package com.palantir.lock;
 import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
 
@@ -25,9 +28,17 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 
 /**
  * An encapsulation of all parameters needed to make a locking request to the
@@ -35,6 +46,7 @@ import com.google.common.base.Preconditions;
  *
  * @author jtamer
  */
+@JsonDeserialize(builder=LockRequest.SerializationProxy.class)
 @Immutable public final class LockRequest implements Serializable {
     private static final long serialVersionUID = 0xf6c12b970b44af68l;
 
@@ -83,8 +95,18 @@ import com.google.common.base.Preconditions;
      * locks which were actually acquired successfully, use
      * {@link HeldLocksToken#getLocks()} instead.
      */
+    @JsonIgnore
     public SortedLockCollection<LockDescriptor> getLockDescriptors() {
         return lockMap;
+    }
+
+    public List<LockWithMode> getLocks() {
+        return ImmutableList.copyOf(Iterables.transform(lockMap.entries(), new Function<Map.Entry<LockDescriptor, LockMode>, LockWithMode>() {
+            @Override
+            public LockWithMode apply(Entry<LockDescriptor, LockMode> input) {
+                return new LockWithMode(input.getKey(), input.getValue());
+            }
+        }));
     }
 
     /**
@@ -198,7 +220,6 @@ import com.google.common.base.Preconditions;
      * @author jtamer
      */
     @NotThreadSafe public static final class Builder {
-
         @Nullable private SortedLockCollection<LockDescriptor> lockMap;
         @Nullable private TimeDuration lockTimeout;
         @Nullable private LockGroupBehavior lockGroupBehavior;
@@ -364,7 +385,7 @@ import com.google.common.base.Preconditions;
         }
     }
 
-    private static class SerializationProxy implements Serializable {
+    static final class SerializationProxy implements Serializable {
         private static final long serialVersionUID = 0xd6b8378030ed100dl;
 
         private final SortedLockCollection<LockDescriptor> lockMap;
@@ -383,6 +404,31 @@ import com.google.common.base.Preconditions;
             blockingDuration = lockRequest.blockingDuration;
             versionId = lockRequest.versionId;
             creatingThreadName = lockRequest.creatingThreadName;
+        }
+
+        @JsonCreator
+        public SerializationProxy(@JsonProperty("locks") List<LockWithMode> locks,
+                                  @JsonProperty("lockTimeout") TimeDuration lockTimeout,
+                                  @JsonProperty("lockGroupBehavior") LockGroupBehavior lockGroupBehavior,
+                                  @JsonProperty("blockingMode") BlockingMode blockingMode,
+                                  @JsonProperty("blockingDuration") TimeDuration blockingDuration,
+                                  @JsonProperty("versionId") Long versionId,
+                                  @JsonProperty("creatingThreadName") String creatingThreadName) {
+            SortedMap<LockDescriptor, LockMode> localLockMap = Maps.newTreeMap();
+            for (LockWithMode lock : locks) {
+                localLockMap.put(lock.getLockDescriptor(), lock.getLockMode());
+            }
+            this.lockMap = LockCollections.of(localLockMap);
+            this.lockTimeout = lockTimeout;
+            this.lockGroupBehavior = lockGroupBehavior;
+            this.blockingMode = blockingMode;
+            this.blockingDuration = blockingDuration;
+            this.versionId = versionId;
+            this.creatingThreadName = creatingThreadName;
+        }
+
+        public LockRequest build() {
+            return (LockRequest) readResolve();
         }
 
         Object readResolve() {

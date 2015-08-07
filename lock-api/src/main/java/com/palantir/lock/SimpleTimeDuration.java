@@ -23,6 +23,8 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
@@ -38,7 +40,9 @@ import com.google.common.base.Preconditions;
     private final long time;
     private final TimeUnit unit;
 
-    public static SimpleTimeDuration of(long time, TimeUnit unit) {
+    @JsonCreator
+    public static SimpleTimeDuration of(@JsonProperty("time") long time,
+                                        @JsonProperty("unit") TimeUnit unit) {
         return new SimpleTimeDuration(time, unit);
     }
 

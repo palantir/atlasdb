@@ -23,6 +23,8 @@ import java.util.concurrent.locks.ReadWriteLock;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
 import com.google.common.io.BaseEncoding;
 
@@ -37,7 +39,8 @@ public final class ByteArrayLockDescriptor extends LockDescriptor {
     private static final long serialVersionUID = 5L;
 
     /** Returns a {@code LockDescriptor} instance for the given lock ID. */
-    public static LockDescriptor of(byte[] bytes) {
+    @JsonCreator
+    public static ByteArrayLockDescriptor of(@JsonProperty("bytes") byte[] bytes) {
         Preconditions.checkNotNull(bytes);
         return new ByteArrayLockDescriptor(bytes);
     }

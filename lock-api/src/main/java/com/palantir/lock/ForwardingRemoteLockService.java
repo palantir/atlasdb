@@ -9,11 +9,11 @@ public abstract class ForwardingRemoteLockService extends ForwardingObject imple
     @Override
     protected abstract RemoteLockService delegate();
 
-    public LockResponse lockAnonymously(LockRequest request) throws InterruptedException {
+    public LockRefreshToken lockAnonymously(LockRequest request) throws InterruptedException {
         return delegate().lockAnonymously(request);
     }
 
-    public LockResponse lockWithClient(String client, LockRequest request)
+    public LockRefreshToken lockWithClient(String client, LockRequest request)
             throws InterruptedException {
         return delegate().lockWithClient(client, request);
     }
@@ -26,7 +26,7 @@ public abstract class ForwardingRemoteLockService extends ForwardingObject imple
         return delegate().refreshLockRefreshTokens(tokens);
     }
 
-    public Long getMinLockedInVersionId(LockClient client) {
+    public Long getMinLockedInVersionId(String client) {
         return delegate().getMinLockedInVersionId(client);
     }
 
