@@ -1,18 +1,20 @@
 package com.palantir.lock.server;
 
 import java.io.IOException;
+import java.util.Set;
 
+import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.atlasdb.client.TextDelegateDecoder;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
-import com.palantir.lock.LockResponse;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.impl.LockServiceImpl;
@@ -35,19 +37,20 @@ public class LockRemotingTest {
 
         LockDescriptor desc = StringLockDescriptor.of("1234");
         String writeValueAsString = mapper.writeValueAsString(desc);
-        System.out.println(writeValueAsString);
         LockDescriptor desc2 = mapper.readValue(writeValueAsString, LockDescriptor.class);
 
-        LockRequest request = LockRequest.builder(ImmutableSortedMap.of(desc, LockMode.WRITE)).build();
+        long minVersion = 123;
+        LockRequest request = LockRequest.builder(ImmutableSortedMap.of(desc, LockMode.WRITE))
+        		.doNotBlock()
+        		.withLockedInVersionId(minVersion)
+        		.build();
         writeValueAsString = mapper.writeValueAsString(request);
-        System.out.println(writeValueAsString);
         LockRequest request2 = mapper.readValue(writeValueAsString, LockRequest.class);
 
         LockRefreshToken lockResponse = rawLock.lockAnonymously(request);
         rawLock.unlock(lockResponse);
         writeValueAsString = mapper.writeValueAsString(lockResponse);
-        System.out.println(writeValueAsString);
-        LockResponse lockResponse2 = mapper.readValue(writeValueAsString, LockResponse.class);
+        LockRefreshToken lockResponse2 = mapper.readValue(writeValueAsString, LockRefreshToken.class);
 
         RemoteLockService lock = Feign.builder()
                 .decoder(new TextDelegateDecoder(new JacksonDecoder()))
@@ -56,6 +59,17 @@ public class LockRemotingTest {
                 .target(RemoteLockService.class, lockService.baseUri().toString());
 
 
-        lock.lockAnonymously(request);
+        String lockClient = "23234";
+        LockRefreshToken token = lock.lockWithClient(lockClient, request);
+        long minLockedInVersionId = lock.getMinLockedInVersionId(lockClient);
+        Assert.assertEquals(minVersion, minLockedInVersionId);
+        lock.unlock(token);
+        token = lock.lockAnonymously(request);
+        Set<LockRefreshToken> refreshed = lock.refreshLockRefreshTokens(ImmutableList.of(token));
+        Assert.assertEquals(1, refreshed.size());
+        lock.unlock(token);
+        lock.logCurrentState();
+        lock.logCurrentStateInconsistent();
+        lock.currentTimeMillis();
     }
 }
