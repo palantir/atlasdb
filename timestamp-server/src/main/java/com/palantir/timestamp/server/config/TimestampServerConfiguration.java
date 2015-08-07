@@ -15,8 +15,32 @@
  */
 package com.palantir.timestamp.server.config;
 
+import java.util.List;
+
+import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
+
+import com.google.common.collect.ImmutableList;
+
 import io.dropwizard.Configuration;
 
 public class TimestampServerConfiguration extends Configuration {
+	@NotNull
+	@Valid
+	public int quorumSize = 1;
 
+	@NotNull
+	@Valid
+	public int localIndex = 0;
+	@NotNull
+	@Valid
+	public List<String> servers = ImmutableList.of("localhost:1234");
+
+	@NotNull
+	@Valid
+	public String learnerLogDir = "paxosLog/learner";
+
+	@NotNull
+	@Valid
+	public String acceptorLogDir = "paxosLog/acceptor";
 }
