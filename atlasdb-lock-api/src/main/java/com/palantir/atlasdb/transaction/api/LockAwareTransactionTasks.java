@@ -17,6 +17,7 @@ package com.palantir.atlasdb.transaction.api;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.HeldLocksToken;
+import com.palantir.lock.LockRefreshToken;
 
 public class LockAwareTransactionTasks {
 
@@ -27,17 +28,17 @@ public class LockAwareTransactionTasks {
     public static <T, E extends Exception> LockAwareTransactionTask<T, E> asLockAware(final TransactionTask<T, E> task) {
         return new LockAwareTransactionTask<T, E>() {
             @Override
-            public T execute(Transaction t, Iterable<HeldLocksToken> heldLocks) throws E {
+            public T execute(Transaction t, Iterable<LockRefreshToken> heldLocks) throws E {
                 return task.execute(t);
             }
         };
     }
 
     public static <T, E extends Exception> TransactionTask<T, E> asLockUnaware(final LockAwareTransactionTask<T, E> task) {
-        return asLockUnaware(task, ImmutableSet.<HeldLocksToken>of());
+        return asLockUnaware(task, ImmutableSet.<LockRefreshToken>of());
     }
 
-    public static <T, E extends Exception> TransactionTask<T, E> asLockUnaware(final LockAwareTransactionTask<T, E> task, final Iterable<HeldLocksToken> locks) {
+    public static <T, E extends Exception> TransactionTask<T, E> asLockUnaware(final LockAwareTransactionTask<T, E> task, final Iterable<LockRefreshToken> locks) {
         return new TransactionTask<T, E>() {
             @Override
             public T execute(Transaction t) throws E {

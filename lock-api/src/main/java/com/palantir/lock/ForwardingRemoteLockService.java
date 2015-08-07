@@ -18,8 +18,8 @@ public abstract class ForwardingRemoteLockService extends ForwardingObject imple
         return delegate().lockWithClient(client, request);
     }
 
-    public boolean unlockSimple(SimpleHeldLocksToken token) {
-        return delegate().unlockSimple(token);
+    public boolean unlock(LockRefreshToken token) {
+        return delegate().unlock(token);
     }
 
     public Set<LockRefreshToken> refreshLockRefreshTokens(Iterable<LockRefreshToken> tokens) {

@@ -501,6 +501,11 @@ import com.palantir.util.Pair;
             throw new IllegalArgumentException("blockingMode = " + blockingMode);
         }
     }
+    
+    @Override
+    public boolean unlock(LockRefreshToken token) {
+    	return unlockSimple(SimpleHeldLocksToken.fromLockRefreshToken(token));
+    }
 
     @Override
     public boolean unlock(HeldLocksToken token) {

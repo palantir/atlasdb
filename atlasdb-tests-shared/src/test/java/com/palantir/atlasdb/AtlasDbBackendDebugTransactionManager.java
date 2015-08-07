@@ -23,6 +23,7 @@ import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.impl.ForwardingLockAwareTransactionManager;
 import com.palantir.lock.HeldLocksToken;
+import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 
 class AtlasDbBackendDebugTransactionManager extends ForwardingLockAwareTransactionManager {
@@ -45,7 +46,7 @@ class AtlasDbBackendDebugTransactionManager extends ForwardingLockAwareTransacti
     }
 
     @Override
-    public <T, E extends Exception> T runTaskWithLocksWithRetry(Iterable<HeldLocksToken> lockTokens,
+    public <T, E extends Exception> T runTaskWithLocksWithRetry(Iterable<LockRefreshToken> lockTokens,
                                                                 Supplier<LockRequest> lockSupplier,
                                                                 LockAwareTransactionTask<T, E> task)
             throws E {
@@ -53,7 +54,7 @@ class AtlasDbBackendDebugTransactionManager extends ForwardingLockAwareTransacti
     }
 
     @Override
-    public <T, E extends Exception> T runTaskWithLocksThrowOnConflict(Iterable<HeldLocksToken> lockTokens,
+    public <T, E extends Exception> T runTaskWithLocksThrowOnConflict(Iterable<LockRefreshToken> lockTokens,
                                                                       LockAwareTransactionTask<T, E> task)
             throws E, TransactionConflictException {
         return runTaskReadOnly(LockAwareTransactionTasks.asLockUnaware(task));

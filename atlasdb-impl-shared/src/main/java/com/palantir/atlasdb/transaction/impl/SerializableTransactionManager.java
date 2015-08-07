@@ -24,6 +24,7 @@ import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
+import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.timestamp.TimestampService;
 
@@ -52,7 +53,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
     @Override
     protected SnapshotTransaction createTransaction(long immutableLockTs,
                                                   Supplier<Long> startTimestampSupplier,
-                                                  ImmutableList<HeldLocksToken> allTokens) {
+                                                  ImmutableList<LockRefreshToken> allTokens) {
         return new SerializableTransaction(
                 keyValueService,
                 lockService,

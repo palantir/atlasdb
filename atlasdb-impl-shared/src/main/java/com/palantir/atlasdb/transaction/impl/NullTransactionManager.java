@@ -23,6 +23,7 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.lock.HeldLocksToken;
+import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
 import com.palantir.timestamp.TimestampService;
 
@@ -62,7 +63,7 @@ public class NullTransactionManager extends AbstractLockAwareTransactionManager 
     }
 
     @Override
-    public <T, E extends Exception> T runTaskWithLocksThrowOnConflict(Iterable<HeldLocksToken> lockTokens,
+    public <T, E extends Exception> T runTaskWithLocksThrowOnConflict(Iterable<LockRefreshToken> lockTokens,
                                                                       LockAwareTransactionTask<T, E> task)
                                                                               throws E, TransactionFailedRetriableException {
         Transaction t = new NullTransaction(service, timeService.getFreshTimestamp(), false);

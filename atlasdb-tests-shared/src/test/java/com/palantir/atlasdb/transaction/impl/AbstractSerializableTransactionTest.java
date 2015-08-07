@@ -49,6 +49,7 @@ import com.palantir.common.base.BatchingVisitables;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.HeldLocksToken;
+import com.palantir.lock.LockRefreshToken;
 
 
 public abstract class AbstractSerializableTransactionTest extends AbstractTransactionTest {
@@ -83,7 +84,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 ConflictDetectionManagers.fromMap(tablesToWriteWrite),
                 SweepStrategyManagers.createDefault(keyValueService),
                 0L,
-                ImmutableList.<HeldLocksToken>of(),
+                ImmutableList.<LockRefreshToken>of(),
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 null,
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,

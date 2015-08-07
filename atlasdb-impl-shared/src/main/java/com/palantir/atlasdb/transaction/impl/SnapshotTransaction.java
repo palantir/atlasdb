@@ -161,7 +161,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private final Supplier<Long> startTimestamp;
 
     protected final long immutableTimestamp;
-    protected final ImmutableSet<HeldLocksToken> externalLocksTokens;
+    protected final ImmutableSet<LockRefreshToken> externalLocksTokens;
 
     protected final long timeCreated = System.currentTimeMillis();
 
@@ -202,7 +202,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                ConflictDetectionManager conflictDetectionManager,
                                SweepStrategyManager sweepStrategyManager,
                                long immutableTimestamp,
-                               Iterable<HeldLocksToken> tokensValidForCommit,
+                               Iterable<LockRefreshToken> tokensValidForCommit,
                                AtlasDbConstraintCheckingMode constraintCheckingMode,
                                Long transactionTimeoutMillis,
                                TransactionReadSentinelBehavior readSentinelBehavior,
@@ -1150,7 +1150,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     commitTimestamp, millisForLocks, millisCheckingForConflicts, millisForWrites,
                     millisForPunch, millisForCommitTs, millisSinceCreation, writesByTable.keySet());
         } finally {
-            lockService.unlockSimple(SimpleHeldLocksToken.fromLockRefreshToken(commitLocksToken));
+            lockService.unlock(commitLocksToken);
         }
     }
 
@@ -1201,10 +1201,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private Set<LockRefreshToken> refreshExternalAndCommitLocks(@Nullable LockRefreshToken commitLocksToken) {
         ImmutableSet<LockRefreshToken> toRefresh;
         if (commitLocksToken == null) {
-            toRefresh = ImmutableSet.copyOf(Iterables.transform(externalLocksTokens, HeldLocksTokens.getRefreshTokenFun()));
+            toRefresh = externalLocksTokens;
         } else {
             toRefresh = ImmutableSet.<LockRefreshToken>builder()
-                    .addAll(Iterables.transform(externalLocksTokens, HeldLocksTokens.getRefreshTokenFun()))
+                    .addAll(externalLocksTokens)
                     .add(commitLocksToken).build();
         }
         if (toRefresh.isEmpty()) {

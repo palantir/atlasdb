@@ -10,6 +10,7 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.atlasdb.client.TextDelegateDecoder;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
+import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockResponse;
 import com.palantir.lock.RemoteLockService;
@@ -42,7 +43,8 @@ public class LockRemotingTest {
         System.out.println(writeValueAsString);
         LockRequest request2 = mapper.readValue(writeValueAsString, LockRequest.class);
 
-        LockResponse lockResponse = rawLock.lockAnonymously(request);
+        LockRefreshToken lockResponse = rawLock.lockAnonymously(request);
+        rawLock.unlock(lockResponse);
         writeValueAsString = mapper.writeValueAsString(lockResponse);
         System.out.println(writeValueAsString);
         LockResponse lockResponse2 = mapper.readValue(writeValueAsString, LockResponse.class);

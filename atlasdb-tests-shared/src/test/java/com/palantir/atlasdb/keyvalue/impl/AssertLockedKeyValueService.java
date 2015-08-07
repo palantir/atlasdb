@@ -29,6 +29,7 @@ import com.palantir.common.base.Throwables;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
+import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockResponse;
 import com.palantir.lock.RemoteLockService;
@@ -64,14 +65,14 @@ public class AssertLockedKeyValueService extends ForwardingKeyValueService {
             try {
                 if (!mapToAssertLockHeld.isEmpty()) {
                     LockRequest request = LockRequest.builder(mapToAssertLockHeld).doNotBlock().lockAsManyAsPossible().build();
-                    LockResponse lock = lockService.lockAnonymously(request);
-                    Validate.isTrue(!lock.success(), "these should already be held");
+                    LockRefreshToken lock = lockService.lockAnonymously(request);
+                    Validate.isTrue(lock == null, "these should already be held");
                 }
 
                 if (!mapToAssertLockNotHeld.isEmpty()) {
                     LockRequest request = LockRequest.builder(mapToAssertLockNotHeld).doNotBlock().build();
-                    LockResponse lock = lockService.lockAnonymously(request);
-                    Validate.isTrue(lock.success(), "these should already be waited for");
+                    LockRefreshToken lock = lockService.lockAnonymously(request);
+                    Validate.isTrue(lock != null, "these should already be waited for");
                 }
             } catch (InterruptedException e) {
                 throw Throwables.throwUncheckedException(e);

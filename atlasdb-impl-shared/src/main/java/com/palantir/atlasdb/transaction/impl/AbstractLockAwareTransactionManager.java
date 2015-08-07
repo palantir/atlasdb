@@ -79,7 +79,7 @@ public abstract class AbstractLockAwareTransactionManager extends AbstractTransa
                 throw e;
             } finally {
                 if (lockToken != null) {
-                    getLockService().unlockSimple(SimpleHeldLocksToken.fromLockRefreshToken(lockToken));
+                    getLockService().unlock(lockToken);
                 }
             }
 

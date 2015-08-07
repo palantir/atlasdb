@@ -33,21 +33,25 @@ public interface RemoteLockService {
     /**
      * This is the same as {@link #lock(LockClient, LockRequest)} but passing in {@link LockClient#ANONYMOUS}
      * as the first param.
+     * @return null if the lock request failed
      */
     @POST
     @Path("lock-anonymously")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
+    @Nullable
     LockRefreshToken lockAnonymously(LockRequest request) throws InterruptedException;
 
     /**
      * This is the same as {@link #lock(LockClient, LockRequest)} but passing in <code>LockClient.of(client)</code>
      * as the first param.
+     * @return null if the lock request failed
      */
     @POST
     @Path("lock/{client}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
+    @Nullable
     LockRefreshToken lockWithClient(@PathParam("client") String client, LockRequest request) throws InterruptedException;
 
     /**
@@ -65,7 +69,7 @@ public interface RemoteLockService {
     @Path("unlock")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    @NonIdempotent boolean unlockSimple(SimpleHeldLocksToken token);
+    @NonIdempotent boolean unlock(LockRefreshToken token);
 
     /**
      * Refreshes the given lock tokens.

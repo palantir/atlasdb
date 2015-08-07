@@ -50,6 +50,8 @@ import com.palantir.common.annotation.NonIdempotent;
     @Deprecated
     @NonIdempotent boolean unlock(HeldLocksToken token);
 
+    @NonIdempotent boolean unlockSimple(SimpleHeldLocksToken token);
+
     /**
      * Unlocks the set of locks represented by the <code>token</code>
      * parameter.

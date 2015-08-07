@@ -55,12 +55,10 @@ import com.palantir.atlasdb.transaction.api.LockAwareTransactionTasks;
 import com.palantir.atlasdb.transaction.api.RuntimeTransactionTask;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.base.Throwables;
-import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
-import com.palantir.lock.LockResponse;
 import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.lock.StringLockDescriptor;
 
@@ -97,7 +95,7 @@ public class BackgroundSweeper implements Runnable {
 
     @Override
     public void run() {
-        Optional<HeldLocksToken> locks = Optional.absent();
+        Optional<LockRefreshToken> locks = Optional.absent();
         try {
             // Wait a while before starting so short lived clis don't try to sweep.
             Thread.sleep(20 * (1000 + sweepPauseMillis.get()));
@@ -138,7 +136,7 @@ public class BackgroundSweeper implements Runnable {
             log.info("Shutting down background sweeper.");
         } finally {
             if (locks.isPresent()) {
-                txManager.getLockService().unlockSimple(SimpleHeldLocksToken.fromHeldLocksToken(locks.get()));
+                txManager.getLockService().unlock(locks.get());
             }
         }
     }
@@ -308,9 +306,9 @@ public class BackgroundSweeper implements Runnable {
         }
     }
 
-    private Optional<HeldLocksToken> lockOrRefresh(Optional<HeldLocksToken> previousLocks) throws InterruptedException {
+    private Optional<LockRefreshToken> lockOrRefresh(Optional<LockRefreshToken> previousLocks) throws InterruptedException {
         if (previousLocks.isPresent()) {
-            LockRefreshToken refreshToken = previousLocks.get().getLockRefreshToken();
+            LockRefreshToken refreshToken = previousLocks.get();
             Set<LockRefreshToken> refreshedTokens = txManager.getLockService()
                     .refreshLockRefreshTokens(ImmutableList.of(refreshToken));
             if (refreshedTokens.isEmpty()) {
@@ -321,9 +319,9 @@ public class BackgroundSweeper implements Runnable {
         } else {
             LockDescriptor lock = StringLockDescriptor.of("atlasdb sweep");
             LockRequest request = LockRequest.builder(ImmutableSortedMap.of(lock, LockMode.WRITE)).doNotBlock().build();
-            LockResponse response = txManager.getLockService().lockAnonymously(request);
-            if (response.success()) {
-                return Optional.of(response.getToken());
+            LockRefreshToken response = txManager.getLockService().lockAnonymously(request);
+            if (response != null) {
+                return Optional.of(response);
             } else {
                 return Optional.absent();
             }

@@ -122,11 +122,11 @@ public class SnapshotTransactionManager extends AbstractLockAwareTransactionMana
         }
         try {
             ImmutableList<LockRefreshToken> allTokens =
-                    ImmutableList.<LockRefreshToken> builder().add(lock.getToken()).addAll(lockTokens).build();
+                    ImmutableList.<LockRefreshToken> builder().add(lock).addAll(lockTokens).build();
             t = createTransaction(immutableLockTs, startTimestampSupplier, allTokens);
             result = runTaskThrowOnConflict(LockAwareTransactionTasks.asLockUnaware(task, lockTokens), t);
         } finally {
-            lockService.unlockSimple(SimpleHeldLocksToken.fromHeldLocksToken(lock.getToken()));
+            lockService.unlock(lock);
         }
         if (t.getTransactionType() == TransactionType.AGGRESSIVE_HARD_DELETE) {
             // t.getCellsToScrubImmediately() checks that t has been committed
@@ -137,7 +137,7 @@ public class SnapshotTransactionManager extends AbstractLockAwareTransactionMana
 
     protected SnapshotTransaction createTransaction(long immutableLockTs,
                                                   Supplier<Long> startTimestampSupplier,
-                                                  ImmutableList<HeldLocksToken> allTokens) {
+                                                  ImmutableList<LockRefreshToken> allTokens) {
         return new SnapshotTransaction(
                 keyValueService,
                 lockService,
@@ -168,7 +168,7 @@ public class SnapshotTransactionManager extends AbstractLockAwareTransactionMana
                 conflictDetectionManager,
                 sweepStrategyManager,
                 immutableTs,
-                Collections.<HeldLocksToken>emptyList(),
+                Collections.<LockRefreshToken>emptyList(),
                 constraintModeSupplier.get(),
                 cleaner.getTransactionReadTimeoutMillis(),
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,

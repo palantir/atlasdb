@@ -39,6 +39,7 @@ import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.BlockingWorkerPool;
 import com.palantir.lock.HeldLocksToken;
+import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 
 public class RangeVisitor {
@@ -50,7 +51,7 @@ public class RangeVisitor {
     private int batchSize = 1000;
     private int threadCount = 1;
     private ExecutorService exec = MoreExecutors.newDirectExecutorService();
-    private Iterable<HeldLocksToken> lockTokens = ImmutableList.of();
+    private Iterable<LockRefreshToken> lockTokens = ImmutableList.of();
     private AtomicLong counter = new AtomicLong();
 
     public RangeVisitor(LockAwareTransactionManager txManager,
@@ -90,7 +91,7 @@ public class RangeVisitor {
         return this;
     }
 
-    public RangeVisitor setLockTokens(Iterable<HeldLocksToken> lockTokens) {
+    public RangeVisitor setLockTokens(Iterable<LockRefreshToken> lockTokens) {
         this.lockTokens = lockTokens;
         return this;
     }
@@ -124,7 +125,7 @@ public class RangeVisitor {
                         Suppliers.<LockRequest>ofInstance(null),
                         new LockAwareTransactionTask<Long, RuntimeException>() {
                     @Override
-                    public Long execute(Transaction t, Iterable<HeldLocksToken> heldLocks) {
+                    public Long execute(Transaction t, Iterable<LockRefreshToken> heldLocks) {
                         return visitInternal(t, visitor, request, range);
                     }
                 });

@@ -55,6 +55,7 @@ import com.palantir.common.base.BatchingVisitables;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.BlockingWorkerPool;
 import com.palantir.lock.HeldLocksToken;
+import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 
 public class TableTasks {
@@ -86,7 +87,7 @@ public class TableTasks {
 
     public static void copy(final LockAwareTransactionManager txManager,
                             ExecutorService exec,
-                            final Iterable<HeldLocksToken> lockTokens,
+                            final Iterable<LockRefreshToken> lockTokens,
                             final String srcTable,
                             final String dstTable,
                             int batchSize,
@@ -98,7 +99,7 @@ public class TableTasks {
                 return txManager.runTaskWithLocksWithRetry(lockTokens, Suppliers.<LockRequest>ofInstance(null),
                         new LockAwareTransactionTask<Long, RuntimeException>() {
                     @Override
-                    public Long execute(Transaction t, Iterable<HeldLocksToken> heldLocks) {
+                    public Long execute(Transaction t, Iterable<LockRefreshToken> heldLocks) {
                         return copyInternal(t, srcTable, dstTable, request, range);
                     }
                 });
@@ -236,7 +237,7 @@ public class TableTasks {
 
     public static void diff(final LockAwareTransactionManager txManager,
                             ExecutorService exec,
-                            final Iterable<HeldLocksToken> lockTokens,
+                            final Iterable<LockRefreshToken> lockTokens,
                             final String plusTable,
                             final String minusTable,
                             final int batchSize,
@@ -250,7 +251,7 @@ public class TableTasks {
                 return txManager.runTaskWithLocksWithRetry(lockTokens, Suppliers.<LockRequest>ofInstance(null),
                         new LockAwareTransactionTask<DiffStats, RuntimeException>() {
                     @Override
-                    public DiffStats execute(Transaction t, Iterable<HeldLocksToken> heldLocks) {
+                    public DiffStats execute(Transaction t, Iterable<LockRefreshToken> heldLocks) {
                         return diffInternal(t, plusTable, minusTable, request, range, strategy, visitor);
                     }
                 });
