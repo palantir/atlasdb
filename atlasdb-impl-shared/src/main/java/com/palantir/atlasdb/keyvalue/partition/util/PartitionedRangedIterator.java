@@ -31,8 +31,8 @@ public abstract class PartitionedRangedIterator<T> implements ClosableIterator<R
     }
 
     private void prepareNextRange() {
-        Preconditions.checkArgument(currentRange.hasNext());
-        Preconditions.checkArgument(!getRowIterator().hasNext());
+        Preconditions.checkState(currentRange.hasNext());
+        Preconditions.checkState(!getRowIterator().hasNext());
         ConsistentRingRangeRequest newRange = currentRange.next();
         closeCurrentRangeIterators();
         currentRangeIterators = computeNextRange(newRange);
