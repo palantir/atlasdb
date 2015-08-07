@@ -1,0 +1,9 @@
+apply from: "../gradle/shared.gradle"
+
+dependencies {
+  compile(project(":atlasdb-client"))
+  compile 'org.jdbi:jdbi:2.59'
+
+  testCompile project(path: ":atlasdb-tests-shared", configuration: 'test')
+}
+
