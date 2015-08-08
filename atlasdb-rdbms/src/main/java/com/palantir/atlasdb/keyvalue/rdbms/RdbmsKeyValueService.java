@@ -78,6 +78,7 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
             @Override
             public Void inTransaction(Handle handle, TransactionStatus status) throws Exception {
                 try {
+                    // Silently ignore if already initialized
                     handle.select("SELECT 1 FROM " + MetaTable.META_TABLE_NAME);
                 } catch (RuntimeException e) {
                     log.warn("Initializing from fresh instance " + this);
@@ -118,9 +119,9 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
                                     final Iterable<byte[]> rows,
                                     final ColumnSelection columnSelection,
                                     long timestamp) {
-        return getDbi().withHandle(new HandleCallback<Map<Cell, Value>>() {
+        return getDbi().inTransaction(new TransactionCallback<Map<Cell, Value>>() {
             @Override
-            public Map<Cell, Value> withHandle(Handle handle) throws Exception {
+            public Map<Cell, Value> inTransaction(Handle handle, TransactionStatus status) {
 
                 Map<Cell, Value> result = Maps.newHashMap();
 
@@ -405,9 +406,24 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
 
     @Override
     @Idempotent
-    public void addGarbageCollectionSentinelValues(String tableName, Set<Cell> cells) {
-        // TODO Auto-generated method stub
-
+    public void addGarbageCollectionSentinelValues(final String tableName, final Set<Cell> cells) {
+        // TODO: Can it fail if the cell did not exist originally?
+        getDbi().withHandle(new HandleCallback<Void>() {
+            @Override
+            public Void withHandle(Handle handle) throws Exception {
+                for (Cell c : cells) {
+                    handle.execute(
+                            "UPDATE " + tableName + " SET (" + Columns.CONTENT + ", "
+                                    + Columns.TIMESTAMP + ") VALUES (?, ?) WHERE " + Columns.ROW
+                                    + "  = ? AND " + Columns.COLUMN + " = ?",
+                            new byte[0],
+                            Value.INVALID_VALUE_TIMESTAMP,
+                            c.getRowName(),
+                            c.getColumnName());
+                }
+                return null;
+            }
+        });
     }
 
     @Override
