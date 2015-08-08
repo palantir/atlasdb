@@ -224,6 +224,7 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
     @Override
     public void put(final String tableName, final Map<Cell, byte[]> values, final long timestamp)
             throws KeyAlreadyExistsException {
+        // TODO: Throw the KeyAlreadyExistsException when appropriate
         getDbi().withHandle(new HandleCallback<Void>() {
             @Override
             public Void withHandle(Handle handle) throws Exception {
@@ -269,10 +270,9 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
     }
 
     @Override
-    public void putUnlessExists(String tableName, Map<Cell, byte[]> values)
+    public void putUnlessExists(final String tableName, final Map<Cell, byte[]> values)
             throws KeyAlreadyExistsException {
-        // TODO Auto-generated method stub
-
+        put(tableName, values, 0);
     }
 
     @Override
