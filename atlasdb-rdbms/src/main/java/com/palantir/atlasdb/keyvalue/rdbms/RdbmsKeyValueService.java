@@ -24,6 +24,7 @@ import org.skife.jdbi.v2.util.StringMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -62,16 +63,19 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
         }
     }
 
-    final DBI dbi;
+    private final DBI dbi;
 
     private DBI getDbi() {
         return dbi;
     }
 
+    private DataSource getTestDataSource() {
+        return JdbcConnectionPool.create("jdbc:h2:mem:test", "username", "password");
+    }
+
     public RdbmsKeyValueService(ExecutorService executor) {
         super(executor);
-        DataSource ds = JdbcConnectionPool.create("jdbc:h2:mem:test", "username", "password");
-        dbi = new DBI(ds);
+        dbi = new DBI(getTestDataSource());
     }
 
     @Override
@@ -157,11 +161,6 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
             return Value.create(content, timestamp);
         }
 
-        private ValueMapper() {
-            // Do NOT use this from outside instance() method...
-            // TODO: Move to another file
-        }
-
         private static ValueMapper instance() {
             if (instance == null) {
                 ValueMapper ret = new ValueMapper();
@@ -201,13 +200,16 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
                 Map<Cell, Value> result = Maps.newHashMap();
                 for (Map.Entry<Cell, Long> e : timestampByCell.entrySet()) {
                     List<Value> values = handle.createQuery(
-                            "SELECT content, timestamp FROM "
+                            "SELECT row, column, content, timestamp FROM "
                                     + tableName
-                                    + " WHERE row=:row AND column=:column AND timestamp < :timestamp").bind(
+                                    + " WHERE row=:row AND column=:column AND timestamp < :timestamp AND timestamp IN (SELECT MAX(timestamp) FROM "
+                                    + tableName
+                                    + " WHERE row=:row AND column=:column GROUP BY row, column)").bind(
                             "row",
                             e.getKey().getRowName()).bind("column", e.getKey().getColumnName()).bind(
                             "timestamp",
                             e.getValue()).map(ValueMapper.instance()).list();
+                    Preconditions.checkState(values.size() == 1);
                     Value latestValue = values.get(0);
                     for (Value value : values) {
                         if (value.getTimestamp() > latestValue.getTimestamp()) {
