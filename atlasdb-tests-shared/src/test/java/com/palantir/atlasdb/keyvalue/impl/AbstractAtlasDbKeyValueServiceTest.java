@@ -56,6 +56,8 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
     private static final byte[] value0_t0 = "value0_t0".getBytes();
     private static final byte[] value0_t1 = "value1_t1".getBytes();
 
+    private static final byte[] metadata0 = "metadata0".getBytes();
+
     private static final long TEST_TIMESTAMP = 1000000l;
 
 
@@ -173,6 +175,13 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         keyValueService.dropTable(anotherTable);
         assertEquals(1, keyValueService.getAllTableNames().size());
         assertEquals(TEST_TABLE, keyValueService.getAllTableNames().iterator().next());
+    }
+
+    @Test
+    public void testTableMetadata() {
+        assertEquals(0, keyValueService.getMetadataForTable(TEST_TABLE).length);
+        keyValueService.putMetadataForTable(TEST_TABLE, metadata0);
+        assertTrue(Arrays.equals(metadata0, keyValueService.getMetadataForTable(TEST_TABLE)));
     }
 
     private void putTestDataForMultipleTimestamps() {

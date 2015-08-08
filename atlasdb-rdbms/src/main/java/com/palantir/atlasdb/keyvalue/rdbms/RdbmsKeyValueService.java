@@ -18,6 +18,7 @@ import org.skife.jdbi.v2.TransactionCallback;
 import org.skife.jdbi.v2.TransactionStatus;
 import org.skife.jdbi.v2.tweak.HandleCallback;
 import org.skife.jdbi.v2.tweak.ResultSetMapper;
+import org.skife.jdbi.v2.util.ByteArrayMapper;
 import org.skife.jdbi.v2.util.StringMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -374,16 +375,32 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
 
     @Override
     @Idempotent
-    public byte[] getMetadataForTable(String tableName) {
-        // TODO Auto-generated method stub
-        return null;
+    public byte[] getMetadataForTable(final String tableName) {
+        return getDbi().inTransaction(new TransactionCallback<byte[]>() {
+            @Override
+            public byte[] inTransaction(Handle conn, TransactionStatus status) throws Exception {
+                return conn.createQuery(
+                        "SELECT " + MetaTable.Columns.METADATA + " FROM "
+                                + MetaTable.META_TABLE_NAME + " WHERE "
+                                + MetaTable.Columns.TABLE_NAME + " = :tableName").bind(
+                        "tableName",
+                        tableName).map(ByteArrayMapper.FIRST).first();
+            }
+        });
     }
 
     @Override
     @Idempotent
-    public void putMetadataForTable(String tableName, byte[] metadata) {
-        // TODO Auto-generated method stub
-
+    public void putMetadataForTable(final String tableName, final byte[] metadata) {
+        getDbi().inTransaction(new TransactionCallback<Void>() {
+            @Override
+            public Void inTransaction(Handle conn, TransactionStatus status) throws Exception {
+                conn.execute("UPDATE " + MetaTable.META_TABLE_NAME + " SET "
+                        + MetaTable.Columns.METADATA + " = ? WHERE " + MetaTable.Columns.TABLE_NAME
+                        + " = ?", metadata, tableName);
+                return null;
+            }
+        });
     }
 
     @Override
