@@ -13,6 +13,7 @@ dependencies {
               name: "jmock",
               version: "2.5.1",
               configuration: "default")
+  testCompile(group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.5', configuration: 'default')
   test sourceSets.test.output
 
 }

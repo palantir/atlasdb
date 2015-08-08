@@ -4,6 +4,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
@@ -13,11 +14,17 @@ import org.h2.jdbcx.JdbcConnectionPool;
 import org.skife.jdbi.v2.DBI;
 import org.skife.jdbi.v2.Handle;
 import org.skife.jdbi.v2.StatementContext;
+import org.skife.jdbi.v2.TransactionCallback;
+import org.skife.jdbi.v2.TransactionStatus;
 import org.skife.jdbi.v2.tweak.HandleCallback;
 import org.skife.jdbi.v2.tweak.ResultSetMapper;
+import org.skife.jdbi.v2.util.StringMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
@@ -34,11 +41,22 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 public final class RdbmsKeyValueService extends AbstractKeyValueService {
 
+    private static final Logger log = LoggerFactory.getLogger(RdbmsKeyValueService.class);
+
     private static final class Columns {
         public static final String TIMESTAMP = "timestamp";
         public static final String CONTENT = "content";
         public static final String ROW = "row";
         public static final String COLUMN = "column";
+    }
+
+    private static final class MetaTable {
+        public static final String META_TABLE_NAME = "_table_meta";
+
+        private static final class Columns {
+            public static final String TABLE_NAME = "table_name";
+            public static final String METADATA = "metadata";
+        }
     }
 
     final DBI dbi;
@@ -55,8 +73,20 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
 
     @Override
     public void initializeFromFreshInstance() {
-        // TODO Auto-generated method stub
-
+        getDbi().inTransaction(new TransactionCallback<Void>() {
+            @Override
+            public Void inTransaction(Handle handle, TransactionStatus status) throws Exception {
+                try {
+                    handle.select("SELECT 1 FROM " + MetaTable.META_TABLE_NAME);
+                } catch (RuntimeException e) {
+                    log.warn("Initializing from fresh instance " + this);
+                    handle.execute("CREATE TABLE " + MetaTable.META_TABLE_NAME + " ("
+                            + MetaTable.Columns.TABLE_NAME + " VARCHAR(128), "
+                            + MetaTable.Columns.METADATA + " BYTEA NOT NULL)");
+                }
+                return null;
+            }
+        });
     }
 
     private static class SingleResult {
@@ -211,10 +241,27 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
 
     @Override
     @NonIdempotent
-    public void putWithTimestamps(String tableName, Multimap<Cell, Value> cellValues)
+    public void putWithTimestamps(final String tableName, final Multimap<Cell, Value> cellValues)
             throws KeyAlreadyExistsException {
-        // TODO Auto-generated method stub
-
+        getDbi().withHandle(new HandleCallback<Void>() {
+            @Override
+            public Void withHandle(Handle handle) throws Exception {
+                for (Entry<Cell, Value> e : cellValues.entries()) {
+                    int result = handle.createStatement(
+                            "INSERT INTO " + tableName + " (" + Columns.ROW + ", " + Columns.COLUMN
+                                    + ", " + Columns.CONTENT + ", " + Columns.TIMESTAMP
+                                    + ") VALUES (:row, :column, :content, :timestamp)").bind(
+                            "row",
+                            e.getKey().getRowName()).bind("column", e.getKey().getColumnName()).bind(
+                            "content",
+                            e.getValue().getContents()).bind(
+                            "timestamp",
+                            e.getValue().getTimestamp()).execute();
+                    assert result == 1;
+                }
+                return null;
+            }
+        });
     }
 
     @Override
@@ -226,9 +273,16 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
 
     @Override
     @Idempotent
-    public void delete(String tableName, Multimap<Cell, Long> keys) {
-        // TODO Auto-generated method stub
-
+    public void delete(final String tableName, Multimap<Cell, Long> keys) {
+        getDbi().withHandle(new HandleCallback<Void>() {
+            @Override
+            public Void withHandle(Handle handle) throws Exception {
+                handle.execute("DROP TABLE " + tableName);
+                handle.execute("DELETE FROM " + MetaTable.META_TABLE_NAME + " WHERE "
+                        + MetaTable.Columns.TABLE_NAME + "=:tableName", tableName);
+                return null;
+            }
+        });
     }
 
     @Override
@@ -274,10 +328,12 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
     @Override
     @Idempotent
     public void dropTable(final String tableName) throws InsufficientConsistencyException {
-        getDbi().withHandle(new HandleCallback<Void>() {
+        getDbi().inTransaction(new TransactionCallback<Void>() {
             @Override
-            public Void withHandle(Handle handle) throws Exception {
+            public Void inTransaction(Handle handle, TransactionStatus status) throws Exception {
                 handle.execute("DROP TABLE " + tableName);
+                handle.execute("DELETE FROM " + MetaTable.META_TABLE_NAME + " WHERE "
+                        + MetaTable.Columns.TABLE_NAME + " = ?", tableName);
                 return null;
             }
         });
@@ -287,14 +343,17 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
     @Idempotent
     public void createTable(final String tableName, int maxValueSizeInBytes)
             throws InsufficientConsistencyException {
-        getDbi().withHandle(new HandleCallback<Void>() {
+        getDbi().inTransaction(new TransactionCallback<Void>() {
             @Override
-            public Void withHandle(Handle handle) throws Exception {
+            public Void inTransaction(Handle handle, TransactionStatus status) throws Exception {
                 handle.execute("CREATE TABLE " + tableName + " (" + Columns.ROW
                         + " BYTEA NOT NULL, " + Columns.COLUMN + " BYTEA NOT NULL, "
                         + Columns.TIMESTAMP + " INT NOT NULL, " + Columns.CONTENT
                         + " BYTEA, PRIMARY KEY (" + Columns.ROW + ", " + Columns.COLUMN + ", "
                         + Columns.TIMESTAMP + "))");
+                handle.execute("INSERT INTO " + MetaTable.META_TABLE_NAME + " ("
+                        + MetaTable.Columns.TABLE_NAME + ", " + MetaTable.Columns.METADATA
+                        + ") VALUES (?, ?)", tableName, new byte[0]);
                 return null;
             }
         });
@@ -303,8 +362,14 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
     @Override
     @Idempotent
     public Set<String> getAllTableNames() {
-        // TODO Auto-generated method stub
-        return null;
+        return Sets.newHashSet(getDbi().withHandle(new HandleCallback<List<String>>() {
+            @Override
+            public List<String> withHandle(Handle handle) throws Exception {
+                return handle.createQuery(
+                        "SELECT " + MetaTable.Columns.TABLE_NAME + " FROM "
+                                + MetaTable.META_TABLE_NAME).map(StringMapper.FIRST).list();
+            }
+        }));
     }
 
     @Override

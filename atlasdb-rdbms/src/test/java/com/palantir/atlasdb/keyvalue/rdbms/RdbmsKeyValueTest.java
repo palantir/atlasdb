@@ -6,9 +6,16 @@ import com.palantir.common.concurrent.PTExecutors;
 
 public class RdbmsKeyValueTest extends AbstractAtlasDbKeyValueServiceTest {
 
+    KeyValueService kvs;
+
     @Override
     protected KeyValueService getKeyValueService() {
-        return new RdbmsKeyValueService(PTExecutors.newCachedThreadPool());
+        if (kvs == null) {
+            KeyValueService ret = new RdbmsKeyValueService(PTExecutors.newCachedThreadPool());
+            ret.initializeFromFreshInstance();
+            kvs = ret;
+        }
+        return kvs;
     }
 
 }

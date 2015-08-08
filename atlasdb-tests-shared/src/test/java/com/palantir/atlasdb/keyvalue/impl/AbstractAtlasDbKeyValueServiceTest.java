@@ -164,14 +164,14 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
     @Test
     public void testGetAllTableNames() {
         final String anotherTable = "AnotherTable";
-        assertEquals(1, keyValueService.getAllTableNames());
+        assertEquals(1, keyValueService.getAllTableNames().size());
         assertEquals(TEST_TABLE, keyValueService.getAllTableNames().iterator().next());
         keyValueService.createTable(anotherTable, 123);
-        assertEquals(2, keyValueService.getAllTableNames());
+        assertEquals(2, keyValueService.getAllTableNames().size());
         assertTrue(keyValueService.getAllTableNames().contains(anotherTable));
         assertTrue(keyValueService.getAllTableNames().contains(TEST_TABLE));
         keyValueService.dropTable(anotherTable);
-        assertEquals(1, keyValueService.getAllTableNames());
+        assertEquals(1, keyValueService.getAllTableNames().size());
         assertEquals(TEST_TABLE, keyValueService.getAllTableNames().iterator().next());
     }
 
