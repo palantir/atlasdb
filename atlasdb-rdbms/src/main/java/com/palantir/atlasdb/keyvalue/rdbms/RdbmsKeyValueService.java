@@ -19,10 +19,12 @@ import org.skife.jdbi.v2.TransactionStatus;
 import org.skife.jdbi.v2.tweak.HandleCallback;
 import org.skife.jdbi.v2.tweak.ResultSetMapper;
 import org.skife.jdbi.v2.util.ByteArrayMapper;
+import org.skife.jdbi.v2.util.LongMapper;
 import org.skife.jdbi.v2.util.StringMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
@@ -428,10 +430,25 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
 
     @Override
     @Idempotent
-    public Multimap<Cell, Long> getAllTimestamps(String tableName, Set<Cell> cells, long timestamp)
+    public Multimap<Cell, Long> getAllTimestamps(final String tableName,
+                                                 final Set<Cell> cells,
+                                                 long timestamp)
             throws InsufficientConsistencyException {
-        // TODO Auto-generated method stub
-        return null;
+        return getDbi().withHandle(new HandleCallback<Multimap<Cell, Long>>() {
+            @Override
+            public Multimap<Cell, Long> withHandle(Handle handle) throws Exception {
+                Multimap<Cell, Long> result = HashMultimap.create();
+                for (Cell c : cells) {
+                    List<Long> timestamps = handle.createQuery(
+                            "SELECT " + Columns.TIMESTAMP + " FROM " + tableName + " WHERE "
+                                    + Columns.ROW + " = :row AND " + Columns.COLUMN + " = :column").bind(
+                            "row",
+                            c.getRowName()).bind("column", c.getColumnName()).map(LongMapper.FIRST).list();
+                    result.putAll(c, timestamps);
+                }
+                return result;
+            }
+        });
     }
 
     @Override
