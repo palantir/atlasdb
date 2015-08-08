@@ -1,4 +1,4 @@
-package com.palantir.leader.server;
+package com.palantir.server;
 
 import java.io.IOException;
 import java.util.UUID;
