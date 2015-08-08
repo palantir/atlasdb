@@ -2,10 +2,13 @@ package com.palantir.atlasdb.keyvalue.rdbms;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NavigableMap;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.concurrent.ExecutorService;
 
 import javax.sql.DataSource;
@@ -26,6 +29,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
@@ -34,13 +38,18 @@ import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
+import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.NonIdempotent;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.common.base.ClosableIterators;
+import com.palantir.util.paging.AbstractPagingIterable;
+import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 public final class RdbmsKeyValueService extends AbstractKeyValueService {
@@ -86,6 +95,7 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
                 try {
                     // Silently ignore if already initialized
                     handle.select("SELECT 1 FROM " + MetaTable.META_TABLE_NAME);
+                    log.warn("Initializing an already initialized rdbms kvs. Ignoring.");
                 } catch (RuntimeException e) {
                     log.warn("Initializing from fresh instance " + this);
                     handle.execute("CREATE TABLE " + MetaTable.META_TABLE_NAME + " ("
@@ -137,7 +147,7 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
                                     + Columns.CONTENT + ", " + Columns.TIMESTAMP + " FROM "
                                     + tableName + " WHERE " + Columns.ROW + " = :row").bind(
                             "row",
-                            row).map(RowResultMapper.instance()).list();
+                            row).map(SingleRowResultMapper.instance()).list();
                     for (SingleResult r : cells) {
                         if (columnSelection.contains(r.getCell().getColumnName())) {
                             result.put(r.getCell(), r.getValue());
@@ -170,8 +180,30 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
         }
     }
 
-    private static class RowResultMapper implements ResultSetMapper<SingleResult> {
+    private static class RowResultMapper implements ResultSetMapper<RowResult<Value>> {
         private static RowResultMapper instance;
+
+        @Override
+        public RowResult<Value> map(int index, ResultSet r, StatementContext ctx)
+                throws SQLException {
+            byte[] row = r.getBytes(Columns.ROW);
+            byte[] col = r.getBytes(Columns.COLUMN);
+            long timestamp = r.getLong(Columns.TIMESTAMP);
+            byte[] content = r.getBytes(Columns.CONTENT);
+            return RowResult.of(Cell.create(row, col), Value.create(content, timestamp));
+        }
+
+        private static RowResultMapper instance() {
+            if (instance == null) {
+                RowResultMapper ret = new RowResultMapper();
+                instance = ret;
+            }
+            return instance;
+        }
+    }
+
+    private static class SingleRowResultMapper implements ResultSetMapper<SingleResult> {
+        private static SingleRowResultMapper instance;
 
         @Override
         public SingleResult map(int index, ResultSet r, StatementContext ctx) throws SQLException {
@@ -182,9 +214,9 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
             return SingleResult.of(Cell.create(row, col), Value.create(content, timestamp));
         }
 
-        private static RowResultMapper instance() {
+        private static SingleRowResultMapper instance() {
             if (instance == null) {
-                RowResultMapper ret = new RowResultMapper();
+                SingleRowResultMapper ret = new SingleRowResultMapper();
                 instance = ret;
             }
             return instance;
@@ -291,13 +323,64 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
         });
     }
 
+    private int getMaxRows(RangeRequest rangeRequest) {
+        return rangeRequest.getBatchHint() == null ? 100 : rangeRequest.getBatchHint();
+    }
+
+    private TokenBackedBasicResultsPage<RowResult<Value>, byte[]> getPage(final String tableName,
+                                                                          final RangeRequest rangeRequest,
+                                                                          final long timestamp) {
+        Preconditions.checkArgument(!rangeRequest.isReverse());
+        final int maxRows = getMaxRows(rangeRequest);
+        return getDbi().withHandle(new HandleCallback<TokenBackedBasicResultsPage<RowResult<Value>, byte[]>>() {
+            @Override
+            public TokenBackedBasicResultsPage<RowResult<Value>, byte[]> withHandle(Handle handle) throws Exception {
+                List<byte[]> rows = handle.createQuery(
+                        "SELECT DISTINCT row FROM " + tableName + " WHERE row >= :startRow AND timestamp < :timestamp LIMIT :limit")
+                        .bind("startRow", rangeRequest.getStartInclusive())
+                        .bind("timestamp", timestamp)
+                        .bind("limit", maxRows)
+                        .map(ByteArrayMapper.FIRST)
+                        .list();
+                if (rows.isEmpty()) {
+                            return new SimpleTokenBackedResultsPage<RowResult<Value>, byte[]>(
+                                    rangeRequest.getStartInclusive(),
+                                    Collections.<RowResult<Value>> emptyList(),
+                                    false);
+                }
+                Map<Cell, Value> cells = getRows(tableName, rows, ColumnSelection.all(), timestamp);
+                NavigableMap<byte[], SortedMap<byte[], Value>> byRow = Cells.breakCellsUpByRow(cells);
+                List<RowResult<Value>> finalResult = Lists.newArrayList();
+                for (Entry<byte[], SortedMap<byte[], Value>> e : byRow.entrySet()) {
+                    finalResult.add(RowResult.create(e.getKey(), e.getValue()));
+                }
+                byte[] token = RangeRequests.getNextStartRow(rangeRequest.isReverse(), rows.get(rows.size() - 1));
+                return new SimpleTokenBackedResultsPage<RowResult<Value>, byte[]>(token, finalResult, rows.size() == maxRows);
+            }
+        });
+    }
+
     @Override
     @Idempotent
-    public ClosableIterator<RowResult<Value>> getRange(String tableName,
-                                                       RangeRequest rangeRequest,
-                                                       long timestamp) {
-        // TODO Auto-generated method stub
-        return null;
+    public ClosableIterator<RowResult<Value>> getRange(final String tableName,
+                                                       final RangeRequest rangeRequest,
+                                                       final long timestamp) {
+        return ClosableIterators.wrap(new AbstractPagingIterable<RowResult<Value>, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>>() {
+            @Override
+            protected TokenBackedBasicResultsPage<RowResult<Value>, byte[]> getFirstPage()
+                    throws Exception {
+                return getPage(tableName, rangeRequest, timestamp);
+            }
+
+            @Override
+            protected TokenBackedBasicResultsPage<RowResult<Value>, byte[]> getNextPage(TokenBackedBasicResultsPage<RowResult<Value>, byte[]> previous)
+                    throws Exception {
+                return getPage(
+                        tableName,
+                        rangeRequest.getBuilder().startRowInclusive(previous.getTokenForNextPage()).build(),
+                        timestamp);
+            }
+        }.iterator());
     }
 
     @Override
