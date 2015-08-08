@@ -93,8 +93,8 @@ public class TimestampServer extends Application<TimestampServerConfiguration> {
                 0,
                 0,
                 0);
-
         environment.jersey().register(leader);
+
         TimestampService timestamp = AwaitingLeadershipProxy.newProxyInstance(TimestampService.class, new Supplier<TimestampService>() {
             @Override
             public TimestampService get() {
@@ -102,6 +102,7 @@ public class TimestampServer extends Application<TimestampServerConfiguration> {
                 return new RateLimitedTimestampService(new InMemoryTimestampService(), 0L);
             }
         }, leader);
+        environment.jersey().register(timestamp);
 
         RemoteLockService lock = AwaitingLeadershipProxy.newProxyInstance(RemoteLockService.class, new Supplier<RemoteLockService>() {
             @Override
@@ -109,5 +110,6 @@ public class TimestampServer extends Application<TimestampServerConfiguration> {
                 return LockServiceImpl.create();
             }
         }, leader);
+        environment.jersey().register(lock);
     }
 }

@@ -8,3 +8,5 @@ server:
   adminConnectors:
     - type: http
       port: 3829
+      
+quorumSize: 1

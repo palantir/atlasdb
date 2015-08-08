@@ -30,7 +30,7 @@ import com.palantir.common.supplier.PopulateServiceContextProxy;
 import com.palantir.common.supplier.ServiceContext;
 
 public class RemotingKeyValueService extends ForwardingKeyValueService {
-    final static ServiceContext<KeyValueService> remoteServiceContext = ExecutorInheritableServiceContext.create();
+    final static ServiceContext<KeyValueService> serviceContext = ExecutorInheritableServiceContext.create();
 
     public static KeyValueService createClientSide(final KeyValueService remoteService) {
         return new ForwardingKeyValueService() {
@@ -45,7 +45,7 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
                                                                RangeRequest rangeRequest,
                                                                long timestamp) {
                 ClosableIterator<RowResult<Value>> range = super.getRange(tableName, rangeRequest, timestamp);
-                return PopulateServiceContextProxy.newProxyInstanceWithConstantValue(ClosableIterator.class, range, remoteService, remoteServiceContext);
+                return PopulateServiceContextProxy.newProxyInstanceWithConstantValue(ClosableIterator.class, range, remoteService, serviceContext);
             }
         };
     }
@@ -123,7 +123,7 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
             RowResult<Value> lastResult = page.get(page.size()-1);
             byte[] newStart = RangeRequests.getNextStartRow(range.isReverse(), lastResult.getRowName());
             RangeRequest newRange = range.getBuilder().startRowInclusive(newStart).build();
-            KeyValueService keyValueService = remoteServiceContext.get();
+            KeyValueService keyValueService = serviceContext.get();
             if (keyValueService == null) {
                 throw new IllegalStateException("This remote keyvalue service needs to be wrapped with RemotingKeyValueService.createClientSide");
             }

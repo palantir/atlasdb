@@ -1,4 +1,4 @@
-package com.palantir.lock.server;
+package com.palantir.server;
 
 import java.io.IOException;
 import java.util.Set;

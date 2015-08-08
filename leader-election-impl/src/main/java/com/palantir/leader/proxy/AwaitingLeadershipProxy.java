@@ -2,7 +2,6 @@ package com.palantir.leader.proxy;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -16,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
+import com.google.common.reflect.AbstractInvocationHandler;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.LeaderElectionService;
@@ -23,7 +23,7 @@ import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 import com.palantir.leader.NotCurrentLeaderException;
 
-public final class AwaitingLeadershipProxy implements InvocationHandler {
+public final class AwaitingLeadershipProxy extends AbstractInvocationHandler {
 
     private static final Logger log = LoggerFactory.getLogger(AwaitingLeadershipProxy.class);
 
@@ -117,7 +117,7 @@ public final class AwaitingLeadershipProxy implements InvocationHandler {
     }
 
     @Override
-    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+    protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
         final LeadershipToken leadershipToken = leadershipTokenRef.get();
 
         if (leadershipToken == null) {
@@ -167,6 +167,22 @@ public final class AwaitingLeadershipProxy implements InvocationHandler {
             tryToGainLeadership();
         }
         throw new NotCurrentLeaderException("method invoked on a non-leader (leadership lost)", cause);
+    }
+
+    @Override
+    public String toString() {
+        LeadershipToken leadershipToken = leadershipTokenRef.get();
+        Object delegate = delegateRef.get();
+        boolean isLeading = leadershipToken != null;
+        return "AwaitingLeadershipProxy [delegateSupplier=" + delegateSupplier
+                + ", leaderElectionService=" + leaderElectionService
+                + ", executor=" + executor
+                + ", leadershipTokenRef=" + leadershipToken
+                + ", delegateRef=" + delegate
+                + ", interfaceClass=" + interfaceClass
+                + ", isClosed=" + isClosed
+                + ", isLeading=" + isLeading
+                + "]";
     }
 
 }
