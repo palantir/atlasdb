@@ -146,11 +146,14 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
                 if (columnSelection.allColumnsSelected()) {
 
                     list = handle.createQuery(
-                                       "SELECT t.row as row, t.column as column, t.timestamp as timestamp, t.content as content " +
-                                       "FROM " + tableName + " t " +
-                                          "JOIN RowsToRetrieve c " +
-                                          "ON t.row = c.row " +
-                                          "WHERE t.timestamp < " + timestamp)
+                            "SELECT t.row as row, t.column as column, t.timestamp as timestamp, t.content as content " +
+                            "FROM " + tableName + " t " +
+                            "JOIN RowsToRetrieve c " +
+                            "ON t.row = c.row AND t.timestamp < " + timestamp + " " +
+                            "LEFT JOIN " + tableName + " t2 " +
+                    		"ON t.row = t2.row AND t.column = t2.column " +
+                    		"    AND t.timestamp < t2.timestamp AND t2.timestamp < " + timestamp + " " +
+                            "WHERE t2.timestamp IS NULL")
                             .map(CellValueMapper.instance()).list();
                 } else {
                     handle.execute("DECLARE TABLE ColumnsToRetrieve (column BYTEA NOT NULL)");
@@ -164,12 +167,19 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
                             "SELECT t.row as row, t.column as column, t.timestamp as timestamp, t.content as content " +
                             "FROM " + tableName + " t " +
                     		"JOIN RowsToRetrieve c " +
-                    		"ON t.row = c.row " +
-                    		"WHERE t.timestamp < " + timestamp + " AND t.column IN (SELECT column FROM ColumnsToRetrieve)"
+                    		"ON t.row = c.row AND t.timestamp < " + timestamp + " " +
+                    		"LEFT JOIN " + tableName + " t2 " +
+                    		"ON t.row = t2.row AND t.column = t2.column " +
+                    		"    AND t.timestamp < t2.timestamp AND t2.timestamp < " + timestamp + " " +
+                    		"WHERE t2.timestamp IS NULL " +
+                    		"    AND t.column IN (SELECT column FROM ColumnsToRetrieve)"
                             ).map(CellValueMapper.instance()).list();
                 }
 
+                System.err.println("start");
                 for (Pair<Cell, Value> cv : list) {
+                    System.err.println("cv=" + cv);
+//                    Preconditions.checkState(!result.containsKey(cv.getLhSide()));
                     result.put(cv.getLhSide(), cv.getRhSide());
                 }
 
@@ -254,7 +264,22 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
         return getDbi().withHandle(new HandleCallback<Map<Cell, Value>>() {
             @Override
             public Map<Cell, Value> withHandle(Handle handle) throws Exception {
+
+                handle.execute("DECLARE TABLE CellsToRetrieve (row BYTEA NOT NULL, column BYTEA NOT NULL, timestamp INT NOT NULL)");
+
+                PreparedBatch batch = handle.prepareBatch("INSERT INTO CellsToRetrieve (row, column, timestamp) VALUES (:row, :column, :timestamp)");
+                for (Entry<Cell, Long> entry : timestampByCell.entrySet()) {
+                    batch.add(entry.getKey().getRowName(), entry.getKey().getColumnName(), entry.getValue());
+                }
+
                 Map<Cell, Value> result = Maps.newHashMap();
+
+                handle.createQuery(
+                        "SELECT t.row AS row, t.column AS column, t.timestamp AS timestamp " +
+        		        "FROM " + tableName + " t " +
+		        		"JOIN CellsToRetrieve c " +
+		        		"ON t.row = c.row AND t.column = c.column AND t.timestamp < c.timestamp");
+
                 for (Map.Entry<Cell, Long> e : timestampByCell.entrySet()) {
                     List<Value> values = handle.createQuery(
                             "SELECT row, column, content, timestamp FROM "
@@ -275,6 +300,9 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
                     }
                     result.put(e.getKey(), latestValue);
                 }
+
+                handle.execute("DROP TABLE CellsToRetrieve");
+
                 return result;
             }
         });
