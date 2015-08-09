@@ -269,37 +269,28 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
                 for (Entry<Cell, Long> entry : timestampByCell.entrySet()) {
                     batch.add(entry.getKey().getRowName(), entry.getKey().getColumnName(), entry.getValue());
                 }
+                batch.execute();
 
                 Map<Cell, Value> result = Maps.newHashMap();
 
-                handle.createQuery(
-                        "SELECT t.row AS row, t.column AS column, t.timestamp AS timestamp " +
+                List<Pair<Cell, Value>> values = handle.createQuery(
+                        "SELECT t.row AS row, t.column AS column, t.timestamp AS timestamp, t.content AS content " +
         		        "FROM " + tableName + " t " +
 		        		"JOIN CellsToRetrieve c " +
-		        		"ON t.row = c.row AND t.column = c.column AND t.timestamp < c.timestamp");
-
-                for (Map.Entry<Cell, Long> e : timestampByCell.entrySet()) {
-                    List<Value> values = handle.createQuery(
-                            "SELECT row, column, content, timestamp FROM "
-                                    + tableName
-                                    + " WHERE row=:row AND column=:column AND timestamp < :timestamp AND timestamp IN (SELECT MAX(timestamp) FROM "
-                                    + tableName
-                                    + " WHERE row=:row AND column=:column GROUP BY row, column)").bind(
-                            "row",
-                            e.getKey().getRowName()).bind("column", e.getKey().getColumnName()).bind(
-                            "timestamp",
-                            e.getValue()).map(ValueMapper.instance()).list();
-                    Preconditions.checkState(values.size() == 1);
-                    Value latestValue = values.get(0);
-                    for (Value value : values) {
-                        if (value.getTimestamp() > latestValue.getTimestamp()) {
-                            latestValue = value;
-                        }
-                    }
-                    result.put(e.getKey(), latestValue);
-                }
+		        		"ON t.row = c.row AND t.column = c.column AND t.timestamp < c.timestamp " +
+		        		"LEFT JOIN " + tableName + " t2 " +
+        				"ON t.row = t2.row AND t.column = t2.column AND t.timestamp < t2.timestamp " +
+		        		"    AND t2.timestamp < c.timestamp " +
+        				"WHERE t2.timestamp IS NULL")
+        				.map(CellValueMapper.instance())
+        				.list();
 
                 handle.execute("DROP TABLE CellsToRetrieve");
+
+                for (Pair<Cell, Value> cv : values) {
+                    Preconditions.checkState(!result.containsKey(cv.getLhSide()));
+                    result.put(cv.getLhSide(), cv.getRhSide());
+                }
 
                 return result;
             }
