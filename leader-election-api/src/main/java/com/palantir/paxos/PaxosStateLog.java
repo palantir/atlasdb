@@ -17,44 +17,12 @@ package com.palantir.paxos;
 
 import java.io.IOException;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.palantir.common.persist.Persistable;
 
 public interface PaxosStateLog<V extends Persistable & Versionable> {
 
     public class CorruptLogFileException extends IOException {
         private static final long serialVersionUID = 1L;
-    }
-
-    public static class PaxosStateLogs {
-        private static final Logger log = LoggerFactory.getLogger(PaxosStateLog.PaxosStateLogs.class);
-
-        public static byte[] getGreatestValidLogEntry(PaxosStateLog<?> log) {
-            long greatestValid = log.getGreatestLogEntry();
-
-            long least = log.getLeastLogEntry();
-            if (least == PaxosAcceptor.NO_LOG_ENTRY) {
-                return null;
-            }
-
-            while (greatestValid >= least) {
-                try {
-                    byte[] bytes = log.readRound(greatestValid);
-                    if (bytes != null) {
-                        return bytes;
-                    } else {
-                        greatestValid--;
-                    }
-                } catch (IOException e) {
-                    PaxosStateLogs.log.error("unable to read round " + greatestValid + " from persistent log ", e);
-                    greatestValid--;
-                }
-            }
-
-            return null;
-        }
     }
 
     /**
@@ -77,7 +45,7 @@ public interface PaxosStateLog<V extends Persistable & Versionable> {
 
     /**
      * @return the sequence number of the least known log entry or {@value PaxosAcceptor#NO_LOG_ENTRY}
-     * if no entry is known
+     * if this log has never been truncated.
      */
     public long getLeastLogEntry();
 

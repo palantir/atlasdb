@@ -5,6 +5,11 @@ import javax.ws.rs.ext.ExceptionMapper;
 
 import com.palantir.leader.NotCurrentLeaderException;
 
+/**
+ * Convert {@link NotCurrentLeaderException} into a 503 status response.
+ *
+ * @author carrino
+ */
 public class NotCurrentLeaderExceptionMapper implements ExceptionMapper<NotCurrentLeaderException> {
     @Override
     public Response toResponse(NotCurrentLeaderException exception) {

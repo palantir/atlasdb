@@ -34,7 +34,7 @@ public class TimestampServerConfiguration extends Configuration {
 	public int localIndex = 0;
 	@NotNull
 	@Valid
-	public List<String> servers = ImmutableList.of("localhost:1234");
+	public List<String> servers = ImmutableList.of("http://localhost:3828");
 
 	@NotNull
 	@Valid

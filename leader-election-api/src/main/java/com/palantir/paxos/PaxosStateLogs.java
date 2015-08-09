@@ -27,11 +27,11 @@ public final class PaxosStateLogs {
         long greatestValid = log.getGreatestLogEntry();
 
         long least = log.getLeastLogEntry();
-        if (least == PaxosAcceptor.NO_LOG_ENTRY) {
+        if (greatestValid == PaxosAcceptor.NO_LOG_ENTRY) {
             return null;
         }
 
-        while (greatestValid >= least) {
+        while (greatestValid >= least && greatestValid != PaxosAcceptor.NO_LOG_ENTRY) {
             try {
                 byte[] bytes = log.readRound(greatestValid);
                 if (bytes != null) {
