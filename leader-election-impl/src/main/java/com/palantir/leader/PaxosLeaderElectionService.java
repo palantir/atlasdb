@@ -72,8 +72,8 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     public PaxosLeaderElectionService(PaxosProposer proposer,
                                       PaxosLearner knowledge,
                                       List<PingableLeader> potentialLeaders,
-                                      ImmutableList<PaxosAcceptor> acceptors,
-                                      ImmutableList<PaxosLearner> learners,
+                                      List<PaxosAcceptor> acceptors,
+                                      List<PaxosLearner> learners,
                                       Executor executor,
                                       long updatePollingWaitInMs,
                                       long randomWaitBeforeProposingLeadership,
@@ -81,8 +81,8 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         this.proposer = proposer;
         this.knowledge = knowledge;
         this.potentialLeaders = Lists.newArrayList(potentialLeaders);
-        this.acceptors = acceptors;
-        this.learners = learners;
+        this.acceptors = ImmutableList.copyOf(acceptors);
+        this.learners = ImmutableList.copyOf(learners);
         this.executor = executor;
         this.updatePollingRateInMs = updatePollingWaitInMs;
         this.randomWaitBeforeProposingLeadership = randomWaitBeforeProposingLeadership;
@@ -126,7 +126,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                 }
             } else {
                 // We are not the leader, so we should ping them to see if they are still up.
-                if (pingLeader()) {
+                if (pingLeader() || pingLeader()) {
                     Thread.sleep(updatePollingRateInMs);
                     continue;
                 }

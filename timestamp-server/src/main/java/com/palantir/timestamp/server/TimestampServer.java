@@ -15,11 +15,11 @@
  */
 package com.palantir.timestamp.server;
 
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Supplier;
-import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.client.TextDelegateDecoder;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.PaxosLeaderElectionService;
@@ -44,6 +44,7 @@ import feign.jackson.JacksonEncoder;
 import feign.jaxrs.JAXRSContract;
 import io.dropwizard.Application;
 import io.dropwizard.setup.Environment;
+import jersey.repackaged.com.google.common.collect.Lists;
 
 public class TimestampServer extends Application<TimestampServerConfiguration> {
 
@@ -53,48 +54,68 @@ public class TimestampServer extends Application<TimestampServerConfiguration> {
 
     private final ExecutorService executor = PTExecutors.newCachedThreadPool();
 
+    private <T> List<T> getRemoteServices(List<String> uris, Class<T> iFace) {
+    	ObjectMapper mapper = new ObjectMapper();
+        List<T> ret = Lists.newArrayList();
+        for (String uri : uris) {
+            T service = Feign.builder()
+                    .decoder(new TextDelegateDecoder(new JacksonDecoder()))
+                    .encoder(new JacksonEncoder(mapper))
+                    .contract(new JAXRSContract())
+                    .target(iFace, uri);
+            ret.add(service);
+        }
+        return ret;
+    }
+
     @Override
     public void run(TimestampServerConfiguration configuration, Environment environment) throws Exception {
-    	String extServer = configuration.servers.iterator().next();
     	PaxosLearner learner = PaxosLearnerImpl.newLearner(configuration.learnerLogDir);
     	PaxosAcceptor acceptor = PaxosAcceptorImpl.newAcceptor(configuration.acceptorLogDir);
         environment.jersey().register(acceptor);
         environment.jersey().register(learner);
-    	ObjectMapper mapper = new ObjectMapper();
-        PingableLeader extLeader = Feign.builder()
-                .decoder(new TextDelegateDecoder(new JacksonDecoder()))
-                .encoder(new JacksonEncoder(mapper))
-                .contract(new JAXRSContract())
-                .target(PingableLeader.class, extServer);
-        PaxosLearner extLearner = Feign.builder()
-                .decoder(new TextDelegateDecoder(new JacksonDecoder()))
-                .encoder(new JacksonEncoder(mapper))
-                .contract(new JAXRSContract())
-                .target(PaxosLearner.class, extServer);
-        PaxosAcceptor extAcceptor = Feign.builder()
-                .decoder(new TextDelegateDecoder(new JacksonDecoder()))
-                .encoder(new JacksonEncoder(mapper))
-                .contract(new JAXRSContract())
-                .target(PaxosAcceptor.class, extServer);
+
+        List<PaxosLearner> learners = getRemoteServices(configuration.servers, PaxosLearner.class);
+        learners.set(configuration.localIndex, learner);
+        List<PaxosAcceptor> acceptors = getRemoteServices(configuration.servers, PaxosAcceptor.class);
+        acceptors.set(configuration.localIndex, acceptor);
+
+        List<PingableLeader> otherLeaders = getRemoteServices(configuration.servers, PingableLeader.class);
+        otherLeaders.remove(configuration.localIndex);
 
         PaxosProposer proposer = PaxosProposerImpl.newProposer(
         		learner,
-        		ImmutableList.<PaxosAcceptor>of(acceptor),
-        		ImmutableList.<PaxosLearner>of(learner),
+        		acceptors,
+        		learners,
         		configuration.quorumSize,
         		executor);
         PaxosLeaderElectionService leader = new PaxosLeaderElectionService(
                 proposer,
                 learner,
-                ImmutableList.of(extLeader),
-                ImmutableList.of(extAcceptor),
-                ImmutableList.of(extLearner),
+                otherLeaders,
+                acceptors,
+                learners,
                 executor,
-                0,
-                0,
-                0);
+                1000,
+                1000,
+                5000);
         environment.jersey().register(leader);
+        environment.jersey().register(createTimestampService(leader));
+        environment.jersey().register(createLockService(leader));
+        environment.jersey().register(new NotCurrentLeaderExceptionMapper());
+    }
 
+    private RemoteLockService createLockService(PaxosLeaderElectionService leader) {
+        RemoteLockService lock = AwaitingLeadershipProxy.newProxyInstance(RemoteLockService.class, new Supplier<RemoteLockService>() {
+            @Override
+            public RemoteLockService get() {
+                return LockServiceImpl.create();
+            }
+        }, leader);
+        return lock;
+    }
+
+    private TimestampService createTimestampService(PaxosLeaderElectionService leader) {
         TimestampService timestamp = AwaitingLeadershipProxy.newProxyInstance(TimestampService.class, new Supplier<TimestampService>() {
             @Override
             public TimestampService get() {
@@ -102,14 +123,6 @@ public class TimestampServer extends Application<TimestampServerConfiguration> {
                 return new RateLimitedTimestampService(new InMemoryTimestampService(), 0L);
             }
         }, leader);
-        environment.jersey().register(timestamp);
-
-        RemoteLockService lock = AwaitingLeadershipProxy.newProxyInstance(RemoteLockService.class, new Supplier<RemoteLockService>() {
-            @Override
-            public RemoteLockService get() {
-                return LockServiceImpl.create();
-            }
-        }, leader);
-        environment.jersey().register(lock);
+        return timestamp;
     }
 }
