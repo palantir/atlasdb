@@ -16,14 +16,13 @@ import javax.sql.DataSource;
 import org.h2.jdbcx.JdbcConnectionPool;
 import org.skife.jdbi.v2.DBI;
 import org.skife.jdbi.v2.Handle;
-import org.skife.jdbi.v2.Query;
+import org.skife.jdbi.v2.PreparedBatch;
 import org.skife.jdbi.v2.StatementContext;
 import org.skife.jdbi.v2.TransactionCallback;
 import org.skife.jdbi.v2.TransactionStatus;
 import org.skife.jdbi.v2.tweak.HandleCallback;
 import org.skife.jdbi.v2.tweak.ResultSetMapper;
 import org.skife.jdbi.v2.util.ByteArrayMapper;
-import org.skife.jdbi.v2.util.LongMapper;
 import org.skife.jdbi.v2.util.StringMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -128,45 +127,55 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
     public Map<Cell, Value> getRows(final String tableName,
                                     final Iterable<byte[]> rows,
                                     final ColumnSelection columnSelection,
-                                    long timestamp) {
+                                    final long timestamp) {
         return getDbi().inTransaction(new TransactionCallback<Map<Cell, Value>>() {
             @Override
             public Map<Cell, Value> inTransaction(Handle handle, TransactionStatus status) {
 
-                Map<Cell, Value> result = Maps.newHashMap();
+                final List<Pair<Cell,Value>> list;
+                final Map<Cell, Value> result = Maps.newHashMap();
+
+                    handle.execute("DECLARE TABLE RowsToRetrieve (row BYTEA NOT NULL)");
+
+                PreparedBatch batch = handle.prepareBatch("INSERT INTO RowsToRetrieve (row) VALUES (:row)");
+                for (byte[] row : rows) {
+                    batch.add(row);
+                }
+                batch.execute();
 
                 if (columnSelection.allColumnsSelected()) {
-                    for (byte[] row : rows) {
-                        List<Pair<Cell, Value>> cells = handle.createQuery(
-                                "SELECT " + Columns.all()  + " FROM " + tableName +
-                                " WHERE " + Columns.ROW + " = :row")
-                                        .bind("row", row)
-                                        .map(CellValueMapper.instance())
-                                        .list();
-                        for (Pair<Cell, Value> r : cells) {
-                            result.put(r.getLhSide(), r.getRhSide());
-                        }
-                    }
+
+                    list = handle.createQuery(
+                                       "SELECT t.row as row, t.column as column, t.timestamp as timestamp, t.content as content " +
+                                       "FROM " + tableName + " t " +
+                                          "JOIN RowsToRetrieve c " +
+                                          "ON t.row = c.row " +
+                                          "WHERE t.timestamp < " + timestamp)
+                            .map(CellValueMapper.instance()).list();
                 } else {
-                    int numCols = 0;
-                    for (byte[] col : columnSelection.getSelectedColumns()) {
-                        numCols++;
+                    handle.execute("DECLARE TABLE ColumnsToRetrieve (column BYTEA NOT NULL)");
+                    PreparedBatch columnBatch = handle.prepareBatch("INSERT INTO ColumnsToRetrieve (column) VALUES (:column)");
+                    for (byte[] column : columnSelection.getSelectedColumns()) {
+                        columnBatch.add(column);
                     }
-                    for (byte[] row : rows) {
-                        Query<Map<String, Object>> cells = handle.createQuery(
-                                "SELECT " + Columns.all() + " FROM " + tableName +
-                                " WHERE " + Columns.ROW + " = :row AND " +
-                                " " + Columns.COLUMN + " IN (" + makeSlots("col", numCols) + ")"
-                                );
-                        cells.bind("row", row);
-                        int i=0;
-                        for (byte[] col : columnSelection.getSelectedColumns()) {
-                            cells.bind("col" + i++, col);
-                        }
-                        for (Pair<Cell, Value> r : cells.map(CellValueMapper.instance()).list()) {
-                            result.put(r.getLhSide(), r.getRhSide());
-                        }
-                    }
+                    columnBatch.execute();
+
+                    list = handle.createQuery(
+                            "SELECT t.row as row, t.column as column, t.timestamp as timestamp, t.content as content " +
+                            "FROM " + tableName + " t " +
+                    		"JOIN RowsToRetrieve c " +
+                    		"ON t.row = c.row " +
+                    		"WHERE t.timestamp < " + timestamp + " AND t.column IN (SELECT column FROM ColumnsToRetrieve)"
+                            ).map(CellValueMapper.instance()).list();
+                }
+
+                for (Pair<Cell, Value> cv : list) {
+                    result.put(cv.getLhSide(), cv.getRhSide());
+                }
+
+                handle.execute("DROP TABLE RowsToRetrieve");
+                if (!columnSelection.allColumnsSelected()) {
+                    handle.execute("DROP TABLE ColumnsToRetrieve");
                 }
 
                 return result;
@@ -535,22 +544,52 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
                                                  final Set<Cell> cells,
                                                  final long timestamp)
             throws InsufficientConsistencyException {
+
         final String sqlQuery =
-                "SELECT " + Columns.TIMESTAMP + " FROM " + tableName + " " +
-                "WHERE " + Columns.ROW + " = :row AND " + Columns.COLUMN +
-                    " = :column AND " + Columns.TIMESTAMP + " < :timestamp";
+                "SELECT t.row as row, t.column as column, t.timestamp as timestamp " +
+                "FROM " + tableName + " t " +
+                "JOIN CellsToRetrieve c ON t.row = c.row AND t.column = c.column " +
+                "WHERE t.timestamp < " + timestamp;
+
         return getDbi().withHandle(new HandleCallback<Multimap<Cell, Long>>() {
             @Override
             public Multimap<Cell, Long> withHandle(Handle handle) throws Exception {
-                Multimap<Cell, Long> result = HashMultimap.create();
+
+                handle.execute(
+                        "DECLARE TABLE CellsToRetrieve (" +
+                        "row BYTEA NOT NULL, " +
+                        "column BYTEA NOT NULL)");
+
+                PreparedBatch batch = handle.prepareBatch(
+                        "INSERT INTO CellsToRetrieve (" +
+                        "row, column) VALUES (" +
+                        ":row, :column)");
                 for (Cell c : cells) {
-                    List<Long> timestamps = handle.createQuery(sqlQuery)
-                            .bind("row", c.getRowName())
-                            .bind("column", c.getColumnName())
-                            .bind("timestamp", timestamp)
-                            .map(LongMapper.FIRST).list();
-                    result.putAll(c, timestamps);
+                    batch.add(c.getRowName(), c.getColumnName());
                 }
+                batch.execute();
+
+                List<Pair<Cell, Long>> sqlResult = handle.createQuery(sqlQuery)
+                        .map(new ResultSetMapper<Pair<Cell, Long>>() {
+                            @Override
+                            public Pair<Cell, Long> map(int index, ResultSet r, StatementContext ctx)
+                                    throws SQLException {
+                                byte[] row = r.getBytes("row");
+                                byte[] column = r.getBytes("column");
+                                long timestamp = r.getLong("timestamp");
+                                Cell cell = Cell.create(row, column);
+                                return Pair.create(cell, timestamp);
+                            }
+                        }).list();
+
+
+                Multimap<Cell, Long> result = HashMultimap.create();
+                for (Pair<Cell, Long> p : sqlResult) {
+                    result.put(p.getLhSide(), p.getRhSide());
+                }
+
+                handle.execute("DROP TABLE CellsToRetrieve");
+
                 return result;
             }
         });
