@@ -353,10 +353,26 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
 
     @Override
     @Idempotent
-    public void delete(final String tableName, Multimap<Cell, Long> keys) {
+    public void delete(final String tableName, final Multimap<Cell, Long> keys) {
         getDbi().withHandle(new HandleCallback<Void>() {
             @Override
             public Void withHandle(Handle handle) throws Exception {
+                handle.execute("DECLARE TABLE CellsToDelete (row BYTEA NOT NULL, column BYTEA NOT NULL, timestamp INT NOT NULL)");
+                PreparedBatch batch = handle.prepareBatch("INSERT INTO CellsToDelete (row, column, timestamp) VALUES (:row, :column, :timestamp)");
+                for (Entry<Cell, Long> entry : keys.entries()) {
+                    batch.add(entry.getKey().getRowName(), entry.getKey().getColumnName(), entry.getValue());
+                }
+                batch.execute();
+
+                handle.execute(
+                        "DELETE FROM " + tableName + " t " +
+                		"WHERE EXISTS (" +
+                		"    SELECT 1 FROM CellsToDelete c " +
+                		"    WHERE t.row = c.row AND t.column = c.column " +
+                		"        AND t.timestamp = c.timestamp " +
+                		"    LIMIT 1)");
+
+                handle.execute("DROP TABLE CellsToDelete");
                 return null;
             }
         });

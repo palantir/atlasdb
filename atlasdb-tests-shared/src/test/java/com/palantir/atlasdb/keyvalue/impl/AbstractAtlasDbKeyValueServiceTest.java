@@ -342,6 +342,12 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
 
     @Test
     public void testDelete() {
+        putTestDataForSingleTimestamp();
+
+    }
+
+    @Test
+    public void testDeleteMultipleVersions() {
         putTestDataForMultipleTimestamps();
         Cell cell = Cell.create(row0, column0);
         ClosableIterator<RowResult<Value>> result = keyValueService.getRange(
@@ -350,7 +356,7 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
                 TEST_TIMESTAMP + 1);
         assertTrue(result.hasNext());
 
-        keyValueService.delete(TEST_TABLE, ImmutableMultimap.of(cell, TEST_TIMESTAMP + 1));
+        keyValueService.delete(TEST_TABLE, ImmutableMultimap.of(cell, TEST_TIMESTAMP));
 
         result = keyValueService.getRange(TEST_TABLE, RangeRequest.all(), TEST_TIMESTAMP + 1);
         assertTrue(!result.hasNext());
