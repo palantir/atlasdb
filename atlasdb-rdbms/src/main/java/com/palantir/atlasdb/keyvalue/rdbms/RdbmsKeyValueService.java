@@ -16,6 +16,7 @@ import javax.sql.DataSource;
 import org.h2.jdbcx.JdbcConnectionPool;
 import org.skife.jdbi.v2.DBI;
 import org.skife.jdbi.v2.Handle;
+import org.skife.jdbi.v2.Query;
 import org.skife.jdbi.v2.StatementContext;
 import org.skife.jdbi.v2.TransactionCallback;
 import org.skife.jdbi.v2.TransactionStatus;
@@ -48,6 +49,7 @@ import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.NonIdempotent;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
+import com.palantir.util.Pair;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -61,6 +63,9 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
         public static final String CONTENT = "content";
         public static final String ROW = "row";
         public static final String COLUMN = "column";
+        public static final String all() {
+            return ROW + ", " + COLUMN + ", " + TIMESTAMP + ", " + CONTENT;
+        }
     }
 
     private static final class MetaTable {
@@ -107,26 +112,15 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
         });
     }
 
-    private static class SingleResult {
-        final Cell cell;
-        final Value value;
-
-        static SingleResult of(Cell cell, Value value) {
-            return new SingleResult(cell, value);
+    private String makeSlots(String prefix, int number) {
+        String result = "";
+        for (int i=0; i<number; ++i) {
+            result += ":" + prefix + i;
+            if (i + 1 < number) {
+                result += ", ";
+            }
         }
-
-        private SingleResult(Cell cell, Value value) {
-            this.cell = cell;
-            this.value = value;
-        }
-
-        Cell getCell() {
-            return cell;
-        }
-
-        Value getValue() {
-            return value;
-        }
+        return result;
     }
 
     @Override
@@ -141,16 +135,36 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
 
                 Map<Cell, Value> result = Maps.newHashMap();
 
-                for (byte[] row : rows) {
-                    List<SingleResult> cells = handle.createQuery(
-                            "SELECT " + Columns.ROW + ", " + Columns.COLUMN + ", "
-                                    + Columns.CONTENT + ", " + Columns.TIMESTAMP + " FROM "
-                                    + tableName + " WHERE " + Columns.ROW + " = :row").bind(
-                            "row",
-                            row).map(SingleRowResultMapper.instance()).list();
-                    for (SingleResult r : cells) {
-                        if (columnSelection.contains(r.getCell().getColumnName())) {
-                            result.put(r.getCell(), r.getValue());
+                if (columnSelection.allColumnsSelected()) {
+                    for (byte[] row : rows) {
+                        List<Pair<Cell, Value>> cells = handle.createQuery(
+                                "SELECT " + Columns.all()  + " FROM " + tableName +
+                                " WHERE " + Columns.ROW + " = :row")
+                                        .bind("row", row)
+                                        .map(CellValueMapper.instance())
+                                        .list();
+                        for (Pair<Cell, Value> r : cells) {
+                            result.put(r.getLhSide(), r.getRhSide());
+                        }
+                    }
+                } else {
+                    int numCols = 0;
+                    for (byte[] col : columnSelection.getSelectedColumns()) {
+                        numCols++;
+                    }
+                    for (byte[] row : rows) {
+                        Query<Map<String, Object>> cells = handle.createQuery(
+                                "SELECT " + Columns.all() + " FROM " + tableName +
+                                " WHERE " + Columns.ROW + " = :row AND " +
+                                " " + Columns.COLUMN + " IN (" + makeSlots("col", numCols) + ")"
+                                );
+                        cells.bind("row", row);
+                        int i=0;
+                        for (byte[] col : columnSelection.getSelectedColumns()) {
+                            cells.bind("col" + i++, col);
+                        }
+                        for (Pair<Cell, Value> r : cells.map(CellValueMapper.instance()).list()) {
+                            result.put(r.getLhSide(), r.getRhSide());
                         }
                     }
                 }
@@ -202,21 +216,23 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
         }
     }
 
-    private static class SingleRowResultMapper implements ResultSetMapper<SingleResult> {
-        private static SingleRowResultMapper instance;
+    private static class CellValueMapper implements ResultSetMapper<Pair<Cell, Value>> {
+        private static CellValueMapper instance;
 
         @Override
-        public SingleResult map(int index, ResultSet r, StatementContext ctx) throws SQLException {
+        public Pair<Cell, Value> map(int index, ResultSet r, StatementContext ctx) throws SQLException {
             byte[] row = r.getBytes(Columns.ROW);
             byte[] col = r.getBytes(Columns.COLUMN);
             long timestamp = r.getLong(Columns.TIMESTAMP);
             byte[] content = r.getBytes(Columns.CONTENT);
-            return SingleResult.of(Cell.create(row, col), Value.create(content, timestamp));
+            Cell cell = Cell.create(row, col);
+            Value value = Value.create(content, timestamp);
+            return Pair.create(cell, value);
         }
 
-        private static SingleRowResultMapper instance() {
+        private static CellValueMapper instance() {
             if (instance == null) {
-                SingleRowResultMapper ret = new SingleRowResultMapper();
+                CellValueMapper ret = new CellValueMapper();
                 instance = ret;
             }
             return instance;
