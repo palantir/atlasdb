@@ -176,10 +176,8 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
                             ).map(CellValueMapper.instance()).list();
                 }
 
-                System.err.println("start");
                 for (Pair<Cell, Value> cv : list) {
-                    System.err.println("cv=" + cv);
-//                    Preconditions.checkState(!result.containsKey(cv.getLhSide()));
+                    Preconditions.checkState(!result.containsKey(cv.getLhSide()));
                     result.put(cv.getLhSide(), cv.getRhSide());
                 }
 
