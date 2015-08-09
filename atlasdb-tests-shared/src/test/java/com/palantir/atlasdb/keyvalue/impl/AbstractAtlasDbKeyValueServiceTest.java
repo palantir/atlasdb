@@ -31,6 +31,7 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Multimap;
@@ -337,6 +338,25 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
                         TEST_TABLE,
                         cellSet,
                         TEST_TIMESTAMP + 3));
+    }
+
+    @Test
+    public void testDelete() {
+        putTestDataForMultipleTimestamps();
+        Cell cell = Cell.create(row0, column0);
+        ClosableIterator<RowResult<Value>> result = keyValueService.getRange(
+                TEST_TABLE,
+                RangeRequest.all(),
+                TEST_TIMESTAMP + 1);
+        assertTrue(result.hasNext());
+
+        keyValueService.delete(TEST_TABLE, ImmutableMultimap.of(cell, TEST_TIMESTAMP + 1));
+
+        result = keyValueService.getRange(TEST_TABLE, RangeRequest.all(), TEST_TIMESTAMP + 1);
+        assertTrue(!result.hasNext());
+
+        result = keyValueService.getRange(TEST_TABLE, RangeRequest.all(), TEST_TIMESTAMP + 2);
+        assertTrue(result.hasNext());
     }
 
     private void putTestDataForMultipleTimestamps() {

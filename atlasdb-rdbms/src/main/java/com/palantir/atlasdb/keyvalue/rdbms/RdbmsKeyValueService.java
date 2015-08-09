@@ -357,9 +357,6 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
         getDbi().withHandle(new HandleCallback<Void>() {
             @Override
             public Void withHandle(Handle handle) throws Exception {
-                handle.execute("DROP TABLE " + tableName);
-                handle.execute("DELETE FROM " + MetaTable.META_TABLE_NAME + " WHERE "
-                        + MetaTable.Columns.TABLE_NAME + "=:tableName", tableName);
                 return null;
             }
         });
