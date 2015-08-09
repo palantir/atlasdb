@@ -22,6 +22,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -32,6 +33,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.Multimap;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -222,6 +224,40 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
                         .put(column2, Value.create(value22, TEST_TIMESTAMP)).build()),
                 rangeResult.next());
         rangeResult.close();
+    }
+
+    @Test
+    public void testGetAllTimestamps() {
+        putTestDataForMultipleTimestamps();
+        final Cell cell = Cell.create(row0, column0);
+        final Set<Cell> cellSet = ImmutableSet.of(cell);
+        Multimap<Cell, Long> timestamps = keyValueService.getAllTimestamps(
+                TEST_TABLE,
+                cellSet,
+                TEST_TIMESTAMP);
+        assertEquals(0, timestamps.size());
+
+        timestamps = keyValueService.getAllTimestamps(
+                TEST_TABLE,
+                cellSet,
+                TEST_TIMESTAMP + 1);
+        assertEquals(1, timestamps.size());
+        assertTrue(timestamps.containsEntry(cell, TEST_TIMESTAMP));
+
+        timestamps = keyValueService.getAllTimestamps(
+                TEST_TABLE,
+                cellSet,
+                TEST_TIMESTAMP + 2);
+        assertEquals(2, timestamps.size());
+        assertTrue(timestamps.containsEntry(cell, TEST_TIMESTAMP));
+        assertTrue(timestamps.containsEntry(cell, TEST_TIMESTAMP + 1));
+
+        assertEquals(
+                timestamps,
+                keyValueService.getAllTimestamps(
+                        TEST_TABLE,
+                        cellSet,
+                        TEST_TIMESTAMP + 3));
     }
 
     private void putTestDataForMultipleTimestamps() {
