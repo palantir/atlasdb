@@ -328,22 +328,36 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
     @NonIdempotent
     public void putWithTimestamps(final String tableName, final Multimap<Cell, Value> cellValues)
             throws KeyAlreadyExistsException {
+        // TODO: Throw the KeyAlreadyExistsException when appropriate
         getDbi().withHandle(new HandleCallback<Void>() {
             @Override
             public Void withHandle(Handle handle) throws Exception {
+
+                handle.execute(
+                        "DECLARE TABLE ValuesToPut (" +
+                        "    row BYTEA NOT NULL, " +
+                        "    column BYTEA NOT NULL, " +
+                        "    timestamp INT NOT NULL, " +
+                        "    content BYTEA NOT NULL)");
+
+                PreparedBatch batch = handle.prepareBatch(
+                        "INSERT INTO ValuesToPut (row, column, timestamp, content) " +
+                        "VALUES (:row, :column, :timestamp, :content)");
                 for (Entry<Cell, Value> e : cellValues.entries()) {
-                    int result = handle.createStatement(
-                            "INSERT INTO " + tableName + " (" + Columns.ROW + ", " + Columns.COLUMN
-                                    + ", " + Columns.CONTENT + ", " + Columns.TIMESTAMP
-                                    + ") VALUES (:row, :column, :content, :timestamp)").bind(
-                            "row",
-                            e.getKey().getRowName()).bind("column", e.getKey().getColumnName()).bind(
-                            "content",
-                            e.getValue().getContents()).bind(
-                            "timestamp",
-                            e.getValue().getTimestamp()).execute();
-                    assert result == 1;
+                    batch.add(
+                            e.getKey().getRowName(),
+                            e.getKey().getColumnName(),
+                            e.getValue().getTimestamp(),
+                            e.getValue().getContents());
                 }
+                batch.execute();
+
+                handle.execute(
+                        "INSERT INTO " + tableName + " (row, column, timestamp, content) " +
+                		"SELECT row, column, timestamp, content FROM ValuesToPut");
+
+                handle.execute("DROP TABLE ValuesToPut");
+
                 return null;
             }
         });
