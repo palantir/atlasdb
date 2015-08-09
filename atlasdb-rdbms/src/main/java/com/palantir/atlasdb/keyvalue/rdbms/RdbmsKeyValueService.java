@@ -304,17 +304,21 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
         getDbi().withHandle(new HandleCallback<Void>() {
             @Override
             public Void withHandle(Handle handle) throws Exception {
+
+                handle.execute("DECLARE TABLE ValuesToPut (row BYTEA NOT NULL, column BYTEA NOT NULL, content BYTEA NOT NULL)");
+
+                PreparedBatch batch = handle.prepareBatch("INSERT INTO ValuesToPut (row, column, content) VALUES (:row, :column, :content)");
                 for (Map.Entry<Cell, byte[]> e : values.entrySet()) {
-                    int result = handle.createStatement(
-                            "INSERT INTO " + tableName + " (" + Columns.ROW + ", " + Columns.COLUMN
-                                    + ", " + Columns.CONTENT + ", " + Columns.TIMESTAMP
-                                    + ") VALUES (:row, :column, :content, :timestamp)").bind(
-                            "row",
-                            e.getKey().getRowName()).bind("column", e.getKey().getColumnName()).bind(
-                            "content",
-                            e.getValue()).bind("timestamp", timestamp).execute();
-                    assert result == 1;
+                    batch.add(e.getKey().getRowName(), e.getKey().getColumnName(), e.getValue());
                 }
+                batch.execute();
+
+                handle.execute(
+                        "INSERT INTO " + tableName + " (row, column, timestamp, content) " +
+                		"SELECT row, column, " + timestamp + ", content FROM ValuesToPut");
+
+                handle.execute("DROP TABLE ValuesToPut");
+
                 return null;
             }
         });
