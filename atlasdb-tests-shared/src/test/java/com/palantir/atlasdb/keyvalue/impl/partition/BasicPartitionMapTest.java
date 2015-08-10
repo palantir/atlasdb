@@ -77,6 +77,10 @@ public class BasicPartitionMapTest {
         Multiset<ConsistentRingRangeRequest> ranges = result.keys();
         Iterator<ConsistentRingRangeRequest> it = ranges.iterator();
 
+        if (!it.hasNext()) {
+            return;
+        }
+
         // Check that first interval makes sense
         ConsistentRingRangeRequest firstRange = it.next();
         if (rangeRequest.getStartInclusive().length == 0) {
@@ -103,28 +107,26 @@ public class BasicPartitionMapTest {
         }
 
         // Check that the adjacent intervals make sense
-        if (ranges.size() > 0) {
-            it = ranges.iterator();
-            ConsistentRingRangeRequest crrr = it.next();
-            int numRepeats = 1;
-            while (it.hasNext()) {
-                // Check that there is proper number of services for each subrange
-                while (numRepeats++ < REPF) {
-                    ConsistentRingRangeRequest newCrrr = it.next();
-                    assertEquals(newCrrr, crrr);
-                }
-                if (it.hasNext() == false) {
-                    break;
-                }
-
-                // Check that the next subrange is adjacent to the previous one
+        it = ranges.iterator();
+        ConsistentRingRangeRequest crrr = it.next();
+        int numRepeats = 1;
+        while (it.hasNext()) {
+            // Check that there is proper number of services for each subrange
+            while (numRepeats++ < REPF) {
                 ConsistentRingRangeRequest newCrrr = it.next();
-                numRepeats = 1;
-                assertTrue(Arrays.equals(
-                    crrr.get().getEndExclusive(),
-                    newCrrr.get().getStartInclusive()));
-                crrr = newCrrr;
+                assertEquals(newCrrr, crrr);
             }
+            if (it.hasNext() == false) {
+                break;
+            }
+
+            // Check that the next subrange is adjacent to the previous one
+            ConsistentRingRangeRequest newCrrr = it.next();
+            numRepeats = 1;
+            assertTrue(Arrays.equals(
+                crrr.get().getEndExclusive(),
+                newCrrr.get().getStartInclusive()));
+            crrr = newCrrr;
         }
     }
 
