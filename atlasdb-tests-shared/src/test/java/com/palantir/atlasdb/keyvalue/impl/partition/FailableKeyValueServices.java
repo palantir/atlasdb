@@ -1,4 +1,4 @@
-package com.palantir.atlasdb.keyvalue.partition;
+package com.palantir.atlasdb.keyvalue.impl.partition;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -16,6 +16,8 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.keyvalue.partition.PartitionedKeyValueService;
+import com.palantir.atlasdb.keyvalue.partition.QuorumParameters;
 import com.palantir.atlasdb.keyvalue.partition.QuorumParameters.QuorumRequestParameters;
 import com.palantir.common.proxy.DelegatingInvocationHandler;
 

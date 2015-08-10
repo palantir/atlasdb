@@ -24,7 +24,7 @@ public abstract class PartitionedRangedIterator<T> implements ClosableIterator<R
     private PeekingIterator<RowResult<T>> rowIterator = Iterators.peekingIterator(Collections.<RowResult<T>> emptyIterator());
 
     public PartitionedRangedIterator(Collection<ConsistentRingRangeRequest> ranges) {
-        this.ranges = Sets.newTreeSet(ConsistentRingRangeComparator.instance());
+        this.ranges = Sets.newTreeSet(ConsistentRingRangeRequests.getCompareByStartRow());
         this.ranges.addAll(ranges);
         this.currentRange = ranges.iterator();
         this.currentRangeIterators = ImmutableSet.of();
