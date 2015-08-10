@@ -135,13 +135,15 @@ public class FailableKeyValueServices {
         @Override
         public synchronized Object invoke(Object proxy, Method method, Object[] args)
                 throws Throwable {
-            boolean isWrite = FailableKeyValueServices.isWriteMethod(method);
-            boolean isRead = FailableKeyValueServices.isReadMethod(method);
+
+            boolean isWrite = isWriteMethod(method);
+            boolean isRead = isReadMethod(method);
+
             if (!isWrite && !isRead) {
                 return method.invoke(delegate, args);
             }
 
-            QuorumRequestParameters parameters = null;
+            final QuorumRequestParameters parameters;
             if (isWrite) {
                 parameters = quorumParameters.getWriteRequestParameters();
             } else {
