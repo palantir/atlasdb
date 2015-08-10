@@ -1,10 +1,14 @@
 package com.palantir.atlasdb.keyvalue.partition.util;
 
+import java.util.Iterator;
+
+import com.google.common.collect.ForwardingIterator;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
 import com.palantir.common.base.ClosableIterator;
 
-public final class ClosablePeekingIterator<T> implements ClosableIterator<T>, PeekingIterator<T> {
+public final class ClosablePeekingIterator<T> extends ForwardingIterator<T> implements
+        ClosableIterator<T>, PeekingIterator<T> {
 
     public static <V> ClosablePeekingIterator<V> of(ClosableIterator<V> it) {
         return new ClosablePeekingIterator<V>(it);
@@ -19,19 +23,11 @@ public final class ClosablePeekingIterator<T> implements ClosableIterator<T>, Pe
     }
 
     @Override
-    public boolean hasNext() {
-        return pi.hasNext();
-    }
-
-    @Override
-    public T next() {
-        return pi.next();
-    }
-
-    @Override
-    public void remove() {
-        pi.remove();
-
+    protected Iterator<T> delegate() {
+        // This takes care of next(), hasNext() and remove().
+        // All of these should be handled by the peeking
+        // iterator.
+        return pi;
     }
 
     @Override
