@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import com.google.common.reflect.AbstractInvocationHandler;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.PartitionedKeyValueService;
@@ -61,19 +62,16 @@ public class FailableKeyValueServices {
     }
 
     // Used to stop and start a particular kvs
-    static class StoppableKvsProxy implements DelegatingInvocationHandler {
+    // TODO: Is this the equals implementation that we want?
+    static class StoppableKvsProxy extends AbstractInvocationHandler implements
+            DelegatingInvocationHandler {
 
         private final Enabler enabler;
         private final KeyValueService delegate;
 
         @Override
-        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+        public Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
             try {
-                // Special case for equals
-                if (method.getName().equals("equals") && args.length == 1 && proxy == args[0]) {
-                    return true;
-                }
-
                 // Methods that can be set to fail
                 if (isWriteMethod(method) || isReadMethod(method)) {
                     if (!enabler.enabled()) {
@@ -82,7 +80,6 @@ public class FailableKeyValueServices {
                     }
                     Preconditions.checkState(enabler.enabled());
                 }
-
                 return method.invoke(delegate, args);
             } catch (InvocationTargetException e) {
                 throw e.getCause();
@@ -91,7 +88,6 @@ public class FailableKeyValueServices {
 
         public static KeyValueService newFailableKeyValueService(KeyValueService delegate,
                                                                  Enabler enabler) {
-
             return (KeyValueService) Proxy.newProxyInstance(
                     KeyValueService.class.getClassLoader(),
                     new Class<?>[] { KeyValueService.class },
@@ -111,6 +107,7 @@ public class FailableKeyValueServices {
 
     // Used to automatically stop and start some of the backing kvss on each
     // function invocation
+    // TODO: Use AbstractInvocationHandler?
     static class ShutdownNodesProxy implements DelegatingInvocationHandler {
 
         private final ArrayList<FailableKeyValueService> services;
