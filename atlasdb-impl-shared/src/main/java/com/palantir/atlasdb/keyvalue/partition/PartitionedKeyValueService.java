@@ -46,7 +46,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 public class PartitionedKeyValueService implements KeyValueService {
 
-    // Thread-safe (?)
+    // Thread-safe
     private static final Logger log = LoggerFactory.getLogger(PartitionedKeyValueService.class);
 
     // Immutable
@@ -58,7 +58,7 @@ public class PartitionedKeyValueService implements KeyValueService {
     // Immutable
     private final QuorumParameters quorumParameters;
 
-    // Thread-safe (?)
+    // Thread-safe
     private final ExecutorService executor;
 
     <TrackingUnit, FutureReturnType> void completeRequest(QuorumTracker<FutureReturnType, TrackingUnit> tracker,
