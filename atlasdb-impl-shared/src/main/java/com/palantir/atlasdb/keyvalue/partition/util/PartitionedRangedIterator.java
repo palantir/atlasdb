@@ -38,7 +38,7 @@ public abstract class PartitionedRangedIterator<T> implements ClosableIterator<R
         currentRangeIterators = computeNextRange(newRange);
         rowIterator = Iterators.<RowResult<T>> peekingIterator(Iterators.mergeSorted(
                 currentRangeIterators,
-                RowResultComparator.instance()));
+                RowResult.<T>getOrderingByRowName()));
     }
 
     protected abstract Set<ClosablePeekingIterator<RowResult<T>>> computeNextRange(ConsistentRingRangeRequest range);
