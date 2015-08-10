@@ -11,6 +11,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -96,9 +97,9 @@ import com.palantir.common.annotation.Immutable;
     }
 
     private <ValType> Map<KeyValueService, Map<Cell, ValType>> getServicesForCellsMap(String tableName,
-                                                                         Map<Cell, ValType> timestampByCell) {
+                                                                         Map<Cell, ValType> cellMap) {
         Map<KeyValueService, Map<Cell, ValType>> result = Maps.newHashMap();
-        for (Map.Entry<Cell, ValType> e : timestampByCell.entrySet()) {
+        for (Map.Entry<Cell, ValType> e : cellMap.entrySet()) {
             Set<KeyValueService> services = getServicesHavingRow(e.getKey().getRowName());
             for (KeyValueService kvs : services) {
                 if (!result.containsKey(kvs)) {
@@ -108,14 +109,16 @@ import com.palantir.common.annotation.Immutable;
                 result.get(kvs).put(e.getKey(), e.getValue());
             }
         }
-        assert result.keySet().size() >= quorumParameters.getReplicationFactor();
+        if (!cellMap.isEmpty()) {
+            assert result.keySet().size() >= quorumParameters.getReplicationFactor();
+        }
         return result;
     }
 
     private <ValType> Map<KeyValueService, Multimap<Cell, ValType>> getServicesForCellsMultimap(String tableName,
-                                                                                                Multimap<Cell, ValType> keys) {
+                                                                                                Multimap<Cell, ValType> cellMultimap) {
         Map<KeyValueService, Multimap<Cell, ValType>> result = Maps.newHashMap();
-        for (Map.Entry<Cell, ValType> e : keys.entries()) {
+        for (Map.Entry<Cell, ValType> e : cellMultimap.entries()) {
             Set<KeyValueService> services = getServicesHavingRow(e.getKey().getRowName());
             for (KeyValueService kvs : services) {
                 if (!result.containsKey(kvs)) {
@@ -125,7 +128,9 @@ import com.palantir.common.annotation.Immutable;
                 result.get(kvs).put(e.getKey(), e.getValue());
             }
         }
-        assert result.keySet().size() >= quorumParameters.getReplicationFactor();
+        if (!cellMultimap.isEmpty()) {
+            assert result.keySet().size() >= quorumParameters.getReplicationFactor();
+        }
         return result;
     }
     // *********************************************************************************************
@@ -194,7 +199,9 @@ import com.palantir.common.annotation.Immutable;
                 result.get(kvs).add(row);
             }
         }
-        assert result.keySet().size() >= quorumParameters.getReplicationFactor();
+        if (!Iterables.isEmpty(rows)) {
+            assert result.keySet().size() >= quorumParameters.getReplicationFactor();
+        }
         return result;
     }
 

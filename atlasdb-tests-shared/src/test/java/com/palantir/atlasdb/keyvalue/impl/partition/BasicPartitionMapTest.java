@@ -7,12 +7,15 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.NavigableMap;
+import java.util.NavigableSet;
 
 import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -157,7 +160,51 @@ public class BasicPartitionMapTest {
 
     @Test
     public void testServicesForRead() {
-        // TODO
+        byte[] row0 = newByteArray(0x00);
+        byte[] row1 = newByteArray(0x00, 0x00);
+        byte[] row2 = newByteArray(0x00, 0x01);
+        byte[] row3 = newByteArray(0x01, 0x0A);
+        byte[] row4 = newByteArray(0x01, 0x0B);
+        byte[] row5 = newByteArray(0x01, 0x0D);
+
+        Map<KeyValueService, NavigableSet<byte[]>> services0 = tpm.getServicesForRowsRead(TABLE1, ImmutableList.of(row0));
+        assertEquals(REPF, services0.size());
+        assertEquals(ImmutableSet.of(row0), services0.get(services.get(0)));
+        assertEquals(ImmutableSet.of(row0), services0.get(services.get(1)));
+        assertEquals(ImmutableSet.of(row0), services0.get(services.get(2)));
+
+        Map<KeyValueService, NavigableSet<byte[]>> services1 = tpm.getServicesForRowsRead(TABLE1, ImmutableList.of(row1));
+        assertEquals(REPF, services1.size());
+        assertEquals(ImmutableSet.of(row1), services1.get(services.get(1)));
+        assertEquals(ImmutableSet.of(row1), services1.get(services.get(2)));
+        assertEquals(ImmutableSet.of(row1), services1.get(services.get(3)));
+
+        Map<KeyValueService, NavigableSet<byte[]>> services2 = tpm.getServicesForRowsRead(TABLE1, ImmutableList.of(row2));
+        assertEquals(REPF, services2.size());
+        assertEquals(ImmutableSet.of(row2), services2.get(services.get(1)));
+        assertEquals(ImmutableSet.of(row2), services2.get(services.get(2)));
+        assertEquals(ImmutableSet.of(row2), services2.get(services.get(3)));
+
+        Map<KeyValueService, NavigableSet<byte[]>> services3 = tpm.getServicesForRowsRead(TABLE1, ImmutableList.of(row3));
+        assertEquals(REPF, services3.size());
+        assertEquals(ImmutableSet.of(row3), services3.get(services.get(6)));
+        assertEquals(ImmutableSet.of(row3), services3.get(services.get(0)));
+        assertEquals(ImmutableSet.of(row3), services3.get(services.get(1)));
+
+        Map<KeyValueService, NavigableSet<byte[]>> services4 = tpm.getServicesForRowsRead(TABLE1, ImmutableList.of(row4));
+        assertEquals(REPF, services4.size());
+        assertEquals(ImmutableSet.of(row4), services4.get(services.get(0)));
+        assertEquals(ImmutableSet.of(row4), services4.get(services.get(1)));
+        assertEquals(ImmutableSet.of(row4), services4.get(services.get(2)));
+
+        Map<KeyValueService, NavigableSet<byte[]>> services5 = tpm.getServicesForRowsRead(TABLE1, ImmutableList.of(row5));
+        assertEquals(REPF, services5.size());
+        assertEquals(ImmutableSet.of(row5), services5.get(services.get(0)));
+        assertEquals(ImmutableSet.of(row5), services5.get(services.get(1)));
+        assertEquals(ImmutableSet.of(row5), services5.get(services.get(2)));
+
+        Map<KeyValueService, NavigableSet<byte[]>> servicesEmpty = tpm.getServicesForRowsRead(TABLE1, ImmutableList.<byte[]>of());
+        assertEquals(0, servicesEmpty.size());
     }
 
     @Test
