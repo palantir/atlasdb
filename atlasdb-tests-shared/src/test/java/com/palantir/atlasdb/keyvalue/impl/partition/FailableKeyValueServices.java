@@ -61,7 +61,7 @@ public class FailableKeyValueServices {
     }
 
     // Used to stop and start a particular kvs
-    static class ShutdownClassProxy implements DelegatingInvocationHandler {
+    static class StoppableKvsProxy implements DelegatingInvocationHandler {
 
         private final Enabler enabler;
         private final KeyValueService delegate;
@@ -95,10 +95,10 @@ public class FailableKeyValueServices {
             return (KeyValueService) Proxy.newProxyInstance(
                     KeyValueService.class.getClassLoader(),
                     new Class<?>[] { KeyValueService.class },
-                    new ShutdownClassProxy(delegate, enabler));
+                    new StoppableKvsProxy(delegate, enabler));
         }
 
-        private ShutdownClassProxy(KeyValueService delegate, Enabler enabler) {
+        private StoppableKvsProxy(KeyValueService delegate, Enabler enabler) {
             this.delegate = delegate;
             this.enabler = enabler;
         }
@@ -188,7 +188,7 @@ public class FailableKeyValueServices {
         return new FailableKeyValueService() {
 
             final Enabler enabler = new Enabler(true);
-            final KeyValueService proxiedKvs = ShutdownClassProxy.newFailableKeyValueService(
+            final KeyValueService proxiedKvs = StoppableKvsProxy.newFailableKeyValueService(
                     kvs,
                     enabler);
 
