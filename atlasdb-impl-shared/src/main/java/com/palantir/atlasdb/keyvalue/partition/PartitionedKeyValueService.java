@@ -659,11 +659,6 @@ public class PartitionedKeyValueService implements KeyValueService {
     }
 
     // *** Creation *******************************************************************************
-    @Deprecated
-    public static PartitionedKeyValueService create(Set<? extends KeyValueService> svcPool) {
-        return create(svcPool, DEFAULT_QUORUM_PARAMETERS);
-    }
-
     public static PartitionedKeyValueService create(Set<? extends KeyValueService> svcPool,
                                                     QuorumParameters quorumParameters) {
         Preconditions.checkArgument(svcPool.size() == 5);
