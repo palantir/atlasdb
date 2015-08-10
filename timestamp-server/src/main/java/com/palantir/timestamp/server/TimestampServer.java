@@ -15,12 +15,18 @@
  */
 package com.palantir.timestamp.server;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.client.TextDelegateDecoder;
+import com.palantir.atlasdb.keyvalue.leveldb.impl.LevelDbBoundStore;
+import com.palantir.atlasdb.keyvalue.leveldb.impl.LevelDbKeyValueService;
+import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.leader.PingableLeader;
@@ -34,9 +40,11 @@ import com.palantir.paxos.PaxosLearnerImpl;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosProposerImpl;
 import com.palantir.timestamp.InMemoryTimestampService;
+import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.RateLimitedTimestampService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.server.config.TimestampServerConfiguration;
+import com.palantir.timestamp.server.config.TimestampServerConfiguration.ServerType;
 
 import feign.Feign;
 import feign.jackson.JacksonDecoder;
@@ -100,7 +108,7 @@ public class TimestampServer extends Application<TimestampServerConfiguration> {
                 1000,
                 5000);
         environment.jersey().register(leader);
-        environment.jersey().register(createTimestampService(leader));
+        environment.jersey().register(createTimestampService(leader, configuration));
         environment.jersey().register(createLockService(leader));
         environment.jersey().register(new NotCurrentLeaderExceptionMapper());
     }
@@ -115,11 +123,20 @@ public class TimestampServer extends Application<TimestampServerConfiguration> {
         return lock;
     }
 
-    private TimestampService createTimestampService(PaxosLeaderElectionService leader) {
+    private TimestampService createTimestampService(PaxosLeaderElectionService leader, final TimestampServerConfiguration config) {
+        if (config.serverType == ServerType.LEVELDB) {
+            Preconditions.checkArgument(config.servers.size() == 1, "only one server allowed for LevelDB");
+        }
         TimestampService timestamp = AwaitingLeadershipProxy.newProxyInstance(TimestampService.class, new Supplier<TimestampService>() {
             @Override
             public TimestampService get() {
-                // TODO: actually use persistent TS
+                if (config.serverType == ServerType.LEVELDB) {
+                    try {
+                        return PersistentTimestampService.create(LevelDbBoundStore.create(LevelDbKeyValueService.create(new File(config.levelDbDir))));
+                    } catch (IOException e) {
+                        throw Throwables.throwUncheckedException(e);
+                    }
+                }
                 return new RateLimitedTimestampService(new InMemoryTimestampService(), 0L);
             }
         }, leader);

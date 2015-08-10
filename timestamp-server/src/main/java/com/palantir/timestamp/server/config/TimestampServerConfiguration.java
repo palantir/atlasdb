@@ -43,4 +43,11 @@ public class TimestampServerConfiguration extends Configuration {
 	@NotNull
 	@Valid
 	public String acceptorLogDir = "paxosLog/acceptor";
+
+	public ServerType serverType = ServerType.LEVELDB;
+	public String levelDbDir = "leveldb";
+
+	public enum ServerType {
+	    LEVELDB;
+	}
 }

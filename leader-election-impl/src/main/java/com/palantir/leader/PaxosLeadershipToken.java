@@ -1,5 +1,7 @@
 package com.palantir.leader;
 
+import javax.annotation.CheckForNull;
+
 import org.apache.commons.lang.builder.CompareToBuilder;
 
 import com.palantir.common.annotation.Immutable;
@@ -10,9 +12,9 @@ import com.palantir.paxos.PaxosValue;
 public class PaxosLeadershipToken implements LeadershipToken {
     private static final long serialVersionUID = 1L;
 
-    final PaxosValue value;
+    @CheckForNull final PaxosValue value;
 
-    public PaxosLeadershipToken(PaxosValue value) {
+    public PaxosLeadershipToken(@CheckForNull PaxosValue value) {
         this.value = value;
     }
 

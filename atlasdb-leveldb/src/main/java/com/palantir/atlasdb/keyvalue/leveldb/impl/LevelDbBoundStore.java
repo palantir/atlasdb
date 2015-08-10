@@ -13,8 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.example.leveldb;
+package com.palantir.atlasdb.keyvalue.leveldb.impl;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.Map;
 
 import javax.annotation.concurrent.GuardedBy;
@@ -25,7 +27,6 @@ import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.keyvalue.leveldb.impl.LevelDbKeyValueService;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
@@ -37,7 +38,7 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
 
-public class LevelDbBoundStore implements TimestampBoundStore {
+public class LevelDbBoundStore implements TimestampBoundStore, Closeable {
     private static final String TIMESTAMP_TABLE = "_timestamp";
     private static final String ROW_AND_COLUMN_NAME = "ts";
     private static final long KV_TS = 0L;
@@ -97,6 +98,11 @@ public class LevelDbBoundStore implements TimestampBoundStore {
 
     private long getValueFromResult(Map<Cell, Value> result) {
         return PtBytes.toLong(result.get(TS_CELL).getContents());
+    }
+
+    @Override
+    public void close() throws IOException {
+        kv.close();
     }
 
 }
