@@ -169,7 +169,7 @@ import com.palantir.common.annotation.Immutable;
                 if (!result.containsKey(kvs)) {
                     result.put(kvs, Sets.<Cell> newHashSet());
                 }
-                assert (result.get(kvs).contains(cell) == false);
+                assert result.get(kvs).contains(cell) == false;
                 result.get(kvs).add(cell);
             }
         }
@@ -186,7 +186,7 @@ import com.palantir.common.annotation.Immutable;
                 if (!result.containsKey(kvs)) {
                     result.put(kvs, Maps.<Cell, byte[]> newHashMap());
                 }
-                assert (!result.get(kvs).containsKey(e.getKey()));
+                assert !result.get(kvs).containsKey(e.getKey());
                 result.get(kvs).put(e.getKey(), e.getValue());
             }
         }
@@ -209,7 +209,7 @@ import com.palantir.common.annotation.Immutable;
                 if (!result.containsKey(kvs)) {
                     result.put(kvs, HashMultimap.<Cell, T> create());
                 }
-                assert (!result.get(kvs).containsEntry(e.getKey(), e.getValue()));
+                assert !result.get(kvs).containsEntry(e.getKey(), e.getValue());
                 result.get(kvs).put(e.getKey(), e.getValue());
             }
         }
