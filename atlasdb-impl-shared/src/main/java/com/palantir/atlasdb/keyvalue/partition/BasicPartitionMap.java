@@ -1,3 +1,5 @@
+
+
 package com.palantir.atlasdb.keyvalue.partition;
 
 import java.util.Map;
@@ -77,8 +79,58 @@ import com.palantir.common.annotation.Immutable;
         return result;
     }
 
+    private Map<KeyValueService, Set<Cell>> getServicesForCellsSet(String tableName, Set<Cell> cells) {
+        Map<KeyValueService, Set<Cell>> result = Maps.newHashMap();
+        for (Cell cell : cells) {
+            Set<KeyValueService> services = getServicesHavingRow(cell.getRowName());
+            for (KeyValueService kvs : services) {
+                if (!result.containsKey(kvs)) {
+                    result.put(kvs, Sets.<Cell> newHashSet());
+                }
+                assert result.get(kvs).contains(cell) == false;
+                result.get(kvs).add(cell);
+            }
+        }
+        assert result.keySet().size() >= quorumParameters.getReplicationFactor();
+        return result;
+    }
+
+    private <ValType> Map<KeyValueService, Map<Cell, ValType>> getServicesForCellsMap(String tableName,
+                                                                         Map<Cell, ValType> timestampByCell) {
+        Map<KeyValueService, Map<Cell, ValType>> result = Maps.newHashMap();
+        for (Map.Entry<Cell, ValType> e : timestampByCell.entrySet()) {
+            Set<KeyValueService> services = getServicesHavingRow(e.getKey().getRowName());
+            for (KeyValueService kvs : services) {
+                if (!result.containsKey(kvs)) {
+                    result.put(kvs, Maps.<Cell, ValType> newHashMap());
+                }
+                assert !result.get(kvs).containsKey(e.getKey());
+                result.get(kvs).put(e.getKey(), e.getValue());
+            }
+        }
+        assert result.keySet().size() >= quorumParameters.getReplicationFactor();
+        return result;
+    }
+
+    private <ValType> Map<KeyValueService, Multimap<Cell, ValType>> getServicesForCellsMultimap(String tableName,
+                                                                                                Multimap<Cell, ValType> keys) {
+        Map<KeyValueService, Multimap<Cell, ValType>> result = Maps.newHashMap();
+        for (Map.Entry<Cell, ValType> e : keys.entries()) {
+            Set<KeyValueService> services = getServicesHavingRow(e.getKey().getRowName());
+            for (KeyValueService kvs : services) {
+                if (!result.containsKey(kvs)) {
+                    result.put(kvs, HashMultimap.<Cell, ValType> create());
+                }
+                assert !result.get(kvs).containsEntry(e.getKey(), e.getValue());
+                result.get(kvs).put(e.getKey(), e.getValue());
+            }
+        }
+        assert result.keySet().size() >= quorumParameters.getReplicationFactor();
+        return result;
+    }
     // *********************************************************************************************
 
+    // *** Public methods **************************************************************************
     @Override
     public Multimap<ConsistentRingRangeRequest, KeyValueService> getServicesForRangeRead(String tableName,
                                                                                          RangeRequest range) {
@@ -107,6 +159,8 @@ import com.palantir.common.annotation.Immutable;
                             .startRowInclusive(rangeStart)
                             .endRowExclusive(rangeEnd)
                             .build());
+
+            Preconditions.checkState(!crrr.get().isEmptyRange());
 
             // We have now the "consistent" subrange which means that
             // every service having the (inclusive) start row will also
@@ -140,80 +194,36 @@ import com.palantir.common.annotation.Immutable;
                 result.get(kvs).add(row);
             }
         }
-        return result;
-    }
-
-    @Override
-    public Map<KeyValueService, Map<Cell, Long>> getServicesForCellsRead(String tableName,
-                                                                         Map<Cell, Long> timestampByCell) {
-        Map<KeyValueService, Map<Cell, Long>> result = Maps.newHashMap();
-        for (Map.Entry<Cell, Long> e : timestampByCell.entrySet()) {
-            Set<KeyValueService> services = getServicesHavingRow(e.getKey().getRowName());
-            for (KeyValueService kvs : services) {
-                if (!result.containsKey(kvs)) {
-                    result.put(kvs, Maps.<Cell, Long> newHashMap());
-                }
-                assert !result.get(kvs).containsKey(e.getKey());
-                result.get(kvs).put(e.getKey(), e.getValue());
-            }
-        }
-        return result;
-    }
-
-    @Override
-    public Map<KeyValueService, Set<Cell>> getServicesForCellsRead(String tableName, Set<Cell> cells) {
-        Map<KeyValueService, Set<Cell>> result = Maps.newHashMap();
-        for (Cell cell : cells) {
-            Set<KeyValueService> services = getServicesHavingRow(cell.getRowName());
-            for (KeyValueService kvs : services) {
-                if (!result.containsKey(kvs)) {
-                    result.put(kvs, Sets.<Cell> newHashSet());
-                }
-                assert result.get(kvs).contains(cell) == false;
-                result.get(kvs).add(cell);
-            }
-        }
-        return result;
-    }
-
-    @Override
-    public Map<KeyValueService, Map<Cell, byte[]>> getServicesForCellsWrite(String tableName,
-                                                                            Map<Cell, byte[]> values) {
-        Map<KeyValueService, Map<Cell, byte[]>> result = Maps.newHashMap();
-        for (Map.Entry<Cell, byte[]> e : values.entrySet()) {
-            Set<KeyValueService> services = getServicesHavingRow(e.getKey().getRowName());
-            for (KeyValueService kvs : services) {
-                if (!result.containsKey(kvs)) {
-                    result.put(kvs, Maps.<Cell, byte[]> newHashMap());
-                }
-                assert !result.get(kvs).containsKey(e.getKey());
-                result.get(kvs).put(e.getKey(), e.getValue());
-            }
-        }
         assert result.keySet().size() >= quorumParameters.getReplicationFactor();
         return result;
     }
 
     @Override
+    public Map<KeyValueService, Set<Cell>> getServicesForCellsRead(String tableName, Set<Cell> cells) {
+        return getServicesForCellsSet(tableName, cells);
+    }
+
+    @Override
+    public Map<KeyValueService, Map<Cell, Long>> getServicesForCellsRead(String tableName,
+                                                                         Map<Cell, Long> timestampByCell) {
+        return getServicesForCellsMap(tableName, timestampByCell);
+    }
+
+    @Override
+    public Map<KeyValueService, Map<Cell, byte[]>> getServicesForCellsWrite(String tableName,
+                                                                            Map<Cell, byte[]> values) {
+        return getServicesForCellsMap(tableName, values);
+    }
+
+    @Override
     public Map<KeyValueService, Set<Cell>> getServicesForCellsWrite(String tableName,
                                                                     Set<Cell> cells) {
-        return getServicesForCellsRead(tableName, cells);
+        return getServicesForCellsSet(tableName, cells);
     }
 
     public <T> Map<KeyValueService, Multimap<Cell, T>> getServicesForWrite(String tableName,
                                                                            Multimap<Cell, T> keys) {
-        Map<KeyValueService, Multimap<Cell, T>> result = Maps.newHashMap();
-        for (Map.Entry<Cell, T> e : keys.entries()) {
-            Set<KeyValueService> services = getServicesHavingRow(e.getKey().getRowName());
-            for (KeyValueService kvs : services) {
-                if (!result.containsKey(kvs)) {
-                    result.put(kvs, HashMultimap.<Cell, T> create());
-                }
-                assert !result.get(kvs).containsEntry(e.getKey(), e.getValue());
-                result.get(kvs).put(e.getKey(), e.getValue());
-            }
-        }
-        return result;
+        return getServicesForCellsMultimap(tableName, keys);
     }
 
     @Override
