@@ -102,8 +102,11 @@ import com.palantir.common.annotation.Immutable;
                 rangeEnd = range.getEndExclusive();
             }
 
-            ConsistentRingRangeRequest crrr = ConsistentRingRangeRequest.of(RangeRequest.builder(
-                    range.isReverse()).startRowInclusive(rangeStart).endRowExclusive(rangeEnd).build());
+            ConsistentRingRangeRequest crrr = ConsistentRingRangeRequest.of(
+                    range.getBuilder()
+                            .startRowInclusive(rangeStart)
+                            .endRowExclusive(rangeEnd)
+                            .build());
 
             // We have now the "consistent" subrange which means that
             // every service having the (inclusive) start row will also
