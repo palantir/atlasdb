@@ -31,6 +31,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.KVTableMappingService;
 import com.palantir.atlasdb.keyvalue.impl.NamespaceMappingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TableRemappingKeyValueService;
+import com.palantir.atlasdb.keyvalue.leveldb.impl.LevelDbBoundStore;
 import com.palantir.atlasdb.keyvalue.leveldb.impl.LevelDbKeyValueService;
 import com.palantir.atlasdb.schema.AtlasSchema;
 import com.palantir.atlasdb.schema.Namespace;

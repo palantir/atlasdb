@@ -14,6 +14,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
 
@@ -144,7 +145,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         }
     }
 
-    private LeadershipToken genTokenFromValue(PaxosValue value) {
+    private LeadershipToken genTokenFromValue(@CheckForNull PaxosValue value) {
         return new PaxosLeadershipToken(value);
     }
 
@@ -496,6 +497,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
             }
         }
 
+        PaxosValue greatestLearnedValue = knowledge.getGreatestLearnedValue();
         return learned;
     }
 }

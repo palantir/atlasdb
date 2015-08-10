@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
+import java.io.Closeable;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
@@ -29,7 +30,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 /**
  * A service which stores key-value pairs.
  */
-public interface KeyValueService {
+public interface KeyValueService extends Closeable {
     /**
      * Performs any initialization that must be done on a fresh instance of the key-value store,
      * such as creating the metadata table.

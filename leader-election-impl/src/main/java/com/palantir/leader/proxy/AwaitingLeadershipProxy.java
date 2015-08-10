@@ -27,6 +27,16 @@ public final class AwaitingLeadershipProxy extends AbstractInvocationHandler {
 
     private static final Logger log = LoggerFactory.getLogger(AwaitingLeadershipProxy.class);
 
+    /**
+     * This will block on {@link LeaderElectionService#blockOnBecomingLeader()} until we are the leader.
+     * Once we are the leader {@link Supplier#get()} will be called to get a delegate to send requests to.
+     * If we are leading according to {@link LeaderElectionService#isStillLeading(LeadershipToken)} then
+     * calls will be sent to the delegate.  If we find that we lose leadership and the delgate implements
+     * {@link Closeable} then {@link Closeable# close()} will be called to clean up.  We will then begin
+     * blocking on {@link LeaderElectionService#blockOnBecomingLeader()} and wait until we are the leader.
+     * <p>
+     * If a call is make while we aren't the leader a {@link NotCurrentLeaderException} will be thrown.
+     */
     @SuppressWarnings("unchecked")
     public static <T> T newProxyInstance(Class<T> interfaceClass,
                                          Supplier<T> delegateSupplier,
