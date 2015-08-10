@@ -20,7 +20,6 @@ import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.PartitionedKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.QuorumParameters;
 import com.palantir.atlasdb.keyvalue.partition.QuorumParameters.QuorumRequestParameters;
-import com.palantir.common.proxy.DelegatingInvocationHandler;
 
 public class FailableKeyValueServices {
 
@@ -63,8 +62,7 @@ public class FailableKeyValueServices {
 
     // Used to stop and start a particular kvs
     // TODO: Is this the equals implementation that we want?
-    static class StoppableKvsProxy extends AbstractInvocationHandler implements
-            DelegatingInvocationHandler {
+    static class StoppableKvsProxy extends AbstractInvocationHandler {
 
         private final Enabler enabler;
         private final KeyValueService delegate;
@@ -86,6 +84,24 @@ public class FailableKeyValueServices {
             }
         }
 
+        @Override
+        public boolean equals(Object obj) {
+            if (obj instanceof StoppableKvsProxy) {
+                return delegate.equals(((StoppableKvsProxy) obj).delegate);
+            }
+            return delegate.equals(obj);
+        }
+
+        @Override
+        public int hashCode() {
+            return delegate.hashCode();
+        }
+
+        @Override
+        public String toString() {
+            return "StoppableKvsProxy [enabler=" + enabler + ", delegate=" + delegate + "]";
+        }
+
         public static KeyValueService newFailableKeyValueService(KeyValueService delegate,
                                                                  Enabler enabler) {
             return (KeyValueService) Proxy.newProxyInstance(
@@ -95,20 +111,15 @@ public class FailableKeyValueServices {
         }
 
         private StoppableKvsProxy(KeyValueService delegate, Enabler enabler) {
-            this.delegate = delegate;
+            this.delegate = Preconditions.checkNotNull(delegate);
             this.enabler = enabler;
-        }
-
-        @Override
-        public KeyValueService getDelegate() {
-            return delegate;
         }
     }
 
     // Used to automatically stop and start some of the backing kvss on each
     // function invocation
     // TODO: Use AbstractInvocationHandler?
-    static class ShutdownNodesProxy implements DelegatingInvocationHandler {
+    static class ShutdownNodesProxy extends AbstractInvocationHandler {
 
         private final ArrayList<FailableKeyValueService> services;
         private final QuorumParameters quorumParameters;
@@ -133,7 +144,7 @@ public class FailableKeyValueServices {
         }
 
         @Override
-        public synchronized Object invoke(Object proxy, Method method, Object[] args)
+        public synchronized Object handleInvocation(Object proxy, Method method, Object[] args)
                 throws Throwable {
 
             boolean isWrite = isWriteMethod(method);
@@ -174,11 +185,6 @@ public class FailableKeyValueServices {
                     fkvs.resume();
                 }
             }
-        }
-
-        @Override
-        public Object getDelegate() {
-            return delegate;
         }
     }
 
