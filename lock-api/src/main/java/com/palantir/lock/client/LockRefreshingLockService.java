@@ -15,7 +15,6 @@
  */
 package com.palantir.lock.client;
 
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -23,8 +22,8 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.ForwardingLockService;
 import com.palantir.lock.HeldLocksToken;
@@ -39,7 +38,7 @@ public class LockRefreshingLockService extends ForwardingLockService {
     private static final Logger log = LoggerFactory.getLogger(LockRefreshingLockService.class);
 
     final LockService delegate;
-    final Map<LockRefreshToken, HeldLocksToken> toRefresh;
+    final Set<LockRefreshToken> toRefresh;
     final ScheduledExecutorService exec;
     final long refreshFrequencyMillis = 5000;
     volatile boolean isClosed = false;
@@ -72,7 +71,7 @@ public class LockRefreshingLockService extends ForwardingLockService {
 
     private LockRefreshingLockService(LockService delegate) {
         this.delegate = delegate;
-        toRefresh = Maps.newConcurrentMap();
+        toRefresh = Sets.newConcurrentHashSet();
         exec = PTExecutors.newScheduledThreadPool(1, PTExecutors.newNamedThreadFactory(true));
     }
 
@@ -85,18 +84,46 @@ public class LockRefreshingLockService extends ForwardingLockService {
     public LockResponse lock(LockClient client, LockRequest request) throws InterruptedException {
         LockResponse lock = super.lock(client, request);
         if (lock.getToken() != null) {
-            toRefresh.put(lock.getToken().getLockRefreshToken(), lock.getToken());
+            toRefresh.add(lock.getToken().getLockRefreshToken());
         }
         return lock;
     }
 
+    @Override
+    public LockRefreshToken lockAnonymously(LockRequest request) throws InterruptedException {
+        LockRefreshToken ret = super.lockAnonymously(request);
+        if (ret != null) {
+            toRefresh.add(ret);
+        }
+        return ret;
+    }
+
+    @Override
+    public LockRefreshToken lockWithClient(String client, LockRequest request)
+            throws InterruptedException {
+        LockRefreshToken ret = super.lockWithClient(client, request);
+        if (ret != null) {
+            toRefresh.add(ret);
+        }
+        return ret;
+    }
+
+    @Override
+    public boolean unlock(LockRefreshToken token) {
+        toRefresh.remove(token);
+        return super.unlock(token);
+    }
+
     private void refreshLocks() {
-        ImmutableMap<LockRefreshToken, HeldLocksToken> refreshCopy = ImmutableMap.copyOf(toRefresh);
-        Set<LockRefreshToken> refreshedTokens = delegate().refreshLockRefreshTokens(refreshCopy.keySet());
-        for (LockRefreshToken token : refreshCopy.keySet()) {
+        ImmutableSet<LockRefreshToken> refreshCopy = ImmutableSet.copyOf(toRefresh);
+        if (refreshCopy.isEmpty()) {
+            return;
+        }
+        Set<LockRefreshToken> refreshedTokens = delegate().refreshLockRefreshTokens(refreshCopy);
+        for (LockRefreshToken token : refreshCopy) {
             if (!refreshedTokens.contains(token)
-                    && toRefresh.containsKey(token)) {
-                log.error("failed to refresh lock: " + refreshCopy.get(token));
+                    && toRefresh.contains(token)) {
+                log.error("failed to refresh lock: " + token);
                 toRefresh.remove(token);
             }
         }
