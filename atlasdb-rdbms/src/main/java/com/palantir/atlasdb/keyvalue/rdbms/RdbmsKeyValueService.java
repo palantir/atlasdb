@@ -2,8 +2,8 @@ package com.palantir.atlasdb.keyvalue.rdbms;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -13,6 +13,7 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.concurrent.ExecutorService;
 
+import javax.annotation.Nullable;
 import javax.sql.DataSource;
 
 import org.h2.jdbcx.JdbcConnectionPool;
@@ -32,9 +33,11 @@ import org.skife.jdbi.v2.util.StringMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -95,18 +98,6 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
 
         public static final String CONTENT(String tableName) {
             return maybeEmpty(tableName) + CONTENT;
-        }
-
-        public static final String ROW_COLUMN(String tableName) {
-            return ROW(tableName) + ", " + COLUMN(tableName);
-        }
-
-        public static final String ROW_COLUMN_TIMESTAMP(String tableName) {
-            return ROW(tableName) + ", " + COLUMN(tableName) + ", " + TIMESTAMP(tableName);
-        }
-
-        public static final String ROW_COLUMN_TIMESTAMP_CONTENT(String tableName) {
-            return ROW_COLUMN_TIMESTAMP(tableName) + ", " + CONTENT(tableName);
         }
 
         public static final String ROW_COLUMN_TIMESTAMP_AS(String tableName) {
@@ -173,30 +164,31 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
 
     @Override
     public void initializeFromFreshInstance() {
-        try {
-            getDbi().inTransaction(new TransactionCallback<Void>() {
-                @Override
-                public Void inTransaction(Handle handle, TransactionStatus status) throws Exception {
-                    // Silently ignore if already initialized
-                    handle.select("SELECT 1 FROM " + MetaTable.META_TABLE_NAME);
-//                    log.warn("Initializing an already initialized rdbms kvs. Ignoring.");
-                    return null;
-                }
-            });
-        } catch (RuntimeException e) {
-            log.warn("Initializing from fresh instance " + this);
-            getDbi().inTransaction(new TransactionCallback<Void>() {
-
-                @Override
-                public Void inTransaction(Handle conn, TransactionStatus status) throws Exception {
-                    conn.execute("CREATE TABLE " + MetaTable.META_TABLE_NAME + " ("
-                            + MetaTable.Columns.TABLE_NAME + " VARCHAR(128), "
-                            + MetaTable.Columns.METADATA + " BYTEA NOT NULL)");
-                    return null;
-                }
-            });
-        }
+        getDbi().withHandle(new HandleCallback<Void>() {
+            @Override
+            public Void withHandle(Handle conn) throws Exception {
+                conn.execute("CREATE TABLE IF NOT EXISTS " + MetaTable.META_TABLE_NAME + " ("
+                        + MetaTable.Columns.TABLE_NAME + " VARCHAR(128), "
+                        + MetaTable.Columns.METADATA + " BYTEA NOT NULL)");
+                return null;
+            }
+        });
     }
+
+    @Override
+    public void teardown() {
+        for (String tableName : getAllTableNames()) {
+            dropTable(tableName);
+        }
+        getDbi().inTransaction(new TransactionCallback<Void>() {
+            @Override
+            public Void inTransaction(Handle conn, TransactionStatus status) throws Exception {
+                conn.execute("DROP TABLE IF EXISTS " + MetaTable.META_TABLE_NAME);
+                return null;
+            }
+        });
+        super.teardown();
+    };
 
     private String makeSlots(String prefix, int number) {
         String result = "";
@@ -229,7 +221,7 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
     }
 
     private Map<Cell, Value> getRowsInternal(final String tableName,
-                                    final SortedSet<byte[]> rows,
+                                    final Collection<byte[]> rows,
                                     final ColumnSelection columnSelection,
                                     final long timestamp) {
         if (columnSelection.noColumnsSelected()) {
@@ -305,6 +297,11 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
         });
     }
 
+    private <V> void batch(Iterable<V> items, Function<Collection<V>, Void> runWithBatch) {
+        for (List<V> chunk : Iterables.partition(items, CHUNK_SIZE)) {
+            runWithBatch.apply(chunk);
+        }
+    }
 
     @Override
     @Idempotent
@@ -312,25 +309,15 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
                                     final Iterable<byte[]> rows,
                                     final ColumnSelection columnSelection,
                                     final long timestamp) {
-        SortedSet<byte[]> rowSet = Sets.newTreeSet(UnsignedBytes.lexicographicalComparator());
-        for (byte[] row : rows) {
-            rowSet.add(row);
-        }
-
-        Map<Cell, Value> result = Maps.newHashMap();
-
-        while (!rowSet.isEmpty()) {
-            SortedSet<byte[]> chunk = Sets.newTreeSet(UnsignedBytes.lexicographicalComparator());
-            for (int i = 0; i < CHUNK_SIZE; ++i) {
-                chunk.add(rowSet.first());
-                rowSet.remove(rowSet.first());
-                if (rowSet.isEmpty()) {
-                    break;
-                }
+        // TODO: Sort for best performance?
+        final Map<Cell, Value> result = Maps.newHashMap();
+        batch(rows, new Function<Collection<byte[]>, Void>() {
+            @Override @Nullable
+            public Void apply(@Nullable Collection<byte[]> input) {
+                result.putAll(getRowsInternal(tableName, input, columnSelection, timestamp));
+                return null;
             }
-            Map<Cell, Value> chunkResult = getRowsInternal(tableName, chunk, columnSelection, timestamp);
-            result.putAll(chunkResult);
-        }
+        });
         return result;
     }
 
@@ -358,7 +345,7 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
     }
 
     private Map<Cell, Value> getInternal(final String tableName,
-                                         final Map<Cell, Long> timestampByCell) {
+                                         final Collection<Entry<Cell, Long>> timestampByCell) {
         return getDbi().withHandle(new HandleCallback<Map<Cell, Value>>() {
             @Override
             public Map<Cell, Value> withHandle(Handle handle) throws Exception {
@@ -382,7 +369,7 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
                         .map(CellValueMapper.instance());
 
                 int pos = 0;
-                for (Entry<Cell, Long> entry : timestampByCell.entrySet()) {
+                for (Entry<Cell, Long> entry : timestampByCell) {
                     query.bind(pos++, entry.getKey().getRowName());
                     query.bind(pos++, entry.getKey().getColumnName());
                     query.bind(pos++, entry.getValue());
@@ -401,11 +388,19 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
     @Override
     @Idempotent
     public Map<Cell, Value> get(final String tableName, final Map<Cell, Long> timestampByCell) {
-        return getInternal(tableName, timestampByCell);
+        final Map<Cell, Value> result = Maps.newHashMap();
+        batch(timestampByCell.entrySet(), new Function<Collection<Entry<Cell, Long>>, Void>() {
+            @Override @Nullable
+            public Void apply(@Nullable Collection<Entry<Cell, Long>> input) {
+                result.putAll(getInternal(tableName, input));
+                return null;
+            }
+        });
+        return result;
     }
 
     private void putInternal(final String tableName,
-                             final Map<Cell, byte[]> values,
+                             final Collection<Entry<Cell, byte[]>> values,
                              final long timestamp) {
         try {
             getDbi().withHandle(new HandleCallback<Void>() {
@@ -417,7 +412,7 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
                             + "    " + Columns.CONTENT + ") VALUES " + "    "
                             + makeSlots("cell", values.size(), 4));
                     int pos = 0;
-                    for (Entry<Cell, byte[]> entry : values.entrySet()) {
+                    for (Entry<Cell, byte[]> entry : values) {
                         update.bind(pos++, entry.getKey().getRowName());
                         update.bind(pos++, entry.getKey().getColumnName());
                         update.bind(pos++, timestamp);
@@ -451,25 +446,17 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
     @Override
     public void put(final String tableName, final Map<Cell, byte[]> values, final long timestamp)
             throws KeyAlreadyExistsException {
-        // TODO: Throw the KeyAlreadyExistsException when appropriate
-        Map<Cell, byte[]> all = Maps.newTreeMap();
-        all.putAll(values);
-        while (!all.isEmpty()) {
-            Map<Cell, byte[]> chunk = Maps.newTreeMap();
-            for (int i=0; i<CHUNK_SIZE; ++i) {
-                Iterator<Entry<Cell, byte[]>> it = all.entrySet().iterator();
-                Entry<Cell, byte[]> entry = it.next();
-                chunk.put(entry.getKey(), entry.getValue());
-                it.remove();
-                if (all.isEmpty()) {
-                    break;
-                }
+        batch(values.entrySet(), new Function<Collection<Entry<Cell, byte[]>>, Void>() {
+            @Override @Nullable
+            public Void apply(@Nullable Collection<Entry<Cell, byte[]>> input) {
+                putInternal(tableName, input, timestamp);
+                return null;
             }
-            putInternal(tableName, chunk, timestamp);
-        }
+        });
     }
 
-    private void putWithTimestampsInternal(final String tableName, final Multimap<Cell, Value> cellValues) {
+    private void putWithTimestampsInternal(final String tableName,
+                                           final Collection<Entry<Cell, Value>> cellValues) {
         try {
             getDbi().withHandle(new HandleCallback<Void>() {
                 @Override
@@ -478,9 +465,9 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
                             + USER_TABLE_PREFIX(tableName) + " (" + "    " + Columns.ROW + ", "
                             + "    " + Columns.COLUMN + ", " + "    " + Columns.TIMESTAMP + ", "
                             + "    " + Columns.CONTENT + ") VALUES " + "    "
-                            + makeSlots("cell", cellValues.entries().size(), 4));
+                            + makeSlots("cell", cellValues.size(), 4));
                     int pos = 0;
-                    for (Entry<Cell, Value> entry : cellValues.entries()) {
+                    for (Entry<Cell, Value> entry : cellValues) {
                         update.bind(pos++, entry.getKey().getRowName());
                         update.bind(pos++, entry.getKey().getColumnName());
                         update.bind(pos++, entry.getValue().getTimestamp());
@@ -501,7 +488,13 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
     @NonIdempotent
     public void putWithTimestamps(final String tableName, final Multimap<Cell, Value> cellValues)
             throws KeyAlreadyExistsException {
-        putWithTimestampsInternal(tableName, cellValues);
+        batch(cellValues.entries(), new Function<Collection<Entry<Cell, Value>>, Void>() {
+            @Override @Nullable
+            public Void apply(@Nullable Collection<Entry<Cell, Value>> input) {
+                putWithTimestampsInternal(tableName, input);
+                return null;
+            }
+        });
     }
 
     @Override
@@ -510,7 +503,7 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
         put(tableName, values, 0);
     }
 
-    private void deleteInternal(final String tableName, final Multimap<Cell, Long> keys) {
+    private void deleteInternal(final String tableName, final Collection<Entry<Cell, Long>> keys) {
         getDbi().withHandle(new HandleCallback<Void>() {
             @Override
             public Void withHandle(Handle handle) throws Exception {
@@ -523,7 +516,7 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
                 		"        AND " + Columns.COLUMN("t") + " = " + Columns.COLUMN("t2") + " " +
                 		"        AND " + Columns.TIMESTAMP("t") + " = " + Columns.TIMESTAMP("t2") + ")");
                 int pos = 0;
-                for (Entry<Cell, Long> entry : keys.entries()) {
+                for (Entry<Cell, Long> entry : keys) {
                     update.bind(pos++, entry.getKey().getRowName());
                     update.bind(pos++, entry.getKey().getColumnName());
                     update.bind(pos++, entry.getValue());
@@ -537,7 +530,13 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
     @Override
     @Idempotent
     public void delete(final String tableName, final Multimap<Cell, Long> keys) {
-        deleteInternal(tableName, keys);
+        batch(keys.entries(), new Function<Collection<Entry<Cell, Long>>, Void>() {
+            @Override @Nullable
+            public Void apply(@Nullable Collection<Entry<Cell, Long>> input) {
+                deleteInternal(tableName, input);
+                return null;
+            }
+        });
     }
 
     private int getMaxRows(RangeRequest rangeRequest) {
