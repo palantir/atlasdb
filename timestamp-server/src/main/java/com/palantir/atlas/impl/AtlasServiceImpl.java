@@ -8,6 +8,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+import javax.annotation.CheckForNull;
 import javax.inject.Inject;
 
 import com.google.common.base.Preconditions;
@@ -66,6 +67,11 @@ public class AtlasServiceImpl implements AtlasService {
     }
 
     @Override
+    public TableRowResult getRows(Long token,
+                                  final TableRowSelection rows) {
+        return getRows(getTokenForLong(token), rows);
+    }
+
     public TableRowResult getRows(TransactionToken token,
                                   final TableRowSelection rows) {
         return runReadOnly(token, new RuntimeTransactionTask<TableRowResult>() {
@@ -79,6 +85,11 @@ public class AtlasServiceImpl implements AtlasService {
     }
 
     @Override
+    public TableCellVal getCells(Long token,
+                                 final TableCell cells) {
+        return getCells(getTokenForLong(token), cells);
+    }
+
     public TableCellVal getCells(TransactionToken token,
                                  final TableCell cells) {
         return runReadOnly(token, new RuntimeTransactionTask<TableCellVal>() {
@@ -91,6 +102,11 @@ public class AtlasServiceImpl implements AtlasService {
     }
 
     @Override
+    public RangeToken getRange(Long token,
+                               final TableRange range) {
+        return getRange(getTokenForLong(token), range);
+    }
+
     public RangeToken getRange(TransactionToken token,
                                final TableRange range) {
         return runReadOnly(token, new RuntimeTransactionTask<RangeToken>() {
@@ -118,6 +134,11 @@ public class AtlasServiceImpl implements AtlasService {
     }
 
     @Override
+    public void put(Long token,
+                    final TableCellVal data) {
+        put(getTokenForLong(token), data);
+    }
+
     public void put(TransactionToken token,
                     final TableCellVal data) {
         runWithRetry(token, new TxTask() {
@@ -130,6 +151,10 @@ public class AtlasServiceImpl implements AtlasService {
     }
 
     @Override
+    public void delete(Long token,
+                       final TableCell cells) {
+        delete(getTokenForLong(token), cells);
+    }
     public void delete(TransactionToken token,
                        final TableCell cells) {
         runWithRetry(token, new TxTask() {
@@ -162,16 +187,20 @@ public class AtlasServiceImpl implements AtlasService {
     }
 
     @Override
-    public TransactionToken startTransaction() {
+    public long startTransaction() {
         long id = ID_GENERATOR.getAndIncrement();
         TransactionToken token = new TransactionToken(id);
         TransactionRunner runner = new TransactionRunner(txManager);
         exec.execute(runner);
         transactions.put(token, runner);
-        return token;
+        return token.getId();
     }
 
     @Override
+    public void commit(Long token) {
+        commit(getTokenForLong(token));
+    }
+
     public void commit(TransactionToken token) {
         TransactionRunner runner = transactions.getIfPresent(token);
         if (runner != null) {
@@ -181,6 +210,14 @@ public class AtlasServiceImpl implements AtlasService {
     }
 
     @Override
+    public void abort(Long token) {
+        abort(getTokenForLong(token));
+    }
+
+    private TransactionToken getTokenForLong(@CheckForNull Long token) {
+        return token == null ? TransactionToken.autoCommit() : new TransactionToken(token);
+    }
+
     public void abort(TransactionToken token) {
         TransactionRunner runner = transactions.getIfPresent(token);
         if (runner != null) {

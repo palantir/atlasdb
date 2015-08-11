@@ -48,7 +48,6 @@ import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictExcep
 import com.palantir.common.base.BatchingVisitables;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRefreshToken;
 
 
@@ -64,6 +63,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 transactionService,
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
                 conflictDetectionManager,
+                SweepStrategyManagers.createDefault(keyValueService),
                 NoOpCleaner.INSTANCE);
     }
 
