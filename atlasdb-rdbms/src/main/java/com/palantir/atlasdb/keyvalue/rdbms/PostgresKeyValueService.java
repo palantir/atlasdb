@@ -254,12 +254,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                         "WHERE t2.atlasdb_timestamp IS NULL")
                         .map(CellValueMapper.instance());
 
-                int pos = 0;
-                for (Entry<Cell, Long> entry : timestampByCell) {
-                    query.bind(pos++, entry.getKey().getRowName());
-                    query.bind(pos++, entry.getKey().getColumnName());
-                    query.bind(pos++, entry.getValue());
-                }
+                AtlasSqlUtils.bindCellsTimestamps(query, timestampByCell);
 
                 for (Pair<Cell, Value> cv : query.list()) {
                     Preconditions.checkState(!result.containsKey(cv.getLhSide()));
@@ -352,13 +347,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                             + "    " + Columns.COLUMN + ", " + "    " + Columns.TIMESTAMP + ", "
                             + "    " + Columns.CONTENT + ") VALUES " + "    "
                             + makeSlots("cell", cellValues.size(), 4));
-                    int pos = 0;
-                    for (Entry<Cell, Value> entry : cellValues) {
-                        update.bind(pos++, entry.getKey().getRowName());
-                        update.bind(pos++, entry.getKey().getColumnName());
-                        update.bind(pos++, entry.getValue().getTimestamp());
-                        update.bind(pos++, entry.getValue().getContents());
-                    }
+                    AtlasSqlUtils.bindCellsValues(update, cellValues);
                     update.execute();
                     return null;
                 }
@@ -401,12 +390,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                 		"    WHERE " + Columns.ROW("t") + " = " + Columns.ROW("t2") + " " +
                 		"        AND " + Columns.COLUMN("t") + " = " + Columns.COLUMN("t2") + " " +
                 		"        AND " + Columns.TIMESTAMP("t") + " = " + Columns.TIMESTAMP("t2") + ")");
-                int pos = 0;
-                for (Entry<Cell, Long> entry : keys) {
-                    update.bind(pos++, entry.getKey().getRowName());
-                    update.bind(pos++, entry.getKey().getColumnName());
-                    update.bind(pos++, entry.getValue());
-                }
+                AtlasSqlUtils.bindCellsTimestamps(update, keys);
                 update.execute();
                 return null;
             }
@@ -783,7 +767,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
     }
 
     private SetMultimap<Cell, Long> getAllTimestampsInternal(final String tableName,
-                                                 final Set<Cell> cells,
+                                                 final Collection<Cell> cells,
                                                  final long timestamp)
             throws InsufficientConsistencyException {
 
@@ -808,13 +792,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                                 return Pair.create(cell, timestamp);
                             }
                         });
-                int pos = 0;
-                for (Cell cell : cells) {
-                    // TODO: Bug here (should be detected with unit tests)
-                    query.bind("cell" + pos + "_0", cell.getRowName());
-                    query.bind("cell" + pos + "_1", cell.getColumnName());
-                }
-
+                AtlasSqlUtils.bindCells(query, cells);
 
                 SetMultimap<Cell, Long> result = HashMultimap.create();
                 for (Pair<Cell, Long> p : query.list()) {
@@ -833,23 +811,15 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                                                  final Set<Cell> cells,
                                                  final long timestamp)
             throws InsufficientConsistencyException {
-
-        SortedSet<Cell> cellsSet = Sets.newTreeSet();
-        cellsSet.addAll(cells);
-        SetMultimap<Cell, Long> result = HashMultimap.create();
-
-        while (cellsSet.size() > 0) {
-            SortedSet<Cell> cellsChunk = Sets.newTreeSet();
-            for (int i=0; i<CHUNK_SIZE; ++i) {
-                cellsChunk.add(cellsSet.first());
-                cellsSet.remove(cellsSet.first());
-                if (cellsSet.isEmpty()) {
-                    break;
-                }
+        // TODO: Sort for better performance?
+        final SetMultimap<Cell, Long> result = HashMultimap.create();
+        batch(cells, new Function<Collection<Cell>, Void>() {
+            @Override @Nullable
+            public Void apply(@Nullable Collection<Cell> input) {
+                result.putAll(getAllTimestampsInternal(tableName, input, timestamp));
+                return null;
             }
-            SetMultimap<Cell, Long> chunkResult = getAllTimestampsInternal(tableName, cellsChunk, timestamp);
-            result.putAll(chunkResult);
-        }
+        });
         return result;
     }
 
