@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.palantir.atlas.impl.TableMetadataCache;
@@ -65,7 +66,8 @@ public class TimestampServer extends Application<TimestampServerConfiguration> {
     private final ExecutorService executor = PTExecutors.newCachedThreadPool();
 
     private <T> List<T> getRemoteServices(List<String> uris, Class<T> iFace) {
-    	ObjectMapper mapper = getObjectMapper();
+        // TODO: remove null
+    	ObjectMapper mapper = getObjectMapper(new TableMetadataCache(null));
         List<T> ret = Lists.newArrayList();
         for (String uri : uris) {
             T service = Feign.builder()
@@ -78,10 +80,10 @@ public class TimestampServer extends Application<TimestampServerConfiguration> {
         return ret;
     }
 
-    public static ObjectMapper getObjectMapper() {
+    public static ObjectMapper getObjectMapper(TableMetadataCache cache) {
         ObjectMapper mapper = new ObjectMapper();
-        // TODO: remove null
-        mapper.registerModule(new AtlasJacksonModule(new TableMetadataCache(null)).createModule());
+        mapper.registerModule(new AtlasJacksonModule(cache).createModule());
+        mapper.registerModule(new GuavaModule());
         return mapper;
     }
 

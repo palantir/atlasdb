@@ -36,7 +36,6 @@ public interface AtlasService {
     long startTransaction();
 
     @Idempotent
-//    @Path("rows")
     @POST
     @Path("rows{token : /(\\d+)?}")
     @Produces(MediaType.APPLICATION_JSON)
@@ -54,7 +53,8 @@ public interface AtlasService {
 
     @Idempotent
     @POST
-    @Path("range/{token}")
+//    @Path("range/{token}")
+    @Path("range{token : /(\\d+)?}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     RangeToken getRange(@PathParam("token") Long token,
