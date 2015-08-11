@@ -593,10 +593,11 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
                 List<Cell> cells = handle.createQuery(
                         "SELECT DISTINCT atlasdb_row, atlasdb_column " +
                         // TODO: Check for upper bound!
-                        "FROM " + tableName + " WHERE row >= :startRow" +
-                        "    AND timestamp < :timestamp" +
+                        "FROM " + tableName + " WHERE atlasdb_row >= :startRow" +
+                        "    AND atlasdb_row < :endRow AND atlasdb_timestamp < :timestamp " +
                         "LIMIT :limit")
                         .bind("startRow", rangeRequest.getStartInclusive())
+                        .bind("endRow", RangeRequests.endRowExclusiveOrOneAfterMax(rangeRequest))
                         .bind("timestamp", timestamp)
                         .bind("limit", maxRows)
                         .map(new ResultSetMapper<Cell>() {
@@ -761,7 +762,11 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
                 		"    " + Columns.ROW + " BYTEA NOT NULL, " +
                 		"    " + Columns.COLUMN + " BYTEA NOT NULL, " +
                 		"    " + Columns.TIMESTAMP + " INT NOT NULL, " +
-                		"    " + Columns.CONTENT + " BYTEA NOT NULL)");
+                		"    " + Columns.CONTENT + " BYTEA NOT NULL," +
+        				"    PRIMARY KEY (" +
+        				"        " + Columns.ROW + ", " +
+						"        " + Columns.COLUMN + ", " +
+        				"        " + Columns.TIMESTAMP + "))");
                 handle.execute("INSERT INTO " + MetaTable.META_TABLE_NAME + " (" +
                         "    " + MetaTable.Columns.TABLE_NAME + ", " +
                         "    " + MetaTable.Columns.METADATA + " ) VALUES (" +
@@ -853,8 +858,8 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
                         .map(CellValueMapper.instance());
                 int pos = 0;
                 for (Cell cell : cells) {
-                    query.bind("cell" + pos + "_0", cell.getRowName());
-                    query.bind("cell" + pos + "_1", cell.getColumnName());
+                    query.bind(pos++, cell.getRowName());
+                    query.bind(pos++, cell.getColumnName());
                 }
 
                 SetMultimap<Cell, Value> result = HashMultimap.create();
@@ -894,6 +899,7 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
                         });
                 int pos = 0;
                 for (Cell cell : cells) {
+                    // TODO: Bug here (should be detected with unit tests)
                     query.bind("cell" + pos + "_0", cell.getRowName());
                     query.bind("cell" + pos + "_1", cell.getColumnName());
                 }

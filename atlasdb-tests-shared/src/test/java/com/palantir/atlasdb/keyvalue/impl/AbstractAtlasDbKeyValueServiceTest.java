@@ -22,6 +22,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.junit.After;
@@ -34,6 +35,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Multimap;
 import com.google.common.primitives.UnsignedBytes;
@@ -284,6 +286,7 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
 
     @Test
     public void testGetRange() {
+        // TODO: Test unbounded start and (especially) end range
         putTestDataForSingleTimestamp();
         RangeRequest rangeRequest = RangeRequest.builder().startRowInclusive(row1).build();
         ClosableIterator<RowResult<Value>> rangeResult = keyValueService.getRange(
@@ -388,6 +391,23 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         assertEquals(
                 val1,
                 keyValueService.get(TEST_TABLE, ImmutableMap.of(cell, TEST_TIMESTAMP + 5)).get(cell));
+        keyValueService.delete(TEST_TABLE, ImmutableMultimap.of(cell, TEST_TIMESTAMP + 5));
+    }
+
+    @Test
+    public void testGetRangeWithHistory() {
+        putTestDataForMultipleTimestamps();
+        final RangeRequest range = RangeRequest.builder().startRowInclusive(row0).endRowExclusive(row1).build();
+        ClosableIterator<RowResult<Set<Value>>> rangeWithHistory = keyValueService.getRangeWithHistory(TEST_TABLE, range, TEST_TIMESTAMP + 2);
+        RowResult<Set<Value>> row0 = rangeWithHistory.next();
+        System.err.println(Iterators.size(rangeWithHistory));
+        assertTrue(!rangeWithHistory.hasNext());
+        rangeWithHistory.close();
+        assertEquals(1, Iterables.size(row0.getCells()));
+        Entry<Cell, Set<Value>> cell0 = row0.getCells().iterator().next();
+        assertEquals(2, cell0.getValue().size());
+        assertTrue(cell0.getValue().contains(Value.create(value0_t0, TEST_TIMESTAMP)));
+        assertTrue(cell0.getValue().contains(Value.create(value0_t1, TEST_TIMESTAMP + 1)));
     }
 
     private void putTestDataForMultipleTimestamps() {
