@@ -14,6 +14,8 @@ import java.util.concurrent.ExecutorService;
 import javax.sql.DataSource;
 
 import org.h2.jdbcx.JdbcConnectionPool;
+import org.postgresql.jdbc2.optional.ConnectionPool;
+import org.postgresql.jdbc2.optional.PoolingDataSource;
 import org.skife.jdbi.v2.DBI;
 import org.skife.jdbi.v2.Handle;
 import org.skife.jdbi.v2.PreparedBatch;
@@ -51,6 +53,7 @@ import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.NonIdempotent;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
+import com.palantir.common.base.Throwables;
 import com.palantir.util.Pair;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
@@ -61,18 +64,46 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
     private static final Logger log = LoggerFactory.getLogger(RdbmsKeyValueService.class);
 
     private static final class Columns {
-        public static final String TIMESTAMP = "timestamp";
-        public static final String CONTENT = "content";
-        public static final String ROW = "row";
-        public static final String COLUMN = "column";
-        public static final String all() {
-            return ROW + ", " + COLUMN + ", " + TIMESTAMP + ", " + CONTENT;
+        public static final String TIMESTAMP = "atlasdb_timestamp";
+        public static final String CONTENT = "atlasdb_content";
+        public static final String ROW = "atlasdb_row";
+        public static final String COLUMN = "atlasdb_column";
+
+        public static final String ROW(String tableName) {
+            return tableName + "." + ROW;
+        }
+
+        public static final String COLUMN(String tableName) {
+            return tableName + "." + COLUMN;
+        }
+
+        public static final String TIMESTAMP(String tableName) {
+            return tableName + "." + TIMESTAMP;
+        }
+
+        public static final String CONTENT(String tableName) {
+            return tableName + "." + CONTENT;
+        }
+
+        public static final String ROW_COLUMN(String tableName) {
+            return ROW(tableName) + ", " + COLUMN(tableName);
+        }
+
+        public static final String ROW_COLUMN_TIMESTAMP(String tableName) {
+            return ROW(tableName) + ", " + COLUMN(tableName) + ", " + TIMESTAMP(tableName);
+        }
+
+        public static final String ROW_COLUMN_TIMESTAMP_AS(String tableName) {
+            return ROW(tableName) + " AS " + ROW + ", " + COLUMN(tableName) + " AS " + COLUMN + ", " + TIMESTAMP(tableName) + " AS " + TIMESTAMP;
+        }
+
+        public static final String ROW_COLUMN_TIMESTAMP_CONTENT_AS(String tableName) {
+            return ROW_COLUMN_TIMESTAMP_AS(tableName) + ", " + CONTENT(tableName) + " AS " + CONTENT;
         }
     }
 
     private static final class MetaTable {
         public static final String META_TABLE_NAME = "_table_meta";
-
         private static final class Columns {
             public static final String TABLE_NAME = "table_name";
             public static final String METADATA = "metadata";
@@ -86,7 +117,31 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
     }
 
     private DataSource getTestDataSource() {
+        return getTestPostgresDataSource();
+    }
+
+    private DataSource getTestH2DataSource() {
         return JdbcConnectionPool.create("jdbc:h2:mem:test", "username", "password");
+    }
+
+    ConnectionPool connectionPool = new ConnectionPool();
+
+    private DataSource getTestPostgresDataSource() {
+        try {
+            Class.forName("org.postgresql.Driver");
+        } catch (ClassNotFoundException e) {
+            Throwables.throwUncheckedException(e);
+        }
+        PoolingDataSource pgDataSource = new PoolingDataSource();
+        pgDataSource.setDatabaseName("test");
+        pgDataSource.setUser("test");
+        pgDataSource.setPassword("password");
+        try {
+            pgDataSource.getConnection().setAutoCommit(true);
+        } catch (SQLException e) {
+            Throwables.throwUncheckedException(e);
+        }
+        return pgDataSource;
     }
 
     public RdbmsKeyValueService(ExecutorService executor) {
@@ -96,22 +151,29 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
 
     @Override
     public void initializeFromFreshInstance() {
-        getDbi().inTransaction(new TransactionCallback<Void>() {
-            @Override
-            public Void inTransaction(Handle handle, TransactionStatus status) throws Exception {
-                try {
+        try {
+            getDbi().inTransaction(new TransactionCallback<Void>() {
+                @Override
+                public Void inTransaction(Handle handle, TransactionStatus status) throws Exception {
                     // Silently ignore if already initialized
                     handle.select("SELECT 1 FROM " + MetaTable.META_TABLE_NAME);
                     log.warn("Initializing an already initialized rdbms kvs. Ignoring.");
-                } catch (RuntimeException e) {
-                    log.warn("Initializing from fresh instance " + this);
-                    handle.execute("CREATE TABLE " + MetaTable.META_TABLE_NAME + " ("
+                    return null;
+                }
+            });
+        } catch (RuntimeException e) {
+            log.warn("Initializing from fresh instance " + this);
+            getDbi().inTransaction(new TransactionCallback<Void>() {
+
+                @Override
+                public Void inTransaction(Handle conn, TransactionStatus status) throws Exception {
+                    conn.execute("CREATE TABLE " + MetaTable.META_TABLE_NAME + " ("
                             + MetaTable.Columns.TABLE_NAME + " VARCHAR(128), "
                             + MetaTable.Columns.METADATA + " BYTEA NOT NULL)");
+                    return null;
                 }
-                return null;
-            }
-        });
+            });
+        }
     }
 
     private String makeSlots(String prefix, int number) {
@@ -138,44 +200,56 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
                 final List<Pair<Cell,Value>> list;
                 final Map<Cell, Value> result = Maps.newHashMap();
 
-                    handle.execute("DECLARE TABLE RowsToRetrieve (row BYTEA NOT NULL)");
+                handle.execute(
+                        "CREATE TEMPORARY TABLE RowsToRetrieve (" +
+                		"    " + Columns.ROW + " BYTEA NOT NULL)");
 
-                PreparedBatch batch = handle.prepareBatch("INSERT INTO RowsToRetrieve (row) VALUES (:row)");
+                PreparedBatch batch = handle.prepareBatch(
+                        "INSERT INTO RowsToRetrieve (" + Columns.ROW + ") VALUES (:row)");
                 for (byte[] row : rows) {
                     batch.add(row);
                 }
                 batch.execute();
 
                 if (columnSelection.allColumnsSelected()) {
-
                     list = handle.createQuery(
-                            "SELECT t.row as row, t.column as column, t.timestamp as timestamp, t.content as content " +
+                            "SELECT " + Columns.ROW_COLUMN_TIMESTAMP_CONTENT_AS("t") + " " +
                             "FROM " + tableName + " t " +
                             "JOIN RowsToRetrieve c " +
-                            "ON t.row = c.row AND t.timestamp < " + timestamp + " " +
+                            "ON " + Columns.ROW("t") + " = " + Columns.ROW("c") + " " +
+                    		"    AND " + Columns.TIMESTAMP("t") + " < " + timestamp + " " +
                             "LEFT JOIN " + tableName + " t2 " +
-                    		"ON t.row = t2.row AND t.column = t2.column " +
-                    		"    AND t.timestamp < t2.timestamp AND t2.timestamp < " + timestamp + " " +
-                            "WHERE t2.timestamp IS NULL")
+                    		"ON " + Columns.ROW("t") + " = " + Columns.ROW("t2") + " " +
+            				"    AND " + Columns.COLUMN("t") + " = " + Columns.COLUMN("t2") + " " +
+                    		"    AND " + Columns.TIMESTAMP("t") + " < " + Columns.TIMESTAMP("t2") + " " +
+            				"    AND " + Columns.TIMESTAMP("t2") + " < " + timestamp + " " +
+                            "WHERE " + Columns.TIMESTAMP("t2") + " IS NULL")
                             .map(CellValueMapper.instance()).list();
                 } else {
-                    handle.execute("DECLARE TABLE ColumnsToRetrieve (column BYTEA NOT NULL)");
-                    PreparedBatch columnBatch = handle.prepareBatch("INSERT INTO ColumnsToRetrieve (column) VALUES (:column)");
+                    handle.execute(
+                            "CREATE TEMPORARY TABLE ColumnsToRetrieve (" +
+                    		"    " + Columns.COLUMN + " BYTEA NOT NULL)");
+                    PreparedBatch columnBatch = handle.prepareBatch(
+                            "INSERT INTO ColumnsToRetrieve (" + Columns.COLUMN + ") VALUES (:column)");
                     for (byte[] column : columnSelection.getSelectedColumns()) {
                         columnBatch.add(column);
                     }
                     columnBatch.execute();
 
                     list = handle.createQuery(
-                            "SELECT t.row as row, t.column as column, t.timestamp as timestamp, t.content as content " +
+                            "SELECT " + Columns.ROW_COLUMN_TIMESTAMP_CONTENT_AS("t") + " " +
                             "FROM " + tableName + " t " +
                     		"JOIN RowsToRetrieve c " +
-                    		"ON t.row = c.row AND t.timestamp < " + timestamp + " " +
+                    		"ON " + Columns.ROW("t") + " = " + Columns.ROW("c") + " " +
+            				"    AND " + Columns.TIMESTAMP("t") + " < " + timestamp + " " +
                     		"LEFT JOIN " + tableName + " t2 " +
-                    		"ON t.row = t2.row AND t.column = t2.column " +
-                    		"    AND t.timestamp < t2.timestamp AND t2.timestamp < " + timestamp + " " +
-                    		"WHERE t2.timestamp IS NULL " +
-                    		"    AND t.column IN (SELECT column FROM ColumnsToRetrieve)"
+                    		"ON " + Columns.ROW("t") + " = " + Columns.ROW("t2") + " " +
+            				"    AND " + Columns.COLUMN("t") + " = " + Columns.COLUMN("t2") + " " +
+                    		"    AND " + Columns.TIMESTAMP("t") + "<" + Columns.TIMESTAMP("t2") + " " +
+            				"    AND " + Columns.TIMESTAMP("t2") + " < " + timestamp + " " +
+                    		"WHERE " + Columns.TIMESTAMP("t2") + " IS NULL " +
+                    		"    AND " + Columns.COLUMN("t") + " IN " +
+                    		"        (SELECT " + Columns.COLUMN + " FROM ColumnsToRetrieve)"
                             ).map(CellValueMapper.instance()).list();
                 }
 
@@ -266,9 +340,18 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
             @Override
             public Map<Cell, Value> withHandle(Handle handle) throws Exception {
 
-                handle.execute("DECLARE TABLE CellsToRetrieve (row BYTEA NOT NULL, column BYTEA NOT NULL, timestamp INT NOT NULL)");
+                handle.execute(
+                        "CREATE TEMPORARY TABLE CellsToRetrieve (" +
+                        "    " + Columns.ROW + " BYTEA NOT NULL, " +
+                        "    " + Columns.COLUMN + " BYTEA NOT NULL, " +
+                        "    " + Columns.TIMESTAMP + " INT NOT NULL)");
 
-                PreparedBatch batch = handle.prepareBatch("INSERT INTO CellsToRetrieve (row, column, timestamp) VALUES (:row, :column, :timestamp)");
+                PreparedBatch batch = handle.prepareBatch(
+                        "INSERT INTO CellsToRetrieve (" +
+                        "    " + Columns.ROW + ", " +
+                		"    " + Columns.COLUMN + ", " +
+                        "    " + Columns.TIMESTAMP + ") VALUES (" +
+                		"    :row, :column, :timestamp)");
                 for (Entry<Cell, Long> entry : timestampByCell.entrySet()) {
                     batch.add(entry.getKey().getRowName(), entry.getKey().getColumnName(), entry.getValue());
                 }
@@ -277,14 +360,18 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
                 Map<Cell, Value> result = Maps.newHashMap();
 
                 List<Pair<Cell, Value>> values = handle.createQuery(
-                        "SELECT t.row AS row, t.column AS column, t.timestamp AS timestamp, t.content AS content " +
+                        "SELECT " + Columns.ROW_COLUMN_TIMESTAMP_CONTENT_AS("t") + " " +
         		        "FROM " + tableName + " t " +
 		        		"JOIN CellsToRetrieve c " +
-		        		"ON t.row = c.row AND t.column = c.column AND t.timestamp < c.timestamp " +
+		        		"ON " + Columns.ROW("t") + " = " + Columns.ROW("c") + " " +
+		        		"    AND " + Columns.COLUMN("t") + " = " + Columns.COLUMN("c") + " " +
+		        		"    AND " + Columns.TIMESTAMP("t") + " < " + Columns.TIMESTAMP("c") + " " +
 		        		"LEFT JOIN " + tableName + " t2 " +
-        				"ON t.row = t2.row AND t.column = t2.column AND t.timestamp < t2.timestamp " +
-		        		"    AND t2.timestamp < c.timestamp " +
-        				"WHERE t2.timestamp IS NULL")
+        				"ON " + Columns.ROW("t") + " = " + Columns.ROW("t2") + " " +
+		        		"    AND " + Columns.COLUMN("t") + " = " + Columns.COLUMN("t2") + " " +
+        				"    AND " + Columns.TIMESTAMP("t") + " < " + Columns.TIMESTAMP("t2") + " " +
+		        		"    AND " + Columns.TIMESTAMP("t2") + " < " + Columns.TIMESTAMP("c") + " " +
+        				"WHERE " + Columns.TIMESTAMP("t2") + " IS NULL")
         				.map(CellValueMapper.instance())
         				.list();
 
@@ -308,17 +395,36 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
             @Override
             public Void withHandle(Handle handle) throws Exception {
 
-                handle.execute("DECLARE TABLE ValuesToPut (row BYTEA NOT NULL, column BYTEA NOT NULL, content BYTEA NOT NULL)");
+                handle.execute(
+                        "CREATE TEMPORARY TABLE ValuesToPut (" +
+                		"    " + Columns.ROW + " BYTEA NOT NULL, " +
+                		"    " + Columns.COLUMN + " BYTEA NOT NULL, " +
+                		"    " + Columns.CONTENT + " BYTEA NOT NULL)");
 
-                PreparedBatch batch = handle.prepareBatch("INSERT INTO ValuesToPut (row, column, content) VALUES (:row, :column, :content)");
+                PreparedBatch batch = handle.prepareBatch(
+                        "INSERT INTO ValuesToPut (" +
+                        "    " + Columns.ROW + ", " +
+                        "    " + Columns.COLUMN + ", " +
+                        "    " + Columns.CONTENT + ") "  +
+                        "VALUES (" +
+                        "    :row, :column, :content)");
                 for (Map.Entry<Cell, byte[]> e : values.entrySet()) {
                     batch.add(e.getKey().getRowName(), e.getKey().getColumnName(), e.getValue());
                 }
                 batch.execute();
 
                 handle.execute(
-                        "INSERT INTO " + tableName + " (row, column, timestamp, content) " +
-                		"SELECT row, column, " + timestamp + ", content FROM ValuesToPut");
+                        "INSERT INTO " + tableName + " (" +
+                		"    " + Columns.ROW + ", " +
+                		"    " + Columns.COLUMN + ", " +
+                		"    " + Columns.TIMESTAMP + ", " +
+                		"    " + Columns.CONTENT + ") " +
+                		"SELECT " +
+                		"    " + Columns.ROW + ", " +
+                		"    " + Columns.COLUMN + ", " +
+                		"    " + timestamp + ", " +
+                		"    " + Columns.CONTENT + " " +
+                        "FROM ValuesToPut");
 
                 handle.execute("DROP TABLE ValuesToPut");
 
@@ -337,15 +443,19 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
             public Void withHandle(Handle handle) throws Exception {
 
                 handle.execute(
-                        "DECLARE TABLE ValuesToPut (" +
-                        "    row BYTEA NOT NULL, " +
-                        "    column BYTEA NOT NULL, " +
-                        "    timestamp INT NOT NULL, " +
-                        "    content BYTEA NOT NULL)");
+                        "CREATE TEMPORARY TABLE ValuesToPut (" +
+                        "    " + Columns.ROW + " BYTEA NOT NULL, " +
+                        "    " + Columns.COLUMN + " BYTEA NOT NULL, " +
+                        "    " + Columns.TIMESTAMP + " INT NOT NULL, " +
+                        "    " + Columns.CONTENT + " BYTEA NOT NULL)");
 
                 PreparedBatch batch = handle.prepareBatch(
-                        "INSERT INTO ValuesToPut (row, column, timestamp, content) " +
-                        "VALUES (:row, :column, :timestamp, :content)");
+                        "INSERT INTO ValuesToPut (" +
+                        "    " + Columns.ROW + ", " +
+                        "    " + Columns.COLUMN + ", " +
+                        "    " + Columns.TIMESTAMP + ", " +
+                        "    " + Columns.CONTENT + ") VALUES (" +
+                        "    :row, :column, :timestamp, :content)");
                 for (Entry<Cell, Value> e : cellValues.entries()) {
                     batch.add(
                             e.getKey().getRowName(),
@@ -356,8 +466,17 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
                 batch.execute();
 
                 handle.execute(
-                        "INSERT INTO " + tableName + " (row, column, timestamp, content) " +
-                		"SELECT row, column, timestamp, content FROM ValuesToPut");
+                        "INSERT INTO " + tableName + " (" +
+                        "    " + Columns.ROW + ", " +
+                        "    " + Columns.COLUMN + ", " +
+                        "    " + Columns.TIMESTAMP + ", " +
+                        "    " + Columns.CONTENT + ") " +
+                		"SELECT " +
+                        "    " + Columns.ROW + ", " +
+                		"    " + Columns.COLUMN + ", " +
+                        "    " + Columns.TIMESTAMP + ", " +
+                		"    " + Columns.CONTENT + " " +
+                        "FROM ValuesToPut");
 
                 handle.execute("DROP TABLE ValuesToPut");
 
@@ -378,8 +497,17 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
         getDbi().withHandle(new HandleCallback<Void>() {
             @Override
             public Void withHandle(Handle handle) throws Exception {
-                handle.execute("DECLARE TABLE CellsToDelete (row BYTEA NOT NULL, column BYTEA NOT NULL, timestamp INT NOT NULL)");
-                PreparedBatch batch = handle.prepareBatch("INSERT INTO CellsToDelete (row, column, timestamp) VALUES (:row, :column, :timestamp)");
+                handle.execute(
+                        "CREATE TEMPORARY TABLE CellsToDelete (" +
+                        "    " + Columns.ROW + " BYTEA NOT NULL, " +
+                        "    " + Columns.COLUMN + " BYTEA NOT NULL, " +
+                        "    " + Columns.TIMESTAMP + " INT NOT NULL)");
+                PreparedBatch batch = handle.prepareBatch(
+                        "INSERT INTO CellsToDelete (" +
+                        "    " + Columns.ROW + ", " +
+                        "    " + Columns.COLUMN + ", " +
+                        "    " + Columns.TIMESTAMP + ") VALUES (" +
+                        "    :row, :column, :timestamp)");
                 for (Entry<Cell, Long> entry : keys.entries()) {
                     batch.add(entry.getKey().getRowName(), entry.getKey().getColumnName(), entry.getValue());
                 }
@@ -389,8 +517,9 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
                         "DELETE FROM " + tableName + " t " +
                 		"WHERE EXISTS (" +
                 		"    SELECT 1 FROM CellsToDelete c " +
-                		"    WHERE t.row = c.row AND t.column = c.column " +
-                		"        AND t.timestamp = c.timestamp " +
+                		"    WHERE " + Columns.ROW("t") + " = " + Columns.ROW("c") + " " +
+                		"        AND " + Columns.COLUMN("t") + " = " + Columns.COLUMN("c") + " " +
+                		"        AND " + Columns.TIMESTAMP("t") + " = " + Columns.TIMESTAMP("c") + " " +
                 		"    LIMIT 1)");
 
                 handle.execute("DROP TABLE CellsToDelete");
@@ -412,7 +541,9 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
             @Override
             public TokenBackedBasicResultsPage<RowResult<Value>, byte[]> withHandle(Handle handle) throws Exception {
                 List<byte[]> rows = handle.createQuery(
-                        "SELECT DISTINCT row FROM " + tableName + " WHERE row >= :startRow AND timestamp < :timestamp LIMIT :limit")
+                        "SELECT DISTINCT " + Columns.ROW + " FROM " + tableName + " " +
+                		"WHERE " + Columns.ROW + " >= :startRow AND " + Columns.TIMESTAMP + " < :timestamp " +
+        				"LIMIT :limit")
                         .bind("startRow", rangeRequest.getStartInclusive())
                         .bind("timestamp", timestamp)
                         .bind("limit", maxRows)
@@ -586,14 +717,15 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
         getDbi().inTransaction(new TransactionCallback<Void>() {
             @Override
             public Void inTransaction(Handle handle, TransactionStatus status) throws Exception {
-                handle.execute("CREATE TABLE " + tableName + " (" + Columns.ROW
-                        + " BYTEA NOT NULL, " + Columns.COLUMN + " BYTEA NOT NULL, "
-                        + Columns.TIMESTAMP + " INT NOT NULL, " + Columns.CONTENT
-                        + " BYTEA, PRIMARY KEY (" + Columns.ROW + ", " + Columns.COLUMN + ", "
-                        + Columns.TIMESTAMP + "))");
-                handle.execute("INSERT INTO " + MetaTable.META_TABLE_NAME + " ("
-                        + MetaTable.Columns.TABLE_NAME + ", " + MetaTable.Columns.METADATA
-                        + ") VALUES (?, ?)", tableName, new byte[0]);
+                handle.execute(
+                        "CREATE TABLE " + tableName + " ( " +
+                		"atlasdb_row BYTEA NOT NULL, " +
+                		"atlasdb_column BYTEA NOT NULL, " +
+                		"atlasdb_timestamp INT NOT NULL, " +
+                		"atlasdb_content BYTEA NOT NULL)");
+                handle.execute("INSERT INTO " + MetaTable.META_TABLE_NAME + " (" +
+                        "table_name, metadata) VALUES (" +
+                        "?, ?)", tableName, new byte[0]);
                 return null;
             }
         });
@@ -671,38 +803,39 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
                                                  final long timestamp)
             throws InsufficientConsistencyException {
 
-        final String sqlQuery =
-                "SELECT t.row as row, t.column as column, t.timestamp as timestamp " +
-                "FROM " + tableName + " t " +
-                "JOIN CellsToRetrieve c ON t.row = c.row AND t.column = c.column " +
-                "WHERE t.timestamp < " + timestamp;
-
         return getDbi().withHandle(new HandleCallback<SetMultimap<Cell, Long>>() {
             @Override
             public SetMultimap<Cell, Long> withHandle(Handle handle) throws Exception {
 
                 handle.execute(
-                        "DECLARE TABLE CellsToRetrieve (" +
-                        "row BYTEA NOT NULL, " +
-                        "column BYTEA NOT NULL)");
+                        "CREATE TEMPORARY TABLE CellsToRetrieve (" +
+                        "    " + Columns.ROW + " BYTEA NOT NULL, " +
+                        "    " + Columns.COLUMN + " BYTEA NOT NULL)");
 
                 PreparedBatch batch = handle.prepareBatch(
                         "INSERT INTO CellsToRetrieve (" +
-                        "row, column) VALUES (" +
+                        "    " + Columns.ROW + ", " +
+                        "    " + Columns.COLUMN + ") VALUES (" +
                         ":row, :column)");
                 for (Cell c : cells) {
                     batch.add(c.getRowName(), c.getColumnName());
                 }
                 batch.execute();
 
-                List<Pair<Cell, Long>> sqlResult = handle.createQuery(sqlQuery)
+                List<Pair<Cell, Long>> sqlResult = handle.createQuery(
+                        "SELECT " + Columns.ROW_COLUMN_TIMESTAMP_AS("t") + " " +
+                        "FROM " + tableName + " t " +
+                        "JOIN CellsToRetrieve c " +
+                        "ON " + Columns.ROW("t") + " = " + Columns.ROW("c") + " " +
+                        "    AND " + Columns.COLUMN("t") + " = " + Columns.COLUMN("c") + " " +
+                        "WHERE " + Columns.TIMESTAMP("t") + " < " + timestamp)
                         .map(new ResultSetMapper<Pair<Cell, Long>>() {
                             @Override
                             public Pair<Cell, Long> map(int index, ResultSet r, StatementContext ctx)
                                     throws SQLException {
-                                byte[] row = r.getBytes("row");
-                                byte[] column = r.getBytes("column");
-                                long timestamp = r.getLong("timestamp");
+                                byte[] row = r.getBytes(Columns.ROW);
+                                byte[] column = r.getBytes(Columns.COLUMN);
+                                long timestamp = r.getLong(Columns.TIMESTAMP);
                                 Cell cell = Cell.create(row, column);
                                 return Pair.create(cell, timestamp);
                             }
