@@ -14,70 +14,73 @@ import javax.ws.rs.core.MediaType;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.annotation.Idempotent;
 
-@Path("atlasdb")
+@Path("/atlasdb")
 public interface AtlasService {
 
     @Idempotent
-    @Path("tables")
     @GET
+    @Path("tables")
+    @Produces(MediaType.APPLICATION_JSON)
     Set<String> getAllTableNames();
 
     @Idempotent
-    @Path("metadata/{tableName:.+}")
     @GET
+    @Path("metadata/{tableName:.+}")
+    @Produces(MediaType.APPLICATION_JSON)
     TableMetadata getTableMetadata(@PathParam("tableName") String tableName);
 
     @Idempotent
-    @Path("transaction")
     @POST
-    TransactionToken startTransaction();
+    @Path("transaction")
+    @Produces(MediaType.APPLICATION_JSON)
+    long startTransaction();
 
     @Idempotent
 //    @Path("rows")
+    @POST
     @Path("rows{token : /(\\d+)?}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    @POST
-    TableRowResult getRows(@PathParam("token") @DefaultValue("-1") TransactionToken token,
+    TableRowResult getRows(@PathParam("token") @DefaultValue("-1") Long token,
                            TableRowSelection rows);
 
     @Idempotent
+    @POST
     @Path("cells/{token}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    @POST
-    TableCellVal getCells(@PathParam("token") TransactionToken token,
+    TableCellVal getCells(@PathParam("token") Long token,
                           TableCell cells);
 
     @Idempotent
+    @POST
     @Path("range/{token}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    @POST
-    RangeToken getRange(@PathParam("token") TransactionToken token,
+    RangeToken getRange(@PathParam("token") Long token,
                         TableRange rangeRequest);
 
     @Idempotent
+    @POST
     @Path("put/{token}")
     @Consumes(MediaType.APPLICATION_JSON)
-    @POST
-    void put(@PathParam("token") TransactionToken token,
+    void put(@PathParam("token") Long token,
              TableCellVal data);
 
     @Idempotent
+    @POST
     @Path("delete/{token}")
     @Consumes(MediaType.APPLICATION_JSON)
-    @POST
-    void delete(@PathParam("token") TransactionToken token,
+    void delete(@PathParam("token") Long token,
                 TableCell cells);
 
     @Idempotent
-    @Path("commit/{token}")
     @POST
-    void commit(@PathParam("token") TransactionToken token);
+    @Path("commit/{token}")
+    void commit(@PathParam("token") Long token);
 
     @Idempotent
-    @Path("abort/{token}")
     @POST
-    void abort(@PathParam("token") TransactionToken token);
+    @Path("abort/{token}")
+    void abort(@PathParam("token") Long token);
 }

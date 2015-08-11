@@ -33,9 +33,9 @@ import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.schema.SchemaReference;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
-import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
+import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SnapshotTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
@@ -59,19 +59,19 @@ import com.palantir.timestamp.TimestampService;
 public class InMemoryAtlasDb {
     private InMemoryAtlasDb() { /* */ }
 
-    public static LockAwareTransactionManager createInMemoryTransactionManager(Schema schema) {
+    public static SerializableTransactionManager createInMemoryTransactionManager(Schema schema) {
         return createInMemoryTransactionManagerInternal(schema, null);
     }
 
-    public static LockAwareTransactionManager createInMemoryTransactionManager(SchemaReference schemaRef) {
+    public static SerializableTransactionManager createInMemoryTransactionManager(SchemaReference schemaRef) {
         return createInMemoryTransactionManagerInternal(schemaRef.getSchema(), schemaRef.getNamespace());
     }
 
-    public static LockAwareTransactionManager createInMemoryTransactionManager(AtlasSchema schema) {
+    public static SerializableTransactionManager createInMemoryTransactionManager(AtlasSchema schema) {
         return createInMemoryTransactionManagerInternal(schema.getLatestSchema(), schema.getNamespace());
     }
 
-    private static SnapshotTransactionManager createInMemoryTransactionManagerInternal(Schema schema, Namespace namespace) {
+    private static SerializableTransactionManager createInMemoryTransactionManagerInternal(Schema schema, Namespace namespace) {
         TimestampService ts = new InMemoryTimestampService();
         KeyValueService keyValueService = createTableMappingKv(ts);
 
@@ -98,7 +98,7 @@ public class InMemoryAtlasDb {
 
         CleanupFollower follower = CleanupFollower.create(schema);
         Cleaner cleaner = new DefaultCleanerBuilder(keyValueService, lock, ts, client, ImmutableList.of(follower), transactionService).buildCleaner();
-        SnapshotTransactionManager ret = new SnapshotTransactionManager(
+        SerializableTransactionManager ret = new SerializableTransactionManager(
                 keyValueService,
                 ts,
                 client,

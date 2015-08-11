@@ -15,9 +15,8 @@
  */
 package com.palantir.server;
 
-import java.io.IOException;
+import java.util.Random;
 
-import org.apache.commons.io.IOUtils;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -29,9 +28,7 @@ import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.server.NotCurrentLeaderExceptionMapper;
 
 import feign.Feign;
-import feign.Response;
-import feign.Response.Body;
-import feign.codec.ErrorDecoder;
+import feign.Retryer;
 import feign.jackson.JacksonDecoder;
 import feign.jackson.JacksonEncoder;
 import feign.jaxrs.JAXRSContract;
@@ -41,11 +38,17 @@ public class TimestampRemotingTest {
     @ClassRule
     public final static DropwizardClientRule dropwizard = new DropwizardClientRule(new InMemoryTimestampService());
 
+    public final static Random rand = new Random(0);
+
     @ClassRule
     public final static DropwizardClientRule notLeader = new DropwizardClientRule(new TimestampService() {
         @Override
         public long getFreshTimestamp() {
-            throw new NotCurrentLeaderException("not the leader");
+            if (rand.nextBoolean()) {
+                throw new NotCurrentLeaderException("not the leader");
+            } else {
+                return 0;
+            }
         }
 
         public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
@@ -71,29 +74,13 @@ public class TimestampRemotingTest {
     @Test
     public void testNotLeader() {
         ObjectMapper mapper = new ObjectMapper();
-        ErrorDecoder errorDecoder = new ErrorDecoder() {
-            @Override
-            public Exception decode(String methodKey, Response response) {
-                Body body = response.body();
-                try {
-                    String string = IOUtils.toString(body.asInputStream());
-                    System.out.println(string);
-                } catch (IOException e) {
-                    return e;
-                }
-                return null;
-            }
-        };
-
-        //TODO: add RequestInterceptor to handle inbox and outbox for out of band params
         String uri = notLeader.baseUri().toString();
         TimestampService ts = Feign.builder()
                 .decoder(new JacksonDecoder(mapper))
                 .encoder(new JacksonEncoder(mapper))
                 .contract(new JAXRSContract())
-//                .errorDecoder(errorDecoder)
-//                .client(null)
-//                .target(TimestampService.class, "http://localhost:1234");
+                // we try up to 30 times with .5 chance.  This means this test will strobe once in 1T times
+                .retryer(new Retryer.Default(1, 1, 40))
                 .target(TimestampService.class, notLeader.baseUri().toString());
 
         ts.getFreshTimestamp();

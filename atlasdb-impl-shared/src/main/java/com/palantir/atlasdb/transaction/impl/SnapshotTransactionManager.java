@@ -36,14 +36,12 @@ import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.AtlasTimestampLockDescriptor;
-import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
-import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.timestamp.TimestampService;
 
 public class SnapshotTransactionManager extends AbstractLockAwareTransactionManager {
@@ -242,5 +240,9 @@ public class SnapshotTransactionManager extends AbstractLockAwareTransactionMana
 
     public Cleaner getCleaner() {
         return cleaner;
+    }
+
+    public KeyValueService getKeyValueService() {
+        return keyValueService;
     }
 }

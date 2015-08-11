@@ -22,7 +22,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
-import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.RemoteLockService;
@@ -37,6 +36,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                                           TransactionService transactionService,
                                           Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
                                           ConflictDetectionManager conflictDetectionManager,
+                                          SweepStrategyManager sweepStrategyManager,
                                           Cleaner cleaner) {
         super(
                 keyValueService,
@@ -46,7 +46,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 transactionService,
                 constraintModeSupplier,
                 conflictDetectionManager,
-                SweepStrategyManagers.createDefault(keyValueService),
+                sweepStrategyManager,
                 cleaner);
     }
 
