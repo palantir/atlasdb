@@ -117,6 +117,7 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
     }
 
     private DataSource getTestDataSource() {
+//        return getTestH2DataSource();
         return getTestPostgresDataSource();
     }
 
@@ -266,26 +267,6 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
                 return result;
             }
         });
-    }
-
-    private static class ValueMapper implements ResultSetMapper<Value> {
-
-        private static ValueMapper instance;
-
-        @Override
-        public Value map(int index, ResultSet r, StatementContext ctx) throws SQLException {
-            long timestamp = r.getLong(Columns.TIMESTAMP);
-            byte[] content = r.getBytes(Columns.CONTENT);
-            return Value.create(content, timestamp);
-        }
-
-        private static ValueMapper instance() {
-            if (instance == null) {
-                ValueMapper ret = new ValueMapper();
-                instance = ret;
-            }
-            return instance;
-        }
     }
 
     private static class RowResultMapper implements ResultSetMapper<RowResult<Value>> {
