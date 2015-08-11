@@ -400,7 +400,6 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         final RangeRequest range = RangeRequest.builder().startRowInclusive(row0).endRowExclusive(row1).build();
         ClosableIterator<RowResult<Set<Value>>> rangeWithHistory = keyValueService.getRangeWithHistory(TEST_TABLE, range, TEST_TIMESTAMP + 2);
         RowResult<Set<Value>> row0 = rangeWithHistory.next();
-        System.err.println(Iterators.size(rangeWithHistory));
         assertTrue(!rangeWithHistory.hasNext());
         rangeWithHistory.close();
         assertEquals(1, Iterables.size(row0.getCells()));
@@ -408,6 +407,21 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         assertEquals(2, cell0.getValue().size());
         assertTrue(cell0.getValue().contains(Value.create(value0_t0, TEST_TIMESTAMP)));
         assertTrue(cell0.getValue().contains(Value.create(value0_t1, TEST_TIMESTAMP + 1)));
+    }
+
+    @Test
+    public void testGetRangeWithTimestamps() {
+        putTestDataForMultipleTimestamps();
+        final RangeRequest range = RangeRequest.builder().startRowInclusive(row0).endRowExclusive(row1).build();
+        ClosableIterator<RowResult<Set<Long>>> rangeWithHistory = keyValueService.getRangeOfTimestamps(TEST_TABLE, range, TEST_TIMESTAMP + 2);
+        RowResult<Set<Long>> row0 = rangeWithHistory.next();
+        assertTrue(!rangeWithHistory.hasNext());
+        rangeWithHistory.close();
+        assertEquals(1, Iterables.size(row0.getCells()));
+        Entry<Cell, Set<Long>> cell0 = row0.getCells().iterator().next();
+        assertEquals(2, cell0.getValue().size());
+        assertTrue(cell0.getValue().contains(TEST_TIMESTAMP));
+        assertTrue(cell0.getValue().contains(TEST_TIMESTAMP + 1));
     }
 
     private void putTestDataForMultipleTimestamps() {

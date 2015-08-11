@@ -689,10 +689,12 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
             public TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]> withHandle(Handle handle) throws Exception {
                 List<Cell> cells = handle.createQuery(
                         "SELECT DISTINCT atlasdb_row, atlasdb_column " +
-                        "FROM " + tableName + " WHERE row >= :startRow" +
-                        "    AND timestamp < :timestamp" +
+                        "FROM " + tableName + " WHERE atlasdb_row >= :startRow" +
+                        "    AND atlasdb_row < :endRow " +
+                        "    AND atlasdb_timestamp < :timestamp " +
                         "LIMIT :limit")
                         .bind("startRow", rangeRequest.getStartInclusive())
+                        .bind("endRow", RangeRequests.endRowExclusiveOrOneAfterMax(rangeRequest))
                         .bind("timestamp", timestamp)
                         .bind("limit", maxRows)
                         .map(new ResultSetMapper<Cell>() {
