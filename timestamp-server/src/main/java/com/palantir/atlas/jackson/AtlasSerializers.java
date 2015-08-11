@@ -5,8 +5,10 @@ import java.util.Set;
 
 import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.protobuf.Message;
+import com.googlecode.protobuf.format.JsonFormat;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
@@ -84,7 +86,7 @@ public class AtlasSerializers {
                     return description.getValue();
                 }
             }
-            throw new IllegalArgumentException("Column " + Hex.encodeHexString(col) + " is not a valid column.");
+            throw new IllegalArgumentException("Column " +  BaseEncoding.base16().lowerCase().encode(col) + " is not a valid column.");
         }
     }
 
@@ -100,7 +102,8 @@ public class AtlasSerializers {
             break;
         case PROTO:
             Message proto = description.hydrateProto(AtlasSerializers.class.getClassLoader(), val);
-            String rawJson = ForkedJsonFormat.printToString(proto);
+//            String rawJson = ForkedJsonFormat.printToString(proto);
+            String rawJson = JsonFormat.printToString(proto);
             jgen.writeRawValue(rawJson);
             break;
         case VALUE_TYPE:

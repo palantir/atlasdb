@@ -13,26 +13,16 @@ import com.palantir.atlas.api.TableRange;
 import com.palantir.atlas.api.TableRowResult;
 import com.palantir.atlas.api.TableRowSelection;
 import com.palantir.atlas.api.TransactionToken;
-import com.palantir.atlas.impl.AtlasServerModule;
 import com.palantir.atlasdb.table.description.TableMetadata;
 
 public class AtlasServiceLocal {
 
     private final AtlasService service;
     private final ObjectMapper mapper;
-    private static PalantirInjector injector;
 
     public AtlasServiceLocal(AtlasService service, ObjectMapper mapper) {
         this.service = service;
         this.mapper = mapper;
-    }
-
-    public static AtlasServiceLocal init() {
-        if(injector == null) {
-            BindingSet bindings = PalantirModuleCompiler.compileModuleClass(AtlasServerModule.class);
-            injector = PalantirInjectorImpl.create(bindings);
-        }
-        return new AtlasServiceLocal(injector.getInstance(AtlasService.class), injector.getInstance(ObjectMapper.class));
     }
 
     /*
