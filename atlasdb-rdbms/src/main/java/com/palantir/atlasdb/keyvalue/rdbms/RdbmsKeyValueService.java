@@ -9,6 +9,7 @@ import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.SortedSet;
 import java.util.concurrent.ExecutorService;
 
 import javax.sql.DataSource;
@@ -19,6 +20,7 @@ import org.postgresql.jdbc2.optional.PoolingDataSource;
 import org.skife.jdbi.v2.DBI;
 import org.skife.jdbi.v2.Handle;
 import org.skife.jdbi.v2.PreparedBatch;
+import org.skife.jdbi.v2.Query;
 import org.skife.jdbi.v2.StatementContext;
 import org.skife.jdbi.v2.TransactionCallback;
 import org.skife.jdbi.v2.TransactionStatus;
@@ -38,6 +40,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
+import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
@@ -100,6 +103,11 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
         public static final String ROW_COLUMN_TIMESTAMP_CONTENT_AS(String tableName) {
             return ROW_COLUMN_TIMESTAMP_AS(tableName) + ", " + CONTENT(tableName) + " AS " + CONTENT;
         }
+    }
+
+    private static final String USER_TABLE_PREFIX = "atlasdb_user_";
+    private static final String USER_TABLE_PREFIX(String tableName) {
+        return USER_TABLE_PREFIX + tableName;
     }
 
     private static final class MetaTable {
@@ -188,85 +196,111 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
         return result;
     }
 
+    private Map<Cell, Value> getRowsInternal(final String tableName,
+                                    final SortedSet<byte[]> rows,
+                                    final ColumnSelection columnSelection,
+                                    final long timestamp) {
+        if (columnSelection.noColumnsSelected()) {
+            return Maps.newHashMap();
+        }
+
+        return getDbi().inTransaction(new TransactionCallback<Map<Cell, Value>>() {
+            @Override
+            public Map<Cell, Value> inTransaction(Handle handle, TransactionStatus status) {
+
+                final List<Pair<Cell, Value>> list;
+
+                if (columnSelection.allColumnsSelected()) {
+                    final Query<Pair<Cell,Value>> query = handle.createQuery(
+                            "SELECT " + Columns.ROW_COLUMN_TIMESTAMP_CONTENT_AS("t") + " " +
+                            "FROM " + tableName + " t " +
+                            "LEFT JOIN " + tableName + " t2 " +
+                    		"ON " + Columns.ROW("t") + " = " + Columns.ROW("t2") + " " +
+            				"    AND " + Columns.COLUMN("t") + " = " + Columns.COLUMN("t2") + " " +
+                    		"    AND " + Columns.TIMESTAMP("t") + " < " + Columns.TIMESTAMP("t2") + " " +
+            				"    AND " + Columns.TIMESTAMP("t2") + " < " + timestamp + " " +
+                            "WHERE " + Columns.ROW("t") + " IN (" + makeSlots("row", rows.size()) + ") " +
+            				"    AND " + Columns.TIMESTAMP("t2") + " IS NULL" +
+                            // This is a LEFT JOIN -> the below condition cannot be in ON clause
+                            "    AND " + Columns.TIMESTAMP("t") + " < " + timestamp)
+                            .map(CellValueMapper.instance());
+                    int pos = 0;
+                    for (byte[] row : rows) {
+                        query.bind("row" + pos++, row);
+                    }
+                    list = query.list();
+                } else {
+                    SortedSet<byte[]> columns = Sets.newTreeSet(UnsignedBytes.lexicographicalComparator());
+                    for (byte[] column : columnSelection.getSelectedColumns()) {
+                        columns.add(column);
+                    }
+
+                    final Query<Pair<Cell, Value>> query = handle.createQuery(
+                            "SELECT " + Columns.ROW_COLUMN_TIMESTAMP_CONTENT_AS("t") + " " +
+                            "FROM " + tableName + " t " +
+                    		"LEFT JOIN " + tableName + " t2 " +
+                    		"ON " + Columns.ROW("t") + " = " + Columns.ROW("t2") + " " +
+            				"    AND " + Columns.COLUMN("t") + " = " + Columns.COLUMN("t2") + " " +
+                    		"    AND " + Columns.TIMESTAMP("t") + "<" + Columns.TIMESTAMP("t2") + " " +
+            				"    AND " + Columns.TIMESTAMP("t2") + " < " + timestamp + " " +
+                    		"WHERE " + Columns.ROW("t") + " IN (" + makeSlots("row", rows.size()) + ") " +
+            				"    AND " + Columns.COLUMN("t") + " IN (" + makeSlots("column", columns.size()) + ") " +
+                    		"    AND " + Columns.TIMESTAMP("t2") + " IS NULL " +
+                            // This is a LEFT JOIN -> the below condition cannot be in ON clause
+                            "    AND " + Columns.TIMESTAMP("t") + " < " + timestamp)
+                    		.map(CellValueMapper.instance());
+
+                    int pos = 0;
+                    for (byte[] row : rows) {
+                        query.bind("row" + pos++, row);
+                    }
+                    pos = 0;
+                    for (byte[] column : columns) {
+                        query.bind("column" + pos++, column);
+                    }
+
+                    list = query.list();
+                }
+
+                Map<Cell, Value> result = Maps.newHashMap();
+                for (Pair<Cell, Value> cv : list) {
+                    Preconditions.checkState(!result.containsKey(cv.getLhSide()));
+                    result.put(cv.getLhSide(), cv.getRhSide());
+                }
+
+                return result;
+            }
+        });
+    }
+
+
     @Override
     @Idempotent
     public Map<Cell, Value> getRows(final String tableName,
                                     final Iterable<byte[]> rows,
                                     final ColumnSelection columnSelection,
                                     final long timestamp) {
-        return getDbi().inTransaction(new TransactionCallback<Map<Cell, Value>>() {
-            @Override
-            public Map<Cell, Value> inTransaction(Handle handle, TransactionStatus status) {
+        SortedSet<byte[]> rowSet = Sets.newTreeSet(UnsignedBytes.lexicographicalComparator());
+        final int CHUNK_SIZE = 1;
+        for (byte[] row : rows) {
+            rowSet.add(row);
+        }
 
-                final List<Pair<Cell,Value>> list;
-                final Map<Cell, Value> result = Maps.newHashMap();
+        Map<Cell, Value> result = Maps.newHashMap();
 
-                handle.execute(
-                        "CREATE TEMPORARY TABLE RowsToRetrieve (" +
-                		"    " + Columns.ROW + " BYTEA NOT NULL)");
-
-                PreparedBatch batch = handle.prepareBatch(
-                        "INSERT INTO RowsToRetrieve (" + Columns.ROW + ") VALUES (:row)");
-                for (byte[] row : rows) {
-                    batch.add(row);
+        while (!rowSet.isEmpty()) {
+            SortedSet<byte[]> chunk = Sets.newTreeSet(UnsignedBytes.lexicographicalComparator());
+            for (int i = 0; i < CHUNK_SIZE; ++i) {
+                chunk.add(rowSet.first());
+                rowSet.remove(rowSet.first());
+                if (rowSet.isEmpty()) {
+                    break;
                 }
-                batch.execute();
-
-                if (columnSelection.allColumnsSelected()) {
-                    list = handle.createQuery(
-                            "SELECT " + Columns.ROW_COLUMN_TIMESTAMP_CONTENT_AS("t") + " " +
-                            "FROM " + tableName + " t " +
-                            "JOIN RowsToRetrieve c " +
-                            "ON " + Columns.ROW("t") + " = " + Columns.ROW("c") + " " +
-                    		"    AND " + Columns.TIMESTAMP("t") + " < " + timestamp + " " +
-                            "LEFT JOIN " + tableName + " t2 " +
-                    		"ON " + Columns.ROW("t") + " = " + Columns.ROW("t2") + " " +
-            				"    AND " + Columns.COLUMN("t") + " = " + Columns.COLUMN("t2") + " " +
-                    		"    AND " + Columns.TIMESTAMP("t") + " < " + Columns.TIMESTAMP("t2") + " " +
-            				"    AND " + Columns.TIMESTAMP("t2") + " < " + timestamp + " " +
-                            "WHERE " + Columns.TIMESTAMP("t2") + " IS NULL")
-                            .map(CellValueMapper.instance()).list();
-                } else {
-                    handle.execute(
-                            "CREATE TEMPORARY TABLE ColumnsToRetrieve (" +
-                    		"    " + Columns.COLUMN + " BYTEA NOT NULL)");
-                    PreparedBatch columnBatch = handle.prepareBatch(
-                            "INSERT INTO ColumnsToRetrieve (" + Columns.COLUMN + ") VALUES (:column)");
-                    for (byte[] column : columnSelection.getSelectedColumns()) {
-                        columnBatch.add(column);
-                    }
-                    columnBatch.execute();
-
-                    list = handle.createQuery(
-                            "SELECT " + Columns.ROW_COLUMN_TIMESTAMP_CONTENT_AS("t") + " " +
-                            "FROM " + tableName + " t " +
-                    		"JOIN RowsToRetrieve c " +
-                    		"ON " + Columns.ROW("t") + " = " + Columns.ROW("c") + " " +
-            				"    AND " + Columns.TIMESTAMP("t") + " < " + timestamp + " " +
-                    		"LEFT JOIN " + tableName + " t2 " +
-                    		"ON " + Columns.ROW("t") + " = " + Columns.ROW("t2") + " " +
-            				"    AND " + Columns.COLUMN("t") + " = " + Columns.COLUMN("t2") + " " +
-                    		"    AND " + Columns.TIMESTAMP("t") + "<" + Columns.TIMESTAMP("t2") + " " +
-            				"    AND " + Columns.TIMESTAMP("t2") + " < " + timestamp + " " +
-                    		"WHERE " + Columns.TIMESTAMP("t2") + " IS NULL " +
-                    		"    AND " + Columns.COLUMN("t") + " IN " +
-                    		"        (SELECT " + Columns.COLUMN + " FROM ColumnsToRetrieve)"
-                            ).map(CellValueMapper.instance()).list();
-                }
-
-                for (Pair<Cell, Value> cv : list) {
-                    Preconditions.checkState(!result.containsKey(cv.getLhSide()));
-                    result.put(cv.getLhSide(), cv.getRhSide());
-                }
-
-                handle.execute("DROP TABLE RowsToRetrieve");
-                if (!columnSelection.allColumnsSelected()) {
-                    handle.execute("DROP TABLE ColumnsToRetrieve");
-                }
-
-                return result;
             }
-        });
+            Map<Cell, Value> chunkResult = getRowsInternal(tableName, chunk, columnSelection, timestamp);
+            result.putAll(chunkResult);
+        }
+        return result;
     }
 
     private static class RowResultMapper implements ResultSetMapper<RowResult<Value>> {
@@ -531,10 +565,10 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
                         .map(ByteArrayMapper.FIRST)
                         .list();
                 if (rows.isEmpty()) {
-                            return new SimpleTokenBackedResultsPage<RowResult<Value>, byte[]>(
-                                    rangeRequest.getStartInclusive(),
-                                    Collections.<RowResult<Value>> emptyList(),
-                                    false);
+                    return new SimpleTokenBackedResultsPage<RowResult<Value>, byte[]>(
+                            rangeRequest.getStartInclusive(),
+                            Collections.<RowResult<Value>> emptyList(),
+                            false);
                 }
                 Map<Cell, Value> cells = getRows(tableName, rows, ColumnSelection.all(), timestamp);
                 NavigableMap<byte[], SortedMap<byte[], Value>> byRow = Cells.breakCellsUpByRow(cells);
