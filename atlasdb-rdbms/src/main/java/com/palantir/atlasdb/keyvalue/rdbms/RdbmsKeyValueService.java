@@ -66,6 +66,7 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
 
     private static final Logger log = LoggerFactory.getLogger(RdbmsKeyValueService.class);
 
+    private final int CHUNK_SIZE = 10;
     private static final class Columns {
         public static final String TIMESTAMP = "atlasdb_timestamp";
         public static final String CONTENT = "atlasdb_content";
@@ -196,6 +197,25 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
         return result;
     }
 
+    private String makeSlots(String prefix, int number, int arity) {
+        Preconditions.checkArgument(arity > 0);
+        String result = "";
+        for (int i=0; i<number; ++i) {
+            result += "(";
+            for (int j=0; j<arity; ++j) {
+                result += ":" + prefix + i + "_" + j;
+                if (j + 1 < arity) {
+                    result += ", ";
+                }
+            }
+            result += ")";
+            if (i + 1 < number) {
+                result += ", ";
+            }
+        }
+        return result;
+    }
+
     private Map<Cell, Value> getRowsInternal(final String tableName,
                                     final SortedSet<byte[]> rows,
                                     final ColumnSelection columnSelection,
@@ -281,7 +301,6 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
                                     final ColumnSelection columnSelection,
                                     final long timestamp) {
         SortedSet<byte[]> rowSet = Sets.newTreeSet(UnsignedBytes.lexicographicalComparator());
-        final int CHUNK_SIZE = 1;
         for (byte[] row : rows) {
             rowSet.add(row);
         }
@@ -812,9 +831,7 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
         });
     }
 
-    @Override
-    @Idempotent
-    public SetMultimap<Cell, Long> getAllTimestamps(final String tableName,
+    private SetMultimap<Cell, Long> getAllTimestampsInternal(final String tableName,
                                                  final Set<Cell> cells,
                                                  final long timestamp)
             throws InsufficientConsistencyException {
@@ -823,28 +840,12 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
             @Override
             public SetMultimap<Cell, Long> withHandle(Handle handle) throws Exception {
 
-                handle.execute(
-                        "CREATE TEMPORARY TABLE CellsToRetrieve (" +
-                        "    " + Columns.ROW + " BYTEA NOT NULL, " +
-                        "    " + Columns.COLUMN + " BYTEA NOT NULL)");
-
-                PreparedBatch batch = handle.prepareBatch(
-                        "INSERT INTO CellsToRetrieve (" +
-                        "    " + Columns.ROW + ", " +
-                        "    " + Columns.COLUMN + ") VALUES (" +
-                        ":row, :column)");
-                for (Cell c : cells) {
-                    batch.add(c.getRowName(), c.getColumnName());
-                }
-                batch.execute();
-
-                List<Pair<Cell, Long>> sqlResult = handle.createQuery(
+                Query<Pair<Cell, Long>> query = handle.createQuery(
                         "SELECT " + Columns.ROW_COLUMN_TIMESTAMP_AS("t") + " " +
                         "FROM " + tableName + " t " +
-                        "JOIN CellsToRetrieve c " +
-                        "ON " + Columns.ROW("t") + " = " + Columns.ROW("c") + " " +
-                        "    AND " + Columns.COLUMN("t") + " = " + Columns.COLUMN("c") + " " +
-                        "WHERE " + Columns.TIMESTAMP("t") + " < " + timestamp)
+                        "WHERE (" + Columns.ROW + ", " + Columns.COLUMN + ") IN (" +
+                        "    " + makeSlots("cell", cells.size(), 2) + ") " +
+                        "    AND " + Columns.TIMESTAMP("t") + " < " + timestamp)
                         .map(new ResultSetMapper<Pair<Cell, Long>>() {
                             @Override
                             public Pair<Cell, Long> map(int index, ResultSet r, StatementContext ctx)
@@ -855,19 +856,49 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
                                 Cell cell = Cell.create(row, column);
                                 return Pair.create(cell, timestamp);
                             }
-                        }).list();
+                        });
+                int pos = 0;
+                for (Cell cell : cells) {
+                    query.bind("cell" + pos + "_0", cell.getRowName());
+                    query.bind("cell" + pos + "_1", cell.getColumnName());
+                }
 
 
                 SetMultimap<Cell, Long> result = HashMultimap.create();
-                for (Pair<Cell, Long> p : sqlResult) {
+                for (Pair<Cell, Long> p : query.list()) {
                     result.put(p.getLhSide(), p.getRhSide());
                 }
-
-                handle.execute("DROP TABLE CellsToRetrieve");
 
                 return result;
             }
         });
+    }
+
+
+    @Override
+    @Idempotent
+    public SetMultimap<Cell, Long> getAllTimestamps(final String tableName,
+                                                 final Set<Cell> cells,
+                                                 final long timestamp)
+            throws InsufficientConsistencyException {
+
+        SortedSet<Cell> cellsSet = Sets.newTreeSet();
+        cellsSet.addAll(cells);
+        SetMultimap<Cell, Long> result = HashMultimap.create();
+
+        while (cellsSet.size() > 0) {
+            SortedSet<Cell> cellsChunk = Sets.newTreeSet();
+            for (int i=0; i<CHUNK_SIZE; ++i) {
+                cellsChunk.add(cellsSet.first());
+                cellsSet.remove(cellsSet.first());
+                if (cellsSet.isEmpty()) {
+                    break;
+                }
+            }
+            SetMultimap<Cell, Long> chunkResult = getAllTimestampsInternal(tableName, cellsChunk, timestamp);
+            result.putAll(chunkResult);
+        }
+        return result;
     }
 
     @Override
