@@ -233,15 +233,14 @@ counter_cache_save_period: 7200
 # This window should be kept short because the writer threads will
 # be unable to do extra work while waiting.  (You may need to increase
 # concurrent_writes for the same reason.)
-#
-# commitlog_sync: batch
-# commitlog_sync_batch_window_in_ms: 2
-#
+commitlog_sync: batch
+commitlog_sync_batch_window_in_ms: 1
+
 # the other option is "periodic" where writes may be acked immediately
 # and the CommitLog is simply synced every commitlog_sync_period_in_ms
 # milliseconds. 
-commitlog_sync: periodic
-commitlog_sync_period_in_ms: 10000
+# commitlog_sync: periodic
+# commitlog_sync_period_in_ms: 10000
 
 # The size of the individual commitlog file segments.  A commitlog
 # segment may be archived, deleted, or recycled once all the data
@@ -279,7 +278,7 @@ seed_provider:
 # number of "concurrent_writes" is dependent on the number of cores in
 # your system; (8 * number_of_cores) is a good rule of thumb.
 concurrent_reads: 32
-concurrent_writes: 32
+concurrent_writes: 1024
 concurrent_counter_writes: 32
 
 # Total memory to use for sstable-reading buffers.  Defaults to
