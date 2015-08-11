@@ -592,6 +592,7 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
             public TokenBackedBasicResultsPage<RowResult<Set<Value>>, byte[]> withHandle(Handle handle) throws Exception {
                 List<Cell> cells = handle.createQuery(
                         "SELECT DISTINCT atlasdb_row, atlasdb_column " +
+                        // TODO: Check for upper bound!
                         "FROM " + tableName + " WHERE row >= :startRow" +
                         "    AND timestamp < :timestamp" +
                         "LIMIT :limit")

@@ -34,6 +34,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Multimap;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -343,7 +344,15 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
     @Test
     public void testDelete() {
         putTestDataForSingleTimestamp();
-        // TODO
+        assertEquals(3, Iterators.size(keyValueService.getRange(TEST_TABLE, RangeRequest.all(), TEST_TIMESTAMP + 1)));
+        keyValueService.delete(TEST_TABLE, ImmutableMultimap.of(Cell.create(row0, column0), TEST_TIMESTAMP));
+        assertEquals(3, Iterators.size(keyValueService.getRange(TEST_TABLE, RangeRequest.all(), TEST_TIMESTAMP + 1)));
+        keyValueService.delete(TEST_TABLE, ImmutableMultimap.of(Cell.create(row0, column1), TEST_TIMESTAMP));
+        assertEquals(2, Iterators.size(keyValueService.getRange(TEST_TABLE, RangeRequest.all(), TEST_TIMESTAMP + 1)));
+        keyValueService.delete(TEST_TABLE, ImmutableMultimap.of(Cell.create(row1, column0), TEST_TIMESTAMP));
+        assertEquals(2, Iterators.size(keyValueService.getRange(TEST_TABLE, RangeRequest.all(), TEST_TIMESTAMP + 1)));
+        keyValueService.delete(TEST_TABLE, ImmutableMultimap.of(Cell.create(row1, column2), TEST_TIMESTAMP));
+        assertEquals(1, Iterators.size(keyValueService.getRange(TEST_TABLE, RangeRequest.all(), TEST_TIMESTAMP + 1)));
     }
 
     @Test
