@@ -195,6 +195,9 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     }
 
     private PingableLeader getSuspectedLeaderOverNetwork(String uuid) {
+        if (potentialLeaders.isEmpty()) {
+            return null;
+        }
         CompletionService<Entry<String, PingableLeader>> pingService = new ExecutorCompletionService<Entry<String, PingableLeader>>(
                 executor);
 
@@ -216,7 +219,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         try {
             long deadline = System.nanoTime()
                     + TimeUnit.MILLISECONDS.toNanos(leaderPingResponseWaitMs);
-            for (;;) {
+            for (int i = 0 ; i < potentialLeaders.size() ; i++) {
                 try {
                     Future<Entry<String, PingableLeader>> pingFuture = pingService.poll(
                             deadline - System.nanoTime(),
