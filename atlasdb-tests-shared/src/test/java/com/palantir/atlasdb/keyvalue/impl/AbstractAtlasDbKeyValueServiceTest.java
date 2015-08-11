@@ -64,6 +64,7 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
 
     private static final byte[] value0_t0 = "value0_t0".getBytes();
     private static final byte[] value0_t1 = "value1_t1".getBytes();
+    private static final byte[] value0_t5 = "value5_t5".getBytes();
 
     private static final byte[] metadata0 = "metadata0".getBytes();
 
@@ -376,7 +377,17 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
 
     @Test
     public void testPutWithTimestamps() {
-        // TODO
+        putTestDataForMultipleTimestamps();
+        final Cell cell = Cell.create(row0, column0);
+        final Value val1 = Value.create(value0_t1, TEST_TIMESTAMP + 1);
+        final Value val5 = Value.create(value0_t5, TEST_TIMESTAMP + 5);
+        keyValueService.putWithTimestamps(TEST_TABLE, ImmutableMultimap.of(cell, val5));
+        assertEquals(
+                val5,
+                keyValueService.get(TEST_TABLE, ImmutableMap.of(cell, TEST_TIMESTAMP + 6)).get(cell));
+        assertEquals(
+                val1,
+                keyValueService.get(TEST_TABLE, ImmutableMap.of(cell, TEST_TIMESTAMP + 5)).get(cell));
     }
 
     private void putTestDataForMultipleTimestamps() {
