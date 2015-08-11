@@ -734,13 +734,14 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
             public Void inTransaction(Handle handle, TransactionStatus status) throws Exception {
                 handle.execute(
                         "CREATE TABLE " + tableName + " ( " +
-                		"atlasdb_row BYTEA NOT NULL, " +
-                		"atlasdb_column BYTEA NOT NULL, " +
-                		"atlasdb_timestamp INT NOT NULL, " +
-                		"atlasdb_content BYTEA NOT NULL)");
+                		"    " + Columns.ROW + " BYTEA NOT NULL, " +
+                		"    " + Columns.COLUMN + " BYTEA NOT NULL, " +
+                		"    " + Columns.TIMESTAMP + " INT NOT NULL, " +
+                		"    " + Columns.CONTENT + " BYTEA NOT NULL)");
                 handle.execute("INSERT INTO " + MetaTable.META_TABLE_NAME + " (" +
-                        "table_name, metadata) VALUES (" +
-                        "?, ?)", tableName, new byte[0]);
+                        "    " + MetaTable.Columns.TABLE_NAME + ", " +
+                        "    " + MetaTable.Columns.METADATA + " ) VALUES (" +
+                        "    ?, ?)", tableName, new byte[0]);
                 return null;
             }
         });
