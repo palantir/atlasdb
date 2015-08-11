@@ -345,6 +345,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     @Override
     public Map<Cell, Value> get(String tableName, Map<Cell, Long> timestampByCell) {
+        if (timestampByCell.isEmpty()) {
+            return ImmutableMap.of();
+        }
         try {
             long firstTs = timestampByCell.values().iterator().next();
             if (Iterables.all(timestampByCell.values(), Predicates.equalTo(firstTs))) {
