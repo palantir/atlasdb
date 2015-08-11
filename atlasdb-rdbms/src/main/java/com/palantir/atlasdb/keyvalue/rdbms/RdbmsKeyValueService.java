@@ -75,20 +75,27 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
         public static final String ROW = "atlasdb_row";
         public static final String COLUMN = "atlasdb_column";
 
+        private static final String maybeEmpty(String tableName) {
+            if (tableName.equals("")) {
+                return "";
+            }
+            return tableName + ".";
+        }
+
         public static final String ROW(String tableName) {
-            return tableName + "." + ROW;
+            return maybeEmpty(tableName) + ROW;
         }
 
         public static final String COLUMN(String tableName) {
-            return tableName + "." + COLUMN;
+            return maybeEmpty(tableName) + COLUMN;
         }
 
         public static final String TIMESTAMP(String tableName) {
-            return tableName + "." + TIMESTAMP;
+            return maybeEmpty(tableName) + TIMESTAMP;
         }
 
         public static final String CONTENT(String tableName) {
-            return tableName + "." + CONTENT;
+            return maybeEmpty(tableName) + CONTENT;
         }
 
         public static final String ROW_COLUMN(String tableName) {
@@ -97,6 +104,10 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
 
         public static final String ROW_COLUMN_TIMESTAMP(String tableName) {
             return ROW(tableName) + ", " + COLUMN(tableName) + ", " + TIMESTAMP(tableName);
+        }
+
+        public static final String ROW_COLUMN_TIMESTAMP_CONTENT(String tableName) {
+            return ROW_COLUMN_TIMESTAMP(tableName) + ", " + CONTENT(tableName);
         }
 
         public static final String ROW_COLUMN_TIMESTAMP_AS(String tableName) {
@@ -355,19 +366,30 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
 
                 Map<Cell, Value> result = Maps.newHashMap();
 
-                List<Pair<Cell, Value>> values = handle.createQuery(
-                        "SELECT " + Columns.ROW_COLUMN_TIMESTAMP_CONTENT_AS("t") + " " +
-        		        "FROM " + tableName + " t " +
-		        		"LEFT JOIN " + tableName + " t2 " +
-        				"ON " + Columns.ROW("t") + " = " + Columns.ROW("t2") + " " +
-		        		"    AND " + Columns.COLUMN("t") + " = " + Columns.COLUMN("t2") + " " +
-        				"    AND " + Columns.TIMESTAMP("t") + " < " + Columns.TIMESTAMP("t2") + " " +
-		        		"    AND " + Columns.TIMESTAMP("t2") + " < " + Columns.TIMESTAMP("c") + " " +
-        				"WHERE " + Columns.TIMESTAMP("t2") + " IS NULL")
-        				.map(CellValueMapper.instance())
-        				.list();
+                Query<Pair<Cell,Value>> query = handle.createQuery(
+                        "WITH matching_cells AS (" +
+                        "    SELECT t.atlasdb_row, t.atlasdb_column, t.atlasdb_timestamp, t.atlasdb_content " +
+                        "    FROM " + tableName + " t " +
+                        "    JOIN (VALUES " + makeSlots("cell", timestampByCell.size(), 3) + ") " +
+                        "        t2(atlasdb_row, atlasdb_column, atlasdb_timestamp) " +
+                        "    ON t.atlasdb_row = t2.atlasdb_row AND t.atlasdb_column = t2.atlasdb_column " +
+                        "        AND t.atlasdb_timestamp < t2.atlasdb_timestamp) " +
+                        "SELECT t.atlasdb_row, t.atlasdb_column, t.atlasdb_timestamp, t.atlasdb_content " +
+                        "FROM matching_cells t " +
+                        "LEFT JOIN matching_cells t2 " +
+                        "ON t.atlasdb_row = t2.atlasdb_row AND t.atlasdb_column = t2.atlasdb_column " +
+                        "    AND t.atlasdb_timestamp < t2.atlasdb_timestamp " +
+                        "WHERE t2.atlasdb_timestamp IS NULL")
+                        .map(CellValueMapper.instance());
 
-                for (Pair<Cell, Value> cv : values) {
+                int pos = 0;
+                for (Entry<Cell, Long> entry : timestampByCell.entrySet()) {
+                    query.bind(pos++, entry.getKey().getRowName());
+                    query.bind(pos++, entry.getKey().getColumnName());
+                    query.bind(pos++, entry.getValue());
+                }
+
+                for (Pair<Cell, Value> cv : query.list()) {
                     Preconditions.checkState(!result.containsKey(cv.getLhSide()));
                     result.put(cv.getLhSide(), cv.getRhSide());
                 }
@@ -380,55 +402,7 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
     @Override
     @Idempotent
     public Map<Cell, Value> get(final String tableName, final Map<Cell, Long> timestampByCell) {
-        return getDbi().withHandle(new HandleCallback<Map<Cell, Value>>() {
-            @Override
-            public Map<Cell, Value> withHandle(Handle handle) throws Exception {
-
-                handle.execute(
-                        "CREATE TEMPORARY TABLE CellsToRetrieve (" +
-                        "    " + Columns.ROW + " BYTEA NOT NULL, " +
-                        "    " + Columns.COLUMN + " BYTEA NOT NULL, " +
-                        "    " + Columns.TIMESTAMP + " INT NOT NULL)");
-
-                PreparedBatch batch = handle.prepareBatch(
-                        "INSERT INTO CellsToRetrieve (" +
-                        "    " + Columns.ROW + ", " +
-                		"    " + Columns.COLUMN + ", " +
-                        "    " + Columns.TIMESTAMP + ") VALUES (" +
-                		"    :row, :column, :timestamp)");
-                for (Entry<Cell, Long> entry : timestampByCell.entrySet()) {
-                    batch.add(entry.getKey().getRowName(), entry.getKey().getColumnName(), entry.getValue());
-                }
-                batch.execute();
-
-                Map<Cell, Value> result = Maps.newHashMap();
-
-                List<Pair<Cell, Value>> values = handle.createQuery(
-                        "SELECT " + Columns.ROW_COLUMN_TIMESTAMP_CONTENT_AS("t") + " " +
-        		        "FROM " + tableName + " t " +
-		        		"JOIN CellsToRetrieve c " +
-		        		"ON " + Columns.ROW("t") + " = " + Columns.ROW("c") + " " +
-		        		"    AND " + Columns.COLUMN("t") + " = " + Columns.COLUMN("c") + " " +
-		        		"    AND " + Columns.TIMESTAMP("t") + " < " + Columns.TIMESTAMP("c") + " " +
-		        		"LEFT JOIN " + tableName + " t2 " +
-        				"ON " + Columns.ROW("t") + " = " + Columns.ROW("t2") + " " +
-		        		"    AND " + Columns.COLUMN("t") + " = " + Columns.COLUMN("t2") + " " +
-        				"    AND " + Columns.TIMESTAMP("t") + " < " + Columns.TIMESTAMP("t2") + " " +
-		        		"    AND " + Columns.TIMESTAMP("t2") + " < " + Columns.TIMESTAMP("c") + " " +
-        				"WHERE " + Columns.TIMESTAMP("t2") + " IS NULL")
-        				.map(CellValueMapper.instance())
-        				.list();
-
-                handle.execute("DROP TABLE CellsToRetrieve");
-
-                for (Pair<Cell, Value> cv : values) {
-                    Preconditions.checkState(!result.containsKey(cv.getLhSide()));
-                    result.put(cv.getLhSide(), cv.getRhSide());
-                }
-
-                return result;
-            }
-        });
+        return getInternal(tableName, timestampByCell);
     }
 
     private void putInternal(final String tableName, final Map<Cell, byte[]> values, final long timestamp) {
