@@ -180,7 +180,7 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
                 public Void inTransaction(Handle handle, TransactionStatus status) throws Exception {
                     // Silently ignore if already initialized
                     handle.select("SELECT 1 FROM " + MetaTable.META_TABLE_NAME);
-                    log.warn("Initializing an already initialized rdbms kvs. Ignoring.");
+//                    log.warn("Initializing an already initialized rdbms kvs. Ignoring.");
                     return null;
                 }
             });
@@ -409,21 +409,13 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
         getDbi().withHandle(new HandleCallback<Void>() {
             @Override
             public Void withHandle(Handle handle) throws Exception {
-                String entries = "";
-                for (int i=0; i<values.entrySet().size(); ++i) {
-                    entries += "(?, ?, ?, ?)";
-                    if (i + 1 < values.entrySet().size()) {
-                        entries += ", ";
-                    }
-                }
-
                 Update update = handle.createStatement(
                         "INSERT INTO " + USER_TABLE_PREFIX(tableName) + " (" +
                         "    " + Columns.ROW + ", " +
                         "    " + Columns.COLUMN + ", " +
                         "    " + Columns.TIMESTAMP + ", " +
                         "    " + Columns.CONTENT + ") VALUES " +
-                        "    " + entries);
+                        "    " + makeSlots("cell", values.size(), 4));
                 int pos = 0;
                 for (Entry<Cell, byte[]> entry : values.entrySet()) {
                     update.bind(pos++, entry.getKey().getRowName());
@@ -459,56 +451,36 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
         }
     }
 
-    @Override
-    @NonIdempotent
-    public void putWithTimestamps(final String tableName, final Multimap<Cell, Value> cellValues)
-            throws KeyAlreadyExistsException {
+    private void putWithTimestampsInternal(final String tableName, final Multimap<Cell, Value> cellValues) {
         // TODO: Throw the KeyAlreadyExistsException when appropriate
         getDbi().withHandle(new HandleCallback<Void>() {
             @Override
             public Void withHandle(Handle handle) throws Exception {
-
-                handle.execute(
-                        "CREATE TEMPORARY TABLE ValuesToPut (" +
-                        "    " + Columns.ROW + " BYTEA NOT NULL, " +
-                        "    " + Columns.COLUMN + " BYTEA NOT NULL, " +
-                        "    " + Columns.TIMESTAMP + " INT NOT NULL, " +
-                        "    " + Columns.CONTENT + " BYTEA NOT NULL)");
-
-                PreparedBatch batch = handle.prepareBatch(
-                        "INSERT INTO ValuesToPut (" +
+                Update update = handle.createStatement(
+                        "INSERT INTO " + USER_TABLE_PREFIX(tableName) + " (" +
                         "    " + Columns.ROW + ", " +
                         "    " + Columns.COLUMN + ", " +
                         "    " + Columns.TIMESTAMP + ", " +
-                        "    " + Columns.CONTENT + ") VALUES (" +
-                        "    :row, :column, :timestamp, :content)");
-                for (Entry<Cell, Value> e : cellValues.entries()) {
-                    batch.add(
-                            e.getKey().getRowName(),
-                            e.getKey().getColumnName(),
-                            e.getValue().getTimestamp(),
-                            e.getValue().getContents());
+                        "    " + Columns.CONTENT + ") VALUES " +
+                        "    " + makeSlots("cell", cellValues.entries().size(), 4));
+                int pos = 0;
+                for (Entry<Cell, Value> entry : cellValues.entries()) {
+                    update.bind(pos++, entry.getKey().getRowName());
+                    update.bind(pos++, entry.getKey().getColumnName());
+                    update.bind(pos++, entry.getValue().getTimestamp());
+                    update.bind(pos++, entry.getValue().getContents());
                 }
-                batch.execute();
-
-                handle.execute(
-                        "INSERT INTO " + tableName + " (" +
-                        "    " + Columns.ROW + ", " +
-                        "    " + Columns.COLUMN + ", " +
-                        "    " + Columns.TIMESTAMP + ", " +
-                        "    " + Columns.CONTENT + ") " +
-                		"SELECT " +
-                        "    " + Columns.ROW + ", " +
-                		"    " + Columns.COLUMN + ", " +
-                        "    " + Columns.TIMESTAMP + ", " +
-                		"    " + Columns.CONTENT + " " +
-                        "FROM ValuesToPut");
-
-                handle.execute("DROP TABLE ValuesToPut");
-
+                update.execute();
                 return null;
             }
         });
+    }
+
+    @Override
+    @NonIdempotent
+    public void putWithTimestamps(final String tableName, final Multimap<Cell, Value> cellValues)
+            throws KeyAlreadyExistsException {
+        putWithTimestampsInternal(tableName, cellValues);
     }
 
     @Override
@@ -517,41 +489,34 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
         put(tableName, values, 0);
     }
 
-    @Override
-    @Idempotent
-    public void delete(final String tableName, final Multimap<Cell, Long> keys) {
+    private void deleteInternal(final String tableName, final Multimap<Cell, Long> keys) {
         getDbi().withHandle(new HandleCallback<Void>() {
             @Override
             public Void withHandle(Handle handle) throws Exception {
-                handle.execute(
-                        "CREATE TEMPORARY TABLE CellsToDelete (" +
-                        "    " + Columns.ROW + " BYTEA NOT NULL, " +
-                        "    " + Columns.COLUMN + " BYTEA NOT NULL, " +
-                        "    " + Columns.TIMESTAMP + " INT NOT NULL)");
-                PreparedBatch batch = handle.prepareBatch(
-                        "INSERT INTO CellsToDelete (" +
-                        "    " + Columns.ROW + ", " +
-                        "    " + Columns.COLUMN + ", " +
-                        "    " + Columns.TIMESTAMP + ") VALUES (" +
-                        "    :row, :column, :timestamp)");
-                for (Entry<Cell, Long> entry : keys.entries()) {
-                    batch.add(entry.getKey().getRowName(), entry.getKey().getColumnName(), entry.getValue());
-                }
-                batch.execute();
-
-                handle.execute(
+                Update update = handle.createStatement(
                         "DELETE FROM " + tableName + " t " +
                 		"WHERE EXISTS (" +
-                		"    SELECT 1 FROM CellsToDelete c " +
-                		"    WHERE " + Columns.ROW("t") + " = " + Columns.ROW("c") + " " +
-                		"        AND " + Columns.COLUMN("t") + " = " + Columns.COLUMN("c") + " " +
-                		"        AND " + Columns.TIMESTAMP("t") + " = " + Columns.TIMESTAMP("c") + " " +
-                		"    LIMIT 1)");
-
-                handle.execute("DROP TABLE CellsToDelete");
+                		"    SELECT 1 FROM (VALUES " + makeSlots("cell", keys.size(), 3) + ") " +
+        				"        t2(atlasdb_row, atlasdb_column, atlasdb_timestamp) " +
+                		"    WHERE " + Columns.ROW("t") + " = " + Columns.ROW("t2") + " " +
+                		"        AND " + Columns.COLUMN("t") + " = " + Columns.COLUMN("t2") + " " +
+                		"        AND " + Columns.TIMESTAMP("t") + " = " + Columns.TIMESTAMP("t2") + ")");
+                int pos = 0;
+                for (Entry<Cell, Long> entry : keys.entries()) {
+                    update.bind(pos++, entry.getKey().getRowName());
+                    update.bind(pos++, entry.getKey().getColumnName());
+                    update.bind(pos++, entry.getValue());
+                }
+                update.execute();
                 return null;
             }
         });
+    }
+
+    @Override
+    @Idempotent
+    public void delete(final String tableName, final Multimap<Cell, Long> keys) {
+        deleteInternal(tableName, keys);
     }
 
     private int getMaxRows(RangeRequest rangeRequest) {
