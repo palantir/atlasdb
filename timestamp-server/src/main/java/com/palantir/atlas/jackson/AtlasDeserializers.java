@@ -19,7 +19,7 @@ import com.google.common.collect.Maps;
 import com.google.common.primitives.Bytes;
 import com.google.protobuf.DynamicMessage;
 import com.google.protobuf.Message;
-import com.google.protobuf.TextFormat.ParseException;
+import com.googlecode.protobuf.format.JsonFormat;
 import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -204,8 +204,9 @@ public class AtlasDeserializers {
         case PROTO:
             Message.Builder builder = DynamicMessage.newBuilder(description.getProtoDescriptor());
             try {
-                ForkedJsonFormat.merge(node.toString(), builder);
-            } catch (ParseException e) {
+//                ForkedJsonFormat.merge(node.toString(), builder);
+                JsonFormat.merge(node.toString(), builder);
+            } catch (JsonFormat.ParseException e) {
                 throw Throwables.rewrapAndThrowUncheckedException(e);
             }
             bytes = builder.build().toByteArray();

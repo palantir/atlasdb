@@ -23,6 +23,8 @@ import java.util.concurrent.ExecutorService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
+import com.palantir.atlas.impl.TableMetadataCache;
+import com.palantir.atlas.jackson.AtlasJacksonModule;
 import com.palantir.atlasdb.client.TextDelegateDecoder;
 import com.palantir.atlasdb.keyvalue.leveldb.impl.LevelDbBoundStore;
 import com.palantir.atlasdb.keyvalue.leveldb.impl.LevelDbKeyValueService;
@@ -63,17 +65,24 @@ public class TimestampServer extends Application<TimestampServerConfiguration> {
     private final ExecutorService executor = PTExecutors.newCachedThreadPool();
 
     private <T> List<T> getRemoteServices(List<String> uris, Class<T> iFace) {
-    	ObjectMapper mapper = new ObjectMapper();
+    	ObjectMapper mapper = getObjectMapper();
         List<T> ret = Lists.newArrayList();
         for (String uri : uris) {
             T service = Feign.builder()
-                    .decoder(new TextDelegateDecoder(new JacksonDecoder()))
+                    .decoder(new TextDelegateDecoder(new JacksonDecoder(mapper)))
                     .encoder(new JacksonEncoder(mapper))
                     .contract(new JAXRSContract())
                     .target(iFace, uri);
             ret.add(service);
         }
         return ret;
+    }
+
+    public static ObjectMapper getObjectMapper() {
+        ObjectMapper mapper = new ObjectMapper();
+        // TODO: remove null
+        mapper.registerModule(new AtlasJacksonModule(new TableMetadataCache(null)).createModule());
+        return mapper;
     }
 
     @Override
