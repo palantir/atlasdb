@@ -404,29 +404,48 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
         return getInternal(tableName, timestampByCell);
     }
 
-    private void putInternal(final String tableName, final Map<Cell, byte[]> values, final long timestamp) {
-        getDbi().withHandle(new HandleCallback<Void>() {
-            @Override
-            public Void withHandle(Handle handle) throws Exception {
-                Update update = handle.createStatement(
-                        "INSERT INTO " + USER_TABLE_PREFIX(tableName) + " (" +
-                        "    " + Columns.ROW + ", " +
-                        "    " + Columns.COLUMN + ", " +
-                        "    " + Columns.TIMESTAMP + ", " +
-                        "    " + Columns.CONTENT + ") VALUES " +
-                        "    " + makeSlots("cell", values.size(), 4));
-                int pos = 0;
-                for (Entry<Cell, byte[]> entry : values.entrySet()) {
-                    update.bind(pos++, entry.getKey().getRowName());
-                    update.bind(pos++, entry.getKey().getColumnName());
-                    update.bind(pos++, timestamp);
-                    update.bind(pos++, entry.getValue());
+    private void putInternal(final String tableName,
+                             final Map<Cell, byte[]> values,
+                             final long timestamp) {
+        try {
+            getDbi().withHandle(new HandleCallback<Void>() {
+                @Override
+                public Void withHandle(Handle handle) throws Exception {
+                    Update update = handle.createStatement("INSERT INTO "
+                            + USER_TABLE_PREFIX(tableName) + " (" + "    " + Columns.ROW + ", "
+                            + "    " + Columns.COLUMN + ", " + "    " + Columns.TIMESTAMP + ", "
+                            + "    " + Columns.CONTENT + ") VALUES " + "    "
+                            + makeSlots("cell", values.size(), 4));
+                    int pos = 0;
+                    for (Entry<Cell, byte[]> entry : values.entrySet()) {
+                        update.bind(pos++, entry.getKey().getRowName());
+                        update.bind(pos++, entry.getKey().getColumnName());
+                        update.bind(pos++, timestamp);
+                        update.bind(pos++, entry.getValue());
+                    }
+                    update.execute();
+                    return null;
                 }
-                update.execute();
-                return null;
+            });
+        } catch (RuntimeException e) {
+            if (throwableContainsMessage(e, "ORA-00001", "unique constraint")) {
+                throw new KeyAlreadyExistsException("Unique constraint violation", e);
             }
-        });
+        }
+    }
 
+    static boolean throwableContainsMessage(Throwable e, String... messages) {
+        for (Throwable ex = e; ex != null; ex = ex.getCause()) {
+            for (String message : messages) {
+                if (ex.getMessage().contains(message)) {
+                    return true;
+                }
+            }
+            if (ex == ex.getCause()) {
+                return false;
+            }
+        }
+        return false;
     }
 
     @Override
@@ -451,28 +470,31 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
     }
 
     private void putWithTimestampsInternal(final String tableName, final Multimap<Cell, Value> cellValues) {
-        // TODO: Throw the KeyAlreadyExistsException when appropriate
-        getDbi().withHandle(new HandleCallback<Void>() {
-            @Override
-            public Void withHandle(Handle handle) throws Exception {
-                Update update = handle.createStatement(
-                        "INSERT INTO " + USER_TABLE_PREFIX(tableName) + " (" +
-                        "    " + Columns.ROW + ", " +
-                        "    " + Columns.COLUMN + ", " +
-                        "    " + Columns.TIMESTAMP + ", " +
-                        "    " + Columns.CONTENT + ") VALUES " +
-                        "    " + makeSlots("cell", cellValues.entries().size(), 4));
-                int pos = 0;
-                for (Entry<Cell, Value> entry : cellValues.entries()) {
-                    update.bind(pos++, entry.getKey().getRowName());
-                    update.bind(pos++, entry.getKey().getColumnName());
-                    update.bind(pos++, entry.getValue().getTimestamp());
-                    update.bind(pos++, entry.getValue().getContents());
+        try {
+            getDbi().withHandle(new HandleCallback<Void>() {
+                @Override
+                public Void withHandle(Handle handle) throws Exception {
+                    Update update = handle.createStatement("INSERT INTO "
+                            + USER_TABLE_PREFIX(tableName) + " (" + "    " + Columns.ROW + ", "
+                            + "    " + Columns.COLUMN + ", " + "    " + Columns.TIMESTAMP + ", "
+                            + "    " + Columns.CONTENT + ") VALUES " + "    "
+                            + makeSlots("cell", cellValues.entries().size(), 4));
+                    int pos = 0;
+                    for (Entry<Cell, Value> entry : cellValues.entries()) {
+                        update.bind(pos++, entry.getKey().getRowName());
+                        update.bind(pos++, entry.getKey().getColumnName());
+                        update.bind(pos++, entry.getValue().getTimestamp());
+                        update.bind(pos++, entry.getValue().getContents());
+                    }
+                    update.execute();
+                    return null;
                 }
-                update.execute();
-                return null;
+            });
+        } catch (RuntimeException e) {
+            if (throwableContainsMessage(e, "ORA-00001", "unique constraint")) {
+                throw new KeyAlreadyExistsException("Unique constraint violation", e);
             }
-        });
+        }
     }
 
     @Override

@@ -42,6 +42,7 @@ import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -469,6 +470,34 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         assertEquals(2, cell0.getValue().size());
         assertTrue(cell0.getValue().contains(TEST_TIMESTAMP));
         assertTrue(cell0.getValue().contains(TEST_TIMESTAMP + 1));
+    }
+
+    @Test
+    public void testKeyAlreadyExists() {
+        // Test that it does not throw some random exceptions
+        putTestDataForSingleTimestamp();
+        try {
+            putTestDataForSingleTimestamp();
+            // Legal
+        } catch (KeyAlreadyExistsException e) {
+            // Legal
+        }
+
+        keyValueService.putWithTimestamps(
+                TEST_TABLE,
+                ImmutableMultimap.of(
+                        Cell.create(row0, column0),
+                        Value.create(value00, TEST_TIMESTAMP + 1)));
+        try {
+            keyValueService.putWithTimestamps(
+                    TEST_TABLE,
+                    ImmutableMultimap.of(
+                            Cell.create(row0, column0),
+                            Value.create(value00, TEST_TIMESTAMP + 1)));
+            // Legal
+        } catch (KeyAlreadyExistsException e) {
+            // Legal
+        }
     }
 
     private void putTestDataForMultipleTimestamps() {
