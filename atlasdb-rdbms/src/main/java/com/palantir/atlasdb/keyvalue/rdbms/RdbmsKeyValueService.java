@@ -534,15 +534,17 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
                         "SELECT DISTINCT " + Columns.ROW + " FROM " + tableName + " " +
                         // TODO: Check for upper bound!
                 		"WHERE " + Columns.ROW + " >= :startRow" +
+                        "    AND " + Columns.ROW + " < :endRow " +
                         "    AND " + Columns.TIMESTAMP + " < :timestamp " +
         				"LIMIT :limit")
                         .bind("startRow", rangeRequest.getStartInclusive())
+                        .bind("endRow", RangeRequests.endRowExclusiveOrOneAfterMax(rangeRequest))
                         .bind("timestamp", timestamp)
                         .bind("limit", maxRows)
                         .map(ByteArrayMapper.FIRST)
                         .list();
                 if (rows.isEmpty()) {
-                    return new SimpleTokenBackedResultsPage<RowResult<Value>, byte[]>(
+                    return SimpleTokenBackedResultsPage.create(
                             rangeRequest.getStartInclusive(),
                             Collections.<RowResult<Value>> emptyList(),
                             false);
@@ -554,7 +556,7 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
                     finalResult.add(RowResult.create(e.getKey(), e.getValue()));
                 }
                 byte[] token = RangeRequests.getNextStartRow(rangeRequest.isReverse(), rows.get(rows.size() - 1));
-                return new SimpleTokenBackedResultsPage<RowResult<Value>, byte[]>(token, finalResult, rows.size() == maxRows);
+                return SimpleTokenBackedResultsPage.create(token, finalResult, rows.size() == maxRows);
             }
         });
     }
