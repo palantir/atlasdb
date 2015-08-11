@@ -3,7 +3,6 @@ package com.palantir.atlas.api;
 import java.util.Set;
 
 import javax.ws.rs.Consumes;
-import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -37,10 +36,10 @@ public interface AtlasService {
 
     @Idempotent
     @POST
-    @Path("rows{token : /(\\d+)?}")
+    @Path("rows/{token}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    TableRowResult getRows(@PathParam("token") @DefaultValue("-1") Long token,
+    TableRowResult getRows(@PathParam("token") Long token,
                            TableRowSelection rows);
 
     @Idempotent
@@ -53,8 +52,7 @@ public interface AtlasService {
 
     @Idempotent
     @POST
-//    @Path("range/{token}")
-    @Path("range{token : /(\\d+)?}")
+    @Path("range/{token}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     RangeToken getRange(@PathParam("token") Long token,

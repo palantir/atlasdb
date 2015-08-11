@@ -3,6 +3,7 @@ apply from: "../gradle/shared.gradle"
 libsDirName = file('build/artifacts')
 dependencies {
   compile(project(":atlasdb-client"))
+  compile(project(":timestamp-api"))
   compile(group: "org.fusesource.leveldbjni",
           name: "leveldbjni-all",
           version: "1.7",
