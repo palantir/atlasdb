@@ -10,7 +10,7 @@ server:
       port: 4829
       
 quorumSize: 2
-localIndex: 1
+localServer: http://localhost:4828
 servers:
   - http://localhost:3828
   - http://localhost:4828
