@@ -11,7 +11,7 @@ public class RdbmsKeyValueTest extends AbstractAtlasDbKeyValueServiceTest {
     @Override
     protected KeyValueService getKeyValueService() {
         if (kvs == null) {
-            KeyValueService ret = new RdbmsKeyValueService(PTExecutors.newCachedThreadPool());
+            KeyValueService ret = new PostgresKeyValueService(PTExecutors.newCachedThreadPool());
             ret.initializeFromFreshInstance();
             kvs = ret;
         }

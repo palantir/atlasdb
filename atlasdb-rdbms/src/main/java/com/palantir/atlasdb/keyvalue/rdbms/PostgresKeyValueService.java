@@ -1,5 +1,7 @@
 package com.palantir.atlasdb.keyvalue.rdbms;
 
+import static com.palantir.atlasdb.keyvalue.rdbms.utils.AtlasSqlUtils.makeSlots;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collection;
@@ -16,8 +18,6 @@ import java.util.concurrent.ExecutorService;
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
 
-import org.h2.jdbcx.JdbcConnectionPool;
-import org.postgresql.jdbc2.optional.ConnectionPool;
 import org.postgresql.jdbc2.optional.PoolingDataSource;
 import org.skife.jdbi.v2.DBI;
 import org.skife.jdbi.v2.Handle;
@@ -56,6 +56,10 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
+import com.palantir.atlasdb.keyvalue.rdbms.utils.AtlasSqlUtils;
+import com.palantir.atlasdb.keyvalue.rdbms.utils.CellValueMapper;
+import com.palantir.atlasdb.keyvalue.rdbms.utils.Columns;
+import com.palantir.atlasdb.keyvalue.rdbms.utils.MetaTable;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.NonIdempotent;
 import com.palantir.common.base.ClosableIterator;
@@ -66,60 +70,14 @@ import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
-public final class RdbmsKeyValueService extends AbstractKeyValueService {
+public final class PostgresKeyValueService extends AbstractKeyValueService {
 
-    private static final Logger log = LoggerFactory.getLogger(RdbmsKeyValueService.class);
-
-    private final int CHUNK_SIZE = 10;
-    private static final class Columns {
-        public static final String TIMESTAMP = "atlasdb_timestamp";
-        public static final String CONTENT = "atlasdb_content";
-        public static final String ROW = "atlasdb_row";
-        public static final String COLUMN = "atlasdb_column";
-
-        private static final String maybeEmpty(String tableName) {
-            if (tableName.equals("")) {
-                return "";
-            }
-            return tableName + ".";
-        }
-
-        public static final String ROW(String tableName) {
-            return maybeEmpty(tableName) + ROW;
-        }
-
-        public static final String COLUMN(String tableName) {
-            return maybeEmpty(tableName) + COLUMN;
-        }
-
-        public static final String TIMESTAMP(String tableName) {
-            return maybeEmpty(tableName) + TIMESTAMP;
-        }
-
-        public static final String CONTENT(String tableName) {
-            return maybeEmpty(tableName) + CONTENT;
-        }
-
-        public static final String ROW_COLUMN_TIMESTAMP_AS(String tableName) {
-            return ROW(tableName) + " AS " + ROW + ", " + COLUMN(tableName) + " AS " + COLUMN + ", " + TIMESTAMP(tableName) + " AS " + TIMESTAMP;
-        }
-
-        public static final String ROW_COLUMN_TIMESTAMP_CONTENT_AS(String tableName) {
-            return ROW_COLUMN_TIMESTAMP_AS(tableName) + ", " + CONTENT(tableName) + " AS " + CONTENT;
-        }
-    }
+    private static final Logger log = LoggerFactory.getLogger(PostgresKeyValueService.class);
+    private static final int CHUNK_SIZE = 10;
 
     private static final String USER_TABLE_PREFIX = "";
     private static final String USER_TABLE_PREFIX(String tableName) {
         return USER_TABLE_PREFIX + tableName;
-    }
-
-    private static final class MetaTable {
-        public static final String META_TABLE_NAME = "_table_meta";
-        private static final class Columns {
-            public static final String TABLE_NAME = "table_name";
-            public static final String METADATA = "metadata";
-        }
     }
 
     private final DBI dbi;
@@ -128,18 +86,12 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
         return dbi;
     }
 
-    private DataSource getTestDataSource() {
-//        return getTestH2DataSource();
+    protected DataSource getTestDataSource() {
         return getTestPostgresDataSource();
     }
 
-    private DataSource getTestH2DataSource() {
-        return JdbcConnectionPool.create("jdbc:h2:mem:test", "username", "password");
-    }
 
-    ConnectionPool connectionPool = new ConnectionPool();
-
-    private DataSource getTestPostgresDataSource() {
+    private static DataSource getTestPostgresDataSource() {
         try {
             Class.forName("org.postgresql.Driver");
         } catch (ClassNotFoundException e) {
@@ -157,7 +109,7 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
         return pgDataSource;
     }
 
-    public RdbmsKeyValueService(ExecutorService executor) {
+    public PostgresKeyValueService(ExecutorService executor) {
         super(executor);
         dbi = new DBI(getTestDataSource());
     }
@@ -190,36 +142,6 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
         super.teardown();
     };
 
-    private String makeSlots(String prefix, int number) {
-        String result = "";
-        for (int i=0; i<number; ++i) {
-            result += ":" + prefix + i;
-            if (i + 1 < number) {
-                result += ", ";
-            }
-        }
-        return result;
-    }
-
-    private String makeSlots(String prefix, int number, int arity) {
-        Preconditions.checkArgument(arity > 0);
-        String result = "";
-        for (int i=0; i<number; ++i) {
-            result += "(";
-            for (int j=0; j<arity; ++j) {
-                result += ":" + prefix + i + "_" + j;
-                if (j + 1 < arity) {
-                    result += ", ";
-                }
-            }
-            result += ")";
-            if (i + 1 < number) {
-                result += ", ";
-            }
-        }
-        return result;
-    }
-
     private Map<Cell, Value> getRowsInternal(final String tableName,
                                     final Collection<byte[]> rows,
                                     final ColumnSelection columnSelection,
@@ -248,16 +170,11 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
                             // This is a LEFT JOIN -> the below condition cannot be in ON clause
                             "    AND " + Columns.TIMESTAMP("t") + " < " + timestamp)
                             .map(CellValueMapper.instance());
-                    int pos = 0;
-                    for (byte[] row : rows) {
-                        query.bind("row" + pos++, row);
-                    }
+                    AtlasSqlUtils.bindAll(query, rows);
                     list = query.list();
                 } else {
                     SortedSet<byte[]> columns = Sets.newTreeSet(UnsignedBytes.lexicographicalComparator());
-                    for (byte[] column : columnSelection.getSelectedColumns()) {
-                        columns.add(column);
-                    }
+                    Iterables.addAll(columns, columnSelection.getSelectedColumns());
 
                     final Query<Pair<Cell, Value>> query = handle.createQuery(
                             "SELECT " + Columns.ROW_COLUMN_TIMESTAMP_CONTENT_AS("t") + " " +
@@ -274,15 +191,8 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
                             "    AND " + Columns.TIMESTAMP("t") + " < " + timestamp)
                     		.map(CellValueMapper.instance());
 
-                    int pos = 0;
-                    for (byte[] row : rows) {
-                        query.bind("row" + pos++, row);
-                    }
-                    pos = 0;
-                    for (byte[] column : columns) {
-                        query.bind("column" + pos++, column);
-                    }
-
+                    AtlasSqlUtils.bindAll(query, rows);
+                    AtlasSqlUtils.bindAll(query, columns, rows.size());
                     list = query.list();
                 }
 
@@ -291,7 +201,6 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
                     Preconditions.checkState(!result.containsKey(cv.getLhSide()));
                     result.put(cv.getLhSide(), cv.getRhSide());
                 }
-
                 return result;
             }
         });
@@ -319,29 +228,6 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
             }
         });
         return result;
-    }
-
-    private static class CellValueMapper implements ResultSetMapper<Pair<Cell, Value>> {
-        private static CellValueMapper instance;
-
-        @Override
-        public Pair<Cell, Value> map(int index, ResultSet r, StatementContext ctx) throws SQLException {
-            byte[] row = r.getBytes(Columns.ROW);
-            byte[] col = r.getBytes(Columns.COLUMN);
-            long timestamp = r.getLong(Columns.TIMESTAMP);
-            byte[] content = r.getBytes(Columns.CONTENT);
-            Cell cell = Cell.create(row, col);
-            Value value = Value.create(content, timestamp);
-            return Pair.create(cell, value);
-        }
-
-        private static CellValueMapper instance() {
-            if (instance == null) {
-                CellValueMapper ret = new CellValueMapper();
-                instance = ret;
-            }
-            return instance;
-        }
     }
 
     private Map<Cell, Value> getInternal(final String tableName,
