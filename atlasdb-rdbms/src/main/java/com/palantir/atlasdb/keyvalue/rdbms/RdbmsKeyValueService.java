@@ -3,6 +3,7 @@ package com.palantir.atlasdb.keyvalue.rdbms;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -24,6 +25,7 @@ import org.skife.jdbi.v2.Query;
 import org.skife.jdbi.v2.StatementContext;
 import org.skife.jdbi.v2.TransactionCallback;
 import org.skife.jdbi.v2.TransactionStatus;
+import org.skife.jdbi.v2.Update;
 import org.skife.jdbi.v2.tweak.HandleCallback;
 import org.skife.jdbi.v2.tweak.ResultSetMapper;
 import org.skife.jdbi.v2.util.ByteArrayMapper;
@@ -106,7 +108,7 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
         }
     }
 
-    private static final String USER_TABLE_PREFIX = "atlasdb_user_";
+    private static final String USER_TABLE_PREFIX = "";
     private static final String USER_TABLE_PREFIX(String tableName) {
         return USER_TABLE_PREFIX + tableName;
     }
@@ -322,28 +324,6 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
         return result;
     }
 
-    private static class RowResultMapper implements ResultSetMapper<RowResult<Value>> {
-        private static RowResultMapper instance;
-
-        @Override
-        public RowResult<Value> map(int index, ResultSet r, StatementContext ctx)
-                throws SQLException {
-            byte[] row = r.getBytes(Columns.ROW);
-            byte[] col = r.getBytes(Columns.COLUMN);
-            long timestamp = r.getLong(Columns.TIMESTAMP);
-            byte[] content = r.getBytes(Columns.CONTENT);
-            return RowResult.of(Cell.create(row, col), Value.create(content, timestamp));
-        }
-
-        private static RowResultMapper instance() {
-            if (instance == null) {
-                RowResultMapper ret = new RowResultMapper();
-                instance = ret;
-            }
-            return instance;
-        }
-    }
-
     private static class CellValueMapper implements ResultSetMapper<Pair<Cell, Value>> {
         private static CellValueMapper instance;
 
@@ -365,6 +345,36 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
             }
             return instance;
         }
+    }
+
+    private Map<Cell, Value> getInternal(final String tableName,
+                                         final Map<Cell, Long> timestampByCell) {
+        return getDbi().withHandle(new HandleCallback<Map<Cell, Value>>() {
+            @Override
+            public Map<Cell, Value> withHandle(Handle handle) throws Exception {
+
+                Map<Cell, Value> result = Maps.newHashMap();
+
+                List<Pair<Cell, Value>> values = handle.createQuery(
+                        "SELECT " + Columns.ROW_COLUMN_TIMESTAMP_CONTENT_AS("t") + " " +
+        		        "FROM " + tableName + " t " +
+		        		"LEFT JOIN " + tableName + " t2 " +
+        				"ON " + Columns.ROW("t") + " = " + Columns.ROW("t2") + " " +
+		        		"    AND " + Columns.COLUMN("t") + " = " + Columns.COLUMN("t2") + " " +
+        				"    AND " + Columns.TIMESTAMP("t") + " < " + Columns.TIMESTAMP("t2") + " " +
+		        		"    AND " + Columns.TIMESTAMP("t2") + " < " + Columns.TIMESTAMP("c") + " " +
+        				"WHERE " + Columns.TIMESTAMP("t2") + " IS NULL")
+        				.map(CellValueMapper.instance())
+        				.list();
+
+                for (Pair<Cell, Value> cv : values) {
+                    Preconditions.checkState(!result.containsKey(cv.getLhSide()));
+                    result.put(cv.getLhSide(), cv.getRhSide());
+                }
+
+                return result;
+            }
+        });
     }
 
     @Override
@@ -421,50 +431,58 @@ public final class RdbmsKeyValueService extends AbstractKeyValueService {
         });
     }
 
+    private void putInternal(final String tableName, final Map<Cell, byte[]> values, final long timestamp) {
+        getDbi().withHandle(new HandleCallback<Void>() {
+            @Override
+            public Void withHandle(Handle handle) throws Exception {
+                String entries = "";
+                for (int i=0; i<values.entrySet().size(); ++i) {
+                    entries += "(?, ?, ?, ?)";
+                    if (i + 1 < values.entrySet().size()) {
+                        entries += ", ";
+                    }
+                }
+
+                Update update = handle.createStatement(
+                        "INSERT INTO " + USER_TABLE_PREFIX(tableName) + " (" +
+                        "    " + Columns.ROW + ", " +
+                        "    " + Columns.COLUMN + ", " +
+                        "    " + Columns.TIMESTAMP + ", " +
+                        "    " + Columns.CONTENT + ") VALUES " +
+                        "    " + entries);
+                int pos = 0;
+                for (Entry<Cell, byte[]> entry : values.entrySet()) {
+                    update.bind(pos++, entry.getKey().getRowName());
+                    update.bind(pos++, entry.getKey().getColumnName());
+                    update.bind(pos++, timestamp);
+                    update.bind(pos++, entry.getValue());
+                }
+                update.execute();
+                return null;
+            }
+        });
+
+    }
+
     @Override
     public void put(final String tableName, final Map<Cell, byte[]> values, final long timestamp)
             throws KeyAlreadyExistsException {
         // TODO: Throw the KeyAlreadyExistsException when appropriate
-        getDbi().withHandle(new HandleCallback<Void>() {
-            @Override
-            public Void withHandle(Handle handle) throws Exception {
-
-                handle.execute(
-                        "CREATE TEMPORARY TABLE ValuesToPut (" +
-                		"    " + Columns.ROW + " BYTEA NOT NULL, " +
-                		"    " + Columns.COLUMN + " BYTEA NOT NULL, " +
-                		"    " + Columns.CONTENT + " BYTEA NOT NULL)");
-
-                PreparedBatch batch = handle.prepareBatch(
-                        "INSERT INTO ValuesToPut (" +
-                        "    " + Columns.ROW + ", " +
-                        "    " + Columns.COLUMN + ", " +
-                        "    " + Columns.CONTENT + ") "  +
-                        "VALUES (" +
-                        "    :row, :column, :content)");
-                for (Map.Entry<Cell, byte[]> e : values.entrySet()) {
-                    batch.add(e.getKey().getRowName(), e.getKey().getColumnName(), e.getValue());
+        Map<Cell, byte[]> all = Maps.newTreeMap();
+        all.putAll(values);
+        while (!all.isEmpty()) {
+            Map<Cell, byte[]> chunk = Maps.newTreeMap();
+            for (int i=0; i<CHUNK_SIZE; ++i) {
+                Iterator<Entry<Cell, byte[]>> it = all.entrySet().iterator();
+                Entry<Cell, byte[]> entry = it.next();
+                chunk.put(entry.getKey(), entry.getValue());
+                it.remove();
+                if (all.isEmpty()) {
+                    break;
                 }
-                batch.execute();
-
-                handle.execute(
-                        "INSERT INTO " + tableName + " (" +
-                		"    " + Columns.ROW + ", " +
-                		"    " + Columns.COLUMN + ", " +
-                		"    " + Columns.TIMESTAMP + ", " +
-                		"    " + Columns.CONTENT + ") " +
-                		"SELECT " +
-                		"    " + Columns.ROW + ", " +
-                		"    " + Columns.COLUMN + ", " +
-                		"    " + timestamp + ", " +
-                		"    " + Columns.CONTENT + " " +
-                        "FROM ValuesToPut");
-
-                handle.execute("DROP TABLE ValuesToPut");
-
-                return null;
             }
-        });
+            putInternal(tableName, chunk, timestamp);
+        }
     }
 
     @Override
