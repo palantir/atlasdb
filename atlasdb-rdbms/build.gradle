@@ -3,7 +3,6 @@ apply from: "../gradle/shared.gradle"
 dependencies {
   compile(project(":atlasdb-client"))
   compile 'org.jdbi:jdbi:2.59'
-  compile 'com.h2database:h2:1.4.187'
   compile 'postgresql:postgresql:9.0-801.jdbc4'
 
   testCompile 'ru.yandex.qatools.embed:postgresql-embedded:1.3'
