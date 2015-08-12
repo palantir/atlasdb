@@ -113,16 +113,14 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         Map<Cell, Value> rows3 = keyValueService.getRows(
                 TEST_TABLE,
                 ImmutableSet.of(cell1.getRowName()),
-                ColumnSelection.create(ImmutableList.of(
-                        cell1.getColumnName(),
-                        cell3.getColumnName())),
+                ColumnSelection.create(ImmutableList.of(cell1.getColumnName(), cell3.getColumnName())),
                 1);
         assertEquals(ImmutableSet.of(cell1, cell3), rows3.keySet());
 
         Map<Cell, Value> rows4 = keyValueService.getRows(
                 TEST_TABLE,
                 ImmutableSet.of(cell1.getRowName()),
-                ColumnSelection.create(ImmutableList.<byte[]> of()),
+                ColumnSelection.create(ImmutableList.<byte[]>of()),
                 1);
         assertEquals(ImmutableSet.of(), rows4.keySet());
     }
@@ -130,11 +128,10 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
     @Test
     public void testGetRowsAllColumns() {
         putTestDataForSingleTimestamp();
-        Map<Cell, Value> values = keyValueService.getRows(
-                TEST_TABLE,
-                Arrays.asList(row1, row2),
-                ColumnSelection.all(),
-                TEST_TIMESTAMP + 1);
+        Map<Cell, Value> values = keyValueService.getRows(TEST_TABLE,
+                                                          Arrays.asList(row1, row2),
+                                                          ColumnSelection.all(),
+                                                          TEST_TIMESTAMP + 1);
         assertEquals(4, values.size());
         assertEquals(null, values.get(Cell.create(row1, column1)));
         assertArrayEquals(value10, values.get(Cell.create(row1, column0)).getContents());
@@ -220,11 +217,10 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
     public void testGetRowsWithSelectedColumns() {
         putTestDataForSingleTimestamp();
         ColumnSelection columns1and2 = ColumnSelection.create(Arrays.asList(column1, column2));
-        Map<Cell, Value> values = keyValueService.getRows(
-                TEST_TABLE,
-                Arrays.asList(row1, row2),
-                columns1and2,
-                TEST_TIMESTAMP + 1);
+        Map<Cell, Value> values = keyValueService.getRows(TEST_TABLE,
+                                                          Arrays.asList(row1, row2),
+                                                          columns1and2,
+                                                          TEST_TIMESTAMP + 1);
         assertEquals(3, values.size());
         assertEquals(null, values.get(Cell.create(row1, column0)));
         assertArrayEquals(value12, values.get(Cell.create(row1, column2)).getContents());
@@ -235,26 +231,20 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
     @Test
     public void testGetLatestTimestamps() {
         putTestDataForMultipleTimestamps();
-        Map<Cell, Long> timestamps = keyValueService.getLatestTimestamps(
-                TEST_TABLE,
+        Map<Cell, Long> timestamps = keyValueService.getLatestTimestamps(TEST_TABLE,
                 ImmutableMap.of(Cell.create(row0, column0), TEST_TIMESTAMP + 2));
         assertTrue("Incorrect number of values returned.", timestamps.size() == 1);
-        assertEquals(
-                "Incorrect value returned.",
-                new Long(TEST_TIMESTAMP + 1),
+        assertEquals("Incorrect value returned.", new Long(TEST_TIMESTAMP + 1),
                 timestamps.get(Cell.create(row0, column0)));
     }
 
     @Test
     public void testGetWithMultipleVersions() {
         putTestDataForMultipleTimestamps();
-        Map<Cell, Value> values = keyValueService.get(
-                TEST_TABLE,
+        Map<Cell, Value> values = keyValueService.get(TEST_TABLE,
                 ImmutableMap.of(Cell.create(row0, column0), TEST_TIMESTAMP + 2));
         assertTrue("Incorrect number of values returned.", values.size() == 1);
-        assertEquals(
-                "Incorrect value returned.",
-                Value.create(value0_t1, TEST_TIMESTAMP + 1),
+        assertEquals("Incorrect value returned.", Value.create(value0_t1, TEST_TIMESTAMP + 1),
                 values.get(Cell.create(row0, column0)));
     }
 
@@ -501,20 +491,18 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
     }
 
     private void putTestDataForMultipleTimestamps() {
-        keyValueService.put(
-                TEST_TABLE,
-                ImmutableMap.of(Cell.create(row0, column0), value0_t0),
-                TEST_TIMESTAMP);
-        keyValueService.put(
-                TEST_TABLE,
-                ImmutableMap.of(Cell.create(row0, column0), value0_t1),
-                TEST_TIMESTAMP + 1);
+        keyValueService.put(TEST_TABLE,
+                ImmutableMap.of(Cell.create(row0, column0), value0_t0), TEST_TIMESTAMP);
+        keyValueService.put(TEST_TABLE,
+                ImmutableMap.of(Cell.create(row0, column0), value0_t1), TEST_TIMESTAMP + 1);
     }
 
     private void putTestDataForSingleTimestamp() {
-        /*
-         * | column0 column1 column2 -----+--------------------------------- row0 | "value00"
-         * "value01" - row1 | "value10" - "value12" row2 | - "value21" "value22"
+        /*      | column0     column1     column2
+         * -----+---------------------------------
+         * row0 | "value00"   "value01"   -
+         * row1 | "value10"   -           "value12"
+         * row2 | -           "value21"   "value22"
          */
         Map<Cell, byte[]> values = new HashMap<Cell, byte[]>();
         values.put(Cell.create(row0, column0), value00);
@@ -528,12 +516,9 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
 
     private void putValuesForTimestamps(Iterable<Long> timestamps) {
         Cell cell = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("col"));
-
-        for (long timestamp : timestamps) {
-            keyValueService.put(
-                    TEST_TABLE,
-                    ImmutableMap.of(cell, PtBytes.toBytes("val" + timestamp)),
-                    timestamp);
+        for (long timestamp: timestamps) {
+            keyValueService.put(TEST_TABLE, ImmutableMap.of(cell,
+                PtBytes.toBytes("val" + timestamp)), timestamp);
         }
     }
 
