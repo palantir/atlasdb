@@ -19,7 +19,9 @@ import java.io.Serializable;
 import java.util.Collections;
 import java.util.Set;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.Iterables;
 import com.google.common.primitives.UnsignedBytes;
 
 public class ColumnSelection implements Serializable {
@@ -38,7 +40,9 @@ public class ColumnSelection implements Serializable {
     }
 
     public static ColumnSelection create(Iterable<byte[]> selectedColumns) {
-        assert selectedColumns != null;
+        if (Iterables.isEmpty(Preconditions.checkNotNull(selectedColumns))) {
+            return allColumnsSelected;
+        }
 
         // Copy contents of 'selectedColumns' into a new set with proper deep comparison semantics.
         return new ColumnSelection(ImmutableSortedSet.copyOf(UnsignedBytes.lexicographicalComparator(), selectedColumns));
