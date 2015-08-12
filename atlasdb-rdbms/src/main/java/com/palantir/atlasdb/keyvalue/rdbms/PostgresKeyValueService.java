@@ -9,15 +9,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.NavigableMap;
 import java.util.Set;
-import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.concurrent.ExecutorService;
 
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
 
+import org.apache.commons.lang.ArrayUtils;
 import org.postgresql.jdbc2.optional.PoolingDataSource;
 import org.skife.jdbi.v2.DBI;
 import org.skife.jdbi.v2.Handle;
@@ -38,10 +37,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
@@ -54,7 +51,6 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.rdbms.utils.AtlasSqlUtils;
 import com.palantir.atlasdb.keyvalue.rdbms.utils.CellValueMapper;
@@ -240,17 +236,19 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
 
                 Query<Pair<Cell,Value>> query = handle.createQuery(
                         "WITH matching_cells AS (" +
-                        "    SELECT t.atlasdb_row, t.atlasdb_column, t.atlasdb_timestamp, t.atlasdb_content " +
-                        "    FROM " + tableName + " t " +
+                        "    SELECT " + Columns.ROW_COLUMN_TIMESTAMP_CONTENT_AS("t") + " " +
+                        "    FROM " + USER_TABLE_PREFIX(tableName) + " t " +
                         "    JOIN (VALUES " + makeSlots("cell", timestampByCell.size(), 3) + ") " +
-                        "        t2(atlasdb_row, atlasdb_column, atlasdb_timestamp) " +
-                        "    ON t.atlasdb_row = t2.atlasdb_row AND t.atlasdb_column = t2.atlasdb_column " +
-                        "        AND t.atlasdb_timestamp < t2.atlasdb_timestamp) " +
-                        "SELECT t.atlasdb_row, t.atlasdb_column, t.atlasdb_timestamp, t.atlasdb_content " +
+                        "        AS t2(" + Columns.ROW.append(Columns.COLUMN).append(Columns.TIMESTAMP) + ")" +
+                        "    ON " + Columns.ROW("t").eq(Columns.ROW("t2"))
+                                .and(Columns.COLUMN("t").eq(Columns.COLUMN("t2")))
+                                .and(Columns.TIMESTAMP("t").lt(Columns.TIMESTAMP("t2"))) + ") " +
+                        "SELECT " + Columns.ROW_COLUMN_TIMESTAMP_CONTENT_AS("t") + " " +
                         "FROM matching_cells t " +
                         "LEFT JOIN matching_cells t2 " +
-                        "ON t.atlasdb_row = t2.atlasdb_row AND t.atlasdb_column = t2.atlasdb_column " +
-                        "    AND t.atlasdb_timestamp < t2.atlasdb_timestamp " +
+                        "ON " + Columns.ROW("t").eq(Columns.ROW("t2"))
+                                .and(Columns.COLUMN("t").eq(Columns.COLUMN("t2")))
+                                .and(Columns.TIMESTAMP("t").lt(Columns.TIMESTAMP("t2"))).appendSpace() +
                         "WHERE t2.atlasdb_timestamp IS NULL")
                         .map(CellValueMapper.instance());
 
@@ -413,6 +411,25 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
         return rangeRequest.getBatchHint() == null ? 100 : rangeRequest.getBatchHint();
     }
 
+    private List<byte[]> getRowsInRange(String tableName,
+                                        RangeRequest rangeRequest,
+                                        long timestamp,
+                                        int limit,
+                                        Handle handle) {
+        return handle.createQuery(
+                "SELECT DISTINCT " + Columns.ROW + " FROM " + tableName + " " +
+                "WHERE " + Columns.ROW + " >= :startRow" +
+                "    AND " + Columns.ROW + " < :endRow " +
+                "    AND " + Columns.TIMESTAMP + " < :timestamp " +
+                "LIMIT :limit")
+                .bind("startRow", rangeRequest.getStartInclusive())
+                .bind("endRow", RangeRequests.endRowExclusiveOrOneAfterMax(rangeRequest))
+                .bind("timestamp", timestamp)
+                .bind("limit", limit)
+                .map(ByteArrayMapper.FIRST)
+                .list();
+    }
+
     private TokenBackedBasicResultsPage<RowResult<Value>, byte[]> getPage(final String tableName,
                                                                           final RangeRequest rangeRequest,
                                                                           final long timestamp) {
@@ -420,34 +437,22 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
         final int maxRows = getMaxRows(rangeRequest);
         return getDbi().withHandle(new HandleCallback<TokenBackedBasicResultsPage<RowResult<Value>, byte[]>>() {
             @Override
-            public TokenBackedBasicResultsPage<RowResult<Value>, byte[]> withHandle(Handle handle) throws Exception {
-                List<byte[]> rows = handle.createQuery(
-                        "SELECT DISTINCT " + Columns.ROW + " FROM " + tableName + " " +
-                        // TODO: Check for upper bound!
-                		"WHERE " + Columns.ROW + " >= :startRow" +
-                        "    AND " + Columns.ROW + " < :endRow " +
-                        "    AND " + Columns.TIMESTAMP + " < :timestamp " +
-        				"LIMIT :limit")
-                        .bind("startRow", rangeRequest.getStartInclusive())
-                        .bind("endRow", RangeRequests.endRowExclusiveOrOneAfterMax(rangeRequest))
-                        .bind("timestamp", timestamp)
-                        .bind("limit", maxRows)
-                        .map(ByteArrayMapper.FIRST)
-                        .list();
+            public TokenBackedBasicResultsPage<RowResult<Value>, byte[]> withHandle(Handle handle)
+                    throws Exception {
+                List<byte[]> rows = getRowsInRange(tableName, rangeRequest,
+                        timestamp, maxRows, handle);
                 if (rows.isEmpty()) {
                     return SimpleTokenBackedResultsPage.create(
                             rangeRequest.getStartInclusive(),
                             Collections.<RowResult<Value>> emptyList(),
                             false);
                 }
-                Map<Cell, Value> cells = getRows(tableName, rows, ColumnSelection.all(), timestamp);
-                NavigableMap<byte[], SortedMap<byte[], Value>> byRow = Cells.breakCellsUpByRow(cells);
-                List<RowResult<Value>> finalResult = Lists.newArrayList();
-                for (Entry<byte[], SortedMap<byte[], Value>> e : byRow.entrySet()) {
-                    finalResult.add(RowResult.create(e.getKey(), e.getValue()));
-                }
-                byte[] token = RangeRequests.getNextStartRow(rangeRequest.isReverse(), rows.get(rows.size() - 1));
-                return SimpleTokenBackedResultsPage.create(token, finalResult, rows.size() == maxRows);
+                ColumnSelection columns = RangeRequests.extractColumnSelection(rangeRequest);
+                Map<Cell, Value> cells = getRows(tableName, rows, columns, timestamp);
+                List<RowResult<Value>> result = AtlasSqlUtils.cellsToRows(cells);
+                return SimpleTokenBackedResultsPage.create(
+                        AtlasSqlUtils.generateToken(rangeRequest, rows),
+                        result, rows.size() == maxRows);
             }
         });
     }
@@ -475,51 +480,71 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
         }.iterator());
     }
 
+    List<Cell> getCellsInRange(final String tableName, RangeRequest rangeRequest, long timestamp, int limit, Handle handle) {
+        return handle.createQuery(
+                "SELECT DISTINCT " +
+                "    " + Columns.ROW + ", " +
+                "    " + Columns.COLUMN + " " +
+                "FROM " + USER_TABLE_PREFIX(tableName) + " " +
+                "WHERE " + Columns.ROW + ">= :startRow" +
+                "    AND " + Columns.ROW + "< :endRow " +
+        		"    AND " + Columns.TIMESTAMP + "< :timestamp " +
+                "LIMIT :limit")
+                .bind("startRow", rangeRequest.getStartInclusive())
+                .bind("endRow", RangeRequests.endRowExclusiveOrOneAfterMax(rangeRequest))
+                .bind("timestamp", timestamp)
+                .bind("limit", limit)
+                .map(new ResultSetMapper<Cell>() {
+                    @Override
+                    public Cell map(int index, ResultSet r, StatementContext ctx)
+                            throws SQLException {
+                        byte[] row = r.getBytes(Columns.ROW.toString());
+                        byte[] column = r.getBytes(Columns.COLUMN.toString());
+                        return Cell.create(row, column);
+                    }
+                })
+                .list();
+    }
+
     TokenBackedBasicResultsPage<RowResult<Set<Value>>, byte[]> getPageWithHistory(final String tableName,
                                                                                   final RangeRequest rangeRequest,
                                                                                   final long timestamp) {
         Preconditions.checkArgument(!rangeRequest.isReverse());
         final int maxRows = getMaxRows(rangeRequest);
-        return getDbi().withHandle(new HandleCallback<TokenBackedBasicResultsPage<RowResult<Set<Value>>, byte[]>>() {
-            @Override
-            public TokenBackedBasicResultsPage<RowResult<Set<Value>>, byte[]> withHandle(Handle handle) throws Exception {
-                List<Cell> cells = handle.createQuery(
-                        "SELECT DISTINCT atlasdb_row, atlasdb_column " +
-                        // TODO: Check for upper bound!
-                        "FROM " + tableName + " WHERE atlasdb_row >= :startRow" +
-                        "    AND atlasdb_row < :endRow AND atlasdb_timestamp < :timestamp " +
-                        "LIMIT :limit")
-                        .bind("startRow", rangeRequest.getStartInclusive())
-                        .bind("endRow", RangeRequests.endRowExclusiveOrOneAfterMax(rangeRequest))
-                        .bind("timestamp", timestamp)
-                        .bind("limit", maxRows)
-                        .map(new ResultSetMapper<Cell>() {
-                            @Override
-                            public Cell map(int index, ResultSet r, StatementContext ctx)
-                                    throws SQLException {
-                                byte[] row = r.getBytes(Columns.ROW);
-                                byte[] column = r.getBytes(Columns.COLUMN);
-                                return Cell.create(row, column);
-                            }
-                        })
-                        .list();
-                if (cells.isEmpty()) {
-                    return SimpleTokenBackedResultsPage.create(
-                            rangeRequest.getStartInclusive(),
-                            Collections.<RowResult<Set<Value>>> emptyList(),
-                            false);
-                }
+        return getDbi().withHandle(
+                new HandleCallback<TokenBackedBasicResultsPage<RowResult<Set<Value>>, byte[]>>() {
+                    @Override
+                    public TokenBackedBasicResultsPage<RowResult<Set<Value>>, byte[]> withHandle(Handle handle)
+                            throws Exception {
+                        List<Cell> cells = getCellsInRange(
+                                tableName,
+                                rangeRequest,
+                                timestamp,
+                                maxRows,
+                                handle);
+                        // TODO: Will this fail if none of the rows in the first range
+                        // has matching columns (but later rows do have).
+                        if (cells.isEmpty()) {
+                            return SimpleTokenBackedResultsPage.create(
+                                    rangeRequest.getStartInclusive(),
+                                    Collections.<RowResult<Set<Value>>> emptyList(),
+                                    false);
+                        }
 
-                SetMultimap<Cell, Value> timestamps = getAllVersionsInternal(tableName, ImmutableSet.copyOf(cells), timestamp);
-                Set<RowResult<Set<Value>>> finalResult = Sets.newHashSet();
-                Map<byte[], SortedMap<byte[], Set<Value>>> s = Cells.breakCellsUpByRow(Multimaps.asMap(timestamps));
-                for (Entry<byte[], SortedMap<byte[], Set<Value>>> e : s.entrySet()) {
-                    finalResult.add(RowResult.create(e.getKey(), e.getValue()));
-                }
-                byte[] token = RangeRequests.getNextStartRow(rangeRequest.isReverse(), cells.get(cells.size() - 1).getRowName());
-                return SimpleTokenBackedResultsPage.create(token, finalResult, cells.size() == maxRows);
-            }
-        });
+                        SetMultimap<Cell, Value> timestamps = getAllVersionsInternal(
+                                tableName,
+                                ImmutableSet.copyOf(cells),
+                                timestamp);
+                        Set<RowResult<Set<Value>>> finalResult = AtlasSqlUtils.cellsToRows(timestamps);
+                        byte[] lastRow = cells.get(cells.size() - 1).getRowName();
+                        byte[] token = RangeRequests.getNextStartRow(
+                                rangeRequest.isReverse(), lastRow);
+                        return SimpleTokenBackedResultsPage.create(
+                                token,
+                                finalResult,
+                                cells.size() == maxRows);
+                    }
+                });
     }
 
     @Override
@@ -577,46 +602,38 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                                                                                           final long timestamp) {
         Preconditions.checkArgument(!rangeRequest.isReverse());
         final int maxRows = getMaxRows(rangeRequest);
-        return getDbi().withHandle(new HandleCallback<TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]>>() {
-            @Override
-            public TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]> withHandle(Handle handle) throws Exception {
-                List<Cell> cells = handle.createQuery(
-                        "SELECT DISTINCT atlasdb_row, atlasdb_column " +
-                        "FROM " + tableName + " WHERE atlasdb_row >= :startRow" +
-                        "    AND atlasdb_row < :endRow " +
-                        "    AND atlasdb_timestamp < :timestamp " +
-                        "LIMIT :limit")
-                        .bind("startRow", rangeRequest.getStartInclusive())
-                        .bind("endRow", RangeRequests.endRowExclusiveOrOneAfterMax(rangeRequest))
-                        .bind("timestamp", timestamp)
-                        .bind("limit", maxRows)
-                        .map(new ResultSetMapper<Cell>() {
-                            @Override
-                            public Cell map(int index, ResultSet r, StatementContext ctx)
-                                    throws SQLException {
-                                byte[] row = r.getBytes(Columns.ROW);
-                                byte[] column = r.getBytes(Columns.COLUMN);
-                                return Cell.create(row, column);
-                            }
-                        })
-                        .list();
-                if (cells.isEmpty()) {
-                    return SimpleTokenBackedResultsPage.create(
-                            rangeRequest.getStartInclusive(),
-                            Collections.<RowResult<Set<Long>>> emptyList(),
-                            false);
-                }
+        return getDbi().withHandle(
+                new HandleCallback<TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]>>() {
+                    @Override
+                    public TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]> withHandle(Handle handle)
+                            throws Exception {
+                        List<Cell> cells = getCellsInRange(
+                                tableName,
+                                rangeRequest,
+                                timestamp,
+                                maxRows,
+                                handle);
+                        if (cells.isEmpty()) {
+                            return SimpleTokenBackedResultsPage.create(
+                                    rangeRequest.getStartInclusive(),
+                                    Collections.<RowResult<Set<Long>>> emptyList(),
+                                    false);
+                        }
 
-                SetMultimap<Cell, Long> timestamps = getAllTimestamps(tableName, ImmutableSet.copyOf(cells), timestamp);
-                Set<RowResult<Set<Long>>> finalResult = Sets.newHashSet();
-                Map<byte[], SortedMap<byte[], Set<Long>>> s = Cells.breakCellsUpByRow(Multimaps.asMap(timestamps));
-                for (Entry<byte[], SortedMap<byte[], Set<Long>>> e : s.entrySet()) {
-                    finalResult.add(RowResult.create(e.getKey(), e.getValue()));
-                }
-                byte[] token = RangeRequests.getNextStartRow(rangeRequest.isReverse(), cells.get(cells.size() - 1).getRowName());
-                return new SimpleTokenBackedResultsPage<RowResult<Set<Long>>, byte[]>(token, finalResult, cells.size() == maxRows);
-            }
-        });
+                        SetMultimap<Cell, Long> timestamps = getAllTimestamps(
+                                tableName,
+                                ImmutableSet.copyOf(cells),
+                                timestamp);
+                        Set<RowResult<Set<Long>>> result = AtlasSqlUtils.cellsToRows(timestamps);
+                        byte[] token = RangeRequests.getNextStartRow(
+                                rangeRequest.isReverse(),
+                                cells.get(cells.size() - 1).getRowName());
+                        return new SimpleTokenBackedResultsPage<RowResult<Set<Long>>, byte[]>(
+                                token,
+                                result,
+                                cells.size() == maxRows);
+                    }
+                });
     }
 
     @Override
@@ -665,7 +682,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                 handle.execute("INSERT INTO " + MetaTable.META_TABLE_NAME + " (" +
                         "    " + MetaTable.Columns.TABLE_NAME + ", " +
                         "    " + MetaTable.Columns.METADATA + " ) VALUES (" +
-                        "    ?, ?)", tableName, new byte[0]);
+                        "    ?, ?)", tableName, ArrayUtils.EMPTY_BYTE_ARRAY);
                 return null;
             }
         });
@@ -717,23 +734,13 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
     @Override
     @Idempotent
     public void addGarbageCollectionSentinelValues(final String tableName, final Set<Cell> cells) {
-        // TODO: Can it fail if the cell did not exist originally?
-        getDbi().withHandle(new HandleCallback<Void>() {
-            @Override
-            public Void withHandle(Handle handle) throws Exception {
-                for (Cell c : cells) {
-                    handle.execute(
-                            "UPDATE " + tableName + " SET (" + Columns.CONTENT + ", "
-                                    + Columns.TIMESTAMP + ") VALUES (?, ?) WHERE " + Columns.ROW
-                                    + "  = ? AND " + Columns.COLUMN + " = ?",
-                            new byte[0],
-                            Value.INVALID_VALUE_TIMESTAMP,
-                            c.getRowName(),
-                            c.getColumnName());
-                }
-                return null;
-            }
-        });
+        // TODO: Make it faster by using dedicated query?
+        final Value invalidValue = Value.create(ArrayUtils.EMPTY_BYTE_ARRAY, Value.INVALID_VALUE_TIMESTAMP);
+        Multimap<Cell, Value> cellsWithInvalidValues = HashMultimap.create();
+        for (Cell cell : cells) {
+            cellsWithInvalidValues.put(cell, invalidValue);
+        }
+        putWithTimestamps(tableName, cellsWithInvalidValues);
     }
 
     private SetMultimap<Cell, Value> getAllVersionsInternal(final String tableName,
@@ -778,16 +785,16 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                 Query<Pair<Cell, Long>> query = handle.createQuery(
                         "SELECT " + Columns.ROW_COLUMN_TIMESTAMP_AS("t") + " " +
                         "FROM " + tableName + " t " +
-                        "WHERE (" + Columns.ROW + ", " + Columns.COLUMN + ") IN (" +
+                        "WHERE (" + Columns.ROW.append(Columns.COLUMN) + ") IN (" +
                         "    " + makeSlots("cell", cells.size(), 2) + ") " +
                         "    AND " + Columns.TIMESTAMP("t") + " < " + timestamp)
                         .map(new ResultSetMapper<Pair<Cell, Long>>() {
                             @Override
                             public Pair<Cell, Long> map(int index, ResultSet r, StatementContext ctx)
                                     throws SQLException {
-                                byte[] row = r.getBytes(Columns.ROW);
-                                byte[] column = r.getBytes(Columns.COLUMN);
-                                long timestamp = r.getLong(Columns.TIMESTAMP);
+                                byte[] row = r.getBytes(Columns.ROW.toString());
+                                byte[] column = r.getBytes(Columns.COLUMN.toString());
+                                long timestamp = r.getLong(Columns.TIMESTAMP.toString());
                                 Cell cell = Cell.create(row, column);
                                 return Pair.create(cell, timestamp);
                             }

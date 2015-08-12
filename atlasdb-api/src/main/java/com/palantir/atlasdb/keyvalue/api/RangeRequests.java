@@ -95,6 +95,13 @@ public class RangeRequests {
         return rangeRequest.getEndExclusive();
     }
 
+    public static ColumnSelection extractColumnSelection(RangeRequest rangeRequest) {
+        if (rangeRequest.getColumnNames().isEmpty()) {
+            return ColumnSelection.all();
+        }
+        return ColumnSelection.create(rangeRequest.getColumnNames());
+    }
+
     private static byte[] nextLexicographicNameInternal(@Nonnull byte[] name) {
         Preconditions.checkArgument(name.length <= Cell.MAX_NAME_LENGTH, "name is too long");
         if (name.length < Cell.MAX_NAME_LENGTH) {
