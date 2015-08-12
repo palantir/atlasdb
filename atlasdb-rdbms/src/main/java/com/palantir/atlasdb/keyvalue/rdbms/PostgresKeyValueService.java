@@ -35,7 +35,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -53,14 +52,15 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.rdbms.utils.AtlasSqlUtils;
+import com.palantir.atlasdb.keyvalue.rdbms.utils.CellMapper;
 import com.palantir.atlasdb.keyvalue.rdbms.utils.CellValueMapper;
 import com.palantir.atlasdb.keyvalue.rdbms.utils.Columns;
 import com.palantir.atlasdb.keyvalue.rdbms.utils.MetaTable;
+import com.palantir.atlasdb.keyvalue.rdbms.utils.TimestampMapper;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.NonIdempotent;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
-import com.palantir.common.base.Throwables;
 import com.palantir.util.Pair;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
@@ -71,9 +71,12 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
     private static final Logger log = LoggerFactory.getLogger(PostgresKeyValueService.class);
     private static final int CHUNK_SIZE = 10;
 
-    private static final String USER_TABLE_PREFIX = "";
+    private static final String USER_TABLE_PREFIX = "alamakota";
     private static final String USER_TABLE_PREFIX(String tableName) {
         return USER_TABLE_PREFIX + tableName;
+    }
+    private static final String USER_TABLE_PREFIX(String tableName, String alias) {
+        return USER_TABLE_PREFIX(tableName) + " " + alias;
     }
 
     private final DBI dbi;
@@ -88,20 +91,10 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
 
 
     private static DataSource getTestPostgresDataSource() {
-        try {
-            Class.forName("org.postgresql.Driver");
-        } catch (ClassNotFoundException e) {
-            Throwables.throwUncheckedException(e);
-        }
         PoolingDataSource pgDataSource = new PoolingDataSource();
         pgDataSource.setDatabaseName("test");
         pgDataSource.setUser("test");
         pgDataSource.setPassword("password");
-        try {
-            pgDataSource.getConnection().setAutoCommit(true);
-        } catch (SQLException e) {
-            Throwables.throwUncheckedException(e);
-        }
         return pgDataSource;
     }
 
@@ -155,12 +148,12 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                 if (columnSelection.allColumnsSelected()) {
                     final Query<Pair<Cell,Value>> query = handle.createQuery(
                             "SELECT " + Columns.ROW_COLUMN_TIMESTAMP_CONTENT_AS("t") + " " +
-                            "FROM " + tableName + " t " +
-                            "LEFT JOIN " + tableName + " t2 " +
-                    		"ON " + Columns.ROW("t") + " = " + Columns.ROW("t2") + " " +
-            				"    AND " + Columns.COLUMN("t") + " = " + Columns.COLUMN("t2") + " " +
-                    		"    AND " + Columns.TIMESTAMP("t") + " < " + Columns.TIMESTAMP("t2") + " " +
-            				"    AND " + Columns.TIMESTAMP("t2") + " < " + timestamp + " " +
+                            "FROM " + USER_TABLE_PREFIX(tableName, "t") + " " +
+                            "LEFT JOIN " + USER_TABLE_PREFIX(tableName, "t2") + " " +
+                    		"ON " + Columns.ROW("t").eq(Columns.ROW("t2"))
+                    		        .and(Columns.COLUMN("t")).eq(Columns.COLUMN("t2"))
+                    		        .and(Columns.TIMESTAMP("t")).lt(Columns.TIMESTAMP("t2"))
+                    		        .and(Columns.TIMESTAMP("t2")) + "<" + timestamp + " " +
                             "WHERE " + Columns.ROW("t") + " IN (" + makeSlots("row", rows.size()) + ") " +
             				"    AND " + Columns.TIMESTAMP("t2") + " IS NULL" +
                             // This is a LEFT JOIN -> the below condition cannot be in ON clause
@@ -174,12 +167,12 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
 
                     final Query<Pair<Cell, Value>> query = handle.createQuery(
                             "SELECT " + Columns.ROW_COLUMN_TIMESTAMP_CONTENT_AS("t") + " " +
-                            "FROM " + tableName + " t " +
-                    		"LEFT JOIN " + tableName + " t2 " +
-                    		"ON " + Columns.ROW("t") + " = " + Columns.ROW("t2") + " " +
-            				"    AND " + Columns.COLUMN("t") + " = " + Columns.COLUMN("t2") + " " +
-                    		"    AND " + Columns.TIMESTAMP("t") + "<" + Columns.TIMESTAMP("t2") + " " +
-            				"    AND " + Columns.TIMESTAMP("t2") + " < " + timestamp + " " +
+                            "FROM " + USER_TABLE_PREFIX(tableName, "t") + " " +
+                    		"LEFT JOIN " + USER_TABLE_PREFIX(tableName, "t2") + " " +
+                    		"ON " + Columns.ROW("t").eq(Columns.ROW("t2"))
+                    		        .and(Columns.COLUMN("t").eq(Columns.COLUMN("t2")))
+                    		        .and(Columns.TIMESTAMP("t")).lt(Columns.TIMESTAMP("t2"))
+                    		        .and(Columns.TIMESTAMP("t2")) + "<" + timestamp + " " +
                     		"WHERE " + Columns.ROW("t") + " IN (" + makeSlots("row", rows.size()) + ") " +
             				"    AND " + Columns.COLUMN("t") + " IN (" + makeSlots("column", columns.size()) + ") " +
                     		"    AND " + Columns.TIMESTAMP("t2") + " IS NULL " +
@@ -191,13 +184,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                     AtlasSqlUtils.bindAll(query, columns, rows.size());
                     list = query.list();
                 }
-
-                Map<Cell, Value> result = Maps.newHashMap();
-                for (Pair<Cell, Value> cv : list) {
-                    Preconditions.checkState(!result.containsKey(cv.getLhSide()));
-                    result.put(cv.getLhSide(), cv.getRhSide());
-                }
-                return result;
+                return AtlasSqlUtils.listToMap(list);
             }
         });
     }
@@ -231,13 +218,10 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
         return getDbi().withHandle(new HandleCallback<Map<Cell, Value>>() {
             @Override
             public Map<Cell, Value> withHandle(Handle handle) throws Exception {
-
-                Map<Cell, Value> result = Maps.newHashMap();
-
                 Query<Pair<Cell,Value>> query = handle.createQuery(
                         "WITH matching_cells AS (" +
                         "    SELECT " + Columns.ROW_COLUMN_TIMESTAMP_CONTENT_AS("t") + " " +
-                        "    FROM " + USER_TABLE_PREFIX(tableName) + " t " +
+                        "    FROM " + USER_TABLE_PREFIX(tableName, "t") +
                         "    JOIN (VALUES " + makeSlots("cell", timestampByCell.size(), 3) + ") " +
                         "        AS t2(" + Columns.ROW.append(Columns.COLUMN).append(Columns.TIMESTAMP) + ")" +
                         "    ON " + Columns.ROW("t").eq(Columns.ROW("t2"))
@@ -249,17 +233,10 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                         "ON " + Columns.ROW("t").eq(Columns.ROW("t2"))
                                 .and(Columns.COLUMN("t").eq(Columns.COLUMN("t2")))
                                 .and(Columns.TIMESTAMP("t").lt(Columns.TIMESTAMP("t2"))).appendSpace() +
-                        "WHERE t2.atlasdb_timestamp IS NULL")
+                        "WHERE " + Columns.TIMESTAMP("t2") + " IS NULL")
                         .map(CellValueMapper.instance());
-
                 AtlasSqlUtils.bindCellsTimestamps(query, timestampByCell);
-
-                for (Pair<Cell, Value> cv : query.list()) {
-                    Preconditions.checkState(!result.containsKey(cv.getLhSide()));
-                    result.put(cv.getLhSide(), cv.getRhSide());
-                }
-
-                return result;
+                return AtlasSqlUtils.listToMap(query.list());
             }
         });
     }
@@ -285,42 +262,24 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
             getDbi().withHandle(new HandleCallback<Void>() {
                 @Override
                 public Void withHandle(Handle handle) throws Exception {
-                    Update update = handle.createStatement("INSERT INTO "
-                            + USER_TABLE_PREFIX(tableName) + " (" + "    " + Columns.ROW + ", "
-                            + "    " + Columns.COLUMN + ", " + "    " + Columns.TIMESTAMP + ", "
-                            + "    " + Columns.CONTENT + ") VALUES " + "    "
-                            + makeSlots("cell", values.size(), 4));
-                    int pos = 0;
-                    for (Entry<Cell, byte[]> entry : values) {
-                        update.bind(pos++, entry.getKey().getRowName());
-                        update.bind(pos++, entry.getKey().getColumnName());
-                        update.bind(pos++, timestamp);
-                        update.bind(pos++, entry.getValue());
-                    }
+                    Update update = handle.createStatement(
+                            "INSERT INTO " + USER_TABLE_PREFIX(tableName) + " (" +
+                            		Columns.ROW.append(Columns.COLUMN).append(
+                    		        Columns.TIMESTAMP).append(Columns.CONTENT) +
+            		        ") VALUES " + makeSlots("cell", values.size(), 4));
+                    AtlasSqlUtils.bindCellsValues(update, values, timestamp);
                     update.execute();
                     return null;
                 }
             });
         } catch (RuntimeException e) {
-            if (throwableContainsMessage(e, "ORA-00001", "unique constraint")) {
+            if (AtlasSqlUtils.isKeyAlreadyExistsException(e)) {
                 throw new KeyAlreadyExistsException("Unique constraint violation", e);
             }
+            throw e;
         }
     }
 
-    static boolean throwableContainsMessage(Throwable e, String... messages) {
-        for (Throwable ex = e; ex != null; ex = ex.getCause()) {
-            for (String message : messages) {
-                if (ex.getMessage().contains(message)) {
-                    return true;
-                }
-            }
-            if (ex == ex.getCause()) {
-                return false;
-            }
-        }
-        return false;
-    }
 
     @Override
     public void put(final String tableName, final Map<Cell, byte[]> values, final long timestamp)
@@ -340,18 +299,18 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
             getDbi().withHandle(new HandleCallback<Void>() {
                 @Override
                 public Void withHandle(Handle handle) throws Exception {
-                    Update update = handle.createStatement("INSERT INTO "
-                            + USER_TABLE_PREFIX(tableName) + " (" + "    " + Columns.ROW + ", "
-                            + "    " + Columns.COLUMN + ", " + "    " + Columns.TIMESTAMP + ", "
-                            + "    " + Columns.CONTENT + ") VALUES " + "    "
-                            + makeSlots("cell", cellValues.size(), 4));
+                    Update update = handle.createStatement(
+                            "INSERT INTO " + USER_TABLE_PREFIX(tableName) + " (" +
+                                Columns.ROW.append(Columns.COLUMN).append(
+                                Columns.TIMESTAMP).append(Columns.CONTENT) +
+                            ") VALUES " + makeSlots("cell", cellValues.size(), 4));
                     AtlasSqlUtils.bindCellsValues(update, cellValues);
                     update.execute();
                     return null;
                 }
             });
         } catch (RuntimeException e) {
-            if (throwableContainsMessage(e, "ORA-00001", "unique constraint")) {
+            if (AtlasSqlUtils.isKeyAlreadyExistsException(e)) {
                 throw new KeyAlreadyExistsException("Unique constraint violation", e);
             }
         }
@@ -381,13 +340,9 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
             @Override
             public Void withHandle(Handle handle) throws Exception {
                 Update update = handle.createStatement(
-                        "DELETE FROM " + tableName + " t " +
-                		"WHERE EXISTS (" +
-                		"    SELECT 1 FROM (VALUES " + makeSlots("cell", keys.size(), 3) + ") " +
-        				"        t2(atlasdb_row, atlasdb_column, atlasdb_timestamp) " +
-                		"    WHERE " + Columns.ROW("t") + " = " + Columns.ROW("t2") + " " +
-                		"        AND " + Columns.COLUMN("t") + " = " + Columns.COLUMN("t2") + " " +
-                		"        AND " + Columns.TIMESTAMP("t") + " = " + Columns.TIMESTAMP("t2") + ")");
+                        "DELETE FROM " + USER_TABLE_PREFIX(tableName) + " t " +
+                		"WHERE (" + Columns.ROW.append(Columns.COLUMN).append(Columns.TIMESTAMP) + ") " +
+                		"    IN (" + makeSlots("cell", keys.size(), 3) + ") ");
                 AtlasSqlUtils.bindCellsTimestamps(update, keys);
                 update.execute();
                 return null;
@@ -407,7 +362,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
         });
     }
 
-    private int getMaxRows(RangeRequest rangeRequest) {
+    private int getBatchSize(RangeRequest rangeRequest) {
         return rangeRequest.getBatchHint() == null ? 100 : rangeRequest.getBatchHint();
     }
 
@@ -417,7 +372,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                                         int limit,
                                         Handle handle) {
         return handle.createQuery(
-                "SELECT DISTINCT " + Columns.ROW + " FROM " + tableName + " " +
+                "SELECT DISTINCT " + Columns.ROW + " FROM " + USER_TABLE_PREFIX(tableName) + " " +
                 "WHERE " + Columns.ROW + " >= :startRow" +
                 "    AND " + Columns.ROW + " < :endRow " +
                 "    AND " + Columns.TIMESTAMP + " < :timestamp " +
@@ -434,7 +389,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                                                                           final RangeRequest rangeRequest,
                                                                           final long timestamp) {
         Preconditions.checkArgument(!rangeRequest.isReverse());
-        final int maxRows = getMaxRows(rangeRequest);
+        final int maxRows = getBatchSize(rangeRequest);
         return getDbi().withHandle(new HandleCallback<TokenBackedBasicResultsPage<RowResult<Value>, byte[]>>() {
             @Override
             public TokenBackedBasicResultsPage<RowResult<Value>, byte[]> withHandle(Handle handle)
@@ -442,10 +397,8 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                 List<byte[]> rows = getRowsInRange(tableName, rangeRequest,
                         timestamp, maxRows, handle);
                 if (rows.isEmpty()) {
-                    return SimpleTokenBackedResultsPage.create(
-                            rangeRequest.getStartInclusive(),
-                            Collections.<RowResult<Value>> emptyList(),
-                            false);
+                    return SimpleTokenBackedResultsPage.create( rangeRequest.getStartInclusive(),
+                            Collections.<RowResult<Value>> emptyList(), false);
                 }
                 ColumnSelection columns = RangeRequests.extractColumnSelection(rangeRequest);
                 Map<Cell, Value> cells = getRows(tableName, rows, columns, timestamp);
@@ -506,43 +459,28 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                 .list();
     }
 
-    TokenBackedBasicResultsPage<RowResult<Set<Value>>, byte[]> getPageWithHistory(final String tableName,
+    private TokenBackedBasicResultsPage<RowResult<Set<Value>>, byte[]> getPageWithHistory(final String tableName,
                                                                                   final RangeRequest rangeRequest,
                                                                                   final long timestamp) {
         Preconditions.checkArgument(!rangeRequest.isReverse());
-        final int maxRows = getMaxRows(rangeRequest);
+        final int maxRows = getBatchSize(rangeRequest);
         return getDbi().withHandle(
                 new HandleCallback<TokenBackedBasicResultsPage<RowResult<Set<Value>>, byte[]>>() {
                     @Override
                     public TokenBackedBasicResultsPage<RowResult<Set<Value>>, byte[]> withHandle(Handle handle)
                             throws Exception {
-                        List<Cell> cells = getCellsInRange(
-                                tableName,
-                                rangeRequest,
-                                timestamp,
-                                maxRows,
-                                handle);
-                        // TODO: Will this fail if none of the rows in the first range
-                        // has matching columns (but later rows do have).
-                        if (cells.isEmpty()) {
-                            return SimpleTokenBackedResultsPage.create(
-                                    rangeRequest.getStartInclusive(),
-                                    Collections.<RowResult<Set<Value>>> emptyList(),
-                                    false);
+                        List<byte[]> rows = getRowsInRange(tableName, rangeRequest, timestamp, maxRows, handle);
+                        if (rows.isEmpty()) {
+                            return SimpleTokenBackedResultsPage.create(rangeRequest.getStartInclusive(),
+                                    Collections.<RowResult<Set<Value>>> emptyList(), false);
                         }
-
-                        SetMultimap<Cell, Value> timestamps = getAllVersionsInternal(
-                                tableName,
-                                ImmutableSet.copyOf(cells),
-                                timestamp);
+                        SetMultimap<Cell, Value> timestamps = getAllVersionsInternal(tableName, rows,
+                                RangeRequests.extractColumnSelection(rangeRequest), timestamp);
                         Set<RowResult<Set<Value>>> finalResult = AtlasSqlUtils.cellsToRows(timestamps);
-                        byte[] lastRow = cells.get(cells.size() - 1).getRowName();
-                        byte[] token = RangeRequests.getNextStartRow(
-                                rangeRequest.isReverse(), lastRow);
                         return SimpleTokenBackedResultsPage.create(
-                                token,
+                                AtlasSqlUtils.generateToken(rangeRequest, rows),
                                 finalResult,
-                                cells.size() == maxRows);
+                                rows.size() == maxRows);
                     }
                 });
     }
@@ -563,10 +501,8 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
             @Override
             protected TokenBackedBasicResultsPage<RowResult<Set<Value>>, byte[]> getNextPage(TokenBackedBasicResultsPage<RowResult<Set<Value>>, byte[]> previous)
                     throws Exception {
-                return getPageWithHistory(
-                        tableName,
-                        rangeRequest.getBuilder().startRowInclusive(previous.getTokenForNextPage()).build(),
-                        timestamp);
+                return getPageWithHistory(tableName,
+                        rangeRequest.getBuilder().startRowInclusive(previous.getTokenForNextPage()).build(), timestamp);
             }
 
         }.iterator());
@@ -589,10 +525,8 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
             @Override
             protected TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]> getNextPage(TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]> previous)
                     throws Exception {
-                return getPageOfTimestamps(
-                        tableName,
-                        rangeRequest.getBuilder().startRowInclusive(previous.getTokenForNextPage()).build(),
-                        timestamp);
+                return getPageOfTimestamps(tableName,
+                        rangeRequest.getBuilder().startRowInclusive(previous.getTokenForNextPage()).build(), timestamp);
             }
             }.iterator());
     }
@@ -601,37 +535,26 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                                                                                           final RangeRequest rangeRequest,
                                                                                           final long timestamp) {
         Preconditions.checkArgument(!rangeRequest.isReverse());
-        final int maxRows = getMaxRows(rangeRequest);
+        final int maxRows = getBatchSize(rangeRequest);
         return getDbi().withHandle(
                 new HandleCallback<TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]>>() {
                     @Override
                     public TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]> withHandle(Handle handle)
                             throws Exception {
-                        List<Cell> cells = getCellsInRange(
-                                tableName,
-                                rangeRequest,
-                                timestamp,
-                                maxRows,
-                                handle);
-                        if (cells.isEmpty()) {
-                            return SimpleTokenBackedResultsPage.create(
-                                    rangeRequest.getStartInclusive(),
-                                    Collections.<RowResult<Set<Long>>> emptyList(),
-                                    false);
+                        List<byte[]> rows = getRowsInRange(tableName, rangeRequest,
+                                timestamp, maxRows, handle);
+                        if (rows.isEmpty()) {
+                            return SimpleTokenBackedResultsPage.create(rangeRequest.getStartInclusive(),
+                                    Collections.<RowResult<Set<Long>>> emptyList(), false);
                         }
 
-                        SetMultimap<Cell, Long> timestamps = getAllTimestamps(
-                                tableName,
-                                ImmutableSet.copyOf(cells),
-                                timestamp);
+                        ColumnSelection columns = RangeRequests.extractColumnSelection(rangeRequest);
+                        SetMultimap<Cell, Long> timestamps = getAllTimestampsInternal(tableName, rows, columns, timestamp);
                         Set<RowResult<Set<Long>>> result = AtlasSqlUtils.cellsToRows(timestamps);
-                        byte[] token = RangeRequests.getNextStartRow(
-                                rangeRequest.isReverse(),
-                                cells.get(cells.size() - 1).getRowName());
                         return new SimpleTokenBackedResultsPage<RowResult<Set<Long>>, byte[]>(
-                                token,
+                                AtlasSqlUtils.generateToken(rangeRequest, rows),
                                 result,
-                                cells.size() == maxRows);
+                                rows.size() == maxRows);
                     }
                 });
     }
@@ -642,10 +565,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                                                                                                            Iterable<RangeRequest> rangeRequests,
                                                                                                            long timestamp) {
         return KeyValueServices.getFirstBatchForRangesUsingGetRange(
-                this,
-                tableName,
-                rangeRequests,
-                timestamp);
+                this, tableName, rangeRequests, timestamp);
     }
 
     @Override
@@ -654,7 +574,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
         getDbi().inTransaction(new TransactionCallback<Void>() {
             @Override
             public Void inTransaction(Handle handle, TransactionStatus status) throws Exception {
-                handle.execute("DROP TABLE " + tableName);
+                handle.execute("DROP TABLE " + USER_TABLE_PREFIX(tableName));
                 handle.execute("DELETE FROM " + MetaTable.META_TABLE_NAME + " WHERE "
                         + MetaTable.Columns.TABLE_NAME + " = ?", tableName);
                 return null;
@@ -670,7 +590,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
             @Override
             public Void inTransaction(Handle handle, TransactionStatus status) throws Exception {
                 handle.execute(
-                        "CREATE TABLE " + tableName + " ( " +
+                        "CREATE TABLE " + USER_TABLE_PREFIX(tableName) + " ( " +
                 		"    " + Columns.ROW + " BYTEA NOT NULL, " +
                 		"    " + Columns.COLUMN + " BYTEA NOT NULL, " +
                 		"    " + Columns.TIMESTAMP + " INT NOT NULL, " +
@@ -744,31 +664,51 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
     }
 
     private SetMultimap<Cell, Value> getAllVersionsInternal(final String tableName,
-                                                            final Set<Cell> cells,
+                                                            final Collection<byte[]> rows,
+                                                            final ColumnSelection columns,
                                                             final long timestamp)
             throws InsufficientConsistencyException {
         return getDbi().withHandle(new HandleCallback<SetMultimap<Cell, Value>>() {
             @Override
             public SetMultimap<Cell, Value> withHandle(Handle handle) throws Exception {
-
                 Query<Pair<Cell, Value>> query = handle.createQuery(
                         "SELECT " + Columns.ROW_COLUMN_TIMESTAMP_CONTENT_AS("t") + " " +
-                        "FROM " + tableName + " t " +
-                        "WHERE (" + Columns.ROW + ", " + Columns.COLUMN + ") IN (" +
-                        "    " + makeSlots("cell", cells.size(), 2) + ") " +
+                        "FROM " + USER_TABLE_PREFIX(tableName, "t") + " " +
+                        "WHERE (" + Columns.ROW + ") IN (" +
+                        "    " + makeSlots("row", rows.size(), 1) + ") " +
                         "    AND " + Columns.TIMESTAMP("t") + " < " + timestamp)
                         .map(CellValueMapper.instance());
-                int pos = 0;
-                for (Cell cell : cells) {
-                    query.bind(pos++, cell.getRowName());
-                    query.bind(pos++, cell.getColumnName());
-                }
+                AtlasSqlUtils.bindAll(query, rows);
+                return AtlasSqlUtils.listToSetMultimap(query.list());
+            }
+        });
+    }
 
-                SetMultimap<Cell, Value> result = HashMultimap.create();
-                for (Pair<Cell, Value> p : query.list()) {
-                    result.put(p.getLhSide(), p.getRhSide());
-                }
-                return result;
+    private SetMultimap<Cell, Long> getAllTimestampsInternal(final String tableName,
+                                                            final Collection<byte[]> rows,
+                                                            final ColumnSelection columns,
+                                                            final long timestamp)
+            throws InsufficientConsistencyException {
+        return getDbi().withHandle(new HandleCallback<SetMultimap<Cell, Long>>() {
+            @Override
+            public SetMultimap<Cell, Long> withHandle(Handle handle) throws Exception {
+                Query<Pair<Cell,Long>> query = handle.createQuery(
+                        "SELECT " + Columns.ROW_COLUMN_TIMESTAMP_AS("t") + " " +
+                        "FROM " + USER_TABLE_PREFIX(tableName, "t") + " " +
+                        "WHERE (" + Columns.ROW + ") IN (" +
+                        "    " + makeSlots("row", rows.size(), 1) + ") " +
+                        "    AND " + Columns.TIMESTAMP("t") + " < " + timestamp)
+                        .map(new ResultSetMapper<Pair<Cell, Long>>() {
+                            @Override
+                            public Pair<Cell, Long> map(int index, ResultSet r, StatementContext ctx)
+                                    throws SQLException {
+                                Cell cell = CellMapper.instance().map(index, r, ctx);
+                                long timestamp = TimestampMapper.instance().map(index, r, ctx);
+                                return Pair.create(cell, timestamp);
+                            }
+                        });
+                AtlasSqlUtils.bindAll(query, rows);
+                return AtlasSqlUtils.listToSetMultimap(query.list());
             }
         });
     }
@@ -781,10 +721,9 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
         return getDbi().withHandle(new HandleCallback<SetMultimap<Cell, Long>>() {
             @Override
             public SetMultimap<Cell, Long> withHandle(Handle handle) throws Exception {
-
                 Query<Pair<Cell, Long>> query = handle.createQuery(
                         "SELECT " + Columns.ROW_COLUMN_TIMESTAMP_AS("t") + " " +
-                        "FROM " + tableName + " t " +
+                        "FROM " + USER_TABLE_PREFIX(tableName, "t") + " " +
                         "WHERE (" + Columns.ROW.append(Columns.COLUMN) + ") IN (" +
                         "    " + makeSlots("cell", cells.size(), 2) + ") " +
                         "    AND " + Columns.TIMESTAMP("t") + " < " + timestamp)
@@ -800,13 +739,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                             }
                         });
                 AtlasSqlUtils.bindCells(query, cells);
-
-                SetMultimap<Cell, Long> result = HashMultimap.create();
-                for (Pair<Cell, Long> p : query.list()) {
-                    result.put(p.getLhSide(), p.getRhSide());
-                }
-
-                return result;
+                return AtlasSqlUtils.listToSetMultimap(query.list());
             }
         });
     }
