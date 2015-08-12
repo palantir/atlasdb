@@ -516,9 +516,10 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
 
     private void putValuesForTimestamps(Iterable<Long> timestamps) {
         Cell cell = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("col"));
+
         for (long timestamp: timestamps) {
             keyValueService.put(TEST_TABLE, ImmutableMap.of(cell,
-                PtBytes.toBytes("val" + timestamp)), timestamp);
+                    PtBytes.toBytes("val" + timestamp)), timestamp);
         }
     }
 
