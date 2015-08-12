@@ -61,6 +61,7 @@ import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.NonIdempotent;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.util.Pair;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
@@ -89,7 +90,6 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
         return getTestPostgresDataSource();
     }
 
-
     private static DataSource getTestPostgresDataSource() {
         PoolingDataSource pgDataSource = new PoolingDataSource();
         pgDataSource.setDatabaseName("test");
@@ -101,6 +101,10 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
     public PostgresKeyValueService(ExecutorService executor) {
         super(executor);
         dbi = new DBI(getTestDataSource());
+    }
+
+    public PostgresKeyValueService() {
+        this(PTExecutors.newCachedThreadPool());
     }
 
     @Override
@@ -590,7 +594,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
             @Override
             public Void inTransaction(Handle handle, TransactionStatus status) throws Exception {
                 handle.execute(
-                        "CREATE TABLE " + USER_TABLE_PREFIX(tableName) + " ( " +
+                        "CREATE TABLE IF NOT EXISTS " + USER_TABLE_PREFIX(tableName) + " ( " +
                 		"    " + Columns.ROW + " BYTEA NOT NULL, " +
                 		"    " + Columns.COLUMN + " BYTEA NOT NULL, " +
                 		"    " + Columns.TIMESTAMP + " INT NOT NULL, " +
