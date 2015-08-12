@@ -281,6 +281,7 @@ public final class StreamTestStreamStore extends AbstractPersistentStreamStore {
         index.delete(row, col);
     }
 
+    @Override
     protected void touchMetadataWhileMarkingUsedForConflicts(Transaction t, long streamId) {
         StreamTestStreamMetadataTable metaTable = tables.getStreamTestStreamMetadataTable(t);
         Set<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow> rows = Sets.newHashSet();

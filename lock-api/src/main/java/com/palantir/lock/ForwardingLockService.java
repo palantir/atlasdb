@@ -52,6 +52,7 @@ public abstract class ForwardingLockService extends ForwardingObject implements 
         return delegate().unlockSimple(SimpleHeldLocksToken.fromHeldLocksToken(token));
     }
 
+    @Override
     public boolean unlock(LockRefreshToken token) {
         return delegate().unlockSimple(SimpleHeldLocksToken.fromLockRefreshToken(token));
     }
