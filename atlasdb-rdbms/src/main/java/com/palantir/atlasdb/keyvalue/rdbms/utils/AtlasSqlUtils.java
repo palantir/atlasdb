@@ -55,7 +55,7 @@ public class AtlasSqlUtils {
         return USER_TABLE_PREFIX(tableName) + " " + alias;
     }
 
-    private static final int CHUNK_SIZE = 10;
+    private static final int CHUNK_SIZE = 200;
     public static <V> void batch(Iterable<V> items, Function<Collection<V>, Void> runWithBatch) {
         for (List<V> chunk : Iterables.partition(items, CHUNK_SIZE)) {
             runWithBatch.apply(chunk);
