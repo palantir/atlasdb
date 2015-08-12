@@ -380,6 +380,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                 "WHERE " + Columns.ROW + " >= :startRow" +
                 "    AND " + Columns.ROW + " < :endRow " +
                 "    AND " + Columns.TIMESTAMP + " < :timestamp " +
+                "ORDER BY " + Columns.ROW + " " +
                 "LIMIT :limit")
                 .bind("startRow", rangeRequest.getStartInclusive())
                 .bind("endRow", RangeRequests.endRowExclusiveOrOneAfterMax(rangeRequest))
@@ -435,32 +436,6 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                         timestamp);
             }
         }.iterator());
-    }
-
-    List<Cell> getCellsInRange(final String tableName, RangeRequest rangeRequest, long timestamp, int limit, Handle handle) {
-        return handle.createQuery(
-                "SELECT DISTINCT " +
-                "    " + Columns.ROW + ", " +
-                "    " + Columns.COLUMN + " " +
-                "FROM " + USER_TABLE_PREFIX(tableName) + " " +
-                "WHERE " + Columns.ROW + ">= :startRow" +
-                "    AND " + Columns.ROW + "< :endRow " +
-        		"    AND " + Columns.TIMESTAMP + "< :timestamp " +
-                "LIMIT :limit")
-                .bind("startRow", rangeRequest.getStartInclusive())
-                .bind("endRow", RangeRequests.endRowExclusiveOrOneAfterMax(rangeRequest))
-                .bind("timestamp", timestamp)
-                .bind("limit", limit)
-                .map(new ResultSetMapper<Cell>() {
-                    @Override
-                    public Cell map(int index, ResultSet r, StatementContext ctx)
-                            throws SQLException {
-                        byte[] row = r.getBytes(Columns.ROW.toString());
-                        byte[] column = r.getBytes(Columns.COLUMN.toString());
-                        return Cell.create(row, column);
-                    }
-                })
-                .list();
     }
 
     private TokenBackedBasicResultsPage<RowResult<Set<Value>>, byte[]> getPageWithHistory(final String tableName,
