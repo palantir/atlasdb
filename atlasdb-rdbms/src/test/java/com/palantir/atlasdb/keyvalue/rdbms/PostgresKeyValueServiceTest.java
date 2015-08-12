@@ -19,6 +19,12 @@ public class PostgresKeyValueServiceTest extends AbstractAtlasDbKeyValueServiceT
         return pgDataSource;
     }
 
+    public static PostgresKeyValueService newTestInstance() {
+        PostgresKeyValueService ret = new PostgresKeyValueService(getTestPostgresDataSource());
+        ret.initializeFromFreshInstance();
+        return ret;
+    }
+
     @Override
     protected KeyValueService getKeyValueService() {
         if (kvs == null) {
