@@ -126,7 +126,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
         getDbi().inTransaction(new TransactionCallback<Void>() {
             @Override
             public Void inTransaction(Handle conn, TransactionStatus status) throws Exception {
-                conn.execute("DROP TABLE IF EXISTS " + MetaTable.META_TABLE_NAME);
+                conn.execute("DELETE FROM " + MetaTable.META_TABLE_NAME);
                 return null;
             }
         });
