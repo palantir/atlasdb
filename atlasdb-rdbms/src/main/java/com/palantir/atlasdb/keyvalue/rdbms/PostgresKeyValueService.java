@@ -35,7 +35,6 @@ import javax.annotation.Nullable;
 import javax.sql.DataSource;
 
 import org.apache.commons.lang.ArrayUtils;
-import org.postgresql.jdbc2.optional.PoolingDataSource;
 import org.skife.jdbi.v2.DBI;
 import org.skife.jdbi.v2.Handle;
 import org.skife.jdbi.v2.Query;
@@ -95,26 +94,14 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
         return dbi;
     }
 
-    protected DataSource getTestDataSource() {
-        return getTestPostgresDataSource();
-    }
-
-    private static DataSource getTestPostgresDataSource() {
-        PoolingDataSource pgDataSource = new PoolingDataSource();
-        pgDataSource.setDatabaseName("test");
-        pgDataSource.setUser("test");
-        pgDataSource.setPassword("password");
-        return pgDataSource;
-    }
-
     // *** Construction ***************************************************************************
-    public PostgresKeyValueService(ExecutorService executor) {
+    public PostgresKeyValueService(DataSource dataSource, ExecutorService executor) {
         super(executor);
-        dbi = new DBI(getTestDataSource());
+        dbi = new DBI(dataSource);
     }
 
-    public PostgresKeyValueService() {
-        this(PTExecutors.newCachedThreadPool());
+    public PostgresKeyValueService(DataSource dataSource) {
+        this(dataSource, PTExecutors.newCachedThreadPool());
     }
 
     // *** Initialization and teardown ************************************************************
