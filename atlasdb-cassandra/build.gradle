@@ -1,42 +1,7 @@
 apply from: "../gradle/shared.gradle"
 
-apply plugin: 'java'
-apply plugin: 'eclipse'
-apply plugin: "jacoco"
-
-repositories {
-    mavenCentral()
-}
-
-libsDirName = file('build/artifacts')
 dependencies {
   compile(project(":atlasdb-client"))
   compile(project(":commons-cassandra"))
   compile(project(":timestamp-api"))
-  testCompile project(path: ":atlasdb-tests-shared", configuration: 'test')
-  testCompile 'org.apache.cassandra:cassandra-all:2.1.5'
-}
-
-jacoco {
-    toolVersion = "0.7.1.201405082137"
-    reportsDir = file("$buildDir/customJacocoReportDir")
-}
-
-test {
-    jacoco {
-        append = false
-        destinationFile = file("$buildDir/jacoco/jacocoTest.exec")
-        classDumpFile = file("$buildDir/jacoco/classpathdumps")
-    }
-
-    include '**/*Suite.class'
-}
-
-jacocoTestReport {
-    reports {
-        xml.enabled true
-        csv.enabled false
-        html.enabled true
-        html.destination "${buildDir}/jacocoHtml"
-    }
 }

@@ -2,6 +2,7 @@ package com.palantir.atlasdb.client;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import feign.Request;
 import feign.RequestTemplate;
@@ -15,47 +16,50 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     AtomicInteger failoverCount = new AtomicInteger();
     private final int maxAttempts = 20;
     private final long period = 10;
-    private final long maxPeriod = 100;
+    private final long maxBackoffMillis = 1000;
+    private final int failuresBeforeSwitching = 5;
+    private final int numServersToTryBeforeFailing = 8;
 
-    ThreadLocal<RetryState> state = new ThreadLocal<RetryState>() {
-        protected FailoverFeignTarget.RetryState initialValue() {
-            return new RetryState();
-        }
-    };
+    private final AtomicLong failuresSinceLastSwitch = new AtomicLong();
+    private final AtomicLong numSwitches = new AtomicLong();
+
+    ThreadLocal<Integer> mostRecentServerIndex = new ThreadLocal<Integer>();
 
     @Override
     public void continueOrPropagate(RetryableException e) {
-        if (state.get().attempt++ >= maxAttempts) {
-            throw e;
-        }
-
-        long interval;
-        if (e.retryAfter() != null) {
-            interval = e.retryAfter().getTime() - System.currentTimeMillis();
-            if (interval > maxPeriod) {
-                interval = maxPeriod;
-            }
-            if (interval < 0) {
-                return;
-            }
-        } else {
-            interval = nextMaxInterval();
-        }
-        try {
-            Thread.sleep(interval);
-        } catch (InterruptedException ignored) {
-            Thread.currentThread().interrupt();
-        }
+        return;
+//        if (state.get().attempt++ >= maxAttempts) {
+//            throw e;
+//        }
+//
+//        long interval;
+//        if (e.retryAfter() != null) {
+//            interval = e.retryAfter().getTime() - System.currentTimeMillis();
+//            if (interval > f) {
+//                interval = maxPeriod;
+//            }
+//            if (interval < 0) {
+//                return;
+//            }
+//        } else {
+//            interval = nextMaxInterval();
+//        }
+//        try {
+//            Thread.sleep(interval);
+//        } catch (InterruptedException ignored) {
+//            Thread.currentThread().interrupt();
+//        }
     }
 
     long nextMaxInterval() {
-      long interval = (long) (period * Math.pow(1.5, state.get().attempt - 1));
-      return interval > maxPeriod ? maxPeriod : interval;
+//      long interval = (long) (period * Math.pow(1.5, state.get().attempt - 1));
+//      return interval > maxPeriod ? maxPeriod : interval;
+      return 0;
     }
 
     @Override
     public Retryer clone() {
-        state.remove();
+        mostRecentServerIndex.remove();
         return this;
     }
 
@@ -71,7 +75,9 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
 
     @Override
     public String url() {
-        return getServer(state.get().failoverVersion);
+        int indexToHit = failoverCount.get();
+        mostRecentServerIndex.set(indexToHit);
+        return getServer(indexToHit);
     }
 
     private String getServer(int failoverVersion) {
@@ -85,10 +91,4 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
         }
         return input.request();
     }
-
-    class RetryState {
-        int attempt = 1;
-        int failoverVersion = failoverCount.get();
-    }
-
 }
