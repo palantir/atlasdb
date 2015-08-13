@@ -22,6 +22,8 @@ import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Set;
 
+import javax.annotation.concurrent.ThreadSafe;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
@@ -39,7 +41,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.partition.api.PartitionMap;
 import com.palantir.common.annotation.Immutable;
 
-@Immutable public final class BasicPartitionMap implements PartitionMap {
+@Immutable @ThreadSafe public final class BasicPartitionMap implements PartitionMap {
 
     private final QuorumParameters quorumParameters;
     // This map is never modified
