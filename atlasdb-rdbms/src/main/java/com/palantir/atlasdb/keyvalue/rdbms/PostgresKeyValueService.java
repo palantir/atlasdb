@@ -487,6 +487,9 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
     public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(final String tableName,
                                                                        final RangeRequest rangeRequest,
                                                                        final long timestamp) {
+        if (rangeRequest.isReverse()) {
+            throw new UnsupportedOperationException();
+        }
         return ClosableIterators.wrap(new AbstractPagingIterable<RowResult<Set<Value>>, TokenBackedBasicResultsPage<RowResult<Set<Value>>, byte[]>>() {
 
             @Override
@@ -569,6 +572,9 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                                                                        final RangeRequest rangeRequest,
                                                                        final long timestamp)
             throws InsufficientConsistencyException {
+        if (rangeRequest.isReverse()) {
+            throw new UnsupportedOperationException();
+        }
         return ClosableIterators.wrap(new AbstractPagingIterable<RowResult<Set<Long>>, TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]>>() {
 
             @Override
