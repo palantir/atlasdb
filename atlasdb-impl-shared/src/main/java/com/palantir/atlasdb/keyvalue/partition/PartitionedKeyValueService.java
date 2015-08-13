@@ -50,9 +50,6 @@ public class PartitionedKeyValueService implements KeyValueService {
     private static final Logger log = LoggerFactory.getLogger(PartitionedKeyValueService.class);
 
     // Immutable
-    private static final QuorumParameters DEFAULT_QUORUM_PARAMETERS = new QuorumParameters(3, 2, 2);
-
-    // Immutable
     private final BasicPartitionMap partitionMap;
 
     // Immutable
