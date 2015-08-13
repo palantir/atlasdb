@@ -28,8 +28,6 @@ import org.junit.runners.Suite.SuiteClasses;
     CassandraKeyValueServiceSerializableTransactionTest.class,
     CassandraKeyValueServiceTransactionTest.class,
     CassandraTimestampTest.class,
-    CQLKeyValueServiceSerializableTransactionTest.class,
-    CQLKeyValueServiceTransactionTest.class
 })
 public class CassandraTestSuite {
 
