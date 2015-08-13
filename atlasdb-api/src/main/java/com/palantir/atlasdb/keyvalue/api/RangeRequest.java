@@ -121,6 +121,9 @@ import com.palantir.util.Pair;
     }
 
     public boolean isEmptyRange() {
+        if (startInclusive.length == 0 && RangeRequests.isFirstRowName(reverse, endExclusive)) {
+            return true;
+        }
         if (startInclusive.length == 0 || endExclusive.length == 0) {
             return false;
         }
@@ -129,6 +132,21 @@ import com.palantir.util.Pair;
         } else {
             return UnsignedBytes.lexicographicalComparator().compare(startInclusive, endExclusive) >= 0;
         }
+    }
+
+    public boolean inRange(byte[] position) {
+        Preconditions.checkArgument(Cell.isNameValid(position));
+        final boolean afterStart;
+        final boolean afterEnd;
+        if (reverse) {
+            afterStart = getStartInclusive().length == 0 || UnsignedBytes.lexicographicalComparator().compare(getStartInclusive(), position) >= 0;
+            afterEnd = getEndExclusive().length == 0 || UnsignedBytes.lexicographicalComparator().compare(getEndExclusive(), position) < 0;
+        } else {
+            afterStart = getStartInclusive().length == 0 || UnsignedBytes.lexicographicalComparator().compare(getStartInclusive(), position) <= 0;
+            afterEnd = getEndExclusive().length == 0 || UnsignedBytes.lexicographicalComparator().compare(getEndExclusive(), position) > 0;
+        }
+
+        return afterStart && afterEnd;
     }
 
     @Nullable

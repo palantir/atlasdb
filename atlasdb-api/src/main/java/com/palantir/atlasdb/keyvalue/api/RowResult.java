@@ -68,7 +68,7 @@ public class RowResult<T> implements Serializable {
     public Set<Cell> getCellSet() {
         Set<Cell> cells = Sets.newHashSet();
         for (byte[] column : columns.keySet()) {
-            cells.add(Cell.create(row,column));
+            cells.add(Cell.create(row, column));
         }
         return cells;
     }

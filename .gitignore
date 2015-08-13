@@ -17,4 +17,4 @@ fix-ivy.py
 build/
 .gradle
 bin/
-
+userdict.txt

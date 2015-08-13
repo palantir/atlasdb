@@ -19,6 +19,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 
 public class RangeRequestTest {
 
@@ -37,6 +38,14 @@ public class RangeRequestTest {
         end = RangeRequest.builder().prefixRange(new byte[] {0, -1, 0}).build().getEndExclusive();
         Assert.assertTrue(end.length == 3);
         Assert.assertTrue(end[2] == 1);
+    }
+
+    @Test
+    public void testEmpty() {
+        RangeRequest request = RangeRequest.builder().endRowExclusive(RangeRequests.getFirstRowName()).build();
+        Assert.assertTrue(request.isEmptyRange());
+        request = RangeRequest.reverseBuilder().endRowExclusive(RangeRequests.getLastRowName()).build();
+        Assert.assertTrue(request.isEmptyRange());
     }
 
 }
