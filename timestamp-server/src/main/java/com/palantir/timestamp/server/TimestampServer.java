@@ -46,6 +46,9 @@ import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.RateLimitedTimestampService;
 import com.palantir.timestamp.TimestampService;
+import com.palantir.timestamp.server.config.AtlasDbServerFactory;
+import com.palantir.timestamp.server.config.CassandraAtlasServerFactory;
+import com.palantir.timestamp.server.config.LevelDbAtlasServerFactory;
 import com.palantir.timestamp.server.config.TimestampServerConfiguration;
 import com.palantir.timestamp.server.config.TimestampServerConfiguration.ServerType;
 
@@ -67,7 +70,7 @@ public class TimestampServer extends Application<TimestampServerConfiguration> {
 
     private <T> List<T> getRemoteServices(List<String> uris, Class<T> iFace) {
         // TODO: remove null
-    	ObjectMapper mapper = getObjectMapper(new TableMetadataCache(null));
+    	ObjectMapper mapper = new ObjectMapper();
         List<T> ret = Lists.newArrayList();
         for (String uri : uris) {
             T service = Feign.builder()
@@ -89,24 +92,27 @@ public class TimestampServer extends Application<TimestampServerConfiguration> {
 
     @Override
     public void run(TimestampServerConfiguration configuration, Environment environment) throws Exception {
-    	PaxosLearner learner = PaxosLearnerImpl.newLearner(configuration.learnerLogDir);
-    	PaxosAcceptor acceptor = PaxosAcceptorImpl.newAcceptor(configuration.acceptorLogDir);
+    	PaxosLearner learner = PaxosLearnerImpl.newLearner(configuration.leader.learnerLogDir);
+    	PaxosAcceptor acceptor = PaxosAcceptorImpl.newAcceptor(configuration.leader.acceptorLogDir);
         environment.jersey().register(acceptor);
         environment.jersey().register(learner);
 
-        List<PaxosLearner> learners = getRemoteServices(configuration.servers, PaxosLearner.class);
-        learners.set(configuration.localIndex, learner);
-        List<PaxosAcceptor> acceptors = getRemoteServices(configuration.servers, PaxosAcceptor.class);
-        acceptors.set(configuration.localIndex, acceptor);
+        int localIndex = configuration.leader.leaders.indexOf(configuration.leader.localServer);
+        Preconditions.checkArgument(localIndex != -1, "localServer must be in the list of leaders");
 
-        List<PingableLeader> otherLeaders = getRemoteServices(configuration.servers, PingableLeader.class);
-        otherLeaders.remove(configuration.localIndex);
+        List<PaxosLearner> learners = getRemoteServices(configuration.leader.leaders, PaxosLearner.class);
+        learners.set(localIndex, learner);
+        List<PaxosAcceptor> acceptors = getRemoteServices(configuration.leader.leaders, PaxosAcceptor.class);
+        acceptors.set(localIndex, acceptor);
+
+        List<PingableLeader> otherLeaders = getRemoteServices(configuration.leader.leaders, PingableLeader.class);
+        otherLeaders.remove(localIndex);
 
         PaxosProposer proposer = PaxosProposerImpl.newProposer(
         		learner,
         		acceptors,
         		learners,
-        		configuration.quorumSize,
+        		configuration.leader.quorumSize,
         		executor);
         PaxosLeaderElectionService leader = new PaxosLeaderElectionService(
                 proposer,
@@ -122,6 +128,7 @@ public class TimestampServer extends Application<TimestampServerConfiguration> {
         environment.jersey().register(createTimestampService(leader, configuration));
         environment.jersey().register(createLockService(leader));
         environment.jersey().register(new NotCurrentLeaderExceptionMapper());
+
     }
 
     private RemoteLockService createLockService(PaxosLeaderElectionService leader) {
@@ -134,9 +141,18 @@ public class TimestampServer extends Application<TimestampServerConfiguration> {
         return lock;
     }
 
+    private AtlasDbServerFactory createFactory(PaxosLeaderElectionService leader, final TimestampServerConfiguration config) {
+        if (config.serverType == ServerType.LEVELDB) {
+            Preconditions.checkArgument(config.leader.leaders.size() == 1, "only one server allowed for LevelDB");
+            return LevelDbAtlasServerFactory.create(leader, config.levelDbDir, null);
+        } else {
+            return CassandraAtlasServerFactory.create(leader, config, null);
+        }
+    }
+
     private TimestampService createTimestampService(PaxosLeaderElectionService leader, final TimestampServerConfiguration config) {
         if (config.serverType == ServerType.LEVELDB) {
-            Preconditions.checkArgument(config.servers.size() == 1, "only one server allowed for LevelDB");
+            Preconditions.checkArgument(config.leader.leaders.size() == 1, "only one server allowed for LevelDB");
         }
         TimestampService timestamp = AwaitingLeadershipProxy.newProxyInstance(TimestampService.class, new Supplier<TimestampService>() {
             @Override

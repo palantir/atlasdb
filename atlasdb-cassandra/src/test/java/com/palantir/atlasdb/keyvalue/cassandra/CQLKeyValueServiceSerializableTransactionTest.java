@@ -38,8 +38,7 @@ public class CQLKeyValueServiceSerializableTransactionTest extends
                 10000000,
                 1000,
                 true,
-                false,
-                null);
+                false);
     }
 
     @Override

@@ -76,11 +76,6 @@ public class LevelDbTransactionManager {
 
         schema.createTablesAndIndexes(keyValueService);
         SnapshotTransactionManager.createTables(keyValueService);
-        if (namespace != null && namespace != Namespace.EMPTY_NAMESPACE) {
-            TableRemappingKeyValueService mappingKv = TableRemappingKeyValueService.create(keyValueService, getMapper(ts, keyValueService));
-            KeyValueService namespaceKvs = NamespaceMappingKeyValueService.create(mappingKv);
-            schema.createTablesAndIndexes(namespaceKvs);
-        }
 
         TransactionService transactionService = TransactionServices.createTransactionService(keyValueService);
         RemoteLockService lock = LockRefreshingLockService.create(LockServiceImpl.create(new LockServerOptions() {
