@@ -1,9 +1,12 @@
 package com.palantir.atlasdb.keyvalue.partition;
 
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
@@ -17,7 +20,11 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
+import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
+import com.palantir.common.base.ClosableIterator;
+import com.palantir.common.concurrent.PTExecutors;
 
 public class DynamicPartitionMapImpl implements DynamicPartitionMap {
 
@@ -244,12 +251,60 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         // TODO: Start backfill
     }
 
+    long MAX_TS = 100;
+
+    private void copyData(KeyValueService destination, KeyValueService source) {
+        for (String tableName : source.getAllTableNames()) {
+            ClosableIterator<RowResult<Value>> allRows = source.getRange(tableName, RangeRequest.all(), MAX_TS);
+            while (allRows.hasNext()) {
+                RowResult<Value> row = allRows.next();
+                Multimap<Cell, Value> cells = HashMultimap.create();
+                for (Entry<Cell, Value> entry : row.getCells()) {
+                    cells.put(entry.getKey(), entry.getValue());
+                }
+                destination.putWithTimestamps(tableName, cells);
+            }
+            allRows.close();
+        }
+    }
+
     @Override
-    public void removeEndpoint(byte[] key, KeyValueService kvs, String rack) {
+    public void removeEndpoint(final byte[] key, final KeyValueService kvs, String rack) {
         Preconditions.checkArgument(ring.containsKey(key));
-        LeavingKeyValueService leavingKeyValueService = new LeavingKeyValueService(ring.get(key).get());
+        KeyValueServiceWithStatus original = ring.get(key);
+        Preconditions.checkArgument(original.get().equals(kvs));
+        // TODO: Maybe avoid using instanceof?
+        Preconditions.checkArgument(original instanceof RegularKeyValueService);
+        LeavingKeyValueService leavingKeyValueService = new LeavingKeyValueService(original.get());
         ring.put(key, leavingKeyValueService);
-        // TODO: Start backfill
+
+        // Find all the kvss that will substitute this one
+        // (there can be more than one if some other are
+        // joining or leaving)
+        byte[] nextKey = ring.nextKey(key);
+        final Set<KeyValueService> kvssToWrite = Sets.newHashSet();
+        do {
+            KeyValueServiceWithStatus kvsws = ring.get(nextKey);
+            if (!kvsws.shouldUseForWrite()) {
+                continue;
+            }
+            kvssToWrite.add(kvsws.get());
+            if (kvsws.shouldCountForWrite()) {
+                break;
+            }
+        } while (true);
+
+        ExecutorService executor = PTExecutors.newSingleThreadExecutor();
+        for (final KeyValueService destination : kvssToWrite) {
+            executor.submit(new Callable<byte[]>() {
+                @Override
+                public byte[] call() throws Exception {
+                    copyData(destination, kvs);
+                    // TODO: Notify - actually when all transfers are completed
+                    return null;
+                }
+            });
+        }
     }
 
     @Override
