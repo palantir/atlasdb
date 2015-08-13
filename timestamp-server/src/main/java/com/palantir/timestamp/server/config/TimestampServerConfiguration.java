@@ -15,39 +15,35 @@
  */
 package com.palantir.timestamp.server.config;
 
-import java.util.List;
-
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
-
-import com.google.common.collect.ImmutableList;
 
 import io.dropwizard.Configuration;
 
 public class TimestampServerConfiguration extends Configuration {
 	@NotNull
 	@Valid
-	public int quorumSize = 1;
+	public ClientConfiguration lockClient = new ClientConfiguration();
 
 	@NotNull
 	@Valid
-	public int localIndex = 0;
-	@NotNull
-	@Valid
-	public List<String> servers = ImmutableList.of("http://localhost:3828");
+	public ClientConfiguration timestampClient = new ClientConfiguration();
 
 	@NotNull
 	@Valid
-	public String learnerLogDir = "paxosLog/learner";
+	public LeaderConfiguration leader = new LeaderConfiguration();
 
 	@NotNull
 	@Valid
-	public String acceptorLogDir = "paxosLog/acceptor";
-
 	public ServerType serverType = ServerType.LEVELDB;
+
 	public String levelDbDir = "leveldb";
 
+	@Valid
+	public CassandraKeyValueConfiguration cassandra = new CassandraKeyValueConfiguration();
+
 	public enum ServerType {
-	    LEVELDB;
+	    LEVELDB,
+	    CASSANDRA;
 	}
 }

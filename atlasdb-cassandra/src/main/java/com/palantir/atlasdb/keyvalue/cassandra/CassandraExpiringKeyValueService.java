@@ -36,7 +36,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
-import com.palantir.atlasdb.property.AtlasSystemPropertyManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.Maps2;
 
@@ -52,9 +51,8 @@ public class CassandraExpiringKeyValueService extends CassandraKeyValueService i
                                      int mutationBatchSizeBytes,
                                      int fetchBatchCount,
                                      boolean safetyDisabled,
-                                     boolean autoRefreshNodes,
-                                     AtlasSystemPropertyManager systemProperties) {
-        super(hosts, port, poolSize, keyspace, isSsl, mutationBatchCount, mutationBatchSizeBytes, fetchBatchCount, safetyDisabled, autoRefreshNodes, systemProperties);
+                                     boolean autoRefreshNodes) {
+        super(hosts, port, poolSize, keyspace, isSsl, mutationBatchCount, mutationBatchSizeBytes, fetchBatchCount, safetyDisabled, autoRefreshNodes);
         Preconditions.checkArgument(!hosts.isEmpty(), "hosts set was empty");
 
         try {

@@ -8,3 +8,17 @@ server:
   adminConnectors:
     - type: http
       port: 3829
+
+lockClient:
+  servers:
+    - http://localhost:3828
+
+timestampClient:
+  servers:
+    - http://localhost:3828
+
+serverType: CASSANDRA
+cassandra:
+  servers:
+    -  localhost
+

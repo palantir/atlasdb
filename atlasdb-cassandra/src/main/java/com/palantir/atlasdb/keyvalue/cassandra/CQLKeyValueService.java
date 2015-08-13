@@ -97,7 +97,6 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
-import com.palantir.atlasdb.property.AtlasSystemPropertyManager;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.annotation.Idempotent;
@@ -133,7 +132,6 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     private final ManyClientPoolingContainer containerPoolToUpdate;
     private final PoolingContainer<Client> clientPool;
     private final ScheduledExecutorService hostRefreshExecutor = PTExecutors.newScheduledThreadPool(1);
-    private final AtlasSystemPropertyManager systemProperties;
 
     private ConsistencyLevel readConsistency = ConsistencyLevel.LOCAL_QUORUM;
     private final ConsistencyLevel writeConsistency = ConsistencyLevel.EACH_QUORUM;
@@ -157,8 +155,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                                             final int mutationBatchSizeBytes,
                                             final int fetchBatchCount,
                                             boolean safetyDisabled,
-                                            boolean autoRefreshNodes,
-                                            AtlasSystemPropertyManager systemProperties) {
+                                            boolean autoRefreshNodes) {
         Preconditions.checkArgument(!hosts.isEmpty(), "hosts set was empty");
         final CQLKeyValueService ret = new CQLKeyValueService(
                 hosts,
@@ -171,8 +168,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                 mutationBatchSizeBytes,
                 fetchBatchCount,
                 safetyDisabled,
-                autoRefreshNodes,
-                systemProperties);
+                autoRefreshNodes);
         try {
             ret.initializeFromFreshInstance(ImmutableList.copyOf(hosts), replicationFactor);
             ret.getPoolingManager().submitHostRefreshTask();
@@ -192,8 +188,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                                int mutationBatchSizeBytes,
                                int fetchBatchCount,
                                boolean safetyDisabled,
-                               boolean autoRefreshNodes,
-                               AtlasSystemPropertyManager systemProperties) {
+                               boolean autoRefreshNodes) {
         super(PTExecutors.newFixedThreadPool(poolSize * 2, new NamedThreadFactory(
                 "CQLKeyValueService",
                 false)));
@@ -206,7 +201,6 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         this.mutationBatchSizeBytes = mutationBatchSizeBytes;
         this.fetchBatchCount = fetchBatchCount;
         this.safetyDisabled = safetyDisabled;
-        this.systemProperties = systemProperties;
         this.containerPoolToUpdate = ManyClientPoolingContainer.create(
                 hosts,
                 port,

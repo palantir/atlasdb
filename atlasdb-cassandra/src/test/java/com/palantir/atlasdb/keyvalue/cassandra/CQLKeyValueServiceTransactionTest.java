@@ -35,8 +35,7 @@ public class CQLKeyValueServiceTransactionTest extends AbstractTransactionTest {
                 10000000,
                 1000,
                 true,
-                false,
-                null);
+                false);
     }
 
     @Override

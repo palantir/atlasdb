@@ -40,8 +40,7 @@ public class CassandraTimestampTest {
                 10000000,
                 1000,
                 true,
-                false,
-                null);
+                false);
         kv.initializeFromFreshInstance();
         kv.dropTable(TIMESTAMP_TABLE);
     }

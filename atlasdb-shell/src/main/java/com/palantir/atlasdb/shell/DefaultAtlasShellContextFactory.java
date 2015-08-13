@@ -87,8 +87,7 @@ public class DefaultAtlasShellContextFactory implements AtlasShellContextFactory
                 10000000,
                 1000,
                 false,
-                false,
-                null);
+                false);
         TransactionService transactionService = TransactionServices.createTransactionService(kv);
         TransactionManager transactionManager = new ShellAwareReadOnlyTransactionManager(
                 kv,

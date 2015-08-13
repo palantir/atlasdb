@@ -91,7 +91,6 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.ThreadS
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
-import com.palantir.atlasdb.property.AtlasSystemPropertyManager;
 import com.palantir.atlasdb.schema.UpgradeFailedException;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
@@ -118,7 +117,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     protected final ManyClientPoolingContainer containerPoolToUpdate;
     protected final PoolingContainer<Client> clientPool;
     private final ScheduledExecutorService hostRefreshExecutor = PTExecutors.newScheduledThreadPool(1);
-    private final AtlasSystemPropertyManager systemProperties;
     private final ReentrantLock schemaMutationLock = new ReentrantLock(true);
 
     private ConsistencyLevel readConsistency = ConsistencyLevel.LOCAL_QUORUM;
@@ -137,10 +135,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                                                   final int mutationBatchSizeBytes,
                                                   final int fetchBatchCount,
                                                   boolean safetyDisabled,
-                                                  boolean autoRefreshNodes,
-                                                  AtlasSystemPropertyManager systemProperties) {
+                                                  boolean autoRefreshNodes) {
         Preconditions.checkArgument(!hosts.isEmpty(), "hosts set was empty");
-        final CassandraKeyValueService ret = new CassandraKeyValueService(hosts, port, poolSize, keyspace, isSsl, mutationBatchCount, mutationBatchSizeBytes, fetchBatchCount, safetyDisabled, autoRefreshNodes, systemProperties);
+        final CassandraKeyValueService ret = new CassandraKeyValueService(hosts, port, poolSize, keyspace, isSsl, mutationBatchCount, mutationBatchSizeBytes, fetchBatchCount, safetyDisabled, autoRefreshNodes);
         try {
             ret.initializeFromFreshInstance(ret.containerPoolToUpdate.getCurrentHosts(), replicationFactor);
             ret.getPoolingManager().submitHostRefreshTask();
@@ -159,8 +156,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                                      int mutationBatchSizeBytes,
                                      int fetchBatchCount,
                                      boolean safetyDisabled,
-                                     boolean autoRefreshNodes,
-                                     AtlasSystemPropertyManager systemProperties) {
+                                     boolean autoRefreshNodes) {
         super(PTExecutors.newFixedThreadPool(poolSize*2, PTExecutors.newNamedThreadFactory(false)));
         this.port = port;
         this.isSsl = isSsl;
@@ -169,7 +165,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         this.mutationBatchSizeBytes = mutationBatchSizeBytes;
         this.fetchBatchCount = fetchBatchCount;
         this.safetyDisabled = safetyDisabled;
-        this.systemProperties = systemProperties;
         this.containerPoolToUpdate = ManyClientPoolingContainer.create(hosts, port, poolSize, keyspace, isSsl, safetyDisabled);
         this.clientPool = new RetriablePoolingContainer(this.containerPoolToUpdate);
         cassandraClientPoolingManager = new CassandraClientPoolingManager(containerPoolToUpdate, clientPool, port, isSsl, poolSize, keyspace, safetyDisabled, autoRefreshNodes);

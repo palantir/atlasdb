@@ -34,8 +34,7 @@ public class CassandraKeyValueServiceTransactionTest extends AbstractTransaction
                 10000000,
                 1000,
                 false,
-                false,
-                null);
+                false);
     }
 
     @Override
