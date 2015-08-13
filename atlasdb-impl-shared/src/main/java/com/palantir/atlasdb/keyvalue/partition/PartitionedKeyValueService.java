@@ -407,7 +407,7 @@ public class PartitionedKeyValueService implements KeyValueService {
     @NonIdempotent
     public void putWithTimestamps(final String tableName, Multimap<Cell, Value> cellValues)
             throws KeyAlreadyExistsException {
-        final Map<KeyValueService, Multimap<Cell, Value>> tasks = partitionMap.getServicesForWrite(
+        final Map<KeyValueService, Multimap<Cell, Value>> tasks = partitionMap.getServicesForCellsWrite(
                 tableName,
                 cellValues);
         final ExecutorCompletionService<Void> execSvc = new ExecutorCompletionService<Void>(
@@ -461,7 +461,7 @@ public class PartitionedKeyValueService implements KeyValueService {
     @Override
     @Idempotent
     public void delete(final String tableName, Multimap<Cell, Long> keys) {
-        final Map<KeyValueService, Multimap<Cell, Long>> tasks = partitionMap.getServicesForWrite(
+        final Map<KeyValueService, Multimap<Cell, Long>> tasks = partitionMap.getServicesForCellsWrite(
                 tableName,
                 keys);
         final QuorumTracker<Void, Map.Entry<Cell, Long>> tracker = QuorumTracker.of(

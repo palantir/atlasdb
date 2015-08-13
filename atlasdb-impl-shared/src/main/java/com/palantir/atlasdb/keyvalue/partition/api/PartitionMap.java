@@ -15,16 +15,12 @@ public interface PartitionMap {
     Multimap<ConsistentRingRangeRequest, KeyValueService> getServicesForRangeRead(String tableName, RangeRequest range);
 
     Map<KeyValueService, NavigableSet<byte[]>> getServicesForRowsRead(String tableName, Iterable<byte[]> rows);
-
-    Map<KeyValueService, Map<Cell, Long>> getServicesForCellsRead(String tableName, Map<Cell, Long> timestampByCell);
     Map<KeyValueService, Set<Cell>> getServicesForCellsRead(String tableName, Set<Cell> cells);
+    <T> Map<KeyValueService, Map<Cell, T>> getServicesForCellsRead(String tableName, Map<Cell, T> timestampByCell);
 
-    Map<KeyValueService, Map<Cell, byte[]>> getServicesForCellsWrite(String tableName,
-                                                                     Map<Cell, byte[]> values);
-    Map<KeyValueService, Set<Cell>> getServicesForCellsWrite(String tableName,
-                                                                     Set<Cell> cells);
-
-    <T> Map<KeyValueService, Multimap<Cell, T>> getServicesForWrite(String tableName, Multimap<Cell, T> keys);
+    Map<KeyValueService, Set<Cell>> getServicesForCellsWrite(String tableName, Set<Cell> cells);
+    <T> Map<KeyValueService, Map<Cell, T>> getServicesForCellsWrite(String tableName, Map<Cell, T> cells);
+    <T> Map<KeyValueService, Multimap<Cell, T>> getServicesForCellsWrite(String tableName, Multimap<Cell, T> cells);
 
     Set<? extends KeyValueService> getDelegates();
 
