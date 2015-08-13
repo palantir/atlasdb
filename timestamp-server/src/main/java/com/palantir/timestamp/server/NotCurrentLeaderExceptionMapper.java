@@ -14,7 +14,7 @@ public class NotCurrentLeaderExceptionMapper implements ExceptionMapper<NotCurre
     @Override
     public Response toResponse(NotCurrentLeaderException exception) {
         return Response.noContent().status(503)
-//                .header(feign.Util.RETRY_AFTER, "0")
+                .header(feign.Util.RETRY_AFTER, "0")
                 .build();
     }
 }
