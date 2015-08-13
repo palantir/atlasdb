@@ -74,7 +74,7 @@ public class CassandraAtlasServerFactory implements AtlasDbServerFactory {
 
     public static AtlasDbServerFactory create(PaxosLeaderElectionService leader, TimestampServerConfiguration config, Schema schema) {
         CassandraKeyValueService rawKv = createKv(config.cassandra);
-        TimestampService ts = PersistentTimestampService.create(CassandraTimestampBoundStore.create(rawKv));
+        TimestampService ts = null;
         KeyValueService keyValueService = createTableMappingKv(rawKv, ts);
 
         schema.createTablesAndIndexes(keyValueService);

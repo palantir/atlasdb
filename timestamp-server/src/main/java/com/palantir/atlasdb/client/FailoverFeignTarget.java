@@ -1,6 +1,7 @@
 package com.palantir.atlasdb.client;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import feign.Request;
 import feign.RequestTemplate;
@@ -11,6 +12,7 @@ import feign.Target;
 public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     List<String> servers;
     Class<T> type;
+    AtomicInteger failoverCount = new AtomicInteger();
     private final int maxAttempts = 20;
     private final long period = 10;
     private final long maxPeriod = 100;
@@ -64,25 +66,29 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
 
     @Override
     public String name() {
-        return null;
+        return "server list: " + servers;
     }
 
     @Override
     public String url() {
-        return null;
+        return getServer(state.get().failoverVersion);
+    }
+
+    private String getServer(int failoverVersion) {
+        return servers.get(failoverVersion % servers.size());
     }
 
     @Override
     public Request apply(RequestTemplate input) {
-        // TODO: get from target state
         if (input.url().indexOf("http") != 0) {
             input.insert(0, url());
         }
         return input.request();
     }
 
-    static class RetryState {
+    class RetryState {
         int attempt = 1;
+        int failoverVersion = failoverCount.get();
     }
 
 }
