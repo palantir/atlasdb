@@ -414,6 +414,7 @@ public class StreamStoreRenderer {
             }
 
             private void touchMetadataWhileMarkingUsedForConflicts() {
+                _("@Override");
                 _("protected void touchMetadataWhileMarkingUsedForConflicts(Transaction t, long streamId) {"); {
                     _(StreamMetadataTable, " metaTable = tables.get", StreamMetadataTable, "(t);");
                     _("Set<", StreamMetadataRow, "> rows = Sets.newHashSet();");

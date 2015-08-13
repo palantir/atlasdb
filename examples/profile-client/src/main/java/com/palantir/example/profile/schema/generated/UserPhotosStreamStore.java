@@ -281,6 +281,7 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
         index.delete(row, col);
     }
 
+    @Override
     protected void touchMetadataWhileMarkingUsedForConflicts(Transaction t, long streamId) {
         UserPhotosStreamMetadataTable metaTable = tables.getUserPhotosStreamMetadataTable(t);
         Set<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow> rows = Sets.newHashSet();
