@@ -15,6 +15,11 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+public class CQLKeyValueService {
+
+}
+
+/*
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
@@ -1353,3 +1358,5 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         // nothing to do, yet...
     }
 }
+
+*/
