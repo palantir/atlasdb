@@ -2,6 +2,8 @@ package com.palantir.atlas.api;
 
 import javax.annotation.Nullable;
 
+import com.google.common.base.Preconditions;
+
 /**
  * <pre>
  * {
@@ -16,7 +18,7 @@ public class RangeToken {
 
     public RangeToken(TableRowResult results,
                       @Nullable TableRange nextRange) {
-        this.results = results;
+        this.results = Preconditions.checkNotNull(results);
         this.nextRange = nextRange;
     }
 

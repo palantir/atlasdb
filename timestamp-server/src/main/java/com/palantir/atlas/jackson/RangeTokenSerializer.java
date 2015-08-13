@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import com.palantir.atlas.api.RangeToken;
 
 public class RangeTokenSerializer extends StdSerializer<RangeToken> {
+    private static final long serialVersionUID = 1L;
 
     @Inject
     public RangeTokenSerializer() {

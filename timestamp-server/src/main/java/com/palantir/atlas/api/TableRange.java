@@ -2,6 +2,8 @@ package com.palantir.atlas.api;
 
 import java.util.Arrays;
 
+import com.google.common.base.Preconditions;
+
 /**
  * <pre>
  * {
@@ -37,7 +39,7 @@ public class TableRange {
                       byte[] endRow,
                       Iterable<byte[]> columns,
                       int batchSize) {
-        this.tableName = tableName;
+        this.tableName = Preconditions.checkNotNull(tableName);
         this.startRow = startRow;
         this.endRow = endRow;
         this.columns = columns;

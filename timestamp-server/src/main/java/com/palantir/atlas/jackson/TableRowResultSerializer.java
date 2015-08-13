@@ -20,6 +20,7 @@ import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 
 public class TableRowResultSerializer extends StdSerializer<TableRowResult> {
+    private static final long serialVersionUID = 1L;
     private final TableMetadataCache metadataCache;
 
     public TableRowResultSerializer(TableMetadataCache metadataCache) {

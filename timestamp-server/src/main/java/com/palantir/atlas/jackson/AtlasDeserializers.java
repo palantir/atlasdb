@@ -91,7 +91,7 @@ public class AtlasDeserializers {
                 return description;
             }
         }
-        throw new IllegalArgumentException("Unknown column " + longName);
+        throw new IllegalArgumentException("Unknown column with long name " + longName);
     }
 
     private static byte[] deserializeNamedCol(ColumnMetadataDescription colDescription,
@@ -116,8 +116,8 @@ public class AtlasDeserializers {
         });
     }
 
-    private static byte[] deserializeCol(ColumnMetadataDescription colDescription,
-                                         JsonNode node) {
+    public static byte[] deserializeCol(ColumnMetadataDescription colDescription,
+                                        JsonNode node) {
         if (colDescription.hasDynamicColumns()) {
             return deserializeDynamicCol(colDescription.getDynamicColumn(), node);
         } else {
@@ -193,8 +193,8 @@ public class AtlasDeserializers {
         return builder.build();
     }
 
-    private static byte[] deserializeVal(ColumnValueDescription description,
-                                         JsonNode node) {
+    public static byte[] deserializeVal(ColumnValueDescription description,
+                                        JsonNode node) {
         byte[] bytes;
         switch (description.getFormat()) {
         case BLOCK_STORED_PROTO:

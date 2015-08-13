@@ -22,6 +22,7 @@ import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 
 public class TableMetadataSerializer extends StdSerializer<TableMetadata> {
+    private static final long serialVersionUID = 1L;
 
     protected TableMetadataSerializer() {
         super(TableMetadata.class, false);

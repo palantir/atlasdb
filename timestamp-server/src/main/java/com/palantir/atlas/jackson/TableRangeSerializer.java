@@ -11,6 +11,7 @@ import com.palantir.atlas.api.TableRange;
 import com.palantir.atlasdb.encoding.PtBytes;
 
 public class TableRangeSerializer extends StdSerializer<TableRange> {
+    private static final long serialVersionUID = 1L;
 
     public TableRangeSerializer() {
         super(TableRange.class);

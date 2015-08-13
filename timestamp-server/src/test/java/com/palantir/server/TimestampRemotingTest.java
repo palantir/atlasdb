@@ -51,6 +51,7 @@ public class TimestampRemotingTest {
             }
         }
 
+        @Override
         public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
             throw new NotCurrentLeaderException("not the leader");
         }
