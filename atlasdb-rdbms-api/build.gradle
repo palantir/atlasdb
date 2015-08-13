@@ -1,0 +1,5 @@
+apply from: "../gradle/shared.gradle"
+
+dependencies {
+  compile(project(":atlasdb-commons"))
+}
