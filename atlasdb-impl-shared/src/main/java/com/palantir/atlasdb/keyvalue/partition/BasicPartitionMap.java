@@ -228,15 +228,9 @@ import com.palantir.common.annotation.Immutable;
     }
 
     @Override
-    public Map<KeyValueService, Map<Cell, Long>> getServicesForCellsRead(String tableName,
-                                                                         Map<Cell, Long> timestampByCell) {
+    public <T> Map<KeyValueService, Map<Cell, T>> getServicesForCellsRead(String tableName,
+                                                                         Map<Cell, T> timestampByCell) {
         return getServicesForCellsMap(tableName, timestampByCell);
-    }
-
-    @Override
-    public Map<KeyValueService, Map<Cell, byte[]>> getServicesForCellsWrite(String tableName,
-                                                                            Map<Cell, byte[]> values) {
-        return getServicesForCellsMap(tableName, values);
     }
 
     @Override
@@ -246,13 +240,19 @@ import com.palantir.common.annotation.Immutable;
     }
 
     @Override
-    public <T> Map<KeyValueService, Multimap<Cell, T>> getServicesForWrite(String tableName,
-                                                                           Multimap<Cell, T> keys) {
+    public <T> Map<KeyValueService, Multimap<Cell, T>> getServicesForCellsWrite(String tableName,
+                                                                                Multimap<Cell, T> keys) {
         return getServicesForCellsMultimap(tableName, keys);
     }
 
     @Override
     public Set<? extends KeyValueService> getDelegates() {
         return services;
+    }
+
+    @Override
+    public <T> Map<KeyValueService, Map<Cell, T>> getServicesForCellsWrite(String tableName,
+                                                                           Map<Cell, T> values) {
+        return getServicesForCellsMap(tableName, values);
     }
 }
