@@ -1,5 +1,6 @@
 package com.palantir.atlas.api;
 
+import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 
 
@@ -37,8 +38,8 @@ public class TableCell {
     private final Iterable<Cell> cells;
 
     public TableCell(String tableName, Iterable<Cell> cells) {
-        this.tableName = tableName;
-        this.cells = cells;
+        this.tableName = Preconditions.checkNotNull(tableName);
+        this.cells = Preconditions.checkNotNull(cells);
     }
 
     public String getTableName() {

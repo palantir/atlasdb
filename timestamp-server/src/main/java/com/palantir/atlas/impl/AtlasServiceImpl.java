@@ -4,11 +4,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-import javax.annotation.CheckForNull;
 import javax.inject.Inject;
 
 import com.google.common.base.Preconditions;
@@ -31,25 +29,26 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.RuntimeTransactionTask;
 import com.palantir.atlasdb.transaction.api.Transaction;
-import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.atlasdb.transaction.impl.RawTransaction;
+import com.palantir.atlasdb.transaction.impl.SnapshotTransactionManager;
 import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitables;
-import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.lock.LockRefreshToken;
+
+import jersey.repackaged.com.google.common.collect.ImmutableList;
 
 public class AtlasServiceImpl implements AtlasService {
-    private static final AtomicLong ID_GENERATOR = new AtomicLong();
+    private final AtomicLong ID_GENERATOR = new AtomicLong();
     private final KeyValueService kvs;
-    private final TransactionManager txManager;
-    private final ExecutorService exec =
-            PTExecutors.newCachedThreadPool(PTExecutors.newNamedThreadFactory(true));
-    private final Cache<TransactionToken, TransactionRunner> transactions =
+    private final SnapshotTransactionManager txManager;
+    private final Cache<TransactionToken, RawTransaction> transactions =
             CacheBuilder.newBuilder().expireAfterAccess(12, TimeUnit.HOURS).build();
     private final TableMetadataCache metadataCache;
 
     @Inject
     public AtlasServiceImpl(KeyValueService kvs,
-                            TransactionManager txManager,
+                            SnapshotTransactionManager txManager,
                             TableMetadataCache metadataCache) {
         this.kvs = kvs;
         this.txManager = txManager;
@@ -67,11 +66,6 @@ public class AtlasServiceImpl implements AtlasService {
     }
 
     @Override
-    public TableRowResult getRows(Long token,
-                                  final TableRowSelection rows) {
-        return getRows(getTokenForLong(token), rows);
-    }
-
     public TableRowResult getRows(TransactionToken token,
                                   final TableRowSelection rows) {
         return runReadOnly(token, new RuntimeTransactionTask<TableRowResult>() {
@@ -85,11 +79,6 @@ public class AtlasServiceImpl implements AtlasService {
     }
 
     @Override
-    public TableCellVal getCells(Long token,
-                                 final TableCell cells) {
-        return getCells(getTokenForLong(token), cells);
-    }
-
     public TableCellVal getCells(TransactionToken token,
                                  final TableCell cells) {
         return runReadOnly(token, new RuntimeTransactionTask<TableCellVal>() {
@@ -102,11 +91,6 @@ public class AtlasServiceImpl implements AtlasService {
     }
 
     @Override
-    public RangeToken getRange(Long token,
-                               final TableRange range) {
-        return getRange(getTokenForLong(token), range);
-    }
-
     public RangeToken getRange(TransactionToken token,
                                final TableRange range) {
         return runReadOnly(token, new RuntimeTransactionTask<RangeToken>() {
@@ -134,11 +118,6 @@ public class AtlasServiceImpl implements AtlasService {
     }
 
     @Override
-    public void put(Long token,
-                    final TableCellVal data) {
-        put(getTokenForLong(token), data);
-    }
-
     public void put(TransactionToken token,
                     final TableCellVal data) {
         runWithRetry(token, new TxTask() {
@@ -151,10 +130,6 @@ public class AtlasServiceImpl implements AtlasService {
     }
 
     @Override
-    public void delete(Long token,
-                       final TableCell cells) {
-        delete(getTokenForLong(token), cells);
-    }
     public void delete(TransactionToken token,
                        final TableCell cells) {
         runWithRetry(token, new TxTask() {
@@ -170,9 +145,9 @@ public class AtlasServiceImpl implements AtlasService {
         if (token.shouldAutoCommit()) {
             return txManager.runTaskWithRetry(task);
         } else {
-            TransactionRunner runner = transactions.getIfPresent(token);
-            Preconditions.checkNotNull(runner, "The given transaction does not exist.");
-            return runner.submit(task);
+            RawTransaction tx = transactions.getIfPresent(token);
+            Preconditions.checkNotNull(tx, "The given transaction does not exist.");
+            return task.execute(tx);
         }
     }
 
@@ -180,48 +155,46 @@ public class AtlasServiceImpl implements AtlasService {
         if (token.shouldAutoCommit()) {
             return txManager.runTaskWithRetry(task);
         } else {
-            TransactionRunner runner = transactions.getIfPresent(token);
-            Preconditions.checkNotNull(runner, "The given transaction does not exist.");
-            return runner.submit(task);
+            RawTransaction tx = transactions.getIfPresent(token);
+            Preconditions.checkNotNull(tx, "The given transaction does not exist.");
+            return task.execute(tx);
         }
     }
 
     @Override
-    public long startTransaction() {
+    public TransactionToken startTransaction() {
         long id = ID_GENERATOR.getAndIncrement();
-        TransactionToken token = new TransactionToken(id);
-        TransactionRunner runner = new TransactionRunner(txManager);
-        exec.execute(runner);
-        transactions.put(token, runner);
-        return token.getId();
+        TransactionToken token = new TransactionToken(Long.toString(id));
+        RawTransaction tx = txManager.setupRunTaskWithLocksThrowOnConflict(ImmutableList.<LockRefreshToken>of());
+        transactions.put(token, tx);
+        return token;
     }
 
     @Override
-    public void commit(Long token) {
-        commit(getTokenForLong(token));
-    }
-
     public void commit(TransactionToken token) {
-        TransactionRunner runner = transactions.getIfPresent(token);
-        if (runner != null) {
-            runner.commit();
+        RawTransaction tx = transactions.getIfPresent(token);
+        if (tx != null) {
+            txManager.finishRunTaskWithLockThrowOnConflict(tx, new TxTask() {
+                @Override
+                public Void execute(Transaction t) {
+                    return null;
+                }
+            });
             transactions.invalidate(token);
         }
     }
 
     @Override
-    public void abort(Long token) {
-        abort(getTokenForLong(token));
-    }
-
-    private TransactionToken getTokenForLong(@CheckForNull Long token) {
-        return token == null ? TransactionToken.autoCommit() : new TransactionToken(token);
-    }
-
     public void abort(TransactionToken token) {
-        TransactionRunner runner = transactions.getIfPresent(token);
-        if (runner != null) {
-            runner.abort();
+        RawTransaction tx = transactions.getIfPresent(token);
+        if (tx != null) {
+            txManager.finishRunTaskWithLockThrowOnConflict(tx, new TxTask() {
+                @Override
+                public Void execute(Transaction t) {
+                    t.abort();
+                    return null;
+                }
+            });
             transactions.invalidate(token);
         }
     }

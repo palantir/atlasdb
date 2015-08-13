@@ -104,6 +104,11 @@ public class SnapshotTransactionManager extends AbstractLockAwareTransactionMana
     public <T, E extends Exception> T runTaskWithLocksThrowOnConflict(Iterable<LockRefreshToken> lockTokens,
                                                                       LockAwareTransactionTask<T, E> task)
             throws E, TransactionFailedRetriableException {
+        RawTransaction tx = setupRunTaskWithLocksThrowOnConflict(lockTokens);
+        return finishRunTaskWithLockThrowOnConflict(tx, LockAwareTransactionTasks.asLockUnaware(task, lockTokens));
+    }
+
+    public RawTransaction setupRunTaskWithLocksThrowOnConflict(Iterable<LockRefreshToken> lockTokens) {
         long immutableLockTs = timestampService.getFreshTimestamp();
         Supplier<Long> startTimestampSupplier = getStartTimestampSupplier();
         LockDescriptor lockDesc = AtlasTimestampLockDescriptor.of(immutableLockTs);
@@ -111,8 +116,6 @@ public class SnapshotTransactionManager extends AbstractLockAwareTransactionMana
                 LockRequest.builder(ImmutableSortedMap.of(lockDesc, LockMode.READ)).withLockedInVersionId(
                         immutableLockTs).build();
         final LockRefreshToken lock;
-        final T result;
-        final SnapshotTransaction t;
         try {
             lock = lockService.lockWithClient(lockClient.getClientId(), lockRequest);
         } catch (InterruptedException e) {
@@ -121,14 +124,31 @@ public class SnapshotTransactionManager extends AbstractLockAwareTransactionMana
         try {
             ImmutableList<LockRefreshToken> allTokens =
                     ImmutableList.<LockRefreshToken> builder().add(lock).addAll(lockTokens).build();
-            t = createTransaction(immutableLockTs, startTimestampSupplier, allTokens);
-            result = runTaskThrowOnConflict(LockAwareTransactionTasks.asLockUnaware(task, lockTokens), t);
-        } finally {
+            SnapshotTransaction t = createTransaction(immutableLockTs, startTimestampSupplier, allTokens);
+            return new RawTransaction(t, lock);
+        } catch (Throwable t) {
             lockService.unlock(lock);
+            Throwables.throwIfInstance(t, Error.class);
+            Throwables.throwIfInstance(t, RuntimeException.class);
+            throw Throwables.rewrapAndThrowUncheckedException(t);
         }
-        if (t.getTransactionType() == TransactionType.AGGRESSIVE_HARD_DELETE) {
+    }
+
+    public <T, E extends Exception> T finishRunTaskWithLockThrowOnConflict(RawTransaction tx,
+                                                                           TransactionTask<T, E> task)
+            throws E, TransactionFailedRetriableException {
+        T result;
+        try {
+            result = runTaskThrowOnConflict(task, tx);
+        } finally {
+            lockService.unlock(tx.getImmutableTsLock());
+        }
+        if (tx.getTransactionType() == TransactionType.AGGRESSIVE_HARD_DELETE) {
             // t.getCellsToScrubImmediately() checks that t has been committed
-            cleaner.scrubImmediately(this, t.getCellsToScrubImmediately(), t.getTimestamp(), t.getCommitTimestamp());
+            cleaner.scrubImmediately(this,
+                    tx.delegate().getCellsToScrubImmediately(),
+                    tx.delegate().getTimestamp(),
+                    tx.delegate().getCommitTimestamp());
         }
         return result;
     }

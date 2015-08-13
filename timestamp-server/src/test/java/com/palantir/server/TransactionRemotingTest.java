@@ -1,59 +1,215 @@
 package com.palantir.server;
 
-import java.io.IOException;
-import java.io.InputStream;
+import java.lang.reflect.Field;
+import java.util.Map;
+import java.util.Set;
 
-import javax.ws.rs.client.Entity;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-
-import org.apache.commons.io.IOUtils;
-import org.junit.ClassRule;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
+import com.palantir.atlas.api.AtlasService;
+import com.palantir.atlas.api.RangeToken;
+import com.palantir.atlas.api.TableCell;
+import com.palantir.atlas.api.TableCellVal;
 import com.palantir.atlas.api.TableRange;
+import com.palantir.atlas.api.TableRowResult;
+import com.palantir.atlas.api.TableRowSelection;
+import com.palantir.atlas.api.TransactionToken;
 import com.palantir.atlas.impl.AtlasServiceImpl;
 import com.palantir.atlas.impl.TableMetadataCache;
-import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlas.jackson.AtlasJacksonModule;
+import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.memory.InMemoryAtlasDb;
 import com.palantir.atlasdb.schema.AtlasSchema;
 import com.palantir.atlasdb.schema.UpgradeSchema;
-import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+import com.palantir.atlasdb.schema.generated.UpgradeMetadataTable;
+import com.palantir.atlasdb.schema.generated.UpgradeMetadataTable.Status;
+import com.palantir.atlasdb.schema.generated.UpgradeMetadataTable.UpgradeMetadataRow;
+import com.palantir.atlasdb.schema.generated.UpgradeMetadataTable.UpgradeMetadataRowResult;
+import com.palantir.atlasdb.table.description.TableMetadata;
+import com.palantir.atlasdb.transaction.impl.SnapshotTransactionManager;
 import com.palantir.timestamp.server.TimestampServer;
 
-import io.dropwizard.testing.junit.ResourceTestRule;
+import feign.Feign;
+import feign.jackson.JacksonDecoder;
+import feign.jackson.JacksonEncoder;
+import feign.jaxrs.JAXRSContract;
+import io.dropwizard.Configuration;
+import io.dropwizard.testing.DropwizardTestSupport;
+import io.dropwizard.testing.junit.DropwizardClientRule;
 
 public class TransactionRemotingTest {
     public final static AtlasSchema schema = UpgradeSchema.INSTANCE;
-    public final static SerializableTransactionManager txMgr = InMemoryAtlasDb.createInMemoryTransactionManager(schema);
-    public final static KeyValueService kvs = txMgr.getKeyValueService();
-    public final static TableMetadataCache cache = new TableMetadataCache(kvs);
-    public final static ObjectMapper mapper = TimestampServer.getObjectMapper(cache);
+    public final SnapshotTransactionManager txMgr = InMemoryAtlasDb.createInMemoryTransactionManager(schema);
+    public final KeyValueService kvs = txMgr.getKeyValueService();
+    public final TableMetadataCache cache = new TableMetadataCache(kvs);
+    public final ObjectMapper mapper = TimestampServer.getObjectMapper(cache);
+    public final @Rule DropwizardClientRule dropwizard = new DropwizardClientRule(new AtlasServiceImpl(kvs, txMgr, cache));
+    public AtlasService service;
 
-    @ClassRule
-    public static final ResourceTestRule resources = ResourceTestRule.builder()
-            .addResource(new AtlasServiceImpl(kvs, txMgr, cache))
-            .setMapper(mapper)
-            .build();
-
-
-    @Test
-    public void testSerializing() throws IOException {
-        Response response = resources.client().target("/atlasdb/metadata/upgrade_metadata").request().get();
-        String str = IOUtils.toString(response.readEntity(InputStream.class));
-
-        response = resources.client().target("/atlasdb/transaction").request().post(Entity.entity("", MediaType.TEXT_PLAIN));
-        str = IOUtils.toString(response.readEntity(InputStream.class));
-        long token = Long.parseLong(str);
-
-        TableRange tableRange = new TableRange("upgrade_metadata", PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, ImmutableList.<byte[]>of(), 100);
-        String rangeStr = mapper.writeValueAsString(tableRange);
-        response = resources.client().target("/atlasdb/range/" + token).request().post(Entity.entity(rangeStr, MediaType.APPLICATION_JSON));
-        str = IOUtils.toString(response.readEntity(InputStream.class));
-        System.out.println(str);
+    @SuppressWarnings("unchecked")
+    @Before
+    public void setupHacks() throws Exception {
+        Field field = dropwizard.getClass().getDeclaredField("testSupport");
+        field.setAccessible(true);
+        DropwizardTestSupport<Configuration> testSupport = (DropwizardTestSupport<Configuration>) field.get(dropwizard);
+        ObjectMapper mapper = testSupport.getEnvironment().getObjectMapper();
+        mapper.registerModule(new AtlasJacksonModule(cache).createModule());
+        mapper.registerModule(new GuavaModule());
     }
 
+    @Before
+    public void setup() {
+        String uri = dropwizard.baseUri().toString();
+        service = Feign.builder()
+                .decoder(new JacksonDecoder(mapper))
+                .encoder(new JacksonEncoder(mapper))
+                .contract(new JAXRSContract())
+                .target(AtlasService.class, uri);
+    }
+
+    @Test
+    public void testGetAllTableNames() {
+        Set<String> allTableNames = service.getAllTableNames();
+        Set<String> expectedTableNames = schema.getLatestSchema().getAllTablesAndIndexMetadata().keySet();
+        Assert.assertTrue(allTableNames.containsAll(expectedTableNames));
+    }
+
+    @Test
+    public void testGetTableMetadata() {
+        TableMetadata metadata = service.getTableMetadata("upgrade_metadata");
+        Assert.assertFalse(metadata.getColumns().hasDynamicColumns());
+    }
+
+    @Test
+    public void testGetRowsNone() {
+        setupFooStatus1("upgrade_metadata");
+        TransactionToken txId = TransactionToken.autoCommit();
+        TableRowResult badResults = service.getRows(txId, new TableRowSelection(
+                "upgrade_metadata",
+                ImmutableList.of(new byte[1]),
+                ColumnSelection.all()));
+        Assert.assertTrue(Iterables.isEmpty(badResults.getResults()));
+    }
+
+    @Test
+    public void testGetRowsSome() {
+        setupFooStatus1("upgrade_metadata");
+        TransactionToken txId = TransactionToken.autoCommit();
+        TableRowResult goodResults = service.getRows(txId, new TableRowSelection(
+                "upgrade_metadata",
+                ImmutableList.of(UpgradeMetadataRow.of("foo").persistToBytes()),
+                ColumnSelection.all()));
+        UpgradeMetadataRowResult result = UpgradeMetadataRowResult.of(Iterables.getOnlyElement(goodResults.getResults()));
+        Assert.assertEquals(1L, result.getStatus().longValue());
+    }
+
+    @Test
+    public void testGetCellsNone() {
+        setupFooStatus1("upgrade_metadata");
+        TransactionToken txId = service.startTransaction();
+        TableCellVal badCells = service.getCells(txId, new TableCell(
+                "upgrade_metadata",
+                ImmutableList.of(Cell.create(new byte[1], UpgradeMetadataTable.UpgradeMetadataNamedColumn.STATUS.getShortName()))));
+        Assert.assertTrue(badCells.getResults().isEmpty());
+    }
+
+    @Test
+    public void testGetCellsSome() {
+        setupFooStatus1("upgrade_metadata");
+        TransactionToken txId = service.startTransaction();
+        Map<Cell, byte[]> contents = getUpgradeMetadataTableContents();
+        TableCellVal goodCells = service.getCells(txId, new TableCell(
+                "upgrade_metadata",
+                contents.keySet()));
+        Assert.assertEquals(contents.keySet(), goodCells.getResults().keySet());
+        Assert.assertArrayEquals(Iterables.getOnlyElement(contents.values()), Iterables.getOnlyElement(goodCells.getResults().values()));
+        service.commit(txId);
+    }
+
+    @Test
+    public void testGetRangeNone() {
+        setupFooStatus1("upgrade_metadata");
+        TransactionToken token = TransactionToken.autoCommit();
+        RangeToken range = service.getRange(token, new TableRange(
+                "upgrade_metadata",
+                new byte[1],
+                new byte[2],
+                ImmutableList.<byte[]>of(),
+                10));
+        Assert.assertTrue(Iterables.isEmpty(range.getResults().getResults()));
+        Assert.assertNull(range.getNextRange());
+    }
+
+    @Test
+    public void testGetRangeSome() {
+        setupFooStatus1("upgrade_metadata");
+        TransactionToken token = TransactionToken.autoCommit();
+        RangeToken range = service.getRange(token, new TableRange(
+                "upgrade_metadata",
+                new byte[0],
+                new byte[0],
+                ImmutableList.<byte[]>of(),
+                10));
+        UpgradeMetadataRowResult result = UpgradeMetadataRowResult.of(Iterables.getOnlyElement(range.getResults().getResults()));
+        Assert.assertEquals(1L, result.getStatus().longValue());
+        Assert.assertNull(range.getNextRange());
+    }
+
+    @Test
+    public void testDelete() {
+        setupFooStatus1("upgrade_metadata");
+        Map<Cell, byte[]> contents = getUpgradeMetadataTableContents();
+        TransactionToken token = TransactionToken.autoCommit();
+        service.delete(token, new TableCell(
+                "upgrade_metadata",
+                contents.keySet()));
+        RangeToken range = service.getRange(token, new TableRange(
+                "upgrade_metadata",
+                new byte[0],
+                new byte[0],
+                ImmutableList.<byte[]>of(),
+                10));
+        Assert.assertTrue(Iterables.isEmpty(range.getResults().getResults()));
+        Assert.assertNull(range.getNextRange());
+    }
+
+    @Test
+    public void testAbort() {
+        TransactionToken txId = service.startTransaction();
+        service.put(txId, new TableCellVal("upgrade_metadata", getUpgradeMetadataTableContents()));
+        service.abort(txId);
+        service.commit(txId);
+        txId = TransactionToken.autoCommit();
+        RangeToken range = service.getRange(txId, new TableRange(
+                "upgrade_metadata",
+                new byte[0],
+                new byte[0],
+                ImmutableList.<byte[]>of(),
+                10));
+        Assert.assertTrue(Iterables.isEmpty(range.getResults().getResults()));
+        Assert.assertNull(range.getNextRange());
+    }
+
+    private void setupFooStatus1(String table) {
+        TransactionToken txId = service.startTransaction();
+        service.put(txId, new TableCellVal(table, getUpgradeMetadataTableContents()));
+        service.commit(txId);
+    }
+
+    private Map<Cell, byte[]> getUpgradeMetadataTableContents() {
+        byte[] row = UpgradeMetadataRow.of("foo").persistToBytes();
+        Status status = UpgradeMetadataTable.Status.of(1L);
+        Cell cell = Cell.create(row, status.persistColumnName());
+        return ImmutableMap.of(cell, status.persistValue());
+    }
 }

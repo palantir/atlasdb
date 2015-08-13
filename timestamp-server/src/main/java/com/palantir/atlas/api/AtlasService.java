@@ -32,14 +32,14 @@ public interface AtlasService {
     @POST
     @Path("transaction")
     @Produces(MediaType.APPLICATION_JSON)
-    long startTransaction();
+    TransactionToken startTransaction();
 
     @Idempotent
     @POST
     @Path("rows/{token}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    TableRowResult getRows(@PathParam("token") Long token,
+    TableRowResult getRows(@PathParam("token") TransactionToken token,
                            TableRowSelection rows);
 
     @Idempotent
@@ -47,7 +47,7 @@ public interface AtlasService {
     @Path("cells/{token}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    TableCellVal getCells(@PathParam("token") Long token,
+    TableCellVal getCells(@PathParam("token") TransactionToken token,
                           TableCell cells);
 
     @Idempotent
@@ -55,30 +55,30 @@ public interface AtlasService {
     @Path("range/{token}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    RangeToken getRange(@PathParam("token") Long token,
+    RangeToken getRange(@PathParam("token") TransactionToken token,
                         TableRange rangeRequest);
 
     @Idempotent
     @POST
     @Path("put/{token}")
     @Consumes(MediaType.APPLICATION_JSON)
-    void put(@PathParam("token") Long token,
+    void put(@PathParam("token") TransactionToken token,
              TableCellVal data);
 
     @Idempotent
     @POST
     @Path("delete/{token}")
     @Consumes(MediaType.APPLICATION_JSON)
-    void delete(@PathParam("token") Long token,
+    void delete(@PathParam("token") TransactionToken token,
                 TableCell cells);
 
     @Idempotent
     @POST
     @Path("commit/{token}")
-    void commit(@PathParam("token") Long token);
+    void commit(@PathParam("token") TransactionToken token);
 
     @Idempotent
     @POST
     @Path("abort/{token}")
-    void abort(@PathParam("token") Long token);
+    void abort(@PathParam("token") TransactionToken token);
 }

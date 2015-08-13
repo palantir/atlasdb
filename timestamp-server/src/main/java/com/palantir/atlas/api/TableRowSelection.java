@@ -1,5 +1,6 @@
 package com.palantir.atlas.api;
 
+import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 
 /**
@@ -20,8 +21,8 @@ public class TableRowSelection {
     private final ColumnSelection columnSelection;
 
     public TableRowSelection(String tableName, Iterable<byte[]> rows, ColumnSelection columnSelection) {
-        this.tableName = tableName;
-        this.rows = rows;
+        this.tableName = Preconditions.checkNotNull(tableName);
+        this.rows = Preconditions.checkNotNull(rows);
         this.columnSelection = columnSelection;
     }
 

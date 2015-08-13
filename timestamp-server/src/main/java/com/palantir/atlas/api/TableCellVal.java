@@ -2,6 +2,7 @@ package com.palantir.atlas.api;
 
 import java.util.Map;
 
+import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 
 /**
@@ -39,8 +40,8 @@ public class TableCellVal {
     private final Map<Cell, byte[]> results;
 
     public TableCellVal(String tableName, Map<Cell, byte[]> results) {
-        this.tableName = tableName;
-        this.results = results;
+        this.tableName = Preconditions.checkNotNull(tableName);
+        this.results = Preconditions.checkNotNull(results);
     }
 
     public String getTableName() {
