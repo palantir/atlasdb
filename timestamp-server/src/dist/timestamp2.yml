@@ -25,7 +25,7 @@ leader:
   quorumSize: 2
   learnerLogDir: paxosLog/learner2
   acceptorLogDir: paxosLog/acceptor2
-  localServer: http://localhost:3828
+  localServer: http://localhost:4828
   leaders:
     - http://localhost:3828
     - http://localhost:4828
