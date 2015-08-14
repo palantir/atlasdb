@@ -4,8 +4,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
-import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -36,8 +36,8 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     private final CycleMap<byte[], KeyValueServiceWithStatus> ring;
     private final Set<KeyValueService> services;
     private final ExecutorService executor = PTExecutors.newSingleThreadExecutor();
-    private final Queue<Future<Void>> removals = Queues.newConcurrentLinkedQueue();
-    private final Queue<Future<Void>> joins = Queues.newConcurrentLinkedQueue();
+    private final BlockingQueue<Future<Void>> removals = Queues.newLinkedBlockingQueue();
+    private final BlockingQueue<Future<Void>> joins = Queues.newLinkedBlockingQueue();
 
     public DynamicPartitionMapImpl(QuorumParameters quorumParameters,
                                NavigableMap<byte[], KeyValueService> ring) {
@@ -253,7 +253,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     // TODO: This should probably take timestamp (?)
     private void copyData(KeyValueService destination, KeyValueService source, RangeRequest rangeToCopy) {
         for (String tableName : source.getAllTableNames()) {
-            ClosableIterator<RowResult<Value>> allRows = source.getRange(tableName, RangeRequest.all(), Long.MAX_VALUE);
+            ClosableIterator<RowResult<Value>> allRows = source.getRange(tableName, rangeToCopy, Long.MAX_VALUE);
             while (allRows.hasNext()) {
                 RowResult<Value> row = allRows.next();
                 Multimap<Cell, Value> cells = HashMultimap.create();
@@ -270,12 +270,15 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     public synchronized void addEndpoint(final byte[] key, final KeyValueService kvs, String rack) {
         Preconditions.checkArgument(!ring.containsKey(key));
         KeyValueServiceWithStatus kvsWithStatus = new JoiningKeyValueService(kvs);
+        // This case is simple. I need all that the next kvs has besided the range
+        // upwards from the joiner.
+        final RangeRequest rangeToBeMerged = RangeRequest.builder().endRowExclusive(key).build();
         ring.put(key, kvsWithStatus);
         joins.add(executor.submit(new Callable<Void>() {
             @Override
             public Void call() throws Exception {
                 // TODO I do not really need to copy all the data
-                copyData(kvs, ring.get(ring.nextKey(key)).get(), null);
+                copyData(kvs, ring.get(ring.nextKey(key)).get(), rangeToBeMerged);
                 return null;
             }
         }));
@@ -285,7 +288,6 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     public synchronized void removeEndpoint(final byte[] key, final KeyValueService kvs, String rack) {
         KeyValueServiceWithStatus original = Preconditions.checkNotNull(ring.get(key));
         Preconditions.checkArgument(original.get().equals(kvs));
-        // TODO: Avoid using instanceof?
         Preconditions.checkArgument(original instanceof RegularKeyValueService);
         LeavingKeyValueService leavingKeyValueService = new LeavingKeyValueService(original.get());
         ring.put(key, leavingKeyValueService);
@@ -305,13 +307,27 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
                 break;
             }
         } while (true);
+        byte[] endRowExclusive = key;
+
+        // I will skip the ranges that this kvs already has anyways.
+        // I only need to copy over the very furthest range.
+        int numberSkipped = 0;
+        do {
+            endRowExclusive = ring.previousKey(nextKey);
+            KeyValueServiceWithStatus kvsws = ring.get(endRowExclusive);
+            if (kvsws.shouldCountForRead()) {
+                numberSkipped++;
+            }
+        } while (numberSkipped < quorumParameters.getReplicationFactor() - 1);
+
+        final RangeRequest rangeToBeMigrated = RangeRequest.builder().endRowExclusive(
+                endRowExclusive).build();
 
         for (final KeyValueService destination : kvssToWrite) {
             removals.add(executor.submit(new Callable<Void>() {
                 @Override
                 public Void call() throws Exception {
-                    // TODO I do not really need to copy all the data
-                    copyData(destination, kvs, null);
+                    copyData(destination, kvs, rangeToBeMigrated);
                     return null;
                 }
             }));
