@@ -89,6 +89,7 @@ public class AtlasSqlUtils {
     public static <K, V> SetMultimap<K, V> listToSetMultimap(List<Pair<K, V>> list) {
         SetMultimap<K, V> result = HashMultimap.create();
         for (Pair<K, V> p : list) {
+            Preconditions.checkArgument(!result.containsEntry(p.lhSide, p.rhSide));
             result.put(p.lhSide, p.rhSide);
         }
         return result;
