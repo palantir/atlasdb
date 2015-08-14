@@ -48,11 +48,11 @@ public class AtlasSqlUtils {
     private AtlasSqlUtils() { }
 
     public static final String USER_TABLE_PREFIX = "alamakota";
-    public static final String USER_TABLE_PREFIX(String tableName) {
+    public static final String USR_TABLE(String tableName) {
         return USER_TABLE_PREFIX + tableName;
     }
-    public static final String USER_TABLE_PREFIX(String tableName, String alias) {
-        return USER_TABLE_PREFIX(tableName) + " " + alias;
+    public static final String USR_TABLE(String tableName, String alias) {
+        return USR_TABLE(tableName) + " " + alias;
     }
 
     private static final int CHUNK_SIZE = 200;

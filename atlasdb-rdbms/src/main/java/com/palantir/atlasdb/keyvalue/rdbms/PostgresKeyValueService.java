@@ -15,7 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.rdbms;
 
-import static com.palantir.atlasdb.keyvalue.rdbms.utils.AtlasSqlUtils.USER_TABLE_PREFIX;
+import static com.palantir.atlasdb.keyvalue.rdbms.utils.AtlasSqlUtils.USR_TABLE;
 import static com.palantir.atlasdb.keyvalue.rdbms.utils.AtlasSqlUtils.batch;
 import static com.palantir.atlasdb.keyvalue.rdbms.utils.AtlasSqlUtils.getBatchSize;
 import static com.palantir.atlasdb.keyvalue.rdbms.utils.AtlasSqlUtils.makeSlots;
@@ -153,8 +153,8 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                 if (columnSelection.allColumnsSelected()) {
                     final Query<Pair<Cell,Value>> query = handle.createQuery(
                             "SELECT " + Columns.ROW_COLUMN_TIMESTAMP_CONTENT_AS("t") + " " +
-                            "FROM " + USER_TABLE_PREFIX(tableName, "t") + " " +
-                            "LEFT JOIN " + USER_TABLE_PREFIX(tableName, "t2") + " " +
+                            "FROM " + USR_TABLE(tableName, "t") + " " +
+                            "LEFT JOIN " + USR_TABLE(tableName, "t2") + " " +
                     		"ON " + Columns.ROW("t").eq(Columns.ROW("t2"))
                     		        .and(Columns.COLUMN("t")).eq(Columns.COLUMN("t2"))
                     		        .and(Columns.TIMESTAMP("t")).lt(Columns.TIMESTAMP("t2"))
@@ -172,8 +172,8 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
 
                     final Query<Pair<Cell, Value>> query = handle.createQuery(
                             "SELECT " + Columns.ROW_COLUMN_TIMESTAMP_CONTENT_AS("t") + " " +
-                            "FROM " + USER_TABLE_PREFIX(tableName, "t") + " " +
-                    		"LEFT JOIN " + USER_TABLE_PREFIX(tableName, "t2") + " " +
+                            "FROM " + USR_TABLE(tableName, "t") + " " +
+                    		"LEFT JOIN " + USR_TABLE(tableName, "t2") + " " +
                     		"ON " + Columns.ROW("t").eq(Columns.ROW("t2"))
                     		        .and(Columns.COLUMN("t").eq(Columns.COLUMN("t2")))
                     		        .and(Columns.TIMESTAMP("t")).lt(Columns.TIMESTAMP("t2"))
@@ -222,7 +222,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                 Query<Pair<Cell,Value>> query = handle.createQuery(
                         "WITH matching_cells AS (" +
                         "    SELECT " + Columns.ROW_COLUMN_TIMESTAMP_CONTENT_AS("t") + " " +
-                        "    FROM " + USER_TABLE_PREFIX(tableName, "t") +
+                        "    FROM " + USR_TABLE(tableName, "t") +
                         "    JOIN (VALUES " + makeSlots("cell", timestampByCell.size(), 3) + ") " +
                         "        AS t2(" + Columns.ROW.append(Columns.COLUMN).append(Columns.TIMESTAMP) + ")" +
                         "    ON " + Columns.ROW("t").eq(Columns.ROW("t2"))
@@ -265,7 +265,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                 @Override
                 public Void withHandle(Handle handle) throws Exception {
                     Update update = handle.createStatement(
-                            "INSERT INTO " + USER_TABLE_PREFIX(tableName) + " (" +
+                            "INSERT INTO " + USR_TABLE(tableName) + " (" +
                             		Columns.ROW.append(Columns.COLUMN).append(
                     		        Columns.TIMESTAMP).append(Columns.CONTENT) +
             		        ") VALUES " + makeSlots("cell", values.size(), 4));
@@ -302,7 +302,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                 @Override
                 public Void withHandle(Handle handle) throws Exception {
                     Update update = handle.createStatement(
-                            "INSERT INTO " + USER_TABLE_PREFIX(tableName) + " (" +
+                            "INSERT INTO " + USR_TABLE(tableName) + " (" +
                                 Columns.ROW.append(Columns.COLUMN).append(
                                 Columns.TIMESTAMP).append(Columns.CONTENT) +
                             ") VALUES " + makeSlots("cell", cellValues.size(), 4));
@@ -339,31 +339,42 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
     }
 
     // *** delete *********************************************************************************
-    private void deleteInternal(final String tableName, final Collection<Entry<Cell, Long>> keys) {
-        getDbi().withHandle(new HandleCallback<Void>() {
+    private void deleteInternalInTransaction(final String tableName, final Collection<Entry<Cell, Long>> keys, Handle handle) {
+            Update update = handle.createStatement(
+                    "DELETE FROM " + USR_TABLE(tableName) + " t " +
+                    "WHERE (" + Columns.ROW.append(Columns.COLUMN).append(Columns.TIMESTAMP) + ") " +
+                    "    IN (" + makeSlots("cell", keys.size(), 3) + ") ");
+            AtlasSqlUtils.bindCellsTimestamps(update, keys);
+            update.execute();
+    }
+
+    /**
+     * Performs entire batched delete in a single transaction.
+     * @param tableName
+     * @param keys
+     * @param handle
+     *
+     */
+    private void deleteInTransaction(final String tableName, final Multimap<Cell, Long> keys) {
+        getDbi().inTransaction(new TransactionCallback<Void>() {
             @Override
-            public Void withHandle(Handle handle) throws Exception {
-                Update update = handle.createStatement(
-                        "DELETE FROM " + USER_TABLE_PREFIX(tableName) + " t " +
-                		"WHERE (" + Columns.ROW.append(Columns.COLUMN).append(Columns.TIMESTAMP) + ") " +
-                		"    IN (" + makeSlots("cell", keys.size(), 3) + ") ");
-                AtlasSqlUtils.bindCellsTimestamps(update, keys);
-                update.execute();
+            public Void inTransaction(final Handle conn, TransactionStatus status) throws Exception {
+                batch(keys.entries(), new Function<Collection<Entry<Cell, Long>>, Void>() {
+                    @Override @Nullable
+                    public Void apply(@Nullable Collection<Entry<Cell, Long>> input) {
+                        deleteInternalInTransaction(tableName, input, conn);
+                        return null;
+                    }
+                });
                 return null;
             }
         });
     }
 
-    @Override
-    @Idempotent
+    @Override @Idempotent
     public void delete(final String tableName, final Multimap<Cell, Long> keys) {
-        batch(keys.entries(), new Function<Collection<Entry<Cell, Long>>, Void>() {
-            @Override @Nullable
-            public Void apply(@Nullable Collection<Entry<Cell, Long>> input) {
-                deleteInternal(tableName, input);
-                return null;
-            }
-        });
+        // Just perform entire delete in a single transaction.
+        deleteInTransaction(tableName, keys);
     }
 
     // *** getRange *******************************************************************************
@@ -373,7 +384,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                                         int limit,
                                         Handle handle) {
         return handle.createQuery(
-                "SELECT DISTINCT " + Columns.ROW + " FROM " + USER_TABLE_PREFIX(tableName) + " " +
+                "SELECT DISTINCT " + Columns.ROW + " FROM " + USR_TABLE(tableName) + " " +
                 "WHERE " + Columns.ROW + " >= :startRow" +
                 "    AND " + Columns.ROW + " < :endRow " +
                 "    AND " + Columns.TIMESTAMP + " < :timestamp " +
@@ -446,7 +457,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
             public SetMultimap<Cell, Value> withHandle(Handle handle) throws Exception {
                 Query<Pair<Cell, Value>> query = handle.createQuery(
                         "SELECT " + Columns.ROW_COLUMN_TIMESTAMP_CONTENT_AS("t") + " " +
-                        "FROM " + USER_TABLE_PREFIX(tableName, "t") + " " +
+                        "FROM " + USR_TABLE(tableName, "t") + " " +
                         "WHERE (" + Columns.ROW + ") IN (" +
                         "    " + makeSlots("row", rows.size(), 1) + ") " +
                         "    AND " + Columns.TIMESTAMP("t") + " < " + timestamp)
@@ -520,7 +531,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
             public SetMultimap<Cell, Long> withHandle(Handle handle) throws Exception {
                 Query<Pair<Cell,Long>> query = handle.createQuery(
                         "SELECT " + Columns.ROW_COLUMN_TIMESTAMP_AS("t") + " " +
-                        "FROM " + USER_TABLE_PREFIX(tableName, "t") + " " +
+                        "FROM " + USR_TABLE(tableName, "t") + " " +
                         "WHERE (" + Columns.ROW + ") IN (" +
                         "    " + makeSlots("row", rows.size(), 1) + ") " +
                         "    AND " + Columns.TIMESTAMP("t") + " < " + timestamp)
@@ -604,7 +615,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
             public SetMultimap<Cell, Long> withHandle(Handle handle) throws Exception {
                 Query<Pair<Cell, Long>> query = handle.createQuery(
                         "SELECT " + Columns.ROW_COLUMN_TIMESTAMP_AS("t") + " " +
-                        "FROM " + USER_TABLE_PREFIX(tableName, "t") + " " +
+                        "FROM " + USR_TABLE(tableName, "t") + " " +
                         "WHERE (" + Columns.ROW.append(Columns.COLUMN) + ") IN (" +
                         "    " + makeSlots("cell", cells.size(), 2) + ") " +
                         "    AND " + Columns.TIMESTAMP("t") + " < " + timestamp)
@@ -629,7 +640,6 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                                                  final Set<Cell> cells,
                                                  final long timestamp)
             throws InsufficientConsistencyException {
-        // TODO: Sort for better performance?
         final SetMultimap<Cell, Long> result = HashMultimap.create();
         batch(cells, new Function<Collection<Cell>, Void>() {
             @Override @Nullable
@@ -657,9 +667,11 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
         getDbi().inTransaction(new TransactionCallback<Void>() {
             @Override
             public Void inTransaction(Handle handle, TransactionStatus status) throws Exception {
-                handle.execute("DROP TABLE " + USER_TABLE_PREFIX(tableName));
-                handle.execute("DELETE FROM " + MetaTable.META_TABLE_NAME + " WHERE "
-                        + MetaTable.Columns.TABLE_NAME + " = ?", tableName);
+                handle.execute("DROP TABLE " + USR_TABLE(tableName));
+                handle.execute(
+                        "DELETE FROM " + MetaTable.META_TABLE_NAME + " " +
+                		"WHERE " + MetaTable.Columns.TABLE_NAME + " = ?",
+                		tableName);
                 return null;
             }
         });
@@ -673,7 +685,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
             @Override
             public Void inTransaction(Handle handle, TransactionStatus status) throws Exception {
                 handle.execute(
-                        "CREATE TABLE IF NOT EXISTS " + USER_TABLE_PREFIX(tableName) + " ( " +
+                        "CREATE TABLE IF NOT EXISTS " + USR_TABLE(tableName) + " ( " +
                 		"    " + Columns.ROW + " BYTEA NOT NULL, " +
                 		"    " + Columns.COLUMN + " BYTEA NOT NULL, " +
                 		"    " + Columns.TIMESTAMP + " INT NOT NULL, " +
@@ -698,8 +710,10 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
             @Override
             public List<String> withHandle(Handle handle) throws Exception {
                 return handle.createQuery(
-                        "SELECT " + MetaTable.Columns.TABLE_NAME + " FROM "
-                                + MetaTable.META_TABLE_NAME).map(StringMapper.FIRST).list();
+                        "SELECT " + MetaTable.Columns.TABLE_NAME + " " +
+                		"FROM " + MetaTable.META_TABLE_NAME)
+                		.map(StringMapper.FIRST)
+                		.list();
             }
         }));
     }
@@ -707,15 +721,16 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
     @Override
     @Idempotent
     public byte[] getMetadataForTable(final String tableName) {
-        return getDbi().inTransaction(new TransactionCallback<byte[]>() {
+        return getDbi().withHandle(new HandleCallback<byte[]>() {
             @Override
-            public byte[] inTransaction(Handle conn, TransactionStatus status) throws Exception {
+            public byte[] withHandle(Handle conn) throws Exception {
                 return conn.createQuery(
-                        "SELECT " + MetaTable.Columns.METADATA + " FROM "
-                                + MetaTable.META_TABLE_NAME + " WHERE "
-                                + MetaTable.Columns.TABLE_NAME + " = :tableName").bind(
-                        "tableName",
-                        tableName).map(ByteArrayMapper.FIRST).first();
+                        "SELECT " + MetaTable.Columns.METADATA + " " +
+                        "FROM " + MetaTable.META_TABLE_NAME + " " +
+                		"WHERE " + MetaTable.Columns.TABLE_NAME + " = :tableName")
+                		.bind("tableName", tableName)
+                		.map(ByteArrayMapper.FIRST)
+                		.first();
             }
         });
     }
