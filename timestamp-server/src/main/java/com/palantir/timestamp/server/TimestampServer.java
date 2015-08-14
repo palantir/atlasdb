@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
+import com.palantir.atlas.impl.AtlasServiceImpl;
 import com.palantir.atlas.impl.TableMetadataCache;
 import com.palantir.atlas.jackson.AtlasJacksonModule;
 import com.palantir.atlasdb.client.FailoverFeignTarget;
@@ -137,6 +138,9 @@ public class TimestampServer extends Application<TimestampServerConfiguration> {
 
         AtlasDbServerFactory factory = createFactory(configuration);
         environment.jersey().register(AwaitingLeadershipProxy.newProxyInstance(TimestampService.class, factory.getTimestampSupplier(), leader));
+        TableMetadataCache cache = new TableMetadataCache(factory.getKeyValueService());
+        environment.jersey().register(new AtlasServiceImpl(factory.getKeyValueService(), factory.getTransactionManager(), cache));
+        environment.getObjectMapper().registerModule(new AtlasJacksonModule(cache).createModule());
     }
 
     private RemoteLockService createLockService(PaxosLeaderElectionService leader) {
