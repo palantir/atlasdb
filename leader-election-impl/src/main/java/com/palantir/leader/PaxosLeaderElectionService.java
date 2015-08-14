@@ -255,11 +255,11 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                         return cacheEntry.getValue();
                     }
                 } catch (InterruptedException e) {
-                    log.warn("uuid request interrupted", e);
+                    log.info("uuid request interrupted", e);
                     interrupted = true;
                     break;
                 } catch (ExecutionException e) {
-                    log.warn("unable to get uuid from server", e);
+                    log.info("unable to get uuid from server", e);
                 }
             }
 

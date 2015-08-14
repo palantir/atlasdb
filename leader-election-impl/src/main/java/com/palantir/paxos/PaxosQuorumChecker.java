@@ -103,12 +103,12 @@ public final class PaxosQuorumChecker {
                     // record response
                     receivedResponses.add(response);
                 } catch (InterruptedException e) {
-                    log.warn("paxos request interrupted", e);
+                    log.info("paxos request interrupted", e);
                     interrupted = true;
                     break;
                 } catch (ExecutionException e) {
                     nacksRecieved++;
-                    log.warn("error requesting paxos message", e.getCause());
+                    log.info("error requesting paxos message", e.getCause());
                 }
             }
 
@@ -118,11 +118,11 @@ public final class PaxosQuorumChecker {
                 try {
                     receivedResponses.add(future.get());
                 } catch (InterruptedException e) {
-                    log.warn("paxos request interrupted", e);
+                    log.info("paxos request interrupted", e);
                     interrupted = true;
                     break;
                 } catch (ExecutionException e) {
-                    log.warn("error requesting paxos message", e.getCause());
+                    log.info("error requesting paxos message", e.getCause());
                 }
             }
 
