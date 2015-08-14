@@ -985,7 +985,7 @@ import com.palantir.util.Pair;
     public void logCurrentState() {
         log.error("logCurrentState() request received; not waiting for consistent state and logging immediately. Current time = "
                 + currentTimeMillis());
-        logCurrentStateInconsistent();
+        logCurrentStateToLoggerInconsistent(lockStateLogger);
     }
 
     public void shutdown() {
@@ -1011,11 +1011,6 @@ import com.palantir.util.Pair;
     @Override
     public void close() {
         shutdown();
-    }
-
-    @Override
-    public void logCurrentStateInconsistent() {
-        logCurrentStateToLoggerInconsistent(lockStateLogger);
     }
 
     private void logCurrentStateToLoggerInconsistent(Logger logger) {
