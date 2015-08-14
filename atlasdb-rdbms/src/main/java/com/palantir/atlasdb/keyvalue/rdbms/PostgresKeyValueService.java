@@ -257,20 +257,32 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
     }
 
     // *** put ************************************************************************************
-    private void putInternal(final String tableName,
+    private void putInternalInTransaction(final String tableName,
                              final Collection<Entry<Cell, byte[]>> values,
-                             final long timestamp) {
+                             final long timestamp, Handle handle) {
+                Update update = handle.createStatement(
+                        "INSERT INTO " + USR_TABLE(tableName) + " (" +
+                                Columns.ROW.append(Columns.COLUMN).append(
+                                Columns.TIMESTAMP).append(Columns.CONTENT) +
+                        ") VALUES " + makeSlots("cell", values.size(), 4));
+                AtlasSqlUtils.bindCellsValues(update, values, timestamp);
+                update.execute();
+    }
+
+    @Override
+    public void put(final String tableName, final Map<Cell, byte[]> values, final long timestamp)
+            throws KeyAlreadyExistsException {
         try {
-            getDbi().withHandle(new HandleCallback<Void>() {
-                @Override
-                public Void withHandle(Handle handle) throws Exception {
-                    Update update = handle.createStatement(
-                            "INSERT INTO " + USR_TABLE(tableName) + " (" +
-                            		Columns.ROW.append(Columns.COLUMN).append(
-                    		        Columns.TIMESTAMP).append(Columns.CONTENT) +
-            		        ") VALUES " + makeSlots("cell", values.size(), 4));
-                    AtlasSqlUtils.bindCellsValues(update, values, timestamp);
-                    update.execute();
+            batch(values.entrySet(), new Function<Collection<Entry<Cell, byte[]>>, Void>() {
+                @Override @Nullable
+                public Void apply(@Nullable final Collection<Entry<Cell, byte[]>> input) {
+                    getDbi().withHandle(new HandleCallback<Void>() {
+                        @Override
+                        public Void withHandle(Handle handle) throws Exception {
+                            putInternalInTransaction(tableName, input, timestamp, handle);
+                            return null;
+                        }
+                    });
                     return null;
                 }
             });
@@ -282,16 +294,23 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
         }
     }
 
-    @Override
-    public void put(final String tableName, final Map<Cell, byte[]> values, final long timestamp)
+    private void putInTransaction(final String tableName, final Map<Cell, byte[]> values,
+                                  final long timestamp, final Handle handle)
             throws KeyAlreadyExistsException {
-        batch(values.entrySet(), new Function<Collection<Entry<Cell, byte[]>>, Void>() {
-            @Override @Nullable
-            public Void apply(@Nullable Collection<Entry<Cell, byte[]>> input) {
-                putInternal(tableName, input, timestamp);
-                return null;
+        try {
+            batch(values.entrySet(), new Function<Collection<Entry<Cell, byte[]>>, Void>() {
+                @Override @Nullable
+                public Void apply(@Nullable final Collection<Entry<Cell, byte[]>> input) {
+                            putInternalInTransaction(tableName, input, timestamp, handle);
+                    return null;
+                }
+            });
+        } catch (RuntimeException e) {
+            if (AtlasSqlUtils.isKeyAlreadyExistsException(e)) {
+                throw new KeyAlreadyExistsException("Unique constraint violation", e);
             }
-        });
+            throw e;
+        }
     }
 
     // *** putWithTimestamps **********************************************************************
@@ -348,6 +367,16 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
             update.execute();
     }
 
+    private void deleteInTransaction(final String tableName, final Multimap<Cell, Long> keys, final Handle handle) {
+            batch(keys.entries(), new Function<Collection<Entry<Cell, Long>>, Void>() {
+                @Override @Nullable
+                public Void apply(@Nullable Collection<Entry<Cell, Long>> input) {
+                    deleteInternalInTransaction(tableName, input, handle);
+                    return null;
+                }
+            });
+    }
+
     /**
      * Performs entire batched delete in a single transaction.
      * @param tableName
@@ -355,26 +384,16 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
      * @param handle
      *
      */
-    private void deleteInTransaction(final String tableName, final Multimap<Cell, Long> keys) {
+    @Override @Idempotent
+    public void delete(final String tableName, final Multimap<Cell, Long> keys) {
         getDbi().inTransaction(new TransactionCallback<Void>() {
             @Override
             public Void inTransaction(final Handle conn, TransactionStatus status) throws Exception {
-                batch(keys.entries(), new Function<Collection<Entry<Cell, Long>>, Void>() {
-                    @Override @Nullable
-                    public Void apply(@Nullable Collection<Entry<Cell, Long>> input) {
-                        deleteInternalInTransaction(tableName, input, conn);
-                        return null;
-                    }
-                });
+                // Just perform entire delete in a single transaction.
+                deleteInTransaction(tableName, keys, conn);
                 return null;
             }
         });
-    }
-
-    @Override @Idempotent
-    public void delete(final String tableName, final Multimap<Cell, Long> keys) {
-        // Just perform entire delete in a single transaction.
-        deleteInTransaction(tableName, keys);
     }
 
     // *** getRange *******************************************************************************
@@ -754,13 +773,18 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
     @Override
     @Idempotent
     public void addGarbageCollectionSentinelValues(final String tableName, final Set<Cell> cells) {
-        Map<Cell, byte[]> cellsWithInvalidValues = Maps2.createConstantValueMap(
-                cells, ArrayUtils.EMPTY_BYTE_ARRAY);
-        Multimap<Cell, Long> cellsAsMultimap = Multimaps.forMap(Maps2.createConstantValueMap(
-                cells, Value.INVALID_VALUE_TIMESTAMP));
-        delete(tableName, cellsAsMultimap);
-        // TODO: Race condition
-        put(tableName, cellsWithInvalidValues, Value.INVALID_VALUE_TIMESTAMP);
+        getDbi().inTransaction(new TransactionCallback<Void>() {
+            @Override
+            public Void inTransaction(Handle conn, TransactionStatus status) throws Exception {
+                Map<Cell, byte[]> cellsWithInvalidValues = Maps2.createConstantValueMap(
+                        cells, ArrayUtils.EMPTY_BYTE_ARRAY);
+                Multimap<Cell, Long> cellsAsMultimap = Multimaps.forMap(Maps2.createConstantValueMap(
+                        cells, Value.INVALID_VALUE_TIMESTAMP));
+                deleteInTransaction(tableName, cellsAsMultimap, conn);
+                putInTransaction(tableName, cellsWithInvalidValues, Value.INVALID_VALUE_TIMESTAMP, conn);
+                return null;
+            }
+        });
     }
 
     @Override
