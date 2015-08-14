@@ -104,7 +104,7 @@ public class PaxosProposerImpl implements PaxosProposer {
                     try {
                         learner.learn(seq, finalValue);
                     } catch (Throwable e) {
-                        log.warn("failed to teach learner", e);
+                        log.info("failed to teach learner", e);
                     }
                 }
             });
