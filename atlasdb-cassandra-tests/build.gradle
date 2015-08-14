@@ -4,6 +4,7 @@ dependencies {
   compile(project(":atlasdb-cassandra"))
   testCompile project(path: ":atlasdb-tests-shared", configuration: 'test')
   testCompile 'org.apache.cassandra:cassandra-all:2.1.5'
+  testCompile project(path: ':datastax-cassandra-driver-core', configuration: 'shadow')
 }
 
 jacoco {
@@ -27,5 +28,22 @@ jacocoTestReport {
         csv.enabled false
         html.enabled true
         html.destination "${buildDir}/jacocoHtml"
+    }
+}
+
+// Add a classifier to properly pick up the datastax dependency
+publishing {
+    publications {
+        local(MavenPublication) {
+            pom.withXml {
+                def node = asNode();
+                node.depthFirst().each { n ->
+                    if (n instanceof Node && n.text() == "datastax-cassandra-driver-core") {
+                        n.parent().appendNode('classifier', 'all')
+                        return;
+                    }
+                }
+            }
+        }
     }
 }

@@ -15,11 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-public class CQLKeyValueService {
-
-}
-
-/*
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
@@ -115,6 +110,7 @@ import com.palantir.util.Visitor;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
+
 
 public class CQLKeyValueService extends AbstractKeyValueService {
     private static final Logger log = LoggerFactory.getLogger(CQLKeyValueService.class);
@@ -1358,5 +1354,3 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         // nothing to do, yet...
     }
 }
-
-*/
