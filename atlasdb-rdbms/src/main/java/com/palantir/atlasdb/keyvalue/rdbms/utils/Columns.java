@@ -54,7 +54,7 @@ public final class Columns {
     public static final ColumnQueryToken ROW = new ColumnQueryToken("atlasdb_row");
     public static final ColumnQueryToken COLUMN = new ColumnQueryToken("atlasdb_column");
 
-    private static final String maybeEmpty(String tableName) {
+    private static String appendDotIfNotEmpty(String tableName) {
         if (tableName.equals("")) {
             return "";
         }
@@ -62,19 +62,19 @@ public final class Columns {
     }
 
     public static final ColumnQueryToken ROW(String tableName) {
-        return new ColumnQueryToken(maybeEmpty(tableName) + ROW);
+        return new ColumnQueryToken(appendDotIfNotEmpty(tableName) + ROW);
     }
 
     public static final ColumnQueryToken COLUMN(String tableName) {
-        return new ColumnQueryToken(maybeEmpty(tableName) + COLUMN);
+        return new ColumnQueryToken(appendDotIfNotEmpty(tableName) + COLUMN);
     }
 
     public static final ColumnQueryToken TIMESTAMP(String tableName) {
-        return new ColumnQueryToken(maybeEmpty(tableName) + TIMESTAMP);
+        return new ColumnQueryToken(appendDotIfNotEmpty(tableName) + TIMESTAMP);
     }
 
     public static final ColumnQueryToken CONTENT(String tableName) {
-        return new ColumnQueryToken(maybeEmpty(tableName) + CONTENT);
+        return new ColumnQueryToken(appendDotIfNotEmpty(tableName) + CONTENT);
     }
 
     public static final String ROW_COLUMN_TIMESTAMP_AS(String tableName) {
