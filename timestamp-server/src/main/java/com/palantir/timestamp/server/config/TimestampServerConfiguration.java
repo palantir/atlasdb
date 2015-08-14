@@ -29,7 +29,6 @@ public class TimestampServerConfiguration extends Configuration {
 	@Valid
 	public ClientConfiguration timestampClient = new ClientConfiguration();
 
-	@NotNull
 	@Valid
 	public LeaderConfiguration leader = new LeaderConfiguration();
 
@@ -37,10 +36,11 @@ public class TimestampServerConfiguration extends Configuration {
 	@Valid
 	public ServerType serverType = ServerType.LEVELDB;
 
+	@Valid
 	public String levelDbDir = "leveldb";
 
 	@Valid
-	public CassandraKeyValueConfiguration cassandra = new CassandraKeyValueConfiguration();
+	public CassandraKeyValueConfiguration cassandra;
 
 	public enum ServerType {
 	    LEVELDB,

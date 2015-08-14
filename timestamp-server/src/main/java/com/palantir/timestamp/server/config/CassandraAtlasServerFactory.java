@@ -62,8 +62,8 @@ public class CassandraAtlasServerFactory implements AtlasDbServerFactory {
         this.txMgr = txMgr;
     }
 
-    public static AtlasDbServerFactory create(TimestampServerConfiguration config, Schema schema, TimestampService leadingTs, RemoteLockService leadingLock) {
-        CassandraKeyValueService rawKv = createKv(config.cassandra);
+    public static AtlasDbServerFactory create(CassandraKeyValueConfiguration config, Schema schema, TimestampService leadingTs, RemoteLockService leadingLock) {
+        CassandraKeyValueService rawKv = createKv(config);
         KeyValueService keyValueService = createTableMappingKv(rawKv, leadingTs);
 
         schema.createTablesAndIndexes(keyValueService);

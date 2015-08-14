@@ -17,8 +17,4 @@ timestampClient:
   servers:
     - http://localhost:3828
 
-serverType: CASSANDRA
-cassandra:
-  servers:
-    -  localhost
-
+serverType: LEVELDB

@@ -29,6 +29,7 @@ public interface TimestampService {
      */
     @POST // This has to be POST because we can't allow caching.
     @Path("fresh-timestamp")
+    @Produces(MediaType.APPLICATION_JSON)
     long getFreshTimestamp();
 
     /**
