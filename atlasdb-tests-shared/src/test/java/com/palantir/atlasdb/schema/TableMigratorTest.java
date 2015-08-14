@@ -161,7 +161,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
                             Iterable<Entry<Cell, byte[]>> cells = item.getCells();
                             Entry<Cell, byte[]> e = Iterables.getOnlyElement(cells);
                             Assert.assertEquals(theCell, e.getKey());
-                            Assert.assertEquals(theValue, e.getValue());
+                            Assert.assertArrayEquals(theValue, e.getValue());
                             count.increment();
                             return true;
                         }

@@ -75,6 +75,33 @@ public class RangeRequests {
         return ret;
     }
 
+    final static byte[] ONE_AFTER_MAXIMUM_NAME;
+    static {
+        ONE_AFTER_MAXIMUM_NAME = new byte[Cell.MAX_NAME_LENGTH + 1];
+        for (int i = 0; i < Cell.MAX_NAME_LENGTH; ++i) {
+            ONE_AFTER_MAXIMUM_NAME[i] = (byte) 0xff;
+        }
+        ONE_AFTER_MAXIMUM_NAME[Cell.MAX_NAME_LENGTH] = (byte) 0x00;
+    }
+
+    public static byte[] oneAfterMaximumName() {
+        return ONE_AFTER_MAXIMUM_NAME;
+    }
+
+    public static byte[] endRowExclusiveOrOneAfterMax(RangeRequest rangeRequest) {
+        if (rangeRequest.getEndExclusive().length == 0) {
+            return oneAfterMaximumName();
+        }
+        return rangeRequest.getEndExclusive();
+    }
+
+    public static ColumnSelection extractColumnSelection(RangeRequest rangeRequest) {
+        if (rangeRequest.getColumnNames().isEmpty()) {
+            return ColumnSelection.all();
+        }
+        return ColumnSelection.create(rangeRequest.getColumnNames());
+    }
+
     private static byte[] nextLexicographicNameInternal(@Nonnull byte[] name) {
         Preconditions.checkArgument(name.length <= Cell.MAX_NAME_LENGTH, "name is too long");
         if (name.length < Cell.MAX_NAME_LENGTH) {
