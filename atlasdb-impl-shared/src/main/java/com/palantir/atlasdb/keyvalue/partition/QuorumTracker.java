@@ -6,6 +6,7 @@ import java.util.concurrent.Future;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.partition.QuorumParameters.QuorumRequestParameters;
+import com.palantir.common.collect.Maps2;
 
 public class QuorumTracker<FutureReturnType, TrackingUnit> {
 
@@ -16,15 +17,8 @@ public class QuorumTracker<FutureReturnType, TrackingUnit> {
 
     public QuorumTracker(Iterable<TrackingUnit> allTrackedUnits,
                          QuorumRequestParameters quorumRequestParameters) {
-
-        numberOfRemainingFailuresForFailure = Maps.newHashMap();
-        numberOfRemainingSuccessesForSuccess = Maps.newHashMap();
-
-        for (TrackingUnit item : allTrackedUnits) {
-            numberOfRemainingSuccessesForSuccess.put(item, quorumRequestParameters.getSuccessFactor());
-            numberOfRemainingFailuresForFailure.put(item, quorumRequestParameters.getFailureFactor());
-        }
-
+        numberOfRemainingFailuresForFailure = Maps2.createConstantValueMap(allTrackedUnits, quorumRequestParameters.getFailureFactor());
+        numberOfRemainingSuccessesForSuccess = Maps2.createConstantValueMap(allTrackedUnits, quorumRequestParameters.getSuccessFactor());
         unitsByReference = Maps.newHashMap();
         failure = false;
     }
