@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.palantir.atlas.impl.AtlasServiceImpl;
@@ -27,6 +26,7 @@ import com.palantir.atlas.impl.TableMetadataCache;
 import com.palantir.atlas.jackson.AtlasJacksonModule;
 import com.palantir.atlasdb.client.FailoverFeignTarget;
 import com.palantir.atlasdb.client.TextDelegateDecoder;
+import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.leader.PingableLeader;
@@ -93,7 +93,6 @@ public class TimestampServer extends Application<TimestampServerConfiguration> {
     public static ObjectMapper getObjectMapper(TableMetadataCache cache) {
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new AtlasJacksonModule(cache).createModule());
-        mapper.registerModule(new GuavaModule());
         return mapper;
     }
 
@@ -158,9 +157,9 @@ public class TimestampServer extends Application<TimestampServerConfiguration> {
 
         if (config.serverType == ServerType.LEVELDB) {
             Preconditions.checkArgument(config.leader.leaders.size() == 1, "only one server allowed for LevelDB");
-            return LevelDbAtlasServerFactory.create(config.levelDbDir, null, leadingTs, leadingLock);
+            return LevelDbAtlasServerFactory.create(config.levelDbDir, new Schema(), leadingTs, leadingLock);
         } else {
-            return CassandraAtlasServerFactory.create(config, null, leadingTs, leadingLock);
+            return CassandraAtlasServerFactory.create(config.cassandra, new Schema(), leadingTs, leadingLock);
         }
     }
 }

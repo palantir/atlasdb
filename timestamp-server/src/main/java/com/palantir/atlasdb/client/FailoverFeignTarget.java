@@ -23,13 +23,15 @@ import jersey.repackaged.com.google.common.collect.ImmutableSet;
 
 public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     private static final Logger log = LoggerFactory.getLogger(FailoverFeignTarget.class);
+    private static final double GOLDEN_RATIO = (Math.sqrt(5) + 1.0) / 2.0;
 
     private final ImmutableList<String> servers;
     private final Class<T> type;
     private final AtomicInteger failoverCount = new AtomicInteger();
-    private final int failuresBeforeSwitching = 5;
-    private final int numServersToTryBeforeFailing = 8;
+    private final int failuresBeforeSwitching = 3;
+    private final int numServersToTryBeforeFailing = 14;
     private final int fastFailoverTimeoutMillis = 10000;
+    private final int maxBackoffMillis = 3000;
 
     private final AtomicLong failuresSinceLastSwitch = new AtomicLong();
     private final AtomicLong numSwitches = new AtomicLong();
@@ -51,22 +53,22 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     @Override
     public void continueOrPropagate(RetryableException e) {
 
-        boolean isFailoverException;
+        boolean isFastFailoverException;
         if (e.retryAfter() == null) {
             // This is the case where we have failed due to networking or other IOException error.
-            isFailoverException = false;
+            isFastFailoverException = false;
         } else {
             // This is the case where the server has returned a 503.
             // This is done when we want to do fast failover because we aren't the leader or we are shutting down.
-            isFailoverException = true;
+            isFastFailoverException = true;
         }
         synchronized (this) {
             // Only fail over if this failure was to the current server.
             // This means that no one on another thread has failed us over already.
             if (mostRecentServerIndex.get() != null && mostRecentServerIndex.get() == failoverCount.get()) {
                 long failures = failuresSinceLastSwitch.incrementAndGet();
-                if (isFailoverException || failures >= failuresBeforeSwitching) {
-                    if (isFailoverException) {
+                if (isFastFailoverException || failures >= failuresBeforeSwitching) {
+                    if (isFastFailoverException) {
                         // We did talk to a node successfully. It was shutting down but nodes are available
                         // so we shoudln't keep making the backoff higher.
                         numSwitches.set(0);
@@ -82,16 +84,19 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
         }
 
         checkAndHandleFailure(e);
+        if (!isFastFailoverException) {
+            pauseForBackOff();
+        }
         return;
     }
 
     private void checkAndHandleFailure(RetryableException e) {
-        final long failoverStartTime = startTimeOfFastFailover.get();
+        final long fastFailoverStartTime = startTimeOfFastFailover.get();
         final long currentTime = System.currentTimeMillis();
-        boolean failedDueToFailover = failoverStartTime != 0 && (currentTime - failoverStartTime) > fastFailoverTimeoutMillis;
+        boolean failedDueToFastFailover = fastFailoverStartTime != 0 && (currentTime - fastFailoverStartTime) > fastFailoverTimeoutMillis;
         boolean failedDueToNumSwitches = numSwitches.get() >= numServersToTryBeforeFailing;
 
-        if (failedDueToFailover) {
+        if (failedDueToFastFailover) {
             log.warn("This connection has been instructed to fast failover for " +
                     TimeUnit.MILLISECONDS.toSeconds(fastFailoverTimeoutMillis) +
                     " seconds without establishing a successful connection." +
@@ -101,8 +106,21 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
                     + " hosts each " + failuresBeforeSwitching + " times and has failed out.", e);
         }
 
-        if (failedDueToFailover || failedDueToNumSwitches) {
+        if (failedDueToFastFailover || failedDueToNumSwitches) {
             throw e;
+        }
+    }
+
+
+    private void pauseForBackOff() {
+        double pow = Math.pow(GOLDEN_RATIO, (numSwitches.get() * failuresBeforeSwitching) + failuresSinceLastSwitch.get());
+        long timeout = Math.min(maxBackoffMillis, Math.round(pow));
+
+        try {
+            log.info("Pausing {}ms before retrying", timeout);
+            Thread.sleep(timeout);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
 
@@ -126,11 +144,7 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     public String url() {
         int indexToHit = failoverCount.get();
         mostRecentServerIndex.set(indexToHit);
-        return getServer(indexToHit);
-    }
-
-    private String getServer(int failoverVersion) {
-        return servers.get(failoverVersion % servers.size());
+        return servers.get(indexToHit % servers.size());
     }
 
     @Override

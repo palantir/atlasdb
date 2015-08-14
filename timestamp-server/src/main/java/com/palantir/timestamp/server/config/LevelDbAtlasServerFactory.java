@@ -71,7 +71,6 @@ public class LevelDbAtlasServerFactory implements AtlasDbServerFactory {
         LevelDbKeyValueService rawKv = createKv(dataDir);
         KeyValueService keyValueService = createTableMappingKv(rawKv, leaderTs);
 
-        schema.createTablesAndIndexes(keyValueService);
         SnapshotTransactionManager.createTables(keyValueService);
 
         TransactionService transactionService = TransactionServices.createTransactionService(keyValueService);

@@ -37,7 +37,6 @@ import com.palantir.atlasdb.schema.generated.UpgradeMetadataTable.UpgradeMetadat
 import com.palantir.atlasdb.schema.generated.UpgradeMetadataTable.UpgradeMetadataRowResult;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.impl.SnapshotTransactionManager;
-import com.palantir.timestamp.server.TimestampServer;
 
 import feign.Feign;
 import feign.jackson.JacksonDecoder;
@@ -52,7 +51,7 @@ public class TransactionRemotingTest {
     public final SnapshotTransactionManager txMgr = InMemoryAtlasDb.createInMemoryTransactionManager(schema);
     public final KeyValueService kvs = txMgr.getKeyValueService();
     public final TableMetadataCache cache = new TableMetadataCache(kvs);
-    public final ObjectMapper mapper = TimestampServer.getObjectMapper(cache);
+    public final ObjectMapper mapper = new ObjectMapper(); { mapper.registerModule(new AtlasJacksonModule(cache).createModule()); }
     public final @Rule DropwizardClientRule dropwizard = new DropwizardClientRule(new AtlasServiceImpl(kvs, txMgr, cache));
     public AtlasService service;
 
