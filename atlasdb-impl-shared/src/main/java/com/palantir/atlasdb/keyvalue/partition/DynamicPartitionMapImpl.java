@@ -1,5 +1,6 @@
 package com.palantir.atlasdb.keyvalue.partition;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
@@ -14,6 +15,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Queues;
@@ -253,32 +255,108 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     // TODO: This should probably take timestamp (?)
     private void copyData(KeyValueService destination, KeyValueService source, RangeRequest rangeToCopy) {
         for (String tableName : source.getAllTableNames()) {
+            Multimap<Cell, Value> cells = HashMultimap.create();
             ClosableIterator<RowResult<Value>> allRows = source.getRange(tableName, rangeToCopy, Long.MAX_VALUE);
             while (allRows.hasNext()) {
                 RowResult<Value> row = allRows.next();
-                Multimap<Cell, Value> cells = HashMultimap.create();
                 for (Entry<Cell, Value> entry : row.getCells()) {
                     cells.put(entry.getKey(), entry.getValue());
                 }
-                destination.putWithTimestamps(tableName, cells);
             }
+            destination.putWithTimestamps(tableName, cells);
             allRows.close();
         }
+    }
+
+    private void deleteData(KeyValueService kvs, RangeRequest rangeToDelete) {
+        for (String tableName : kvs.getAllTableNames()) {
+            Multimap<Cell, Long> cells = HashMultimap.create();
+            ClosableIterator<RowResult<Set<Long>>> allTimestamps = kvs.getRangeOfTimestamps(tableName, rangeToDelete, Long.MAX_VALUE);
+            while (allTimestamps.hasNext()) {
+                RowResult<Set<Long>> row = allTimestamps.next();
+                for (Entry<Cell, Set<Long>> entry : row.getCells()) {
+                    for (Long timestamp : entry.getValue()) {
+                        cells.put(entry.getKey(), timestamp);
+                    }
+                }
+            }
+            kvs.delete(tableName, cells);
+        }
+    }
+
+    private List<RangeRequest> getRangesOperatedByKvs(byte[] kvsKey, boolean isWrite) {
+        KeyValueServiceWithStatus kvsws = Preconditions.checkNotNull(ring.get(kvsKey));
+        List<RangeRequest> result = Lists.newArrayList();
+
+        byte[] startRange = kvsKey;
+        byte[] endRange = kvsKey;
+        for (int i = 0, extra = 0; i < quorumParameters.getReplicationFactor() + extra; ++i) {
+            startRange = ring.previousKey(startRange);
+            if (!ring.get(startRange).shouldCountFor(isWrite)) {
+                extra++;
+                continue;
+            }
+            if (UnsignedBytes.lexicographicalComparator().compare(startRange, endRange) < 0) {
+                RangeRequest range = RangeRequest.builder()
+                        .startRowInclusive(startRange)
+                        .endRowExclusive(ring.nextKey(startRange))
+                        .build();
+                result.add(range);
+            } else {
+                RangeRequest range1 = RangeRequest.builder()
+                        .endRowExclusive(endRange)
+                        .build();
+                RangeRequest range2 = RangeRequest.builder()
+                        .startRowInclusive(startRange)
+                        .build();
+                result.add(range1);
+                result.add(range2);
+            }
+            endRange = startRange;
+        }
+
+        return result;
     }
 
     @Override
     public synchronized void addEndpoint(final byte[] key, final KeyValueService kvs, String rack) {
         Preconditions.checkArgument(!ring.containsKey(key));
         KeyValueServiceWithStatus kvsWithStatus = new JoiningKeyValueService(kvs);
-        // This case is simple. I need all that the next kvs has besided the range
-        // upwards from the joiner.
-        final RangeRequest rangeToBeMerged = RangeRequest.builder().endRowExclusive(key).build();
         ring.put(key, kvsWithStatus);
         joins.add(executor.submit(new Callable<Void>() {
             @Override
             public Void call() throws Exception {
-                // TODO I do not really need to copy all the data
-                copyData(kvs, ring.get(ring.nextKey(key)).get(), rangeToBeMerged);
+                byte[] nextKey = ring.nextKey(key);
+                List<RangeRequest> ranges = getRangesOperatedByKvs(nextKey, false);
+                KeyValueService sourceKvs = ring.get(nextKey).get();
+                // First, copy all the ranges besides the one in which
+                // the new kvs is located. All these will be operated
+                // by the new kvs.
+                for (int i = 0; i < ranges.size() - 1; ++i) {
+                    copyData(kvs, sourceKvs, ranges.get(i));
+                }
+
+                // Now we need to split the last range into two pieces.
+                // The second piece will not be operated by the joiner,
+                // thus I only need to copy the first part over.
+                RangeRequest lastRange = ranges.get(ranges.size() - 1);
+                RangeRequest lastRange1 = lastRange.getBuilder().endRowExclusive(key).build();
+//                RangeRequest lastRange2 = lastRange.getBuilder().startRowInclusive(key).build();
+                copyData(kvs, sourceKvs, lastRange1);
+                // Some anti-bug asserts
+                assert UnsignedBytes.lexicographicalComparator().compare(lastRange.getStartInclusive(), key) < 0;
+                assert UnsignedBytes.lexicographicalComparator().compare(lastRange.getEndExclusive(), key) > 0;
+
+                // The last thing to be done is removing the farthest
+                // range from the following kvss.
+                byte[] keyToRemove = nextKey;
+                for (int i = 0; i < ranges.size() - 1; ++i) {
+                    RangeRequest rangeToRemove = ranges.get(i);
+                    deleteData(ring.get(keyToRemove).get(), rangeToRemove);
+                    keyToRemove = ring.nextKey(keyToRemove);
+                }
+                deleteData(ring.get(keyToRemove).get(), lastRange1);
+
                 return null;
             }
         }));
