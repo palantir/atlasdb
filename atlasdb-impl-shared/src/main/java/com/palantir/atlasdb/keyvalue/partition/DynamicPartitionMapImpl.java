@@ -11,6 +11,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
+import javax.annotation.Nullable;
+
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
@@ -41,10 +44,23 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     private final BlockingQueue<Future<Void>> removals = Queues.newLinkedBlockingQueue();
     private final BlockingQueue<Future<Void>> joins = Queues.newLinkedBlockingQueue();
 
+    private <K, V1, V2> NavigableMap<K, V2> transformValues(NavigableMap<K, V1> map, Function<V1, V2> transform) {
+        NavigableMap<K, V2> result = Maps.newTreeMap(map.comparator());
+        for (Entry<K, V1> entry : map.entrySet()) {
+            result.put(entry.getKey(), transform.apply(entry.getValue()));
+        }
+        return result;
+    }
+
     public DynamicPartitionMapImpl(QuorumParameters quorumParameters,
                                NavigableMap<byte[], KeyValueService> ring) {
         this.quorumParameters = quorumParameters;
-        this.ring = CycleMap.wrap(Maps.<byte[], KeyValueServiceWithStatus>newTreeMap(null));
+        this.ring = CycleMap.wrap(transformValues(ring, new Function<KeyValueService, KeyValueServiceWithStatus>() {
+            @Override @Nullable
+            public KeyValueServiceWithStatus apply(@Nullable KeyValueService input) {
+                return new RegularKeyValueService(input);
+            }
+        }));
         this.services = Sets.newHashSet(ring.values());
     }
 
@@ -292,8 +308,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         byte[] endRange = kvsKey;
         for (int i = 0, extra = 0; i < quorumParameters.getReplicationFactor() + extra; ++i) {
             startRange = ring.previousKey(startRange);
-            if (!ring.get(startRange).shouldCountFor(isWrite)) {
-                extra++;
+            if (!ring.get(startRange).shouldUseFor(isWrite)) {
                 continue;
             }
             if (UnsignedBytes.lexicographicalComparator().compare(startRange, endRange) < 0) {
@@ -311,6 +326,9 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
                         .build();
                 result.add(range1);
                 result.add(range2);
+            }
+            if (!ring.get(startRange).shouldCountFor(isWrite)) {
+                extra++;
             }
             endRange = startRange;
         }
@@ -356,7 +374,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
                     keyToRemove = ring.nextKey(keyToRemove);
                 }
                 deleteData(ring.get(keyToRemove).get(), lastRange1);
-
+                ring.put(key, new RegularKeyValueService(kvs));
                 return null;
             }
         }));
@@ -371,7 +389,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         removals.add(executor.submit(new Callable<Void>() {
             @Override
             public Void call() throws Exception {
-                List<RangeRequest> ranges = getRangesOperatedByKvs(key, false);
+                List<RangeRequest> ranges = getRangesOperatedByKvs(key, true);
                 byte[] dstKvsKey = ring.nextKey(key);
                 for (int i = 0; i < ranges.size() - 1; ++i) {
                     copyData(ring.get(dstKvsKey).get(), kvs, ranges.get(i));
@@ -379,6 +397,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
                 }
                 RangeRequest lastRange1 = ranges.get(ranges.size() - 1).getBuilder().endRowExclusive(key).build();
                 copyData(ring.get(dstKvsKey).get(), kvs, lastRange1);
+                ring.remove(key);
                 return null;
             }
         }));

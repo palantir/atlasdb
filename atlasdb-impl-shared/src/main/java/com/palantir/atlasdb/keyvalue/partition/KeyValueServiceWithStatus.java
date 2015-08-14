@@ -28,4 +28,8 @@ public abstract class KeyValueServiceWithStatus {
         }
         return shouldCountForRead();
     }
+
+    public KeyValueServiceWithStatus completed() {
+        return new RegularKeyValueService(service);
+    }
 }
