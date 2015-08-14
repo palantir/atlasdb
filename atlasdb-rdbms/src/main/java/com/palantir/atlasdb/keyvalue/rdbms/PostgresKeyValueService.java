@@ -78,6 +78,7 @@ import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.NonIdempotent;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
+import com.palantir.common.collect.Maps2;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.util.Pair;
 import com.palantir.util.paging.AbstractPagingIterable;
@@ -736,13 +737,9 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
     @Override
     @Idempotent
     public void addGarbageCollectionSentinelValues(final String tableName, final Set<Cell> cells) {
-        // TODO: Make it faster by using dedicated query?
-        final Value invalidValue = Value.create(ArrayUtils.EMPTY_BYTE_ARRAY, Value.INVALID_VALUE_TIMESTAMP);
-        Multimap<Cell, Value> cellsWithInvalidValues = HashMultimap.create();
-        for (Cell cell : cells) {
-            cellsWithInvalidValues.put(cell, invalidValue);
-        }
-        putWithTimestamps(tableName, cellsWithInvalidValues);
+        // TODO: Handle KeyAlreadyExists problem
+        Map<Cell, byte[]> cellsWithInvalidValues = Maps2.createConstantValueMap(cells, ArrayUtils.EMPTY_BYTE_ARRAY);
+        put(tableName, cellsWithInvalidValues, Value.INVALID_VALUE_TIMESTAMP);
     }
 
     @Override
