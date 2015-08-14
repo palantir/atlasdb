@@ -22,18 +22,17 @@ import org.skife.jdbi.v2.StatementContext;
 import org.skife.jdbi.v2.tweak.ResultSetMapper;
 
 public class TimestampMapper implements ResultSetMapper<Long> {
+    private static final TimestampMapper instance = new TimestampMapper();
+
+    private TimestampMapper() {
+    }
+
     @Override
     public Long map(int index, ResultSet r, StatementContext ctx) throws SQLException {
         return r.getLong(Columns.TIMESTAMP.toString());
     }
 
-    private TimestampMapper() {}
-    private static TimestampMapper instance;
     public static TimestampMapper instance() {
-        if (instance == null) {
-            TimestampMapper ret = new TimestampMapper();
-            instance = ret;
-        }
         return instance;
     }
 }

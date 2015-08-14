@@ -24,6 +24,11 @@ import org.skife.jdbi.v2.tweak.ResultSetMapper;
 import com.palantir.atlasdb.keyvalue.api.Value;
 
 public class ValueMapper implements ResultSetMapper<Value> {
+    private static final ValueMapper instance = new ValueMapper();
+
+    private ValueMapper() {
+    }
+
     @Override
     public Value map(int index, ResultSet r, StatementContext ctx) throws SQLException {
         byte[] content = r.getBytes(Columns.CONTENT.toString());
@@ -31,13 +36,7 @@ public class ValueMapper implements ResultSetMapper<Value> {
         return Value.create(content, timestamp);
     }
 
-    private ValueMapper() {}
-    private static ValueMapper instance;
     public static ValueMapper instance() {
-        if (instance == null) {
-            ValueMapper ret = new ValueMapper();
-            instance = ret;
-        }
         return instance;
     }
 }

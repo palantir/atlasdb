@@ -23,8 +23,12 @@ import org.skife.jdbi.v2.tweak.ResultSetMapper;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
 
-
 public class CellMapper implements ResultSetMapper<Cell> {
+    private static final CellMapper instance = new CellMapper();
+
+    private CellMapper() {
+    }
+
     @Override
     public Cell map(int index, ResultSet r, StatementContext ctx) throws SQLException {
         byte[] row = r.getBytes(Columns.ROW.toString());
@@ -32,13 +36,7 @@ public class CellMapper implements ResultSetMapper<Cell> {
         return Cell.create(row, column);
     }
 
-    private CellMapper() {}
-    private static CellMapper instance;
     public static CellMapper instance() {
-        if (instance == null) {
-            CellMapper ret = new CellMapper();
-            instance = ret;
-        }
         return instance;
     }
 }
