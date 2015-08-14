@@ -189,7 +189,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         } catch (InterruptedException e) {
             return false;
         } catch (ExecutionException e) {
-            log.warn("cannot ping leader", e);
+            log.info("cannot ping leader", e);
             return false;
         }
     }
