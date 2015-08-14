@@ -127,7 +127,7 @@ public class TimestampServer extends Application<TimestampServerConfiguration> {
                 acceptors,
                 learners,
                 executor,
-                1000,
+                5000,
                 1000,
                 5000);
         environment.jersey().register(leader);

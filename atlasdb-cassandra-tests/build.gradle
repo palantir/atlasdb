@@ -2,9 +2,9 @@ apply from: "../gradle/shared.gradle"
 
 dependencies {
   compile(project(":atlasdb-cassandra"))
-  testCompile project(path: ":atlasdb-tests-shared", configuration: 'test')
-  testCompile 'org.apache.cassandra:cassandra-all:2.1.5'
-  testCompile project(path: ':datastax-cassandra-driver-core', configuration: 'shadow')
+  compile project(path: ":atlasdb-tests-shared", configuration: 'test')
+  compile 'org.apache.cassandra:cassandra-all:2.1.5'
+  compile project(path: ':datastax-cassandra-driver-core', configuration: 'shadow')
 }
 
 jacoco {
