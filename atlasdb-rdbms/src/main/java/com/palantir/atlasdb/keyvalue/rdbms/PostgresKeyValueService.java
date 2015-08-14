@@ -201,7 +201,6 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                                     final Iterable<byte[]> rows,
                                     final ColumnSelection columnSelection,
                                     final long timestamp) {
-        // TODO: Sort for best performance?
         final Map<Cell, Value> result = Maps.newHashMap();
         batch(rows, new Function<Collection<byte[]>, Void>() {
             @Override @Nullable
