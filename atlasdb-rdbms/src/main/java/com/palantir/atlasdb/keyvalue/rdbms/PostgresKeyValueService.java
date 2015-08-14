@@ -744,6 +744,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
         Multimap<Cell, Long> cellsAsMultimap = Multimaps.forMap(Maps2.createConstantValueMap(
                 cells, Value.INVALID_VALUE_TIMESTAMP));
         delete(tableName, cellsAsMultimap);
+        // TODO: Race condition
         put(tableName, cellsWithInvalidValues, Value.INVALID_VALUE_TIMESTAMP);
     }
 
