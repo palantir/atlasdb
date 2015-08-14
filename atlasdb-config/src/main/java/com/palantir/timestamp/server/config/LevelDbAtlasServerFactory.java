@@ -48,6 +48,7 @@ public class LevelDbAtlasServerFactory implements AtlasDbServerFactory {
     @Override
     public Supplier<TimestampService> getTimestampSupplier() {
         return new Supplier<TimestampService>() {
+            @Override
             public TimestampService get() {
                 return PersistentTimestampService.create(LevelDbBoundStore.create(rawKv));
             }

@@ -1,11 +1,9 @@
 apply from: "../gradle/shared.gradle"
 
 dependencies {
-    compile project(':timestamp-impl')
     compile project(':lock-impl')
     compile project(':leader-election-impl')
-    compile project(':atlasdb-leveldb')
-    compile project(':atlasdb-cassandra')
+    compile project(':atlasdb-config')
     compile project(':atlasdb-impl-shared')
     compile "io.dropwizard:dropwizard-core:" + libVersions.dropwizard
     compile 'com.netflix.feign:feign-jackson:8.6.1'

@@ -102,8 +102,4 @@ public interface RemoteLockService {
     @POST
     @Path("log-current-state")
     void logCurrentState();
-
-    @POST
-    @Path("log-current-state-inconsistent")
-    void logCurrentStateInconsistent();
 }
