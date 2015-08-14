@@ -24,20 +24,14 @@ import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
-import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.lock.LockClient;
-import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.RemoteLockService;
-import com.palantir.lock.client.LockRefreshingLockService;
-import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.TimestampService;
 
 public class CassandraAtlasServerFactory implements AtlasDbServerFactory {
     final CassandraKeyValueService rawKv;
     final KeyValueService kv;
-    final RemoteLockService lock;
-    final TimestampService ts;
     final SerializableTransactionManager txMgr;
 
     @Override
@@ -46,7 +40,7 @@ public class CassandraAtlasServerFactory implements AtlasDbServerFactory {
     }
 
     @Override
-    public Supplier<TimestampService> getTimestampService() {
+    public Supplier<TimestampService> getTimestampSupplier() {
         return new Supplier<TimestampService>() {
             @Override
             public TimestampService get() {
@@ -62,51 +56,38 @@ public class CassandraAtlasServerFactory implements AtlasDbServerFactory {
 
     private CassandraAtlasServerFactory(CassandraKeyValueService rawKv,
                                         KeyValueService kv,
-                                        RemoteLockService lock,
-                                        TimestampService ts,
                                         SerializableTransactionManager txMgr) {
         this.rawKv = rawKv;
         this.kv = kv;
-        this.lock = lock;
-        this.ts = ts;
         this.txMgr = txMgr;
     }
 
-    public static AtlasDbServerFactory create(PaxosLeaderElectionService leader, TimestampServerConfiguration config, Schema schema) {
+    public static AtlasDbServerFactory create(TimestampServerConfiguration config, Schema schema, TimestampService leadingTs, RemoteLockService leadingLock) {
         CassandraKeyValueService rawKv = createKv(config.cassandra);
-        TimestampService ts = null;
-        KeyValueService keyValueService = createTableMappingKv(rawKv, ts);
+        KeyValueService keyValueService = createTableMappingKv(rawKv, leadingTs);
 
         schema.createTablesAndIndexes(keyValueService);
         SnapshotTransactionManager.createTables(keyValueService);
 
         TransactionService transactionService = TransactionServices.createTransactionService(keyValueService);
-        RemoteLockService lock = LockRefreshingLockService.create(LockServiceImpl.create(new LockServerOptions() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public boolean isStandaloneServer() {
-                return false;
-            }
-        }));
         LockClient client = LockClient.of("single node leveldb instance");
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.createDefault(keyValueService);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
 
         CleanupFollower follower = CleanupFollower.create(schema);
-        Cleaner cleaner = new DefaultCleanerBuilder(keyValueService, lock, ts, client, ImmutableList.of(follower), transactionService).buildCleaner();
+        Cleaner cleaner = new DefaultCleanerBuilder(keyValueService, leadingLock, leadingTs, client, ImmutableList.of(follower), transactionService).buildCleaner();
         SerializableTransactionManager ret = new SerializableTransactionManager(
                 keyValueService,
-                ts,
+                leadingTs,
                 client,
-                lock,
+                leadingLock,
                 transactionService,
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
                 conflictManager,
                 sweepStrategyManager,
                 cleaner);
         cleaner.start(ret);
-        return new CassandraAtlasServerFactory(rawKv, keyValueService, lock, ts, ret);
+        return new CassandraAtlasServerFactory(rawKv, keyValueService, ret);
     }
 
     private static KeyValueService createTableMappingKv(KeyValueService kv, final TimestampService ts) {

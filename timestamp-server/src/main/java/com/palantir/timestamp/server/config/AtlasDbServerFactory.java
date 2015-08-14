@@ -8,7 +8,7 @@ import com.palantir.timestamp.TimestampService;
 public interface AtlasDbServerFactory {
     KeyValueService getKeyValueService();
 
-    Supplier<TimestampService> getTimestampService();
+    Supplier<TimestampService> getTimestampSupplier();
 
     SerializableTransactionManager getTransactionManager();
 }

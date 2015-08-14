@@ -30,20 +30,14 @@ import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.common.base.Throwables;
-import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.lock.LockClient;
-import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.RemoteLockService;
-import com.palantir.lock.client.LockRefreshingLockService;
-import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.TimestampService;
 
 public class LevelDbAtlasServerFactory implements AtlasDbServerFactory {
     final LevelDbKeyValueService rawKv;
     final KeyValueService kv;
-    final RemoteLockService lock;
-    final TimestampService ts;
     final SerializableTransactionManager txMgr;
 
     @Override
@@ -52,8 +46,12 @@ public class LevelDbAtlasServerFactory implements AtlasDbServerFactory {
     }
 
     @Override
-    public Supplier<TimestampService> getTimestampService() {
-        return Suppliers.ofInstance(ts);
+    public Supplier<TimestampService> getTimestampSupplier() {
+        return new Supplier<TimestampService>() {
+            public TimestampService get() {
+                return PersistentTimestampService.create(LevelDbBoundStore.create(rawKv));
+            }
+        };
     }
 
     @Override
@@ -61,54 +59,40 @@ public class LevelDbAtlasServerFactory implements AtlasDbServerFactory {
         return txMgr;
     }
 
-    private LevelDbAtlasServerFactory(
-                                      LevelDbKeyValueService rawKv,
+    private LevelDbAtlasServerFactory(LevelDbKeyValueService rawKv,
                                       KeyValueService kv,
-                                      RemoteLockService lock,
-                                      TimestampService ts,
                                       SerializableTransactionManager txMgr) {
         this.rawKv = rawKv;
         this.kv = kv;
-        this.lock = lock;
-        this.ts = ts;
         this.txMgr = txMgr;
     }
 
-    public static AtlasDbServerFactory create(PaxosLeaderElectionService leader, String dataDir, Schema schema) {
+    public static AtlasDbServerFactory create(String dataDir, Schema schema, TimestampService leaderTs, RemoteLockService leaderLock) {
         LevelDbKeyValueService rawKv = createKv(dataDir);
-        TimestampService ts = PersistentTimestampService.create(LevelDbBoundStore.create(rawKv));
-        KeyValueService keyValueService = createTableMappingKv(rawKv, ts);
+        KeyValueService keyValueService = createTableMappingKv(rawKv, leaderTs);
 
         schema.createTablesAndIndexes(keyValueService);
         SnapshotTransactionManager.createTables(keyValueService);
 
         TransactionService transactionService = TransactionServices.createTransactionService(keyValueService);
-        RemoteLockService lock = LockRefreshingLockService.create(LockServiceImpl.create(new LockServerOptions() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public boolean isStandaloneServer() {
-                return false;
-            }
-        }));
         LockClient client = LockClient.of("single node leveldb instance");
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.createDefault(keyValueService);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
 
         CleanupFollower follower = CleanupFollower.create(schema);
-        Cleaner cleaner = new DefaultCleanerBuilder(keyValueService, lock, ts, client, ImmutableList.of(follower), transactionService).buildCleaner();
+        Cleaner cleaner = new DefaultCleanerBuilder(keyValueService, leaderLock, leaderTs, client, ImmutableList.of(follower), transactionService).buildCleaner();
         SerializableTransactionManager ret = new SerializableTransactionManager(
                 keyValueService,
-                ts,
+                leaderTs,
                 client,
-                lock,
+                leaderLock,
                 transactionService,
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
                 conflictManager,
                 sweepStrategyManager,
                 cleaner);
         cleaner.start(ret);
-        return new LevelDbAtlasServerFactory(rawKv, keyValueService, lock, ts, ret);
+        return new LevelDbAtlasServerFactory(rawKv, keyValueService, ret);
     }
 
     private static KeyValueService createTableMappingKv(KeyValueService kv, final TimestampService ts) {

@@ -15,8 +15,6 @@
  */
 package com.palantir.timestamp.server;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
@@ -26,10 +24,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.palantir.atlas.impl.TableMetadataCache;
 import com.palantir.atlas.jackson.AtlasJacksonModule;
+import com.palantir.atlasdb.client.FailoverFeignTarget;
 import com.palantir.atlasdb.client.TextDelegateDecoder;
-import com.palantir.atlasdb.keyvalue.leveldb.impl.LevelDbBoundStore;
-import com.palantir.atlasdb.keyvalue.leveldb.impl.LevelDbKeyValueService;
-import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.leader.PingableLeader;
@@ -42,9 +38,6 @@ import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerImpl;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosProposerImpl;
-import com.palantir.timestamp.InMemoryTimestampService;
-import com.palantir.timestamp.PersistentTimestampService;
-import com.palantir.timestamp.RateLimitedTimestampService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.server.config.AtlasDbServerFactory;
 import com.palantir.timestamp.server.config.CassandraAtlasServerFactory;
@@ -52,6 +45,7 @@ import com.palantir.timestamp.server.config.LevelDbAtlasServerFactory;
 import com.palantir.timestamp.server.config.TimestampServerConfiguration;
 import com.palantir.timestamp.server.config.TimestampServerConfiguration.ServerType;
 
+import feign.Client;
 import feign.Feign;
 import feign.jackson.JacksonDecoder;
 import feign.jackson.JacksonEncoder;
@@ -68,8 +62,7 @@ public class TimestampServer extends Application<TimestampServerConfiguration> {
 
     private final ExecutorService executor = PTExecutors.newCachedThreadPool();
 
-    private <T> List<T> getRemoteServices(List<String> uris, Class<T> iFace) {
-        // TODO: remove null
+    private static <T> List<T> getRemoteServices(List<String> uris, Class<T> iFace) {
     	ObjectMapper mapper = new ObjectMapper();
         List<T> ret = Lists.newArrayList();
         for (String uri : uris) {
@@ -81,6 +74,19 @@ public class TimestampServer extends Application<TimestampServerConfiguration> {
             ret.add(service);
         }
         return ret;
+    }
+
+    private static <T> T getServiceWithFailover(List<String> uris, Class<T> type) {
+    	ObjectMapper mapper = new ObjectMapper();
+    	FailoverFeignTarget<T> failoverFeignTarget = new FailoverFeignTarget<T>(uris, type);
+    	Client client = failoverFeignTarget.wrapClient(new Client.Default(null, null));
+        return Feign.builder()
+                .decoder(new TextDelegateDecoder(new JacksonDecoder(mapper)))
+                .encoder(new JacksonEncoder(mapper))
+                .contract(new JAXRSContract())
+                .client(client)
+                .retryer(failoverFeignTarget)
+                .target(failoverFeignTarget);
     }
 
     public static ObjectMapper getObjectMapper(TableMetadataCache cache) {
@@ -125,48 +131,32 @@ public class TimestampServer extends Application<TimestampServerConfiguration> {
                 1000,
                 5000);
         environment.jersey().register(leader);
-        environment.jersey().register(createTimestampService(leader, configuration));
-        environment.jersey().register(createLockService(leader));
         environment.jersey().register(new NotCurrentLeaderExceptionMapper());
 
+        environment.jersey().register(createLockService(leader));
+
+        AtlasDbServerFactory factory = createFactory(configuration);
+        environment.jersey().register(AwaitingLeadershipProxy.newProxyInstance(TimestampService.class, factory.getTimestampSupplier(), leader));
     }
 
     private RemoteLockService createLockService(PaxosLeaderElectionService leader) {
-        RemoteLockService lock = AwaitingLeadershipProxy.newProxyInstance(RemoteLockService.class, new Supplier<RemoteLockService>() {
+        return AwaitingLeadershipProxy.newProxyInstance(RemoteLockService.class, new Supplier<RemoteLockService>() {
             @Override
             public RemoteLockService get() {
                 return LockServiceImpl.create();
             }
         }, leader);
-        return lock;
     }
 
-    private AtlasDbServerFactory createFactory(PaxosLeaderElectionService leader, final TimestampServerConfiguration config) {
+    private AtlasDbServerFactory createFactory(final TimestampServerConfiguration config) {
+        RemoteLockService leadingLock = getServiceWithFailover(config.lockClient.servers, RemoteLockService.class);
+        TimestampService leadingTs = getServiceWithFailover(config.timestampClient.servers, TimestampService.class);
+
         if (config.serverType == ServerType.LEVELDB) {
             Preconditions.checkArgument(config.leader.leaders.size() == 1, "only one server allowed for LevelDB");
-            return LevelDbAtlasServerFactory.create(leader, config.levelDbDir, null);
+            return LevelDbAtlasServerFactory.create(config.levelDbDir, null, leadingTs, leadingLock);
         } else {
-            return CassandraAtlasServerFactory.create(leader, config, null);
+            return CassandraAtlasServerFactory.create(config, null, leadingTs, leadingLock);
         }
-    }
-
-    private TimestampService createTimestampService(PaxosLeaderElectionService leader, final TimestampServerConfiguration config) {
-        if (config.serverType == ServerType.LEVELDB) {
-            Preconditions.checkArgument(config.leader.leaders.size() == 1, "only one server allowed for LevelDB");
-        }
-        TimestampService timestamp = AwaitingLeadershipProxy.newProxyInstance(TimestampService.class, new Supplier<TimestampService>() {
-            @Override
-            public TimestampService get() {
-                if (config.serverType == ServerType.LEVELDB) {
-                    try {
-                        return PersistentTimestampService.create(LevelDbBoundStore.create(LevelDbKeyValueService.create(new File(config.levelDbDir))));
-                    } catch (IOException e) {
-                        throw Throwables.throwUncheckedException(e);
-                    }
-                }
-                return new RateLimitedTimestampService(new InMemoryTimestampService(), 0L);
-            }
-        }, leader);
-        return timestamp;
     }
 }
