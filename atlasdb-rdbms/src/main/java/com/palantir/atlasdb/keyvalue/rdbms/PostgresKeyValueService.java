@@ -726,9 +726,11 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
         getDbi().inTransaction(new TransactionCallback<Void>() {
             @Override
             public Void inTransaction(Handle conn, TransactionStatus status) throws Exception {
-                conn.execute("UPDATE " + MetaTable.META_TABLE_NAME + " SET "
-                        + MetaTable.Columns.METADATA + " = ? WHERE " + MetaTable.Columns.TABLE_NAME
-                        + " = ?", metadata, tableName);
+                conn.execute(
+                        "UPDATE " + MetaTable.META_TABLE_NAME + " " +
+                        "SET " + MetaTable.Columns.METADATA + " = ? " +
+                        "WHERE " + MetaTable.Columns.TABLE_NAME + " = ?",
+                        metadata, tableName);
                 return null;
             }
         });
