@@ -47,7 +47,7 @@ import com.palantir.util.Pair;
 public class AtlasSqlUtils {
     private AtlasSqlUtils() { }
 
-    public static final String USER_TABLE_PREFIX = "alamakota";
+    public static final String USER_TABLE_PREFIX = "atlasdb_usr_table_";
     public static final String USR_TABLE(String tableName) {
         return USER_TABLE_PREFIX + tableName;
     }
@@ -56,6 +56,7 @@ public class AtlasSqlUtils {
     }
 
     private static final int CHUNK_SIZE = 200;
+    public static final int MAX_TABLE_NAME_LEN = 128 + USER_TABLE_PREFIX.length();
     public static <V> void batch(Iterable<V> items, Function<Collection<V>, Void> runWithBatch) {
         for (List<V> chunk : Iterables.partition(items, CHUNK_SIZE)) {
             runWithBatch.apply(chunk);

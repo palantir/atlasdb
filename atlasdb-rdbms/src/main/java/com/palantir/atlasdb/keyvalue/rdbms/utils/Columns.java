@@ -40,7 +40,7 @@ public final class Columns {
             return new ColumnQueryToken(content + " AND " + other.content);
         }
 
-        public ColumnQueryToken append(ColumnQueryToken other) {
+        public ColumnQueryToken comma(ColumnQueryToken other) {
             return new ColumnQueryToken(content + "," + other.content);
         }
 

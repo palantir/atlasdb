@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.rdbms;
 
+import static com.palantir.atlasdb.keyvalue.rdbms.utils.AtlasSqlUtils.MAX_TABLE_NAME_LEN;
 import static com.palantir.atlasdb.keyvalue.rdbms.utils.AtlasSqlUtils.USR_TABLE;
 import static com.palantir.atlasdb.keyvalue.rdbms.utils.AtlasSqlUtils.batch;
 import static com.palantir.atlasdb.keyvalue.rdbms.utils.AtlasSqlUtils.getBatchSize;
@@ -113,7 +114,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
             @Override
             public Void withHandle(Handle conn) throws Exception {
                 conn.execute("CREATE TABLE IF NOT EXISTS " + MetaTable.META_TABLE_NAME + " ("
-                        + MetaTable.Columns.TABLE_NAME + " VARCHAR(128), "
+                        + MetaTable.Columns.TABLE_NAME + " VARCHAR(" + MAX_TABLE_NAME_LEN + "), "
                         + MetaTable.Columns.METADATA + " BYTEA NOT NULL)");
                 return null;
             }
@@ -140,7 +141,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                                     final Collection<byte[]> rows,
                                     final ColumnSelection columnSelection,
                                     final long timestamp) {
-        if (columnSelection.noColumnsSelected()) {
+        if (columnSelection.noColumnsSelected() || rows.isEmpty()) {
             return Maps.newHashMap();
         }
 
@@ -224,7 +225,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                         "    SELECT " + Columns.ROW_COLUMN_TIMESTAMP_CONTENT_AS("t") + " " +
                         "    FROM " + USR_TABLE(tableName, "t") +
                         "    JOIN (VALUES " + makeSlots("cell", timestampByCell.size(), 3) + ") " +
-                        "        AS t2(" + Columns.ROW.append(Columns.COLUMN).append(Columns.TIMESTAMP) + ")" +
+                        "        AS t2(" + Columns.ROW.comma(Columns.COLUMN).comma(Columns.TIMESTAMP) + ")" +
                         "    ON " + Columns.ROW("t").eq(Columns.ROW("t2"))
                                 .and(Columns.COLUMN("t").eq(Columns.COLUMN("t2")))
                                 .and(Columns.TIMESTAMP("t").lt(Columns.TIMESTAMP("t2"))) + ") " +
@@ -262,8 +263,8 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                              final long timestamp, Handle handle) {
                 Update update = handle.createStatement(
                         "INSERT INTO " + USR_TABLE(tableName) + " (" +
-                                Columns.ROW.append(Columns.COLUMN).append(
-                                Columns.TIMESTAMP).append(Columns.CONTENT) +
+                                Columns.ROW.comma(Columns.COLUMN).comma(
+                                Columns.TIMESTAMP).comma(Columns.CONTENT) +
                         ") VALUES " + makeSlots("cell", values.size(), 4));
                 AtlasSqlUtils.bindCellsValues(update, values, timestamp);
                 update.execute();
@@ -322,8 +323,8 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                 public Void withHandle(Handle handle) throws Exception {
                     Update update = handle.createStatement(
                             "INSERT INTO " + USR_TABLE(tableName) + " (" +
-                                Columns.ROW.append(Columns.COLUMN).append(
-                                Columns.TIMESTAMP).append(Columns.CONTENT) +
+                                Columns.ROW.comma(Columns.COLUMN).comma(
+                                Columns.TIMESTAMP).comma(Columns.CONTENT) +
                             ") VALUES " + makeSlots("cell", cellValues.size(), 4));
                     AtlasSqlUtils.bindCellsValues(update, cellValues);
                     update.execute();
@@ -361,7 +362,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
     private void deleteInternalInTransaction(final String tableName, final Collection<Entry<Cell, Long>> keys, Handle handle) {
             Update update = handle.createStatement(
                     "DELETE FROM " + USR_TABLE(tableName) + " t " +
-                    "WHERE (" + Columns.ROW.append(Columns.COLUMN).append(Columns.TIMESTAMP) + ") " +
+                    "WHERE (" + Columns.ROW.comma(Columns.COLUMN).comma(Columns.TIMESTAMP) + ") " +
                     "    IN (" + makeSlots("cell", keys.size(), 3) + ") ");
             AtlasSqlUtils.bindCellsTimestamps(update, keys);
             update.execute();
@@ -379,6 +380,8 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
 
     /**
      * Performs entire batched delete in a single transaction.
+     * TODO: Alternatively sort the keys and values and then
+     *       split into multiple transaction.
      * @param tableName
      * @param keys
      * @param handle
@@ -635,7 +638,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                 Query<Pair<Cell, Long>> query = handle.createQuery(
                         "SELECT " + Columns.ROW_COLUMN_TIMESTAMP_AS("t") + " " +
                         "FROM " + USR_TABLE(tableName, "t") + " " +
-                        "WHERE (" + Columns.ROW.append(Columns.COLUMN) + ") IN (" +
+                        "WHERE (" + Columns.ROW.comma(Columns.COLUMN) + ") IN (" +
                         "    " + makeSlots("cell", cells.size(), 2) + ") " +
                         "    AND " + Columns.TIMESTAMP("t") + " < " + timestamp)
                         .map(new ResultSetMapper<Pair<Cell, Long>>() {
