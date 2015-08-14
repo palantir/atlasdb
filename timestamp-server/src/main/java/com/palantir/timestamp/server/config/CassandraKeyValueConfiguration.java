@@ -23,6 +23,9 @@ public class CassandraKeyValueConfiguration {
     public boolean isSsl = false;
 	@NotNull
 	@Valid
+    public int replicationFactor = 3;
+	@NotNull
+	@Valid
     public int mutationBatchCount = 5000;
 	@NotNull
 	@Valid
