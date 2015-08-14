@@ -55,6 +55,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
@@ -736,8 +737,11 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
     @Override
     @Idempotent
     public void addGarbageCollectionSentinelValues(final String tableName, final Set<Cell> cells) {
-        // TODO: Handle KeyAlreadyExists problem
-        Map<Cell, byte[]> cellsWithInvalidValues = Maps2.createConstantValueMap(cells, ArrayUtils.EMPTY_BYTE_ARRAY);
+        Map<Cell, byte[]> cellsWithInvalidValues = Maps2.createConstantValueMap(
+                cells, ArrayUtils.EMPTY_BYTE_ARRAY);
+        Multimap<Cell, Long> cellsAsMultimap = Multimaps.forMap(Maps2.createConstantValueMap(
+                cells, Value.INVALID_VALUE_TIMESTAMP));
+        delete(tableName, cellsAsMultimap);
         put(tableName, cellsWithInvalidValues, Value.INVALID_VALUE_TIMESTAMP);
     }
 
