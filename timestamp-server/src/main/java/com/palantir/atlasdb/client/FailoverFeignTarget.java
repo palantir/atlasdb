@@ -27,6 +27,12 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
 
     @Override
     public void continueOrPropagate(RetryableException e) {
+        if (e.retryAfter() == null) {
+            // This is the case where we have failed due to networking or other IOException error.
+        } else {
+            // This is the case where the server has returned a 503.
+            // This is done when we want to do fast failover because we aren't the leader.
+        }
         return;
 //        if (state.get().attempt++ >= maxAttempts) {
 //            throw e;
