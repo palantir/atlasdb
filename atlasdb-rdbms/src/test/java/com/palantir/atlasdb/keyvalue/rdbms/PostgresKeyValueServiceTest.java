@@ -33,11 +33,11 @@ public class PostgresKeyValueServiceTest extends AbstractAtlasDbKeyValueServiceT
 
     private static final String DB_NAME = "test";
 
-    final static PostgresStarter<PostgresExecutable, PostgresProcess> runtime;
-    final static PostgresConfig config;
-    final static PostgresExecutable exec;
-    final static PostgresProcess process;
-    final static PoolingDataSource dataSource;
+    private final static PostgresStarter<PostgresExecutable, PostgresProcess> runtime;
+    private final static PostgresConfig config;
+    private final static PostgresExecutable exec;
+    private final static PostgresProcess process;
+    private final static PoolingDataSource dataSource;
     static {
         try {
             runtime = PostgresStarter.getDefaultInstance();
@@ -51,7 +51,7 @@ public class PostgresKeyValueServiceTest extends AbstractAtlasDbKeyValueServiceT
         }
     }
 
-    private KeyValueService kvs;
+    private final KeyValueService kvs = newEmbeddedInstance();
 
     @AfterClass
     public static void shutdownEmbeddedPostgres() {
@@ -66,10 +66,6 @@ public class PostgresKeyValueServiceTest extends AbstractAtlasDbKeyValueServiceT
 
     @Override
     protected KeyValueService getKeyValueService() {
-        if (kvs == null) {
-            KeyValueService ret = newEmbeddedInstance();
-            kvs = ret;
-        }
         return kvs;
     }
 }
