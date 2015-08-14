@@ -3,6 +3,7 @@ package com.palantir.timestamp.server.config;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
@@ -98,7 +99,17 @@ public class CassandraAtlasServerFactory implements AtlasDbServerFactory {
     }
 
     private static CassandraKeyValueService createKv(CassandraKeyValueConfiguration config) {
-        return null;
+        return CassandraKeyValueService.create(ImmutableSet.copyOf(config.servers),
+                config.port,
+                config.poolSize,
+                config.keyspace,
+                config.isSsl,
+                config.replicationFactor,
+                config.mutationBatchCount,
+                config.mutationBatchSizeBytes,
+                config.fetchBatchCount,
+                config.safetyDisabled,
+                config.autoRefreshNodes);
     }
 
     private static TableMappingService getMapper(final TimestampService ts, KeyValueService kv) {
