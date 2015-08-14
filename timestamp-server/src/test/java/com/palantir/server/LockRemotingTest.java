@@ -69,7 +69,6 @@ public class LockRemotingTest {
         Assert.assertEquals(1, refreshed.size());
         lock.unlock(token);
         lock.logCurrentState();
-        lock.logCurrentStateInconsistent();
         lock.currentTimeMillis();
     }
 }
