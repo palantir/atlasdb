@@ -4,9 +4,11 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
+import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
@@ -14,8 +16,10 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
+import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
@@ -31,6 +35,9 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     private final QuorumParameters quorumParameters;
     private final CycleMap<byte[], KeyValueServiceWithStatus> ring;
     private final Set<KeyValueService> services;
+    private final ExecutorService executor = PTExecutors.newSingleThreadExecutor();
+    private final Queue<Future<Void>> removals = Queues.newConcurrentLinkedQueue();
+    private final Queue<Future<Void>> joins = Queues.newConcurrentLinkedQueue();
 
     public DynamicPartitionMapImpl(QuorumParameters quorumParameters,
                                NavigableMap<byte[], KeyValueService> ring) {
@@ -243,19 +250,10 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         return getServicesForCellsMap(tableName, values, true);
     }
 
-    @Override
-    public void addEndpoint(byte[] key, KeyValueService kvs, String rack) {
-        Preconditions.checkArgument(!ring.containsKey(key));
-        KeyValueServiceWithStatus kvsWithStatus = new JoiningKeyValueService(kvs);
-        ring.put(key, kvsWithStatus);
-        // TODO: Start backfill
-    }
-
-    long MAX_TS = 100;
-
-    private void copyData(KeyValueService destination, KeyValueService source) {
+    // TODO: This should probably take timestamp (?)
+    private void copyData(KeyValueService destination, KeyValueService source, RangeRequest rangeToCopy) {
         for (String tableName : source.getAllTableNames()) {
-            ClosableIterator<RowResult<Value>> allRows = source.getRange(tableName, RangeRequest.all(), MAX_TS);
+            ClosableIterator<RowResult<Value>> allRows = source.getRange(tableName, RangeRequest.all(), Long.MAX_VALUE);
             while (allRows.hasNext()) {
                 RowResult<Value> row = allRows.next();
                 Multimap<Cell, Value> cells = HashMultimap.create();
@@ -269,11 +267,25 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     }
 
     @Override
-    public void removeEndpoint(final byte[] key, final KeyValueService kvs, String rack) {
-        Preconditions.checkArgument(ring.containsKey(key));
-        KeyValueServiceWithStatus original = ring.get(key);
+    public synchronized void addEndpoint(final byte[] key, final KeyValueService kvs, String rack) {
+        Preconditions.checkArgument(!ring.containsKey(key));
+        KeyValueServiceWithStatus kvsWithStatus = new JoiningKeyValueService(kvs);
+        ring.put(key, kvsWithStatus);
+        joins.add(executor.submit(new Callable<Void>() {
+            @Override
+            public Void call() throws Exception {
+                // TODO I do not really need to copy all the data
+                copyData(kvs, ring.get(ring.nextKey(key)).get(), null);
+                return null;
+            }
+        }));
+    }
+
+    @Override
+    public synchronized void removeEndpoint(final byte[] key, final KeyValueService kvs, String rack) {
+        KeyValueServiceWithStatus original = Preconditions.checkNotNull(ring.get(key));
         Preconditions.checkArgument(original.get().equals(kvs));
-        // TODO: Maybe avoid using instanceof?
+        // TODO: Avoid using instanceof?
         Preconditions.checkArgument(original instanceof RegularKeyValueService);
         LeavingKeyValueService leavingKeyValueService = new LeavingKeyValueService(original.get());
         ring.put(key, leavingKeyValueService);
@@ -294,26 +306,27 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
             }
         } while (true);
 
-        ExecutorService executor = PTExecutors.newSingleThreadExecutor();
         for (final KeyValueService destination : kvssToWrite) {
-            executor.submit(new Callable<byte[]>() {
+            removals.add(executor.submit(new Callable<Void>() {
                 @Override
-                public byte[] call() throws Exception {
-                    copyData(destination, kvs);
-                    // TODO: Notify - actually when all transfers are completed
+                public Void call() throws Exception {
+                    // TODO I do not really need to copy all the data
+                    copyData(destination, kvs, null);
                     return null;
                 }
-            });
+            }));
         }
     }
 
     @Override
-    public void syncRemovedEndpoints() {
-        throw new UnsupportedOperationException("Not implemented yet.");
+    public synchronized void syncRemovedEndpoints() {
+        while (!removals.isEmpty()) {
+            Futures.getUnchecked(removals.poll());
+        }
     }
 
     @Override
-    public boolean removalInProgress() {
-        throw new UnsupportedOperationException("Not implemented yet.");
+    public synchronized boolean removalInProgress() {
+        return !removals.isEmpty();
     }
 }
