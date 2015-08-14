@@ -365,51 +365,23 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     @Override
     public synchronized void removeEndpoint(final byte[] key, final KeyValueService kvs, String rack) {
         KeyValueServiceWithStatus original = Preconditions.checkNotNull(ring.get(key));
-        Preconditions.checkArgument(original.get().equals(kvs));
-        Preconditions.checkArgument(original instanceof RegularKeyValueService);
         LeavingKeyValueService leavingKeyValueService = new LeavingKeyValueService(original.get());
         ring.put(key, leavingKeyValueService);
 
-        // Find all the kvss that will substitute this one
-        // (there can be more than one if some other are
-        // joining or leaving)
-        byte[] nextKey = ring.nextKey(key);
-        final Set<KeyValueService> kvssToWrite = Sets.newHashSet();
-        do {
-            KeyValueServiceWithStatus kvsws = ring.get(nextKey);
-            if (!kvsws.shouldUseForWrite()) {
-                continue;
-            }
-            kvssToWrite.add(kvsws.get());
-            if (kvsws.shouldCountForWrite()) {
-                break;
-            }
-        } while (true);
-        byte[] endRowExclusive = key;
-
-        // I will skip the ranges that this kvs already has anyways.
-        // I only need to copy over the very furthest range.
-        int numberSkipped = 0;
-        do {
-            endRowExclusive = ring.previousKey(nextKey);
-            KeyValueServiceWithStatus kvsws = ring.get(endRowExclusive);
-            if (kvsws.shouldCountForRead()) {
-                numberSkipped++;
-            }
-        } while (numberSkipped < quorumParameters.getReplicationFactor() - 1);
-
-        final RangeRequest rangeToBeMigrated = RangeRequest.builder().endRowExclusive(
-                endRowExclusive).build();
-
-        for (final KeyValueService destination : kvssToWrite) {
-            removals.add(executor.submit(new Callable<Void>() {
-                @Override
-                public Void call() throws Exception {
-                    copyData(destination, kvs, rangeToBeMigrated);
-                    return null;
+        removals.add(executor.submit(new Callable<Void>() {
+            @Override
+            public Void call() throws Exception {
+                List<RangeRequest> ranges = getRangesOperatedByKvs(key, false);
+                byte[] dstKvsKey = ring.nextKey(key);
+                for (int i = 0; i < ranges.size() - 1; ++i) {
+                    copyData(ring.get(dstKvsKey).get(), kvs, ranges.get(i));
+                    dstKvsKey = ring.nextKey(dstKvsKey);
                 }
-            }));
-        }
+                RangeRequest lastRange1 = ranges.get(ranges.size() - 1).getBuilder().endRowExclusive(key).build();
+                copyData(ring.get(dstKvsKey).get(), kvs, lastRange1);
+                return null;
+            }
+        }));
     }
 
     @Override
