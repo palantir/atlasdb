@@ -334,7 +334,6 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
     @Override
     public void putUnlessExists(final String tableName, final Map<Cell, byte[]> values)
             throws KeyAlreadyExistsException {
-        // TODO: Is this OK? Or do I have to check that no version of this cell exists?
         put(tableName, values, 0);
     }
 
