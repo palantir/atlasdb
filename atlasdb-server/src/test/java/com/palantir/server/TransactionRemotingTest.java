@@ -14,17 +14,17 @@ import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-import com.palantir.atlas.api.AtlasService;
-import com.palantir.atlas.api.RangeToken;
-import com.palantir.atlas.api.TableCell;
-import com.palantir.atlas.api.TableCellVal;
-import com.palantir.atlas.api.TableRange;
-import com.palantir.atlas.api.TableRowResult;
-import com.palantir.atlas.api.TableRowSelection;
-import com.palantir.atlas.api.TransactionToken;
-import com.palantir.atlas.impl.AtlasServiceImpl;
-import com.palantir.atlas.impl.TableMetadataCache;
-import com.palantir.atlas.jackson.AtlasJacksonModule;
+import com.palantir.atlasdb.api.AtlasDbService;
+import com.palantir.atlasdb.api.RangeToken;
+import com.palantir.atlasdb.api.TableCell;
+import com.palantir.atlasdb.api.TableCellVal;
+import com.palantir.atlasdb.api.TableRange;
+import com.palantir.atlasdb.api.TableRowResult;
+import com.palantir.atlasdb.api.TableRowSelection;
+import com.palantir.atlasdb.api.TransactionToken;
+import com.palantir.atlasdb.impl.AtlasServiceImpl;
+import com.palantir.atlasdb.impl.TableMetadataCache;
+import com.palantir.atlasdb.jackson.AtlasJacksonModule;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -53,7 +53,7 @@ public class TransactionRemotingTest {
     public final TableMetadataCache cache = new TableMetadataCache(kvs);
     public final ObjectMapper mapper = new ObjectMapper(); { mapper.registerModule(new AtlasJacksonModule(cache).createModule()); }
     public final @Rule DropwizardClientRule dropwizard = new DropwizardClientRule(new AtlasServiceImpl(kvs, txMgr, cache));
-    public AtlasService service;
+    public AtlasDbService service;
 
     @SuppressWarnings("unchecked")
     @Before
@@ -73,7 +73,7 @@ public class TransactionRemotingTest {
                 .decoder(new JacksonDecoder(mapper))
                 .encoder(new JacksonEncoder(mapper))
                 .contract(new JAXRSContract())
-                .target(AtlasService.class, uri);
+                .target(AtlasDbService.class, uri);
     }
 
     @Test

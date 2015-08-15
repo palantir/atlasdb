@@ -21,11 +21,11 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.palantir.atlasdb.server.NotCurrentLeaderExceptionMapper;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
-import com.palantir.timestamp.server.NotCurrentLeaderExceptionMapper;
 
 import feign.Feign;
 import feign.Retryer;
