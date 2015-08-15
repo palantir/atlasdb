@@ -51,8 +51,27 @@ import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.TimestampService;
 
 public class LevelDbAtlasServerFactory {
-    public static AtlasDbServerState create(String dataDir, Schema schema, TimestampService leaderTs, RemoteLockService leaderLock) {
-        final LevelDbKeyValueService rawKv = createKv(dataDir);
+
+    public static AtlasDbServerState createWithLocalTimestampService(String dataDir,
+                                                                     Schema schema,
+                                                                     RemoteLockService leaderLock) {
+        LevelDbKeyValueService rawKv = createKv(dataDir);
+        TimestampService timestampService = PersistentTimestampService.create(LevelDbBoundStore.create(rawKv));
+        return createInternal(rawKv, schema, timestampService, leaderLock);
+    }
+
+    public static AtlasDbServerState create(String dataDir,
+                                            Schema schema,
+                                            TimestampService leaderTs,
+                                            RemoteLockService leaderLock) {
+        LevelDbKeyValueService rawKv = createKv(dataDir);
+        return createInternal(rawKv, schema, leaderTs, leaderLock);
+    }
+
+    private static AtlasDbServerState createInternal(final LevelDbKeyValueService rawKv,
+                                                     Schema schema,
+                                                     TimestampService leaderTs,
+                                                     RemoteLockService leaderLock) {
         KeyValueService keyValueService = createTableMappingKv(rawKv, leaderTs);
 
         SnapshotTransactionManager.createTables(keyValueService);
@@ -108,5 +127,4 @@ public class LevelDbAtlasServerFactory {
             }
         });
     }
-
 }

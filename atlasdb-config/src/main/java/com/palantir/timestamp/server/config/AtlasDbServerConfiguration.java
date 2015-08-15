@@ -20,7 +20,7 @@ import javax.validation.constraints.NotNull;
 
 import io.dropwizard.Configuration;
 
-public class TimestampServerConfiguration extends Configuration {
+public class AtlasDbServerConfiguration extends Configuration {
 	@NotNull
 	@Valid
 	public ClientConfiguration lockClient = new ClientConfiguration();

@@ -47,8 +47,26 @@ import com.palantir.timestamp.TimestampService;
 
 public class CassandraAtlasServerFactory {
 
-    public static AtlasDbServerState create(CassandraKeyValueConfiguration config, Schema schema, TimestampService leadingTs, RemoteLockService leadingLock) {
-        final CassandraKeyValueService rawKv = createKv(config);
+    public static AtlasDbServerState createWithLocalTimestampService(CassandraKeyValueConfiguration config,
+                                                                     Schema schema,
+                                                                     RemoteLockService leadingLock) {
+        CassandraKeyValueService rawKv = createKv(config);
+        TimestampService timestampService = PersistentTimestampService.create(CassandraTimestampBoundStore.create(rawKv));
+        return createInternal(rawKv, schema, timestampService, leadingLock);
+    }
+
+    public static AtlasDbServerState create(CassandraKeyValueConfiguration config,
+                                            Schema schema,
+                                            TimestampService leadingTs,
+                                            RemoteLockService leadingLock) {
+        CassandraKeyValueService rawKv = createKv(config);
+        return createInternal(rawKv, schema, leadingTs, leadingLock);
+    }
+
+    private static AtlasDbServerState createInternal(final CassandraKeyValueService rawKv,
+                                                     Schema schema,
+                                                     TimestampService leadingTs,
+                                                     RemoteLockService leadingLock) {
         KeyValueService keyValueService = createTableMappingKv(rawKv, leadingTs);
 
         schema.createTablesAndIndexes(keyValueService);
@@ -110,5 +128,4 @@ public class CassandraAtlasServerFactory {
             }
         });
     }
-
 }

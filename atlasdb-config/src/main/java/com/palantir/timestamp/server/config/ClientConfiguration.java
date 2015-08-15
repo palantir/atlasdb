@@ -27,4 +27,5 @@ public class ClientConfiguration {
 	@Valid
 	public List<String> servers = ImmutableList.of("http://localhost:3828");
 
+	public boolean local = false;
 }

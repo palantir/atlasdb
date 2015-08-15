@@ -228,6 +228,7 @@ import com.palantir.common.annotation.Immutable;
         return getServicesForCellsSet(tableName, cells);
     }
 
+    @Override
     public <T> Map<KeyValueService, Multimap<Cell, T>> getServicesForWrite(String tableName,
                                                                            Multimap<Cell, T> keys) {
         return getServicesForCellsMultimap(tableName, keys);

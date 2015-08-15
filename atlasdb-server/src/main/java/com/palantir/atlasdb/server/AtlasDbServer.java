@@ -21,15 +21,10 @@ import java.util.concurrent.ExecutorService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
-import com.palantir.atlasdb.client.FailoverFeignTarget;
 import com.palantir.atlasdb.client.TextDelegateDecoder;
 import com.palantir.atlasdb.impl.AtlasServiceImpl;
 import com.palantir.atlasdb.impl.TableMetadataCache;
 import com.palantir.atlasdb.jackson.AtlasJacksonModule;
-import com.palantir.atlasdb.memory.InMemoryAtlasDb;
-import com.palantir.atlasdb.table.description.Schema;
-import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.leader.PingableLeader;
@@ -43,13 +38,9 @@ import com.palantir.paxos.PaxosLearnerImpl;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosProposerImpl;
 import com.palantir.timestamp.TimestampService;
+import com.palantir.timestamp.server.config.AtlasDbServerConfiguration;
 import com.palantir.timestamp.server.config.AtlasDbServerState;
-import com.palantir.timestamp.server.config.CassandraAtlasServerFactory;
-import com.palantir.timestamp.server.config.LevelDbAtlasServerFactory;
-import com.palantir.timestamp.server.config.TimestampServerConfiguration;
-import com.palantir.timestamp.server.config.TimestampServerConfiguration.ServerType;
 
-import feign.Client;
 import feign.Feign;
 import feign.jackson.JacksonDecoder;
 import feign.jackson.JacksonEncoder;
@@ -58,7 +49,7 @@ import io.dropwizard.Application;
 import io.dropwizard.setup.Environment;
 import jersey.repackaged.com.google.common.collect.Lists;
 
-public class AtlasDbServer extends Application<TimestampServerConfiguration> {
+public class AtlasDbServer extends Application<AtlasDbServerConfiguration> {
 
     public static void main(String[] args) throws Exception {
         new AtlasDbServer().run(args);
@@ -80,19 +71,6 @@ public class AtlasDbServer extends Application<TimestampServerConfiguration> {
         return ret;
     }
 
-    private static <T> T getServiceWithFailover(List<String> uris, Class<T> type) {
-    	ObjectMapper mapper = new ObjectMapper();
-    	FailoverFeignTarget<T> failoverFeignTarget = new FailoverFeignTarget<T>(uris, type);
-    	Client client = failoverFeignTarget.wrapClient(new Client.Default(null, null));
-        return Feign.builder()
-                .decoder(new TextDelegateDecoder(new JacksonDecoder(mapper)))
-                .encoder(new JacksonEncoder(mapper))
-                .contract(new JAXRSContract())
-                .client(client)
-                .retryer(failoverFeignTarget)
-                .target(failoverFeignTarget);
-    }
-
     public static ObjectMapper getObjectMapper(TableMetadataCache cache) {
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new AtlasJacksonModule(cache).createModule());
@@ -100,7 +78,7 @@ public class AtlasDbServer extends Application<TimestampServerConfiguration> {
     }
 
     @Override
-    public void run(TimestampServerConfiguration configuration, Environment environment) throws Exception {
+    public void run(AtlasDbServerConfiguration configuration, Environment environment) throws Exception {
     	PaxosLearner learner = PaxosLearnerImpl.newLearner(configuration.leader.learnerLogDir);
     	PaxosAcceptor acceptor = PaxosAcceptorImpl.newAcceptor(configuration.leader.acceptorLogDir);
         environment.jersey().register(acceptor);
@@ -138,7 +116,7 @@ public class AtlasDbServer extends Application<TimestampServerConfiguration> {
 
         environment.jersey().register(createLockService(leader));
 
-        AtlasDbServerState factory = createFactory(configuration);
+        AtlasDbServerState factory = AtlasDbServerState.create(configuration);
         environment.jersey().register(AwaitingLeadershipProxy.newProxyInstance(TimestampService.class, factory.getTimestampSupplier(), leader));
         TableMetadataCache cache = new TableMetadataCache(factory.getKeyValueService());
         environment.jersey().register(new AtlasServiceImpl(factory.getKeyValueService(), factory.getTransactionManager(), cache));
@@ -152,21 +130,5 @@ public class AtlasDbServer extends Application<TimestampServerConfiguration> {
                 return LockServiceImpl.create();
             }
         }, leader);
-    }
-
-    private AtlasDbServerState createFactory(final TimestampServerConfiguration config) {
-        RemoteLockService leadingLock = getServiceWithFailover(config.lockClient.servers, RemoteLockService.class);
-        TimestampService leadingTs = getServiceWithFailover(config.timestampClient.servers, TimestampService.class);
-
-        if (config.serverType == ServerType.LEVELDB) {
-            Preconditions.checkArgument(config.leader.leaders.size() == 1, "only one server allowed for LevelDB");
-            return LevelDbAtlasServerFactory.create(config.levelDbDir, new Schema(), leadingTs, leadingLock);
-        } else if (config.serverType == ServerType.MEMORY) {
-            Preconditions.checkArgument(config.leader.leaders.size() == 1, "only one server allowed for MEMORY");
-            SerializableTransactionManager txnMgr = InMemoryAtlasDb.createInMemoryTransactionManager(new Schema());
-            return new AtlasDbServerState(txnMgr.getKeyValueService(), Suppliers.ofInstance(txnMgr.getTimestampService()), txnMgr);
-        } else {
-            return CassandraAtlasServerFactory.create(config.cassandra, new Schema(), leadingTs, leadingLock);
-        }
     }
 }
