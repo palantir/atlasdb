@@ -19,8 +19,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 
 import javax.inject.Inject;
 
@@ -54,7 +54,6 @@ import com.palantir.lock.LockRefreshToken;
 import jersey.repackaged.com.google.common.collect.ImmutableList;
 
 public class AtlasServiceImpl implements AtlasDbService {
-    private final AtomicLong ID_GENERATOR = new AtomicLong();
     private final KeyValueService kvs;
     private final SnapshotTransactionManager txManager;
     private final Cache<TransactionToken, RawTransaction> transactions =
@@ -178,8 +177,8 @@ public class AtlasServiceImpl implements AtlasDbService {
 
     @Override
     public TransactionToken startTransaction() {
-        long id = ID_GENERATOR.getAndIncrement();
-        TransactionToken token = new TransactionToken(Long.toString(id));
+        String id = UUID.randomUUID().toString();
+        TransactionToken token = new TransactionToken(id);
         RawTransaction tx = txManager.setupRunTaskWithLocksThrowOnConflict(ImmutableList.<LockRefreshToken>of());
         transactions.put(token, tx);
         return token;
