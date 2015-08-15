@@ -275,7 +275,7 @@ public abstract class AbstractPartitionMapTest {
         Iterator<ConsistentRingRangeRequest> it = tpm.getServicesForRangeRead(TABLE1, longRange).keySet().iterator();
         for (RangeRequest rr : longRangeSubranges) {
             RangeRequest crr = it.next().get();
-            assertEquals(crr, rr);
+            assertEquals(rr, crr);
         }
     }
 
