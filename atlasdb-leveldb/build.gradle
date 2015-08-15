@@ -1,15 +1,8 @@
 apply from: "../gradle/shared.gradle"
 
-libsDirName = file('build/artifacts')
 dependencies {
-  compile(project(":atlasdb-client"))
-  compile(project(":timestamp-api"))
-  compile(group: "org.fusesource.leveldbjni",
-          name: "leveldbjni-all",
-          version: "1.7",
-          configuration: "default")
-
-  testCompile project(path: ":atlasdb-tests-shared", configuration: 'test')
+  compile(project(":atlasdb-leveldb"))
+  compile project(path: ":atlasdb-tests-shared", configuration: 'test')
 }
 
 configurations.matching({ it.name in ['compile', 'runtime'] }).all {

@@ -1,0 +1,16 @@
+apply from: "../gradle/shared.gradle"
+
+dependencies {
+  compile(project(":atlasdb-client"))
+  compile(project(":timestamp-api"))
+  compile(group: "org.fusesource.leveldbjni",
+          name: "leveldbjni-all",
+          version: "1.7",
+          configuration: "default")
+}
+
+configurations.matching({ it.name in ['compile', 'runtime'] }).all {
+    resolutionStrategy {
+        force 'org.fusesource.leveldbjni:leveldbjni:1.7'
+    }
+}
