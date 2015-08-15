@@ -8,6 +8,7 @@ import java.util.NavigableSet;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
@@ -33,6 +34,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 
 public class DynamicPartitionMapImpl implements DynamicPartitionMap {
@@ -54,6 +56,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
 
     public DynamicPartitionMapImpl(QuorumParameters quorumParameters,
                                NavigableMap<byte[], KeyValueService> ring) {
+        Preconditions.checkArgument(ring.keySet().size() >= quorumParameters.replicationFactor);
         this.quorumParameters = quorumParameters;
         this.ring = CycleMap.wrap(transformValues(ring, new Function<KeyValueService, KeyValueServiceWithStatus>() {
             @Override @Nullable
@@ -333,7 +336,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
             endRange = startRange;
         }
 
-        return result;
+        return Lists.reverse(result);
     }
 
     @Override
@@ -378,10 +381,17 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
                 return null;
             }
         }));
+
+        try {
+            joins.take().get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw Throwables.throwUncheckedException(e);
+        }
     }
 
     @Override
     public synchronized void removeEndpoint(final byte[] key, final KeyValueService kvs, String rack) {
+        Preconditions.checkArgument(ring.keySet().size() > quorumParameters.getReplicationFactor());
         KeyValueServiceWithStatus original = Preconditions.checkNotNull(ring.get(key));
         LeavingKeyValueService leavingKeyValueService = new LeavingKeyValueService(original.get());
         ring.put(key, leavingKeyValueService);
@@ -401,6 +411,12 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
                 return null;
             }
         }));
+
+        try {
+            removals.take().get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw Throwables.throwUncheckedException(e);
+        }
     }
 
     @Override

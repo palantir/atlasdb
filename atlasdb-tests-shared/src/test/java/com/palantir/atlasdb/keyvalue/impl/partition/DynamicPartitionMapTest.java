@@ -17,7 +17,8 @@ public class DynamicPartitionMapTest extends AbstractPartitionMapTest {
                                            NavigableMap<byte[], KeyValueService> ring) {
         if (dpm == null) {
             dpm = new DynamicPartitionMapImpl(qp, ring);
-            for (int i = 0 ; i < 5 ; ++i) {
+            for (int i = 0 ; i < 4 ; ++i) {
+                System.err.println(i);
                 dpm.removeEndpoint(points[i], services.get(i), TABLE1);
             }
         }
