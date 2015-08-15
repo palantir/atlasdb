@@ -45,41 +45,10 @@ import com.palantir.lock.RemoteLockService;
 import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.TimestampService;
 
-public class CassandraAtlasServerFactory implements AtlasDbServerFactory {
-    final CassandraKeyValueService rawKv;
-    final KeyValueService kv;
-    final SerializableTransactionManager txMgr;
+public class CassandraAtlasServerFactory {
 
-    @Override
-    public KeyValueService getKeyValueService() {
-        return kv;
-    }
-
-    @Override
-    public Supplier<TimestampService> getTimestampSupplier() {
-        return new Supplier<TimestampService>() {
-            @Override
-            public TimestampService get() {
-                return PersistentTimestampService.create(CassandraTimestampBoundStore.create(rawKv));
-            }
-        };
-    }
-
-    @Override
-    public SerializableTransactionManager getTransactionManager() {
-        return txMgr;
-    }
-
-    private CassandraAtlasServerFactory(CassandraKeyValueService rawKv,
-                                        KeyValueService kv,
-                                        SerializableTransactionManager txMgr) {
-        this.rawKv = rawKv;
-        this.kv = kv;
-        this.txMgr = txMgr;
-    }
-
-    public static AtlasDbServerFactory create(CassandraKeyValueConfiguration config, Schema schema, TimestampService leadingTs, RemoteLockService leadingLock) {
-        CassandraKeyValueService rawKv = createKv(config);
+    public static AtlasDbServerState create(CassandraKeyValueConfiguration config, Schema schema, TimestampService leadingTs, RemoteLockService leadingLock) {
+        final CassandraKeyValueService rawKv = createKv(config);
         KeyValueService keyValueService = createTableMappingKv(rawKv, leadingTs);
 
         schema.createTablesAndIndexes(keyValueService);
@@ -92,7 +61,7 @@ public class CassandraAtlasServerFactory implements AtlasDbServerFactory {
 
         CleanupFollower follower = CleanupFollower.create(schema);
         Cleaner cleaner = new DefaultCleanerBuilder(keyValueService, leadingLock, leadingTs, client, ImmutableList.of(follower), transactionService).buildCleaner();
-        SerializableTransactionManager ret = new SerializableTransactionManager(
+        SerializableTransactionManager txMgr = new SerializableTransactionManager(
                 keyValueService,
                 leadingTs,
                 client,
@@ -102,8 +71,14 @@ public class CassandraAtlasServerFactory implements AtlasDbServerFactory {
                 conflictManager,
                 sweepStrategyManager,
                 cleaner);
-        cleaner.start(ret);
-        return new CassandraAtlasServerFactory(rawKv, keyValueService, ret);
+        cleaner.start(txMgr);
+        Supplier<TimestampService> tsSupplier = new Supplier<TimestampService>() {
+            @Override
+            public TimestampService get() {
+                return PersistentTimestampService.create(CassandraTimestampBoundStore.create(rawKv));
+            }
+        };
+        return new AtlasDbServerState(keyValueService, tsSupplier, txMgr);
     }
 
     private static KeyValueService createTableMappingKv(KeyValueService kv, final TimestampService ts) {

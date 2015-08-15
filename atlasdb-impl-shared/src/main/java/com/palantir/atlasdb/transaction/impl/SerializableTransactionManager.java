@@ -70,5 +70,9 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 false);
     }
+
+    public TimestampService getTimestampService() {
+        return timestampService;
+    }
 }
 

@@ -50,41 +50,9 @@ import com.palantir.lock.RemoteLockService;
 import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.TimestampService;
 
-public class LevelDbAtlasServerFactory implements AtlasDbServerFactory {
-    final LevelDbKeyValueService rawKv;
-    final KeyValueService kv;
-    final SerializableTransactionManager txMgr;
-
-    @Override
-    public KeyValueService getKeyValueService() {
-        return kv;
-    }
-
-    @Override
-    public Supplier<TimestampService> getTimestampSupplier() {
-        return new Supplier<TimestampService>() {
-            @Override
-            public TimestampService get() {
-                return PersistentTimestampService.create(LevelDbBoundStore.create(rawKv));
-            }
-        };
-    }
-
-    @Override
-    public SerializableTransactionManager getTransactionManager() {
-        return txMgr;
-    }
-
-    private LevelDbAtlasServerFactory(LevelDbKeyValueService rawKv,
-                                      KeyValueService kv,
-                                      SerializableTransactionManager txMgr) {
-        this.rawKv = rawKv;
-        this.kv = kv;
-        this.txMgr = txMgr;
-    }
-
-    public static AtlasDbServerFactory create(String dataDir, Schema schema, TimestampService leaderTs, RemoteLockService leaderLock) {
-        LevelDbKeyValueService rawKv = createKv(dataDir);
+public class LevelDbAtlasServerFactory {
+    public static AtlasDbServerState create(String dataDir, Schema schema, TimestampService leaderTs, RemoteLockService leaderLock) {
+        final LevelDbKeyValueService rawKv = createKv(dataDir);
         KeyValueService keyValueService = createTableMappingKv(rawKv, leaderTs);
 
         SnapshotTransactionManager.createTables(keyValueService);
@@ -107,7 +75,14 @@ public class LevelDbAtlasServerFactory implements AtlasDbServerFactory {
                 sweepStrategyManager,
                 cleaner);
         cleaner.start(ret);
-        return new LevelDbAtlasServerFactory(rawKv, keyValueService, ret);
+
+        Supplier<TimestampService> tsSupplier = new Supplier<TimestampService>() {
+            @Override
+            public TimestampService get() {
+                return PersistentTimestampService.create(LevelDbBoundStore.create(rawKv));
+            }
+        };
+        return new AtlasDbServerState(keyValueService, tsSupplier, ret);
     }
 
     private static KeyValueService createTableMappingKv(KeyValueService kv, final TimestampService ts) {

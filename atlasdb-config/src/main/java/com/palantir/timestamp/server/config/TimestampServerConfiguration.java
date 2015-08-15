@@ -44,6 +44,7 @@ public class TimestampServerConfiguration extends Configuration {
 
 	public enum ServerType {
 	    LEVELDB,
-	    CASSANDRA;
+	    CASSANDRA,
+	    MEMORY;
 	}
 }
