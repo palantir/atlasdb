@@ -1,20 +1,14 @@
 apply from: "../gradle/shared.gradle"
 
-apply plugin: 'java'
-apply plugin: 'eclipse'
-
-repositories {
-    mavenCentral()
-}
 configurations.create('test').extendsFrom(configurations.testRuntime)
 dependencies {
-  testCompile(group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.5', configuration: 'default')
-  testCompile(project(":atlasdb-impl-shared"))
-  testCompile(group: "org.jmock",
+  compile(group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.5', configuration: 'default')
+  compile(project(":atlasdb-impl-shared"))
+  compile(group: "org.jmock",
               name: "jmock",
               version: "2.5.1",
               configuration: "default")
-  testRuntime(group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.5', configuration: 'default')
+  runtime(group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.5', configuration: 'default')
   test sourceSets.test.output
 
 }
