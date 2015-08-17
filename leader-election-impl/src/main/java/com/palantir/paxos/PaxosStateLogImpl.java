@@ -26,7 +26,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.concurrent.locks.ReentrantLock;
 
 import javax.annotation.Nullable;
@@ -187,19 +186,15 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
         try {
             File dir = new File(path);
             List<File> files = getLogEntries(dir);
-            if (files == null) {
+            if (files == null || files.isEmpty()) {
                 return PaxosAcceptor.NO_LOG_ENTRY;
             }
 
-            try {
-                File file = (extreme == Extreme.GREATEST)
-                        ? Collections.max(files, nameAsLongComparator())
-                        : Collections.min(files, nameAsLongComparator());
-                long seq = getSeqFromFilename(file);
-                return seq;
-            } catch (NoSuchElementException e) {
-                return PaxosAcceptor.NO_LOG_ENTRY;
-            }
+            File file = (extreme == Extreme.GREATEST)
+                    ? Collections.max(files, nameAsLongComparator())
+                    : Collections.min(files, nameAsLongComparator());
+            long seq = getSeqFromFilename(file);
+            return seq;
         } finally {
             lock.unlock();
         }
