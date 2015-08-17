@@ -1,4 +1,4 @@
-package com.palantir.server;
+package com.palantir.atlasdb.server;
 
 import java.io.IOException;
 import java.util.Iterator;
@@ -16,7 +16,18 @@ import com.palantir.common.supplier.RemoteContextHolder;
 import com.palantir.common.supplier.RemoteContextHolder.RemoteContextType;
 
 public class InboxPopulatingContainerRequestFilter implements ContainerRequestFilter {
-    ObjectMapper mapper = new ObjectMapper();
+    final ObjectMapper mapper;
+    final ClassLoader classLoader;
+
+    public InboxPopulatingContainerRequestFilter(ObjectMapper mapper) {
+        this(mapper, null);
+    }
+
+    public InboxPopulatingContainerRequestFilter(ObjectMapper mapper, ClassLoader classLoader) {
+        this.mapper = mapper;
+        this.classLoader = classLoader;
+    }
+
     @Override
     public void filter(ContainerRequestContext requestContext) throws IOException {
         AbstractWritableServiceContext<Map<RemoteContextType<?>, Object>> holderContext = (AbstractWritableServiceContext<Map<RemoteContextType<?>, Object>>) RemoteContextHolder.INBOX.getHolderContext();
@@ -35,7 +46,8 @@ public class InboxPopulatingContainerRequestFilter implements ContainerRequestFi
             String className = key.substring(0, lastIndex);
             try {
                 @SuppressWarnings({ "rawtypes", "unchecked" })
-                Class<Enum> clazz = (Class<Enum>) Class.forName(className);
+                Class<Enum> clazz = (Class<Enum>) Class.forName(className, true,
+                        classLoader == null ? Thread.currentThread().getContextClassLoader() : classLoader);
                 @SuppressWarnings({ "rawtypes", "unchecked" })
                 Enum enumValue = Enum.valueOf(clazz, enumName);
                 RemoteContextType<?> remoteType = (RemoteContextType<?>) enumValue;

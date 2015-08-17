@@ -1,4 +1,4 @@
-package com.palantir.server;
+package com.palantir.atlasdb.server;
 
 import java.util.Map;
 import java.util.Map.Entry;
@@ -14,7 +14,12 @@ import feign.RequestInterceptor;
 import feign.RequestTemplate;
 
 public class OutboxShippingInterceptor implements RequestInterceptor {
-    ObjectMapper mapper = new ObjectMapper();
+    final ObjectMapper mapper;
+
+    public OutboxShippingInterceptor(ObjectMapper mapper) {
+        this.mapper = mapper;
+    }
+
     @Override
     public void apply(RequestTemplate template) {
         Map<RemoteContextType<?>, Object> map = RemoteContextHolder.OUTBOX.getHolderContext().get();

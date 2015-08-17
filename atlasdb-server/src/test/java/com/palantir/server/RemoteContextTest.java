@@ -12,6 +12,8 @@ import org.junit.Test;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.client.TextDelegateDecoder;
+import com.palantir.atlasdb.server.InboxPopulatingContainerRequestFilter;
+import com.palantir.atlasdb.server.OutboxShippingInterceptor;
 import com.palantir.common.supplier.PopulateServiceContextProxy;
 import com.palantir.common.supplier.RemoteContextHolder;
 import com.palantir.common.supplier.RemoteContextHolder.RemoteContextType;
@@ -27,7 +29,7 @@ public class RemoteContextTest {
     @ClassRule
     public final static DropwizardClientRule dropwizard = new DropwizardClientRule(
             new InboxResourceImpl(),
-            new InboxPopulatingContainerRequestFilter());
+            new InboxPopulatingContainerRequestFilter(new ObjectMapper()));
 
     @Test
     public void testSerializing() {
@@ -37,7 +39,7 @@ public class RemoteContextTest {
                 .decoder(new TextDelegateDecoder(new JacksonDecoder()))
                 .encoder(new JacksonEncoder(mapper))
                 .contract(new JAXRSContract())
-                .requestInterceptor(new OutboxShippingInterceptor())
+                .requestInterceptor(new OutboxShippingInterceptor(mapper))
                 .target(InboxResource.class, uri);
         ServiceContext<String> context = RemoteContextHolder.OUTBOX.getProviderForKey(HOLDER.VALUE);
         ir = PopulateServiceContextProxy.newProxyInstanceWithConstantValue(InboxResource.class, ir, "whatever", context);
