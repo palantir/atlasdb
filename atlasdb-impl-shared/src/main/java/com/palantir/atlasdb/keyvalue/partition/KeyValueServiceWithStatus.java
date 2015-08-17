@@ -32,4 +32,10 @@ public abstract class KeyValueServiceWithStatus {
     public KeyValueServiceWithStatus completed() {
         return new RegularKeyValueService(service);
     }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " kvs=" + service.hashCode();
+    }
+
 }
