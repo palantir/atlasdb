@@ -20,6 +20,11 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
+import javax.ws.rs.DELETE;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+
 import com.google.common.collect.Multimap;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.NonIdempotent;
@@ -30,6 +35,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 /**
  * A service which stores key-value pairs.
  */
+@Path("/keyvalue")
 public interface KeyValueService extends Closeable {
     /**
      * Performs any initialization that must be done on a fresh instance of the key-value store,
@@ -38,17 +44,23 @@ public interface KeyValueService extends Closeable {
      * This method should be called when the key-value store is first created. Further calls in the
      * lifetime of the key-value store should be silently ignored.
      */
+    @POST
+    @Path("initialize")
     void initializeFromFreshInstance();
 
     /**
      * Performs non-destructive cleanup when the KVS is no longer needed.
      */
+    @POST
+    @Path("close")
     @Override
     void close();
 
     /**
      * Performs any cleanup when clearing the database. This method may delete data irrecoverably.
      */
+    @POST
+    @Path("teardown")
     void teardown();
 
     /**
@@ -57,6 +69,8 @@ public interface KeyValueService extends Closeable {
      * This can be used to decompose a complex key value service using table splits, tiers,
      * or other delegating operations into its subcomponents.
      */
+    @GET
+    @Path("delegate")
     Collection<? extends KeyValueService> getDelegates();
 
     /**
@@ -73,6 +87,8 @@ public interface KeyValueService extends Closeable {
      * @throws IllegalArgumentException if any of the requests were invalid
      *         (e.g., attempting to retrieve values from a non-existent table).
      */
+    @GET
+    @Path("rows")
     @Idempotent
     Map<Cell, Value> getRows(String tableName, Iterable<byte[]> rows,
                              ColumnSelection columnSelection,long timestamp);
@@ -89,6 +105,8 @@ public interface KeyValueService extends Closeable {
      * @throws IllegalArgumentException if any of the requests were invalid
      *         (e.g., attempting to retrieve values from a non-existent table).
      */
+    @GET
+    @Path("cells")
     @Idempotent
     Map<Cell, Value> get(String tableName, Map<Cell, Long> timestampByCell);
 
@@ -105,6 +123,8 @@ public interface KeyValueService extends Closeable {
      * @throws IllegalArgumentException if any of the requests were invalid
      *         (e.g., attempting to retrieve values from a non-existent table).
      */
+    @GET
+    @Path("latest-timestamps")
     @Idempotent
     Map<Cell, Long> getLatestTimestamps(String tableName, Map<Cell, Long> timestampByCell);
 
@@ -132,6 +152,8 @@ public interface KeyValueService extends Closeable {
      * @param values map containing the key-value entries to put.
      * @param timestamp must be non-negative and not equal to {@link Long#MAX_VALUE}
      */
+    @POST
+    @Path("cells")
     void put(String tableName, Map<Cell, byte[]> values, long timestamp) throws KeyAlreadyExistsException;
 
     /**
@@ -157,6 +179,8 @@ public interface KeyValueService extends Closeable {
      * @param valuesByTable map containing the key-value entries to put by table.
      * @param timestamp must be non-negative and not equal to {@link Long#MAX_VALUE}
      */
+    @POST
+    @Path("multi-cells")
     void multiPut(Map<String, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) throws KeyAlreadyExistsException;
 
     /**
@@ -180,6 +204,8 @@ public interface KeyValueService extends Closeable {
      * @param cellValues map containing the key-value entries to put with
      *               non-negative timestamps less than {@link Long#MAX_VALUE}.
      */
+    @POST
+    @Path("cells-with-timestamps")
     @NonIdempotent
     void putWithTimestamps(String tableName, Multimap<Cell, Value> cellValues) throws KeyAlreadyExistsException;
 
@@ -204,6 +230,8 @@ public interface KeyValueService extends Closeable {
      * @throws KeyAlreadyExistsException If you are putting a Cell with the same timestamp as
      *                                      one that already exists.
      */
+    @POST
+    @Path("cells-unless-exists")
     void putUnlessExists(String tableName, Map<Cell, byte[]> values) throws KeyAlreadyExistsException;
 
     /**
@@ -230,6 +258,8 @@ public interface KeyValueService extends Closeable {
      * @param keys map containing the keys to delete values for; the map should specify, for each
      *        key, the timestamp of the value to delete.
      */
+    @DELETE
+    @Path("cells")
     @Idempotent
     void delete(String tableName, Multimap<Cell, Long> keys);
 
@@ -243,6 +273,8 @@ public interface KeyValueService extends Closeable {
      *
      * @throws InsufficientConsistencyException if not all hosts respond successfully
      */
+    @POST
+    @Path("truncate-table")
     @Idempotent
     void truncateTable(String tableName) throws InsufficientConsistencyException;
 
@@ -255,6 +287,8 @@ public interface KeyValueService extends Closeable {
      *
      * @throws InsufficientConsistencyException if not all hosts respond successfully
      */
+    @POST
+    @Path("truncate-tables")
     @Idempotent
     void truncateTables(Set<String> tableNames) throws InsufficientConsistencyException;
 
@@ -269,6 +303,8 @@ public interface KeyValueService extends Closeable {
      * @param timestamp specifies the maximum timestamp (exclusive) at which to retrieve each rows's
      *        value.
      */
+    @GET
+    @Path("range")
     @Idempotent
     ClosableIterator<RowResult<Value>> getRange(String tableName,
                                                 RangeRequest rangeRequest,
@@ -285,6 +321,8 @@ public interface KeyValueService extends Closeable {
      * @param timestamp specifies the maximum timestamp (exclusive) at which to
      *        retrieve each rows's values.
      */
+    @GET
+    @Path("range-with-history")
     @Idempotent
     ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(String tableName,
                                                                 RangeRequest rangeRequest,
@@ -306,6 +344,8 @@ public interface KeyValueService extends Closeable {
      *
      * @throws InsufficientConsistencyException if not all hosts respond successfully
      */
+    @GET
+    @Path("range-of-timestamps")
     @Idempotent
     ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(String tableName,
                                                                 RangeRequest rangeRequest,
@@ -327,6 +367,8 @@ public interface KeyValueService extends Closeable {
      * set to true when there aren't more left.  The next call will return zero results and have
      * moreResultsAvailable set to false.
      */
+    @GET
+    @Path("first-batch-for-ranges")
     @Idempotent
     Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(String tableName,
             Iterable<RangeRequest> rangeRequests,
@@ -336,6 +378,8 @@ public interface KeyValueService extends Closeable {
     // TABLE CREATION AND METADATA
     ////////////////////////////////////////////////////////////
 
+    @DELETE
+    @Path("table")
     @Idempotent
     void dropTable(String tableName) throws InsufficientConsistencyException;
 
@@ -348,6 +392,8 @@ public interface KeyValueService extends Closeable {
      *        throw if a value is too big. It may also be used by the store as a
      *        hint for small values so we can cache them more effectively in memory.
      */
+    @POST
+    @Path("table")
     @Idempotent
     void createTable(String tableName, int maxValueSizeInBytes) throws InsufficientConsistencyException;
 
@@ -359,21 +405,33 @@ public interface KeyValueService extends Closeable {
      *        throw if a value is too big. It may also be used by the store as a
      *        hint for small values so we can cache them more effectively in memory.
      */
+    @POST
+    @Path("tables")
     @Idempotent
     void createTables(Map<String, Integer> tableNamesToMaxValueSizeInBytes) throws InsufficientConsistencyException;
 
+    @GET
+    @Path("table-names")
     @Idempotent
     Set<String> getAllTableNames();
 
+    @GET
+    @Path("metadata-for-table")
     @Idempotent
     byte[] getMetadataForTable(String tableName);
 
+    @GET
+    @Path("metadata-for-tables")
     @Idempotent
     Map<String, byte[]> getMetadataForTables();
 
+    @POST
+    @Path("metadata-for-table")
     @Idempotent
     void putMetadataForTable(String tableName, byte[] metadata);
 
+    @POST
+    @Path("metadata-for-tables")
     @Idempotent
     void putMetadataForTables(final Map<String, byte[]> tableNameToMetadata);
 
@@ -385,6 +443,8 @@ public interface KeyValueService extends Closeable {
      * Adds a value with timestamp = Value.INVALID_VALUE_TIMESTAMP to each of the given cells. If
      * a value already exists at that time stamp, nothing is written for that cell.
      */
+    @POST
+    @Path("gc-sentinel-values")
     @Idempotent
     void addGarbageCollectionSentinelValues(String tableName, Set<Cell> cells);
 
@@ -405,6 +465,8 @@ public interface KeyValueService extends Closeable {
      *
      * @throws InsufficientConsistencyException if not all hosts respond successfully
      */
+    @GET
+    @Path("all-timestamps")
     @Idempotent
     Multimap<Cell, Long> getAllTimestamps(String tableName, Set<Cell> cells, long timestamp) throws InsufficientConsistencyException;
 
@@ -414,5 +476,7 @@ public interface KeyValueService extends Closeable {
      *
      * This call must be implemented so that it completes synchronously.
      */
+    @POST
+    @Path("compact-internally")
     void compactInternally(String tableName);
 }
