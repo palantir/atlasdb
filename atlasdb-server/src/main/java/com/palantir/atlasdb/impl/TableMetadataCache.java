@@ -17,8 +17,7 @@ package com.palantir.atlasdb.impl;
 
 import java.util.concurrent.TimeUnit;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import javax.annotation.CheckForNull;
 
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
@@ -26,11 +25,10 @@ import com.google.common.cache.LoadingCache;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.table.description.TableMetadata;
 
-@Singleton
 public class TableMetadataCache {
     private final LoadingCache<String, TableMetadata> cache;
+    private static final TableMetadata EMPTY = new TableMetadata();
 
-    @Inject
     public TableMetadataCache(final KeyValueService kvs) {
         this.cache = CacheBuilder.newBuilder()
                 .expireAfterAccess(15, TimeUnit.MINUTES)
@@ -38,12 +36,20 @@ public class TableMetadataCache {
             @Override
             public TableMetadata load(String tableName) throws Exception {
                 byte[] rawMetadata = kvs.getMetadataForTable(tableName);
+                if (rawMetadata == null || rawMetadata.length == 0) {
+                    return EMPTY;
+                }
                 return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(rawMetadata);
             }
         });
     }
 
+    @CheckForNull
     public TableMetadata getMetadata(String tableName) {
-        return cache.getUnchecked(tableName);
+        TableMetadata ret = cache.getUnchecked(tableName);
+        if (ret == EMPTY) {
+            return null;
+        }
+        return ret;
     }
 }

@@ -9,6 +9,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.google.common.collect.ImmutableList;
@@ -197,6 +198,29 @@ public class TransactionRemotingTest {
                 10));
         Assert.assertTrue(Iterables.isEmpty(range.getResults().getResults()));
         Assert.assertNull(range.getNextRange());
+    }
+
+    @Test
+    public void testRaw() throws JsonProcessingException {
+        String tableName = "my_table";
+        service.createTable(tableName);
+        TransactionToken txId = service.startTransaction();
+        TableCellVal putArg = new TableCellVal(tableName, getUpgradeMetadataTableContents());
+        String str = mapper.writeValueAsString(putArg);
+        System.out.println(str);
+        service.put(txId, putArg);
+    }
+
+    @Test
+    public void testRaw2() throws JsonProcessingException {
+        String tableName = "my_table";
+        service.createTable(tableName);
+        TransactionToken txId = service.startTransaction();
+        Cell rawCell = Cell.create(new byte[] {0, 1, 2}, new byte[] {3, 4, 5});
+        TableCellVal putArg = new TableCellVal(tableName, ImmutableMap.of(rawCell, new byte[] {40, 0}));
+        String str = mapper.writeValueAsString(putArg);
+        System.out.println(str);
+        service.put(txId, putArg);
     }
 
     private void setupFooStatus1(String table) {
