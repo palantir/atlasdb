@@ -31,8 +31,8 @@ leader:
     - http://localhost:4828
     - http://localhost:5828
 
-serverType: CASSANDRA
-cassandra:
+serverType: cassandra
+extraConfig:
   replicationFactor: 1
   servers:
     -  localhost

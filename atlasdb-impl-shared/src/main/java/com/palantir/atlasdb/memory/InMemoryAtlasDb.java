@@ -15,6 +15,9 @@
  */
 package com.palantir.atlasdb.memory;
 
+import java.io.IOException;
+
+import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
@@ -31,6 +34,7 @@ import com.palantir.atlasdb.keyvalue.impl.TableRemappingKeyValueService;
 import com.palantir.atlasdb.schema.AtlasSchema;
 import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.schema.SchemaReference;
+import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
@@ -56,7 +60,23 @@ import com.palantir.timestamp.TimestampService;
  * This method creates all the tables in the pass {@link Schema} and provides Snapshot Isolation
  * (SI) on all of the transactions it creates.
  */
-public class InMemoryAtlasDb {
+public class InMemoryAtlasDb implements AtlasDbFactory<InMemoryKeyValueService> {
+
+    @Override
+    public String getType() {
+        return "memory";
+    }
+
+    @Override
+    public InMemoryKeyValueService createRawKeyValueService(JsonNode config) throws IOException {
+        return new InMemoryKeyValueService(false);
+    }
+
+    @Override
+    public TimestampService createTimestampService(InMemoryKeyValueService rawKvs) {
+        return new InMemoryTimestampService();
+    }
+
     private InMemoryAtlasDb() { /* */ }
 
     public static SerializableTransactionManager createInMemoryTransactionManager(Schema schema) {

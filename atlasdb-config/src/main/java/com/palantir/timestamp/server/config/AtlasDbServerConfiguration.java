@@ -18,6 +18,8 @@ package com.palantir.timestamp.server.config;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
 import io.dropwizard.Configuration;
 
 public class AtlasDbServerConfiguration extends Configuration {
@@ -34,17 +36,7 @@ public class AtlasDbServerConfiguration extends Configuration {
 
 	@NotNull
 	@Valid
-	public ServerType serverType = ServerType.LEVELDB;
+	public String serverType = "leveldb";
 
-	@Valid
-	public String levelDbDir = "leveldb";
-
-	@Valid
-	public CassandraKeyValueConfiguration cassandra;
-
-	public enum ServerType {
-	    LEVELDB,
-	    CASSANDRA,
-	    MEMORY;
-	}
+	public JsonNode extraConfig;
 }

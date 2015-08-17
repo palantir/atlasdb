@@ -25,6 +25,7 @@ import com.palantir.atlasdb.client.TextDelegateDecoder;
 import com.palantir.atlasdb.impl.AtlasDbServiceImpl;
 import com.palantir.atlasdb.impl.TableMetadataCache;
 import com.palantir.atlasdb.jackson.AtlasJacksonModule;
+import com.palantir.atlasdb.spi.AtlasDbServerStateProvider;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.leader.PingableLeader;
@@ -116,7 +117,7 @@ public class AtlasDbServer extends Application<AtlasDbServerConfiguration> {
 
         environment.jersey().register(createLockService(leader));
 
-        AtlasDbServerState factory = AtlasDbServerState.create(configuration);
+        AtlasDbServerState factory = new AtlasDbServerStateProvider().create(configuration);
         environment.jersey().register(AwaitingLeadershipProxy.newProxyInstance(TimestampService.class, factory.getTimestampSupplier(), leader));
         TableMetadataCache cache = new TableMetadataCache(factory.getKeyValueService());
         environment.jersey().register(new AtlasDbServiceImpl(factory.getKeyValueService(), factory.getTransactionManager(), cache));

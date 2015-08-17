@@ -2,7 +2,8 @@ apply from: "../gradle/shared.gradle"
 
 dependencies {
   compile(project(":atlasdb-client"))
-  compile(project(":timestamp-api"))
+  compile project(':timestamp-impl')
+  compile(project(":atlasdb-spi"))
   compile(group: "org.fusesource.leveldbjni",
           name: "leveldbjni-all",
           version: "1.7",

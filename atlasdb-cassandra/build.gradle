@@ -2,6 +2,7 @@ apply from: "../gradle/shared.gradle"
 
 dependencies {
   compile(project(":atlasdb-client"))
+  compile(project(":atlasdb-spi"))
   compile(project(":commons-cassandra"))
-  compile(project(":timestamp-api"))
+  compile project(':timestamp-impl')
 }

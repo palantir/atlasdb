@@ -12,6 +12,7 @@ dependencies {
   compile(project(":atlasdb-commons"))
   compile(project(":atlasdb-api"))
   compile(project(":atlasdb-client-protobufs"))
+  compile(project(":atlasdb-spi"))
   compile(group: "com.googlecode.json-simple",
           name: "json-simple",
           version: "1.1.1",
