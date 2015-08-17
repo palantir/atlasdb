@@ -23,7 +23,7 @@ import com.palantir.atlasdb.api.TableRange;
 import com.palantir.atlasdb.api.TableRowResult;
 import com.palantir.atlasdb.api.TableRowSelection;
 import com.palantir.atlasdb.api.TransactionToken;
-import com.palantir.atlasdb.impl.AtlasServiceImpl;
+import com.palantir.atlasdb.impl.AtlasDbServiceImpl;
 import com.palantir.atlasdb.impl.TableMetadataCache;
 import com.palantir.atlasdb.jackson.AtlasJacksonModule;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -53,7 +53,7 @@ public class TransactionRemotingTest {
     public final KeyValueService kvs = txMgr.getKeyValueService();
     public final TableMetadataCache cache = new TableMetadataCache(kvs);
     public final ObjectMapper mapper = new ObjectMapper(); { mapper.registerModule(new AtlasJacksonModule(cache).createModule()); }
-    public final @Rule DropwizardClientRule dropwizard = new DropwizardClientRule(new AtlasServiceImpl(kvs, txMgr, cache));
+    public final @Rule DropwizardClientRule dropwizard = new DropwizardClientRule(new AtlasDbServiceImpl(kvs, txMgr, cache));
     public AtlasDbService service;
 
     @SuppressWarnings("unchecked")
@@ -218,9 +218,11 @@ public class TransactionRemotingTest {
         TransactionToken txId = service.startTransaction();
         Cell rawCell = Cell.create(new byte[] {0, 1, 2}, new byte[] {3, 4, 5});
         TableCellVal putArg = new TableCellVal(tableName, ImmutableMap.of(rawCell, new byte[] {40, 0}));
-        String str = mapper.writeValueAsString(putArg);
-        System.out.println(str);
         service.put(txId, putArg);
+
+        TableCell tableCell = new TableCell(tableName, ImmutableList.of(rawCell));
+
+        service.getCells(txId, tableCell);
     }
 
     private void setupFooStatus1(String table) {

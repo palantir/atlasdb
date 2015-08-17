@@ -22,7 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.client.TextDelegateDecoder;
-import com.palantir.atlasdb.impl.AtlasServiceImpl;
+import com.palantir.atlasdb.impl.AtlasDbServiceImpl;
 import com.palantir.atlasdb.impl.TableMetadataCache;
 import com.palantir.atlasdb.jackson.AtlasJacksonModule;
 import com.palantir.common.concurrent.PTExecutors;
@@ -119,7 +119,7 @@ public class AtlasDbServer extends Application<AtlasDbServerConfiguration> {
         AtlasDbServerState factory = AtlasDbServerState.create(configuration);
         environment.jersey().register(AwaitingLeadershipProxy.newProxyInstance(TimestampService.class, factory.getTimestampSupplier(), leader));
         TableMetadataCache cache = new TableMetadataCache(factory.getKeyValueService());
-        environment.jersey().register(new AtlasServiceImpl(factory.getKeyValueService(), factory.getTransactionManager(), cache));
+        environment.jersey().register(new AtlasDbServiceImpl(factory.getKeyValueService(), factory.getTransactionManager(), cache));
         environment.getObjectMapper().registerModule(new AtlasJacksonModule(cache).createModule());
     }
 

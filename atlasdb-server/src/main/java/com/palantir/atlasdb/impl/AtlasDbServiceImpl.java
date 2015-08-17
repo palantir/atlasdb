@@ -22,8 +22,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import javax.inject.Inject;
-
 import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -41,7 +39,14 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
+import com.palantir.atlasdb.table.description.ColumnValueDescription;
+import com.palantir.atlasdb.table.description.DynamicColumnDescription;
+import com.palantir.atlasdb.table.description.NameComponentDescription;
+import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import com.palantir.atlasdb.table.description.ValueType;
+import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.RuntimeTransactionTask;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.impl.RawTransaction;
@@ -53,17 +58,22 @@ import com.palantir.lock.LockRefreshToken;
 
 import jersey.repackaged.com.google.common.collect.ImmutableList;
 
-public class AtlasServiceImpl implements AtlasDbService {
+public class AtlasDbServiceImpl implements AtlasDbService {
+    private static final TableMetadata RAW_METADATA = new TableMetadata(
+            new NameMetadataDescription(ImmutableList.of(new NameComponentDescription("row", ValueType.BLOB))),
+            new ColumnMetadataDescription(new DynamicColumnDescription(new NameMetadataDescription(ImmutableList.of(new NameComponentDescription("row", ValueType.BLOB))), ColumnValueDescription.forType(ValueType.BLOB))),
+            ConflictHandler.SERIALIZABLE);
+
     private final KeyValueService kvs;
     private final SnapshotTransactionManager txManager;
     private final Cache<TransactionToken, RawTransaction> transactions =
             CacheBuilder.newBuilder().expireAfterAccess(12, TimeUnit.HOURS).build();
     private final TableMetadataCache metadataCache;
 
-    @Inject
-    public AtlasServiceImpl(KeyValueService kvs,
-                            SnapshotTransactionManager txManager,
-                            TableMetadataCache metadataCache) {
+
+    public AtlasDbServiceImpl(KeyValueService kvs,
+                              SnapshotTransactionManager txManager,
+                              TableMetadataCache metadataCache) {
         this.kvs = kvs;
         this.txManager = txManager;
         this.metadataCache = metadataCache;
@@ -82,6 +92,7 @@ public class AtlasServiceImpl implements AtlasDbService {
     @Override
     public void createTable(String tableName) {
         kvs.createTable(tableName, Integer.MAX_VALUE);
+        kvs.putMetadataForTable(tableName, RAW_METADATA.persistToBytes());
     }
 
     @Override
