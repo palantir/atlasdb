@@ -8,7 +8,6 @@ import java.util.NavigableSet;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
@@ -271,7 +270,12 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         return getServicesForCellsMap(tableName, values, true);
     }
 
-    // TODO: This should probably take timestamp (?)
+    /**
+     * Copies rows within the specified range from all the tables.
+     * @param destination
+     * @param source
+     * @param rangeToCopy
+     */
     private void copyData(KeyValueService destination, KeyValueService source, RangeRequest rangeToCopy) {
         for (String tableName : source.getAllTableNames()) {
             Multimap<Cell, Value> cells = HashMultimap.create();
@@ -287,6 +291,11 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         }
     }
 
+    /**
+     * Deletes rows within the specified range from all the tables.
+     * @param kvs
+     * @param rangeToDelete
+     */
     private void deleteData(KeyValueService kvs, RangeRequest rangeToDelete) {
         for (String tableName : kvs.getAllTableNames()) {
             Multimap<Cell, Long> cells = HashMultimap.create();
@@ -303,6 +312,41 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         }
     }
 
+    /**
+     * Returns ranges that should be stored and/or read from the given kvs.
+     * It is intended for use when adding and/or removing endpoints.
+     *
+     * A - 3
+     * B - 5
+     * C - 8
+     * D - 10
+     * E - 12
+     *
+     * removeEndpoint scenario:
+     *   - change status from regular to 'leaving'
+     *   - get the ranges operated by this kvs for read (because I will be reading
+     *     from the kvs and writing to other kvss)
+     *   - copy the farthest range to the first higher kvs
+     *   - copy the second-farthest range to the second higher kvs
+     *   - etc...
+     *   - remove the kvs from the ring
+     *
+     * addEndpoint scenario:
+     *   - insert with the 'joining' status
+     *   - get ranges operated by this kvs for write (because I will be reading
+     *     from other kvss and writing to this one)
+     *   - copy all the range from the first higher kvs (TODO: high availability)
+     *     BUT the very highest range
+     *   - copy the part of the very highest range that is below the new kvs
+     *   - change status to 'regular'
+     *   - remove the farthest range from the first higher kvs
+     *   - remove the second-farthest range from the second higher kvs
+     *   - etc...
+     *
+     * @param kvsKey Consider kvs at this key.
+     * @param isWrite Are we looking for write or read access?
+     * @return The first element is the farthest range.
+     */
     private List<RangeRequest> getRangesOperatedByKvs(byte[] kvsKey, boolean isWrite) {
         KeyValueServiceWithStatus kvsws = Preconditions.checkNotNull(ring.get(kvsKey));
         List<RangeRequest> result = Lists.newArrayList();
@@ -341,15 +385,20 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
 
     @Override
     public synchronized void addEndpoint(final byte[] key, final KeyValueService kvs, String rack) {
+        // Sanity checks
         Preconditions.checkArgument(!ring.containsKey(key));
-        KeyValueServiceWithStatus kvsWithStatus = new JoiningKeyValueService(kvs);
-        ring.put(key, kvsWithStatus);
+
         joins.add(executor.submit(new Callable<Void>() {
             @Override
             public Void call() throws Exception {
                 byte[] nextKey = ring.nextKey(key);
                 List<RangeRequest> ranges = getRangesOperatedByKvs(nextKey, false);
+
+                // Insert the joiner into the ring
                 KeyValueService sourceKvs = ring.get(nextKey).get();
+                KeyValueServiceWithStatus kvsWithStatus = new JoiningKeyValueService(kvs);
+                ring.put(key, kvsWithStatus);
+
                 // First, copy all the ranges besides the one in which
                 // the new kvs is located. All these will be operated
                 // by the new kvs.
@@ -362,11 +411,16 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
                 // thus I only need to copy the first part over.
                 RangeRequest lastRange = ranges.get(ranges.size() - 1);
                 RangeRequest lastRange1 = lastRange.getBuilder().endRowExclusive(key).build();
-//                RangeRequest lastRange2 = lastRange.getBuilder().startRowInclusive(key).build();
                 copyData(kvs, sourceKvs, lastRange1);
+
                 // Some anti-bug asserts
                 assert UnsignedBytes.lexicographicalComparator().compare(lastRange.getStartInclusive(), key) < 0;
                 assert UnsignedBytes.lexicographicalComparator().compare(lastRange.getEndExclusive(), key) > 0;
+
+                // Change the status to regular
+                // TODO: Not doing this for testing purporses.
+                // Use finalizer to finalize the join.
+                // ring.put(key, new RegularKeyValueService(kvs));
 
                 // The last thing to be done is removing the farthest
                 // range from the following kvss.
@@ -377,46 +431,83 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
                     keyToRemove = ring.nextKey(keyToRemove);
                 }
                 deleteData(ring.get(keyToRemove).get(), lastRange1);
-                ring.put(key, new RegularKeyValueService(kvs));
                 return null;
             }
         }));
 
+        // Do it synchronously now for testing purposes (TODO)
         try {
-            joins.take().get();
-        } catch (InterruptedException | ExecutionException e) {
+            Futures.getUnchecked(joins.take());
+        } catch (InterruptedException e) {
             throw Throwables.throwUncheckedException(e);
         }
     }
 
+    public void finalizeAddEndpoint(byte[] key, KeyValueService kvs) {
+        while (!joins.isEmpty()) {
+            try {
+                Futures.getUnchecked(joins.take());
+            } catch (InterruptedException e) {
+                Throwables.throwUncheckedException(e);
+            }
+        }
+        ring.put(key, new RegularKeyValueService(kvs));
+    }
+
     @Override
     public synchronized void removeEndpoint(final byte[] key, final KeyValueService kvs, String rack) {
+        // Sanity checks
         Preconditions.checkArgument(ring.keySet().size() > quorumParameters.getReplicationFactor());
-        KeyValueServiceWithStatus original = Preconditions.checkNotNull(ring.get(key));
-        LeavingKeyValueService leavingKeyValueService = new LeavingKeyValueService(original.get());
-        ring.put(key, leavingKeyValueService);
 
         removals.add(executor.submit(new Callable<Void>() {
             @Override
             public Void call() throws Exception {
                 List<RangeRequest> ranges = getRangesOperatedByKvs(key, true);
+
+                // Set the status to leaving
+                KeyValueServiceWithStatus original = Preconditions.checkNotNull(ring.get(key));
+                LeavingKeyValueService leavingKeyValueService = new LeavingKeyValueService(original.get());
+                ring.put(key, leavingKeyValueService);
+
+                // Copy the farthest range to the first higher kvs.
+                // Copy the second-farthest range to the second-higher kvs.
+                // Etc.
                 byte[] dstKvsKey = ring.nextKey(key);
                 for (int i = 0; i < ranges.size() - 1; ++i) {
                     copyData(ring.get(dstKvsKey).get(), kvs, ranges.get(i));
                     dstKvsKey = ring.nextKey(dstKvsKey);
                 }
+
+                // The special case for the last range.
                 RangeRequest lastRange1 = ranges.get(ranges.size() - 1).getBuilder().endRowExclusive(key).build();
                 copyData(ring.get(dstKvsKey).get(), kvs, lastRange1);
-                ring.remove(key);
+
+                // Remove the kvs from the ring.
+                // TODO: Not doing this for testing purposes.
+                // Use finalizer to finalize the removal.
+//                ring.remove(key);
                 return null;
             }
         }));
 
+        // Do it synchronously for testing purposes.
         try {
-            removals.take().get();
-        } catch (InterruptedException | ExecutionException e) {
+            Futures.getUnchecked(removals.take());
+        } catch (InterruptedException e) {
             throw Throwables.throwUncheckedException(e);
         }
+    }
+
+    public void finalizeRemoveEndpoint(byte[] key, KeyValueService kvs) {
+        Preconditions.checkArgument(Preconditions.checkNotNull(ring.get(key).get()) == kvs);
+        while (!removals.isEmpty()) {
+            try {
+                Futures.getUnchecked(removals.take());
+            } catch (InterruptedException e) {
+                Throwables.throwUncheckedException(e);
+            }
+        }
+        ring.remove(key);
     }
 
     @Override
@@ -430,4 +521,5 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     public synchronized boolean removalInProgress() {
         return !removals.isEmpty();
     }
+
 }

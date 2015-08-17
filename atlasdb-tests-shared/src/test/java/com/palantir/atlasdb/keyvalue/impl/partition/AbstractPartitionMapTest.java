@@ -38,11 +38,12 @@ public abstract class AbstractPartitionMapTest {
     static final int READF = 2;
     static final int WRITEF = 2;
     static final QuorumParameters qp = new QuorumParameters(REPF, READF, WRITEF);
-    static protected final byte[][] points = new byte[][] { newByteArray(0x00, 0x00),
-            newByteArray(0x00, 0x02), newByteArray(0x00, 0x05), newByteArray(0x01, 0x01),
-            newByteArray(0x01, 0x03), newByteArray(0x01, 0x07), newByteArray(0x01, 0x0B) };
+    static protected final byte[][] points = new byte[][] {
+        newByteArray(0x00, 0x00), newByteArray(0x00, 0x02), newByteArray(0x00, 0x05),
+        newByteArray(0x01, 0x01), newByteArray(0x01, 0x03), newByteArray(0x01, 0x07),
+        newByteArray(0x01, 0x0B) };
 
-    static private RangeRequest rangeFromTo(byte[] from, byte[] to) {
+    static protected RangeRequest rangeFromTo(byte[] from, byte[] to) {
         boolean reverse = false;
         if (from.length > 0 && to.length > 0 && UnsignedBytes.lexicographicalComparator().compare(from, to) > 0) {
             reverse = true;
@@ -300,7 +301,7 @@ public abstract class AbstractPartitionMapTest {
         Iterator<ConsistentRingRangeRequest> it = tpm.getServicesForRangeRead(TABLE1, fromZero).keySet().iterator();
         for (RangeRequest rr : fromZeroDivision) {
             RangeRequest crr = it.next().get();
-            assertEquals(crr, rr);
+            assertEquals(rr, crr);
         }
     }
 
