@@ -18,7 +18,7 @@ package com.palantir.common.supplier;
 import java.util.concurrent.Callable;
 
 public abstract class AbstractWritableServiceContext<T> implements ServiceContext<T> {
-    protected abstract void set(T newValue);
+    public abstract void set(T newValue);
 
     @Override
     final public <R> R callWithContext(T context, Callable<R> callable) throws Exception {

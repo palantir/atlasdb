@@ -47,7 +47,7 @@ public class ExecutorInheritableServiceContext<T> extends AbstractWritableServic
     }
 
     @Override
-    protected void set(T newValue) {
+    public void set(T newValue) {
         if (newValue == null) {
             delegate.remove();
         } else {

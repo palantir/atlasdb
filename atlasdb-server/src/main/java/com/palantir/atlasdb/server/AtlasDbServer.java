@@ -72,12 +72,6 @@ public class AtlasDbServer extends Application<AtlasDbServerConfiguration> {
         return ret;
     }
 
-    public static ObjectMapper getObjectMapper(TableMetadataCache cache) {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.registerModule(new AtlasJacksonModule(cache).createModule());
-        return mapper;
-    }
-
     @Override
     public void run(AtlasDbServerConfiguration configuration, Environment environment) throws Exception {
     	PaxosLearner learner = PaxosLearnerImpl.newLearner(configuration.leader.learnerLogDir);

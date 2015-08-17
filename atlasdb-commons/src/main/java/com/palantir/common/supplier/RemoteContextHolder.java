@@ -125,7 +125,7 @@ public class RemoteContextHolder {
         }
         return new AbstractWritableServiceContext<T>() {
             @Override
-            protected void set(T value) {
+            public void set(T value) {
                 if (value == null) {
                     holder.get().remove(key);
                     if (holder.get().isEmpty()) {
