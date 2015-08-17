@@ -52,6 +52,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -90,6 +91,7 @@ public final class LevelDbKeyValueService implements KeyValueService {
     private static final int MAX_SMALL_TABLE_SIZE = 8;
     private static final String LOCK_FILE_PREFIX = ".pt_kv_lock";
     private static final String TRANSACTION_TABLE = TransactionConstants.TRANSACTION_TABLE;
+    private static final String NAMESPACE_TABLE = AtlasDbConstants.NAMESPACE_TABLE;
 
     private final DB db;
     private final FileLock lock;
@@ -344,7 +346,7 @@ public final class LevelDbKeyValueService implements KeyValueService {
     public void put(String tableName, Map<Cell, byte[]> values, long timestamp) {
         if (isTransactionTable(tableName)) {
             Validate.isTrue(timestamp == TRANSACTION_TS);
-            putTransaction(values);
+            putUnlessExistsInternal(tableName, values);
         } else {
             putInternal(tableName,
                     KeyValueServices.toConstantTimestampValues(values.entrySet(), timestamp),
@@ -382,12 +384,12 @@ public final class LevelDbKeyValueService implements KeyValueService {
 
     @Override
     public void putUnlessExists(String tableName, Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
-        Validate.isTrue(isTransactionTable(tableName));
-        putTransaction(values);
+        Validate.isTrue(isTransactionTable(tableName) || isNamespaceTable(tableName));
+        putUnlessExistsInternal(tableName, values);
     }
 
 
-    private void putTransaction(Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
+    private void putUnlessExistsInternal(String tableName, Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
         final LockState<Cell> lockToken = lockSet.lockOnObjects(values.keySet());
         try {
             final Set<Cell> alreadyExists = Sets.newHashSet();
@@ -395,8 +397,8 @@ public final class LevelDbKeyValueService implements KeyValueService {
                 Validate.isTrue(Arrays.equals(
                         cell.getColumnName(),
                         COMMIT_TS_COLUMN));
-                final byte[] key = getKey(TRANSACTION_TABLE, cell, TRANSACTION_TS);
-                if (keyExists(TRANSACTION_TABLE, key)) {
+                final byte[] key = getKey(tableName, cell, TRANSACTION_TS);
+                if (keyExists(tableName, key)) {
                     alreadyExists.add(cell);
                 }
             }
@@ -405,7 +407,7 @@ public final class LevelDbKeyValueService implements KeyValueService {
             Collection<Entry<Cell, Value>> filteredValues = KeyValueServices.toConstantTimestampValues(
                     Maps.filterKeys(values, Predicates.not(Predicates.in(alreadyExists))).entrySet(),
                     TRANSACTION_TS);
-            putInternal(TRANSACTION_TABLE, filteredValues, writeOptions);
+            putInternal(tableName, filteredValues, writeOptions);
             if (!alreadyExists.isEmpty()) {
                 throw new KeyAlreadyExistsException("keys already exist", alreadyExists);
             }
@@ -651,6 +653,10 @@ public final class LevelDbKeyValueService implements KeyValueService {
 
     private static boolean isTransactionTable(String tableName) {
         return TRANSACTION_TABLE.equals(tableName);
+    }
+
+    private static boolean isNamespaceTable(String tableName) {
+        return NAMESPACE_TABLE.equals(tableName);
     }
 
     @Override
