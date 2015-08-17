@@ -39,9 +39,14 @@ public interface AtlasDbService {
 
     @Idempotent
     @GET
-    @Path("metadata/{tableName:.+}")
+    @Path("metadata/{tableName}")
     @Produces(MediaType.APPLICATION_JSON)
     TableMetadata getTableMetadata(@PathParam("tableName") String tableName);
+
+    @Idempotent
+    @POST
+    @Path("metadata/{tableName}")
+    void createTable(@PathParam("tableName") String tableName);
 
     @Idempotent
     @POST

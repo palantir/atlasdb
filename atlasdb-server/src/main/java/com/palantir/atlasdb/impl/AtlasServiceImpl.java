@@ -80,6 +80,11 @@ public class AtlasServiceImpl implements AtlasDbService {
     }
 
     @Override
+    public void createTable(String tableName) {
+        kvs.createTable(tableName, Integer.MAX_VALUE);
+    }
+
+    @Override
     public TableRowResult getRows(TransactionToken token,
                                   final TableRowSelection rows) {
         return runReadOnly(token, new RuntimeTransactionTask<TableRowResult>() {
