@@ -141,7 +141,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                                     final Collection<byte[]> rows,
                                     final ColumnSelection columnSelection,
                                     final long timestamp) {
-        if (columnSelection.noColumnsSelected() || rows.isEmpty()) {
+        if (rows.isEmpty()) {
             return Maps.newHashMap();
         }
 
