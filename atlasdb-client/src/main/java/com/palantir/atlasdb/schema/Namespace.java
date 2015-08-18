@@ -21,7 +21,8 @@ import com.google.common.base.Objects;
 import com.google.common.base.Strings;
 
 public final class Namespace {
-    public static final Namespace EMPTY_NAMESPACE = new Namespace("");
+    static final Namespace EMPTY_NAMESPACE = new Namespace("");
+    public static final Namespace DEFAULT_NAMESPACE = new Namespace("default");
 
     private final String name;
 
@@ -33,6 +34,10 @@ public final class Namespace {
 
     private Namespace(String name) {
         this.name = name;
+    }
+
+    public boolean isEmptyNamespace() {
+        return this == EMPTY_NAMESPACE;
     }
 
     public String getName() {

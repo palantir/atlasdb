@@ -72,7 +72,7 @@ public final class Schemas {
         validateTableName(tableName);
         String namespaceName = namespace.getName();
         // Hacks for schemas that were created before namespaces were created.
-        if (namespace == Namespace.EMPTY_NAMESPACE || namespaceName.equals("met") || namespaceName.equals("upgrade")) {
+        if (namespace.isEmptyNamespace() || namespaceName.equals("met") || namespaceName.equals("upgrade")) {
             return tableName;
         } else {
             return namespace.getName() + "." + tableName;

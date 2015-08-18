@@ -37,7 +37,7 @@ public class SchemaUpdaterTest extends AtlasDbTestCase {
 
     @Before
     public void makeUpdater() {
-        updater = SimpleSchemaUpdaterImpl.create(keyValueService, Namespace.EMPTY_NAMESPACE);
+        updater = SimpleSchemaUpdaterImpl.create(keyValueService, Namespace.DEFAULT_NAMESPACE);
     }
 
     @Test

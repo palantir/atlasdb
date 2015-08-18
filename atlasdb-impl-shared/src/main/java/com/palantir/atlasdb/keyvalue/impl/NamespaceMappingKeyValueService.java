@@ -16,12 +16,10 @@
 package com.palantir.atlasdb.keyvalue.impl;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import com.google.common.base.Splitter;
 import com.google.common.collect.ForwardingObject;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -34,7 +32,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.schema.TableReference;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.common.base.ClosableIterator;
@@ -52,11 +49,7 @@ public class NamespaceMappingKeyValueService extends ForwardingObject implements
     }
 
     protected TableReference getTableReference(String tableName) {
-        if (tableName.contains(".")) {
-            List<String> split = Splitter.on('.').limit(2).splitToList(tableName);
-            return TableReference.create(Namespace.create(split.get(0)), split.get(1));
-        }
-        return TableReference.create(Namespace.EMPTY_NAMESPACE, tableName);
+        return StaticTableMappingService.getTableReference(tableName);
     }
 
     protected Set<String> resolveNamespacedSet(Set<TableReference> set) {

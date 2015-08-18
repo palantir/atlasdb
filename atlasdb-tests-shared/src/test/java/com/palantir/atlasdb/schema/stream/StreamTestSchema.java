@@ -31,7 +31,7 @@ public class StreamTestSchema implements AtlasSchema {
     private static Schema generateSchema() {
         Schema schema = new Schema("StreamTest",
                 StreamTest.class.getPackage().getName() + ".generated",
-                Namespace.EMPTY_NAMESPACE);
+                Namespace.DEFAULT_NAMESPACE);
 
         schema.addStreamStoreDefinition("stream_test", "stream_test", ValueType.VAR_LONG, 4000);
 
@@ -55,6 +55,6 @@ public class StreamTestSchema implements AtlasSchema {
 
     @Override
     public Namespace getNamespace() {
-        return Namespace.EMPTY_NAMESPACE;
+        return Namespace.DEFAULT_NAMESPACE;
     }
 }
