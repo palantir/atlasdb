@@ -101,16 +101,16 @@ public class TransactionRemotingTest {
 
     @Test
     public void testGetTableMetadata() {
-        TableMetadata metadata = service.getTableMetadata("upgrade_metadata");
+        TableMetadata metadata = service.getTableMetadata("upgrade.upgrade_metadata");
         Assert.assertFalse(metadata.getColumns().hasDynamicColumns());
     }
 
     @Test
     public void testGetRowsNone() {
-        setupFooStatus1("upgrade_metadata");
+        setupFooStatus1("upgrade.upgrade_metadata");
         TransactionToken txId = TransactionToken.autoCommit();
         TableRowResult badResults = service.getRows(txId, new TableRowSelection(
-                "upgrade_metadata",
+                "upgrade.upgrade_metadata",
                 ImmutableList.of(new byte[1]),
                 ColumnSelection.all()));
         Assert.assertTrue(Iterables.isEmpty(badResults.getResults()));
@@ -118,10 +118,10 @@ public class TransactionRemotingTest {
 
     @Test
     public void testGetRowsSome() {
-        setupFooStatus1("upgrade_metadata");
+        setupFooStatus1("upgrade.upgrade_metadata");
         TransactionToken txId = TransactionToken.autoCommit();
         TableRowResult goodResults = service.getRows(txId, new TableRowSelection(
-                "upgrade_metadata",
+                "upgrade.upgrade_metadata",
                 ImmutableList.of(UpgradeMetadataRow.of("foo").persistToBytes()),
                 ColumnSelection.all()));
         UpgradeMetadataRowResult result = UpgradeMetadataRowResult.of(Iterables.getOnlyElement(goodResults.getResults()));
@@ -130,21 +130,21 @@ public class TransactionRemotingTest {
 
     @Test
     public void testGetCellsNone() {
-        setupFooStatus1("upgrade_metadata");
+        setupFooStatus1("upgrade.upgrade_metadata");
         TransactionToken txId = service.startTransaction();
         TableCellVal badCells = service.getCells(txId, new TableCell(
-                "upgrade_metadata",
+                "upgrade.upgrade_metadata",
                 ImmutableList.of(Cell.create(new byte[1], UpgradeMetadataTable.UpgradeMetadataNamedColumn.STATUS.getShortName()))));
         Assert.assertTrue(badCells.getResults().isEmpty());
     }
 
     @Test
     public void testGetCellsSome() {
-        setupFooStatus1("upgrade_metadata");
+        setupFooStatus1("upgrade.upgrade_metadata");
         TransactionToken txId = service.startTransaction();
         Map<Cell, byte[]> contents = getUpgradeMetadataTableContents();
         TableCellVal goodCells = service.getCells(txId, new TableCell(
-                "upgrade_metadata",
+                "upgrade.upgrade_metadata",
                 contents.keySet()));
         Assert.assertEquals(contents.keySet(), goodCells.getResults().keySet());
         Assert.assertArrayEquals(Iterables.getOnlyElement(contents.values()), Iterables.getOnlyElement(goodCells.getResults().values()));
@@ -153,10 +153,10 @@ public class TransactionRemotingTest {
 
     @Test
     public void testGetRangeNone() {
-        setupFooStatus1("upgrade_metadata");
+        setupFooStatus1("upgrade.upgrade_metadata");
         TransactionToken token = TransactionToken.autoCommit();
         RangeToken range = service.getRange(token, new TableRange(
-                "upgrade_metadata",
+                "upgrade.upgrade_metadata",
                 new byte[1],
                 new byte[2],
                 ImmutableList.<byte[]>of(),
@@ -167,10 +167,10 @@ public class TransactionRemotingTest {
 
     @Test
     public void testGetRangeSome() {
-        setupFooStatus1("upgrade_metadata");
+        setupFooStatus1("upgrade.upgrade_metadata");
         TransactionToken token = TransactionToken.autoCommit();
         RangeToken range = service.getRange(token, new TableRange(
-                "upgrade_metadata",
+                "upgrade.upgrade_metadata",
                 new byte[0],
                 new byte[0],
                 ImmutableList.<byte[]>of(),
@@ -182,14 +182,14 @@ public class TransactionRemotingTest {
 
     @Test
     public void testDelete() {
-        setupFooStatus1("upgrade_metadata");
+        setupFooStatus1("upgrade.upgrade_metadata");
         Map<Cell, byte[]> contents = getUpgradeMetadataTableContents();
         TransactionToken token = TransactionToken.autoCommit();
         service.delete(token, new TableCell(
-                "upgrade_metadata",
+                "upgrade.upgrade_metadata",
                 contents.keySet()));
         RangeToken range = service.getRange(token, new TableRange(
-                "upgrade_metadata",
+                "upgrade.upgrade_metadata",
                 new byte[0],
                 new byte[0],
                 ImmutableList.<byte[]>of(),
@@ -201,12 +201,12 @@ public class TransactionRemotingTest {
     @Test
     public void testAbort() {
         TransactionToken txId = service.startTransaction();
-        service.put(txId, new TableCellVal("upgrade_metadata", getUpgradeMetadataTableContents()));
+        service.put(txId, new TableCellVal("upgrade.upgrade_metadata", getUpgradeMetadataTableContents()));
         service.abort(txId);
         service.commit(txId);
         txId = TransactionToken.autoCommit();
         RangeToken range = service.getRange(txId, new TableRange(
-                "upgrade_metadata",
+                "upgrade.upgrade_metadata",
                 new byte[0],
                 new byte[0],
                 ImmutableList.<byte[]>of(),
