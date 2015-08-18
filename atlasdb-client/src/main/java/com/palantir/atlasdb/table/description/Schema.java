@@ -70,7 +70,7 @@ public class Schema {
     private final Namespace namespace;
 
     public Schema() {
-        this(null, null, Namespace.EMPTY_NAMESPACE);
+        this(null, null, Namespace.DEFAULT_NAMESPACE);
     }
 
     public Schema(String name, String packageName, Namespace namespace) {
@@ -278,19 +278,27 @@ public class Schema {
      * (e.g., it is not the responsibility of this method to perform schema
      * upgrades).
      */
-    public void createTablesAndIndexes(KeyValueService kvs) {
-        validate();
+    public static void createTablesAndIndexes(Schema schema, KeyValueService kvs) {
+        schema.validate();
 
-        Map<String, TableDefinition> fullTableNamesToDefinitions = Maps.newHashMapWithExpectedSize(tableDefinitions.size());
-        for (Entry<String, TableDefinition> e : tableDefinitions.entrySet()) {
-            fullTableNamesToDefinitions.put(Schemas.getFullTableName(e.getKey(), namespace), e.getValue());
+        Map<String, TableDefinition> fullTableNamesToDefinitions = Maps.newHashMapWithExpectedSize(schema.getTableDefinitions().size());
+        for (Entry<String, TableDefinition> e : schema.getTableDefinitions().entrySet()) {
+            fullTableNamesToDefinitions.put(Schemas.getFullTableName(e.getKey(), schema.getNamespace()), e.getValue());
         }
-        Map<String, IndexDefinition> fullIndexNamesToDefinitions = Maps.newHashMapWithExpectedSize(indexDefinitions.size());
-        for (Entry<String, IndexDefinition> e : indexDefinitions.entrySet()) {
-            fullIndexNamesToDefinitions.put(Schemas.getFullTableName(e.getKey(), namespace), e.getValue());
+        Map<String, IndexDefinition> fullIndexNamesToDefinitions = Maps.newHashMapWithExpectedSize(schema.getIndexDefinitions().size());
+        for (Entry<String, IndexDefinition> e : schema.getIndexDefinitions().entrySet()) {
+            fullIndexNamesToDefinitions.put(Schemas.getFullTableName(e.getKey(), schema.getNamespace()), e.getValue());
         }
         Schemas.createTables(kvs, fullTableNamesToDefinitions);
         Schemas.createIndices(kvs, fullIndexNamesToDefinitions);
+    }
+
+    public Map<String, TableDefinition> getTableDefinitions() {
+        return tableDefinitions;
+    }
+
+    public Map<String, IndexDefinition> getIndexDefinitions() {
+        return indexDefinitions;
     }
 
     public void createTable(KeyValueService kvs, String tableName) {
@@ -303,6 +311,10 @@ public class Schema {
         IndexDefinition definition = indexDefinitions.get(indexName);
         String fullIndexName = Schemas.getFullTableName(indexName, namespace);
         Schemas.createIndex(kvs, fullIndexName, definition);
+    }
+
+    public Namespace getNamespace() {
+        return namespace;
     }
 
     /**

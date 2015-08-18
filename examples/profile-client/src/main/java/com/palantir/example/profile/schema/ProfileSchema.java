@@ -34,7 +34,7 @@ public class ProfileSchema implements AtlasSchema {
     private static Schema generateSchema() {
         Schema schema = new Schema("Profile",
                 ProfileSchema.class.getPackage().getName() + ".generated",
-                Namespace.EMPTY_NAMESPACE);
+                Namespace.DEFAULT_NAMESPACE);
 
         schema.addTableDefinition("user_profile", new TableDefinition() {{
             rowName();
@@ -73,6 +73,6 @@ public class ProfileSchema implements AtlasSchema {
 
     @Override
     public Namespace getNamespace() {
-        return Namespace.EMPTY_NAMESPACE;
+        return Namespace.DEFAULT_NAMESPACE;
     }
 }

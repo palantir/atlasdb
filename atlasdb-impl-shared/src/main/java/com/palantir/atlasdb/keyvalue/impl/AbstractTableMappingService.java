@@ -27,7 +27,6 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.TableMappingService;
-import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.schema.TableReference;
 import com.palantir.atlasdb.table.description.Schemas;
 
@@ -39,8 +38,7 @@ public abstract class AbstractTableMappingService implements TableMappingService
 
     protected abstract BiMap<TableReference, String> readTableMap();
 
-    @Override
-    public void updateTableMap() {
+    protected void updateTableMap() {
         while(true) {
             BiMap<TableReference, String> oldMap = tableMap.get();
             BiMap<TableReference, String> newMap = readTableMap();
@@ -52,7 +50,7 @@ public abstract class AbstractTableMappingService implements TableMappingService
 
     @Override
     public String getShortTableName(TableReference tableRef) {
-        if (tableRef.getNamespace() == Namespace.EMPTY_NAMESPACE) {
+        if (tableRef.getNamespace().isEmptyNamespace()) {
             return tableRef.getTablename();
         }
         if (tableMap.get().containsKey(tableRef)) {
@@ -101,7 +99,7 @@ public abstract class AbstractTableMappingService implements TableMappingService
             } else if (tableMap.get().containsValue(name)) {
                 newSet.add(getFullTableName(name));
             } else if (unmappedTables.containsKey(name)) {
-                newSet.add(TableReference.create(Namespace.EMPTY_NAMESPACE, name));
+                newSet.add(TableReference.createWithEmptyNamespace(name));
             } else {
                 tablesToReload.add(name);
             }
@@ -110,7 +108,7 @@ public abstract class AbstractTableMappingService implements TableMappingService
             updateTableMap();
             for (String tableName : Sets.difference(tablesToReload, tableMap.get().values())) {
                 unmappedTables.put(tableName, true);
-                newSet.add(TableReference.create(Namespace.EMPTY_NAMESPACE, tableName));
+                newSet.add(TableReference.createWithEmptyNamespace(tableName));
             }
             for (String tableName : Sets.intersection(tablesToReload, tableMap.get().values())) {
                 newSet.add(getFullTableName(tableName));

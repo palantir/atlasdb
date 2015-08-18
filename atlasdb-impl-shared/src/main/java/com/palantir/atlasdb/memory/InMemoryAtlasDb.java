@@ -18,7 +18,6 @@ package com.palantir.atlasdb.memory;
 import java.io.IOException;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cleaner.Cleaner;
@@ -28,8 +27,8 @@ import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
 import com.palantir.atlasdb.keyvalue.TableMappingService;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.KVTableMappingService;
 import com.palantir.atlasdb.keyvalue.impl.NamespaceMappingKeyValueService;
+import com.palantir.atlasdb.keyvalue.impl.StaticTableMappingService;
 import com.palantir.atlasdb.keyvalue.impl.TableRemappingKeyValueService;
 import com.palantir.atlasdb.schema.AtlasSchema;
 import com.palantir.atlasdb.schema.Namespace;
@@ -95,7 +94,7 @@ public class InMemoryAtlasDb implements AtlasDbFactory<InMemoryKeyValueService> 
         TimestampService ts = new InMemoryTimestampService();
         KeyValueService keyValueService = createTableMappingKv(ts);
 
-        schema.createTablesAndIndexes(keyValueService);
+        Schema.createTablesAndIndexes(schema, keyValueService);
         SnapshotTransactionManager.createTables(keyValueService);
 
         TransactionService transactionService = TransactionServices.createTransactionService(keyValueService);
@@ -129,16 +128,11 @@ public class InMemoryAtlasDb implements AtlasDbFactory<InMemoryKeyValueService> 
 
     private static KeyValueService createTableMappingKv(final TimestampService ts) {
         KeyValueService kv = new InMemoryKeyValueService(false);
-        TableMappingService mapper = getMapper(ts, kv);
+        TableMappingService mapper = getMapper(kv);
         return NamespaceMappingKeyValueService.create(TableRemappingKeyValueService.create(kv, mapper));
     }
 
-    private static TableMappingService getMapper(final TimestampService ts, KeyValueService kv) {
-        return KVTableMappingService.create(kv, new Supplier<Long>() {
-            @Override
-            public Long get() {
-                return ts.getFreshTimestamp();
-            }
-        });
+    private static TableMappingService getMapper(KeyValueService kv) {
+        return StaticTableMappingService.create(kv);
     }
 }

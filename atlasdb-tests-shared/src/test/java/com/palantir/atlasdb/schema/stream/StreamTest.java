@@ -26,6 +26,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestStreamStore;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestTableFactory;
 import com.palantir.atlasdb.stream.PersistentStreamStore;
+import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.util.crypto.Sha256Hash;
@@ -35,7 +36,7 @@ public class StreamTest extends AtlasDbTestCase {
     @Before
     public void createSchema() {
         StreamTestSchema.getSchema().deleteTablesAndIndexes(keyValueService);
-        StreamTestSchema.getSchema().createTablesAndIndexes(keyValueService);
+        Schema.createTablesAndIndexes(StreamTestSchema.getSchema(), keyValueService);
     }
 
     @Test
