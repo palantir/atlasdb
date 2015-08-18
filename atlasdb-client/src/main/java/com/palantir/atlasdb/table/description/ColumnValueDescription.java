@@ -50,8 +50,7 @@ public class ColumnValueDescription {
     public enum Format {
         PROTO,
         PERSISTABLE,
-        VALUE_TYPE,
-        BLOCK_STORED_PROTO;
+        VALUE_TYPE;
 
         public TableMetadataPersistence.ColumnValueFormat persistToProto() {
             return TableMetadataPersistence.ColumnValueFormat.valueOf(name());
