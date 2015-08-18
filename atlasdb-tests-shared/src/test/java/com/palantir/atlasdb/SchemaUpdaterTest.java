@@ -43,21 +43,21 @@ public class SchemaUpdaterTest extends AtlasDbTestCase {
     @Test
     public void testAddTable() {
         updater.addTable("table", getTableWithOneCol("a"));
-        Assert.assertTrue(keyValueService.getAllTableNames().contains("table"));
+        Assert.assertTrue(keyValueService.getAllTableNames().contains("default.table"));
     }
 
     @Test
     public void testDeleteTable() {
         updater.addTable("table", getTableWithOneCol("a"));
         updater.deleteTable("table");
-        Assert.assertFalse(keyValueService.getAllTableNames().contains("table"));
+        Assert.assertFalse(keyValueService.getAllTableNames().contains("default.table"));
     }
 
     @Test
     public void testAddIndex() {
         updater.addTable("table", getTableWithOneCol("a"));
         updater.addIndex("newIndex", getIndex("table"));
-        Assert.assertTrue(keyValueService.getAllTableNames().contains("newIndex" + "_aidx"));
+        Assert.assertTrue(keyValueService.getAllTableNames().contains("default.newIndex" + "_aidx"));
     }
 
     @Test
@@ -65,7 +65,7 @@ public class SchemaUpdaterTest extends AtlasDbTestCase {
         updater.addTable("table", getTableWithOneCol("a"));
         updater.addIndex("newIndex", getIndex("table"));
         updater.deleteIndex("newIndex");
-        Assert.assertFalse(keyValueService.getAllTableNames().contains("newIndex" + "_aidx"));
+        Assert.assertFalse(keyValueService.getAllTableNames().contains("default.newIndex" + "_aidx"));
     }
 
     @Test

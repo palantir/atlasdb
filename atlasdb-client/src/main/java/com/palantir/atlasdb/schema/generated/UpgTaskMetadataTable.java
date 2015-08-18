@@ -1,18 +1,3 @@
-/**
- * Copyright 2015 Palantir Technologies
- *
- * Licensed under the BSD-3 License (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://opensource.org/licenses/BSD-3-Clause
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package com.palantir.atlasdb.schema.generated;
 
 import java.util.Arrays;
@@ -28,6 +13,8 @@ import java.util.SortedMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+
+
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -101,7 +88,7 @@ public final class UpgTaskMetadataTable implements
                                     UpgTaskMetadataTable.UpgTaskMetadataRowResult> {
     private final Transaction t;
     private final List<UpgTaskMetadataTrigger> triggers;
-    private final static String tableName = "upg_task_metadata";
+    private final static String tableName = "upgrade.upg_task_metadata";
 
     static UpgTaskMetadataTable of(Transaction t) {
         return new UpgTaskMetadataTable(t, ImmutableList.<UpgTaskMetadataTrigger>of());
@@ -841,5 +828,5 @@ public final class UpgTaskMetadataTable implements
      * {@link TypedRowResult}
      * {@link UnsignedBytes}
      */
-    static String __CLASS_HASH = "qgG+ugtbbT7c3igY2tSS9g==";
+    static String __CLASS_HASH = "haecqDNc+BqR7aosJy2Acw==";
 }

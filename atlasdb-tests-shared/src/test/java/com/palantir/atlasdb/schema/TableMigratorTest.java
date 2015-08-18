@@ -72,7 +72,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
             columns();
                 column("c", "c", ValueType.BLOB);
         }};
-        SimpleSchemaUpdater updater = SimpleSchemaUpdaterImpl.create(keyValueService, Namespace.EMPTY_NAMESPACE);
+        SimpleSchemaUpdater updater = SimpleSchemaUpdaterImpl.create(keyValueService, Namespace.DEFAULT_NAMESPACE);
         updater.addTable(tableName, definition);
         int maxValueSize = definition.getMaxValueSize();
         keyValueService.createTable(namespacedTableName, maxValueSize);
@@ -89,7 +89,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
                 Map<Cell, byte[]> values = ImmutableMap.of(
                         theCell,
                         theValue);
-                t.put(tableName, values);
+                t.put("default." + tableName, values);
                 t.put(namespacedTableName, values);
                 return null;
             }
@@ -107,14 +107,14 @@ public class TableMigratorTest extends AtlasDbTestCase {
                 transactionService,
                 cdm2,
                 ssm2);
-        SimpleSchemaUpdater updater2 = SimpleSchemaUpdaterImpl.create(kvs2, Namespace.EMPTY_NAMESPACE);
+        SimpleSchemaUpdater updater2 = SimpleSchemaUpdaterImpl.create(kvs2, Namespace.DEFAULT_NAMESPACE);
         updater2.addTable(tableName, definition);
         kvs2.createTable(shortTableName, maxValueSize);
         kvs2.putMetadataForTable(shortTableName, definition.toTableMetadata().persistToBytes());
 
         GeneralTaskCheckpointer checkpointer = new GeneralTaskCheckpointer("checkpoint", kvs2, txManager2);
         // The namespaced table is migrated under the short name.
-        for (final String name : Lists.newArrayList(tableName, shortTableName)) {
+        for (final String name : Lists.newArrayList("default." + tableName, shortTableName)) {
             TransactionRangeMigrator rangeMigrator = new TransactionRangeMigratorBuilder().
                     srcTable(name).
                     readTxManager(txManager).

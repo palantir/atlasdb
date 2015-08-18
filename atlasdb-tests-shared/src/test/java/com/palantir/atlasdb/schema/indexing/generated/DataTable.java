@@ -1,18 +1,3 @@
-/**
- * Copyright 2015 Palantir Technologies
- *
- * Licensed under the BSD-3 License (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://opensource.org/licenses/BSD-3-Clause
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package com.palantir.atlasdb.schema.indexing.generated;
 
 import java.util.Arrays;
@@ -28,6 +13,8 @@ import java.util.SortedMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+
+
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -101,7 +88,7 @@ public final class DataTable implements
                                     DataTable.DataRowResult> {
     private final Transaction t;
     private final List<DataTrigger> triggers;
-    private final static String tableName = "data";
+    private final static String tableName = "default.data";
 
     static DataTable of(Transaction t) {
         return new DataTable(t, ImmutableList.<DataTrigger>of());
@@ -501,7 +488,7 @@ public final class DataTable implements
             Index1IdxTable.Index1IdxColumn indexCol = Index1IdxTable.Index1IdxColumn.of(row.persistToBytes(), col.persistColumnName(), id);
             indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
         }
-        t.delete("index1_idx", indexCells.build());
+        t.delete("default.index1_idx", indexCells.build());
     }
 
     private void deleteIndex2IdxRaw(Map<Cell, byte[]> results) {
@@ -515,7 +502,7 @@ public final class DataTable implements
             Index2IdxTable.Index2IdxColumn indexCol = Index2IdxTable.Index2IdxColumn.of(row.persistToBytes(), col.persistColumnName());
             indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
         }
-        t.delete("index2_idx", indexCells.build());
+        t.delete("default.index2_idx", indexCells.build());
     }
 
     private void deleteIndex3IdxRaw(Map<Cell, byte[]> results) {
@@ -530,7 +517,7 @@ public final class DataTable implements
                 indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
             }
         }
-        t.delete("index3_idx", indexCells.build());
+        t.delete("default.index3_idx", indexCells.build());
     }
 
     private void deleteIndex4IdxRaw(Map<Cell, byte[]> results) {
@@ -548,7 +535,7 @@ public final class DataTable implements
                 }
             }
         }
-        t.delete("index4_idx", indexCells.build());
+        t.delete("default.index4_idx", indexCells.build());
     }
 
     @Override
@@ -711,7 +698,7 @@ public final class DataTable implements
                 }
             }
         }
-        t.delete("index1_idx", indexCells.build());
+        t.delete("default.index1_idx", indexCells.build());
     }
 
     private void deleteIndex2Idx(Multimap<DataRow, DataNamedColumnValue<?>> result) {
@@ -728,7 +715,7 @@ public final class DataTable implements
                 }
             }
         }
-        t.delete("index2_idx", indexCells.build());
+        t.delete("default.index2_idx", indexCells.build());
     }
 
     private void deleteIndex3Idx(Multimap<DataRow, DataNamedColumnValue<?>> result) {
@@ -746,7 +733,7 @@ public final class DataTable implements
                 }
             }
         }
-        t.delete("index3_idx", indexCells.build());
+        t.delete("default.index3_idx", indexCells.build());
     }
 
     private void deleteIndex4Idx(Multimap<DataRow, DataNamedColumnValue<?>> result) {
@@ -767,7 +754,7 @@ public final class DataTable implements
                 }
             }
         }
-        t.delete("index4_idx", indexCells.build());
+        t.delete("default.index4_idx", indexCells.build());
     }
 
     public BatchingVisitableView<DataRowResult> getAllRowsUnordered() {
@@ -804,7 +791,7 @@ public final class DataTable implements
                                                     Index1IdxTable.Index1IdxRowResult> {
         private final Transaction t;
         private final List<Index1IdxTrigger> triggers;
-        private final static String tableName = "index1_idx";
+        private final static String tableName = "default.index1_idx";
 
         public static Index1IdxTable of(Transaction t) {
             return new Index1IdxTable(t, ImmutableList.<Index1IdxTrigger>of());
@@ -1386,7 +1373,7 @@ public final class DataTable implements
                                                     Index2IdxTable.Index2IdxRowResult> {
         private final Transaction t;
         private final List<Index2IdxTrigger> triggers;
-        private final static String tableName = "index2_idx";
+        private final static String tableName = "default.index2_idx";
 
         public static Index2IdxTable of(Transaction t) {
             return new Index2IdxTable(t, ImmutableList.<Index2IdxTrigger>of());
@@ -1968,7 +1955,7 @@ public final class DataTable implements
                                                     Index3IdxTable.Index3IdxRowResult> {
         private final Transaction t;
         private final List<Index3IdxTrigger> triggers;
-        private final static String tableName = "index3_idx";
+        private final static String tableName = "default.index3_idx";
 
         public static Index3IdxTable of(Transaction t) {
             return new Index3IdxTable(t, ImmutableList.<Index3IdxTrigger>of());
@@ -2528,7 +2515,7 @@ public final class DataTable implements
                                                     Index4IdxTable.Index4IdxRowResult> {
         private final Transaction t;
         private final List<Index4IdxTrigger> triggers;
-        private final static String tableName = "index4_idx";
+        private final static String tableName = "default.index4_idx";
 
         public static Index4IdxTable of(Transaction t) {
             return new Index4IdxTable(t, ImmutableList.<Index4IdxTrigger>of());
@@ -3180,5 +3167,5 @@ public final class DataTable implements
      * {@link TypedRowResult}
      * {@link UnsignedBytes}
      */
-    static String __CLASS_HASH = "kzGVqbvhp1jdShDdG3QNNQ==";
+    static String __CLASS_HASH = "h74vmKnyutS3BvEs8V04Cw==";
 }
