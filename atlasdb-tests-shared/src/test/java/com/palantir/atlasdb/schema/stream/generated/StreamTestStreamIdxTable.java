@@ -1,18 +1,3 @@
-/**
- * Copyright 2015 Palantir Technologies
- *
- * Licensed under the BSD-3 License (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://opensource.org/licenses/BSD-3-Clause
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package com.palantir.atlasdb.schema.stream.generated;
 
 import java.util.Arrays;
@@ -99,7 +84,7 @@ public final class StreamTestStreamIdxTable implements
                                                 StreamTestStreamIdxTable.StreamTestStreamIdxRowResult> {
     private final Transaction t;
     private final List<StreamTestStreamIdxTrigger> triggers;
-    private final static String tableName = "stream_test_stream_idx";
+    private final static String tableName = "default.stream_test_stream_idx";
 
     static StreamTestStreamIdxTable of(Transaction t) {
         return new StreamTestStreamIdxTable(t, ImmutableList.<StreamTestStreamIdxTrigger>of());
@@ -680,5 +665,5 @@ public final class StreamTestStreamIdxTable implements
      * {@link TypedRowResult}
      * {@link UnsignedBytes}
      */
-    static String __CLASS_HASH = "yRv8Kdp5DfjAknHLgwzvkg==";
+    static String __CLASS_HASH = "qN2/99MTBmOzF8YXkhzcMA==";
 }

@@ -109,7 +109,7 @@ public class IndexTestSchema implements AtlasSchema {
     }
 
     public static void main(String[]  args) throws Exception {
-        INDEX_TEST_SCHEMA.renderTables(new File("test-src"));
+        INDEX_TEST_SCHEMA.renderTables(new File("src/test/java"));
     }
 
     @Override

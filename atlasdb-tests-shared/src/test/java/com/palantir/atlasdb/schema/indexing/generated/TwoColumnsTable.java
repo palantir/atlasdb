@@ -1,18 +1,3 @@
-/**
- * Copyright 2015 Palantir Technologies
- *
- * Licensed under the BSD-3 License (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://opensource.org/licenses/BSD-3-Clause
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package com.palantir.atlasdb.schema.indexing.generated;
 
 import java.util.Arrays;
@@ -28,6 +13,8 @@ import java.util.SortedMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+
+
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -101,7 +88,7 @@ public final class TwoColumnsTable implements
                                     TwoColumnsTable.TwoColumnsRowResult> {
     private final Transaction t;
     private final List<TwoColumnsTrigger> triggers;
-    private final static String tableName = "two_columns";
+    private final static String tableName = "default.two_columns";
 
     static TwoColumnsTable of(Transaction t) {
         return new TwoColumnsTable(t, ImmutableList.<TwoColumnsTrigger>of());
@@ -574,7 +561,7 @@ public final class TwoColumnsTable implements
             FooToIdCondIdxTable.FooToIdCondIdxColumn indexCol = FooToIdCondIdxTable.FooToIdCondIdxColumn.of(row.persistToBytes(), col.persistColumnName(), id);
             indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
         }
-        t.delete("foo_to_id_cond_idx", indexCells.build());
+        t.delete("default.foo_to_id_cond_idx", indexCells.build());
     }
 
     private void deleteFooToIdIdxRaw(Map<Cell, byte[]> results) {
@@ -588,7 +575,7 @@ public final class TwoColumnsTable implements
             FooToIdIdxTable.FooToIdIdxColumn indexCol = FooToIdIdxTable.FooToIdIdxColumn.of(row.persistToBytes(), col.persistColumnName(), id);
             indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
         }
-        t.delete("foo_to_id_idx", indexCells.build());
+        t.delete("default.foo_to_id_idx", indexCells.build());
     }
 
     public void deleteBar(TwoColumnsRow row) {
@@ -761,7 +748,7 @@ public final class TwoColumnsTable implements
                 }
             }
         }
-        t.delete("foo_to_id_cond_idx", indexCells.build());
+        t.delete("default.foo_to_id_cond_idx", indexCells.build());
     }
 
     private void deleteFooToIdIdx(Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> result) {
@@ -778,7 +765,7 @@ public final class TwoColumnsTable implements
                 }
             }
         }
-        t.delete("foo_to_id_idx", indexCells.build());
+        t.delete("default.foo_to_id_idx", indexCells.build());
     }
 
     public BatchingVisitableView<TwoColumnsRowResult> getAllRowsUnordered() {
@@ -815,7 +802,7 @@ public final class TwoColumnsTable implements
                                                     FooToIdCondIdxTable.FooToIdCondIdxRowResult> {
         private final Transaction t;
         private final List<FooToIdCondIdxTrigger> triggers;
-        private final static String tableName = "foo_to_id_cond_idx";
+        private final static String tableName = "default.foo_to_id_cond_idx";
 
         public static FooToIdCondIdxTable of(Transaction t) {
             return new FooToIdCondIdxTable(t, ImmutableList.<FooToIdCondIdxTrigger>of());
@@ -1363,7 +1350,7 @@ public final class TwoColumnsTable implements
                                                     FooToIdIdxTable.FooToIdIdxRowResult> {
         private final Transaction t;
         private final List<FooToIdIdxTrigger> triggers;
-        private final static String tableName = "foo_to_id_idx";
+        private final static String tableName = "default.foo_to_id_idx";
 
         public static FooToIdIdxTable of(Transaction t) {
             return new FooToIdIdxTable(t, ImmutableList.<FooToIdIdxTrigger>of());
@@ -1981,5 +1968,5 @@ public final class TwoColumnsTable implements
      * {@link TypedRowResult}
      * {@link UnsignedBytes}
      */
-    static String __CLASS_HASH = "fovQ0XAHFwrSRk+gj7CpAQ==";
+    static String __CLASS_HASH = "48ZjyoZNEzGvxMd2iCQBKg==";
 }

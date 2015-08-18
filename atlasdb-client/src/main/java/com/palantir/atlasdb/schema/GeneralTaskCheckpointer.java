@@ -48,6 +48,7 @@ import com.palantir.atlasdb.transaction.api.TransactionTask;
 public class GeneralTaskCheckpointer extends AbstractTaskCheckpointer {
     private static final String SHORT_COLUMN_NAME = "s";
 
+    private final String checkpointTableRaw;
     private final String checkpointTable;
     private final KeyValueService kvs;
 
@@ -55,7 +56,8 @@ public class GeneralTaskCheckpointer extends AbstractTaskCheckpointer {
                                    KeyValueService kvs,
                                    TransactionManager txManager) {
         super(txManager);
-        this.checkpointTable = checkpointTable;
+        this.checkpointTableRaw = checkpointTable;
+        this.checkpointTable = "default." + checkpointTable;
         this.kvs = kvs;
     }
 
@@ -76,7 +78,7 @@ public class GeneralTaskCheckpointer extends AbstractTaskCheckpointer {
     @Override
     public void createCheckpoints(final String extraId,
                                   final Map<Long, byte[]> startById) {
-        Schemas.createTable(getSchema(), kvs, checkpointTable);
+        Schemas.createTable(getSchema(), kvs, checkpointTableRaw);
 
         txManager.runTaskWithRetry(new TransactionTask<Map<Long, byte[]>, RuntimeException>() {
             @Override
@@ -128,7 +130,7 @@ public class GeneralTaskCheckpointer extends AbstractTaskCheckpointer {
 
     private Schema getSchema() {
         Schema schema = new Schema();
-        schema.addTableDefinition(checkpointTable, new TableDefinition() {{
+        schema.addTableDefinition(checkpointTableRaw, new TableDefinition() {{
             rowName();
                 rowComponent("table_name", ValueType.VAR_STRING);
                 rowComponent("range_id",   ValueType.VAR_LONG);

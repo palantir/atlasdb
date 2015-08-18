@@ -45,7 +45,7 @@ public class StreamTestSchema implements AtlasSchema {
     }
 
     public static void main(String[]  args) throws Exception {
-        STREAM_TEST_SCHEMA.renderTables(new File("test-src"));
+        STREAM_TEST_SCHEMA.renderTables(new File("src/test/java"));
     }
 
     @Override
