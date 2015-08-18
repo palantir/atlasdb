@@ -90,9 +90,6 @@ public class TableMetadataSerializer extends StdSerializer<TableMetadata> {
     private void serialize(JsonGenerator jgen, ColumnValueDescription value) throws IOException, JsonProcessingException {
         jgen.writeObjectField("format", value.getFormat());
         switch (value.getFormat()) {
-        case BLOCK_STORED_PROTO:
-            jgen.writeObjectField("type", "byte[]");
-            break;
         case PERSISTABLE:
             jgen.writeObjectField("type", value.getJavaObjectTypeName());
             break;

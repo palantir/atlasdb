@@ -109,9 +109,6 @@ public class AtlasSerializers {
                                     ColumnValueDescription description,
                                     byte[] val) throws IOException, JsonGenerationException {
         switch (description.getFormat()) {
-        case BLOCK_STORED_PROTO:
-            jgen.writeBinary(val);
-            break;
         case PERSISTABLE:
             jgen.writeBinary(val);
             break;

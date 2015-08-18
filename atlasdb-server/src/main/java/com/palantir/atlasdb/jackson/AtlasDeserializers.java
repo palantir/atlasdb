@@ -212,7 +212,6 @@ public class AtlasDeserializers {
                                         JsonNode node) {
         byte[] bytes;
         switch (description.getFormat()) {
-        case BLOCK_STORED_PROTO:
         case PERSISTABLE:
             bytes = node.asToken().asByteArray();
             break;

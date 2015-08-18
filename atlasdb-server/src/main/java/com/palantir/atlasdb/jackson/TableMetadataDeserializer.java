@@ -91,9 +91,6 @@ public class TableMetadataDeserializer extends StdDeserializer<TableMetadata> {
     private ColumnValueDescription deserializeValue(JsonNode node) {
         Format format = Format.valueOf(node.get("format").asText());
         switch (format) {
-        case BLOCK_STORED_PROTO:
-            // This is wrong, but block stored proto isn't really supported.
-            return ColumnValueDescription.forType(ValueType.BLOB);
         case PERSISTABLE:
             String className = node.get("type").asText();
             try {
