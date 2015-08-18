@@ -17,22 +17,49 @@ package com.palantir.atlasdb.keyvalue.api;
 
 import java.io.Serializable;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.Set;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
+import com.sun.org.apache.xerces.internal.impl.dv.util.Base64;
 
 public class ColumnSelection implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private final Set<byte[]> selectedColumns;
-    private static final ColumnSelection allColumnsSelected = new ColumnSelection(null);
+    private static final ColumnSelection allColumnsSelected = new ColumnSelection(ImmutableSet.<byte[]>of());
 
     private ColumnSelection(Set<byte[]> selectedColumns) {
         this.selectedColumns = selectedColumns;
     }
+
+    static ColumnSelection valueOf(String serialized) {
+        Set<byte[]> columns = Sets.newTreeSet(UnsignedBytes.lexicographicalComparator());
+        for (String strColumn : serialized.split("\\s+")) {
+            byte[] column = Base64.decode(strColumn);
+            assert !columns.contains(column);
+            columns.add(column);
+        }
+        return ColumnSelection.create(columns);
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder builder = new StringBuilder();
+        Iterator<byte[]> it = selectedColumns.iterator();
+        while (it.hasNext()) {
+            builder.append(Base64.encode(it.next()));
+            if (it.hasNext()) {
+                builder.append(" ");
+            }
+        }
+        return builder.toString();
+    };
 
     // Factory methods.
     public static ColumnSelection all() {
@@ -64,13 +91,6 @@ public class ColumnSelection implements Serializable {
     public Iterable<byte[]> getSelectedColumns() {
         assert selectedColumns != null;
         return Collections.unmodifiableCollection(selectedColumns);
-    }
-
-    /**
-     * Returns true if no columns are selected.
-     */
-    public boolean noColumnsSelected() {
-        return selectedColumns != null && selectedColumns.isEmpty();
     }
 
     @Override
