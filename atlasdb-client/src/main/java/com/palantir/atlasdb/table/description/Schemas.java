@@ -74,7 +74,7 @@ public final class Schemas {
         validateTableName(tableName);
         String namespaceName = namespace.getName();
         // Hacks for schemas that were created before namespaces were created.
-        if (namespace.isEmptyNamespace() || namespaceName.equals("met") || namespaceName.equals("upgrade")) {
+        if (namespace.isEmptyNamespace() || namespaceName.equals("met")) {
             return tableName;
         } else {
             return namespace.getName() + "." + tableName;
@@ -105,7 +105,7 @@ public final class Schemas {
      */
     public static void createTablesAndIndexes(Schema schema, KeyValueService kvs) {
         schema.validate();
-    
+
         Map<String, TableDefinition> fullTableNamesToDefinitions = Maps.newHashMapWithExpectedSize(schema.getTableDefinitions().size());
         for (Entry<String, TableDefinition> e : schema.getTableDefinitions().entrySet()) {
             fullTableNamesToDefinitions.put(getFullTableName(e.getKey(), schema.getNamespace()), e.getValue());
