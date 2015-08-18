@@ -16,7 +16,9 @@ public class StaticTableMappingService extends AbstractTableMappingService {
     private final KeyValueService kv;
 
     public static TableMappingService create(KeyValueService kv) {
-        return new StaticTableMappingService(kv);
+        StaticTableMappingService ret = new StaticTableMappingService(kv);
+        ret.updateTableMap();
+        return ret;
     }
 
     private StaticTableMappingService(KeyValueService kv) {
@@ -28,7 +30,7 @@ public class StaticTableMappingService extends AbstractTableMappingService {
         if (tableRef.getNamespace().isEmptyNamespace()) {
             return tableRef.getTablename();
         }
-        return tableRef.getNamespace() + "." + tableRef.getTablename();
+        return tableRef.getNamespace().getName() + "." + tableRef.getTablename();
     }
 
     @Override
@@ -45,6 +47,11 @@ public class StaticTableMappingService extends AbstractTableMappingService {
         }
 
         return ret;
+    }
+
+    @Override
+    protected void validateShortName(TableReference tableRef, String shortName) {
+        // any name is ok for the static mapper
     }
 
     public static TableReference getTableReference(String tableName) {

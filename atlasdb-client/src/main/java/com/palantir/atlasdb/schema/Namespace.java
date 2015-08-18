@@ -28,7 +28,7 @@ public final class Namespace {
 
     public static Namespace create(String name) {
         Validate.isTrue(!Strings.isNullOrEmpty(name));
-        Validate.isTrue(isNamespaceValid(name));
+        Validate.isTrue(isNamespaceValid(name), name);
         return new Namespace(name);
     }
 

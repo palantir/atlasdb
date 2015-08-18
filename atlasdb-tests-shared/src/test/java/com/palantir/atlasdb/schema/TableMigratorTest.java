@@ -22,7 +22,6 @@ import org.apache.commons.lang.mutable.MutableLong;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -34,8 +33,8 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.KVTableMappingService;
 import com.palantir.atlasdb.keyvalue.impl.NamespaceMappingKeyValueService;
+import com.palantir.atlasdb.keyvalue.impl.StaticTableMappingService;
 import com.palantir.atlasdb.keyvalue.impl.TableRemappingKeyValueService;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
@@ -79,12 +78,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
         keyValueService.createTable(namespacedTableName, maxValueSize);
         keyValueService.putMetadataForTable(namespacedTableName, definition.toTableMetadata().persistToBytes());
 
-        TableMappingService tableMap = KVTableMappingService.create(keyValueService, new Supplier<Long>() {
-            @Override
-            public Long get() {
-                return timestampService.getFreshTimestamp();
-            }
-        });
+        TableMappingService tableMap = StaticTableMappingService.create(keyValueService);
         final String shortTableName = tableMap.getShortTableName(TableReference.create(Namespace.create("name-space"), tableName));
 
         final Cell theCell = Cell.create(PtBytes.toBytes("r1"), PtBytes.toBytes("c"));
