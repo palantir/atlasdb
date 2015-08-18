@@ -21,7 +21,6 @@ import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.table.description.IndexDefinition;
 import com.palantir.atlasdb.table.description.IndexDefinition.IndexType;
-import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.table.description.TableDefinition;
 
@@ -96,16 +95,16 @@ public class SimpleSchemaUpdaterImpl implements SimpleSchemaUpdater {
     @Override
     public void initializeSchema(final AtlasSchema schema) {
         Preconditions.checkArgument(schema.getNamespace().equals(namespace));
-        Schema.createTablesAndIndexes(schema.getLatestSchema(), kvs);
+        Schemas.createTablesAndIndexes(schema.getLatestSchema(), kvs);
     }
 
     @Override
     public void resetTableMetadata(AtlasSchema schema, String tableName) {
-        schema.getLatestSchema().createTable(kvs, tableName);
+        Schemas.createTable(schema.getLatestSchema(), kvs, tableName);
     }
 
     @Override
     public void resetIndexMetadata(AtlasSchema schema, String indexName) {
-        schema.getLatestSchema().createIndex(kvs, indexName);
+        Schemas.createIndex(schema.getLatestSchema(), kvs, indexName);
     }
 }

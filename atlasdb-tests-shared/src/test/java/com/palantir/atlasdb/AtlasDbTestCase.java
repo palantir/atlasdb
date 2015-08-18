@@ -29,7 +29,7 @@ import com.palantir.atlasdb.keyvalue.impl.NamespacedKeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.StatsTrackingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TrackingKeyValueService;
 import com.palantir.atlasdb.schema.UpgradeSchema;
-import com.palantir.atlasdb.table.description.Schema;
+import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.impl.CachingTestTransactionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
@@ -112,7 +112,7 @@ public class AtlasDbTestCase {
         keyValueService = new TrackingKeyValueService(keyValueServiceWithStats);
         keyValueService.initializeFromFreshInstance();
         SnapshotTransactionManager.createTables(kvs);
-        Schema.createTablesAndIndexes(UpgradeSchema.INSTANCE.getLatestSchema(), kvs);
+        Schemas.createTablesAndIndexes(UpgradeSchema.INSTANCE.getLatestSchema(), kvs);
         transactionService = TransactionServices.createTransactionService(kvs);
 
         conflictDetectionManager = ConflictDetectionManagers.createDefault(keyValueService);

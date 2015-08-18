@@ -36,6 +36,7 @@ import com.palantir.atlasdb.keyvalue.impl.StaticTableMappingService;
 import com.palantir.atlasdb.keyvalue.impl.TableRemappingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.ValidatingQueryRewritingKeyValueService;
 import com.palantir.atlasdb.table.description.Schema;
+import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
@@ -113,7 +114,7 @@ public class AtlasDbServerStateProvider {
                                                      RemoteLockService leaderLock) {
         KeyValueService keyValueService = createTableMappingKv(rawKv, leaderTs);
 
-        Schema.createTablesAndIndexes(schema, keyValueService);
+        Schemas.createTablesAndIndexes(schema, keyValueService);
         SnapshotTransactionManager.createTables(keyValueService);
 
         TransactionService transactionService = TransactionServices.createTransactionService(keyValueService);
