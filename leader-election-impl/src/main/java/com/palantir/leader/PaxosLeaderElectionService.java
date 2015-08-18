@@ -270,11 +270,11 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                     Entry<String, PingableLeader> cacheEntry = future.get();
                     uuidToServiceCache.putIfAbsent(cacheEntry.getKey(), cacheEntry.getValue());
                 } catch (InterruptedException e) {
-                    log.warn("uuid request interrupted", e);
+                    log.info("uuid request interrupted", e);
                     interrupted = true;
                     break;
                 } catch (ExecutionException e) {
-                    log.warn("unable to get uuid from server", e);
+                    log.info("unable to get uuid from server", e);
                 }
             }
 
@@ -302,10 +302,8 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
 
         IllegalStateException e = new IllegalStateException(
                 "There is a fatal problem with the leadership election configuration! "
-              + "This is probably caused by invalid pref files setting up the cluster "
-              + "(e.g. for lock server look at lock.prefs, leader.prefs, and lock_client.prefs)."
-              + "If the preferences are specified with a host port pair list and localhost index "
-              + "then make sure that the localhost index is correct (e.g. actually the localhost).");
+              + "This is probably caused by invalid pref files setting up the cluster.  "
+              + "Ensure that leader.localServer is correct for this server.");
 
         if (cachedService != pingedService) {
             log.error("Remote potential leaders are claiming to be each other!", e);
