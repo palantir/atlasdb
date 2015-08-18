@@ -36,7 +36,7 @@ import com.palantir.atlasdb.schema.indexing.generated.TwoColumnsTable.FooToIdIdx
 import com.palantir.atlasdb.schema.indexing.generated.TwoColumnsTable.FooToIdIdxTable.FooToIdIdxRowResult;
 import com.palantir.atlasdb.schema.indexing.generated.TwoColumnsTable.TwoColumnsNamedColumnValue;
 import com.palantir.atlasdb.schema.indexing.generated.TwoColumnsTable.TwoColumnsRow;
-import com.palantir.atlasdb.table.description.Schema;
+import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.RuntimeTransactionTask;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
@@ -44,8 +44,8 @@ public class IndexTest extends AtlasDbTestCase {
 
     @Before
     public void createSchema() {
-        IndexTestSchema.getSchema().deleteTablesAndIndexes(keyValueService);
-        Schema.createTablesAndIndexes(IndexTestSchema.getSchema(), keyValueService);
+        Schemas.deleteTablesAndIndexes(IndexTestSchema.getSchema(), keyValueService);
+        Schemas.createTablesAndIndexes(IndexTestSchema.getSchema(), keyValueService);
     }
 
     @Test

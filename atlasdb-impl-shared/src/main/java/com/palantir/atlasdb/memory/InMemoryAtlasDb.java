@@ -35,6 +35,7 @@ import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.schema.SchemaReference;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.table.description.Schema;
+import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
@@ -94,7 +95,7 @@ public class InMemoryAtlasDb implements AtlasDbFactory<InMemoryKeyValueService> 
         TimestampService ts = new InMemoryTimestampService();
         KeyValueService keyValueService = createTableMappingKv(ts);
 
-        Schema.createTablesAndIndexes(schema, keyValueService);
+        Schemas.createTablesAndIndexes(schema, keyValueService);
         SnapshotTransactionManager.createTables(keyValueService);
 
         TransactionService transactionService = TransactionServices.createTransactionService(keyValueService);

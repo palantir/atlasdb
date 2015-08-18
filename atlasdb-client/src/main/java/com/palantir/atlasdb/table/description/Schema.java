@@ -41,7 +41,6 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
 import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ExpirationStrategy;
 import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.schema.stream.StreamTables;
@@ -270,29 +269,6 @@ public class Schema {
         }
     }
 
-    /**
-     * Creates tables/indexes for this schema.
-     *
-     * This operation is idempotent, so it can be called multiple times without
-     * effect. Behavior is undefined if the schema has changed between calls
-     * (e.g., it is not the responsibility of this method to perform schema
-     * upgrades).
-     */
-    public static void createTablesAndIndexes(Schema schema, KeyValueService kvs) {
-        schema.validate();
-
-        Map<String, TableDefinition> fullTableNamesToDefinitions = Maps.newHashMapWithExpectedSize(schema.getTableDefinitions().size());
-        for (Entry<String, TableDefinition> e : schema.getTableDefinitions().entrySet()) {
-            fullTableNamesToDefinitions.put(Schemas.getFullTableName(e.getKey(), schema.getNamespace()), e.getValue());
-        }
-        Map<String, IndexDefinition> fullIndexNamesToDefinitions = Maps.newHashMapWithExpectedSize(schema.getIndexDefinitions().size());
-        for (Entry<String, IndexDefinition> e : schema.getIndexDefinitions().entrySet()) {
-            fullIndexNamesToDefinitions.put(Schemas.getFullTableName(e.getKey(), schema.getNamespace()), e.getValue());
-        }
-        Schemas.createTables(kvs, fullTableNamesToDefinitions);
-        Schemas.createIndices(kvs, fullIndexNamesToDefinitions);
-    }
-
     public Map<String, TableDefinition> getTableDefinitions() {
         return tableDefinitions;
     }
@@ -301,41 +277,8 @@ public class Schema {
         return indexDefinitions;
     }
 
-    public void createTable(KeyValueService kvs, String tableName) {
-        TableDefinition definition = tableDefinitions.get(tableName);
-        String fullTableName = Schemas.getFullTableName(tableName, namespace);
-        Schemas.createTable(kvs, fullTableName, definition);
-    }
-
-    public void createIndex(KeyValueService kvs, String indexName) {
-        IndexDefinition definition = indexDefinitions.get(indexName);
-        String fullIndexName = Schemas.getFullTableName(indexName, namespace);
-        Schemas.createIndex(kvs, fullIndexName, definition);
-    }
-
     public Namespace getNamespace() {
         return namespace;
-    }
-
-    /**
-     * Drops tables/indexes for this schema.
-     */
-    public void deleteTablesAndIndexes(KeyValueService kvs) {
-        validate();
-        Set<String> allTables = kvs.getAllTableNames();
-        for (String n : Iterables.concat(indexDefinitions.keySet(), tableDefinitions.keySet())) {
-            if (allTables.contains(n)) {
-                kvs.dropTable(n);
-            }
-        }
-    }
-
-    public void deleteTable(KeyValueService kvs, String tableName) {
-        kvs.dropTable(tableName);
-    }
-
-    public void deleteIndex(KeyValueService kvs, String indexName) {
-        kvs.dropTable(indexName);
     }
 
     /**
