@@ -23,7 +23,6 @@ timestampClient:
 
 leader:
   quorumSize: 2
-  promote: false
   learnerLogDir: paxosLog/learner1
   acceptorLogDir: paxosLog/acceptor1
   localServer: http://localhost:3828

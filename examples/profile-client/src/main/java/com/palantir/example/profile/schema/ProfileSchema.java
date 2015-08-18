@@ -63,7 +63,7 @@ public class ProfileSchema implements AtlasSchema {
     }
 
     public static void main(String[]  args) throws Exception {
-        PROFILE_SCHEMA.renderTables(new File("src"));
+        PROFILE_SCHEMA.renderTables(new File("src/main/java"));
     }
 
     @Override

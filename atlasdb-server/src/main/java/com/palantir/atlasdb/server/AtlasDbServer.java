@@ -74,31 +74,35 @@ public class AtlasDbServer extends Application<AtlasDbServerConfiguration> {
 
     @Override
     public void run(AtlasDbServerConfiguration configuration, Environment environment) throws Exception {
-    	PaxosLearner learner = PaxosLearnerImpl.newLearner(configuration.leader.learnerLogDir);
-    	PaxosAcceptor acceptor = PaxosAcceptorImpl.newAcceptor(configuration.leader.acceptorLogDir);
-        environment.jersey().register(acceptor);
-        environment.jersey().register(learner);
+    	PaxosAcceptor ourAcceptor = PaxosAcceptorImpl.newAcceptor(configuration.leader.acceptorLogDir);
+    	PaxosLearner ourLearner = PaxosLearnerImpl.newLearner(configuration.leader.learnerLogDir);
+        environment.jersey().register(ourAcceptor);
+        environment.jersey().register(ourLearner);
 
         int localIndex = configuration.leader.leaders.indexOf(configuration.leader.localServer);
         Preconditions.checkArgument(localIndex != -1, "localServer must be in the list of leaders");
 
         List<PaxosLearner> learners = getRemoteServices(configuration.leader.leaders, PaxosLearner.class);
-        learners.set(localIndex, learner);
+        learners.set(localIndex, ourLearner);
         List<PaxosAcceptor> acceptors = getRemoteServices(configuration.leader.leaders, PaxosAcceptor.class);
-        acceptors.set(localIndex, acceptor);
+        acceptors.set(localIndex, ourAcceptor);
+        if (configuration.leader.promote) {
+            // Promote is a special case where we vote for ourselves twice.
+            acceptors.add(ourAcceptor);
+        }
 
         List<PingableLeader> otherLeaders = getRemoteServices(configuration.leader.leaders, PingableLeader.class);
         otherLeaders.remove(localIndex);
 
         PaxosProposer proposer = PaxosProposerImpl.newProposer(
-        		learner,
+        		ourLearner,
         		acceptors,
         		learners,
         		configuration.leader.quorumSize,
         		executor);
         PaxosLeaderElectionService leader = new PaxosLeaderElectionService(
                 proposer,
-                learner,
+                ourLearner,
                 otherLeaders,
                 acceptors,
                 learners,
