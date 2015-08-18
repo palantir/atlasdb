@@ -116,7 +116,6 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
                 ColumnSelection.create(ImmutableList.of(cell1.getColumnName(), cell3.getColumnName())),
                 1);
         assertEquals(ImmutableSet.of(cell1, cell3), rows3.keySet());
-
         Map<Cell, Value> rows4 = keyValueService.getRows(
                 TEST_TABLE,
                 ImmutableSet.of(cell1.getRowName()),
