@@ -48,8 +48,6 @@ public interface KeyValueService extends AutoCloseable {
      */
     @POST
     @Path("initialize")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
     void initializeFromFreshInstance();
 
     /**
@@ -57,8 +55,6 @@ public interface KeyValueService extends AutoCloseable {
      */
     @POST
     @Path("close")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
     @Override
     void close();
 
@@ -67,8 +63,6 @@ public interface KeyValueService extends AutoCloseable {
      */
     @POST
     @Path("teardown")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
     void teardown();
 
     /**
