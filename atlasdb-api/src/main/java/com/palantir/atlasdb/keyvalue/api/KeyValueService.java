@@ -38,7 +38,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
  * A service which stores key-value pairs.
  */
 @Path("/keyvalue")
-public interface KeyValueService {
+public interface KeyValueService extends AutoCloseable {
     /**
      * Performs any initialization that must be done on a fresh instance of the key-value store,
      * such as creating the metadata table.
@@ -59,6 +59,7 @@ public interface KeyValueService {
     @Path("close")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
+    @Override
     void close();
 
     /**
