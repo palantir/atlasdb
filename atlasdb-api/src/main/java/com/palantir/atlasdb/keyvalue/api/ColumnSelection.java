@@ -21,7 +21,6 @@ import java.util.Iterator;
 import java.util.Set;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -32,7 +31,7 @@ public class ColumnSelection implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private final Set<byte[]> selectedColumns;
-    private static final ColumnSelection allColumnsSelected = new ColumnSelection(ImmutableSet.<byte[]>of());
+    private static final ColumnSelection allColumnsSelected = null;
 
     private ColumnSelection(Set<byte[]> selectedColumns) {
         this.selectedColumns = selectedColumns;
@@ -44,6 +43,9 @@ public class ColumnSelection implements Serializable {
             byte[] column = Base64.decode(strColumn);
             assert !columns.contains(column);
             columns.add(column);
+        }
+        if (columns.isEmpty()) {
+            return all();
         }
         return ColumnSelection.create(columns);
     }
