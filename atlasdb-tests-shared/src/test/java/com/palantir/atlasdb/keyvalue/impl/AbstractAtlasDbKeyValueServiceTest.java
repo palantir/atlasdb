@@ -52,26 +52,26 @@ import com.palantir.common.base.ClosableIterator;
 public abstract class AbstractAtlasDbKeyValueServiceTest {
     static final String TEST_TABLE = "pt_kvs_test";
 
-    private static final byte[] row0 = "row0".getBytes();
-    private static final byte[] row1 = "row1".getBytes();
-    private static final byte[] row2 = "row2".getBytes();
-    private static final byte[] column0 = "column0".getBytes();
-    private static final byte[] column1 = "column1".getBytes();
-    private static final byte[] column2 = "column2".getBytes();
-    private static final byte[] value00 = "value00".getBytes();
-    private static final byte[] value01 = "value01".getBytes();
-    private static final byte[] value10 = "value10".getBytes();
-    private static final byte[] value12 = "value12".getBytes();
-    private static final byte[] value21 = "value21".getBytes();
-    private static final byte[] value22 = "value22".getBytes();
+    protected static final byte[] row0 = "row0".getBytes();
+    protected static final byte[] row1 = "row1".getBytes();
+    protected static final byte[] row2 = "row2".getBytes();
+    protected static final byte[] column0 = "column0".getBytes();
+    protected static final byte[] column1 = "column1".getBytes();
+    protected static final byte[] column2 = "column2".getBytes();
+    protected static final byte[] value00 = "value00".getBytes();
+    protected static final byte[] value01 = "value01".getBytes();
+    protected static final byte[] value10 = "value10".getBytes();
+    protected static final byte[] value12 = "value12".getBytes();
+    protected static final byte[] value21 = "value21".getBytes();
+    protected static final byte[] value22 = "value22".getBytes();
 
-    private static final byte[] value0_t0 = "value0_t0".getBytes();
-    private static final byte[] value0_t1 = "value1_t1".getBytes();
-    private static final byte[] value0_t5 = "value5_t5".getBytes();
+    protected static final byte[] value0_t0 = "value0_t0".getBytes();
+    protected static final byte[] value0_t1 = "value1_t1".getBytes();
+    protected static final byte[] value0_t5 = "value5_t5".getBytes();
 
-    private static final byte[] metadata0 = "metadata0".getBytes();
+    protected static final byte[] metadata0 = "metadata0".getBytes();
 
-    private static final long TEST_TIMESTAMP = 1000000l;
+    protected static final long TEST_TIMESTAMP = 1000000l;
 
     KeyValueService keyValueService;
 
