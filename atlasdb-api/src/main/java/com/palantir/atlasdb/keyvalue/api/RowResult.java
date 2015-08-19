@@ -22,6 +22,9 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedMap;
@@ -43,7 +46,9 @@ public class RowResult<T> implements Serializable {
                 .put(cell.getColumnName(), value).build());
     }
 
-    public static <T> RowResult<T> create(byte[] row, SortedMap<byte[], T> columns) {
+    @JsonCreator
+    public static <T> RowResult<T> create(@JsonProperty("row") byte[] row,
+                                          @JsonProperty("columns") SortedMap<byte[], T> columns) {
         return new RowResult<T>(row, columns);
     }
 
@@ -57,14 +62,17 @@ public class RowResult<T> implements Serializable {
         this.columns = ImmutableSortedMap.copyOf(columns, UnsignedBytes.lexicographicalComparator());
     }
 
+    @JsonProperty("row")
     public byte[] getRowName() {
         return row.clone();
     }
 
+    @JsonProperty("columns")
     public SortedMap<byte[], T> getColumns() {
         return columns;
     }
 
+    @JsonIgnore
     public Set<Cell> getCellSet() {
         Set<Cell> cells = Sets.newHashSet();
         for (byte[] column : columns.keySet()) {
@@ -86,12 +94,14 @@ public class RowResult<T> implements Serializable {
         };
     }
 
+    @JsonIgnore
     public T getOnlyColumnValue() {
         Preconditions.checkState(columns.size() == 1,
                 "Works only when the row result has a single column value.");
         return Iterables.getOnlyElement(columns.values());
     }
 
+    @JsonIgnore
     public Iterable<Map.Entry<Cell, T>> getCells() {
         return Iterables.transform(columns.entrySet(), new Function<Map.Entry<byte[], T>, Map.Entry<Cell, T>>() {
             @Override
