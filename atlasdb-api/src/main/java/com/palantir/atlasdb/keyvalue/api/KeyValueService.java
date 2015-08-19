@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
-import java.io.Closeable;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
@@ -25,6 +24,7 @@ import javax.ws.rs.DELETE;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 import com.google.common.collect.Multimap;
@@ -38,7 +38,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
  * A service which stores key-value pairs.
  */
 @Path("/keyvalue")
-public interface KeyValueService extends Closeable {
+public interface KeyValueService {
     /**
      * Performs any initialization that must be done on a fresh instance of the key-value store,
      * such as creating the metadata table.
@@ -59,7 +59,6 @@ public interface KeyValueService extends Closeable {
     @Path("close")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    @Override
     void close();
 
     /**
@@ -102,8 +101,10 @@ public interface KeyValueService extends Closeable {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    Map<Cell, Value> getRows(String tableName, Iterable<byte[]> rows,
-                             ColumnSelection columnSelection,long timestamp);
+    Map<Cell, Value> getRows(@QueryParam("tableName") String tableName,
+                             Iterable<byte[]> rows,
+                             @QueryParam("columnSelection") ColumnSelection columnSelection,
+                             @QueryParam("timestamp") long timestamp);
 
     /**
      * Gets values from the key-value store.
@@ -122,7 +123,7 @@ public interface KeyValueService extends Closeable {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    Map<Cell, Value> get(String tableName, Map<Cell, Long> timestampByCell);
+    Map<Cell, Value> get(@QueryParam("tableName") String tableName, Map<Cell, Long> timestampByCell);
 
     /**
      * Gets timestamp values from the key-value store.
@@ -142,7 +143,8 @@ public interface KeyValueService extends Closeable {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    Map<Cell, Long> getLatestTimestamps(String tableName, Map<Cell, Long> timestampByCell);
+    Map<Cell, Long> getLatestTimestamps(@QueryParam("tableName") String tableName,
+                                        Map<Cell, Long> timestampByCell);
 
     /**
      * Puts values into the key-value store. This call <i>does not</i> guarantee
@@ -170,9 +172,10 @@ public interface KeyValueService extends Closeable {
      */
     @POST
     @Path("put")
-    @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    void put(String tableName, Map<Cell, byte[]> values, long timestamp) throws KeyAlreadyExistsException;
+    void put(@QueryParam("tableName") String tableName,
+             Map<Cell, byte[]> values,
+             @QueryParam("timestamp") long timestamp) throws KeyAlreadyExistsException;
 
     /**
      * Puts values into the key-value store. This call <i>does not</i> guarantee
@@ -199,9 +202,9 @@ public interface KeyValueService extends Closeable {
      */
     @POST
     @Path("multi-put")
-    @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    void multiPut(Map<String, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) throws KeyAlreadyExistsException;
+    void multiPut(Map<String, ? extends Map<Cell, byte[]>> valuesByTable,
+                  @QueryParam("timestamp") long timestamp) throws KeyAlreadyExistsException;
 
     /**
      * Puts values into the key-value store with individually specified timestamps.
@@ -226,10 +229,10 @@ public interface KeyValueService extends Closeable {
      */
     @POST
     @Path("put-with-timestamps")
-    @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @NonIdempotent
-    void putWithTimestamps(String tableName, Multimap<Cell, Value> cellValues) throws KeyAlreadyExistsException;
+    void putWithTimestamps(@QueryParam("tableName") String tableName,
+                           Multimap<Cell, Value> cellValues) throws KeyAlreadyExistsException;
 
     /**
      * Puts values into the key-value store. This call <i>does not</i> guarantee
@@ -254,9 +257,9 @@ public interface KeyValueService extends Closeable {
      */
     @POST
     @Path("put-unless-exists")
-    @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    void putUnlessExists(String tableName, Map<Cell, byte[]> values) throws KeyAlreadyExistsException;
+    void putUnlessExists(@QueryParam("tableName") String tableName,
+                         Map<Cell, byte[]> values) throws KeyAlreadyExistsException;
 
     /**
      * Deletes values from the key-value store.
@@ -282,12 +285,11 @@ public interface KeyValueService extends Closeable {
      * @param keys map containing the keys to delete values for; the map should specify, for each
      *        key, the timestamp of the value to delete.
      */
-    @DELETE
+    @POST
     @Path("delete")
-    @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    void delete(String tableName, Multimap<Cell, Long> keys);
+    void delete(@QueryParam("tableName") String tableName, Multimap<Cell, Long> keys);
 
     /**
      * Truncate a table in the key-value store.
@@ -301,10 +303,9 @@ public interface KeyValueService extends Closeable {
      */
     @POST
     @Path("truncate-table")
-    @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    void truncateTable(String tableName) throws InsufficientConsistencyException;
+    void truncateTable(@QueryParam("tableName") String tableName) throws InsufficientConsistencyException;
 
     /**
      * Truncate tables in the key-value store.
@@ -317,7 +318,6 @@ public interface KeyValueService extends Closeable {
      */
     @POST
     @Path("truncate-tables")
-    @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
     void truncateTables(Set<String> tableNames) throws InsufficientConsistencyException;
@@ -338,9 +338,9 @@ public interface KeyValueService extends Closeable {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    ClosableIterator<RowResult<Value>> getRange(String tableName,
+    ClosableIterator<RowResult<Value>> getRange(@QueryParam("tableName") String tableName,
                                                 RangeRequest rangeRequest,
-                                                long timestamp);
+                                                @QueryParam("timestamp") long timestamp);
 
     /**
      * For each row in the specified range, returns all versions strictly before
@@ -358,9 +358,9 @@ public interface KeyValueService extends Closeable {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(String tableName,
+    ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(@QueryParam("tableName") String tableName,
                                                                 RangeRequest rangeRequest,
-                                                                long timestamp);
+                                                                @QueryParam("timestamp") long timestamp);
 
     /**
      * Gets timestamp values from the key-value store. For each row, this returns all associated
@@ -383,9 +383,9 @@ public interface KeyValueService extends Closeable {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(String tableName,
+    ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(@QueryParam("tableName") String tableName,
                                                                 RangeRequest rangeRequest,
-                                                                long timestamp) throws InsufficientConsistencyException;
+                                                                @QueryParam("timestamp") long timestamp) throws InsufficientConsistencyException;
 
     /**
      * For each range passed in the result will have the first page of results for that range.
@@ -408,9 +408,9 @@ public interface KeyValueService extends Closeable {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(String tableName,
+    Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(@QueryParam("tableName") String tableName,
             Iterable<RangeRequest> rangeRequests,
-            long timestamp);
+            @QueryParam("timestamp") long timestamp);
 
     ////////////////////////////////////////////////////////////
     // TABLE CREATION AND METADATA
@@ -421,7 +421,7 @@ public interface KeyValueService extends Closeable {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    void dropTable(String tableName) throws InsufficientConsistencyException;
+    void dropTable(@QueryParam("tableName") String tableName) throws InsufficientConsistencyException;
 
     /**
      * Creates a table with the specified name. If the table already exists, no action is performed
@@ -437,7 +437,7 @@ public interface KeyValueService extends Closeable {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    void createTable(String tableName, int maxValueSizeInBytes) throws InsufficientConsistencyException;
+    void createTable(@QueryParam("tableName") String tableName, @QueryParam("maxValueSizeInBytes") int maxValueSizeInBytes) throws InsufficientConsistencyException;
 
     /**
      * Creates many tables in idempotent fashion. If you are making many tables at once,
@@ -457,7 +457,6 @@ public interface KeyValueService extends Closeable {
     @POST
     @Path("get-all-table-names")
     @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
     Set<String> getAllTableNames();
 
@@ -466,26 +465,23 @@ public interface KeyValueService extends Closeable {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    byte[] getMetadataForTable(String tableName);
+    byte[] getMetadataForTable(@QueryParam("tableName") String tableName);
 
     @POST
     @Path("get-metadata-for-tables")
     @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
     Map<String, byte[]> getMetadataForTables();
 
     @POST
     @Path("put-metadata-for-table")
-    @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    void putMetadataForTable(String tableName, byte[] metadata);
+    void putMetadataForTable(@QueryParam("tableName") String tableName, byte[] metadata);
 
     @POST
     @Path("put-metadata-for-tables")
     @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
     void putMetadataForTables(final Map<String, byte[]> tableNameToMetadata);
 
@@ -499,10 +495,9 @@ public interface KeyValueService extends Closeable {
      */
     @POST
     @Path("add-gc-sentinel-values")
-    @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    void addGarbageCollectionSentinelValues(String tableName, Set<Cell> cells);
+    void addGarbageCollectionSentinelValues(@QueryParam("tableName") String tableName, Set<Cell> cells);
 
     /**
      * Gets timestamp values from the key-value store. For each cell, this returns all associated
@@ -526,7 +521,10 @@ public interface KeyValueService extends Closeable {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    Multimap<Cell, Long> getAllTimestamps(String tableName, Set<Cell> cells, long timestamp) throws InsufficientConsistencyException;
+    Multimap<Cell, Long> getAllTimestamps(@QueryParam("tableName") String tableName,
+                                          Set<Cell> cells,
+                                          @QueryParam("timestamp") long timestamp)
+            throws InsufficientConsistencyException;
 
     /**
      * Does whatever can be done to compact or cleanup a table. Intended to be called after many
@@ -536,7 +534,6 @@ public interface KeyValueService extends Closeable {
      */
     @POST
     @Path("compact-internally")
-    @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     void compactInternally(String tableName);
 }
