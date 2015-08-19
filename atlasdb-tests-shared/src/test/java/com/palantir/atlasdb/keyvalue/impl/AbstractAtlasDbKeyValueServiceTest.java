@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.commons.lang.ArrayUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -266,6 +267,8 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
 
     @Test
     public void testTableMetadata() {
+        assertEquals(0, keyValueService.getMetadataForTable(TEST_TABLE).length);
+        keyValueService.putMetadataForTable(TEST_TABLE, ArrayUtils.EMPTY_BYTE_ARRAY);
         assertEquals(0, keyValueService.getMetadataForTable(TEST_TABLE).length);
         keyValueService.putMetadataForTable(TEST_TABLE, metadata0);
         assertTrue(Arrays.equals(metadata0, keyValueService.getMetadataForTable(TEST_TABLE)));
