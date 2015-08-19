@@ -31,15 +31,19 @@ public class ColumnSelection implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private final Set<byte[]> selectedColumns;
-    private static final ColumnSelection allColumnsSelected = null;
+    private static final ColumnSelection allColumnsSelected = new ColumnSelection(null);
 
     private ColumnSelection(Set<byte[]> selectedColumns) {
         this.selectedColumns = selectedColumns;
     }
 
-    static ColumnSelection valueOf(String serialized) {
+    public static ColumnSelection valueOf(String serialized) {
         Set<byte[]> columns = Sets.newTreeSet(UnsignedBytes.lexicographicalComparator());
-        for (String strColumn : serialized.split("\\s+")) {
+        for (String strColumn : serialized.split("\\s*,\\s*")) {
+            strColumn = strColumn.trim();
+            if (strColumn.equals("")) {
+                continue;
+            }
             byte[] column = Base64.decode(strColumn);
             assert !columns.contains(column);
             columns.add(column);
@@ -52,12 +56,15 @@ public class ColumnSelection implements Serializable {
 
     @Override
     public String toString() {
+        if (selectedColumns == null) {
+            return "";
+        }
         StringBuilder builder = new StringBuilder();
         Iterator<byte[]> it = selectedColumns.iterator();
         while (it.hasNext()) {
             builder.append(Base64.encode(it.next()));
             if (it.hasNext()) {
-                builder.append(" ");
+                builder.append(",");
             }
         }
         return builder.toString();
