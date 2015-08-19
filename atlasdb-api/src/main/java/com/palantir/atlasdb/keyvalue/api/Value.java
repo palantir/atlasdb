@@ -20,6 +20,8 @@ import java.util.Arrays;
 
 import javax.annotation.Nonnull;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
@@ -35,7 +37,9 @@ public class Value implements Serializable {
     public static final long INVALID_VALUE_TIMESTAMP = -1L;
     private static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
 
-    public static Value create(byte[] contents, long timestamp) {
+    @JsonCreator
+    public static Value create(@JsonProperty("contents") byte[] contents,
+                               @JsonProperty("timestamp") long timestamp) {
         if (contents == null) {
             contents = EMPTY_BYTE_ARRAY;
         }
