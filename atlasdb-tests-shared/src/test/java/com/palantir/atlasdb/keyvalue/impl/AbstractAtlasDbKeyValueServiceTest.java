@@ -122,7 +122,9 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
                 ImmutableSet.of(cell1.getRowName()),
                 ColumnSelection.create(ImmutableList.<byte[]>of()),
                 1);
-        assertEquals(ImmutableSet.of(), rows4.keySet());
+        // This has changed recently - now empty column set means
+        // that all columns are selected.
+        assertEquals(ImmutableSet.of(cell1, cell2, cell3), rows4.keySet());
     }
 
     @Test
