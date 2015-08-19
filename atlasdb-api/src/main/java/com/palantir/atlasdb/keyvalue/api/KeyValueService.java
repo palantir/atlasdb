@@ -462,8 +462,7 @@ public interface KeyValueService {
 
     @POST
     @Path("get-metadata-for-table")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_OCTET_STREAM)
     @Idempotent
     byte[] getMetadataForTable(@QueryParam("tableName") String tableName);
 
