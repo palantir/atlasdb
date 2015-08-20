@@ -15,17 +15,19 @@
  */
 package com.palantir.atlasdb.keyvalue.remoting;
 
-import java.io.Serializable;
+import java.util.Set;
+
+import javax.annotation.Nullable;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
-import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
@@ -33,9 +35,12 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.supplier.ExecutorInheritableServiceContext;
 import com.palantir.common.supplier.PopulateServiceContextProxy;
 import com.palantir.common.supplier.ServiceContext;
+import com.palantir.util.Pair;
 
 class RemotingKeyValueService extends ForwardingKeyValueService {
+    // TODO: Why can this thing be static?
     final static ServiceContext<KeyValueService> serviceContext = ExecutorInheritableServiceContext.create();
+    final KeyValueService delegate;
 
     public static KeyValueService createClientSide(final KeyValueService remoteService) {
         return new ForwardingKeyValueService() {
@@ -44,13 +49,31 @@ class RemotingKeyValueService extends ForwardingKeyValueService {
                 return remoteService;
             }
 
-            @SuppressWarnings("unchecked")
-            @Override
+            @SuppressWarnings("unchecked") @Override
             public ClosableIterator<RowResult<Value>> getRange(String tableName,
                                                                RangeRequest rangeRequest,
                                                                long timestamp) {
-                ClosableIterator<RowResult<Value>> range = super.getRange(tableName, rangeRequest, timestamp);
-                return PopulateServiceContextProxy.newProxyInstanceWithConstantValue(ClosableIterator.class, range, remoteService, serviceContext);
+                return PopulateServiceContextProxy.newProxyInstanceWithConstantValue(ClosableIterator.class,
+                        RangeIterator.validateIsRangeIterator(super.getRange(tableName, rangeRequest, timestamp)),
+                        remoteService, serviceContext);
+            }
+
+            @SuppressWarnings("unchecked") @Override
+            public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(String tableName,
+                                                                               RangeRequest rangeRequest,
+                                                                               long timestamp) {
+                return PopulateServiceContextProxy.newProxyInstanceWithConstantValue(ClosableIterator.class,
+                        RangeIterator.validateIsRangeIterator(super.getRangeWithHistory(tableName, rangeRequest, timestamp)),
+                        remoteService, serviceContext);
+            }
+
+            @SuppressWarnings("unchecked") @Override
+            public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(String tableName,
+                                                                               RangeRequest rangeRequest,
+                                                                               long timestamp) {
+                return PopulateServiceContextProxy.newProxyInstanceWithConstantValue(ClosableIterator.class,
+                        RangeIterator.validateIsRangeIterator(super.getRangeOfTimestamps(tableName, rangeRequest, timestamp)),
+                        remoteService, serviceContext);
             }
         };
     }
@@ -58,8 +81,6 @@ class RemotingKeyValueService extends ForwardingKeyValueService {
     public static KeyValueService createServerSide(KeyValueService delegate) {
         return new RemotingKeyValueService(delegate);
     }
-
-    final KeyValueService delegate;
 
     private RemotingKeyValueService(KeyValueService service) {
         this.delegate = service;
@@ -71,97 +92,64 @@ class RemotingKeyValueService extends ForwardingKeyValueService {
     }
 
     @Override
-    public ClosableIterator<RowResult<Value>> getRange(String tableName,
-                                                       RangeRequest range,
-                                                       long timestamp) {
-        ClosableIterator<RowResult<Value>> it = super.getRange(tableName, range, timestamp);
-        try {
-            int pageSize = range.getBatchHint() != null ? range.getBatchHint() : 100;
-            if (pageSize == 1) {
-                pageSize = 2;
+    public RangeIterator<Value> getRange(final String tableName,
+                                         final RangeRequest range,
+                                         final long timestamp) {
+        return transformIterator(tableName, range, timestamp, new Function<Void, ClosableIterator<RowResult<Value>>>() {
+            @Override @Nullable
+            public ClosableIterator<RowResult<Value>> apply(@Nullable Void input) {
+                return RemotingKeyValueService.super.getRange(tableName, range, timestamp);
             }
-            ImmutableList<RowResult<Value>> page = ImmutableList.copyOf(Iterators.limit(it, pageSize));
-            if (page.size() < pageSize) {
-                return new RangeIterator(tableName, range, timestamp, false, page);
-            } else {
-                return new RangeIterator(tableName, range, timestamp, true, page.subList(0, pageSize-1));
+        }, new Function<Pair<Boolean, ImmutableList<RowResult<Value>>>, RangeIterator<Value>>() {
+            @Override @Nullable
+            public RangeIterator<Value> apply(@Nullable Pair<Boolean, ImmutableList<RowResult<Value>>> input) {
+                return new ValueRangeIterator(tableName, range, timestamp, input.lhSide, input.rhSide);
             }
-        } finally {
-            it.close();
-        }
+        });
     }
 
-    static class RangeIterator implements ClosableIterator<RowResult<Value>>, Serializable {
-        private static final long serialVersionUID = 1L;
-
-        public RangeIterator(String tableName,
-                             RangeRequest range,
-                             long timestamp,
-                             boolean hasNext,
-                             ImmutableList<RowResult<Value>> page) {
-            this.tableName = tableName;
-            this.range = range;
-            this.timestamp = timestamp;
-            this.hasNext = hasNext;
-            this.page = page;
-        }
-
-        final String tableName;
-        final RangeRequest range;
-        final long timestamp;
-
-        boolean hasNext;
-        int position = 0;
-        ImmutableList<RowResult<Value>> page;
-
-        @Override
-        public void remove() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public RowResult<Value> next() {
-            if (position < page.size()) {
-                return page.get(position++);
+    @Override
+    public RangeIterator<Set<Value>> getRangeWithHistory(final String tableName,
+                                                         final RangeRequest rangeRequest,
+                                                         final long timestamp) {
+        return transformIterator(tableName, rangeRequest, timestamp, new Function<Void, ClosableIterator<RowResult<Set<Value>>>>() {
+            @Override @Nullable
+            public ClosableIterator<RowResult<Set<Value>>> apply(@Nullable Void input) {
+                return RemotingKeyValueService.super.getRangeWithHistory(tableName, rangeRequest, timestamp);
+            }
+        }, new Function<Pair<Boolean, ImmutableList<RowResult<Set<Value>>>>, RangeIterator<Set<Value>>>(){
+            @Override @Nullable
+            public RangeIterator<Set<Value>> apply(@Nullable Pair<Boolean, ImmutableList<RowResult<Set<Value>>>> input) {
+                return new HistoryRangeIterator(tableName, rangeRequest, timestamp, input.lhSide, input.rhSide);
             }
 
-            RowResult<Value> lastResult = page.get(page.size()-1);
-            byte[] newStart = RangeRequests.getNextStartRow(range.isReverse(), lastResult.getRowName());
-            RangeRequest newRange = range.getBuilder().startRowInclusive(newStart).build();
-            KeyValueService keyValueService = serviceContext.get();
-            if (keyValueService == null) {
-                throw new IllegalStateException("This remote keyvalue service needs to be wrapped with RemotingKeyValueService.createClientSide");
-            }
-            ClosableIterator<RowResult<Value>> result = keyValueService.getRange(tableName, newRange, timestamp);
-            RangeIterator swap = (RangeIterator) result;
-            this.hasNext = swap.hasNext;
-            this.page = swap.page;
-            this.position = 0;
+        });
+    }
 
-            if (position < page.size()) {
-                return page.get(position++);
-            } else {
-                throw new IllegalStateException();
+    @Override
+    public RangeIterator<Set<Long>> getRangeOfTimestamps(final String tableName,
+                                                         final RangeRequest rangeRequest,
+                                                         final long timestamp) {
+        return transformIterator(tableName, rangeRequest, timestamp, new Function<Void, ClosableIterator<RowResult<Set<Long>>>>() {
+            @Override @Nullable
+            public ClosableIterator<RowResult<Set<Long>>> apply(@Nullable Void input) {
+                return RemotingKeyValueService.super.getRangeOfTimestamps(tableName, rangeRequest, timestamp);
             }
-        }
-
-        @Override
-        public boolean hasNext() {
-            if (position < page.size()) {
-                return true;
+        }, new Function<Pair<Boolean, ImmutableList<RowResult<Set<Long>>>>, RangeIterator<Set<Long>>>() {
+            @Override @Nullable
+            public RangeIterator<Set<Long>> apply(@Nullable Pair<Boolean, ImmutableList<RowResult<Set<Long>>>> input) {
+                return new TimestampsRangeIterator(tableName, rangeRequest, timestamp, input.lhSide, input.rhSide);
             }
-            return hasNext;
-        }
-
-        @Override
-        public void close() {
-            // not needed
-        }
+        });
     }
 
     private static final SimpleModule kvsModule = new SimpleModule(); static {
         kvsModule.addKeyDeserializer(Cell.class, CellAsKeyDeserializer.instance());
-        kvsModule.addKeySerializer(Cell.class, CellAsKeySerializer.instance());
+        kvsModule.addKeyDeserializer(byte[].class, BytesAsKeyDeserializer.instance());
+        kvsModule.addKeySerializer(Cell.class, SaneAsKeySerializer.instance());
+        kvsModule.addKeySerializer(byte[].class, SaneAsKeySerializer.instance());
+        kvsModule.addSerializer(RowResult.class, RowResultSerializer.instance());
+        kvsModule.addDeserializer(RowResult.class, RowResultDeserializer.instance());
     }
     private static final ObjectMapper kvsMapper = new ObjectMapper(); static {
         kvsMapper.registerModule(kvsModule);
@@ -172,5 +160,25 @@ class RemotingKeyValueService extends ForwardingKeyValueService {
     }
     public static ObjectMapper kvsMapper() {
         return kvsMapper;
+    }
+
+    private static <T> RangeIterator<T> transformIterator(String tableName, RangeRequest range,
+                                                   long timestamp, Function<Void, ClosableIterator<RowResult<T>>> itSupplier,
+                                                   Function<Pair<Boolean, ImmutableList<RowResult<T>>>, RangeIterator<T>> resultSupplier) {
+        ClosableIterator<RowResult<T>> it = itSupplier.apply(null);
+        try {
+            int pageSize = range.getBatchHint() != null ? range.getBatchHint() : 100;
+            if (pageSize == 1) {
+                pageSize = 2;
+            }
+            ImmutableList<RowResult<T>> page = ImmutableList.copyOf(Iterators.limit(it, pageSize));
+            if (page.size() < pageSize) {
+                return resultSupplier.apply(Pair.create(false, page));
+            } else {
+                return resultSupplier.apply(Pair.create(true, page.subList(0, pageSize - 1)));
+            }
+        } finally {
+            it.close();
+        }
     }
 }
