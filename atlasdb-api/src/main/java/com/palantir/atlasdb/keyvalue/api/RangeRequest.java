@@ -27,8 +27,6 @@ import javax.annotation.concurrent.NotThreadSafe;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
@@ -47,7 +45,6 @@ import com.palantir.util.Pair;
  * To restrict the rows or columns,  call
  * the methods on the <code>RangeRequest</code> class.
  */
-@JsonTypeInfo(use=Id.CLASS, property="@class")
 @Immutable public final class RangeRequest implements Serializable {
     private static final long serialVersionUID = 1L;
     private static final byte[] EMPTY_BYTE_ARRAY = new byte[0];

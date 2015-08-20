@@ -13,7 +13,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
-import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 
@@ -24,8 +23,10 @@ final class RowResultDeserializer extends JsonDeserializer<RowResult> {
     public RowResult deserialize(JsonParser p, DeserializationContext ctxt) throws IOException,
             JsonProcessingException {
         JsonNode node = p.getCodec().readTree(p);
+
         int type = node.get("type").asInt();
-        byte[] row = PtBytes.decodeBase64(node.get("row").asText());
+        byte[] row = node.get("row").binaryValue();
+
         switch (type) {
         case RowResultSerializer.VALUE_TYPE_ID:
             return RowResult.create(row, deserializeWithValue(node, ctxt));
@@ -34,7 +35,8 @@ final class RowResultDeserializer extends JsonDeserializer<RowResult> {
         case RowResultSerializer.VALUES_SET_TYPE_ID:
             return RowResult.create(row, deserializeWithValuesSet(node, ctxt));
         }
-        throw new UnsupportedOperationException("Invalid RowResult type!");
+
+        throw new IllegalArgumentException("Invalid RowResult type!");
     }
 
     private SortedMap<byte[], Value> deserializeWithValue(JsonNode node, DeserializationContext ctxt) throws IOException {
@@ -94,4 +96,5 @@ final class RowResultDeserializer extends JsonDeserializer<RowResult> {
     static RowResultDeserializer instance() {
         return instance;
     }
+    private RowResultDeserializer() {}
 }
