@@ -8,6 +8,13 @@ import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
 
+/**
+ * This class simply converts any object to Json using the usual method and then
+ * string-escapes it to make it a valid Json field name.
+ *
+ * @author htarasiuk
+ *
+ */
 final class SaneAsKeySerializer extends JsonSerializer<Object> {
 
     private final ObjectMapper mapper = new ObjectMapper();
