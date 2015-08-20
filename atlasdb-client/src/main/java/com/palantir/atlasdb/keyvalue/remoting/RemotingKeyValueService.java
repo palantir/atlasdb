@@ -111,52 +111,39 @@ class RemotingKeyValueService extends ForwardingKeyValueService {
     public RangeIterator<Value> getRange(final String tableName,
                                          final RangeRequest range,
                                          final long timestamp) {
-        return transformIterator(tableName, range, timestamp, new Function<Void, ClosableIterator<RowResult<Value>>>() {
-            @Override @Nullable
-            public ClosableIterator<RowResult<Value>> apply(@Nullable Void input) {
-                return RemotingKeyValueService.super.getRange(tableName, range, timestamp);
-            }
-        }, new Function<Pair<Boolean, ImmutableList<RowResult<Value>>>, RangeIterator<Value>>() {
-            @Override @Nullable
-            public RangeIterator<Value> apply(@Nullable Pair<Boolean, ImmutableList<RowResult<Value>>> input) {
-                return new ValueRangeIterator(tableName, range, timestamp, input.lhSide, input.rhSide);
-            }
-        });
+        return transformIterator(tableName, range, timestamp, super.getRange(tableName, range, timestamp),
+            new Function<Pair<Boolean, ImmutableList<RowResult<Value>>>, RangeIterator<Value>>() {
+                @Override @Nullable
+                public RangeIterator<Value> apply(@Nullable Pair<Boolean, ImmutableList<RowResult<Value>>> input) {
+                    return new ValueRangeIterator(tableName, range, timestamp, input.lhSide, input.rhSide);
+                }
+            });
     }
 
     @Override
     public RangeIterator<Set<Value>> getRangeWithHistory(final String tableName,
                                                          final RangeRequest rangeRequest,
                                                          final long timestamp) {
-        return transformIterator(tableName, rangeRequest, timestamp, new Function<Void, ClosableIterator<RowResult<Set<Value>>>>() {
-            @Override @Nullable
-            public ClosableIterator<RowResult<Set<Value>>> apply(@Nullable Void input) {
-                return RemotingKeyValueService.super.getRangeWithHistory(tableName, rangeRequest, timestamp);
-            }
-        }, new Function<Pair<Boolean, ImmutableList<RowResult<Set<Value>>>>, RangeIterator<Set<Value>>>(){
-            @Override @Nullable
-            public RangeIterator<Set<Value>> apply(@Nullable Pair<Boolean, ImmutableList<RowResult<Set<Value>>>> input) {
-                return new HistoryRangeIterator(tableName, rangeRequest, timestamp, input.lhSide, input.rhSide);
-            }
-
-        });
+        return transformIterator(tableName, rangeRequest, timestamp, super.getRangeWithHistory(tableName, rangeRequest, timestamp),
+            new Function<Pair<Boolean, ImmutableList<RowResult<Set<Value>>>>, RangeIterator<Set<Value>>>(){
+                @Override @Nullable
+                public RangeIterator<Set<Value>> apply(@Nullable Pair<Boolean, ImmutableList<RowResult<Set<Value>>>> input) {
+                    return new HistoryRangeIterator(tableName, rangeRequest, timestamp, input.lhSide, input.rhSide);
+                }
+            });
     }
 
     @Override
     public RangeIterator<Set<Long>> getRangeOfTimestamps(final String tableName,
                                                          final RangeRequest rangeRequest,
                                                          final long timestamp) {
-        return transformIterator(tableName, rangeRequest, timestamp, new Function<Void, ClosableIterator<RowResult<Set<Long>>>>() {
-            @Override @Nullable
-            public ClosableIterator<RowResult<Set<Long>>> apply(@Nullable Void input) {
-                return RemotingKeyValueService.super.getRangeOfTimestamps(tableName, rangeRequest, timestamp);
-            }
-        }, new Function<Pair<Boolean, ImmutableList<RowResult<Set<Long>>>>, RangeIterator<Set<Long>>>() {
-            @Override @Nullable
-            public RangeIterator<Set<Long>> apply(@Nullable Pair<Boolean, ImmutableList<RowResult<Set<Long>>>> input) {
-                return new TimestampsRangeIterator(tableName, rangeRequest, timestamp, input.lhSide, input.rhSide);
-            }
-        });
+        return transformIterator(tableName, rangeRequest, timestamp, super.getRangeOfTimestamps(tableName, rangeRequest, timestamp),
+            new Function<Pair<Boolean, ImmutableList<RowResult<Set<Long>>>>, RangeIterator<Set<Long>>>() {
+                @Override @Nullable
+                public RangeIterator<Set<Long>> apply(@Nullable Pair<Boolean, ImmutableList<RowResult<Set<Long>>>> input) {
+                    return new TimestampsRangeIterator(tableName, rangeRequest, timestamp, input.lhSide, input.rhSide);
+                }
+            });
     }
 
     private static final SimpleModule kvsModule = new SimpleModule(); static {
@@ -179,22 +166,21 @@ class RemotingKeyValueService extends ForwardingKeyValueService {
     }
 
     private static <T> RangeIterator<T> transformIterator(String tableName, RangeRequest range,
-                                                   long timestamp, Function<Void, ClosableIterator<RowResult<T>>> itSupplier,
+                                                   long timestamp, ClosableIterator<RowResult<T>> closableIterator,
                                                    Function<Pair<Boolean, ImmutableList<RowResult<T>>>, RangeIterator<T>> resultSupplier) {
-        ClosableIterator<RowResult<T>> it = itSupplier.apply(null);
         try {
             int pageSize = range.getBatchHint() != null ? range.getBatchHint() : 100;
             if (pageSize == 1) {
                 pageSize = 2;
             }
-            ImmutableList<RowResult<T>> page = ImmutableList.copyOf(Iterators.limit(it, pageSize));
+            ImmutableList<RowResult<T>> page = ImmutableList.copyOf(Iterators.limit(closableIterator, pageSize));
             if (page.size() < pageSize) {
                 return resultSupplier.apply(Pair.create(false, page));
             } else {
                 return resultSupplier.apply(Pair.create(true, page.subList(0, pageSize - 1)));
             }
         } finally {
-            it.close();
+            closableIterator.close();
         }
     }
 }
