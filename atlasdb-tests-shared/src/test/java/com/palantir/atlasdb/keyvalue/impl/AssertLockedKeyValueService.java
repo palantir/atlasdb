@@ -31,7 +31,6 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
-import com.palantir.lock.LockResponse;
 import com.palantir.lock.RemoteLockService;
 
 public class AssertLockedKeyValueService extends ForwardingKeyValueService {

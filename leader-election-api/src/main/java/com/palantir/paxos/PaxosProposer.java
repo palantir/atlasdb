@@ -25,7 +25,7 @@ public interface PaxosProposer {
      *
      * @param seq the number identifying this instance of paxos
      * @param proposalValue default value to propose to the quorum
-     * @return the value accepted by the quorum
+     * @return the value accepted by the quorum.  This may not be the value you have proposed.
      * @throws PaxosRoundFailureException if the proposal round fails. The primary reasons a round
      *         will fail are (1) the proposer cannot reach a quorum of acceptors and (2) the
      *         sequence number is too old (acceptor logs have been truncated). We do not place

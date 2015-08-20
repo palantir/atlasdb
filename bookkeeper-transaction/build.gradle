@@ -1,14 +1,5 @@
 apply from: "../gradle/shared.gradle"
 
-buildscript {
-    repositories { jcenter() }
-    dependencies { classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.1' }
-}
-
-apply plugin: 'com.github.johnrengelman.shadow'
-
-
-libsDirName = file('build/artifacts')
 dependencies {
   compile(project(":atlasdb-impl-shared"))
   compile('org.apache.bookkeeper:bookkeeper-server:4.3.1') {

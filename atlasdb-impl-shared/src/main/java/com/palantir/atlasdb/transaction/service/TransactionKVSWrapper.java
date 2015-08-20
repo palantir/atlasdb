@@ -21,6 +21,7 @@ import java.util.Map;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
@@ -70,13 +71,13 @@ public class TransactionKVSWrapper {
     }
 
     // It works only if key-value store supports putUnlessExists.
-    public void putUnlessExists(Long startTimestamp, Long commitTimestamp) {
+    public void putUnlessExists(long startTimestamp, long commitTimestamp) throws KeyAlreadyExistsException {
         Cell key = getTransactionCell(startTimestamp);
         byte[] value = TransactionConstants.getValueForTimestamp(commitTimestamp);
         keyValueService.putUnlessExists(TransactionConstants.TRANSACTION_TABLE, ImmutableMap.of(key, value));
     }
 
-    public void putAll(Map<Long, Long> timestampMap) {
+    public void putAll(Map<Long, Long> timestampMap) throws KeyAlreadyExistsException {
         Map<Cell, byte[]> kvMap = new HashMap<Cell, byte[]> ();
         for (Map.Entry<Long, Long> entry: timestampMap.entrySet()) {
             kvMap.put(
@@ -85,15 +86,6 @@ public class TransactionKVSWrapper {
         }
 
         keyValueService.put(TransactionConstants.TRANSACTION_TABLE, kvMap, 0); // This can throw unchecked exceptions
-    }
-
-    // The log has to be closed
-    public void flushLog(WriteAheadLog log) {
-        Map<Long, Long> map = new HashMap<Long, Long>();
-        for (TransactionLogEntry entry: log) {
-            map.put(entry.getStartTimestamp(), entry.getCommitTimestamp());
-        }
-        putAll(map);
     }
 
 }

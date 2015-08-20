@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.transaction.api;
 
 import com.google.common.collect.ImmutableSet;
-import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRefreshToken;
 
 public class LockAwareTransactionTasks {

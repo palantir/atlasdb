@@ -28,7 +28,6 @@ import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.common.collect.IterableUtils;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
-import com.palantir.lock.SimpleHeldLocksToken;
 
 public abstract class AbstractLockAwareTransactionManager extends AbstractTransactionManager implements LockAwareTransactionManager {
 

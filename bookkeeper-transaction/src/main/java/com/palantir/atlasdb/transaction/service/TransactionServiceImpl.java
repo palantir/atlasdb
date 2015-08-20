@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.service;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -74,11 +75,11 @@ public class TransactionServiceImpl implements TransactionService {
                                                 long flushPeriod) {
         byte[] oldMapBeingFlushLogId = metadataStorageService.get(MAP_BEING_FLUSHED_STRING);
         if (oldMapBeingFlushLogId != null && PtBytes.toLong(oldMapBeingFlushLogId) != NO_LOG_ID)
-            kvsWrapper.flushLog(logManager.retrieve(PtBytes.toLong(oldMapBeingFlushLogId)));
+            TransactionServiceImpl.flushLog(kvsWrapper, logManager.retrieve(PtBytes.toLong(oldMapBeingFlushLogId)));
 
         byte[] oldCurrentMapLogId = metadataStorageService.get(CURRENT_MAP_STRING);
         if (oldCurrentMapLogId != null)
-            kvsWrapper.flushLog(logManager.retrieve(PtBytes.toLong(oldCurrentMapLogId)));
+            TransactionServiceImpl.flushLog(kvsWrapper, logManager.retrieve(PtBytes.toLong(oldCurrentMapLogId)));
 
 
         Supplier<ConcurrentMapWithLogging> mapSupplier = ConcurrentMapWithLogging.supplier(logManager);
@@ -168,10 +169,12 @@ public class TransactionServiceImpl implements TransactionService {
             currentMapSwapper.runAgainstCurrentValue(new Function<ConcurrentMapWithLogging, Void>() {
                 @Override
                 public Void apply(ConcurrentMapWithLogging currentMap) {
-                    if (getFromMapBeingFlushed(startTimestamp) != null)
+                    if (getFromMapBeingFlushed(startTimestamp) != null) {
                         throw new KeyAlreadyExistsException("Key " + startTimestamp + " already exists and is mapped to " + commitTimestamp);
-                    if (kvsWrapper.get(startTimestamp) != null)
+                    }
+                    if (kvsWrapper.get(startTimestamp) != null) {
                         throw new KeyAlreadyExistsException("Key " + startTimestamp + " already exists and is mapped to " + commitTimestamp);
+                    }
                     currentMap.putUnlessExists(startTimestamp, commitTimestamp);
                     return null;
                 }
@@ -207,6 +210,15 @@ public class TransactionServiceImpl implements TransactionService {
             return null;
         else
             return map.get(startTimestamp);
+    }
+
+    // The log has to be closed
+    public static void flushLog(TransactionKVSWrapper kvWrapper, WriteAheadLog log) {
+        Map<Long, Long> map = new HashMap<Long, Long>();
+        for (TransactionLogEntry entry: log) {
+            map.put(entry.getStartTimestamp(), entry.getCommitTimestamp());
+        }
+        kvWrapper.putAll(map);
     }
 
 }
