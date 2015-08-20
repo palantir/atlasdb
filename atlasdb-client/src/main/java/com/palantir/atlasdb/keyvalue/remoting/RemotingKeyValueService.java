@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.remoting;
 
+import static com.palantir.atlasdb.keyvalue.remoting.RangeIterator.validateIsRangeIterator;
+
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -59,7 +61,7 @@ class RemotingKeyValueService extends ForwardingKeyValueService {
                                                                RangeRequest rangeRequest,
                                                                long timestamp) {
                 return PopulateServiceContextProxy.newProxyInstanceWithConstantValue(ClosableIterator.class,
-                        RangeIterator.validateIsRangeIterator(super.getRange(tableName, rangeRequest, timestamp)),
+                        validateIsRangeIterator(super.getRange(tableName, rangeRequest, timestamp)),
                         remoteService, serviceContext);
             }
 
@@ -68,7 +70,7 @@ class RemotingKeyValueService extends ForwardingKeyValueService {
                                                                                RangeRequest rangeRequest,
                                                                                long timestamp) {
                 return PopulateServiceContextProxy.newProxyInstanceWithConstantValue(ClosableIterator.class,
-                        RangeIterator.validateIsRangeIterator(super.getRangeWithHistory(tableName, rangeRequest, timestamp)),
+                        validateIsRangeIterator(super.getRangeWithHistory(tableName, rangeRequest, timestamp)),
                         remoteService, serviceContext);
             }
 
@@ -77,19 +79,19 @@ class RemotingKeyValueService extends ForwardingKeyValueService {
                                                                                RangeRequest rangeRequest,
                                                                                long timestamp) {
                 return PopulateServiceContextProxy.newProxyInstanceWithConstantValue(ClosableIterator.class,
-                        RangeIterator.validateIsRangeIterator(super.getRangeOfTimestamps(tableName, rangeRequest, timestamp)),
+                        validateIsRangeIterator(super.getRangeOfTimestamps(tableName, rangeRequest, timestamp)),
                         remoteService, serviceContext);
             }
         };
     }
 
     public static KeyValueService createClientSide(String uri) {
-        return Feign.builder()
+        return createClientSide(Feign.builder()
                 .encoder(new JacksonEncoder(kvsMapper()))
                 .decoder(new EmptyOctetStreamDelegateDecoder(new JacksonDecoder(kvsMapper())))
                 .errorDecoder(new KeyValueServiceErrorDecoder())
                 .contract(new JAXRSContract())
-                .target(KeyValueService.class, uri);
+                .target(KeyValueService.class, uri));
     }
 
     public static KeyValueService createServerSide(KeyValueService delegate) {
