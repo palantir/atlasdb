@@ -28,10 +28,6 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.AbstractAtlasDbKeyValueServiceTest;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 
-import feign.Feign;
-import feign.jackson.JacksonDecoder;
-import feign.jackson.JacksonEncoder;
-import feign.jaxrs.JAXRSContract;
 import io.dropwizard.Configuration;
 import io.dropwizard.testing.DropwizardTestSupport;
 import io.dropwizard.testing.junit.DropwizardClientRule;
@@ -112,12 +108,7 @@ public class KeyValueServiceRemotingTest extends AbstractAtlasDbKeyValueServiceT
     protected KeyValueService getKeyValueService() {
         if (localKvs == null) {
             String uri = Rule.baseUri().toString();
-            localKvs = RemotingKeyValueService.createClientSide(Feign.builder()
-                    .encoder(new JacksonEncoder(mapper))
-                    .decoder(new EmptyOctetStreamDelegateDecoder(new JacksonDecoder(mapper)))
-                    .errorDecoder(new KeyValueServiceErrorDecoder())
-                    .contract(new JAXRSContract())
-                    .target(KeyValueService.class, uri));
+            localKvs = RemotingKeyValueService.createClientSide(uri);
         }
         return Preconditions.checkNotNull(localKvs);
     }
