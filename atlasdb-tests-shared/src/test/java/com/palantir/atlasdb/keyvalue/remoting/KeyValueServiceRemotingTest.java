@@ -4,8 +4,8 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.util.Arrays;
 import java.util.Map;
+import java.util.SortedMap;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.junit.Assert;
@@ -13,13 +13,18 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
+import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.AbstractAtlasDbKeyValueServiceTest;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 
@@ -33,8 +38,8 @@ import io.dropwizard.testing.junit.DropwizardClientRule;
 
 public class KeyValueServiceRemotingTest extends AbstractAtlasDbKeyValueServiceTest {
 
-    final KeyValueService remoteKvs = RemotingKeyValueService.createServerSide(
-            new InMemoryKeyValueService(false));
+    final KeyValueService remoteKvs = RemotingKeyValueService.createServerSide(new InMemoryKeyValueService(
+            false));
 
     @Rule
     public final DropwizardClientRule Rule = new DropwizardClientRule(
@@ -63,24 +68,37 @@ public class KeyValueServiceRemotingTest extends AbstractAtlasDbKeyValueServiceT
     public void testSerialize() throws IOException {
         Cell cell = Cell.create(row0, column0);
         String serializedCell = mapper.writeValueAsString(cell);
-        System.err.println("serializedCell = " + serializedCell);
         Cell cellDeserialized = mapper.readValue(serializedCell, Cell.class);
         assertEquals(cell, cellDeserialized);
 
         byte[] row = row0;
         String serializedRow = mapper.writeValueAsString(row);
-        System.err.println("serializedRow = " + serializedRow);
         byte[] rowDeserialized = mapper.readValue(serializedRow, byte[].class);
         Assert.assertArrayEquals(row, rowDeserialized);
 
         Map<Cell, byte[]> cellMap = ImmutableMap.of(cell, value00);
-        String serializedMap =  mapper.writerFor(mapper.getTypeFactory().constructMapType(Map.class, Cell.class, byte[].class)).writeValueAsString(cellMap);
-        System.err.println("serializedMap = " + serializedMap);
-        Map<Cell, byte[]> cellMapDeserialized = mapper.readValue(serializedMap, mapper.getTypeFactory().constructMapType(Map.class, Cell.class, byte[].class));
+        String serializedMap = mapper.writerFor(
+                mapper.getTypeFactory().constructMapType(Map.class, Cell.class, byte[].class)).writeValueAsString(
+                cellMap);
+        Map<Cell, byte[]> cellMapDeserialized = mapper.readValue(
+                serializedMap,
+                mapper.getTypeFactory().constructMapType(Map.class, Cell.class, byte[].class));
         assertEquals(cellMap.size(), cellMapDeserialized.size());
         assertEquals(cellMap.keySet(), cellMapDeserialized.keySet());
-        System.err.println("" + Arrays.toString(row) + " vs. " + Arrays.toString(cellMapDeserialized.values().iterator().next()));
         Assert.assertArrayEquals(value00, cellMapDeserialized.values().iterator().next());
+
+        Value value = Value.create(value00, TEST_TIMESTAMP);
+        String serializedValue = mapper.writeValueAsString(value);
+        Value valueDeserialized = mapper.readValue(serializedValue, Value.class);
+        assertEquals(valueDeserialized, value);
+
+        SortedMap<byte[], Value> cells = ImmutableSortedMap.<byte[], Value> orderedBy(
+                UnsignedBytes.lexicographicalComparator()).put(row0, value).build();
+        RowResult<Value> rowResult = RowResult.create(row0, cells);
+        String serializedRowResult = mapper.writeValueAsString(rowResult);
+        JavaType rowResultType = mapper.getTypeFactory().constructParametrizedType(RowResult.class, RowResult.class, Value.class);
+        RowResult<Value> rowResultDeserialized = mapper.readValue(serializedRowResult, rowResultType);
+        assertEquals(rowResult, rowResultDeserialized);
     }
 
     @Test
