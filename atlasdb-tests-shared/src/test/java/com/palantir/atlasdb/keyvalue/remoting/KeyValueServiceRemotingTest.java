@@ -115,6 +115,7 @@ public class KeyValueServiceRemotingTest extends AbstractAtlasDbKeyValueServiceT
             localKvs = RemotingKeyValueService.createClientSide(Feign.builder()
                     .encoder(new JacksonEncoder(mapper))
                     .decoder(new EmptyOctetStreamDelegateDecoder(new JacksonDecoder(mapper)))
+                    .errorDecoder(new KeyValueServiceErrorDecoder())
                     .contract(new JAXRSContract())
                     .target(KeyValueService.class, uri));
         }
