@@ -79,7 +79,7 @@ public class AtlasShellConnectionDialogView {
     @Bound(to = "typeList")
     @BoundSelection(to = "typeText")
     @Action(call = "typeChanged")
-    private final JComboBox typeText = createJComboBox();
+    private final JComboBox<?> typeText = createJComboBox();
 
     public void typeChanged() {
         AtlasShellConnectionType connectionType =
@@ -155,8 +155,8 @@ public class AtlasShellConnectionDialogView {
         return textField;
     }
 
-    private JComboBox createJComboBox() {
-        JComboBox comboBox = new JComboBox();
+    private JComboBox<?> createJComboBox() {
+        JComboBox<?> comboBox = new JComboBox<>();
         comboBox.setMaximumSize(new Dimension(
                 Integer.MAX_VALUE,
                 DEFAULT_COL_SIZE));
