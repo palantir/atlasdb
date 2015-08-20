@@ -29,7 +29,6 @@ final class EmptyOctetStreamDelegateDecoder implements Decoder {
         if (contentTypes != null
             && contentTypes.size() == 1
             && Iterables.getOnlyElement(contentTypes, "").equals(MediaType.APPLICATION_OCTET_STREAM)) {
-            feign.Response.Body body = response.body();
             if (response.body() == null || response.body().length() == null) {
               return null;
             }

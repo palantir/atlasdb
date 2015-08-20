@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.remoting;
 
-import static com.palantir.atlasdb.keyvalue.remoting.RangeIterator.validateIsRangeIterator;
-
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -55,31 +53,31 @@ class RemotingKeyValueService extends ForwardingKeyValueService {
                 return remoteService;
             }
 
-            @SuppressWarnings("unchecked") @Override
+            @SuppressWarnings("unchecked")
+            private <T extends ClosableIterator<?>> T withKvs(T it) {
+                return (T) PopulateServiceContextProxy.newProxyInstanceWithConstantValue(
+                        ClosableIterator.class, it, delegate(), serviceContext);
+            }
+
+            @Override
             public ClosableIterator<RowResult<Value>> getRange(String tableName,
                                                                RangeRequest rangeRequest,
                                                                long timestamp) {
-                return PopulateServiceContextProxy.newProxyInstanceWithConstantValue(ClosableIterator.class,
-                        validateIsRangeIterator(super.getRange(tableName, rangeRequest, timestamp)),
-                        remoteService, serviceContext);
+                return withKvs(super.getRange(tableName, rangeRequest, timestamp));
             }
 
-            @SuppressWarnings("unchecked") @Override
+            @Override
             public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(String tableName,
                                                                                RangeRequest rangeRequest,
                                                                                long timestamp) {
-                return PopulateServiceContextProxy.newProxyInstanceWithConstantValue(ClosableIterator.class,
-                        validateIsRangeIterator(super.getRangeWithHistory(tableName, rangeRequest, timestamp)),
-                        remoteService, serviceContext);
+                return withKvs(super.getRangeWithHistory(tableName, rangeRequest, timestamp));
             }
 
-            @SuppressWarnings("unchecked") @Override
+            @Override
             public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(String tableName,
                                                                                RangeRequest rangeRequest,
                                                                                long timestamp) {
-                return PopulateServiceContextProxy.newProxyInstanceWithConstantValue(ClosableIterator.class,
-                        validateIsRangeIterator(super.getRangeOfTimestamps(tableName, rangeRequest, timestamp)),
-                        remoteService, serviceContext);
+                return withKvs(super.getRangeOfTimestamps(tableName, rangeRequest, timestamp));
             }
         };
     }
@@ -88,7 +86,7 @@ class RemotingKeyValueService extends ForwardingKeyValueService {
         return createClientSide(Feign.builder()
                 .encoder(new JacksonEncoder(kvsMapper()))
                 .decoder(new EmptyOctetStreamDelegateDecoder(new JacksonDecoder(kvsMapper())))
-                .errorDecoder(new KeyValueServiceErrorDecoder())
+                .errorDecoder(KeyValueServiceErrorDecoder.instance())
                 .contract(new JAXRSContract())
                 .target(KeyValueService.class, uri));
     }

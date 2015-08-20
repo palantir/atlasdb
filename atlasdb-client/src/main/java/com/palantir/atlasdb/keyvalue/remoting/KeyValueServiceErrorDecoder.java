@@ -8,9 +8,15 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import feign.Response;
 import feign.codec.ErrorDecoder;
 
-public class KeyValueServiceErrorDecoder implements ErrorDecoder {
+public final class KeyValueServiceErrorDecoder implements ErrorDecoder {
 
     private static final ErrorDecoder defaultDecoder = new ErrorDecoder.Default();
+    private static final KeyValueServiceErrorDecoder instance = new KeyValueServiceErrorDecoder();
+
+    private KeyValueServiceErrorDecoder() {}
+    public static KeyValueServiceErrorDecoder instance() {
+        return instance;
+    }
 
     @Override
     public Exception decode(String methodKey, Response response) {
