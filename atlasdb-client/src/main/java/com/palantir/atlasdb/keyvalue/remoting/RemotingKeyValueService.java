@@ -37,6 +37,11 @@ import com.palantir.common.supplier.PopulateServiceContextProxy;
 import com.palantir.common.supplier.ServiceContext;
 import com.palantir.util.Pair;
 
+import feign.Feign;
+import feign.jackson.JacksonDecoder;
+import feign.jackson.JacksonEncoder;
+import feign.jaxrs.JAXRSContract;
+
 class RemotingKeyValueService extends ForwardingKeyValueService {
     // TODO: Why can this thing be static?
     final static ServiceContext<KeyValueService> serviceContext = ExecutorInheritableServiceContext.create();
@@ -76,6 +81,15 @@ class RemotingKeyValueService extends ForwardingKeyValueService {
                         remoteService, serviceContext);
             }
         };
+    }
+
+    public static KeyValueService createClientSide(String uri) {
+        return Feign.builder()
+                .encoder(new JacksonEncoder(kvsMapper()))
+                .decoder(new EmptyOctetStreamDelegateDecoder(new JacksonDecoder(kvsMapper())))
+                .errorDecoder(new KeyValueServiceErrorDecoder())
+                .contract(new JAXRSContract())
+                .target(KeyValueService.class, uri);
     }
 
     public static KeyValueService createServerSide(KeyValueService delegate) {
