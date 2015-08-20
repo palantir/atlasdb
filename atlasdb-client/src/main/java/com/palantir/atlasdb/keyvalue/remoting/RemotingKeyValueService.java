@@ -45,7 +45,6 @@ import feign.jackson.JacksonEncoder;
 import feign.jaxrs.JAXRSContract;
 
 class RemotingKeyValueService extends ForwardingKeyValueService {
-    // TODO: Why can this thing be static?
     final static ServiceContext<KeyValueService> serviceContext = ExecutorInheritableServiceContext.create();
     final KeyValueService delegate;
 
