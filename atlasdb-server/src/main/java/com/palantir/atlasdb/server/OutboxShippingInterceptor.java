@@ -30,6 +30,7 @@ import feign.RequestTemplate;
 
 public class OutboxShippingInterceptor implements RequestInterceptor {
     final ObjectMapper mapper;
+    public static final String CONTEXT_HEADER_NAME = "SERVICE_CONTEXT_OUT_OF_BAND";
 
     public OutboxShippingInterceptor(ObjectMapper mapper) {
         this.mapper = mapper;
@@ -46,7 +47,7 @@ public class OutboxShippingInterceptor implements RequestInterceptor {
         }
         try {
             String headerString = mapper.writeValueAsString(toSerialize);
-            template.header("SERVICE_CONEXT_OUT_OF_BAND", headerString);
+            template.header(CONTEXT_HEADER_NAME, headerString);
         } catch (JsonProcessingException e) {
             throw Throwables.throwUncheckedException(e);
         }

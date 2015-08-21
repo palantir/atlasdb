@@ -46,12 +46,13 @@ public class InboxPopulatingContainerRequestFilter implements ContainerRequestFi
     @Override
     public void filter(ContainerRequestContext requestContext) throws IOException {
         AbstractWritableServiceContext<Map<RemoteContextType<?>, Object>> holderContext = (AbstractWritableServiceContext<Map<RemoteContextType<?>, Object>>) RemoteContextHolder.INBOX.getHolderContext();
-        if (!requestContext.getHeaders().containsKey("SERVICE_CONEXT_OUT_OF_BAND")) {
+        if (!requestContext.getHeaders().containsKey(OutboxShippingInterceptor.CONTEXT_HEADER_NAME)) {
             holderContext.set(null);
             return;
         }
         Map<RemoteContextType<?>, Object> map = Maps.newHashMap();
-        String header = requestContext.getHeaders().get("SERVICE_CONEXT_OUT_OF_BAND").iterator().next();
+        String header = requestContext.getHeaders().get(
+                OutboxShippingInterceptor.CONTEXT_HEADER_NAME).iterator().next();
         JsonNode node = mapper.readTree(header);
         Iterator<String> it = node.fieldNames();
         while (it.hasNext()) {
