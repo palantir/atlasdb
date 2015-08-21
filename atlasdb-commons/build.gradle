@@ -13,4 +13,6 @@ dependencies {
     compile group: 'com.google.guava', name: 'guava', version: libVersions.guava
     compile group: 'org.slf4j', name: 'slf4j-api', version: libVersions.slf4j
     compile(project(":commons-executors"))
+    compile 'javax.ws.rs:javax.ws.rs-api:2.0.1'
+    compile 'com.fasterxml.jackson.core:jackson-annotations:' + libVersions.jackson
 }
