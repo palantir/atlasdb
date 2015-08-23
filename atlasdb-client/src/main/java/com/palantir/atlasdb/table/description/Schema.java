@@ -290,7 +290,7 @@ public class Schema {
         Preconditions.checkNotNull(name, "schema name not set");
         Preconditions.checkNotNull(packageName, "package name not set");
 
-        TableRenderer tableRenderer = new TableRenderer(packageName, namespace);
+        TableRenderer tableRenderer = new TableRenderer(packageName);
         for (Entry<String, TableDefinition> entry : tableDefinitions.entrySet()) {
             String rawTableName = entry.getKey();
             TableDefinition table = entry.getValue();
@@ -340,6 +340,7 @@ public class Schema {
                 new TableFactoryRenderer(
                         name,
                         packageName,
+                        namespace,
                         tableDefinitions);
         emit(srcDir,
              tableFactoryRenderer.render(),

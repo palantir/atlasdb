@@ -48,6 +48,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
+import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
@@ -86,27 +87,35 @@ public final class UserPhotosStreamIdxTable implements
                                                 UserPhotosStreamIdxTable.UserPhotosStreamIdxRowResult> {
     private final Transaction t;
     private final List<UserPhotosStreamIdxTrigger> triggers;
-    private final static String tableName = "user_photos_stream_idx";
+    private final static String rawTableName = "user_photos_stream_idx";
+    private final String tableName;
+    private final Namespace namespace;
 
-    static UserPhotosStreamIdxTable of(Transaction t) {
-        return new UserPhotosStreamIdxTable(t, ImmutableList.<UserPhotosStreamIdxTrigger>of());
+    static UserPhotosStreamIdxTable of(Transaction t, Namespace namespace) {
+        return new UserPhotosStreamIdxTable(t, namespace, ImmutableList.<UserPhotosStreamIdxTrigger>of());
     }
 
-    static UserPhotosStreamIdxTable of(Transaction t, UserPhotosStreamIdxTrigger trigger, UserPhotosStreamIdxTrigger... triggers) {
-        return new UserPhotosStreamIdxTable(t, ImmutableList.<UserPhotosStreamIdxTrigger>builder().add(trigger).add(triggers).build());
+    static UserPhotosStreamIdxTable of(Transaction t, Namespace namespace, UserPhotosStreamIdxTrigger trigger, UserPhotosStreamIdxTrigger... triggers) {
+        return new UserPhotosStreamIdxTable(t, namespace, ImmutableList.<UserPhotosStreamIdxTrigger>builder().add(trigger).add(triggers).build());
     }
 
-    static UserPhotosStreamIdxTable of(Transaction t, List<UserPhotosStreamIdxTrigger> triggers) {
-        return new UserPhotosStreamIdxTable(t, triggers);
+    static UserPhotosStreamIdxTable of(Transaction t, Namespace namespace, List<UserPhotosStreamIdxTrigger> triggers) {
+        return new UserPhotosStreamIdxTable(t, namespace, triggers);
     }
 
-    private UserPhotosStreamIdxTable(Transaction t, List<UserPhotosStreamIdxTrigger> triggers) {
+    private UserPhotosStreamIdxTable(Transaction t, Namespace namespace, List<UserPhotosStreamIdxTrigger> triggers) {
         this.t = t;
+        this.tableName = namespace.getName() + "." + rawTableName;
         this.triggers = triggers;
+        this.namespace = namespace;
     }
 
-    public static String getTableName() {
+    public String getTableName() {
         return tableName;
+    }
+
+    public Namespace getNamespace() {
+        return namespace;
     }
 
     /**
@@ -648,6 +657,7 @@ public final class UserPhotosStreamIdxTable implements
      * {@link Multimap}
      * {@link Multimaps}
      * {@link NamedColumnValue}
+     * {@link Namespace}
      * {@link Objects}
      * {@link Optional}
      * {@link Persistable}
@@ -667,5 +677,5 @@ public final class UserPhotosStreamIdxTable implements
      * {@link TypedRowResult}
      * {@link UnsignedBytes}
      */
-    static String __CLASS_HASH = "7rAxdKVw4tNsNCfgZ1LHBg==";
+    static String __CLASS_HASH = "JA0VEljfZnPkZ+H3ePi8IA==";
 }
