@@ -1,18 +1,3 @@
-/**
- * Copyright 2015 Palantir Technologies
- *
- * Licensed under the BSD-3 License (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://opensource.org/licenses/BSD-3-Clause
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package com.palantir.example.profile.schema.generated;
 
 import java.util.Arrays;
@@ -61,6 +46,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
+import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
@@ -101,27 +87,35 @@ public final class UserProfileTable implements
                                     UserProfileTable.UserProfileRowResult> {
     private final Transaction t;
     private final List<UserProfileTrigger> triggers;
-    private final static String tableName = "user_profile";
+    private final static String rawTableName = "user_profile";
+    private final String tableName;
+    private final Namespace namespace;
 
-    static UserProfileTable of(Transaction t) {
-        return new UserProfileTable(t, ImmutableList.<UserProfileTrigger>of());
+    static UserProfileTable of(Transaction t, Namespace namespace) {
+        return new UserProfileTable(t, namespace, ImmutableList.<UserProfileTrigger>of());
     }
 
-    static UserProfileTable of(Transaction t, UserProfileTrigger trigger, UserProfileTrigger... triggers) {
-        return new UserProfileTable(t, ImmutableList.<UserProfileTrigger>builder().add(trigger).add(triggers).build());
+    static UserProfileTable of(Transaction t, Namespace namespace, UserProfileTrigger trigger, UserProfileTrigger... triggers) {
+        return new UserProfileTable(t, namespace, ImmutableList.<UserProfileTrigger>builder().add(trigger).add(triggers).build());
     }
 
-    static UserProfileTable of(Transaction t, List<UserProfileTrigger> triggers) {
-        return new UserProfileTable(t, triggers);
+    static UserProfileTable of(Transaction t, Namespace namespace, List<UserProfileTrigger> triggers) {
+        return new UserProfileTable(t, namespace, triggers);
     }
 
-    private UserProfileTable(Transaction t, List<UserProfileTrigger> triggers) {
+    private UserProfileTable(Transaction t, Namespace namespace, List<UserProfileTrigger> triggers) {
         this.t = t;
+        this.tableName = namespace.getName() + "." + rawTableName;
         this.triggers = triggers;
+        this.namespace = namespace;
     }
 
-    public static String getTableName() {
+    public String getTableName() {
         return tableName;
+    }
+
+    public Namespace getNamespace() {
+        return namespace;
     }
 
     /**
@@ -535,7 +529,7 @@ public final class UserProfileTable implements
                 Metadata col = (Metadata) e.getValue();
                 {
                     UserProfileRow row = e.getKey();
-                    UserBirthdaysIdxTable table = UserBirthdaysIdxTable.of(t);
+                    UserBirthdaysIdxTable table = UserBirthdaysIdxTable.of(t, namespace);
                     long birthday = col.getValue().getBirthEpochDay();
                     long id = row.getId();
                     UserBirthdaysIdxTable.UserBirthdaysIdxRow indexRow = UserBirthdaysIdxTable.UserBirthdaysIdxRow.of(birthday);
@@ -574,7 +568,7 @@ public final class UserProfileTable implements
             UserBirthdaysIdxTable.UserBirthdaysIdxColumn indexCol = UserBirthdaysIdxTable.UserBirthdaysIdxColumn.of(row.persistToBytes(), col.persistColumnName(), id);
             indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
         }
-        t.delete("user_birthdays_idx", indexCells.build());
+        t.delete(namespace.getName() + ".user_birthdays_idx", indexCells.build());
     }
 
     public void deletePhotoStreamId(UserProfileRow row) {
@@ -745,7 +739,7 @@ public final class UserProfileTable implements
                 }
             }
         }
-        t.delete("user_birthdays_idx", indexCells.build());
+        t.delete(namespace.getName() + ".user_birthdays_idx", indexCells.build());
     }
 
     public BatchingVisitableView<UserProfileRowResult> getAllRowsUnordered() {
@@ -782,27 +776,35 @@ public final class UserProfileTable implements
                                                     UserBirthdaysIdxTable.UserBirthdaysIdxRowResult> {
         private final Transaction t;
         private final List<UserBirthdaysIdxTrigger> triggers;
-        private final static String tableName = "user_birthdays_idx";
+        private final static String rawTableName = "user_birthdays_idx";
+        private final String tableName;
+        private final Namespace namespace;
 
-        public static UserBirthdaysIdxTable of(Transaction t) {
-            return new UserBirthdaysIdxTable(t, ImmutableList.<UserBirthdaysIdxTrigger>of());
+        public static UserBirthdaysIdxTable of(Transaction t, Namespace namespace) {
+            return new UserBirthdaysIdxTable(t, namespace, ImmutableList.<UserBirthdaysIdxTrigger>of());
         }
 
-        public static UserBirthdaysIdxTable of(Transaction t, UserBirthdaysIdxTrigger trigger, UserBirthdaysIdxTrigger... triggers) {
-            return new UserBirthdaysIdxTable(t, ImmutableList.<UserBirthdaysIdxTrigger>builder().add(trigger).add(triggers).build());
+        public static UserBirthdaysIdxTable of(Transaction t, Namespace namespace, UserBirthdaysIdxTrigger trigger, UserBirthdaysIdxTrigger... triggers) {
+            return new UserBirthdaysIdxTable(t, namespace, ImmutableList.<UserBirthdaysIdxTrigger>builder().add(trigger).add(triggers).build());
         }
 
-        public static UserBirthdaysIdxTable of(Transaction t, List<UserBirthdaysIdxTrigger> triggers) {
-            return new UserBirthdaysIdxTable(t, triggers);
+        public static UserBirthdaysIdxTable of(Transaction t, Namespace namespace, List<UserBirthdaysIdxTrigger> triggers) {
+            return new UserBirthdaysIdxTable(t, namespace, triggers);
         }
 
-        private UserBirthdaysIdxTable(Transaction t, List<UserBirthdaysIdxTrigger> triggers) {
+        private UserBirthdaysIdxTable(Transaction t, Namespace namespace, List<UserBirthdaysIdxTrigger> triggers) {
             this.t = t;
+            this.tableName = namespace.getName() + "." + rawTableName;
             this.triggers = triggers;
+            this.namespace = namespace;
         }
 
-        public static String getTableName() {
+        public String getTableName() {
             return tableName;
+        }
+
+        public Namespace getNamespace() {
+            return namespace;
         }
 
         /**
@@ -1030,7 +1032,7 @@ public final class UserProfileTable implements
          *   {@literal byte[] rowName};
          *   {@literal byte[] columnName};
          *   {@literal Long id};
-         * } 
+         * }
          * Column value description {
          *   type: Long;
          * }
@@ -1415,6 +1417,7 @@ public final class UserProfileTable implements
      * {@link Multimap}
      * {@link Multimaps}
      * {@link NamedColumnValue}
+     * {@link Namespace}
      * {@link Objects}
      * {@link Optional}
      * {@link Persistable}
@@ -1434,5 +1437,5 @@ public final class UserProfileTable implements
      * {@link TypedRowResult}
      * {@link UnsignedBytes}
      */
-    static String __CLASS_HASH = "L+6b+QKYNSI5433jKguIKQ==";
+    static String __CLASS_HASH = "F3qDzb7oAp0TTJ/3TBGgxA==";
 }

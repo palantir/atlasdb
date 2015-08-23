@@ -1,18 +1,3 @@
-/**
- * Copyright 2015 Palantir Technologies
- *
- * Licensed under the BSD-3 License (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://opensource.org/licenses/BSD-3-Clause
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package com.palantir.example.profile.schema.generated;
 
 import java.util.Arrays;
@@ -28,6 +13,8 @@ import java.util.SortedMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+
+
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -61,6 +48,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
+import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
@@ -101,27 +89,35 @@ public final class UserPhotosStreamMetadataTable implements
                                     UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRowResult> {
     private final Transaction t;
     private final List<UserPhotosStreamMetadataTrigger> triggers;
-    private final static String tableName = "user_photos_stream_metadata";
+    private final static String rawTableName = "user_photos_stream_metadata";
+    private final String tableName;
+    private final Namespace namespace;
 
-    static UserPhotosStreamMetadataTable of(Transaction t) {
-        return new UserPhotosStreamMetadataTable(t, ImmutableList.<UserPhotosStreamMetadataTrigger>of());
+    static UserPhotosStreamMetadataTable of(Transaction t, Namespace namespace) {
+        return new UserPhotosStreamMetadataTable(t, namespace, ImmutableList.<UserPhotosStreamMetadataTrigger>of());
     }
 
-    static UserPhotosStreamMetadataTable of(Transaction t, UserPhotosStreamMetadataTrigger trigger, UserPhotosStreamMetadataTrigger... triggers) {
-        return new UserPhotosStreamMetadataTable(t, ImmutableList.<UserPhotosStreamMetadataTrigger>builder().add(trigger).add(triggers).build());
+    static UserPhotosStreamMetadataTable of(Transaction t, Namespace namespace, UserPhotosStreamMetadataTrigger trigger, UserPhotosStreamMetadataTrigger... triggers) {
+        return new UserPhotosStreamMetadataTable(t, namespace, ImmutableList.<UserPhotosStreamMetadataTrigger>builder().add(trigger).add(triggers).build());
     }
 
-    static UserPhotosStreamMetadataTable of(Transaction t, List<UserPhotosStreamMetadataTrigger> triggers) {
-        return new UserPhotosStreamMetadataTable(t, triggers);
+    static UserPhotosStreamMetadataTable of(Transaction t, Namespace namespace, List<UserPhotosStreamMetadataTrigger> triggers) {
+        return new UserPhotosStreamMetadataTable(t, namespace, triggers);
     }
 
-    private UserPhotosStreamMetadataTable(Transaction t, List<UserPhotosStreamMetadataTrigger> triggers) {
+    private UserPhotosStreamMetadataTable(Transaction t, Namespace namespace, List<UserPhotosStreamMetadataTrigger> triggers) {
         this.t = t;
+        this.tableName = namespace.getName() + "." + rawTableName;
         this.triggers = triggers;
+        this.namespace = namespace;
     }
 
-    public static String getTableName() {
+    public String getTableName() {
         return tableName;
+    }
+
+    public Namespace getNamespace() {
+        return namespace;
     }
 
     /**
@@ -650,6 +646,7 @@ public final class UserPhotosStreamMetadataTable implements
      * {@link Multimap}
      * {@link Multimaps}
      * {@link NamedColumnValue}
+     * {@link Namespace}
      * {@link Objects}
      * {@link Optional}
      * {@link Persistable}
@@ -669,5 +666,5 @@ public final class UserPhotosStreamMetadataTable implements
      * {@link TypedRowResult}
      * {@link UnsignedBytes}
      */
-    static String __CLASS_HASH = "MBZlbz/1eMLpFQxymW2+nA==";
+    static String __CLASS_HASH = "peWAEkC3GVWa3eZfEWqUOw==";
 }

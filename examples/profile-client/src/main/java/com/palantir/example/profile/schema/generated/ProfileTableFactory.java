@@ -1,18 +1,3 @@
-/**
- * Copyright 2015 Palantir Technologies
- *
- * Licensed under the BSD-3 License (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://opensource.org/licenses/BSD-3-Clause
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package com.palantir.example.profile.schema.generated;
 
 import java.util.List;
@@ -20,42 +5,54 @@ import java.util.List;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
+import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.table.generation.Triggers;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
 public class ProfileTableFactory {
+    private final static Namespace defaultNamespace = Namespace.create("default");
     private final List<Function<? super Transaction, SharedTriggers>> sharedTriggers;
+    private final Namespace namespace;
 
-    public static ProfileTableFactory of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {
-        return new ProfileTableFactory(sharedTriggers);
+    public static ProfileTableFactory of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers, Namespace namespace) {
+        return new ProfileTableFactory(sharedTriggers, namespace);
     }
 
-    private ProfileTableFactory(List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {
+    public static ProfileTableFactory of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {
+        return new ProfileTableFactory(sharedTriggers, defaultNamespace);
+    }
+
+    private ProfileTableFactory(List<Function<? super Transaction, SharedTriggers>> sharedTriggers, Namespace namespace) {
         this.sharedTriggers = sharedTriggers;
+        this.namespace = namespace;
+    }
+
+    public static ProfileTableFactory of(Namespace namespace) {
+        return of(ImmutableList.<Function<? super Transaction, SharedTriggers>>of(), namespace);
     }
 
     public static ProfileTableFactory of() {
-        return of(ImmutableList.<Function<? super Transaction, SharedTriggers>>of());
+        return of(ImmutableList.<Function<? super Transaction, SharedTriggers>>of(), defaultNamespace);
     }
 
     public UserPhotosStreamHashAidxTable getUserPhotosStreamHashAidxTable(Transaction t, UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxTrigger... triggers) {
-        return UserPhotosStreamHashAidxTable.of(t, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+        return UserPhotosStreamHashAidxTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
     public UserPhotosStreamIdxTable getUserPhotosStreamIdxTable(Transaction t, UserPhotosStreamIdxTable.UserPhotosStreamIdxTrigger... triggers) {
-        return UserPhotosStreamIdxTable.of(t, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+        return UserPhotosStreamIdxTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
     public UserPhotosStreamMetadataTable getUserPhotosStreamMetadataTable(Transaction t, UserPhotosStreamMetadataTable.UserPhotosStreamMetadataTrigger... triggers) {
-        return UserPhotosStreamMetadataTable.of(t, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+        return UserPhotosStreamMetadataTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
     public UserPhotosStreamValueTable getUserPhotosStreamValueTable(Transaction t, UserPhotosStreamValueTable.UserPhotosStreamValueTrigger... triggers) {
-        return UserPhotosStreamValueTable.of(t, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+        return UserPhotosStreamValueTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
     public UserProfileTable getUserProfileTable(Transaction t, UserProfileTable.UserProfileTrigger... triggers) {
-        return UserProfileTable.of(t, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+        return UserProfileTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
     public interface SharedTriggers extends
