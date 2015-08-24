@@ -74,7 +74,7 @@ public class DynamicColumnValueRenderer extends Renderer {
             boolean descending = comp.getOrder() == ValueByteOrder.DESCENDING;
             _(" *   {@literal ", descending ? "@Descending " : "",  TypeName(comp), " ", varName(comp), "};");
         }
-        _(" * } ");
+        _(" * }", "");
         _(" * Column value description {", "");
         _(" *   type: ", val.getJavaObjectTypeName(), ";");
         if (val.getProtoDescriptor() != null) {

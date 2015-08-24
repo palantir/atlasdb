@@ -129,6 +129,7 @@ public class TableRenderer {
         private final String raw_table_name;
         private final boolean isGeneric;
         private final boolean isNestedIndex;
+        private final String outerTable;
         private final String Table;
         private final String Row;
         private final String Column;
@@ -146,6 +147,7 @@ public class TableRenderer {
             this.raw_table_name = rawTableName;
             this.isGeneric = table.getGenericTableName() != null;
             this.isNestedIndex = false;
+            this.outerTable = null;
             this.Table = tableName + "Table";
             this.Row = tableName + "Row";
             this.Column = tableName + (isDynamic(this.table) ? "Column" : "NamedColumn");
@@ -154,7 +156,7 @@ public class TableRenderer {
             this.Trigger = tableName + "Trigger";
         }
 
-        public ClassRenderer(Renderer parent, IndexMetadata index) {
+        public ClassRenderer(Renderer parent, String outerTable, IndexMetadata index) {
             super(parent);
             this.tableName = Renderers.getIndexTableName(index);
             this.table = index.getTableMetadata();
@@ -163,6 +165,7 @@ public class TableRenderer {
             this.raw_table_name = index.getIndexName();
             this.isGeneric = false;
             this.isNestedIndex = true;
+            this.outerTable = outerTable;
             this.Table = tableName + "Table";
             this.Row = tableName + "Row";
             this.Column = tableName + (isDynamic(this.table) ? "Column" : "NamedColumn");
@@ -256,7 +259,7 @@ public class TableRenderer {
                 renderFindConstraintFailures();
                 for (IndexMetadata index : indices) {
                     _();
-                    new ClassRenderer(this, index).run();
+                    new ClassRenderer(this, Table, index).run();
                 }
                 if (!isNestedIndex) {
                     _();
@@ -355,17 +358,31 @@ public class TableRenderer {
         }
 
         private void staticFactories() {
-            _(isNestedIndex ? "public " : "", "static ", Table, " of(Transaction t, Namespace namespace", isGeneric ? ", String tableName" : "", ") {"); {
-                _("return new ", Table, "(t, namespace", isGeneric ? ", tableName" : "", ", ImmutableList.<", Trigger, ">of());");
-            } _("}");
-            _();
-            _(isNestedIndex ? "public " : "", "static ", Table, " of(Transaction t, Namespace namespace", isGeneric ? ", String tableName" : "", ", ", Trigger, " trigger, ", Trigger, "... triggers) {"); {
-                _("return new ", Table, "(t, namespace", isGeneric ? ", tableName" : "", ", ImmutableList.<", Trigger, ">builder().add(trigger).add(triggers).build());");
-            } _("}");
-            _();
-            _(isNestedIndex ? "public " : "", "static ", Table, " of(Transaction t, Namespace namespace", isGeneric ? ", String tableName" : "", ", List<", Trigger, "> triggers) {"); {
-                _("return new ", Table, "(t, namespace", isGeneric ? ", tableName" : "", ", triggers);");
-            } _("}");
+            if (isNestedIndex) {
+                _("public static ", Table, " of(", outerTable, " table", isGeneric ? ", String tableName" : "", ") {"); {
+                    _("return new ", Table, "(table.t, table.namespace", isGeneric ? ", tableName" : "", ", ImmutableList.<", Trigger, ">of());");
+                } _("}");
+                _();
+                _("public static ", Table, " of(", outerTable, " table", isGeneric ? ", String tableName" : "", ", ", Trigger, " trigger, ", Trigger, "... triggers) {"); {
+                    _("return new ", Table, "(table.t, table.namespace", isGeneric ? ", tableName" : "", ", ImmutableList.<", Trigger, ">builder().add(trigger).add(triggers).build());");
+                } _("}");
+                _();
+                _("public static ", Table, " of(", outerTable, " table", isGeneric ? ", String tableName" : "", ", List<", Trigger, "> triggers) {"); {
+                    _("return new ", Table, "(table.t, table.namespace", isGeneric ? ", tableName" : "", ", triggers);");
+                } _("}");
+            } else {
+                _("static ", Table, " of(Transaction t, Namespace namespace", isGeneric ? ", String tableName" : "", ") {"); {
+                    _("return new ", Table, "(t, namespace", isGeneric ? ", tableName" : "", ", ImmutableList.<", Trigger, ">of());");
+                } _("}");
+                _();
+                _("static ", Table, " of(Transaction t, Namespace namespace", isGeneric ? ", String tableName" : "", ", ", Trigger, " trigger, ", Trigger, "... triggers) {"); {
+                    _("return new ", Table, "(t, namespace", isGeneric ? ", tableName" : "", ", ImmutableList.<", Trigger, ">builder().add(trigger).add(triggers).build());");
+                } _("}");
+                _();
+                _("static ", Table, " of(Transaction t, Namespace namespace", isGeneric ? ", String tableName" : "", ", List<", Trigger, "> triggers) {"); {
+                    _("return new ", Table, "(t, namespace", isGeneric ? ", tableName" : "", ", triggers);");
+                } _("}");
+            }
         }
 
         private void constructors() {
@@ -475,7 +492,7 @@ public class TableRenderer {
                 }
                 _("{"); {
                     _(Row, " row = e.getKey();");
-                    _(indexName, "Table table = ", indexName, "Table.of(t, namespace);");
+                    _(indexName, "Table table = ", indexName, "Table.of(this);");
                     for (IndexComponent component : index.getRowComponents()) {
                         String varName = renderIndexComponent(component);
                         rowArgumentNames.add(varName);
