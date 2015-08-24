@@ -14,6 +14,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
+
+
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -529,7 +531,7 @@ public final class UserProfileTable implements
                 Metadata col = (Metadata) e.getValue();
                 {
                     UserProfileRow row = e.getKey();
-                    UserBirthdaysIdxTable table = UserBirthdaysIdxTable.of(t, namespace);
+                    UserBirthdaysIdxTable table = UserBirthdaysIdxTable.of(this);
                     long birthday = col.getValue().getBirthEpochDay();
                     long id = row.getId();
                     UserBirthdaysIdxTable.UserBirthdaysIdxRow indexRow = UserBirthdaysIdxTable.UserBirthdaysIdxRow.of(birthday);
@@ -780,16 +782,16 @@ public final class UserProfileTable implements
         private final String tableName;
         private final Namespace namespace;
 
-        public static UserBirthdaysIdxTable of(Transaction t, Namespace namespace) {
-            return new UserBirthdaysIdxTable(t, namespace, ImmutableList.<UserBirthdaysIdxTrigger>of());
+        public static UserBirthdaysIdxTable of(UserProfileTable table) {
+            return new UserBirthdaysIdxTable(table.t, table.namespace, ImmutableList.<UserBirthdaysIdxTrigger>of());
         }
 
-        public static UserBirthdaysIdxTable of(Transaction t, Namespace namespace, UserBirthdaysIdxTrigger trigger, UserBirthdaysIdxTrigger... triggers) {
-            return new UserBirthdaysIdxTable(t, namespace, ImmutableList.<UserBirthdaysIdxTrigger>builder().add(trigger).add(triggers).build());
+        public static UserBirthdaysIdxTable of(UserProfileTable table, UserBirthdaysIdxTrigger trigger, UserBirthdaysIdxTrigger... triggers) {
+            return new UserBirthdaysIdxTable(table.t, table.namespace, ImmutableList.<UserBirthdaysIdxTrigger>builder().add(trigger).add(triggers).build());
         }
 
-        public static UserBirthdaysIdxTable of(Transaction t, Namespace namespace, List<UserBirthdaysIdxTrigger> triggers) {
-            return new UserBirthdaysIdxTable(t, namespace, triggers);
+        public static UserBirthdaysIdxTable of(UserProfileTable table, List<UserBirthdaysIdxTrigger> triggers) {
+            return new UserBirthdaysIdxTable(table.t, table.namespace, triggers);
         }
 
         private UserBirthdaysIdxTable(Transaction t, Namespace namespace, List<UserBirthdaysIdxTrigger> triggers) {
@@ -1437,5 +1439,5 @@ public final class UserProfileTable implements
      * {@link TypedRowResult}
      * {@link UnsignedBytes}
      */
-    static String __CLASS_HASH = "F3qDzb7oAp0TTJ/3TBGgxA==";
+    static String __CLASS_HASH = "IJ4nb/9FbZ+unmZQU2pNXA==";
 }

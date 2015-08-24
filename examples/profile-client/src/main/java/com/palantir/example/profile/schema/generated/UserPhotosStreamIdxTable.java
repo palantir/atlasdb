@@ -308,7 +308,7 @@ public final class UserPhotosStreamIdxTable implements
      * <pre>
      * Column name description {
      *   {@literal byte[] reference};
-     * } 
+     * }
      * Column value description {
      *   type: Long;
      * }
@@ -677,5 +677,5 @@ public final class UserPhotosStreamIdxTable implements
      * {@link TypedRowResult}
      * {@link UnsignedBytes}
      */
-    static String __CLASS_HASH = "JA0VEljfZnPkZ+H3ePi8IA==";
+    static String __CLASS_HASH = "X2BZ30IZTOV7WmQAf0TeOg==";
 }

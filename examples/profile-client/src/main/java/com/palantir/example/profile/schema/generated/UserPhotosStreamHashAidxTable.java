@@ -308,7 +308,7 @@ public final class UserPhotosStreamHashAidxTable implements
      * <pre>
      * Column name description {
      *   {@literal Long streamId};
-     * } 
+     * }
      * Column value description {
      *   type: Long;
      * }
@@ -677,5 +677,5 @@ public final class UserPhotosStreamHashAidxTable implements
      * {@link TypedRowResult}
      * {@link UnsignedBytes}
      */
-    static String __CLASS_HASH = "g1pHiKS/PpFc8Fjwn3lXEw==";
+    static String __CLASS_HASH = "eqtQfOWSe1Xq6+TtweZMJA==";
 }
