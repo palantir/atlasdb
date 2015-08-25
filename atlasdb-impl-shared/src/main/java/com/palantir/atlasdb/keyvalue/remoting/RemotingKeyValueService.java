@@ -31,6 +31,15 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
+import com.palantir.atlasdb.keyvalue.remoting.iterators.HistoryRangeIterator;
+import com.palantir.atlasdb.keyvalue.remoting.iterators.RangeIterator;
+import com.palantir.atlasdb.keyvalue.remoting.iterators.TimestampsRangeIterator;
+import com.palantir.atlasdb.keyvalue.remoting.iterators.ValueRangeIterator;
+import com.palantir.atlasdb.keyvalue.remoting.serialization.BytesAsKeyDeserializer;
+import com.palantir.atlasdb.keyvalue.remoting.serialization.CellAsKeyDeserializer;
+import com.palantir.atlasdb.keyvalue.remoting.serialization.RowResultDeserializer;
+import com.palantir.atlasdb.keyvalue.remoting.serialization.RowResultSerializer;
+import com.palantir.atlasdb.keyvalue.remoting.serialization.SaneAsKeySerializer;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.supplier.ExecutorInheritableServiceContext;
 import com.palantir.common.supplier.PopulateServiceContextProxy;
@@ -42,7 +51,7 @@ import feign.jackson.JacksonDecoder;
 import feign.jackson.JacksonEncoder;
 import feign.jaxrs.JAXRSContract;
 
-class RemotingKeyValueService extends ForwardingKeyValueService {
+public class RemotingKeyValueService extends ForwardingKeyValueService {
     final static ServiceContext<KeyValueService> serviceContext = ExecutorInheritableServiceContext.create();
     final KeyValueService delegate;
 
