@@ -1,4 +1,4 @@
-package com.palantir.atlasdb.keyvalue.remoting;
+package com.palantir.atlasdb.keyvalue.remoting.serialization;
 
 import java.io.IOException;
 import java.util.Iterator;
@@ -17,7 +17,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 
 @SuppressWarnings("rawtypes")
-final class RowResultDeserializer extends JsonDeserializer<RowResult> {
+public final class RowResultDeserializer extends JsonDeserializer<RowResult> {
 
     @Override
     public RowResult deserialize(JsonParser p, DeserializationContext ctxt) throws IOException,
@@ -93,7 +93,7 @@ final class RowResultDeserializer extends JsonDeserializer<RowResult> {
     }
 
     private static final RowResultDeserializer instance = new RowResultDeserializer();
-    static RowResultDeserializer instance() {
+    public static RowResultDeserializer instance() {
         return instance;
     }
     private RowResultDeserializer() {}

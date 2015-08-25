@@ -1,4 +1,4 @@
-package com.palantir.atlasdb.keyvalue.remoting;
+package com.palantir.atlasdb.keyvalue.remoting.serialization;
 
 import java.io.IOException;
 import java.util.Map.Entry;
@@ -17,7 +17,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
  *
  */
 @SuppressWarnings("rawtypes")
-final class RowResultSerializer extends JsonSerializer<RowResult> {
+public final class RowResultSerializer extends JsonSerializer<RowResult> {
 
     static final int VALUE_TYPE_ID = 0;
     static final int TIMESTAMPS_SET_TYPE_ID = 1;
@@ -117,7 +117,7 @@ final class RowResultSerializer extends JsonSerializer<RowResult> {
     }
 
     private static RowResultSerializer instance = new RowResultSerializer();
-    static RowResultSerializer instance() {
+    public static RowResultSerializer instance() {
         return instance;
     }
 

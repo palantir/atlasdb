@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.keyvalue.partition;
+package com.palantir.atlasdb.keyvalue.partition.util;
 
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.common.annotation.Immutable;

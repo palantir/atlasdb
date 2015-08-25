@@ -1,4 +1,4 @@
-package com.palantir.atlasdb.keyvalue.remoting;
+package com.palantir.atlasdb.keyvalue.remoting.serialization;
 
 import java.io.IOException;
 
@@ -8,7 +8,7 @@ import com.fasterxml.jackson.databind.KeyDeserializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 
-final class CellAsKeyDeserializer extends KeyDeserializer {
+public final class CellAsKeyDeserializer extends KeyDeserializer {
 
     private final ObjectMapper mapper = new ObjectMapper();
     private CellAsKeyDeserializer() { }

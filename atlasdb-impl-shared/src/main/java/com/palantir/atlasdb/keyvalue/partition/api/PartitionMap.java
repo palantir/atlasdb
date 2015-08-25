@@ -23,7 +23,7 @@ import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
-import com.palantir.atlasdb.keyvalue.partition.ConsistentRingRangeRequest;
+import com.palantir.atlasdb.keyvalue.partition.util.ConsistentRingRangeRequest;
 
 public interface PartitionMap {
 

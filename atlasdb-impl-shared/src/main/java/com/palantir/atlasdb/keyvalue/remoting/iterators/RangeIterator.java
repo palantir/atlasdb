@@ -1,4 +1,4 @@
-package com.palantir.atlasdb.keyvalue.remoting;
+package com.palantir.atlasdb.keyvalue.remoting.iterators;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Objects;
@@ -8,6 +8,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.remoting.RemotingKeyValueService;
 import com.palantir.common.base.ClosableIterator;
 
 public abstract class RangeIterator<T> implements ClosableIterator<RowResult<T>> {
@@ -52,9 +53,10 @@ public abstract class RangeIterator<T> implements ClosableIterator<RowResult<T>>
         byte[] newStart = RangeRequests.getNextStartRow(range.isReverse(), lastResult.getRowName());
 
         RangeRequest newRange = range.getBuilder().startRowInclusive(newStart).build();
-        KeyValueService keyValueService = RemotingKeyValueService.serviceContext.get();
+        KeyValueService keyValueService = RemotingKeyValueService.getServiceContext().get();
         if (keyValueService == null) {
-            throw new IllegalStateException("This remote keyvalue service needs to be wrapped with RemotingKeyValueService.createClientSide!");
+            throw new IllegalStateException(
+                    "This remote keyvalue service needs to be wrapped with RemotingKeyValueService.createClientSide!");
         }
 
         ClosableIterator<RowResult<T>> result = getMoreRows(keyValueService, tableName, newRange, timestamp);

@@ -39,6 +39,8 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.partition.api.PartitionMap;
+import com.palantir.atlasdb.keyvalue.partition.util.ConsistentRingRangeRequest;
+import com.palantir.atlasdb.keyvalue.partition.util.CycleMap;
 import com.palantir.common.annotation.Immutable;
 
 @Immutable @ThreadSafe public final class BasicPartitionMap implements PartitionMap {

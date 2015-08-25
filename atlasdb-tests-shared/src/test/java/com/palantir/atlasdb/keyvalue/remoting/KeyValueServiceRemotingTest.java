@@ -27,6 +27,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.AbstractAtlasDbKeyValueServiceTest;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.server.InboxPopulatingContainerRequestFilter;
 
 import io.dropwizard.Configuration;
 import io.dropwizard.testing.DropwizardTestSupport;
@@ -37,14 +38,15 @@ public class KeyValueServiceRemotingTest extends AbstractAtlasDbKeyValueServiceT
     final KeyValueService remoteKvs = RemotingKeyValueService.createServerSide(new InMemoryKeyValueService(
             false));
 
+    private final SimpleModule module = RemotingKeyValueService.kvsModule();
+    private final ObjectMapper mapper = RemotingKeyValueService.kvsMapper();
+
     @Rule
     public final DropwizardClientRule Rule = new DropwizardClientRule(
             remoteKvs,
             KeyAlreadyExistsExceptionMapper.instance(),
-            InsufficientConsistencyExceptionMapper.instance());
-
-    private final SimpleModule module = RemotingKeyValueService.kvsModule();
-    private final ObjectMapper mapper = RemotingKeyValueService.kvsMapper();
+            InsufficientConsistencyExceptionMapper.instance(),
+            new InboxPopulatingContainerRequestFilter(mapper));
 
     volatile KeyValueService localKvs;
 

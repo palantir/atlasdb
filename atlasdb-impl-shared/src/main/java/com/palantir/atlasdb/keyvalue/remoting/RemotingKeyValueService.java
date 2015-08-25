@@ -53,6 +53,11 @@ import feign.jaxrs.JAXRSContract;
 
 public class RemotingKeyValueService extends ForwardingKeyValueService {
     final static ServiceContext<KeyValueService> serviceContext = ExecutorInheritableServiceContext.create();
+
+    public static ServiceContext<KeyValueService> getServiceContext() {
+        return serviceContext;
+    }
+
     final KeyValueService delegate;
 
     public static KeyValueService createClientSide(final KeyValueService remoteService) {

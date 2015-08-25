@@ -1,4 +1,4 @@
-package com.palantir.atlasdb.keyvalue.partition;
+package com.palantir.atlasdb.keyvalue.partition.status;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 

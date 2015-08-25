@@ -28,7 +28,6 @@ import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.partition.ConsistentRingRangeRequest;
 import com.palantir.common.base.ClosableIterator;
 
 public abstract class PartitionedRangedIterator<T> implements ClosableIterator<RowResult<T>> {

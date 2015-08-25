@@ -1,4 +1,4 @@
-package com.palantir.atlasdb.keyvalue.remoting;
+package com.palantir.atlasdb.keyvalue.remoting.serialization;
 
 import java.io.IOException;
 
@@ -15,7 +15,7 @@ import com.fasterxml.jackson.databind.SerializerProvider;
  * @author htarasiuk
  *
  */
-final class SaneAsKeySerializer extends JsonSerializer<Object> {
+public final class SaneAsKeySerializer extends JsonSerializer<Object> {
 
     private final ObjectMapper mapper = new ObjectMapper();
     private SaneAsKeySerializer() { }

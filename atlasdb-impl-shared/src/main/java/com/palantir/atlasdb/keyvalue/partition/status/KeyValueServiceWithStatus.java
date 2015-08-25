@@ -1,10 +1,10 @@
-package com.palantir.atlasdb.keyvalue.partition;
+package com.palantir.atlasdb.keyvalue.partition.status;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 
 public abstract class KeyValueServiceWithStatus {
     final KeyValueService service;
-    final KeyValueService get() {
+    public final KeyValueService get() {
         return service;
     }
     public KeyValueServiceWithStatus(KeyValueService service) {
