@@ -11,6 +11,7 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.DynamicPartitionMapImpl;
+import com.palantir.atlasdb.keyvalue.partition.KeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.QuorumParameters;
 import com.palantir.atlasdb.keyvalue.partition.api.PartitionMap;
 
@@ -40,7 +41,7 @@ public class DynamicPartitionMapTest extends AbstractPartitionMapTest {
 
     @Override
     protected PartitionMap getPartitionMap(QuorumParameters qp,
-                                           NavigableMap<byte[], KeyValueService> ring) {
+                                           NavigableMap<byte[], KeyValueEndpoint> ring) {
         if (dpm == null) {
             dpm = new DynamicPartitionMapImpl(qp, ring);
         }

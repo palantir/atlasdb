@@ -18,12 +18,14 @@
 package com.palantir.atlasdb.keyvalue.partition;
 
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Set;
 
 import javax.annotation.concurrent.ThreadSafe;
 
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
@@ -42,6 +44,7 @@ import com.palantir.atlasdb.keyvalue.partition.api.PartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.util.ConsistentRingRangeRequest;
 import com.palantir.atlasdb.keyvalue.partition.util.CycleMap;
 import com.palantir.common.annotation.Immutable;
+import com.palantir.util.Pair;
 
 @Immutable @ThreadSafe public final class BasicPartitionMap implements PartitionMap {
 
@@ -156,12 +159,12 @@ import com.palantir.common.annotation.Immutable;
 
     // *** Public methods **************************************************************************
     @Override
-    public Multimap<ConsistentRingRangeRequest, KeyValueService> getServicesForRangeRead(String tableName,
+    public Multimap<ConsistentRingRangeRequest, KeyValueEndpoint> getServicesForRangeRead(String tableName,
                                                                                          RangeRequest range) {
         if (range.isReverse()) {
             throw new UnsupportedOperationException();
         }
-        Multimap<ConsistentRingRangeRequest, KeyValueService> result = LinkedHashMultimap.create();
+        Multimap<ConsistentRingRangeRequest, KeyValueEndpoint> result = LinkedHashMultimap.create();
 
         byte[] rangeStart = range.getStartInclusive();
         if (range.getStartInclusive().length == 0) {
@@ -190,7 +193,9 @@ import com.palantir.common.annotation.Immutable;
             // every service having the (inclusive) start row will also
             // have all the other rows belonging to this range.
             // No other services will have any of these rows.
-            result.putAll(crrr, getServicesHavingRow(rangeStart));
+            for (KeyValueService kvs : getServicesHavingRow(rangeStart)) {
+                result.put(crrr, new SimpleKeyValueEndpoint(kvs));
+            }
 
             // Proceed with next range
             rangeStart = ring.higherKey(rangeStart);
@@ -202,8 +207,7 @@ import com.palantir.common.annotation.Immutable;
         return result;
     }
 
-    @Override
-    public Map<KeyValueService, NavigableSet<byte[]>> getServicesForRowsRead(String tableName,
+    private Map<KeyValueService, NavigableSet<byte[]>> getServicesForRowsRead(String tableName,
                                                                              Iterable<byte[]> rows) {
         Map<KeyValueService, NavigableSet<byte[]>> result = Maps.newHashMap();
         for (byte[] row : rows) {
@@ -225,36 +229,61 @@ import com.palantir.common.annotation.Immutable;
     }
 
     @Override
-    public Map<KeyValueService, Set<Cell>> getServicesForCellsRead(String tableName, Set<Cell> cells) {
-        return getServicesForCellsSet(tableName, cells);
-    }
-
-    @Override
-    public <T> Map<KeyValueService, Map<Cell, T>> getServicesForCellsRead(String tableName,
-                                                                         Map<Cell, T> timestampByCell) {
-        return getServicesForCellsMap(tableName, timestampByCell);
-    }
-
-    @Override
-    public Map<KeyValueService, Set<Cell>> getServicesForCellsWrite(String tableName,
-                                                                    Set<Cell> cells) {
-        return getServicesForCellsSet(tableName, cells);
-    }
-
-    @Override
-    public <T> Map<KeyValueService, Multimap<Cell, T>> getServicesForCellsWrite(String tableName,
-                                                                                Multimap<Cell, T> keys) {
-        return getServicesForCellsMultimap(tableName, keys);
-    }
-
-    @Override
     public Set<? extends KeyValueService> getDelegates() {
         return services;
     }
 
+    static <K, V> Pair<K, V> ofEntry(Entry<? extends K, ? extends V> entry) {
+        return Pair.<K, V>create(entry.getKey(), entry.getValue());
+    }
+
     @Override
-    public <T> Map<KeyValueService, Map<Cell, T>> getServicesForCellsWrite(String tableName,
-                                                                           Map<Cell, T> values) {
-        return getServicesForCellsMap(tableName, values);
+    public void runForRowsRead(String tableName,
+                               Iterable<byte[]> rows,
+                               Function<Pair<KeyValueService, Iterable<byte[]>>, Void> task) {
+        for (Entry<KeyValueService, NavigableSet<byte[]>> e : getServicesForRowsRead(tableName, rows).entrySet()) {
+            task.apply(BasicPartitionMap.<KeyValueService, Iterable<byte[]>>ofEntry(e));
+        }
+    }
+
+    @Override
+    public void runForCellsRead(String tableName,
+                                Set<Cell> cells,
+                                Function<Pair<KeyValueService, Set<Cell>>, Void> task) {
+        for (Entry<KeyValueService, Set<Cell>> e : getServicesForCellsSet(tableName, cells).entrySet()) {
+            task.apply(ofEntry(e));
+        }
+    }
+
+    @Override
+    public <T> void runForCellsRead(String tableName,
+                                    Map<Cell, T> cells,
+                                    Function<Pair<KeyValueService, Map<Cell, T>>, Void> task) {
+        for (Entry<KeyValueService, Map<Cell, T>> e : getServicesForCellsMap(tableName, cells).entrySet()) {
+            task.apply(ofEntry(e));
+        }
+    }
+
+    @Override
+    public void runForCellsWrite(String tableName,
+                                 Set<Cell> cells,
+                                 Function<Pair<KeyValueService, Set<Cell>>, Void> task) {
+        runForCellsRead(tableName, cells, task);
+    }
+
+    @Override
+    public <T> void runForCellsWrite(String tableName,
+                                     Map<Cell, T> cells,
+                                     Function<Pair<KeyValueService, Map<Cell, T>>, Void> task) {
+        runForCellsRead(tableName, cells, task);
+    }
+
+    @Override
+    public <T> void runForCellsWrite(String tableName,
+                                     Multimap<Cell, T> cells,
+                                     Function<Pair<KeyValueService, Multimap<Cell, T>>, Void> task) {
+        for (Entry<KeyValueService, Multimap<Cell, T>> e : getServicesForCellsMultimap(tableName, cells).entrySet()) {
+            task.apply(ofEntry(e));
+        }
     }
 }

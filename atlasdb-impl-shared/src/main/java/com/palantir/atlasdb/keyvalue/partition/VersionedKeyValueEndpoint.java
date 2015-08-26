@@ -4,7 +4,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.api.PartitionMap;
-import com.palantir.atlasdb.keyvalue.partition.util.VersionedObject;
 import com.palantir.common.supplier.PopulateServiceContextProxy;
 import com.palantir.common.supplier.RemoteContextHolder;
 import com.palantir.common.supplier.RemoteContextHolder.RemoteContextType;
@@ -33,12 +32,18 @@ public class VersionedKeyValueEndpoint implements KeyValueEndpoint {
                 localVersionProvider, provider);
     }
 
+    public static KeyValueEndpoint fake() {
+        return new VersionedKeyValueEndpoint(null, null, null);
+    }
+
     public <T> T run(Function<KeyValueService, T> task) throws UpdatePartitionMapException {
         try {
             return task.apply(kvs);
         } catch (VersionTooOldException e) {
-            VersionedObject<PartitionMap> newPartitionMap = pms.get();
-            throw new UpdatePartitionMapException(newPartitionMap.getObject(), newPartitionMap.getVersion());
+            // TODO
+//            VersionedObject<PartitionMap> newPartitionMap = pms.get();
+//            throw new UpdatePartitionMapException(newPartitionMap.getObject(), newPartitionMap.getVersion());
+            throw new UpdatePartitionMapException(null, 0);
         }
     }
 

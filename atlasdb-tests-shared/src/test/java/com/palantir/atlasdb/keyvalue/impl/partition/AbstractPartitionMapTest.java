@@ -26,7 +26,9 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.keyvalue.partition.KeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.QuorumParameters;
+import com.palantir.atlasdb.keyvalue.partition.SimpleKeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.api.PartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.util.ConsistentRingRangeRequest;
 
@@ -53,7 +55,7 @@ public abstract class AbstractPartitionMapTest {
 
     private PartitionMap tpm;
     protected abstract PartitionMap getPartitionMap(QuorumParameters qp,
-                                                    NavigableMap<byte[], KeyValueService> ring);
+                                                    NavigableMap<byte[], KeyValueEndpoint> ring);
 
     static protected byte[] newByteArray(int... bytes) {
         byte[] result = new byte[bytes.length];
@@ -73,7 +75,7 @@ public abstract class AbstractPartitionMapTest {
             new InMemoryKeyValueService(false));
 
     private void testRangeIntervalsOk(final RangeRequest rangeRequest) {
-        Multimap<ConsistentRingRangeRequest, KeyValueService> result = tpm.getServicesForRangeRead(
+        Multimap<ConsistentRingRangeRequest, KeyValueEndpoint> result = tpm.getServicesForRangeRead(
                 TABLE1,
                 rangeRequest);
         assertTrue(rangeRequest.isEmptyRange() || result.size() > 0);
@@ -138,16 +140,16 @@ public abstract class AbstractPartitionMapTest {
     }
 
     private void testRangeMappingsOk(RangeRequest rangeRequest) {
-        Multimap<ConsistentRingRangeRequest, KeyValueService> result = tpm.getServicesForRangeRead(
+        Multimap<ConsistentRingRangeRequest, KeyValueEndpoint> result = tpm.getServicesForRangeRead(
                 TABLE1,
                 rangeRequest);
         for (ConsistentRingRangeRequest subRange : result.keySet()) {
-            Collection<KeyValueService> services = result.get(subRange);
+            Collection<KeyValueEndpoint> services = result.get(subRange);
             assertEquals(REPF, services.size());
-            for (KeyValueService kvs : services) {
-                tpm.getServicesForRowsRead(
-                        TABLE1,
-                        ImmutableSet.of(subRange.get().getStartInclusive())).containsKey(kvs);
+            for (KeyValueEndpoint kvs : services) {
+//                tpm.getServicesForRowsRead(
+//                        TABLE1,
+//                        ImmutableSet.of(subRange.get().getStartInclusive())).containsKey(kvs);
             }
         }
     }
@@ -155,9 +157,9 @@ public abstract class AbstractPartitionMapTest {
     @Before
     public void setUp() {
         Preconditions.checkArgument(services.size() == points.length);
-        NavigableMap<byte[], KeyValueService> ring = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
+        NavigableMap<byte[], KeyValueEndpoint> ring = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
         for (int i = 0; i < points.length; ++i) {
-            ring.put(points[i], services.get(i));
+            ring.put(points[i], new SimpleKeyValueEndpoint(services.get(i)));
         }
         tpm = getPartitionMap(qp, ring);
 //        tpm = BasicPartitionMap.create(qp, ring);

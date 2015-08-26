@@ -5,6 +5,7 @@ import static org.junit.Assert.assertEquals;
 import javax.annotation.Nullable;
 
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -23,12 +24,14 @@ import com.palantir.atlasdb.keyvalue.partition.PartitionMapServiceImpl;
 import com.palantir.atlasdb.keyvalue.partition.QuorumParameters;
 import com.palantir.atlasdb.keyvalue.partition.VersionedKeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.VersionedKeyValueEndpoint.UpdatePartitionMapException;
+import com.palantir.atlasdb.keyvalue.partition.VersionedPartitionedKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.api.PartitionMap;
 import com.palantir.atlasdb.keyvalue.remoting.InsufficientConsistencyExceptionMapper;
 import com.palantir.atlasdb.keyvalue.remoting.KeyAlreadyExistsExceptionMapper;
 import com.palantir.atlasdb.keyvalue.remoting.RemotingKeyValueService;
 import com.palantir.atlasdb.keyvalue.remoting.VersionTooOldExceptionMapper;
 import com.palantir.atlasdb.server.InboxPopulatingContainerRequestFilter;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.util.Mutable;
 import com.palantir.util.Mutables;
 
@@ -77,10 +80,20 @@ public class KeyValueServiceVersioningTest {
             VersionTooOldExceptionMapper.instance(),
             new InboxPopulatingContainerRequestFilter(mapper));
 
+    KeyValueService localEndpoint;
+    KeyValueEndpoint kve;
+    VersionedPartitionedKeyValueService vpkvs;
+
+    @Before
+    public void setUp() {
+        localEndpoint = RemotingKeyValueService.createClientSide(remoteEndpointService.baseUri().toString());
+        vpkvs = VersionedPartitionedKeyValueService.create(ring, PTExecutors.newCachedThreadPool(), parameters);
+        PartitionMapService pms = vpkvs.getVersionedPartitionMap().getPartitionMapService();
+        kve = VersionedKeyValueEndpoint.create(pms, clientVersionSupplier, localEndpoint);
+    }
+
     @Test
     public void testPartitionMapOutOfDate() {
-        KeyValueService localEndpoint = RemotingKeyValueService.createClientSide(remoteEndpointService.baseUri().toString());
-        KeyValueEndpoint kve = VersionedKeyValueEndpoint.create(null, clientVersionSupplier, localEndpoint);
 
         clientVersion.set(123L);
         serverVersion.set(123L);
