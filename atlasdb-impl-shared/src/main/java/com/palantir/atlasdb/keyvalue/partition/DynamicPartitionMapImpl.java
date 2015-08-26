@@ -7,12 +7,12 @@ import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 import javax.annotation.Nullable;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
@@ -32,24 +32,21 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
-import com.palantir.atlasdb.keyvalue.partition.status.JoiningKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.status.KeyValueServiceWithStatus;
-import com.palantir.atlasdb.keyvalue.partition.status.LeavingKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.status.RegularKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.util.ConsistentRingRangeRequest;
 import com.palantir.atlasdb.keyvalue.partition.util.CycleMap;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.Throwables;
-import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.util.Pair;
 
 public class DynamicPartitionMapImpl implements DynamicPartitionMap {
 
-    private final QuorumParameters quorumParameters;
+    @JsonProperty("quorumParameters") private final QuorumParameters quorumParameters;
     private final CycleMap<byte[], KeyValueServiceWithStatus> ring;
-    private final Set<KeyValueService> services;
-    private final ExecutorService executor = PTExecutors.newSingleThreadExecutor();
     private final BlockingQueue<Future<Void>> removals = Queues.newLinkedBlockingQueue();
     private final BlockingQueue<Future<Void>> joins = Queues.newLinkedBlockingQueue();
+    private long version = 0L;
 
     private <K, V1, V2> NavigableMap<K, V2> transformValues(NavigableMap<K, V1> map, Function<V1, V2> transform) {
         NavigableMap<K, V2> result = Maps.newTreeMap(map.comparator());
@@ -59,22 +56,27 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         return result;
     }
 
+    private DynamicPartitionMapImpl(QuorumParameters quorumParameters, CycleMap<byte[], KeyValueServiceWithStatus> ring, long version, Map<KeyValueServiceWithStatus, String> endpointByUri) {
+        this.quorumParameters = quorumParameters;
+        this.ring = ring;
+        this.version = version;
+    }
+
     public DynamicPartitionMapImpl(QuorumParameters quorumParameters,
-                               NavigableMap<byte[], KeyValueService> ring) {
+                                   NavigableMap<byte[], KeyValueEndpoint> ring) {
         Preconditions.checkArgument(ring.keySet().size() >= quorumParameters.replicationFactor);
         this.quorumParameters = quorumParameters;
-        this.ring = CycleMap.wrap(transformValues(ring, new Function<KeyValueService, KeyValueServiceWithStatus>() {
+        this.ring = CycleMap.wrap(transformValues(ring, new Function<KeyValueEndpoint, KeyValueServiceWithStatus>() {
             @Override @Nullable
-            public KeyValueServiceWithStatus apply(@Nullable KeyValueService input) {
+            public KeyValueServiceWithStatus apply(@Nullable KeyValueEndpoint input) {
                 return new RegularKeyValueService(input);
             }
         }));
-        this.services = Sets.newHashSet(ring.values());
     }
 
     // *** Helper methods **************************************************************************
-    private Set<KeyValueService> getServicesHavingRow(byte[] key, boolean isWrite) {
-        Set<KeyValueService> result = Sets.newHashSet();
+    private Set<KeyValueEndpoint> getServicesHavingRow(byte[] key, boolean isWrite) {
+        Set<KeyValueEndpoint> result = Sets.newHashSet();
         byte[] point = key;
         int extraServices = 0; // These are included in the result set but
                                // Are not counted against the replication factor
@@ -93,11 +95,11 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         return result;
     }
 
-    private Map<KeyValueService, Set<Cell>> getServicesForCellsSet(String tableName, Set<Cell> cells, boolean isWrite) {
-        Map<KeyValueService, Set<Cell>> result = Maps.newHashMap();
+    private Map<KeyValueEndpoint, Set<Cell>> getServicesForCellsSet(String tableName, Set<Cell> cells, boolean isWrite) {
+        Map<KeyValueEndpoint, Set<Cell>> result = Maps.newHashMap();
         for (Cell cell : cells) {
-            Set<KeyValueService> services = getServicesHavingRow(cell.getRowName(), isWrite);
-            for (KeyValueService kvs : services) {
+            Set<KeyValueEndpoint> services = getServicesHavingRow(cell.getRowName(), isWrite);
+            for (KeyValueEndpoint kvs : services) {
                 if (!result.containsKey(kvs)) {
                     result.put(kvs, Sets.<Cell> newHashSet());
                 }
@@ -109,12 +111,12 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         return result;
     }
 
-    private <ValType> Map<KeyValueService, Map<Cell, ValType>> getServicesForCellsMap(String tableName,
+    private <ValType> Map<KeyValueEndpoint, Map<Cell, ValType>> getServicesForCellsMap(String tableName,
                                                                          Map<Cell, ValType> cellMap, boolean isWrite) {
-        Map<KeyValueService, Map<Cell, ValType>> result = Maps.newHashMap();
+        Map<KeyValueEndpoint, Map<Cell, ValType>> result = Maps.newHashMap();
         for (Map.Entry<Cell, ValType> e : cellMap.entrySet()) {
-            Set<KeyValueService> services = getServicesHavingRow(e.getKey().getRowName(), isWrite);
-            for (KeyValueService kvs : services) {
+            Set<KeyValueEndpoint> services = getServicesHavingRow(e.getKey().getRowName(), isWrite);
+            for (KeyValueEndpoint kvs : services) {
                 if (!result.containsKey(kvs)) {
                     result.put(kvs, Maps.<Cell, ValType> newHashMap());
                 }
@@ -128,12 +130,12 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         return result;
     }
 
-    private <ValType> Map<KeyValueService, Multimap<Cell, ValType>> getServicesForCellsMultimap(String tableName,
+    private <ValType> Map<KeyValueEndpoint, Multimap<Cell, ValType>> getServicesForCellsMultimap(String tableName,
                                                                                                 Multimap<Cell, ValType> cellMultimap, boolean isWrite) {
-        Map<KeyValueService, Multimap<Cell, ValType>> result = Maps.newHashMap();
+        Map<KeyValueEndpoint, Multimap<Cell, ValType>> result = Maps.newHashMap();
         for (Map.Entry<Cell, ValType> e : cellMultimap.entries()) {
-            Set<KeyValueService> services = getServicesHavingRow(e.getKey().getRowName(), isWrite);
-            for (KeyValueService kvs : services) {
+            Set<KeyValueEndpoint> services = getServicesHavingRow(e.getKey().getRowName(), isWrite);
+            for (KeyValueEndpoint kvs : services) {
                 if (!result.containsKey(kvs)) {
                     result.put(kvs, HashMultimap.<Cell, ValType> create());
                 }
@@ -173,13 +175,13 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
      */
 
     // *** Public methods **************************************************************************
-    @Override
-    public Multimap<ConsistentRingRangeRequest, KeyValueService> getServicesForRangeRead(String tableName,
+    @JsonIgnore
+    public Multimap<ConsistentRingRangeRequest, KeyValueEndpoint> getServicesForRangeRead(String tableName,
                                                                                          RangeRequest range) {
         if (range.isReverse()) {
             throw new UnsupportedOperationException();
         }
-        Multimap<ConsistentRingRangeRequest, KeyValueService> result = LinkedHashMultimap.create();
+        Multimap<ConsistentRingRangeRequest, KeyValueEndpoint> result = LinkedHashMultimap.create();
 
         byte[] rangeStart = range.getStartInclusive();
         if (range.getStartInclusive().length == 0) {
@@ -220,13 +222,12 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         return result;
     }
 
-    @Override
-    public Map<KeyValueService, NavigableSet<byte[]>> getServicesForRowsRead(String tableName,
+    private Map<KeyValueEndpoint, NavigableSet<byte[]>> getServicesForRowsRead(String tableName,
                                                                              Iterable<byte[]> rows) {
-        Map<KeyValueService, NavigableSet<byte[]>> result = Maps.newHashMap();
+        Map<KeyValueEndpoint, NavigableSet<byte[]>> result = Maps.newHashMap();
         for (byte[] row : rows) {
-            Set<KeyValueService> services = getServicesHavingRow(row, false);
-            for (KeyValueService kvs : services) {
+            Set<KeyValueEndpoint> services = getServicesHavingRow(row, false);
+            for (KeyValueEndpoint kvs : services) {
                 if (!result.containsKey(kvs)) {
                     result.put(
                             kvs,
@@ -242,38 +243,99 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         return result;
     }
 
+    private static <T> void apply(final Entry<KeyValueEndpoint, ? extends T> entry, final Function<Pair<KeyValueService, T>, Void> task) {
+        entry.getKey().run(new Function<KeyValueService, Void>() {
+            @Override @Nullable
+            public Void apply(@Nullable KeyValueService input) {
+                task.apply(Pair.<KeyValueService, T>create(input, entry.getValue()));
+                return null;
+            }
+
+        });
+    }
+
     @Override
-    public Map<KeyValueService, Set<Cell>> getServicesForCellsRead(String tableName, Set<Cell> cells) {
+    public void runForRowsRead(String tableName,
+                                Iterable<byte[]> rows,
+                                final Function<Pair<KeyValueService, Iterable<byte[]>>, Void> task) {
+        for (final Entry<KeyValueEndpoint, NavigableSet<byte[]>> e : getServicesForRowsRead(tableName, rows).entrySet()) {
+            apply(e, task);
+        }
+    }
+
+    private Map<KeyValueEndpoint, Set<Cell>> getServicesForCellsRead(String tableName, Set<Cell> cells) {
         return getServicesForCellsSet(tableName, cells, false);
     }
 
     @Override
-    public <T> Map<KeyValueService, Map<Cell, T>> getServicesForCellsRead(String tableName,
+    public void runForCellsRead(String tableName,
+                                Set<Cell> cells,
+                                final Function<Pair<KeyValueService, Set<Cell>>, Void> task) {
+        for (final Entry<KeyValueEndpoint, Set<Cell>> e : getServicesForCellsRead(tableName, cells).entrySet()) {
+            apply(e, task);
+        }
+    }
+
+    private <T> Map<KeyValueEndpoint, Map<Cell, T>> getServicesForCellsRead(String tableName,
                                                                          Map<Cell, T> timestampByCell) {
         return getServicesForCellsMap(tableName, timestampByCell, false);
     }
 
     @Override
-    public Map<KeyValueService, Set<Cell>> getServicesForCellsWrite(String tableName,
+    public <T> void runForCellsRead(String tableName,
+                                    Map<Cell, T> cells,
+                                    final Function<Pair<KeyValueService, Map<Cell, T>>, Void> task) {
+        for (final Entry<KeyValueEndpoint, Map<Cell, T>> e : getServicesForCellsRead(tableName, cells).entrySet()) {
+            apply(e, task);
+        }
+    }
+
+    private Map<KeyValueEndpoint, Set<Cell>> getServicesForCellsWrite(String tableName,
                                                                     Set<Cell> cells) {
         return getServicesForCellsSet(tableName, cells, true);
     }
 
     @Override
-    public <T> Map<KeyValueService, Multimap<Cell, T>> getServicesForCellsWrite(String tableName,
+    public void runForCellsWrite(String tableName,
+                                 Set<Cell> cells,
+                                 final Function<Pair<KeyValueService, Set<Cell>>, Void> task) {
+        for (final Entry<KeyValueEndpoint, Set<Cell>> e : getServicesForCellsWrite(tableName, cells).entrySet()) {
+            apply(e, task);
+        }
+    }
+
+    private <T> Map<KeyValueEndpoint, Multimap<Cell, T>> getServicesForCellsWrite(String tableName,
                                                                            Multimap<Cell, T> keys) {
         return getServicesForCellsMultimap(tableName, keys, true);
     }
 
     @Override
+    public <T> void runForCellsWrite(String tableName,
+                                     Multimap<Cell, T> cells,
+                                     final Function<Pair<KeyValueService, Multimap<Cell, T>>, Void> task) {
+        for (final Entry<KeyValueEndpoint, Multimap<Cell, T>> e : getServicesForCellsWrite(tableName, cells).entrySet()) {
+            apply(e, task);
+        }
+    }
+
+    @JsonIgnore
+    @Override
     public Set<? extends KeyValueService> getDelegates() {
-        return services;
+        throw new UnsupportedOperationException();
+    }
+
+    private <T> Map<KeyValueEndpoint, Map<Cell, T>> getServicesForCellsWrite(String tableName,
+                                                                           Map<Cell, T> values) {
+        return getServicesForCellsMap(tableName, values, true);
     }
 
     @Override
-    public <T> Map<KeyValueService, Map<Cell, T>> getServicesForCellsWrite(String tableName,
-                                                                           Map<Cell, T> values) {
-        return getServicesForCellsMap(tableName, values, true);
+    public <T> void runForCellsWrite(String tableName,
+                                     Map<Cell, T> cells,
+                                     Function<Pair<KeyValueService, Map<Cell, T>>, Void> task) {
+        for (Entry<KeyValueEndpoint, Map<Cell, T>> e : getServicesForCellsWrite(tableName, cells).entrySet()) {
+            apply(e, task);
+        }
     }
 
     /**
@@ -391,65 +453,68 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
 
     @Override
     public synchronized void addEndpoint(final byte[] key, final KeyValueService kvs, String rack) {
-        // Sanity checks
-        Preconditions.checkArgument(!ring.containsKey(key));
-
-        joins.add(executor.submit(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                byte[] nextKey = ring.nextKey(key);
-                List<RangeRequest> ranges = getRangesOperatedByKvs(nextKey, false);
-
-                // Insert the joiner into the ring
-                KeyValueService sourceKvs = ring.get(nextKey).get();
-                KeyValueServiceWithStatus kvsWithStatus = new JoiningKeyValueService(kvs);
-                ring.put(key, kvsWithStatus);
-
-                // First, copy all the ranges besides the one in which
-                // the new kvs is located. All these will be operated
-                // by the new kvs.
-                for (int i = 0; i < ranges.size() - 1; ++i) {
-                    copyData(kvs, sourceKvs, ranges.get(i));
-                }
-
-                // Now we need to split the last range into two pieces.
-                // The second piece will not be operated by the joiner,
-                // thus I only need to copy the first part over.
-                RangeRequest lastRange = ranges.get(ranges.size() - 1);
-                RangeRequest lastRange1 = lastRange.getBuilder().endRowExclusive(key).build();
-                copyData(kvs, sourceKvs, lastRange1);
-
-                // Some anti-bug asserts
-                assert UnsignedBytes.lexicographicalComparator().compare(lastRange.getStartInclusive(), key) < 0;
-                assert UnsignedBytes.lexicographicalComparator().compare(lastRange.getEndExclusive(), key) > 0;
-
-                // Change the status to regular
-                // TODO: Not doing this for testing purporses.
-                // Use finalizer to finalize the join.
-                // ring.put(key, new RegularKeyValueService(kvs));
-
-                // The last thing to be done is removing the farthest
-                // range from the following kvss.
-                byte[] keyToRemove = nextKey;
-                for (int i = 0; i < ranges.size() - 1; ++i) {
-                    RangeRequest rangeToRemove = ranges.get(i);
-                    deleteData(ring.get(keyToRemove).get(), rangeToRemove);
-                    keyToRemove = ring.nextKey(keyToRemove);
-                }
-                deleteData(ring.get(keyToRemove).get(), lastRange1);
-                return null;
-            }
-        }));
-
-        // Do it synchronously now for testing purposes (TODO)
-        try {
-            Futures.getUnchecked(joins.take());
-        } catch (InterruptedException e) {
-            throw Throwables.throwUncheckedException(e);
-        }
+        version++;
+        throw new UnsupportedOperationException();
+//        // Sanity checks
+//        Preconditions.checkArgument(!ring.containsKey(key));
+//
+//        joins.add(executor.submit(new Callable<Void>() {
+//            @Override
+//            public Void call() throws Exception {
+//                byte[] nextKey = ring.nextKey(key);
+//                List<RangeRequest> ranges = getRangesOperatedByKvs(nextKey, false);
+//
+//                // Insert the joiner into the ring
+//                KeyValueService sourceKvs = ring.get(nextKey).get();
+//                KeyValueServiceWithStatus kvsWithStatus = new JoiningKeyValueService(kvs);
+//                ring.put(key, kvsWithStatus);
+//
+//                // First, copy all the ranges besides the one in which
+//                // the new kvs is located. All these will be operated
+//                // by the new kvs.
+//                for (int i = 0; i < ranges.size() - 1; ++i) {
+//                    copyData(kvs, sourceKvs, ranges.get(i));
+//                }
+//
+//                // Now we need to split the last range into two pieces.
+//                // The second piece will not be operated by the joiner,
+//                // thus I only need to copy the first part over.
+//                RangeRequest lastRange = ranges.get(ranges.size() - 1);
+//                RangeRequest lastRange1 = lastRange.getBuilder().endRowExclusive(key).build();
+//                copyData(kvs, sourceKvs, lastRange1);
+//
+//                // Some anti-bug asserts
+//                assert UnsignedBytes.lexicographicalComparator().compare(lastRange.getStartInclusive(), key) < 0;
+//                assert UnsignedBytes.lexicographicalComparator().compare(lastRange.getEndExclusive(), key) > 0;
+//
+//                // Change the status to regular
+//                // TODO: Not doing this for testing purporses.
+//                // Use finalizer to finalize the join.
+//                // ring.put(key, new RegularKeyValueService(kvs));
+//
+//                // The last thing to be done is removing the farthest
+//                // range from the following kvss.
+//                byte[] keyToRemove = nextKey;
+//                for (int i = 0; i < ranges.size() - 1; ++i) {
+//                    RangeRequest rangeToRemove = ranges.get(i);
+//                    deleteData(ring.get(keyToRemove).get(), rangeToRemove);
+//                    keyToRemove = ring.nextKey(keyToRemove);
+//                }
+//                deleteData(ring.get(keyToRemove).get(), lastRange1);
+//                return null;
+//            }
+//        }));
+//
+//        // Do it synchronously now for testing purposes (TODO)
+//        try {
+//            Futures.getUnchecked(joins.take());
+//        } catch (InterruptedException e) {
+//            throw Throwables.throwUncheckedException(e);
+//        }
     }
 
-    public void finalizeAddEndpoint(byte[] key, KeyValueService kvs) {
+    public void finalizeAddEndpoint(byte[] key, KeyValueEndpoint kvs) {
+        version++;
         while (!joins.isEmpty()) {
             try {
                 Futures.getUnchecked(joins.take());
@@ -462,50 +527,53 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
 
     @Override
     public synchronized void removeEndpoint(final byte[] key, final KeyValueService kvs, String rack) {
-        // Sanity checks
-        Preconditions.checkArgument(ring.keySet().size() > quorumParameters.getReplicationFactor());
-
-        removals.add(executor.submit(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                List<RangeRequest> ranges = getRangesOperatedByKvs(key, true);
-
-                // Set the status to leaving
-                KeyValueServiceWithStatus original = Preconditions.checkNotNull(ring.get(key));
-                LeavingKeyValueService leavingKeyValueService = new LeavingKeyValueService(original.get());
-                ring.put(key, leavingKeyValueService);
-
-                // Copy the farthest range to the first higher kvs.
-                // Copy the second-farthest range to the second-higher kvs.
-                // Etc.
-                byte[] dstKvsKey = ring.nextKey(key);
-                for (int i = 0; i < ranges.size() - 1; ++i) {
-                    copyData(ring.get(dstKvsKey).get(), kvs, ranges.get(i));
-                    dstKvsKey = ring.nextKey(dstKvsKey);
-                }
-
-                // The special case for the last range.
-                RangeRequest lastRange1 = ranges.get(ranges.size() - 1).getBuilder().endRowExclusive(key).build();
-                copyData(ring.get(dstKvsKey).get(), kvs, lastRange1);
-
-                // Remove the kvs from the ring.
-                // TODO: Not doing this for testing purposes.
-                // Use finalizer to finalize the removal.
-//                ring.remove(key);
-                return null;
-            }
-        }));
-
-        // Do it synchronously for testing purposes.
-        try {
-            Futures.getUnchecked(removals.take());
-        } catch (InterruptedException e) {
-            throw Throwables.throwUncheckedException(e);
-        }
+        version++;
+        throw new UnsupportedOperationException();
+//        // Sanity checks
+//        Preconditions.checkArgument(ring.keySet().size() > quorumParameters.getReplicationFactor());
+//
+//        removals.add(executor.submit(new Callable<Void>() {
+//            @Override
+//            public Void call() throws Exception {
+//                List<RangeRequest> ranges = getRangesOperatedByKvs(key, true);
+//
+//                // Set the status to leaving
+//                KeyValueServiceWithStatus original = Preconditions.checkNotNull(ring.get(key));
+//                LeavingKeyValueService leavingKeyValueService = new LeavingKeyValueService(original.get());
+//                ring.put(key, leavingKeyValueService);
+//
+//                // Copy the farthest range to the first higher kvs.
+//                // Copy the second-farthest range to the second-higher kvs.
+//                // Etc.
+//                byte[] dstKvsKey = ring.nextKey(key);
+//                for (int i = 0; i < ranges.size() - 1; ++i) {
+//                    copyData(ring.get(dstKvsKey).get(), kvs, ranges.get(i));
+//                    dstKvsKey = ring.nextKey(dstKvsKey);
+//                }
+//
+//                // The special case for the last range.
+//                RangeRequest lastRange1 = ranges.get(ranges.size() - 1).getBuilder().endRowExclusive(key).build();
+//                copyData(ring.get(dstKvsKey).get(), kvs, lastRange1);
+//
+//                // Remove the kvs from the ring.
+//                // TODO: Not doing this for testing purposes.
+//                // Use finalizer to finalize the removal.
+////                ring.remove(key);
+//                return null;
+//            }
+//        }));
+//
+//        // Do it synchronously for testing purposes.
+//        try {
+//            Futures.getUnchecked(removals.take());
+//        } catch (InterruptedException e) {
+//            throw Throwables.throwUncheckedException(e);
+//        }
     }
 
     public void finalizeRemoveEndpoint(byte[] key, KeyValueService kvs) {
         Preconditions.checkArgument(Preconditions.checkNotNull(ring.get(key).get()) == kvs);
+        version++;
         while (!removals.isEmpty()) {
             try {
                 Futures.getUnchecked(removals.take());
@@ -517,15 +585,8 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     }
 
     @Override
-    public synchronized void syncRemovedEndpoints() {
-        while (!removals.isEmpty()) {
-            Futures.getUnchecked(removals.poll());
-        }
-    }
-
-    @Override
-    public synchronized boolean removalInProgress() {
-        return !removals.isEmpty();
+    public long getVersion() {
+        return version;
     }
 
 }
