@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.remoting;
 
 import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Set;
@@ -133,11 +134,19 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
             if (method.getDeclaringClass() == KeyValueService.class) {
                 Long clientVersion = clientVersionProvider.get();
                 Long serverVersion = serverVersionProvider.get();
-                if (clientVersion < serverVersion) {
-                    throw new VersionedKeyValueEndpoint.VersionTooOldException();
+                if (serverVersion < 0) {
+                    assert clientVersion == null;
+                } else {
+                    if (clientVersion < serverVersion) {
+                        throw new VersionedKeyValueEndpoint.VersionTooOldException();
+                    }
                 }
             }
-            return method.invoke(delegate, args);
+            try {
+                return method.invoke(delegate, args);
+            } catch (InvocationTargetException e) {
+                throw e.getCause();
+            }
         }
 
         public static KeyValueService newProxyInstance(KeyValueService delegate, Supplier<Long> serverVersionProvider) {

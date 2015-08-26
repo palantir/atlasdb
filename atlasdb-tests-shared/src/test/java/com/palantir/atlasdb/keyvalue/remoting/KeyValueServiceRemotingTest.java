@@ -18,6 +18,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.primitives.UnsignedBytes;
@@ -36,7 +37,7 @@ import io.dropwizard.testing.junit.DropwizardClientRule;
 public class KeyValueServiceRemotingTest extends AbstractAtlasDbKeyValueServiceTest {
 
     final KeyValueService remoteKvs = RemotingKeyValueService.createServerSide(new InMemoryKeyValueService(
-            false));
+            false), Suppliers.ofInstance(-1L));
 
     private final SimpleModule module = RemotingKeyValueService.kvsModule();
     private final ObjectMapper mapper = RemotingKeyValueService.kvsMapper();
