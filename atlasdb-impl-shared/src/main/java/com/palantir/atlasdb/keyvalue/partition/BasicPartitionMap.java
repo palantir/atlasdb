@@ -23,6 +23,7 @@ import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Set;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
 
 import com.google.common.base.Function;
@@ -50,15 +51,15 @@ import com.palantir.util.Pair;
 
     private final QuorumParameters quorumParameters;
     // This map is never modified
-    private final CycleMap<byte[], KeyValueService> ring;
-    private final ImmutableMap<KeyValueService, String> rackByKvs;
-    private final ImmutableSet<KeyValueService> services;
+    private final CycleMap<byte[], KeyValueEndpoint> ring;
+    private final ImmutableMap<KeyValueEndpoint, String> rackByKvs;
+    private final ImmutableSet<KeyValueEndpoint> services;
     private final ImmutableSet<String> racks;
 
     // *** Construction ****************************************************************************
     private BasicPartitionMap(QuorumParameters quorumParameters,
-                              NavigableMap<byte[], KeyValueService> ring,
-                              Map<KeyValueService, String> rackByKvs) {
+                              NavigableMap<byte[], KeyValueEndpoint> ring,
+                              Map<KeyValueEndpoint, String> rackByKvs) {
         this.quorumParameters = quorumParameters;
         this.ring = CycleMap.wrap(ring);
         this.rackByKvs = ImmutableMap.copyOf(rackByKvs);
@@ -68,16 +69,16 @@ import com.palantir.util.Pair;
     }
 
     public static BasicPartitionMap create(QuorumParameters quorumParameters,
-                                           NavigableMap<byte[], KeyValueService> ring,
-                                           Map<KeyValueService, String> rackByKvs) {
+                                           NavigableMap<byte[], KeyValueEndpoint> ring,
+                                           Map<KeyValueEndpoint, String> rackByKvs) {
         return new BasicPartitionMap(quorumParameters, ring, rackByKvs);
     }
 
     public static BasicPartitionMap create(QuorumParameters quorumParameters,
-                                           NavigableMap<byte[], KeyValueService> ring) {
-        Map<KeyValueService, String> rackByKvs = Maps.newHashMap();
+                                           NavigableMap<byte[], KeyValueEndpoint> ring) {
+        Map<KeyValueEndpoint, String> rackByKvs = Maps.newHashMap();
         // Assume each kvs to be in separate rack if no info is available.
-        for (KeyValueService kvs : ring.values()) {
+        for (KeyValueEndpoint kvs : ring.values()) {
             rackByKvs.put(kvs, "" + kvs.hashCode());
         }
         return create(quorumParameters, ring, rackByKvs);
@@ -86,13 +87,13 @@ import com.palantir.util.Pair;
     // *********************************************************************************************
 
     // *** Helper methods **************************************************************************
-    private Set<KeyValueService> getServicesHavingRow(byte[] key) {
-        Set<KeyValueService> result = Sets.newHashSet();
+    private Set<KeyValueEndpoint> getServicesHavingRow(byte[] key) {
+        Set<KeyValueEndpoint> result = Sets.newHashSet();
         Set<String> racks = Sets.newHashSet();
         byte[] point = key;
         while (result.size() < quorumParameters.getReplicationFactor()) {
             point = ring.nextKey(point);
-            KeyValueService kvs = ring.get(point);
+            KeyValueEndpoint kvs = ring.get(point);
             String rack = rackByKvs.get(kvs);
             if (racks.add(rack)) {
                 result.add(kvs);
@@ -102,11 +103,11 @@ import com.palantir.util.Pair;
         return result;
     }
 
-    private Map<KeyValueService, Set<Cell>> getServicesForCellsSet(String tableName, Set<Cell> cells) {
-        Map<KeyValueService, Set<Cell>> result = Maps.newHashMap();
+    private Map<KeyValueEndpoint, Set<Cell>> getServicesForCellsSet(String tableName, Set<Cell> cells) {
+        Map<KeyValueEndpoint, Set<Cell>> result = Maps.newHashMap();
         for (Cell cell : cells) {
-            Set<KeyValueService> services = getServicesHavingRow(cell.getRowName());
-            for (KeyValueService kvs : services) {
+            Set<KeyValueEndpoint> services = getServicesHavingRow(cell.getRowName());
+            for (KeyValueEndpoint kvs : services) {
                 if (!result.containsKey(kvs)) {
                     result.put(kvs, Sets.<Cell> newHashSet());
                 }
@@ -118,12 +119,12 @@ import com.palantir.util.Pair;
         return result;
     }
 
-    private <ValType> Map<KeyValueService, Map<Cell, ValType>> getServicesForCellsMap(String tableName,
+    private <ValType> Map<KeyValueEndpoint, Map<Cell, ValType>> getServicesForCellsMap(String tableName,
                                                                          Map<Cell, ValType> cellMap) {
-        Map<KeyValueService, Map<Cell, ValType>> result = Maps.newHashMap();
+        Map<KeyValueEndpoint, Map<Cell, ValType>> result = Maps.newHashMap();
         for (Map.Entry<Cell, ValType> e : cellMap.entrySet()) {
-            Set<KeyValueService> services = getServicesHavingRow(e.getKey().getRowName());
-            for (KeyValueService kvs : services) {
+            Set<KeyValueEndpoint> services = getServicesHavingRow(e.getKey().getRowName());
+            for (KeyValueEndpoint kvs : services) {
                 if (!result.containsKey(kvs)) {
                     result.put(kvs, Maps.<Cell, ValType> newHashMap());
                 }
@@ -137,12 +138,12 @@ import com.palantir.util.Pair;
         return result;
     }
 
-    private <ValType> Map<KeyValueService, Multimap<Cell, ValType>> getServicesForCellsMultimap(String tableName,
+    private <ValType> Map<KeyValueEndpoint, Multimap<Cell, ValType>> getServicesForCellsMultimap(String tableName,
                                                                                                 Multimap<Cell, ValType> cellMultimap) {
-        Map<KeyValueService, Multimap<Cell, ValType>> result = Maps.newHashMap();
+        Map<KeyValueEndpoint, Multimap<Cell, ValType>> result = Maps.newHashMap();
         for (Map.Entry<Cell, ValType> e : cellMultimap.entries()) {
-            Set<KeyValueService> services = getServicesHavingRow(e.getKey().getRowName());
-            for (KeyValueService kvs : services) {
+            Set<KeyValueEndpoint> services = getServicesHavingRow(e.getKey().getRowName());
+            for (KeyValueEndpoint kvs : services) {
                 if (!result.containsKey(kvs)) {
                     result.put(kvs, HashMultimap.<Cell, ValType> create());
                 }
@@ -193,9 +194,7 @@ import com.palantir.util.Pair;
             // every service having the (inclusive) start row will also
             // have all the other rows belonging to this range.
             // No other services will have any of these rows.
-            for (KeyValueService kvs : getServicesHavingRow(rangeStart)) {
-                result.put(crrr, new SimpleKeyValueEndpoint(kvs));
-            }
+            result.putAll(crrr, getServicesHavingRow(rangeStart));
 
             // Proceed with next range
             rangeStart = ring.higherKey(rangeStart);
@@ -207,12 +206,12 @@ import com.palantir.util.Pair;
         return result;
     }
 
-    private Map<KeyValueService, NavigableSet<byte[]>> getServicesForRowsRead(String tableName,
+    private Map<KeyValueEndpoint, NavigableSet<byte[]>> getServicesForRowsRead(String tableName,
                                                                              Iterable<byte[]> rows) {
-        Map<KeyValueService, NavigableSet<byte[]>> result = Maps.newHashMap();
+        Map<KeyValueEndpoint, NavigableSet<byte[]>> result = Maps.newHashMap();
         for (byte[] row : rows) {
-            Set<KeyValueService> services = getServicesHavingRow(row);
-            for (KeyValueService kvs : services) {
+            Set<KeyValueEndpoint> services = getServicesHavingRow(row);
+            for (KeyValueEndpoint kvs : services) {
                 if (!result.containsKey(kvs)) {
                     result.put(
                             kvs,
@@ -230,19 +229,30 @@ import com.palantir.util.Pair;
 
     @Override
     public Set<? extends KeyValueService> getDelegates() {
-        return services;
+        throw new UnsupportedOperationException();
     }
 
     static <K, V> Pair<K, V> ofEntry(Entry<? extends K, ? extends V> entry) {
         return Pair.<K, V>create(entry.getKey(), entry.getValue());
     }
 
+    private static <T> void apply(final Entry<KeyValueEndpoint, ? extends T> entry, final Function<Pair<KeyValueService, T>, Void> task) {
+        entry.getKey().run(new Function<KeyValueService, Void>() {
+            @Override @Nullable
+            public Void apply(@Nullable KeyValueService input) {
+                task.apply(Pair.<KeyValueService, T>create(input, entry.getValue()));
+                return null;
+            }
+
+        });
+    }
+
     @Override
     public void runForRowsRead(String tableName,
                                Iterable<byte[]> rows,
-                               Function<Pair<KeyValueService, Iterable<byte[]>>, Void> task) {
-        for (Entry<KeyValueService, NavigableSet<byte[]>> e : getServicesForRowsRead(tableName, rows).entrySet()) {
-            task.apply(BasicPartitionMap.<KeyValueService, Iterable<byte[]>>ofEntry(e));
+                               final Function<Pair<KeyValueService, Iterable<byte[]>>, Void> task) {
+        for (final Entry<KeyValueEndpoint, ? extends Iterable<byte[]>> e : getServicesForRowsRead(tableName, rows).entrySet()) {
+            apply(e, task);
         }
     }
 
@@ -250,8 +260,8 @@ import com.palantir.util.Pair;
     public void runForCellsRead(String tableName,
                                 Set<Cell> cells,
                                 Function<Pair<KeyValueService, Set<Cell>>, Void> task) {
-        for (Entry<KeyValueService, Set<Cell>> e : getServicesForCellsSet(tableName, cells).entrySet()) {
-            task.apply(ofEntry(e));
+        for (Entry<KeyValueEndpoint, Set<Cell>> e : getServicesForCellsSet(tableName, cells).entrySet()) {
+            apply(e, task);
         }
     }
 
@@ -259,8 +269,8 @@ import com.palantir.util.Pair;
     public <T> void runForCellsRead(String tableName,
                                     Map<Cell, T> cells,
                                     Function<Pair<KeyValueService, Map<Cell, T>>, Void> task) {
-        for (Entry<KeyValueService, Map<Cell, T>> e : getServicesForCellsMap(tableName, cells).entrySet()) {
-            task.apply(ofEntry(e));
+        for (Entry<KeyValueEndpoint, Map<Cell, T>> e : getServicesForCellsMap(tableName, cells).entrySet()) {
+            apply(e, task);
         }
     }
 
@@ -282,8 +292,8 @@ import com.palantir.util.Pair;
     public <T> void runForCellsWrite(String tableName,
                                      Multimap<Cell, T> cells,
                                      Function<Pair<KeyValueService, Multimap<Cell, T>>, Void> task) {
-        for (Entry<KeyValueService, Multimap<Cell, T>> e : getServicesForCellsMultimap(tableName, cells).entrySet()) {
-            task.apply(ofEntry(e));
+        for (Entry<KeyValueEndpoint, Multimap<Cell, T>> e : getServicesForCellsMultimap(tableName, cells).entrySet()) {
+            apply(e, task);
         }
     }
 }
