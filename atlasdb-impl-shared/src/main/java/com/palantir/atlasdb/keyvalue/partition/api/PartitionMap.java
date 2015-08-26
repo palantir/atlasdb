@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.keyvalue.partition.api;
 
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import com.google.common.base.Function;
@@ -24,21 +23,24 @@ import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
-import com.palantir.atlasdb.keyvalue.partition.VersionedKeyValueEndpoint;
+import com.palantir.atlasdb.keyvalue.partition.KeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.util.ConsistentRingRangeRequest;
+import com.palantir.util.Pair;
 
 public interface PartitionMap {
 
-    Multimap<ConsistentRingRangeRequest, VersionedKeyValueEndpoint> getServicesForRangeRead(String tableName, RangeRequest range);
+    // This function is a special case as the operations will be carried out at a later time and
+    // initiated by the caller.
+    Multimap<ConsistentRingRangeRequest, KeyValueEndpoint> getServicesForRangeRead(String tableName, RangeRequest range);
 
-    <R> R runForRowsRead(String tableName, Iterable<byte[]> rows, Function<Entry<KeyValueService, Iterable<byte[]>>, R> task);
+    void runForRowsRead(String tableName, Iterable<byte[]> rows, Function<Pair<KeyValueService, Iterable<byte[]>>, Void> task);
 
-    <R> R runForCellsRead(String tableName, Set<Cell> cells, Function<Entry<KeyValueService, Set<Cell>>, R> task);
-    <T, R> R runForCellsRead(String tableName, Map<Cell, T> cells, Function<Entry<KeyValueService, Map<Cell, T>>, R> task);
+    void runForCellsRead(String tableName, Set<Cell> cells, Function<Pair<KeyValueService, Set<Cell>>, Void> task);
+    <T> void runForCellsRead(String tableName, Map<Cell, T> cells, Function<Pair<KeyValueService, Map<Cell, T>>, Void> task);
 
-    <R> R runForCellsWrite(String tableName, Set<Cell> cells, Function<Entry<KeyValueService, Set<Cell>>, R> task);
-    <T, R> R runForCellsWrite(String tableName, Map<Cell, T> cells, Function<Entry<KeyValueService, Map<Cell, T>>, R> task);
-    <T, R> R runForCellsWrite(String tableName, Multimap<Cell, T> cells, Function<Entry<KeyValueService, Multimap<Cell, T>>, R> task);
+    void runForCellsWrite(String tableName, Set<Cell> cells, Function<Pair<KeyValueService, Set<Cell>>, Void> task);
+    <T> void runForCellsWrite(String tableName, Map<Cell, T> cells, Function<Pair<KeyValueService, Map<Cell, T>>, Void> task);
+    <T> void runForCellsWrite(String tableName, Multimap<Cell, T> cells, Function<Pair<KeyValueService, Multimap<Cell, T>>, Void> task);
 
     Set<? extends KeyValueService> getDelegates();
 
