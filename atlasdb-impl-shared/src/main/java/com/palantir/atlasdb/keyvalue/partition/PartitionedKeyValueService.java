@@ -18,8 +18,6 @@ package com.palantir.atlasdb.keyvalue.partition;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.NavigableMap;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -57,6 +55,7 @@ import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.NonIdempotent;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.Throwables;
+import com.palantir.util.Pair;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 public abstract class PartitionedKeyValueService implements KeyValueService {
@@ -129,16 +128,16 @@ public abstract class PartitionedKeyValueService implements KeyValueService {
                 quorumParameters.getReadRequestParameters());
 
         // Schedule tasks for execution
-        getPartitionMap().runForRowsRead(tableName, rows, new Function<Map.Entry<KeyValueService,Iterable<byte[]>>, Void>() {
+        getPartitionMap().runForRowsRead(tableName, rows, new Function<Pair<KeyValueService,Iterable<byte[]>>, Void>() {
             @Override @Nullable
-            public Void apply(@Nullable final Entry<KeyValueService, Iterable<byte[]>> e) {
+            public Void apply(@Nullable final Pair<KeyValueService, Iterable<byte[]>> e) {
                 Future<Map<Cell, Value>> future = execSvc.submit(new Callable<Map<Cell, Value>>() {
                     @Override
                     public Map<Cell, Value> call() throws Exception {
-                        return e.getKey().getRows(tableName, e.getValue(), columnSelection, timestamp);
+                        return e.lhSide.getRows(tableName, e.rhSide, columnSelection, timestamp);
                     }
                 });
-                tracker.registerRef(future, e.getValue());
+                tracker.registerRef(future, e.rhSide);
                 return null;
             }
         });
@@ -165,23 +164,22 @@ public abstract class PartitionedKeyValueService implements KeyValueService {
         final Map<Cell, Value> globalResult = Maps.newHashMap();
 
         // Schedule the tasks
-        getPartitionMap().runForCellsRead(tableName, timestampByCell, new Function<Entry<KeyValueService, Map<Cell, Long>>, Void>() {
+        getPartitionMap().runForCellsRead(tableName, timestampByCell, new Function<Pair<KeyValueService, Map<Cell, Long>>, Void>() {
             @Override @Nullable
-            public Void apply(@Nullable final Entry<KeyValueService, Map<Cell, Long>> e) {
+            public Void apply(@Nullable final Pair<KeyValueService, Map<Cell, Long>> e) {
                 Future<Map<Cell, Value>> future = execSvc.submit(new Callable<Map<Cell, Value>>() {
                     @Override
                     public Map<Cell, Value> call() throws Exception {
-                        return e.getKey().get(tableName, e.getValue());
+                        return e.lhSide.get(tableName, e.rhSide);
                     }
                 });
-                tracker.registerRef(future, e.getValue().keySet());
+                tracker.registerRef(future, e.rhSide.keySet());
                 return null;
             }
         });
 
         completeRequest(tracker, execSvc, new Function<Map<Cell, Value>, Void>() {
-            @Override
-            @Nullable
+            @Override @Nullable
             public Void apply(@Nullable Map<Cell, Value> input) {
                 mergeCellValueMapIntoMap(globalResult, input);
                 return null;
@@ -203,16 +201,16 @@ public abstract class PartitionedKeyValueService implements KeyValueService {
                 quorumParameters.getNoFailureRequestParameters());
         final Multimap<Cell, Long> globalResult = HashMultimap.create();
 
-        getPartitionMap().runForCellsRead(tableName, cells, new Function<Entry<KeyValueService, Set<Cell>>, Void>() {
+        getPartitionMap().runForCellsRead(tableName, cells, new Function<Pair<KeyValueService, Set<Cell>>, Void>() {
             @Override @Nullable
-            public Void apply(@Nullable final Entry<KeyValueService, Set<Cell>> e) {
+            public Void apply(@Nullable final Pair<KeyValueService, Set<Cell>> e) {
                 Future<Multimap<Cell, Long>> future = execSvc.submit(new Callable<Multimap<Cell, Long>>() {
                     @Override
                     public Multimap<Cell, Long> call() throws Exception {
-                        return e.getKey().getAllTimestamps(tableName, cells, timestamp);
+                        return e.lhSide.getAllTimestamps(tableName, cells, timestamp);
                     }
                 });
-                tracker.registerRef(future, e.getValue());
+                tracker.registerRef(future, e.rhSide);
                 return null;
             }
 
@@ -239,16 +237,16 @@ public abstract class PartitionedKeyValueService implements KeyValueService {
         final ExecutorCompletionService<Map<Cell, Long>> execSvc = new ExecutorCompletionService<Map<Cell, Long>>(
                 executor);
 
-        getPartitionMap().runForCellsRead(tableName, timestampByCell, new Function<Entry<KeyValueService, Map<Cell, Long>>, Void>() {
+        getPartitionMap().runForCellsRead(tableName, timestampByCell, new Function<Pair<KeyValueService, Map<Cell, Long>>, Void>() {
             @Override @Nullable
-            public Void apply(@Nullable final Entry<KeyValueService, Map<Cell, Long>> e) {
+            public Void apply(@Nullable final Pair<KeyValueService, Map<Cell, Long>> e) {
                 Future<Map<Cell, Long>> future = execSvc.submit(new Callable<Map<Cell, Long>>() {
                     @Override
                     public Map<Cell, Long> call() throws Exception {
-                        return e.getKey().getLatestTimestamps(tableName, e.getValue());
+                        return e.lhSide.getLatestTimestamps(tableName, e.rhSide);
                     }
                 });
-                tracker.registerRef(future, e.getValue().keySet());
+                tracker.registerRef(future, e.rhSide.keySet());
                 return null;
             }
         });
@@ -283,7 +281,7 @@ public abstract class PartitionedKeyValueService implements KeyValueService {
                                                        RangeRequest rangeRequest,
                                                        final long timestamp) {
 
-        final Multimap<ConsistentRingRangeRequest, VersionedKeyValueEndpoint> services = getPartitionMap().getServicesForRangeRead(
+        final Multimap<ConsistentRingRangeRequest, KeyValueEndpoint> services = getPartitionMap().getServicesForRangeRead(
                 tableName,
                 rangeRequest);
 
@@ -299,7 +297,7 @@ public abstract class PartitionedKeyValueService implements KeyValueService {
             @Override
             protected Set<ClosablePeekingIterator<RowResult<Value>>> computeNextRange(final ConsistentRingRangeRequest range) {
                 final Set<ClosablePeekingIterator<RowResult<Value>>> result = Sets.newHashSet();
-                for (VersionedKeyValueEndpoint vkve : services.get(range)) {
+                for (KeyValueEndpoint vkve : services.get(range)) {
                     try {
                         vkve.run(new Function<KeyValueService, Void>() {
                             @Override @Nullable
@@ -314,6 +312,7 @@ public abstract class PartitionedKeyValueService implements KeyValueService {
 
                         });
                     } catch (RuntimeException e) {
+                        // TODO:
                         // If this failure is fatal for the range, the exception will be thrown when
                         // retrieving data from the iterators.
                         log.warn("Failed to getRange in table " + tableName);
@@ -330,7 +329,7 @@ public abstract class PartitionedKeyValueService implements KeyValueService {
     public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(final String tableName,
                                                                        RangeRequest rangeRequest,
                                                                        final long timestamp) {
-        final Multimap<ConsistentRingRangeRequest, VersionedKeyValueEndpoint> services = getPartitionMap().getServicesForRangeRead(
+        final Multimap<ConsistentRingRangeRequest, KeyValueEndpoint> services = getPartitionMap().getServicesForRangeRead(
                 tableName,
                 rangeRequest);
 
@@ -344,7 +343,7 @@ public abstract class PartitionedKeyValueService implements KeyValueService {
             @Override
             protected Set<ClosablePeekingIterator<RowResult<Set<Value>>>> computeNextRange(final ConsistentRingRangeRequest range) {
                 final Set<ClosablePeekingIterator<RowResult<Set<Value>>>> result = Sets.newHashSet();
-                for (VersionedKeyValueEndpoint vkve : services.get(range)) {
+                for (KeyValueEndpoint vkve : services.get(range)) {
                     try {
                         vkve.run(new Function<KeyValueService, Void>() {
                             @Override @Nullable
@@ -358,6 +357,7 @@ public abstract class PartitionedKeyValueService implements KeyValueService {
                             }
                         });
                     } catch (RuntimeException e) {
+                        // TODO:
                         // If this failure is fatal for the range, the exception will be thrown when
                         // retrieving data from the iterators.
                         log.warn("Failed to getRangeWithHistory in table " + tableName);
@@ -374,7 +374,7 @@ public abstract class PartitionedKeyValueService implements KeyValueService {
                                                                        RangeRequest rangeRequest,
                                                                        final long timestamp)
             throws InsufficientConsistencyException {
-        final Multimap<ConsistentRingRangeRequest, VersionedKeyValueEndpoint> services = getPartitionMap().getServicesForRangeRead(
+        final Multimap<ConsistentRingRangeRequest, KeyValueEndpoint> services = getPartitionMap().getServicesForRangeRead(
                 tableName,
                 rangeRequest);
 
@@ -388,7 +388,7 @@ public abstract class PartitionedKeyValueService implements KeyValueService {
             @Override
             protected Set<ClosablePeekingIterator<RowResult<Set<Long>>>> computeNextRange(final ConsistentRingRangeRequest range) {
                 final Set<ClosablePeekingIterator<RowResult<Set<Long>>>> result = Sets.newHashSet();
-                for (VersionedKeyValueEndpoint vkve : services.get(range)) {
+                for (KeyValueEndpoint vkve : services.get(range)) {
                     try {
                         vkve.run(new Function<KeyValueService, Void>() {
                             @Override @Nullable
@@ -402,6 +402,7 @@ public abstract class PartitionedKeyValueService implements KeyValueService {
                             }
                         });
                     } catch (RuntimeException e) {
+                        // TODO:
                         // If this failure is fatal for the range, the exception will be thrown when
                         // retrieving data from the iterators.
                         log.warn("Failed to getRangeOfTimestamps in table " + tableName);
@@ -421,17 +422,17 @@ public abstract class PartitionedKeyValueService implements KeyValueService {
                 values.keySet(),
                 quorumParameters.getWriteRequestParameters());
 
-        getPartitionMap().runForCellsWrite(tableName, values, new Function<Entry<KeyValueService, Map<Cell, byte[]>>, Void>() {
+        getPartitionMap().runForCellsWrite(tableName, values, new Function<Pair<KeyValueService, Map<Cell, byte[]>>, Void>() {
             @Override @Nullable
-            public Void apply(@Nullable final Entry<KeyValueService, Map<Cell, byte[]>> e) {
+            public Void apply(@Nullable final Pair<KeyValueService, Map<Cell, byte[]>> e) {
                 Future<Void> future = writeService.submit(new Callable<Void>() {
                     @Override
                     public Void call() throws Exception {
-                        e.getKey().put(tableName, e.getValue(), timestamp);
+                        e.lhSide.put(tableName, e.rhSide, timestamp);
                         return null;
                     }
                 });
-                tracker.registerRef(future, e.getValue().keySet());
+                tracker.registerRef(future, e.rhSide.keySet());
                 return null;
             }
         });
@@ -449,17 +450,17 @@ public abstract class PartitionedKeyValueService implements KeyValueService {
                 cellValues.entries(),
                 quorumParameters.getWriteRequestParameters());
 
-        getPartitionMap().runForCellsWrite(tableName, cellValues, new Function<Entry<KeyValueService, Multimap<Cell, Value>>, Void>() {
+        getPartitionMap().runForCellsWrite(tableName, cellValues, new Function<Pair<KeyValueService, Multimap<Cell, Value>>, Void>() {
             @Override @Nullable
-            public Void apply(@Nullable final Entry<KeyValueService, Multimap<Cell, Value>> e) {
+            public Void apply(@Nullable final Pair<KeyValueService, Multimap<Cell, Value>> e) {
                 Future<Void> future = execSvc.submit(new Callable<Void>() {
                     @Override
                     public Void call() throws Exception {
-                        e.getKey().putWithTimestamps(tableName, e.getValue());
+                        e.lhSide.putWithTimestamps(tableName, e.rhSide);
                         return null;
                     }
                 });
-                tracker.registerRef(future, e.getValue().entries());
+                tracker.registerRef(future, e.rhSide.entries());
                 return null;
             }
 
@@ -479,17 +480,17 @@ public abstract class PartitionedKeyValueService implements KeyValueService {
                 values.keySet(),
                 quorumParameters.getWriteRequestParameters());
 
-        getPartitionMap().runForCellsWrite(tableName, values, new Function<Entry<KeyValueService, Map<Cell, byte[]>>, Void>() {
+        getPartitionMap().runForCellsWrite(tableName, values, new Function<Pair<KeyValueService, Map<Cell, byte[]>>, Void>() {
             @Override @Nullable
-            public Void apply(@Nullable final Entry<KeyValueService, Map<Cell, byte[]>> e) {
+            public Void apply(@Nullable final Pair<KeyValueService, Map<Cell, byte[]>> e) {
                 Future<Void> future = writeService.submit(new Callable<Void>() {
                     @Override
                     public Void call() throws Exception {
-                        e.getKey().putUnlessExists(tableName, e.getValue());
+                        e.lhSide.putUnlessExists(tableName, e.rhSide);
                         return null;
                     }
                 });
-                tracker.registerRef(future, e.getValue().keySet());
+                tracker.registerRef(future, e.rhSide.keySet());
                 return null;
             }
         });
@@ -506,17 +507,17 @@ public abstract class PartitionedKeyValueService implements KeyValueService {
         final ExecutorCompletionService<Void> execSvc = new ExecutorCompletionService<Void>(
                 executor);
 
-        getPartitionMap().runForCellsWrite(tableName, keys, new Function<Entry<KeyValueService, Multimap<Cell, Long>>, Void>() {
+        getPartitionMap().runForCellsWrite(tableName, keys, new Function<Pair<KeyValueService, Multimap<Cell, Long>>, Void>() {
             @Override @Nullable
-            public Void apply(@Nullable final Entry<KeyValueService, Multimap<Cell, Long>> e) {
+            public Void apply(@Nullable final Pair<KeyValueService, Multimap<Cell, Long>> e) {
                 final Future<Void> future = execSvc.submit(new Callable<Void>() {
                     @Override
                     public Void call() throws Exception {
-                        e.getKey().delete(tableName, e.getValue());
+                        e.lhSide.delete(tableName, e.rhSide);
                         return null;
                     }
                 });
-                tracker.registerRef(future, e.getValue().entries());
+                tracker.registerRef(future, e.rhSide.entries());
                 return null;
             }
         });
@@ -532,17 +533,17 @@ public abstract class PartitionedKeyValueService implements KeyValueService {
                 cells,
                 quorumParameters.getWriteRequestParameters());
 
-        getPartitionMap().runForCellsWrite(tableName, cells, new Function<Entry<KeyValueService, Set<Cell>>, Void>() {
+        getPartitionMap().runForCellsWrite(tableName, cells, new Function<Pair<KeyValueService, Set<Cell>>, Void>() {
             @Override @Nullable
-            public Void apply(@Nullable final Entry<KeyValueService, Set<Cell>> e) {
+            public Void apply(@Nullable final Pair<KeyValueService, Set<Cell>> e) {
                 Future<Void> future = execSvc.submit(new Callable<Void>() {
                     @Override
                     public Void call() throws Exception {
-                        e.getKey().addGarbageCollectionSentinelValues(tableName, e.getValue());
+                        e.lhSide.addGarbageCollectionSentinelValues(tableName, e.rhSide);
                         return null;
                     }
                 });
-                tracker.registerRef(future, e.getValue());
+                tracker.registerRef(future, e.rhSide);
                 return null;
             }
         });
@@ -715,9 +716,7 @@ public abstract class PartitionedKeyValueService implements KeyValueService {
 //
 //        return create(ring, quorumParameters);
 //    }
-    protected PartitionedKeyValueService(NavigableMap<byte[], KeyValueService> ring,
-                                         ExecutorService executor,
-                                         QuorumParameters quorumParameters) {
+    protected PartitionedKeyValueService(ExecutorService executor, QuorumParameters quorumParameters) {
         this.executor = executor;
         this.quorumParameters = quorumParameters;
     }
