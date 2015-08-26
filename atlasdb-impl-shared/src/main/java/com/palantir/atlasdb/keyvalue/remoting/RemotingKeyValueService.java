@@ -15,6 +15,9 @@
  */
 package com.palantir.atlasdb.keyvalue.remoting;
 
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -23,6 +26,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.google.common.base.Function;
+import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -31,6 +35,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
+import com.palantir.atlasdb.keyvalue.partition.VersionedKeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.remoting.iterators.HistoryRangeIterator;
 import com.palantir.atlasdb.keyvalue.remoting.iterators.RangeIterator;
 import com.palantir.atlasdb.keyvalue.remoting.iterators.TimestampsRangeIterator;
@@ -40,9 +45,11 @@ import com.palantir.atlasdb.keyvalue.remoting.serialization.CellAsKeyDeserialize
 import com.palantir.atlasdb.keyvalue.remoting.serialization.RowResultDeserializer;
 import com.palantir.atlasdb.keyvalue.remoting.serialization.RowResultSerializer;
 import com.palantir.atlasdb.keyvalue.remoting.serialization.SaneAsKeySerializer;
+import com.palantir.atlasdb.server.OutboxShippingInterceptor;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.supplier.ExecutorInheritableServiceContext;
 import com.palantir.common.supplier.PopulateServiceContextProxy;
+import com.palantir.common.supplier.RemoteContextHolder;
 import com.palantir.common.supplier.ServiceContext;
 import com.palantir.util.Pair;
 
@@ -53,6 +60,7 @@ import feign.jaxrs.JAXRSContract;
 
 public class RemotingKeyValueService extends ForwardingKeyValueService {
     final static ServiceContext<KeyValueService> serviceContext = ExecutorInheritableServiceContext.create();
+    final static ServiceContext<Long> clientVersionProvider = RemoteContextHolder.INBOX.getProviderForKey(VersionedKeyValueEndpoint.VERSIONED_PM.PM_VERSION);
 
     public static ServiceContext<KeyValueService> getServiceContext() {
         return serviceContext;
@@ -102,11 +110,43 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
                 .decoder(new EmptyOctetStreamDelegateDecoder(new JacksonDecoder(kvsMapper())))
                 .errorDecoder(KeyValueServiceErrorDecoder.instance())
                 .contract(new JAXRSContract())
+                .requestInterceptor(new OutboxShippingInterceptor(kvsMapper))
                 .target(KeyValueService.class, uri));
     }
 
-    public static KeyValueService createServerSide(KeyValueService delegate) {
-        return new RemotingKeyValueService(delegate);
+    public static KeyValueService createServerSide(KeyValueService delegate, Supplier<Long> serverVersionSupplier) {
+        final KeyValueService kvs = new RemotingKeyValueService(delegate);
+        return VersionCheckProxy.newProxyInstance(kvs, serverVersionSupplier);
+    }
+
+    static class VersionCheckProxy implements InvocationHandler {
+        final Supplier<Long> serverVersionProvider;
+        final KeyValueService delegate;
+
+        private VersionCheckProxy(Supplier<Long> serverVersionProvider, KeyValueService delegate) {
+            this.serverVersionProvider = serverVersionProvider;
+            this.delegate = delegate;
+        }
+
+        @Override
+        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+            if (method.getDeclaringClass() == KeyValueService.class) {
+                Long clientVersion = clientVersionProvider.get();
+                Long serverVersion = serverVersionProvider.get();
+                if (clientVersion < serverVersion) {
+                    throw new VersionedKeyValueEndpoint.VersionTooOldException();
+                }
+            }
+            return method.invoke(delegate, args);
+        }
+
+        public static KeyValueService newProxyInstance(KeyValueService delegate, Supplier<Long> serverVersionProvider) {
+            VersionCheckProxy vcp = new VersionCheckProxy(serverVersionProvider, delegate);
+            return (KeyValueService) Proxy.newProxyInstance(
+                    KeyValueService.class.getClassLoader(),
+                    new Class<?>[] { KeyValueService.class }, vcp);
+        }
+
     }
 
     private RemotingKeyValueService(KeyValueService service) {
