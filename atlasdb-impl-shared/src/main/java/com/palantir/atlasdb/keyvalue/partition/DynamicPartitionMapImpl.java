@@ -32,8 +32,8 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
-import com.palantir.atlasdb.keyvalue.partition.status.KeyValueServiceWithStatus;
-import com.palantir.atlasdb.keyvalue.partition.status.RegularKeyValueService;
+import com.palantir.atlasdb.keyvalue.partition.status.EndpointWithStatus;
+import com.palantir.atlasdb.keyvalue.partition.status.EndpointWithNormalStatus;
 import com.palantir.atlasdb.keyvalue.partition.util.ConsistentRingRangeRequest;
 import com.palantir.atlasdb.keyvalue.partition.util.CycleMap;
 import com.palantir.common.base.ClosableIterator;
@@ -43,7 +43,7 @@ import com.palantir.util.Pair;
 public class DynamicPartitionMapImpl implements DynamicPartitionMap {
 
     @JsonProperty("quorumParameters") private final QuorumParameters quorumParameters;
-    private final CycleMap<byte[], KeyValueServiceWithStatus> ring;
+    private final CycleMap<byte[], EndpointWithStatus> ring;
     private final BlockingQueue<Future<Void>> removals = Queues.newLinkedBlockingQueue();
     private final BlockingQueue<Future<Void>> joins = Queues.newLinkedBlockingQueue();
     private long version = 0L;
@@ -56,7 +56,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         return result;
     }
 
-    private DynamicPartitionMapImpl(QuorumParameters quorumParameters, CycleMap<byte[], KeyValueServiceWithStatus> ring, long version, Map<KeyValueServiceWithStatus, String> endpointByUri) {
+    private DynamicPartitionMapImpl(QuorumParameters quorumParameters, CycleMap<byte[], EndpointWithStatus> ring, long version, Map<EndpointWithStatus, String> endpointByUri) {
         this.quorumParameters = quorumParameters;
         this.ring = ring;
         this.version = version;
@@ -66,10 +66,10 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
                                    NavigableMap<byte[], KeyValueEndpoint> ring) {
         Preconditions.checkArgument(ring.keySet().size() >= quorumParameters.replicationFactor);
         this.quorumParameters = quorumParameters;
-        this.ring = CycleMap.wrap(transformValues(ring, new Function<KeyValueEndpoint, KeyValueServiceWithStatus>() {
+        this.ring = CycleMap.wrap(transformValues(ring, new Function<KeyValueEndpoint, EndpointWithStatus>() {
             @Override @Nullable
-            public KeyValueServiceWithStatus apply(@Nullable KeyValueEndpoint input) {
-                return new RegularKeyValueService(input);
+            public EndpointWithStatus apply(@Nullable KeyValueEndpoint input) {
+                return new EndpointWithNormalStatus(input);
             }
         }));
     }
@@ -82,7 +82,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
                                // Are not counted against the replication factor
         while (result.size() < quorumParameters.getReplicationFactor() + extraServices) {
             point = ring.nextKey(point);
-            KeyValueServiceWithStatus kvs = ring.get(point);
+            EndpointWithStatus kvs = ring.get(point);
             if (!kvs.shouldUseFor(isWrite)) {
                 assert !kvs.shouldCountFor(isWrite);
                 continue;
@@ -416,7 +416,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
      * @return The first element is the farthest range.
      */
     private List<RangeRequest> getRangesOperatedByKvs(byte[] kvsKey, boolean isWrite) {
-        KeyValueServiceWithStatus kvsws = Preconditions.checkNotNull(ring.get(kvsKey));
+        EndpointWithStatus kvsws = Preconditions.checkNotNull(ring.get(kvsKey));
         List<RangeRequest> result = Lists.newArrayList();
 
         byte[] startRange = kvsKey;
@@ -522,7 +522,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
                 Throwables.throwUncheckedException(e);
             }
         }
-        ring.put(key, new RegularKeyValueService(kvs));
+        ring.put(key, new EndpointWithNormalStatus(kvs));
     }
 
     @Override

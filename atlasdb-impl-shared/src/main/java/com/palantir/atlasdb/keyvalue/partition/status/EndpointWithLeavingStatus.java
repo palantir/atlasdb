@@ -1,10 +1,10 @@
 package com.palantir.atlasdb.keyvalue.partition.status;
 
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.partition.KeyValueEndpoint;
 
-public class LeavingKeyValueService extends KeyValueServiceWithStatus {
+public class EndpointWithLeavingStatus extends EndpointWithStatus {
 
-    public LeavingKeyValueService(KeyValueService service) {
+    public EndpointWithLeavingStatus(KeyValueEndpoint service) {
         super(service);
     }
 

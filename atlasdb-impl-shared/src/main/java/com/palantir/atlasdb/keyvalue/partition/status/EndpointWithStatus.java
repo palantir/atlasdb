@@ -1,13 +1,14 @@
 package com.palantir.atlasdb.keyvalue.partition.status;
 
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.partition.KeyValueEndpoint;
 
-public abstract class KeyValueServiceWithStatus {
-    final KeyValueService service;
-    public final KeyValueService get() {
+
+public abstract class EndpointWithStatus {
+    final KeyValueEndpoint service;
+    public final KeyValueEndpoint get() {
         return service;
     }
-    public KeyValueServiceWithStatus(KeyValueService service) {
+    public EndpointWithStatus(KeyValueEndpoint service) {
         this.service = service;
     }
     public abstract boolean shouldUseForRead();
@@ -27,10 +28,6 @@ public abstract class KeyValueServiceWithStatus {
             return shouldCountForWrite();
         }
         return shouldCountForRead();
-    }
-
-    public KeyValueServiceWithStatus completed() {
-        return new RegularKeyValueService(service);
     }
 
     @Override

@@ -1,21 +1,21 @@
 package com.palantir.atlasdb.keyvalue.partition.status;
 
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.partition.KeyValueEndpoint;
 
-public class RegularKeyValueService extends KeyValueServiceWithStatus {
+public class EndpointWithJoiningStatus extends EndpointWithStatus {
 
-    public RegularKeyValueService(KeyValueService service) {
+    public EndpointWithJoiningStatus(KeyValueEndpoint service) {
         super(service);
     }
 
     @Override
     public boolean shouldUseForRead() {
-        return true;
+        return false;
     }
 
     @Override
     public boolean shouldCountForRead() {
-        return true;
+        return false;
     }
 
     @Override
@@ -25,7 +25,7 @@ public class RegularKeyValueService extends KeyValueServiceWithStatus {
 
     @Override
     public boolean shouldCountForWrite() {
-        return true;
+        return false;
     }
 
 }
