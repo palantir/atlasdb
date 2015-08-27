@@ -26,6 +26,9 @@ import java.util.Set;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
@@ -49,12 +52,20 @@ import com.palantir.util.Pair;
 
 @Immutable @ThreadSafe public final class BasicPartitionMap implements PartitionMap {
 
+    @JsonProperty("quorumParameters")
     private final QuorumParameters quorumParameters;
     // This map is never modified
+    @JsonProperty("ring")
     private final CycleMap<byte[], KeyValueEndpoint> ring;
     private final ImmutableMap<KeyValueEndpoint, String> rackByKvs;
     private final ImmutableSet<KeyValueEndpoint> services;
     private final ImmutableSet<String> racks;
+
+    @JsonCreator
+    public static BasicPartitionMap deserialize(@JsonProperty("quorumParameters") QuorumParameters quorumParameters,
+                                                @JsonProperty("ring") CycleMap<byte[], KeyValueEndpoint> ring) {
+        return create(quorumParameters, ring);
+    }
 
     // *** Construction ****************************************************************************
     private BasicPartitionMap(QuorumParameters quorumParameters,
@@ -227,6 +238,7 @@ import com.palantir.util.Pair;
         return result;
     }
 
+    @JsonIgnore
     @Override
     public Set<? extends KeyValueService> getDelegates() {
         throw new UnsupportedOperationException();
