@@ -14,10 +14,15 @@ public final class PartitionMapServiceImpl implements PartitionMapService {
         this.partitionMap = VersionedObject.of(partitionMap, version);
     }
 
+    public PartitionMapServiceImpl() {
+        this.partitionMap = VersionedObject.of(null, 0L);
+    }
+
     VersionedObject<PartitionMap> partitionMap;
 
     @Override
     public synchronized VersionedObject<PartitionMap> get() {
+        Preconditions.checkNotNull(partitionMap.getObject());
         return partitionMap;
     }
 
