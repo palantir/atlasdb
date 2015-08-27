@@ -41,7 +41,7 @@ public class DynamicPartitionMapTest extends AbstractPartitionMapTest {
     protected PartitionMap getPartitionMap(QuorumParameters qp,
                                            NavigableMap<byte[], KeyValueEndpoint> ring) {
         if (dpm == null) {
-            dpm = new DynamicPartitionMapImpl(qp, ring);
+            dpm = DynamicPartitionMapImpl.create(qp, ring);
         }
         return dpm;
     }
