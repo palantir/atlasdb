@@ -99,4 +99,32 @@ public final class QuorumParameters {
                 + readFactor + ", writeFactor=" + writeFactor + "]";
     }
 
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + readFactor;
+        result = prime * result + replicationFactor;
+        result = prime * result + writeFactor;
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        QuorumParameters other = (QuorumParameters) obj;
+        if (readFactor != other.readFactor)
+            return false;
+        if (replicationFactor != other.replicationFactor)
+            return false;
+        if (writeFactor != other.writeFactor)
+            return false;
+        return true;
+    }
+
 }

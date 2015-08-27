@@ -1,5 +1,7 @@
 package com.palantir.atlasdb.keyvalue.remoting;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.IOException;
 import java.util.NavigableMap;
 
@@ -58,5 +60,7 @@ public class DynamicPartitionMapSerializeTest {
         String asString = mapper.writeValueAsString(partitionMap);
         PartitionMap deserialized = mapper.readValue(asString, DynamicPartitionMapImpl.class);
         System.err.println(deserialized);
+        System.err.println(partitionMap);
+        assertEquals(partitionMap, deserialized);
     }
 }

@@ -77,6 +77,48 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
                 + ", version=" + version + "]";
     }
 
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((quorumParameters == null) ? 0 : quorumParameters.hashCode());
+        result = prime * result + ((ring == null) ? 0 : ring.hashCode());
+        result = prime * result + (int) (version ^ (version >>> 32));
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        DynamicPartitionMapImpl other = (DynamicPartitionMapImpl) obj;
+        if (quorumParameters == null) {
+            if (other.quorumParameters != null)
+                return false;
+        } else if (!quorumParameters.equals(other.quorumParameters))
+            return false;
+        if (version != other.version)
+            return false;
+        if (ring == null) {
+            if (other.ring != null)
+                return false;
+        } else {
+            for (Entry<byte[], EndpointWithStatus> entry : ring.entrySet()) {
+                if (!other.ring.containsKey(entry.getKey())) {
+                    return false;
+                }
+                if (!other.ring.get(entry.getKey()).equals(entry.getValue())) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
     public static class Serializer extends JsonSerializer<DynamicPartitionMapImpl> {
         private static final Serializer instance = new Serializer();
         public static final Serializer instance() { return instance; }

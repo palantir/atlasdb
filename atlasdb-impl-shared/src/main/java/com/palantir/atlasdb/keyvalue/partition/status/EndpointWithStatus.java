@@ -10,6 +10,31 @@ import com.palantir.atlasdb.keyvalue.partition.KeyValueEndpoint;
 @JsonTypeInfo(use=Id.CLASS, property="@class")
 public abstract class EndpointWithStatus {
 
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((endpoint == null) ? 0 : endpoint.hashCode());
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        EndpointWithStatus other = (EndpointWithStatus) obj;
+        if (endpoint == null) {
+            if (other.endpoint != null)
+                return false;
+        } else if (!endpoint.equals(other.endpoint))
+            return false;
+        return true;
+    }
+
     @JsonProperty("endpoint")
     final KeyValueEndpoint endpoint;
 
