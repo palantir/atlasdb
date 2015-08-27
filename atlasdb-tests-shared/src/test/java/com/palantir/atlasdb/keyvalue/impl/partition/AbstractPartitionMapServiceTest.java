@@ -36,7 +36,8 @@ public abstract class AbstractPartitionMapServiceTest {
     public void testPms() {
         PartitionMapService pms = getPartitionMapService(VersionedObject.of(samplePartitionMap, initialVersion));
         assertEquals(initialVersion, pms.getVersion());
-//        assertEquals(samplePartitionMap, pms.get().getObject());
+        // TODO
+        //        assertEquals(samplePartitionMap, pms.get().getObject());
         pms.update(2L, samplePartitionMap);
         assertEquals(2L, pms.getVersion());
     }
