@@ -299,18 +299,8 @@ public abstract class PartitionedKeyValueService implements KeyValueService {
                 final Set<ClosablePeekingIterator<RowResult<Value>>> result = Sets.newHashSet();
                 for (KeyValueEndpoint vkve : services.get(range)) {
                     try {
-                        vkve.run(new Function<KeyValueService, Void>() {
-                            @Override @Nullable
-                            public Void apply(@Nullable KeyValueService kvs) {
-                                ClosableIterator<RowResult<Value>> it = kvs.getRange(
-                                        tableName,
-                                        range.get(),
-                                        timestamp);
-                                result.add(ClosablePeekingIterator.of(it));
-                                return null;
-                            }
-
-                        });
+                        ClosableIterator<RowResult<Value>> it = vkve.keyValueService().getRange(tableName, range.get(), timestamp);
+                        result.add(ClosablePeekingIterator.of(it));
                     } catch (RuntimeException e) {
                         // TODO:
                         // If this failure is fatal for the range, the exception will be thrown when
@@ -345,17 +335,9 @@ public abstract class PartitionedKeyValueService implements KeyValueService {
                 final Set<ClosablePeekingIterator<RowResult<Set<Value>>>> result = Sets.newHashSet();
                 for (KeyValueEndpoint vkve : services.get(range)) {
                     try {
-                        vkve.run(new Function<KeyValueService, Void>() {
-                            @Override @Nullable
-                            public Void apply(@Nullable KeyValueService kvs) {
-                                ClosableIterator<RowResult<Set<Value>>> it = kvs.getRangeWithHistory(
-                                        tableName,
-                                        range.get(),
-                                        timestamp);
-                                result.add(ClosablePeekingIterator.of(it));
-                                return null;
-                            }
-                        });
+                        ClosableIterator<RowResult<Set<Value>>> it = vkve.keyValueService().getRangeWithHistory(
+                                tableName, range.get(), timestamp);
+                        result.add(ClosablePeekingIterator.of(it));
                     } catch (RuntimeException e) {
                         // TODO:
                         // If this failure is fatal for the range, the exception will be thrown when
@@ -390,17 +372,9 @@ public abstract class PartitionedKeyValueService implements KeyValueService {
                 final Set<ClosablePeekingIterator<RowResult<Set<Long>>>> result = Sets.newHashSet();
                 for (KeyValueEndpoint vkve : services.get(range)) {
                     try {
-                        vkve.run(new Function<KeyValueService, Void>() {
-                            @Override @Nullable
-                            public Void apply(@Nullable KeyValueService kvs) {
-                                ClosablePeekingIterator<RowResult<Set<Long>>> it = ClosablePeekingIterator.of(kvs.getRangeOfTimestamps(
-                                        tableName,
-                                        range.get(),
-                                        timestamp));
-                                result.add(it);
-                                return null;
-                            }
-                        });
+                        ClosableIterator<RowResult<Set<Long>>> it = vkve.keyValueService().getRangeOfTimestamps(
+                                tableName, range.get(), timestamp);
+                        result.add(ClosablePeekingIterator.of(it));
                     } catch (RuntimeException e) {
                         // TODO:
                         // If this failure is fatal for the range, the exception will be thrown when
