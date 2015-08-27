@@ -1,5 +1,7 @@
 package com.palantir.atlasdb.keyvalue.remoting;
 
+import static org.junit.Assert.assertEquals;
+
 import java.lang.reflect.Field;
 
 import org.junit.Before;
@@ -49,16 +51,21 @@ public class KeyValueEndpointTest extends AbstractAtlasDbKeyValueServiceTest {
         testSupport.getApplication();
     }
 
+    private KeyValueEndpoint getEndpoint() {
+        if (endpoint == null) {
+            endpoint = new SimpleKeyValueEndpoint(endpointKvsService.baseUri().toString(), endpointPmsService.baseUri().toString());
+        }
+        return endpoint;
+    }
+
     @Test
     public void testSimple() {
+        assertEquals(0L, getEndpoint().partitionMapService().getVersion());
     }
 
     @Override
     protected KeyValueService getKeyValueService() {
-        if (endpoint == null) {
-            endpoint = new SimpleKeyValueEndpoint(endpointKvsService.baseUri().toString(), endpointPmsService.baseUri().toString());
-        }
-        return Preconditions.checkNotNull(endpoint.keyValueService());
+        return Preconditions.checkNotNull(getEndpoint().keyValueService());
     }
 
 }
