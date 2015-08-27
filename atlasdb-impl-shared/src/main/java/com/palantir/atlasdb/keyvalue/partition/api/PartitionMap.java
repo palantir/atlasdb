@@ -18,6 +18,8 @@ package com.palantir.atlasdb.keyvalue.partition.api;
 import java.util.Map;
 import java.util.Set;
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
 import com.google.common.base.Function;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -27,6 +29,7 @@ import com.palantir.atlasdb.keyvalue.partition.KeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.util.ConsistentRingRangeRequest;
 import com.palantir.util.Pair;
 
+@JsonTypeInfo(use=Id.CLASS, property="@class")
 public interface PartitionMap {
 
     // This function is a special case as the operations will be carried out at a later time and
