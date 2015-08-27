@@ -15,7 +15,7 @@ import com.palantir.atlasdb.keyvalue.partition.KeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.PartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.PartitionMapServiceImpl;
 import com.palantir.atlasdb.keyvalue.partition.QuorumParameters;
-import com.palantir.atlasdb.keyvalue.partition.VersionedKeyValueEndpoint;
+import com.palantir.atlasdb.keyvalue.partition.SimpleKeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.VersionedPartitionedKeyValueService;
 import com.palantir.atlasdb.keyvalue.remoting.InsufficientConsistencyExceptionMapper;
 import com.palantir.atlasdb.keyvalue.remoting.KeyAlreadyExistsExceptionMapper;
@@ -71,7 +71,7 @@ public class KeyValueServiceVersioningTest {
     @Before
     public void setUp() {
 
-        KeyValueEndpoint vkve = VersionedKeyValueEndpoint.create(
+        KeyValueEndpoint vkve = new SimpleKeyValueEndpoint(
                 remoteEndpointService.baseUri().toString(),
                 remotePartitionMapService.baseUri().toString());
 
