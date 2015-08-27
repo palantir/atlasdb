@@ -23,7 +23,6 @@ import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Set;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -249,14 +248,7 @@ import com.palantir.util.Pair;
     }
 
     private static <T> void apply(final Entry<KeyValueEndpoint, ? extends T> entry, final Function<Pair<KeyValueService, T>, Void> task) {
-        entry.getKey().run(new Function<KeyValueService, Void>() {
-            @Override @Nullable
-            public Void apply(@Nullable KeyValueService input) {
-                task.apply(Pair.<KeyValueService, T>create(input, entry.getValue()));
-                return null;
-            }
-
-        });
+        task.apply(Pair.<KeyValueService, T>create(entry.getKey().keyValueService(), entry.getValue()));
     }
 
     @Override
