@@ -1,5 +1,6 @@
 package com.palantir.atlasdb.keyvalue.partition;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -13,6 +14,11 @@ import javax.annotation.Nullable;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializerProvider;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
@@ -32,8 +38,8 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
-import com.palantir.atlasdb.keyvalue.partition.status.EndpointWithStatus;
 import com.palantir.atlasdb.keyvalue.partition.status.EndpointWithNormalStatus;
+import com.palantir.atlasdb.keyvalue.partition.status.EndpointWithStatus;
 import com.palantir.atlasdb.keyvalue.partition.util.ConsistentRingRangeRequest;
 import com.palantir.atlasdb.keyvalue.partition.util.CycleMap;
 import com.palantir.common.base.ClosableIterator;
@@ -44,9 +50,25 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
 
     @JsonProperty("quorumParameters") private final QuorumParameters quorumParameters;
     private final CycleMap<byte[], EndpointWithStatus> ring;
-    private final BlockingQueue<Future<Void>> removals = Queues.newLinkedBlockingQueue();
-    private final BlockingQueue<Future<Void>> joins = Queues.newLinkedBlockingQueue();
     private long version = 0L;
+
+    private transient final BlockingQueue<Future<Void>> removals = Queues.newLinkedBlockingQueue();
+    private transient final BlockingQueue<Future<Void>> joins = Queues.newLinkedBlockingQueue();
+
+    public static class Serializer extends JsonSerializer<DynamicPartitionMapImpl> {
+
+        static final ObjectMapper mapper = new ObjectMapper();
+
+        @Override
+        public void serialize(DynamicPartitionMapImpl value,
+                              JsonGenerator gen,
+                              SerializerProvider serializers) throws IOException,
+                JsonProcessingException {
+            gen.writeStartObject();
+            gen.writeEndObject();
+        }
+
+    }
 
     private <K, V1, V2> NavigableMap<K, V2> transformValues(NavigableMap<K, V1> map, Function<V1, V2> transform) {
         NavigableMap<K, V2> result = Maps.newTreeMap(map.comparator());
@@ -244,14 +266,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     }
 
     private static <T> void apply(final Entry<KeyValueEndpoint, ? extends T> entry, final Function<Pair<KeyValueService, T>, Void> task) {
-        entry.getKey().run(new Function<KeyValueService, Void>() {
-            @Override @Nullable
-            public Void apply(@Nullable KeyValueService input) {
-                task.apply(Pair.<KeyValueService, T>create(input, entry.getValue()));
-                return null;
-            }
-
-        });
+        task.apply(Pair.<KeyValueService, T>create(entry.getKey().keyValueService(), entry.getValue()));
     }
 
     @Override

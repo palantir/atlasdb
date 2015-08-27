@@ -4,13 +4,14 @@ import com.palantir.atlasdb.keyvalue.partition.KeyValueEndpoint;
 
 
 public abstract class EndpointWithStatus {
-    final KeyValueEndpoint service;
+    final KeyValueEndpoint endpoint;
     public final KeyValueEndpoint get() {
-        return service;
+        return endpoint;
     }
-    public EndpointWithStatus(KeyValueEndpoint service) {
-        this.service = service;
+    public EndpointWithStatus(KeyValueEndpoint endpoint) {
+        this.endpoint = endpoint;
     }
+
     public abstract boolean shouldUseForRead();
     public abstract boolean shouldCountForRead();
     public abstract boolean shouldUseForWrite();
@@ -32,7 +33,7 @@ public abstract class EndpointWithStatus {
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " kvs=" + service.hashCode();
+        return getClass().getSimpleName() + " kvs=" + endpoint.hashCode();
     }
 
 }
