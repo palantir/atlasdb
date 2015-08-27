@@ -3,7 +3,6 @@ package com.palantir.atlasdb.keyvalue.remoting;
 import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.SortedMap;
 
@@ -15,8 +14,6 @@ import org.junit.Test;
 
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
@@ -28,10 +25,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.AbstractAtlasDbKeyValueServiceTest;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
-import com.palantir.atlasdb.server.InboxPopulatingContainerRequestFilter;
 
-import io.dropwizard.Configuration;
-import io.dropwizard.testing.DropwizardTestSupport;
 import io.dropwizard.testing.junit.DropwizardClientRule;
 
 public class KeyValueServiceRemotingTest extends AbstractAtlasDbKeyValueServiceTest {
@@ -39,28 +33,15 @@ public class KeyValueServiceRemotingTest extends AbstractAtlasDbKeyValueServiceT
     final KeyValueService remoteKvs = RemotingKeyValueService.createServerSide(new InMemoryKeyValueService(
             false), Suppliers.ofInstance(-1L));
 
-    private final SimpleModule module = RemotingKeyValueService.kvsModule();
-    private final ObjectMapper mapper = RemotingKeyValueService.kvsMapper();
-
     @Rule
-    public final DropwizardClientRule Rule = new DropwizardClientRule(
-            remoteKvs,
-            KeyAlreadyExistsExceptionMapper.instance(),
-            InsufficientConsistencyExceptionMapper.instance(),
-            new InboxPopulatingContainerRequestFilter(mapper));
+    public final DropwizardClientRule Rule = Utils.getRemoteKvsRule(remoteKvs);
+    public static final ObjectMapper mapper = Utils.mapper;
 
     volatile KeyValueService localKvs;
 
-    @SuppressWarnings("unchecked")
     @Before
     public void setupHacks() throws Exception {
-        Field field = Rule.getClass().getDeclaredField("testSupport");
-        field.setAccessible(true);
-        DropwizardTestSupport<Configuration> testSupport = (DropwizardTestSupport<Configuration>) field.get(Rule);
-        ObjectMapper mapper = testSupport.getEnvironment().getObjectMapper();
-        mapper.registerModule(module);
-        mapper.registerModule(new GuavaModule());
-        testSupport.getApplication();
+        Utils.setupRuleHacks(Rule);
     }
 
     @Test

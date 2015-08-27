@@ -7,4 +7,5 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 public interface KeyValueEndpoint {
     KeyValueService keyValueService();
     PartitionMapService partitionMapService();
+    void swapKeyValueService(KeyValueService kvs);
 }

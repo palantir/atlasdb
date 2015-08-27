@@ -40,7 +40,7 @@ public class SimpleKeyValueEndpoint implements KeyValueEndpoint {
         return true;
     }
 
-    final transient KeyValueService kvs;
+    transient KeyValueService kvs;
     final transient PartitionMapService pms;
     @JsonProperty("kvsUri") final String kvsUri;
     @JsonProperty("pmsUri") final String pmsUri;
@@ -62,5 +62,11 @@ public class SimpleKeyValueEndpoint implements KeyValueEndpoint {
     @Override
     public PartitionMapService partitionMapService() {
         return pms;
+    }
+
+    // TODO:
+    @Override
+    public void swapKeyValueService(KeyValueService kvs) {
+        this.kvs = kvs;
     }
 }

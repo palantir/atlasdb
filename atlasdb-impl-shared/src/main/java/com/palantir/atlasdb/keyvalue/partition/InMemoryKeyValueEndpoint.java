@@ -10,7 +10,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
  */
 public class InMemoryKeyValueEndpoint implements KeyValueEndpoint {
 
-    final KeyValueService kvs;
+    KeyValueService kvs;
     final PartitionMapService pms;
 
     private InMemoryKeyValueEndpoint(KeyValueService kvs, PartitionMapService pms) {
@@ -32,6 +32,9 @@ public class InMemoryKeyValueEndpoint implements KeyValueEndpoint {
         return pms;
     }
 
-
+    @Override
+    public void swapKeyValueService(KeyValueService kvs) {
+        this.kvs = kvs;
+    }
 
 }

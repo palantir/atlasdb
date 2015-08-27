@@ -27,6 +27,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
@@ -50,6 +51,8 @@ import com.palantir.atlasdb.server.OutboxShippingInterceptor;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.supplier.ExecutorInheritableServiceContext;
 import com.palantir.common.supplier.PopulateServiceContextProxy;
+import com.palantir.common.supplier.RemoteContextHolder;
+import com.palantir.common.supplier.RemoteContextHolder.RemoteContextType;
 import com.palantir.common.supplier.ServiceContext;
 import com.palantir.util.Pair;
 
@@ -60,10 +63,15 @@ import feign.jaxrs.JAXRSContract;
 
 public class RemotingKeyValueService extends ForwardingKeyValueService {
     final static ServiceContext<KeyValueService> serviceContext = ExecutorInheritableServiceContext.create();
-    final static ServiceContext<Long> clientVersionProvider = null;// RemoteContextHolder.INBOX.getProviderForKey(VersionedKeyValueEndpoint.VERSIONED_PM.PM_VERSION);
+    final static ServiceContext<Long> clientVersionContext = ExecutorInheritableServiceContext.create();
+    // RemoteContextHolder.INBOX.getProviderForKey(VersionedKeyValueEndpoint.VERSIONED_PM.PM_VERSION);
 
     public static ServiceContext<KeyValueService> getServiceContext() {
         return serviceContext;
+    }
+
+    public static ServiceContext<Long> getClientVersionContext() {
+        return clientVersionContext;
     }
 
     final KeyValueService delegate;
@@ -104,14 +112,32 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
         };
     }
 
+    public enum HOLDER implements RemoteContextType<Long> {
+        PM_VERSION {
+            @Override
+            public Class<Long> getValueType() {
+                return Long.class;
+            }
+        }
+    }
+
     public static KeyValueService createClientSide(String uri) {
-        return createClientSide(Feign.builder()
+        ServiceContext<Long> ctx = RemoteContextHolder.OUTBOX.getProviderForKey(HOLDER.PM_VERSION);
+        KeyValueService ret = createClientSide(Feign.builder()
                 .encoder(new JacksonEncoder(kvsMapper()))
                 .decoder(new EmptyOctetStreamDelegateDecoder(new JacksonDecoder(kvsMapper())))
                 .errorDecoder(KeyValueServiceErrorDecoder.instance())
                 .contract(new JAXRSContract())
                 .requestInterceptor(new OutboxShippingInterceptor(kvsMapper))
                 .target(KeyValueService.class, uri));
+        return PopulateServiceContextProxy.newProxyInstance(KeyValueService.class, ret, new Supplier<Long>() {
+            @Override
+            public Long get() {
+//                return 17L;
+                return Preconditions.checkNotNull(clientVersionContext.get());
+//                return clientVersionContext.get();
+            }
+        }, ctx);
     }
 
     public static KeyValueService createServerSide(KeyValueService delegate, Supplier<Long> serverVersionSupplier) {
