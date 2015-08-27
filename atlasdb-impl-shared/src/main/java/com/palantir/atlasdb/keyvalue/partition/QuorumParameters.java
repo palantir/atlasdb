@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.partition;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.base.Preconditions;
 import com.palantir.common.annotation.Immutable;
 
@@ -63,14 +64,17 @@ import com.palantir.common.annotation.Immutable;
         return writeFactor;
     }
 
+    @JsonIgnore
     public QuorumRequestParameters getReadRequestParameters() {
         return new QuorumRequestParameters(replicationFactor, readFactor);
     }
 
+    @JsonIgnore
     public QuorumRequestParameters getWriteRequestParameters() {
         return new QuorumRequestParameters(replicationFactor, writeFactor);
     }
 
+    @JsonIgnore
     public QuorumRequestParameters getNoFailureRequestParameters() {
         return new QuorumRequestParameters(replicationFactor, replicationFactor);
     }
