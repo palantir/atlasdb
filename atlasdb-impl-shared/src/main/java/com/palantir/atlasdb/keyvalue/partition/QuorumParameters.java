@@ -15,16 +15,20 @@
  */
 package com.palantir.atlasdb.keyvalue.partition;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
 import com.palantir.common.annotation.Immutable;
 
-@Immutable public final class QuorumParameters {
+@Immutable
+public final class QuorumParameters {
     final int replicationFactor;
     final int readFactor;
     final int writeFactor;
 
-    @Immutable public final static class QuorumRequestParameters {
+    @Immutable
+    public final static class QuorumRequestParameters {
         final int replicationFator;
         final int successFactor;
 
@@ -79,10 +83,20 @@ import com.palantir.common.annotation.Immutable;
         return new QuorumRequestParameters(replicationFactor, replicationFactor);
     }
 
-    public QuorumParameters(int replicationFactor, int readFactor, int writeFactor) {
+    @JsonCreator
+    public QuorumParameters(@JsonProperty("replicationFactor") int replicationFactor,
+                            @JsonProperty("readFactor") int readFactor,
+                            @JsonProperty("writeFactor") int writeFactor) {
         Preconditions.checkArgument(readFactor + writeFactor > replicationFactor);
         this.replicationFactor = replicationFactor;
         this.readFactor = readFactor;
         this.writeFactor = writeFactor;
     }
+
+    @Override
+    public String toString() {
+        return "QuorumParameters [replicationFactor=" + replicationFactor + ", readFactor="
+                + readFactor + ", writeFactor=" + writeFactor + "]";
+    }
+
 }

@@ -1,6 +1,7 @@
 package com.palantir.atlasdb.keyvalue.partition;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -12,13 +13,20 @@ import java.util.concurrent.Future;
 
 import javax.annotation.Nullable;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.jsontype.TypeDeserializer;
+import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
@@ -49,28 +57,13 @@ import com.palantir.util.Pair;
 public class DynamicPartitionMapImpl implements DynamicPartitionMap {
 
     @JsonProperty("quorumParameters") private final QuorumParameters quorumParameters;
-    private final CycleMap<byte[], EndpointWithStatus> ring;
+    @JsonProperty("ring") private final CycleMap<byte[], EndpointWithStatus> ring;
     private long version = 0L;
 
     private transient final BlockingQueue<Future<Void>> removals = Queues.newLinkedBlockingQueue();
     private transient final BlockingQueue<Future<Void>> joins = Queues.newLinkedBlockingQueue();
 
-    public static class Serializer extends JsonSerializer<DynamicPartitionMapImpl> {
-
-        static final ObjectMapper mapper = new ObjectMapper();
-
-        @Override
-        public void serialize(DynamicPartitionMapImpl value,
-                              JsonGenerator gen,
-                              SerializerProvider serializers) throws IOException,
-                JsonProcessingException {
-            gen.writeStartObject();
-            gen.writeEndObject();
-        }
-
-    }
-
-    private <K, V1, V2> NavigableMap<K, V2> transformValues(NavigableMap<K, V1> map, Function<V1, V2> transform) {
+    static private <K, V1, V2> NavigableMap<K, V2> transformValues(NavigableMap<K, V1> map, Function<V1, V2> transform) {
         NavigableMap<K, V2> result = Maps.newTreeMap(map.comparator());
         for (Entry<K, V1> entry : map.entrySet()) {
             result.put(entry.getKey(), transform.apply(entry.getValue()));
@@ -78,17 +71,84 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         return result;
     }
 
-    private DynamicPartitionMapImpl(QuorumParameters quorumParameters, CycleMap<byte[], EndpointWithStatus> ring, long version, Map<EndpointWithStatus, String> endpointByUri) {
-        this.quorumParameters = quorumParameters;
-        this.ring = ring;
-        this.version = version;
+    @Override
+    public String toString() {
+        return "DynamicPartitionMapImpl [quorumParameters=" + quorumParameters + ", ring=" + ring
+                + ", version=" + version + "]";
     }
 
-    public DynamicPartitionMapImpl(QuorumParameters quorumParameters,
-                                   NavigableMap<byte[], KeyValueEndpoint> ring) {
+    public static class Serializer extends JsonSerializer<DynamicPartitionMapImpl> {
+        private static final Serializer instance = new Serializer();
+        public static final Serializer instance() { return instance; }
+        @Override
+        public void serialize(DynamicPartitionMapImpl value,
+                              JsonGenerator gen,
+                              SerializerProvider serializers) throws IOException,
+                JsonProcessingException {
+            gen.writeObjectField("quorumParameters", value.quorumParameters);
+            gen.writeObjectField("version", value.version);
+            gen.writeFieldName("ring");
+            gen.writeStartArray();
+            for (Entry<byte[], EndpointWithStatus> entry : value.ring.entrySet()) {
+                gen.writeStartObject();
+                gen.writeBinaryField("key", entry.getKey());
+                gen.writeObjectField("endpointWithStatus", entry.getValue());
+                gen.writeEndObject();
+            }
+            gen.writeEndArray();
+        }
+        @Override
+        public void serializeWithType(DynamicPartitionMapImpl value,
+                                      JsonGenerator gen,
+                                      SerializerProvider serializers,
+                                      TypeSerializer typeSer) throws IOException {
+            typeSer.writeTypePrefixForObject(value, gen);
+            serialize(value, gen, serializers);
+            typeSer.writeTypeSuffixForObject(value, gen);
+        }
+    }
+
+    public static class Deserializer extends JsonDeserializer<DynamicPartitionMapImpl>{
+        static final Deserializer instance = new Deserializer();
+        public static final Deserializer instance() { return instance; }
+        @Override
+        public DynamicPartitionMapImpl deserialize(JsonParser p, DeserializationContext ctxt)
+                throws IOException, JsonProcessingException {
+            JsonNode root = p.getCodec().readTree(p);
+           long version = root.get("version").asLong();
+            QuorumParameters parameters = new ObjectMapper().readValue("" + root.get("quorumParameters"), QuorumParameters.class);
+            Iterator<JsonNode> it = root.get("ring").elements();
+            NavigableMap<byte[], EndpointWithStatus> ring = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
+            while (it.hasNext()) {
+                JsonNode entry = it.next();
+                byte[] key = entry.get("key").binaryValue();
+                String strEndpoint = "" + entry.get("endpointWithStatus");
+                EndpointWithStatus endpoint = new ObjectMapper().readValue(strEndpoint, EndpointWithStatus.class);
+                ring.put(key, endpoint);
+            }
+            DynamicPartitionMapImpl ret = new DynamicPartitionMapImpl(parameters, ring);
+            ret.version = version;
+            return ret;
+        }
+        @Override
+        public Object deserializeWithType(JsonParser p,
+                                          DeserializationContext ctxt,
+                                          TypeDeserializer typeDeserializer) throws IOException {
+//            typeDeserializer.deserializeTypedFromObject(p, ctxt);
+            return deserialize(p, ctxt);
+        }
+    }
+
+    @JsonCreator
+    public DynamicPartitionMapImpl(@JsonProperty("quorumParameters") QuorumParameters quorumParameters,
+                                   @JsonProperty("ring") NavigableMap<byte[], EndpointWithStatus> ring) {
         Preconditions.checkArgument(ring.keySet().size() >= quorumParameters.replicationFactor);
         this.quorumParameters = quorumParameters;
-        this.ring = CycleMap.wrap(transformValues(ring, new Function<KeyValueEndpoint, EndpointWithStatus>() {
+        this.ring = CycleMap.wrap(ring);
+    }
+
+    public static DynamicPartitionMapImpl create(QuorumParameters quorumParameters, NavigableMap<byte[], KeyValueEndpoint> ring) {
+        return new DynamicPartitionMapImpl(quorumParameters, transformValues(ring, new Function<KeyValueEndpoint, EndpointWithStatus>() {
             @Override @Nullable
             public EndpointWithStatus apply(@Nullable KeyValueEndpoint input) {
                 return new EndpointWithNormalStatus(input);

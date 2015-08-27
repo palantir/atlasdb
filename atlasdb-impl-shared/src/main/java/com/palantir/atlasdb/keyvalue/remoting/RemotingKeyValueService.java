@@ -36,7 +36,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
-import com.palantir.atlasdb.keyvalue.partition.VersionedKeyValueEndpoint;
+import com.palantir.atlasdb.keyvalue.partition.DynamicPartitionMapImpl;
 import com.palantir.atlasdb.keyvalue.remoting.iterators.HistoryRangeIterator;
 import com.palantir.atlasdb.keyvalue.remoting.iterators.RangeIterator;
 import com.palantir.atlasdb.keyvalue.remoting.iterators.TimestampsRangeIterator;
@@ -50,7 +50,6 @@ import com.palantir.atlasdb.server.OutboxShippingInterceptor;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.supplier.ExecutorInheritableServiceContext;
 import com.palantir.common.supplier.PopulateServiceContextProxy;
-import com.palantir.common.supplier.RemoteContextHolder;
 import com.palantir.common.supplier.ServiceContext;
 import com.palantir.util.Pair;
 
@@ -61,7 +60,7 @@ import feign.jaxrs.JAXRSContract;
 
 public class RemotingKeyValueService extends ForwardingKeyValueService {
     final static ServiceContext<KeyValueService> serviceContext = ExecutorInheritableServiceContext.create();
-    final static ServiceContext<Long> clientVersionProvider = RemoteContextHolder.INBOX.getProviderForKey(VersionedKeyValueEndpoint.VERSIONED_PM.PM_VERSION);
+    final static ServiceContext<Long> clientVersionProvider = null;// RemoteContextHolder.INBOX.getProviderForKey(VersionedKeyValueEndpoint.VERSIONED_PM.PM_VERSION);
 
     public static ServiceContext<KeyValueService> getServiceContext() {
         return serviceContext;
@@ -138,7 +137,7 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
                     assert clientVersion == null;
                 } else {
                     if (clientVersion < serverVersion) {
-                        throw new VersionedKeyValueEndpoint.VersionTooOldException();
+                        throw new RuntimeException("Version too old. Please update! (2)");
                     }
                 }
             }
@@ -213,6 +212,8 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
         kvsModule.addKeySerializer(byte[].class, SaneAsKeySerializer.instance());
         kvsModule.addSerializer(RowResult.class, RowResultSerializer.instance());
         kvsModule.addDeserializer(RowResult.class, RowResultDeserializer.instance());
+        kvsModule.addSerializer(DynamicPartitionMapImpl.class, DynamicPartitionMapImpl.Serializer.instance());
+        kvsModule.addDeserializer(DynamicPartitionMapImpl.class, DynamicPartitionMapImpl.Deserializer.instance());
     }
     private static final ObjectMapper kvsMapper = new ObjectMapper(); static {
         kvsMapper.registerModule(kvsModule);
