@@ -16,13 +16,11 @@ import com.palantir.atlasdb.keyvalue.partition.PartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.PartitionMapServiceImpl;
 import com.palantir.atlasdb.keyvalue.partition.QuorumParameters;
 import com.palantir.atlasdb.keyvalue.partition.SimpleKeyValueEndpoint;
-import com.palantir.atlasdb.keyvalue.partition.VersionedPartitionedKeyValueService;
 import com.palantir.atlasdb.keyvalue.remoting.InsufficientConsistencyExceptionMapper;
 import com.palantir.atlasdb.keyvalue.remoting.KeyAlreadyExistsExceptionMapper;
 import com.palantir.atlasdb.keyvalue.remoting.RemotingKeyValueService;
 import com.palantir.atlasdb.keyvalue.remoting.VersionTooOldExceptionMapper;
 import com.palantir.atlasdb.server.InboxPopulatingContainerRequestFilter;
-import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.util.Mutable;
 import com.palantir.util.Mutables;
 
@@ -66,7 +64,7 @@ public class KeyValueServiceVersioningTest {
     @Rule
     public final DropwizardClientRule remotePartitionMapService = new DropwizardClientRule(remotePartitionMap);
 
-    VersionedPartitionedKeyValueService vpkvs;
+    KeyValueService vpkvs;
 
     @Before
     public void setUp() {
@@ -82,8 +80,6 @@ public class KeyValueServiceVersioningTest {
                     .put(new byte[] {0, 0}, vkve)
                     .put(new byte[] {0, 0, 0}, vkve)
                     .build();
-
-        vpkvs = VersionedPartitionedKeyValueService.create(ring, PTExecutors.newCachedThreadPool(), parameters);
     }
 
     @Test
