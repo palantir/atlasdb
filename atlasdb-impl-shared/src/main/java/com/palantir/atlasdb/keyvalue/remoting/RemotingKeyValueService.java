@@ -131,15 +131,15 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
             if (method.getDeclaringClass() == KeyValueService.class) {
-                Long clientVersion = clientVersionProvider.get();
-                Long serverVersion = serverVersionProvider.get();
-                if (serverVersion < 0) {
-                    assert clientVersion == null;
-                } else {
-                    if (clientVersion < serverVersion) {
-                        throw new RuntimeException("Version too old. Please update! (2)");
-                    }
-                }
+//                Long clientVersion = clientVersionProvider.get();
+//                Long serverVersion = serverVersionProvider.get();
+//                if (serverVersion < 0) {
+//                    assert clientVersion == null;
+//                } else {
+//                    if (clientVersion < serverVersion) {
+//                        throw new RuntimeException("Version too old. Please update! (2)");
+//                    }
+//                }
             }
             try {
                 return method.invoke(delegate, args);
