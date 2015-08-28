@@ -45,14 +45,12 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.common.base.ClosableIterator;
 
 public class KVTableMappingService extends AbstractTableMappingService {
-    public static final String SHORT_NAME_COLUMN_NAME = "s";
-    private static final byte[] SHORT_NAME_COLUMN_BYTES = PtBytes.toBytes(SHORT_NAME_COLUMN_NAME);
     public static final TableMetadata NAMESPACE_TABLE_METADATA = new TableMetadata(
         new NameMetadataDescription(ImmutableList.of(
                 new NameComponentDescription("namespace", ValueType.VAR_STRING),
                 new NameComponentDescription("table_name", ValueType.STRING))),
         new ColumnMetadataDescription(ImmutableList.of(
-            new NamedColumnDescription(SHORT_NAME_COLUMN_NAME, "short_name", ColumnValueDescription.forType(ValueType.STRING)))),
+            new NamedColumnDescription(AtlasDbConstants.NAMESPACE_SHORT_COLUMN_NAME, "short_name", ColumnValueDescription.forType(ValueType.STRING)))),
         ConflictHandler.IGNORE_ALL);
 
     private final KeyValueService kv;
@@ -96,7 +94,7 @@ public class KVTableMappingService extends AbstractTableMappingService {
         if (tableMap.get().containsKey(tableRef)) {
             return tableMap.get().get(tableRef);
         }
-        Cell key = Cell.create(getBytesForTableRef(tableRef), SHORT_NAME_COLUMN_BYTES);
+        Cell key = Cell.create(getBytesForTableRef(tableRef), AtlasDbConstants.NAMESPACE_SHORT_COLUMN_BYTES);
         String shortName = AtlasDbConstants.NAMESPACE_PREFIX + Preconditions.checkNotNull(uniqueLongSupplier.get());
         byte[] value = PtBytes.toBytes(shortName);
         try {
@@ -109,7 +107,7 @@ public class KVTableMappingService extends AbstractTableMappingService {
 
     @Override
     public void removeTable(TableReference tableRef) {
-        Cell key = Cell.create(getBytesForTableRef(tableRef), SHORT_NAME_COLUMN_BYTES);
+        Cell key = Cell.create(getBytesForTableRef(tableRef), AtlasDbConstants.NAMESPACE_SHORT_COLUMN_BYTES);
         kv.delete(AtlasDbConstants.NAMESPACE_TABLE, ImmutableMultimap.of(key, 0L));
         // Need to invalidate the table ref in case we end up re-creating the same table
         // again. Frequently when we drop one table we end up dropping a bunch of tables,
@@ -124,7 +122,7 @@ public class KVTableMappingService extends AbstractTableMappingService {
         try {
             while (range.hasNext()) {
                 RowResult<Value> row = range.next();
-                String shortName = PtBytes.toString(row.getColumns().get(SHORT_NAME_COLUMN_BYTES).getContents());
+                String shortName = PtBytes.toString(row.getColumns().get(AtlasDbConstants.NAMESPACE_SHORT_COLUMN_BYTES).getContents());
                 TableReference ref = getTableRefFromBytes(row.getRowName());
                 ret.put(ref, shortName);
             }

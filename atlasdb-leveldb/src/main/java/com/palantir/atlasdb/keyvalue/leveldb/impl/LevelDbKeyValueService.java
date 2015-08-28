@@ -394,9 +394,9 @@ public final class LevelDbKeyValueService implements KeyValueService {
         try {
             final Set<Cell> alreadyExists = Sets.newHashSet();
             for (Cell cell : values.keySet()) {
-                Validate.isTrue(Arrays.equals(
-                        cell.getColumnName(),
-                        COMMIT_TS_COLUMN));
+                Validate.isTrue(Arrays.equals(cell.getColumnName(), COMMIT_TS_COLUMN) ||
+                        Arrays.equals(cell.getColumnName(), AtlasDbConstants.NAMESPACE_SHORT_COLUMN_BYTES));
+
                 final byte[] key = getKey(tableName, cell, TRANSACTION_TS);
                 if (keyExists(tableName, key)) {
                     alreadyExists.add(cell);
