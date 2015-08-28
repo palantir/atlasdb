@@ -1,5 +1,6 @@
 package com.palantir.atlasdb.keyvalue.partition;
 
+import com.google.common.base.Supplier;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 
 /**
@@ -33,8 +34,8 @@ public class InMemoryKeyValueEndpoint implements KeyValueEndpoint {
     }
 
     @Override
-    public void swapKeyValueService(KeyValueService kvs) {
-        this.kvs = kvs;
+    public void build(Supplier<Long> clientVersionSupplier) {
+        // No-op
     }
 
 }

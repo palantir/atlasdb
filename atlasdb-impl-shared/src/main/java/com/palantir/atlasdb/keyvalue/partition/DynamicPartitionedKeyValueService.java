@@ -5,7 +5,7 @@ import com.palantir.common.concurrent.PTExecutors;
 
 public class DynamicPartitionedKeyValueService extends PartitionedKeyValueService {
 
-    final PartitionMap partitionMap;
+    PartitionMap partitionMap;
 
     public DynamicPartitionedKeyValueService(PartitionMap partitionMap) {
         super(PTExecutors.newCachedThreadPool(), new QuorumParameters(3, 3, 3));

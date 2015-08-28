@@ -92,7 +92,7 @@ public class KeyValueServiceRemotingTest extends AbstractAtlasDbKeyValueServiceT
     protected KeyValueService getKeyValueService() {
         if (localKvs == null) {
             String uri = Rule.baseUri().toString();
-            localKvs = RemotingKeyValueService.createClientSide(uri);
+            localKvs = RemotingKeyValueService.createClientSide(uri, Suppliers.ofInstance(1L));
         }
         return Preconditions.checkNotNull(localKvs);
     }

@@ -3,11 +3,40 @@ package com.palantir.atlasdb.keyvalue.partition;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Supplier;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.remoting.RemotingKeyValueService;
 import com.palantir.atlasdb.keyvalue.remoting.RemotingPartitionMapService;
 
 public class SimpleKeyValueEndpoint implements KeyValueEndpoint {
+    transient KeyValueService kvs;
+    final transient PartitionMapService pms;
+    @JsonProperty("kvsUri") final String kvsUri;
+    @JsonProperty("pmsUri") final String pmsUri;
+
+    @JsonCreator
+    public SimpleKeyValueEndpoint(@JsonProperty("kvsUri") String kvsUri,
+                                  @JsonProperty("pmsUri") String pmsUri) {
+        this.kvsUri = Preconditions.checkNotNull(kvsUri);
+        this.pmsUri = Preconditions.checkNotNull(pmsUri);
+        this.pms = RemotingPartitionMapService.createClientSide(pmsUri);
+    }
+
+    @Override
+    public KeyValueService keyValueService() {
+        return Preconditions.checkNotNull(kvs);
+    }
+
+    @Override
+    public PartitionMapService partitionMapService() {
+        return pms;
+    }
+
+    @Override
+    public void build(Supplier<Long> clientVersionSupplier) {
+        Preconditions.checkState(this.kvs == null);
+        this.kvs = RemotingKeyValueService.createClientSide(kvsUri, clientVersionSupplier);
+    }
 
     @Override
     public int hashCode() {
@@ -40,33 +69,4 @@ public class SimpleKeyValueEndpoint implements KeyValueEndpoint {
         return true;
     }
 
-    transient KeyValueService kvs;
-    final transient PartitionMapService pms;
-    @JsonProperty("kvsUri") final String kvsUri;
-    @JsonProperty("pmsUri") final String pmsUri;
-
-    @JsonCreator
-    public SimpleKeyValueEndpoint(@JsonProperty("kvsUri") String kvsUri,
-                                  @JsonProperty("pmsUri") String pmsUri) {
-        this.kvsUri = Preconditions.checkNotNull(kvsUri);
-        this.pmsUri = Preconditions.checkNotNull(pmsUri);
-        this.kvs = RemotingKeyValueService.createClientSide(kvsUri);
-        this.pms = RemotingPartitionMapService.createClientSide(pmsUri);
-    }
-
-    @Override
-    public KeyValueService keyValueService() {
-        return kvs;
-    }
-
-    @Override
-    public PartitionMapService partitionMapService() {
-        return pms;
-    }
-
-    // TODO:
-    @Override
-    public void swapKeyValueService(KeyValueService kvs) {
-        this.kvs = kvs;
-    }
 }

@@ -4,6 +4,7 @@ import java.util.NavigableMap;
 
 import org.junit.Before;
 import org.junit.Rule;
+import org.junit.Test;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
@@ -19,6 +20,7 @@ import com.palantir.atlasdb.keyvalue.partition.PartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.PartitionMapServiceImpl;
 import com.palantir.atlasdb.keyvalue.partition.PartitionedKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.SimpleKeyValueEndpoint;
+import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
 import com.palantir.atlasdb.keyvalue.remoting.RemotingKeyValueService;
 import com.palantir.atlasdb.keyvalue.remoting.RemotingPartitionMapService;
 import com.palantir.atlasdb.keyvalue.remoting.Utils;
@@ -54,7 +56,8 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
             remoteKvs = RemotingKeyValueService.createServerSide(inMemoryKvs, new Supplier<Long>() {
                 @Override
                 public Long get() {
-                    return RemotingPartitionMapService.createClientSide(remotePms.rule.baseUri().toString()).getVersion();
+                    Long version = RemotingPartitionMapService.createClientSide(remotePms.rule.baseUri().toString()).getVersion();
+                    return version;
                 }
             });
             rule = Utils.getRemoteKvsRule(remoteKvs);
@@ -79,6 +82,7 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
     SimpleKeyValueEndpoint kve3;
 
     NavigableMap<byte[], KeyValueEndpoint> ring;
+    DynamicPartitionMap pmap;
     PartitionedKeyValueService pkvs;
 
     @Rule public DropwizardClientRule kvsRule1 = kvs1.rule;
@@ -98,7 +102,8 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
         ring.put(new byte[] {0, 0},    kve2);
         ring.put(new byte[] {0, 0, 0}, kve3);
 
-        pkvs = new DynamicPartitionedKeyValueService(DynamicPartitionMapImpl.create(ring));
+        pmap = DynamicPartitionMapImpl.create(ring);
+        pkvs = new DynamicPartitionedKeyValueService(pmap);
     }
 
     @Before
@@ -111,9 +116,18 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
         Utils.setupRuleHacks(pmsRule3);
     }
 
+    @Test
+    public void testSetup() {
+    }
+
     @Override
     protected KeyValueService getKeyValueService() {
         setUpPrivate();
+        kve1.partitionMapService().update(1, pmap);
+        kve1.partitionMapService().get();
+//        kve1.partitionMapService().update(1, 2L);
+//        kve2.partitionMapService().update(2, pmap);
+//        kve3.partitionMapService().update(3, pmap);
         return Preconditions.checkNotNull(pkvs);
     }
 }

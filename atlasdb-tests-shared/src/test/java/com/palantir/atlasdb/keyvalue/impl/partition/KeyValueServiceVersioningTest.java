@@ -16,11 +16,8 @@ import com.palantir.atlasdb.keyvalue.partition.PartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.PartitionMapServiceImpl;
 import com.palantir.atlasdb.keyvalue.partition.QuorumParameters;
 import com.palantir.atlasdb.keyvalue.partition.SimpleKeyValueEndpoint;
-import com.palantir.atlasdb.keyvalue.remoting.InsufficientConsistencyExceptionMapper;
-import com.palantir.atlasdb.keyvalue.remoting.KeyAlreadyExistsExceptionMapper;
 import com.palantir.atlasdb.keyvalue.remoting.RemotingKeyValueService;
-import com.palantir.atlasdb.keyvalue.remoting.VersionTooOldExceptionMapper;
-import com.palantir.atlasdb.server.InboxPopulatingContainerRequestFilter;
+import com.palantir.atlasdb.keyvalue.remoting.Utils;
 import com.palantir.util.Mutable;
 import com.palantir.util.Mutables;
 
@@ -54,12 +51,7 @@ public class KeyValueServiceVersioningTest {
     final PartitionMapService remotePartitionMap = new PartitionMapServiceImpl();
 
     @Rule
-    public final DropwizardClientRule remoteEndpointService = new DropwizardClientRule(
-            remoteEndpoint,
-            KeyAlreadyExistsExceptionMapper.instance(),
-            InsufficientConsistencyExceptionMapper.instance(),
-            VersionTooOldExceptionMapper.instance(),
-            new InboxPopulatingContainerRequestFilter(mapper));
+    public final DropwizardClientRule remoteEndpointService = Utils.getRemoteKvsRule(remoteEndpoint);
 
     @Rule
     public final DropwizardClientRule remotePartitionMapService = new DropwizardClientRule(remotePartitionMap);

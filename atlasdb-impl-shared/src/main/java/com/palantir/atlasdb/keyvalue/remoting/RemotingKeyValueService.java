@@ -38,6 +38,10 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.DynamicPartitionMapImpl;
+import com.palantir.atlasdb.keyvalue.partition.PartitionMapService;
+import com.palantir.atlasdb.keyvalue.partition.api.PartitionMap;
+import com.palantir.atlasdb.keyvalue.partition.exception.VersionTooOldException;
+import com.palantir.atlasdb.keyvalue.partition.util.VersionedObject;
 import com.palantir.atlasdb.keyvalue.remoting.iterators.HistoryRangeIterator;
 import com.palantir.atlasdb.keyvalue.remoting.iterators.RangeIterator;
 import com.palantir.atlasdb.keyvalue.remoting.iterators.TimestampsRangeIterator;
@@ -121,7 +125,7 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
         }
     }
 
-    public static KeyValueService createClientSide(String uri) {
+    public static KeyValueService createClientSide(String uri, Supplier<Long> localVersionSupplier) {
         ServiceContext<Long> ctx = RemoteContextHolder.OUTBOX.getProviderForKey(HOLDER.PM_VERSION);
         KeyValueService ret = createClientSide(Feign.builder()
                 .encoder(new JacksonEncoder(kvsMapper()))
@@ -130,14 +134,8 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
                 .contract(new JAXRSContract())
                 .requestInterceptor(new OutboxShippingInterceptor(kvsMapper))
                 .target(KeyValueService.class, uri));
-        return PopulateServiceContextProxy.newProxyInstance(KeyValueService.class, ret, new Supplier<Long>() {
-            @Override
-            public Long get() {
-//                return 17L;
-                return Preconditions.checkNotNull(clientVersionContext.get());
-//                return clientVersionContext.get();
-            }
-        }, ctx);
+        return PopulateServiceContextProxy.newProxyInstance(
+                KeyValueService.class, ret, localVersionSupplier, ctx);
     }
 
     public static KeyValueService createServerSide(KeyValueService delegate, Supplier<Long> serverVersionSupplier) {
@@ -156,16 +154,18 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
 
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+            ServiceContext<Long> remoteClientCtx = RemoteContextHolder.INBOX.getProviderForKey(HOLDER.PM_VERSION);
             if (method.getDeclaringClass() == KeyValueService.class) {
-//                Long clientVersion = clientVersionProvider.get();
-//                Long serverVersion = serverVersionProvider.get();
-//                if (serverVersion < 0) {
-//                    assert clientVersion == null;
-//                } else {
-//                    if (clientVersion < serverVersion) {
-//                        throw new RuntimeException("Version too old. Please update! (2)");
-//                    }
-//                }
+                Long clientVersion = remoteClientCtx.get();
+                Long serverVersion = Preconditions.checkNotNull(serverVersionProvider.get());
+                if (serverVersion < 0L) {
+                    // In this case the version check is simply disabled.
+                    assert clientVersion == null;
+                } else {
+                    if (clientVersion < serverVersion) {
+                        throw new VersionTooOldException(serverVersion, "Version too old. Please update!");
+                    }
+                }
             }
             try {
                 return method.invoke(delegate, args);
@@ -179,6 +179,43 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
             return (KeyValueService) Proxy.newProxyInstance(
                     KeyValueService.class.getClassLoader(),
                     new Class<?>[] { KeyValueService.class }, vcp);
+        }
+
+    }
+
+    public static class AutoUpdateProxy implements InvocationHandler {
+
+        final KeyValueService remoteKvs;
+        final PartitionMapService remotePms;
+        final PartitionMapService localPms;
+
+
+        private AutoUpdateProxy(KeyValueService delegate,
+                                PartitionMapService remotePms,
+                                PartitionMapService localPms) {
+            this.remoteKvs = delegate;
+            this.remotePms = remotePms;
+            this.localPms = localPms;
+        }
+
+
+        @Override
+        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+            try {
+                return method.invoke(remoteKvs, args);
+            } catch (InvocationTargetException e) {
+                Throwable cause = e.getCause();
+                if (cause instanceof VersionTooOldException) {
+                    VersionTooOldException vtoe = (VersionTooOldException) cause;
+                    VersionedObject<PartitionMap> newPmap = remotePms.get();
+                    if (newPmap.getVersion() < vtoe.getMinRequiredVersion()) {
+                        throw new RuntimeException("Updated map version is still too old. This does not make too much sense.");
+                    }
+                    localPms.update(newPmap.getVersion(), newPmap.getObject());
+                    return invoke(proxy, method, args);
+                }
+                throw cause;
+            }
         }
 
     }

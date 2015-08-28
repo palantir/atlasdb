@@ -9,10 +9,6 @@ import com.palantir.atlasdb.keyvalue.partition.PartitionMapServiceImpl;
 import com.palantir.atlasdb.keyvalue.partition.api.PartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.util.VersionedObject;
 
-import feign.Feign;
-import feign.jackson.JacksonDecoder;
-import feign.jackson.JacksonEncoder;
-import feign.jaxrs.JAXRSContract;
 import io.dropwizard.testing.junit.DropwizardClientRule;
 
 public class PartitionMapServiceRemotingTest extends AbstractPartitionMapServiceTest {
@@ -26,11 +22,8 @@ public class PartitionMapServiceRemotingTest extends AbstractPartitionMapService
 
     @Before
     public void setUp() {
-        localService = Feign.builder()
-                .encoder(new JacksonEncoder())
-                .decoder(new JacksonDecoder())
-                .contract(new JAXRSContract())
-                .target(PartitionMapService.class, rule.baseUri().toString());
+        Utils.setupRuleHacks(rule);
+        localService = RemotingPartitionMapService.createClientSide(rule.baseUri().toString());
     }
 
     @Override

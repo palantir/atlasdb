@@ -9,7 +9,7 @@ import org.junit.Test;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
-import com.palantir.atlasdb.keyvalue.partition.BasicPartitionMap;
+import com.palantir.atlasdb.keyvalue.partition.DynamicPartitionMapImpl;
 import com.palantir.atlasdb.keyvalue.partition.InMemoryKeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.KeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.PartitionMapService;
@@ -29,13 +29,14 @@ public abstract class AbstractPartitionMapServiceTest {
         ring.put(new byte[] {0, 0},    InMemoryKeyValueEndpoint.create(new InMemoryKeyValueService(false), new PartitionMapServiceImpl()));
         ring.put(new byte[] {0, 0, 0}, InMemoryKeyValueEndpoint.create(new InMemoryKeyValueService(false), new PartitionMapServiceImpl()));
     }
-    protected static final PartitionMap samplePartitionMap = BasicPartitionMap.create(QUORUM_PARAMETERS, ring);
+    protected static final PartitionMap samplePartitionMap = DynamicPartitionMapImpl.create(ring);
     protected static final long initialVersion = 1L;
 
     @Test
     public void testPms() {
         PartitionMapService pms = getPartitionMapService(VersionedObject.of(samplePartitionMap, initialVersion));
         assertEquals(initialVersion, pms.getVersion());
+        Object o = pms.get();
         // TODO
         //        assertEquals(samplePartitionMap, pms.get().getObject());
         pms.update(2L, samplePartitionMap);

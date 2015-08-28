@@ -19,9 +19,10 @@ public class Utils {
     public static final ObjectMapper mapper = RemotingKeyValueService.kvsMapper();
 
     public static DropwizardClientRule getRemoteKvsRule(KeyValueService remoteKvs) {
-        DropwizardClientRule rule = new DropwizardClientRule(
-                remoteKvs, KeyAlreadyExistsExceptionMapper.instance(),
+        DropwizardClientRule rule = new DropwizardClientRule(remoteKvs,
+                KeyAlreadyExistsExceptionMapper.instance(),
                 InsufficientConsistencyExceptionMapper.instance(),
+                VersionTooOldExceptionMapper.instance(),
                 new InboxPopulatingContainerRequestFilter(mapper));
         return rule;
     }

@@ -24,8 +24,9 @@ public interface PartitionMapService {
     long getVersion();
 
     @POST
-    @Path("update")
+    @Path("update-map")
     @Consumes(MediaType.APPLICATION_JSON)
     void update(@QueryParam("version") long version, PartitionMap partitionMap);
+//    void update(@QueryParam("version") long version, Long partitionMap);
 
 }

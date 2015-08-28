@@ -51,10 +51,8 @@ import com.palantir.atlasdb.keyvalue.partition.status.EndpointWithNormalStatus;
 import com.palantir.atlasdb.keyvalue.partition.status.EndpointWithStatus;
 import com.palantir.atlasdb.keyvalue.partition.util.ConsistentRingRangeRequest;
 import com.palantir.atlasdb.keyvalue.partition.util.CycleMap;
-import com.palantir.atlasdb.keyvalue.remoting.RemotingKeyValueService;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.Throwables;
-import com.palantir.common.supplier.PopulateServiceContextProxy;
 import com.palantir.util.Mutable;
 import com.palantir.util.Mutables;
 import com.palantir.util.Pair;
@@ -140,6 +138,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
                               JsonGenerator gen,
                               SerializerProvider serializers) throws IOException,
                 JsonProcessingException {
+            gen.writeStartObject();
             gen.writeObjectField("quorumParameters", value.quorumParameters);
             gen.writeObjectField("version", value.version);
             gen.writeFieldName("ring");
@@ -151,15 +150,16 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
                 gen.writeEndObject();
             }
             gen.writeEndArray();
+            gen.writeEndObject();
         }
         @Override
         public void serializeWithType(DynamicPartitionMapImpl value,
                                       JsonGenerator gen,
                                       SerializerProvider serializers,
                                       TypeSerializer typeSer) throws IOException {
-            typeSer.writeTypePrefixForObject(value, gen);
+//            typeSer.writeTypePrefixForObject(value, gen);
             serialize(value, gen, serializers);
-            typeSer.writeTypeSuffixForObject(value, gen);
+//            typeSer.writeTypeSuffixForObject(value, gen);
         }
     }
 
@@ -205,7 +205,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         Preconditions.checkArgument(ring.keySet().size() >= quorumParameters.replicationFactor);
         this.quorumParameters = quorumParameters;
         this.ring = CycleMap.wrap(ring);
-        addProxy(this.ring);
+        buildRing(this.ring);
         // TODO: Make this set immutable
         delegates = Sets.newHashSet();
         for (EndpointWithStatus kve : this.ring.values()) {
@@ -217,26 +217,20 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         return CycleMap.wrap(transformValues(map, new Function<KeyValueEndpoint, EndpointWithStatus>() {
             @Override
             public EndpointWithStatus apply(@Nullable KeyValueEndpoint input) {
-                KeyValueService kvs = PopulateServiceContextProxy.newProxyInstance(
-                                KeyValueService.class, input.keyValueService(), versionSupplier,
-                                RemotingKeyValueService.getClientVersionContext());
-                input.swapKeyValueService(kvs);
                 return new EndpointWithNormalStatus(input);
             }
         }));
     }
 
-    private void addProxy(NavigableMap<byte[], EndpointWithStatus> map) {
+    private void buildRing(NavigableMap<byte[], EndpointWithStatus> map) {
         for (EndpointWithStatus e : map.values()) {
-            KeyValueService kvs = PopulateServiceContextProxy.newProxyInstance(
-                            KeyValueService.class, e.get().keyValueService(), versionSupplier,
-                            RemotingKeyValueService.getClientVersionContext());
-            e.get().swapKeyValueService(kvs);
+            e.get().build(versionSupplier);
         }
     }
 
     private DynamicPartitionMapImpl(QuorumParameters quorumParameters, NavigableMap<byte[], KeyValueEndpoint> ring, int nothin) {
         this.ring = toRing(ring);
+        buildRing(this.ring);
         this.quorumParameters = quorumParameters;
         delegates = Sets.newHashSet();
         for (EndpointWithStatus kve : this.ring.values()) {
@@ -626,7 +620,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     @Override
     public synchronized void addEndpoint(final byte[] key, final KeyValueService kvs, String rack) {
         version.set(version.get() + 1);
-        throw new UnsupportedOperationException();
+//        throw new UnsupportedOperationException();
 //        // Sanity checks
 //        Preconditions.checkArgument(!ring.containsKey(key));
 //

@@ -1,7 +1,5 @@
 package com.palantir.atlasdb.keyvalue.partition;
 
-import javax.ws.rs.QueryParam;
-
 import org.assertj.core.util.Preconditions;
 
 import com.palantir.atlasdb.keyvalue.partition.api.PartitionMap;
@@ -32,9 +30,9 @@ public final class PartitionMapServiceImpl implements PartitionMapService {
     }
 
     @Override
-    public synchronized void update(@QueryParam("version") long version, PartitionMap partitionMap) {
-        Preconditions.checkNotNull(partitionMap);
-        this.partitionMap = VersionedObject.of(partitionMap, version);
+    public synchronized void update(long version, PartitionMap partitionMap) {
+        this.partitionMap = VersionedObject.of(
+                Preconditions.checkNotNull(partitionMap), version);
     }
 
 }
