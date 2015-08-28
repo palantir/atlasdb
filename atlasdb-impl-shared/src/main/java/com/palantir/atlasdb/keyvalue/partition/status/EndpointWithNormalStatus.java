@@ -2,7 +2,7 @@ package com.palantir.atlasdb.keyvalue.partition.status;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.palantir.atlasdb.keyvalue.partition.KeyValueEndpoint;
+import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
 
 public class EndpointWithNormalStatus extends EndpointWithStatus {
 

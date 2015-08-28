@@ -28,7 +28,7 @@ import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.keyvalue.partition.QuorumParameters;
+import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
 import com.palantir.common.base.Throwables;
 
 public class RowResultUtil {

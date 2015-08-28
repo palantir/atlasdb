@@ -9,13 +9,13 @@ import org.junit.Test;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
-import com.palantir.atlasdb.keyvalue.partition.DynamicPartitionMapImpl;
-import com.palantir.atlasdb.keyvalue.partition.InMemoryKeyValueEndpoint;
-import com.palantir.atlasdb.keyvalue.partition.KeyValueEndpoint;
-import com.palantir.atlasdb.keyvalue.partition.PartitionMapService;
-import com.palantir.atlasdb.keyvalue.partition.PartitionMapServiceImpl;
-import com.palantir.atlasdb.keyvalue.partition.QuorumParameters;
 import com.palantir.atlasdb.keyvalue.partition.api.PartitionMap;
+import com.palantir.atlasdb.keyvalue.partition.endpoint.InMemoryKeyValueEndpoint;
+import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
+import com.palantir.atlasdb.keyvalue.partition.map.DynamicPartitionMapImpl;
+import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
+import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapServiceImpl;
+import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
 import com.palantir.atlasdb.keyvalue.partition.util.VersionedObject;
 
 public abstract class AbstractPartitionMapServiceTest {

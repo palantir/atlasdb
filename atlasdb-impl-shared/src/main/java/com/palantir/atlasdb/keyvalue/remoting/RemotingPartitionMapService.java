@@ -1,6 +1,6 @@
 package com.palantir.atlasdb.keyvalue.remoting;
 
-import com.palantir.atlasdb.keyvalue.partition.PartitionMapService;
+import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
 
 import feign.Feign;
 import feign.jackson.JacksonDecoder;

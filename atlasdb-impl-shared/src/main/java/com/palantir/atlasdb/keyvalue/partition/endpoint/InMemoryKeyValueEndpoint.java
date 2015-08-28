@@ -1,7 +1,8 @@
-package com.palantir.atlasdb.keyvalue.partition;
+package com.palantir.atlasdb.keyvalue.partition.endpoint;
 
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
 
 /**
  * This cannot be serialized and should be used for test purposes only.

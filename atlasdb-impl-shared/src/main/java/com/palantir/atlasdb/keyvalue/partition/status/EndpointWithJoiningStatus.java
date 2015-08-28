@@ -1,6 +1,6 @@
 package com.palantir.atlasdb.keyvalue.partition.status;
 
-import com.palantir.atlasdb.keyvalue.partition.KeyValueEndpoint;
+import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
 
 public class EndpointWithJoiningStatus extends EndpointWithStatus {
 

@@ -8,10 +8,10 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.partition.DynamicPartitionMapImpl;
-import com.palantir.atlasdb.keyvalue.partition.KeyValueEndpoint;
-import com.palantir.atlasdb.keyvalue.partition.QuorumParameters;
 import com.palantir.atlasdb.keyvalue.partition.api.PartitionMap;
+import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
+import com.palantir.atlasdb.keyvalue.partition.map.DynamicPartitionMapImpl;
+import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
 
 public class DynamicPartitionMapTest extends AbstractPartitionMapTest {
 

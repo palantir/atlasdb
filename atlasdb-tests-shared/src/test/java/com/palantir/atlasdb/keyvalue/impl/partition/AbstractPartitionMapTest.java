@@ -22,11 +22,11 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
-import com.palantir.atlasdb.keyvalue.partition.InMemoryKeyValueEndpoint;
-import com.palantir.atlasdb.keyvalue.partition.KeyValueEndpoint;
-import com.palantir.atlasdb.keyvalue.partition.PartitionMapServiceImpl;
-import com.palantir.atlasdb.keyvalue.partition.QuorumParameters;
 import com.palantir.atlasdb.keyvalue.partition.api.PartitionMap;
+import com.palantir.atlasdb.keyvalue.partition.endpoint.InMemoryKeyValueEndpoint;
+import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
+import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapServiceImpl;
+import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
 import com.palantir.atlasdb.keyvalue.partition.util.ConsistentRingRangeRequest;
 
 public abstract class AbstractPartitionMapTest {

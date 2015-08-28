@@ -18,9 +18,9 @@ package com.palantir.atlasdb.keyvalue.impl.partition;
 import java.util.NavigableMap;
 
 import com.palantir.atlasdb.keyvalue.partition.BasicPartitionMap;
-import com.palantir.atlasdb.keyvalue.partition.KeyValueEndpoint;
-import com.palantir.atlasdb.keyvalue.partition.QuorumParameters;
 import com.palantir.atlasdb.keyvalue.partition.api.PartitionMap;
+import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
+import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
 
 public class BasicPartitionMapTest extends AbstractPartitionMapTest {
 

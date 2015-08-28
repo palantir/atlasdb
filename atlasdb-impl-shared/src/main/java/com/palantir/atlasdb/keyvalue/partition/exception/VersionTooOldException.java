@@ -1,8 +1,7 @@
 package com.palantir.atlasdb.keyvalue.partition.exception;
 
 import com.google.common.base.Preconditions;
-import com.palantir.atlasdb.keyvalue.partition.api.PartitionMap;
-import com.palantir.atlasdb.keyvalue.partition.util.VersionedObject;
+import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
 import com.palantir.atlasdb.keyvalue.remoting.RemotingPartitionMapService;
 import com.palantir.common.annotation.Immutable;
 
@@ -13,13 +12,13 @@ import com.palantir.common.annotation.Immutable;
 
     private final String pmsUri;
 
-    public VersionedObject<PartitionMap> getUpdatedMap() {
+    public DynamicPartitionMap getUpdatedMap() {
     	return RemotingPartitionMapService.createClientSide(
     			Preconditions.checkNotNull(pmsUri)).get();
     }
 
     public VersionTooOldException(String pmsUri) {
-    	this.pmsUri = pmsUri;
+    	this.pmsUri = Preconditions.checkNotNull(pmsUri);
     }
     
     public VersionTooOldException() {

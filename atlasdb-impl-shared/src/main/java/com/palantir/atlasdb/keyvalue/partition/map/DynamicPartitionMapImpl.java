@@ -1,4 +1,4 @@
-package com.palantir.atlasdb.keyvalue.partition;
+package com.palantir.atlasdb.keyvalue.partition.map;
 
 import java.io.IOException;
 import java.util.Iterator;
@@ -48,6 +48,8 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.api.PartitionMap;
+import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
+import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
 import com.palantir.atlasdb.keyvalue.partition.status.EndpointWithNormalStatus;
 import com.palantir.atlasdb.keyvalue.partition.status.EndpointWithStatus;
 import com.palantir.atlasdb.keyvalue.partition.util.ConsistentRingRangeRequest;
@@ -68,14 +70,6 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     private transient final BlockingQueue<Future<Void>> joins = Queues.newLinkedBlockingQueue();
     private transient final Set<KeyValueService> delegates;
     
-    static private <K, V1, V2> NavigableMap<K, V2> transformValues(NavigableMap<K, V1> map, Function<V1, V2> transform) {
-        NavigableMap<K, V2> result = Maps.newTreeMap(map.comparator());
-        for (Entry<K, V1> entry : map.entrySet()) {
-            result.put(entry.getKey(), transform.apply(entry.getValue()));
-        }
-        return result;
-    }
-
     final Supplier<Long> versionSupplier = new Supplier<Long>() {
         @Override
         public Long get() {
@@ -203,7 +197,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     @JsonCreator
     public DynamicPartitionMapImpl(@JsonProperty("quorumParameters") QuorumParameters quorumParameters,
                                    @JsonProperty("ring") NavigableMap<byte[], EndpointWithStatus> ring) {
-        Preconditions.checkArgument(ring.keySet().size() >= quorumParameters.replicationFactor);
+        Preconditions.checkArgument(ring.keySet().size() >= quorumParameters.getReplicationFactor());
         this.quorumParameters = quorumParameters;
         this.ring = CycleMap.wrap(ring);
         buildRing(this.ring);
@@ -215,7 +209,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     }
 
     private CycleMap<byte[], EndpointWithStatus> toRing(NavigableMap<byte[], KeyValueEndpoint> map) {
-        return CycleMap.wrap(transformValues(map, new Function<KeyValueEndpoint, EndpointWithStatus>() {
+        return CycleMap.wrap(Maps.transformValues(map, new Function<KeyValueEndpoint, EndpointWithStatus>() {
             @Override
             public EndpointWithStatus apply(@Nullable KeyValueEndpoint input) {
                 return new EndpointWithNormalStatus(input);

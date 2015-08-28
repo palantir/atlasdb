@@ -15,13 +15,13 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
-import com.palantir.atlasdb.keyvalue.partition.DynamicPartitionMapImpl;
-import com.palantir.atlasdb.keyvalue.partition.KeyValueEndpoint;
-import com.palantir.atlasdb.keyvalue.partition.PartitionMapService;
-import com.palantir.atlasdb.keyvalue.partition.PartitionMapServiceImpl;
-import com.palantir.atlasdb.keyvalue.partition.QuorumParameters;
-import com.palantir.atlasdb.keyvalue.partition.SimpleKeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.api.PartitionMap;
+import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
+import com.palantir.atlasdb.keyvalue.partition.endpoint.SimpleKeyValueEndpoint;
+import com.palantir.atlasdb.keyvalue.partition.map.DynamicPartitionMapImpl;
+import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
+import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapServiceImpl;
+import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
 
 import io.dropwizard.testing.junit.DropwizardClientRule;
 

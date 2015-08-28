@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.keyvalue.partition;
+package com.palantir.atlasdb.keyvalue.partition.quorum;
 
 import java.util.Map;
 import java.util.concurrent.Future;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
-import com.palantir.atlasdb.keyvalue.partition.QuorumParameters.QuorumRequestParameters;
+import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters.QuorumRequestParameters;
 import com.palantir.common.collect.Maps2;
 
 public class QuorumTracker<FutureReturnType, TrackingUnit> {

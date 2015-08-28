@@ -33,8 +33,8 @@ import com.google.common.reflect.AbstractInvocationHandler;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.PartitionedKeyValueService;
-import com.palantir.atlasdb.keyvalue.partition.QuorumParameters;
-import com.palantir.atlasdb.keyvalue.partition.QuorumParameters.QuorumRequestParameters;
+import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
+import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters.QuorumRequestParameters;
 
 public class FailableKeyValueServices {
 

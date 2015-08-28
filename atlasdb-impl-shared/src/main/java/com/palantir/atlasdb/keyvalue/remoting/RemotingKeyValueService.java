@@ -37,9 +37,9 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
-import com.palantir.atlasdb.keyvalue.partition.DynamicPartitionMapImpl;
-import com.palantir.atlasdb.keyvalue.partition.PartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.exception.VersionTooOldException;
+import com.palantir.atlasdb.keyvalue.partition.map.DynamicPartitionMapImpl;
+import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
 import com.palantir.atlasdb.keyvalue.remoting.iterators.HistoryRangeIterator;
 import com.palantir.atlasdb.keyvalue.remoting.iterators.RangeIterator;
 import com.palantir.atlasdb.keyvalue.remoting.iterators.TimestampsRangeIterator;
@@ -66,7 +66,6 @@ import feign.jaxrs.JAXRSContract;
 public class RemotingKeyValueService extends ForwardingKeyValueService {
     final static ServiceContext<KeyValueService> serviceContext = ExecutorInheritableServiceContext.create();
     final static ServiceContext<Long> clientVersionContext = ExecutorInheritableServiceContext.create();
-    // RemoteContextHolder.INBOX.getProviderForKey(VersionedKeyValueEndpoint.VERSIONED_PM.PM_VERSION);
 
     public static ServiceContext<KeyValueService> getServiceContext() {
         return serviceContext;
