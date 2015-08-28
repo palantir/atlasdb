@@ -21,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
 public class AtlasDbConstants {
@@ -43,6 +44,9 @@ public class AtlasDbConstants {
     public static final String SCRUB_TABLE = "_scrub";
     public static final String NAMESPACE_TABLE = "_namespace";
     public static final String NAMESPACE_PREFIX = "_n_";
+    public static final String NAMESPACE_SHORT_COLUMN_NAME = "s";
+    public static final byte[] NAMESPACE_SHORT_COLUMN_BYTES = PtBytes.toBytes(NAMESPACE_SHORT_COLUMN_NAME);
+
     public static final char SCRUB_TABLE_SEPARATOR_CHAR = '\0';
 
     public static final int PUNCH_INTERVAL_MILLIS = 2000;
