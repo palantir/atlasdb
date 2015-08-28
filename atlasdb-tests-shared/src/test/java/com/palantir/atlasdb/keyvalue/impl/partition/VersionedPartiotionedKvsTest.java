@@ -30,6 +30,8 @@ import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapServiceImpl;
 import com.palantir.atlasdb.keyvalue.remoting.RemotingKeyValueService;
 import com.palantir.atlasdb.keyvalue.remoting.RemotingPartitionMapService;
 import com.palantir.atlasdb.keyvalue.remoting.Utils;
+import com.palantir.atlasdb.keyvalue.remoting.Utils.RemoteKvs;
+import com.palantir.atlasdb.keyvalue.remoting.Utils.RemotePms;
 import com.palantir.util.Pair;
 
 import io.dropwizard.testing.junit.DropwizardClientRule;
@@ -59,40 +61,6 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
      *
      *
      */
-
-    static class RemoteKvs {
-        final KeyValueService inMemoryKvs = new InMemoryKeyValueService(false);
-        final KeyValueService remoteKvs;
-        final DropwizardClientRule rule;
-
-        public RemoteKvs(final RemotePms remotePms) {
-            remoteKvs = RemotingKeyValueService.createServerSide(inMemoryKvs, new Supplier<Long>() {
-                @Override
-                public Long get() {
-                    Long version = RemotingPartitionMapService.createClientSide(remotePms.rule.baseUri().toString()).getVersion();
-                    return version;
-                }
-            });
-            rule = Utils.getRemoteKvsRule(remoteKvs);
-        }
-    }
-
-    static class RemotePms {
-        PartitionMapService service = new PartitionMapServiceImpl();
-        DropwizardClientRule rule = new DropwizardClientRule(service);
-    }
-    
-    static DynamicPartitionMap createNewMap(Collection<Pair<RemoteKvs, RemotePms>> endpoints) {
-    	ArrayList<Byte> keyList = new ArrayList<>();
-    	NavigableMap<byte[], KeyValueEndpoint> ring = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
-    	keyList.add((byte) 0);
-    	for (Pair<RemoteKvs, RemotePms> p : endpoints) {
-    		SimpleKeyValueEndpoint kvs = new SimpleKeyValueEndpoint(p.lhSide.rule.baseUri().toString(), p.rhSide.rule.baseUri().toString());
-    		byte[] key = ArrayUtils.toPrimitive(keyList.toArray(new Byte[keyList.size()]));
-    		ring.put(key, kvs);
-    	}
-    	return DynamicPartitionMapImpl.create(ring);
-    }
 
     RemotePms pms1 = new RemotePms();
     RemotePms pms2 = new RemotePms();
