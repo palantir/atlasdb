@@ -33,7 +33,7 @@ import com.palantir.atlasdb.keyvalue.impl.AbstractAtlasDbKeyValueServiceTest;
  * @author htarasiuk
  *
  */
-public class PartitionedKeyValueServiceTest extends AbstractAtlasDbKeyValueServiceTest {
+public class PartitionedKeyValueServiceAvailabilityTest extends AbstractAtlasDbKeyValueServiceTest {
 
     @Override
     protected KeyValueService getKeyValueService() {
