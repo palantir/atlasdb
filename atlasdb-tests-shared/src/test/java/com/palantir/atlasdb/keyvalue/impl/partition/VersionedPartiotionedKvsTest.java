@@ -1,7 +1,13 @@
 package com.palantir.atlasdb.keyvalue.impl.partition;
 
+import static org.junit.Assert.*;
+
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.NavigableMap;
 
+import org.apache.commons.lang3.ArrayUtils;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -17,12 +23,14 @@ import com.palantir.atlasdb.keyvalue.partition.PartitionedKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.SimpleKeyValueEndpoint;
+import com.palantir.atlasdb.keyvalue.partition.exception.VersionTooOldException;
 import com.palantir.atlasdb.keyvalue.partition.map.DynamicPartitionMapImpl;
 import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapServiceImpl;
 import com.palantir.atlasdb.keyvalue.remoting.RemotingKeyValueService;
 import com.palantir.atlasdb.keyvalue.remoting.RemotingPartitionMapService;
 import com.palantir.atlasdb.keyvalue.remoting.Utils;
+import com.palantir.util.Pair;
 
 import io.dropwizard.testing.junit.DropwizardClientRule;
 
@@ -67,6 +75,18 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
         PartitionMapService service = new PartitionMapServiceImpl();
         DropwizardClientRule rule = new DropwizardClientRule(service);
     }
+    
+    static DynamicPartitionMap createNewMap(Collection<Pair<RemoteKvs, RemotePms>> endpoints) {
+    	ArrayList<Byte> keyList = new ArrayList<>();
+    	NavigableMap<byte[], KeyValueEndpoint> ring = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
+    	keyList.add((byte) 0);
+    	for (Pair<RemoteKvs, RemotePms> p : endpoints) {
+    		SimpleKeyValueEndpoint kvs = new SimpleKeyValueEndpoint(p.lhSide.rule.baseUri().toString(), p.rhSide.rule.baseUri().toString());
+    		byte[] key = ArrayUtils.toPrimitive(keyList.toArray(new Byte[keyList.size()]));
+    		ring.put(key, kvs);
+    	}
+    	return DynamicPartitionMapImpl.create(ring);
+    }
 
     RemotePms pms1 = new RemotePms();
     RemotePms pms2 = new RemotePms();
@@ -103,6 +123,11 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
 
         pmap = DynamicPartitionMapImpl.create(ring);
         pkvs = PartitionedKeyValueService.create(pmap);
+
+        // Push the map to all the endpoints
+        kve1.partitionMapService().update(pmap);
+        kve2.partitionMapService().update(pmap);
+        kve3.partitionMapService().update(pmap);
     }
 
     @Before
@@ -116,17 +141,25 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
     }
 
     @Test
-    public void testSetup() {
+    public void testVersionTooOld() {
+    	pmap.setVersion(1L);
+    	kve1.partitionMapService().update(pmap);
+    	pmap.setVersion(0L);
+    	assertEquals(1L, kve1.partitionMapService().getVersion());
+    	try {
+    		pkvs.createTable("TABLE_NAME_2", 12345);
+    		// This has to throw since table metadata is to be
+    		// stored on all endpoints.
+    		fail();
+    	} catch (VersionTooOldException e) {
+    		pkvs.createTable("TABLE_NAME_2", 12345);
+    		assertTrue(pkvs.getAllTableNames().contains("TABLE_NAME_2"));
+    	}
     }
 
     @Override
     protected KeyValueService getKeyValueService() {
         setUpPrivate();
-        kve1.partitionMapService().update(pmap);
-        kve2.partitionMapService().update(pmap);
-        kve3.partitionMapService().update(pmap);
-        kve1.partitionMapService().get();
-        pmap.addEndpoint(null, null, null);
         return Preconditions.checkNotNull(pkvs);
     }
 }

@@ -135,7 +135,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
                 JsonProcessingException {
             gen.writeStartObject();
             gen.writeObjectField("quorumParameters", value.quorumParameters);
-            gen.writeObjectField("version", value.version);
+            gen.writeObjectField("version", Preconditions.checkNotNull(value.version.get()));
             gen.writeFieldName("ring");
             gen.writeStartArray();
             for (Entry<byte[], EndpointWithStatus> entry : value.ring.entrySet()) {
@@ -749,5 +749,10 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     public long getVersion() {
         return version.get();
     }
+
+	@Override
+	public void setVersion(long version) {
+		this.version.set(version);
+	}
 
 }

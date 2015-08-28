@@ -20,7 +20,11 @@ public class PartitionMapProvider {
     		return task.apply(partitionMap);
     	} catch (VersionTooOldException e) {
     		partitionMap = e.getUpdatedMap();
-    		// Let the higher layer retry the operation with the updated map.
+    		/**
+    		 * Let the transaction manager retry the task. It seems to be reasonable since some
+    		 * of the KVS operations are not idempotent so retrying them from here could get
+    		 * other errors that would confuse the transaction manager.
+    		 */
     		throw e;
     	}
     }

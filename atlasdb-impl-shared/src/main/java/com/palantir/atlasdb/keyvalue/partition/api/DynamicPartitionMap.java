@@ -6,4 +6,8 @@ public interface DynamicPartitionMap extends PartitionMap {
     void addEndpoint(byte[] key, KeyValueService kvs, String rack);
     void removeEndpoint(byte[] key, KeyValueService kvs, String rack);
     long getVersion();
+    /**
+     * For testing purposes only. Will be removed soon.
+     */
+    @Deprecated void setVersion(long version);
 }
