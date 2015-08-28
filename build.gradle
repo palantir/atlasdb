@@ -20,7 +20,7 @@ apply from: 'gradle/versions.gradle'
 group = 'com.palantir.atlasdb'
 
 ext.localPublishDir = "${buildDir}/localpublish"
-version = '0.1-pre8'
+version = '0.1-pre9'
 
 task clean(type: Delete) {
     delete buildDir
