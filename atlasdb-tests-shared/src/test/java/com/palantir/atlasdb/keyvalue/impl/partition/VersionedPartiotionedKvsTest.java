@@ -34,6 +34,12 @@ import com.palantir.util.Pair;
 
 import io.dropwizard.testing.junit.DropwizardClientRule;
 
+/**
+ * This test is to make sure that out of date exceptions are handled in a proper way.
+ * 
+ * @author htarasiuk
+ *
+ */
 public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueServiceTest {
 
     /**
