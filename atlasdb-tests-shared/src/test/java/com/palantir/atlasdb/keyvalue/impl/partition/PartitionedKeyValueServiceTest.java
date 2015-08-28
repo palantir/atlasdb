@@ -18,6 +18,21 @@ package com.palantir.atlasdb.keyvalue.impl.partition;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.AbstractAtlasDbKeyValueServiceTest;
 
+/**
+ * This test is to make sure that any endpoints can fail as
+ * long as it is not too many of them.
+ * 
+ * The number of endpoints that can fail when doing a
+ * write operation without causing the operation to fail:
+ * <code>replicationFactor - writeFactor</code>
+ * 
+ * The number of endpoints that can fail when doing a
+ * read operation without causing the operation to fail:
+ * <code>replicationFactor - readFactor</code>
+ * 
+ * @author htarasiuk
+ *
+ */
 public class PartitionedKeyValueServiceTest extends AbstractAtlasDbKeyValueServiceTest {
 
     @Override
