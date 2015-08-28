@@ -2,60 +2,67 @@ package com.palantir.atlasdb.keyvalue.remoting;
 
 import static org.junit.Assert.assertEquals;
 
-import java.lang.reflect.Field;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+
+import io.dropwizard.testing.junit.DropwizardClientRule;
 
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.AbstractAtlasDbKeyValueServiceTest;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.SimpleKeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
-import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapServiceImpl;
-import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
-
-import io.dropwizard.Configuration;
-import io.dropwizard.testing.DropwizardTestSupport;
-import io.dropwizard.testing.junit.DropwizardClientRule;
 
 public class KeyValueEndpointTest extends AbstractAtlasDbKeyValueServiceTest {
 
-    static final KeyValueService endpointKvs = RemotingKeyValueService.createServerSide(new InMemoryKeyValueService(false), null);
-    static final PartitionMapService endpointPms = new PartitionMapServiceImpl();
-    static final QuorumParameters QUORUM_PARAMETERS = new QuorumParameters(3, 2, 2);
+	@Rule
+	public final DropwizardClientRule endpointKvsService = Utils.getRemoteKvsRule(
+			RemotingKeyValueService.createServerSide(new InMemoryKeyValueService(false), Suppliers.ofInstance(-1L)));
 
-    private final SimpleModule module = RemotingKeyValueService.kvsModule();
-    private final ObjectMapper mapper = RemotingKeyValueService.kvsMapper();
+	@Rule
+	public final DropwizardClientRule endpointPmsService = new DropwizardClientRule(
+			Preconditions.checkNotNull(new PartitionMapService() {
+				long version = 0L;
+				
+				@Override
+				public void update(DynamicPartitionMap partitionMap) {
+					version = partitionMap.getVersion();
+				}
+				
+				@Override
+				public long getVersion() {
+					return version;
+				}
+				
+				@Override
+				public DynamicPartitionMap get() {
+					return null;
+				}
+			}));
 
-    @Rule public final DropwizardClientRule endpointKvsService = new DropwizardClientRule(endpointKvs);
-    @Rule public final DropwizardClientRule endpointPmsService = new DropwizardClientRule(endpointPms);
-
-    KeyValueEndpoint endpoint;
-
-    @SuppressWarnings("unchecked")
+    private KeyValueEndpoint endpoint;
+    
     @Before
-    public void setupHacks() throws Exception {
-        Field field = endpointKvsService.getClass().getDeclaredField("testSupport");
-        field.setAccessible(true);
-        DropwizardTestSupport<Configuration> testSupport = (DropwizardTestSupport<Configuration>) field.get(endpointKvsService);
-        ObjectMapper mapper = testSupport.getEnvironment().getObjectMapper();
-        mapper.registerModule(module);
-        mapper.registerModule(new GuavaModule());
-        testSupport.getApplication();
+    public void setupPrivate() {
+        Utils.setupRuleHacks(endpointKvsService);
+        Utils.setupRuleHacks(endpointPmsService);
+        endpoint = new SimpleKeyValueEndpoint(endpointKvsService.baseUri().toString(), endpointPmsService.baseUri().toString());
+        endpoint.build(Suppliers.ofInstance(-1L));
     }
 
     private KeyValueEndpoint getEndpoint() {
-        if (endpoint == null) {
-            endpoint = new SimpleKeyValueEndpoint(endpointKvsService.baseUri().toString(), endpointPmsService.baseUri().toString());
-        }
-        return endpoint;
+    	setupPrivate();
+        return Preconditions.checkNotNull(endpoint);
     }
 
     @Test
@@ -65,6 +72,7 @@ public class KeyValueEndpointTest extends AbstractAtlasDbKeyValueServiceTest {
 
     @Override
     protected KeyValueService getKeyValueService() {
+    	setupPrivate();
         return Preconditions.checkNotNull(getEndpoint().keyValueService());
     }
 
