@@ -83,7 +83,7 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
 
     NavigableMap<byte[], KeyValueEndpoint> ring;
     DynamicPartitionMap pmap;
-    PartitionedKeyValueService pkvs;
+    KeyValueService pkvs;
 
     @Rule public DropwizardClientRule kvsRule1 = kvs1.rule;
     @Rule public DropwizardClientRule kvsRule2 = kvs2.rule;
@@ -103,7 +103,7 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
         ring.put(new byte[] {0, 0, 0}, kve3);
 
         pmap = DynamicPartitionMapImpl.create(ring);
-        pkvs = new DynamicPartitionedKeyValueService(pmap);
+        pkvs = DynamicPartitionedKeyValueService.create(pmap);
     }
 
     @Before

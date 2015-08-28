@@ -47,6 +47,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
+import com.palantir.atlasdb.keyvalue.partition.api.PartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.status.EndpointWithNormalStatus;
 import com.palantir.atlasdb.keyvalue.partition.status.EndpointWithStatus;
 import com.palantir.atlasdb.keyvalue.partition.util.ConsistentRingRangeRequest;
@@ -66,7 +67,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     private transient final BlockingQueue<Future<Void>> removals = Queues.newLinkedBlockingQueue();
     private transient final BlockingQueue<Future<Void>> joins = Queues.newLinkedBlockingQueue();
     private transient final Set<KeyValueService> delegates;
-
+    
     static private <K, V1, V2> NavigableMap<K, V2> transformValues(NavigableMap<K, V1> map, Function<V1, V2> transform) {
         NavigableMap<K, V2> result = Maps.newTreeMap(map.comparator());
         for (Entry<K, V1> entry : map.entrySet()) {
@@ -228,7 +229,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         }
     }
 
-    private DynamicPartitionMapImpl(QuorumParameters quorumParameters, NavigableMap<byte[], KeyValueEndpoint> ring, int nothin) {
+	private DynamicPartitionMapImpl(QuorumParameters quorumParameters, NavigableMap<byte[], KeyValueEndpoint> ring, int nothin) {
         this.ring = toRing(ring);
         buildRing(this.ring);
         this.quorumParameters = quorumParameters;
@@ -239,11 +240,11 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         }
     }
 
-    public static DynamicPartitionMapImpl create(QuorumParameters quorumParameters, NavigableMap<byte[], KeyValueEndpoint> ring) {
+	public static DynamicPartitionMapImpl create(QuorumParameters quorumParameters, NavigableMap<byte[], KeyValueEndpoint> ring) {
         return new DynamicPartitionMapImpl(quorumParameters, ring, 0);
     }
 
-    public static DynamicPartitionMapImpl create(NavigableMap<byte[], KeyValueEndpoint> ring) {
+	public static DynamicPartitionMapImpl create(NavigableMap<byte[], KeyValueEndpoint> ring) {
         return create(new QuorumParameters(3, 2, 2), ring);
     }
 

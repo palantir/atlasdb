@@ -39,9 +39,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.DynamicPartitionMapImpl;
 import com.palantir.atlasdb.keyvalue.partition.PartitionMapService;
-import com.palantir.atlasdb.keyvalue.partition.api.PartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.exception.VersionTooOldException;
-import com.palantir.atlasdb.keyvalue.partition.util.VersionedObject;
 import com.palantir.atlasdb.keyvalue.remoting.iterators.HistoryRangeIterator;
 import com.palantir.atlasdb.keyvalue.remoting.iterators.RangeIterator;
 import com.palantir.atlasdb.keyvalue.remoting.iterators.TimestampsRangeIterator;
@@ -163,7 +161,7 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
                     assert clientVersion == null;
                 } else {
                     if (clientVersion < serverVersion) {
-                        throw new VersionTooOldException(serverVersion, "Version too old. Please update!");
+                        throw new VersionTooOldException();
                     }
                 }
             }
@@ -183,21 +181,22 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
 
     }
 
-    public static class AutoUpdateProxy implements InvocationHandler {
+    public static class FillInUrlProxy implements InvocationHandler {
 
         final KeyValueService remoteKvs;
-        final PartitionMapService remotePms;
-        final PartitionMapService localPms;
+        final String pmsUri;
 
-
-        private AutoUpdateProxy(KeyValueService delegate,
-                                PartitionMapService remotePms,
-                                PartitionMapService localPms) {
+        private FillInUrlProxy(KeyValueService delegate,
+                               String pmsUri) {
             this.remoteKvs = delegate;
-            this.remotePms = remotePms;
-            this.localPms = localPms;
+            this.pmsUri = pmsUri;
         }
 
+        public static KeyValueService newFillInUrlProxy(KeyValueService delegate, String pmsUri) {
+            FillInUrlProxy handler = new FillInUrlProxy(delegate, pmsUri);
+            return (KeyValueService) Proxy.newProxyInstance( KeyValueService.class.getClassLoader(),
+                    new Class<?>[] { KeyValueService.class }, handler);
+        }
 
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
@@ -206,13 +205,7 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
             } catch (InvocationTargetException e) {
                 Throwable cause = e.getCause();
                 if (cause instanceof VersionTooOldException) {
-                    VersionTooOldException vtoe = (VersionTooOldException) cause;
-                    VersionedObject<PartitionMap> newPmap = remotePms.get();
-                    if (newPmap.getVersion() < vtoe.getMinRequiredVersion()) {
-                        throw new RuntimeException("Updated map version is still too old. This does not make too much sense.");
-                    }
-                    localPms.update(newPmap.getVersion(), newPmap.getObject());
-                    return invoke(proxy, method, args);
+                	throw new  VersionTooOldException(pmsUri);
                 }
                 throw cause;
             }

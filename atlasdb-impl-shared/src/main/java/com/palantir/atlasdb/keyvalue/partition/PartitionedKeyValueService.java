@@ -47,10 +47,12 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.partition.api.PartitionMap;
+import com.palantir.atlasdb.keyvalue.partition.exception.VersionTooOldException;
 import com.palantir.atlasdb.keyvalue.partition.util.ClosablePeekingIterator;
 import com.palantir.atlasdb.keyvalue.partition.util.ConsistentRingRangeRequest;
 import com.palantir.atlasdb.keyvalue.partition.util.PartitionedRangedIterator;
 import com.palantir.atlasdb.keyvalue.partition.util.RowResultUtil;
+import com.palantir.atlasdb.keyvalue.partition.util.VersionedObject;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.NonIdempotent;
 import com.palantir.common.base.ClosableIterator;
@@ -90,6 +92,9 @@ public abstract class PartitionedKeyValueService implements KeyValueService {
             }
         } catch (InterruptedException e) {
             throw Throwables.throwUncheckedException(e);
+        } catch (VersionTooOldException e) {
+        	VersionedObject<PartitionMap> newPartitionMap = e.getUpdatedMap();
+        	updatePartitionMap(newPartitionMap.getObject());
         }
     }
 
@@ -744,5 +749,6 @@ public abstract class PartitionedKeyValueService implements KeyValueService {
     }
 
     protected abstract PartitionMap getPartitionMap();
+    protected abstract void updatePartitionMap(PartitionMap partitionMap);
 
 }

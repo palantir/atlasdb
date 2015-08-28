@@ -30,9 +30,6 @@ import com.palantir.atlasdb.keyvalue.partition.KeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.util.ConsistentRingRangeRequest;
 import com.palantir.util.Pair;
 
-//@JsonTypeInfo(use=Id.CLASS, property="@class")
-//@JsonDeserialize(as=DynamicPartitionMapImpl.class)
-//@JsonSerialize(as=DynamicPartitionMapImpl.class)
 @JsonSerialize(using=DynamicPartitionMapImpl.Serializer.class)
 @JsonDeserialize(using=DynamicPartitionMapImpl.Deserializer.class)
 public interface PartitionMap {
@@ -51,5 +48,7 @@ public interface PartitionMap {
     <T> void runForCellsWrite(String tableName, Multimap<Cell, T> cells, Function<Pair<KeyValueService, Multimap<Cell, T>>, Void> task);
 
     Set<? extends KeyValueService> getDelegates();
+    
+    long getVersion();
 
 }

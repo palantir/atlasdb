@@ -1,36 +1,33 @@
 package com.palantir.atlasdb.keyvalue.partition.exception;
 
+import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.partition.api.PartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.util.VersionedObject;
 import com.palantir.atlasdb.keyvalue.remoting.RemotingPartitionMapService;
+import com.palantir.common.annotation.Immutable;
 
-public class VersionTooOldException extends RuntimeException {
+
+@Immutable public class VersionTooOldException extends RuntimeException {
 
     private static final long serialVersionUID = 1L;
-    private final long minRequiredVersion;
+
     private final String pmsUri;
 
-    public VersionTooOldException(long minRequiredVersion, String pmsUri) {
-        this(minRequiredVersion, pmsUri, null);
+    public VersionedObject<PartitionMap> getUpdatedMap() {
+    	return RemotingPartitionMapService.createClientSide(
+    			Preconditions.checkNotNull(pmsUri)).get();
     }
 
-    public VersionTooOldException(long minRequiredVersion, String pmsUri, String message) {
-        super(message);
-        this.pmsUri = pmsUri;
-        this.minRequiredVersion = minRequiredVersion;
+    public VersionTooOldException(String pmsUri) {
+    	this.pmsUri = pmsUri;
     }
-
+    
     public VersionTooOldException() {
-        this.pmsUri = null;
-        this.minRequiredVersion = -1L;
+    	this.pmsUri = null;
     }
 
-    public long getMinRequiredVersion() {
-        return minRequiredVersion;
-    }
-
-    public VersionedObject<PartitionMap> getNewVersion() {
-        return RemotingPartitionMapService.createClientSide(pmsUri).get();
-    }
-
+	@Override
+	public String toString() {
+		return "VersionTooOldException [pmsUri=" + pmsUri + "]";
+	}
 }
