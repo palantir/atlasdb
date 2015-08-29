@@ -154,9 +154,17 @@ public abstract class AbstractPartitionMapTest {
             Collection<KeyValueEndpoint> services = result.get(subRange);
             assertEquals(REPF, services.size());
             for (KeyValueEndpoint kvs : services) {
-//                tpm.getServicesForRowsRead(
-//                        TABLE1,
-//                        ImmutableSet.of(subRange.get().getStartInclusive())).containsKey(kvs);
+                final Map<KeyValueService, Set<byte[]>> entries = Maps.newHashMap();
+                tpm.runForRowsRead(TABLE1, ImmutableSet.of(subRange.get().getStartInclusive()), new Function<Pair<KeyValueService,Iterable<byte[]>>, Void>() {
+                    @Override
+                    public Void apply(Pair<KeyValueService, Iterable<byte[]>> input) {
+                                entries.put(input.lhSide, ImmutableSortedSet
+                                                .<byte[]> orderedBy(UnsignedBytes.lexicographicalComparator())
+                                                .addAll(input.rhSide).build());
+                        return null;
+                    }
+                });
+                assertTrue(entries.containsKey(kvs.keyValueService()));
             }
         }
     }
