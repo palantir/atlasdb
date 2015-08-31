@@ -27,6 +27,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multiset;
 import com.google.common.primitives.UnsignedBytes;
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
@@ -37,6 +38,7 @@ import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapServiceImpl;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
 import com.palantir.atlasdb.keyvalue.partition.util.ConsistentRingRangeRequest;
+import com.palantir.common.collect.Maps2;
 import com.palantir.util.Pair;
 
 public abstract class AbstractPartitionMapTest {
@@ -80,6 +82,15 @@ public abstract class AbstractPartitionMapTest {
             new InMemoryKeyValueService(false),
             new InMemoryKeyValueService(false),
             new InMemoryKeyValueService(false));
+
+    protected ArrayList<KeyValueEndpoint> endpoints = Lists.<KeyValueEndpoint> newArrayList(
+            InMemoryKeyValueEndpoint.create(services.get(0), new PartitionMapServiceImpl()),
+            InMemoryKeyValueEndpoint.create(services.get(1), new PartitionMapServiceImpl()),
+            InMemoryKeyValueEndpoint.create(services.get(2), new PartitionMapServiceImpl()),
+            InMemoryKeyValueEndpoint.create(services.get(3), new PartitionMapServiceImpl()),
+            InMemoryKeyValueEndpoint.create(services.get(4), new PartitionMapServiceImpl()),
+            InMemoryKeyValueEndpoint.create(services.get(5), new PartitionMapServiceImpl()),
+            InMemoryKeyValueEndpoint.create(services.get(6), new PartitionMapServiceImpl()));
 
     private void testRangeIntervalsOk(final RangeRequest rangeRequest) {
         Multimap<ConsistentRingRangeRequest, KeyValueEndpoint> result = tpm.getServicesForRangeRead(
@@ -174,25 +185,61 @@ public abstract class AbstractPartitionMapTest {
         Preconditions.checkArgument(services.size() == points.length);
         NavigableMap<byte[], KeyValueEndpoint> ring = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
         for (int i = 0; i < points.length; ++i) {
-            ring.put(points[i], InMemoryKeyValueEndpoint.create(services.get(i), new PartitionMapServiceImpl()));
+            ring.put(points[i], endpoints.get(i));
         }
         tpm = getPartitionMap(qp, ring);
 //        tpm = BasicPartitionMap.create(qp, ring);
 //        tpm = new DynamicPartitionMapImpl(qp, ring);
     }
 
-    private void testRows(Map<KeyValueService, Set<byte[]>> expected, Collection<byte[]> rows) {
+    protected void testRows(Map<KeyValueService, Set<byte[]>> expected, Collection<byte[]> rows) {
         final Map<KeyValueService, Set<byte[]>> result = Maps.newHashMap();
         tpm.runForRowsRead(TABLE1, rows, new Function<Pair<KeyValueService,Iterable<byte[]>>, Void>() {
             @Override
             public Void apply(@Nullable Pair<KeyValueService, Iterable<byte[]>> input) {
-                        result.put(input.lhSide, ImmutableSortedSet
-                                        .<byte[]> orderedBy(UnsignedBytes.lexicographicalComparator())
-                                        .addAll(input.rhSide).build());
+                result.put(input.lhSide, ImmutableSortedSet
+                                .<byte[]> orderedBy(UnsignedBytes.lexicographicalComparator())
+                                .addAll(input.rhSide).build());
                 return null;
             }
         });
         assertEquals(expected, result);
+    }
+
+    protected void testCellsRead(Map<KeyValueService, Set<Cell>> expected, Set<Cell> cells) {
+        final Map<KeyValueService, Set<Cell>> result = Maps.newHashMap();
+        tpm.runForCellsRead(TABLE1, cells, new Function<Pair<KeyValueService, Set<Cell>>, Void>() {
+            @Override
+            public Void apply(Pair<KeyValueService, Set<Cell>> input) {
+                result.put(input.lhSide, input.rhSide);
+                return null;
+            }
+        });
+        assertEquals(expected, result);
+    }
+
+    protected void testCellsRead(Set<KeyValueService> expected, Cell cell) {
+        Map<KeyValueService, Set<Cell>> expectedMap = Maps2
+                .<KeyValueService, Set<Cell>> createConstantValueMap(expected, ImmutableSet.of(cell));
+        testCellsRead(expectedMap, ImmutableSet.of(cell));
+    }
+
+    protected void testCellsWrite(Map<KeyValueService, Set<Cell>> expected, Set<Cell> cells) {
+        final Map<KeyValueService, Set<Cell>> result = Maps.newHashMap();
+        tpm.runForCellsWrite(TABLE1, cells, new Function<Pair<KeyValueService, Set<Cell>>, Void>() {
+            @Override
+            public Void apply(Pair<KeyValueService, Set<Cell>> input) {
+                result.put(input.lhSide, input.rhSide);
+                return null;
+            }
+        });
+        assertEquals(expected, result);
+    }
+
+    protected void testCellsWrite(Set<KeyValueService> expected, Cell cell) {
+        Map<KeyValueService, Set<Cell>> expectedMap = Maps2
+                .<KeyValueService, Set<Cell>> createConstantValueMap(expected, ImmutableSet.of(cell));
+        testCellsWrite(expectedMap, ImmutableSet.of(cell));
     }
 
     @Test

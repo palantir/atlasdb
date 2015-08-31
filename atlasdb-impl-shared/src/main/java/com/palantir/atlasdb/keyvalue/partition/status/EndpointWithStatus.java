@@ -66,6 +66,18 @@ public abstract class EndpointWithStatus {
         return shouldCountForRead();
     }
 
+    public EndpointWithLeavingStatus asLeaving() {
+        return new EndpointWithLeavingStatus(get());
+    }
+
+    public EndpointWithJoiningStatus asJoining() {
+        return new EndpointWithJoiningStatus(get());
+    }
+
+    public EndpointWithNormalStatus asNormal() {
+        return new EndpointWithNormalStatus(get());
+    }
+
     @Override
     public String toString() {
         return getClass().getSimpleName() + " kvs=" + endpoint.hashCode();

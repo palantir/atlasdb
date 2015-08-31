@@ -1,6 +1,6 @@
 package com.palantir.atlasdb.keyvalue.partition.api;
 
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
 
 public interface DynamicPartitionMap extends PartitionMap {
 
@@ -12,7 +12,7 @@ public interface DynamicPartitionMap extends PartitionMap {
      * @return True if the operation was started. False if the operation
      * was rejected (eg. due to another operation being in progress).
      */
-    boolean addEndpoint(byte[] key, KeyValueService kvs, String rack);
+    boolean addEndpoint(byte[] key, KeyValueEndpoint kvs, String rack);
 
     /**
      *
@@ -22,7 +22,7 @@ public interface DynamicPartitionMap extends PartitionMap {
      * @return True if the operation was started. False if the operation
      * was rejected (eg. due to antoher operation bein in progress).
      */
-    boolean removeEndpoint(byte[] key, KeyValueService kvs, String rack);
+    boolean removeEndpoint(byte[] key, KeyValueEndpoint kvs, String rack);
 
     /**
      * The initial version MUST be 0L!

@@ -1,5 +1,7 @@
 package com.palantir.atlasdb.keyvalue.impl.partition;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.NavigableMap;
 import java.util.Set;
 
@@ -40,72 +42,62 @@ public class DynamicPartitionMapTest extends AbstractPartitionMapTest {
     @Override
     protected PartitionMap getPartitionMap(QuorumParameters qp,
                                            NavigableMap<byte[], KeyValueEndpoint> ring) {
-        if (dpm == null) {
-            dpm = DynamicPartitionMapImpl.create(qp, ring);
-        }
+        dpm = DynamicPartitionMapImpl.create(qp, ring);
         return dpm;
-    }
-
-    private void printSet(Set<KeyValueService> set) {
-        for (KeyValueService s : set) {
-            System.err.println(services.lastIndexOf(s));
-        }
     }
 
     @Test
     public void testRemoveEndpoint() {
-//        assertEquals(svc234, dpm.getServicesForCellsRead(TABLE1, sampleCellSet).keySet());
-//        assertEquals(svc234, dpm.getServicesForCellsWrite(TABLE1, sampleCellSet).keySet());
-//
-//        dpm.removeEndpoint(newByteArray(0, 5), services.get(2), "");
-//        /**
-//         * Now kvs (2) C is being removed.
-//         * The reads should still come from (2, 3, 4).
-//         * The writes should be directed to (2, 3, 4, 5).
-//         */
-//        assertEquals(svc234, dpm.getServicesForCellsRead(TABLE1, sampleCellSet).keySet());
-//        assertEquals(svc2345, dpm.getServicesForCellsWrite(TABLE1, sampleCellSet).keySet());
-//
-//        dpm.finalizeRemoveEndpoint(newByteArray(0, 5), services.get(2));
-//        /**
-//         * Now it should be back to normal, ie.
-//         * Reads -> (3, 4, 5)
-//         * Writes -> (3, 4, 5)
-//         */
-//        assertEquals(svc345, dpm.getServicesForCellsRead(TABLE1, sampleCellSet).keySet());
-//        assertEquals(svc345, dpm.getServicesForCellsWrite(TABLE1, sampleCellSet).keySet());
-//
-//        dpm.addEndpoint(newByteArray(0, 5), services.get(2), "");
-//        dpm.finalizeAddEndpoint(newByteArray(0, 5), services.get(2));
-//        assertEquals(svc234, dpm.getServicesForCellsRead(TABLE1, sampleCellSet).keySet());
-//        assertEquals(svc234, dpm.getServicesForCellsWrite(TABLE1, sampleCellSet).keySet());
-        // TODO:
+        testCellsRead(svc234, sampleCell);
+        testCellsWrite(svc234, sampleCell);
+
+        dpm.removeEndpoint(newByteArray(0, 5), endpoints.get(2), "");
+        /**
+         * Now kvs (2) C is being removed.
+         * The reads should still come from (2, 3, 4).
+         * The writes should be directed to (2, 3, 4, 5).
+         */
+        testCellsRead(svc234, sampleCell);
+        testCellsWrite(svc2345, sampleCell);
+
+        dpm.finalizeRemoveEndpoint(newByteArray(0, 5), endpoints.get(2));
+        /**
+         * Now it should be back to normal, ie.
+         * Reads -> (3, 4, 5)
+         * Writes -> (3, 4, 5)
+         */
+        testCellsRead(svc345, sampleCell);
+        testCellsWrite(svc345, sampleCell);
+
+        dpm.addEndpoint(newByteArray(0, 5), endpoints.get(2), "");
+        dpm.finalizeAddEndpoint(newByteArray(0, 5), endpoints.get(2));
+        testCellsRead(svc234, sampleCell);
+        testCellsWrite(svc234, sampleCell);
     }
 
     @Test
     public void testAddEndpoint() {
-//        assertEquals(svc234, dpm.getServicesForCellsRead(TABLE1, sampleCellSet).keySet());
-//        assertEquals(svc234, dpm.getServicesForCellsWrite(TABLE1, sampleCellSet).keySet());
-//
-//        dpm.removeEndpoint(newByteArray(0, 5), services.get(2), "");
-//        dpm.finalizeRemoveEndpoint(newByteArray(0, 5), services.get(2));
-//        assertEquals(svc345, dpm.getServicesForCellsRead(TABLE1, sampleCellSet).keySet());
-//        assertEquals(svc345, dpm.getServicesForCellsWrite(TABLE1, sampleCellSet).keySet());
-//
-//        dpm.addEndpoint(newByteArray(0, 5), services.get(2), "");
-//        /**
-//         * Now kvs (2) C is being added.
-//         * The reads should be directed to (3, 4, 5).
-//         * Writes should be directed to (2, 3, 4, 5).
-//         */
-//        assertEquals(svc345, dpm.getServicesForCellsRead(TABLE1, sampleCellSet).keySet());
-//        assertEquals(svc2345, dpm.getServicesForCellsWrite(TABLE1, sampleCellSet).keySet());
-//
-//        dpm.finalizeAddEndpoint(newByteArray(0, 5), services.get(2));
-//
-//        assertEquals(svc234, dpm.getServicesForCellsRead(TABLE1, sampleCellSet).keySet());
-//        assertEquals(svc234, dpm.getServicesForCellsWrite(TABLE1, sampleCellSet).keySet());
-        // TODO:
+        testCellsRead(svc234, sampleCell);
+        testCellsWrite(svc234, sampleCell);
+
+        assertEquals(true, dpm.removeEndpoint(newByteArray(0, 5), endpoints.get(2), ""));
+        dpm.finalizeRemoveEndpoint(newByteArray(0, 5), endpoints.get(2));
+        testCellsRead(svc345, sampleCell);
+        testCellsWrite(svc345, sampleCell);
+
+        assertEquals(true, dpm.addEndpoint(newByteArray(0, 5), endpoints.get(2), ""));
+
+        /**
+         * Now kvs (2) C is being added.
+         * The reads should be directed to (3, 4, 5).
+         * Writes should be directed to (2, 3, 4, 5).
+         */
+        testCellsRead(svc345, sampleCell);
+        testCellsWrite(svc2345, sampleCell);
+
+        dpm.finalizeAddEndpoint(newByteArray(0, 5), endpoints.get(2));
+        testCellsRead(svc234, sampleCell);
+        testCellsWrite(svc234, sampleCell);
     }
 
     /**
@@ -113,75 +105,12 @@ public class DynamicPartitionMapTest extends AbstractPartitionMapTest {
      */
     @Test
     public void testAddRemoveEndpoint() {
-//        assertEquals(svc234, dpm.getServicesForCellsRead(TABLE1, sampleCellSet).keySet());
-//        assertEquals(svc234, dpm.getServicesForCellsWrite(TABLE1, sampleCellSet).keySet());
-//
-//        dpm.removeEndpoint(newByteArray(0, 5), services.get(2), "");
-//        dpm.finalizeRemoveEndpoint(newByteArray(0, 5), services.get(2));
-//        assertEquals(svc345, dpm.getServicesForCellsRead(TABLE1, sampleCellSet).keySet());
-//        assertEquals(svc345, dpm.getServicesForCellsWrite(TABLE1, sampleCellSet).keySet());
-//
-//        dpm.removeEndpoint(newByteArray(1, 1), services.get(3), "");
-//        dpm.addEndpoint(newByteArray(0, 5), services.get(2), "");
-//        /**
-//         * Originally
-//         * writes -> (3,4,5)
-//         * reads  -> (3,4,5)
-//         *
-//         * Add (2) C = (0,5)
-//         * writes -> (2,3,4,5)
-//         * reads  -> (3,4,5)
-//         *
-//         * Remove (3) D = (1,1)
-//         * writes -> (2,3,4,5,6)
-//         * reads  -> (3,4,5)
-//         *
-//         * Added (2) C = (0,5)
-//         * writes -> (?)
-//         * reads  -> (?)
-//         *
-//         * Now kvs (2) C = (0,5) is being added and kvs (3) D = (1,1) is being removed.
-//         * Therefore writes should be directed to (2,3,4,5,6),
-//         * and reads should be directed to (3,4,5).
-//         */
-//        assertEquals(svc345, dpm.getServicesForCellsRead(TABLE1, sampleCellSet).keySet());
-//        assertEquals(svc23456, dpm.getServicesForCellsWrite(TABLE1, sampleCellSet).keySet());
-//
-//        System.err.println("read0");
-//        for (KeyValueService kvs : dpm.getServicesForCellsRead(TABLE1, sampleCellSet).keySet()) {
-//            System.err.print(services.lastIndexOf(kvs) + " ");
-//        }
-//        System.err.println();
-//        System.err.println("write0");
-//        for (KeyValueService  kvs : dpm.getServicesForCellsWrite(TABLE1, sampleCellSet).keySet()) {
-//            System.err.print(services.lastIndexOf(kvs) + " ");
-//        }
-//        System.err.println();
-//
-//        dpm.finalizeAddEndpoint(newByteArray(0, 5), services.get(2));
-//        System.err.println("read1");
-//        for (KeyValueService kvs : dpm.getServicesForCellsRead(TABLE1, sampleCellSet).keySet()) {
-//            System.err.print(services.lastIndexOf(kvs) + " ");
-//        }
-//        System.err.println();
-//        System.err.println("write1");
-//        for (KeyValueService  kvs : dpm.getServicesForCellsWrite(TABLE1, sampleCellSet).keySet()) {
-//            System.err.print(services.lastIndexOf(kvs) + " ");
-//        }
-//        System.err.println();
-//
-//        dpm.finalizeRemoveEndpoint(newByteArray(1, 1), services.get(3));
-//        System.err.println("read2");
-//        for (KeyValueService kvs : dpm.getServicesForCellsRead(TABLE1, sampleCellSet).keySet()) {
-//            System.err.print(services.lastIndexOf(kvs) + " ");
-//        }
-//        System.err.println();
-//        System.err.println("write2");
-//        for (KeyValueService  kvs : dpm.getServicesForCellsWrite(TABLE1, sampleCellSet).keySet()) {
-//            System.err.print(services.lastIndexOf(kvs) + " ");
-//        }
-//        System.err.println();
-        // TODO:
+        assertEquals(true, dpm.removeEndpoint(newByteArray(0, 5), endpoints.get(2), ""));
+        assertEquals(false, dpm.removeEndpoint(newByteArray(1, 1), endpoints.get(3), ""));
+        dpm.finalizeRemoveEndpoint(newByteArray(0, 5), endpoints.get(2));
+
+        assertEquals(true, dpm.removeEndpoint(newByteArray(1, 1), endpoints.get(3), ""));
+        assertEquals(false, dpm.addEndpoint(newByteArray(0, 5), endpoints.get(2), ""));
     }
 
 }
