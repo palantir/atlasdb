@@ -278,6 +278,7 @@ public abstract class AbstractPartitionMapTest {
         RangeRequest testRange = RangeRequest.reverseBuilder().startRowInclusive(
                 newByteArray(0xff, 0xff, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a)).endRowExclusive(
                 newByteArray(0x01, 0x00)).build();
+        // TODO:
         if (testRange.isReverse() == false) {
             testRangeIntervalsOk(testRange);
             testRangeMappingsOk(testRange);
