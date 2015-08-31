@@ -579,7 +579,11 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     }
 
     @Override
-    public synchronized boolean addEndpoint(final byte[] key, final KeyValueEndpoint kvs, String rack) {
+    public boolean addEndpoint(byte[] key, KeyValueEndpoint kvs, String rack) {
+        return addEndpoint(key, kvs, rack, true);
+    }
+
+    public synchronized boolean addEndpoint(final byte[] key, final KeyValueEndpoint kvs, String rack, final boolean autoFinalize) {
         version.set(version.get() + 1);
 
         // Sanity checks
@@ -625,6 +629,9 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
                 // TODO: Not doing this for testing purporses.
                 // Use finalizer to finalize the join.
                 // finalizeAddEndpoint(key, kvs);
+                if (autoFinalize) {
+                    finalizeAddEndpoint(key);
+                }
 
                 // The last thing to be done is removing the farthest
                 // range from the following kvss.
@@ -639,19 +646,21 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
             }
         }));
 
-        // Do it synchronously now for testing purposes (TODO)
+        return true;
+    }
+
+    public synchronized void syncAddEndpoint() {
+        // Do it synchronously now for testing purposes
         try {
             Futures.getUnchecked(joins.take());
         } catch (InterruptedException e) {
             throw Throwables.throwUncheckedException(e);
         }
-
-        return true;
     }
 
-    public synchronized void finalizeAddEndpoint(byte[] key, KeyValueEndpoint kvs) {
+    public synchronized void finalizeAddEndpoint(byte[] key) {
         Preconditions.checkArgument(ring.get(key) instanceof EndpointWithJoiningStatus);
-//        Preconditions.checkArgument(ring.get(key).get() == kvs);
+        KeyValueEndpoint kve = ring.get(key).get();
         version.set(version.get() + 1);
         while (!joins.isEmpty()) {
             try {
@@ -660,13 +669,17 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
                 Throwables.throwUncheckedException(e);
             }
         }
-        ring.put(key, new EndpointWithNormalStatus(kvs));
-        kvs.build(versionSupplier);
+        ring.put(key, new EndpointWithNormalStatus(kve));
+        kve.build(versionSupplier);
         operationsInProgress--;
     }
 
     @Override
-    public synchronized boolean removeEndpoint(final byte[] key) {
+    public synchronized boolean removeEndpoint(byte[] key) {
+        return removeEndpoint(key, true);
+    }
+
+    public synchronized boolean removeEndpoint(final byte[] key, final boolean autoFinalize) {
         final KeyValueEndpoint kve = Preconditions.checkNotNull(ring.get(key)).get();
         version.set(version.get() + 1);
 
@@ -699,14 +712,18 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
                 RangeRequest lastRange1 = ranges.get(ranges.size() - 1).getBuilder().endRowExclusive(key).build();
                 copyData(ring.get(dstKvsKey).get(), kve, lastRange1);
 
-                // Remove the kvs from the ring.
-                // TODO: Not doing this for testing purposes.
-                // Use finalizer to finalize the removal.
-//                finalizeRemoveEndpoint(key, kvs);
+                if (autoFinalize) {
+                    // Remove the kvs from the ring.
+                    finalizeRemoveEndpoint(key);
+                }
                 return null;
             }
         }));
 
+        return true;
+    }
+
+    public synchronized void syncRemoveEndpoint() {
         // Do it synchronously for testing purposes.
         try {
             Futures.getUnchecked(removals.take());
@@ -714,12 +731,10 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
             throw Throwables.throwUncheckedException(e);
         }
 
-        return true;
     }
 
-    public synchronized void finalizeRemoveEndpoint(byte[] key, KeyValueEndpoint kvs) {
+    public synchronized void finalizeRemoveEndpoint(byte[] key) {
         Preconditions.checkArgument(ring.get(key) instanceof EndpointWithLeavingStatus);
-//        Preconditions.checkArgument(Preconditions.checkNotNull(ring.get(key).get()) == kvs);
         KeyValueEndpoint kve = Preconditions.checkNotNull(ring.get(key)).get();
         version.set(version.get() + 1);
         while (!removals.isEmpty()) {

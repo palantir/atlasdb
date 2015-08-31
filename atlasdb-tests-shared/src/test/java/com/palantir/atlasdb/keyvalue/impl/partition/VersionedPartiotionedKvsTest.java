@@ -139,7 +139,8 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
         Map<Cell, Value> emptyResult = ImmutableMap.<Cell, Value>of();
 
         kve4.partitionMapService().update(pkvs.getPartitionMap());
-        pkvs.getPartitionMap().addEndpoint(new byte[] {(byte)0xff, 0, 0, 0}, kve4, "");
+        pkvs.getPartitionMap().addEndpoint(new byte[] {(byte)0xff, 0, 0, 0}, kve4, "", false);
+        pkvs.getPartitionMap().syncAddEndpoint();
         kve4.partitionMapService().update(pkvs.getPartitionMap());
         kve1.partitionMapService().update(pkvs.getPartitionMap());
         kve2.partitionMapService().update(pkvs.getPartitionMap());
@@ -165,7 +166,7 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
         assertEquals(result0, kvs3.inMemoryKvs.get(TEST_TABLE, cells0));
         assertEquals(result0, kvs4.inMemoryKvs.get(TEST_TABLE, cells0));
 
-        pkvs.getPartitionMap().finalizeAddEndpoint(new byte[] {(byte)0xff, 0, 0, 0}, kve4);
+        pkvs.getPartitionMap().finalizeAddEndpoint(new byte[] {(byte)0xff, 0, 0, 0});
         kve4.partitionMapService().update(pkvs.getPartitionMap());
         kve1.partitionMapService().update(pkvs.getPartitionMap());
         kve2.partitionMapService().update(pkvs.getPartitionMap());
@@ -197,13 +198,14 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
         // First add the endpoint so that we can remove one
         kve4.partitionMapService().update(pkvs.getPartitionMap());
 
-        pkvs.getPartitionMap().addEndpoint(new byte[] {(byte)0xff, 0, 0, 0}, kve4, "");
+        pkvs.getPartitionMap().addEndpoint(new byte[] {(byte)0xff, 0, 0, 0}, kve4, "", false);
+        pkvs.getPartitionMap().syncAddEndpoint();
         kve4.partitionMapService().update(pkvs.getPartitionMap());
         kve1.partitionMapService().update(pkvs.getPartitionMap());
         kve2.partitionMapService().update(pkvs.getPartitionMap());
         kve3.partitionMapService().update(pkvs.getPartitionMap());
 
-        pkvs.getPartitionMap().finalizeAddEndpoint(new byte[] {(byte)0xff, 0, 0, 0}, kve4);
+        pkvs.getPartitionMap().finalizeAddEndpoint(new byte[] {(byte)0xff, 0, 0, 0});
         kve4.partitionMapService().update(pkvs.getPartitionMap());
         kve1.partitionMapService().update(pkvs.getPartitionMap());
         kve2.partitionMapService().update(pkvs.getPartitionMap());
@@ -211,7 +213,8 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
 
         pkvs.createTable(TEST_TABLE, 12345);
 
-        pkvs.getPartitionMap().removeEndpoint(new byte[] {0, 0}, null, null);
+        pkvs.getPartitionMap().removeEndpoint(new byte[] {0, 0}, false);
+        pkvs.getPartitionMap().syncRemoveEndpoint();
         kve1.partitionMapService().update(pkvs.getPartitionMap());
         kve2.partitionMapService().update(pkvs.getPartitionMap());
         kve3.partitionMapService().update(pkvs.getPartitionMap());
@@ -227,7 +230,7 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
         assertEquals(result0, kvs3.inMemoryKvs.get(TEST_TABLE, cells0));
         assertEquals(result0, kvs4.inMemoryKvs.get(TEST_TABLE, cells0));
 
-        pkvs.getPartitionMap().finalizeRemoveEndpoint(new byte[] {0, 0}, null);
+        pkvs.getPartitionMap().finalizeRemoveEndpoint(new byte[] {0, 0});
         kve1.partitionMapService().update(pkvs.getPartitionMap());
         kve3.partitionMapService().update(pkvs.getPartitionMap());
         kve4.partitionMapService().update(pkvs.getPartitionMap());
