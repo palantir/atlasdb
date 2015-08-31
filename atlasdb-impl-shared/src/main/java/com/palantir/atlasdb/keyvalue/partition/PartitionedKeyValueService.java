@@ -47,16 +47,14 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
-import com.palantir.atlasdb.keyvalue.partition.api.PartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
-import com.palantir.atlasdb.keyvalue.partition.exception.VersionTooOldException;
+import com.palantir.atlasdb.keyvalue.partition.map.DynamicPartitionMapImpl;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumTracker;
 import com.palantir.atlasdb.keyvalue.partition.util.ClosablePeekingIterator;
 import com.palantir.atlasdb.keyvalue.partition.util.ConsistentRingRangeRequest;
 import com.palantir.atlasdb.keyvalue.partition.util.PartitionedRangedIterator;
 import com.palantir.atlasdb.keyvalue.partition.util.RowResultUtil;
-import com.palantir.atlasdb.keyvalue.partition.util.VersionedObject;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.NonIdempotent;
 import com.palantir.common.base.ClosableIterator;
@@ -75,7 +73,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 
     // Thread-safe
     private final ExecutorService executor;
-    
+
     <TrackingUnit, FutureReturnType> void completeRequest(QuorumTracker<FutureReturnType, TrackingUnit> tracker,
                                                           ExecutorCompletionService<FutureReturnType> execSvc,
                                                           Function<FutureReturnType, Void> mergeFunction) {
@@ -117,6 +115,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
             completeRequest(tracker, execSvc, Functions.<Void> identity());
         } catch (RuntimeException e) {
             tracker.cancel(true);
+            throw e;
         }
     }
 
@@ -394,7 +393,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                                                                        final RangeRequest rangeRequest,
                                                                        final long timestamp)
             throws InsufficientConsistencyException {
-        final Multimap<ConsistentRingRangeRequest, KeyValueEndpoint> services = 
+        final Multimap<ConsistentRingRangeRequest, KeyValueEndpoint> services =
         		runWithPartitionMap(new Function<DynamicPartitionMap, Multimap<ConsistentRingRangeRequest, KeyValueEndpoint>>() {
 					@Override
 					public Multimap<ConsistentRingRangeRequest, KeyValueEndpoint> apply(DynamicPartitionMap input) {
@@ -442,7 +441,8 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 			@Override
 			public Void apply(@Nullable DynamicPartitionMap input) {
 				input.runForCellsWrite( tableName, values, new Function<Pair<KeyValueService, Map<Cell, byte[]>>, Void>() {
-							public Void apply(final Pair<KeyValueService, Map<Cell, byte[]>> e) {
+							@Override
+                            public Void apply(final Pair<KeyValueService, Map<Cell, byte[]>> e) {
                                 Future<Void> future = writeService
 										.submit(new Callable<Void>() {
 											@Override
@@ -834,9 +834,13 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
         this.executor = executor;
         this.quorumParameters = quorumParameters;
     }
-    
+
+    public static PartitionedKeyValueService create(QuorumParameters quorumParameters, DynamicPartitionMap partitionMap) {
+        return new PartitionedKeyValueService(PTExecutors.newCachedThreadPool(), quorumParameters, partitionMap);
+    }
+
     public static PartitionedKeyValueService create(DynamicPartitionMap partitionMap) {
-    	return new PartitionedKeyValueService(PTExecutors.newCachedThreadPool(), new QuorumParameters(3, 2, 2), partitionMap);
+        return create(new QuorumParameters(3, 2, 2), partitionMap);
     }
 
     // *** Helper methods *************************************************************************
@@ -883,5 +887,14 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
             }
         }
     }
-    
+
+    public DynamicPartitionMapImpl getPartitionMap() {
+        return runWithPartitionMap(new Function<DynamicPartitionMap, DynamicPartitionMapImpl>() {
+            @Override @Nullable
+            public DynamicPartitionMapImpl apply(@Nullable DynamicPartitionMap input) {
+                return (DynamicPartitionMapImpl) input;
+            }
+        });
+    }
+
 }

@@ -51,7 +51,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 
 public abstract class AbstractAtlasDbKeyValueServiceTest {
-    static final String TEST_TABLE = "pt_kvs_test";
+    protected static final String TEST_TABLE = "pt_kvs_test";
 
     protected static final byte[] row0 = "row0".getBytes();
     protected static final byte[] row1 = "row1".getBytes();

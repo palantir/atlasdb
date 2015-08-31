@@ -22,7 +22,7 @@ public interface DynamicPartitionMap extends PartitionMap {
      * @return True if the operation was started. False if the operation
      * was rejected (eg. due to antoher operation bein in progress).
      */
-    boolean removeEndpoint(byte[] key, KeyValueEndpoint kvs, String rack);
+    boolean removeEndpoint(byte[] key);
 
     /**
      * The initial version MUST be 0L!

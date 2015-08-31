@@ -35,7 +35,8 @@ public class SimpleKeyValueEndpoint implements KeyValueEndpoint {
 
     @Override
     public void build(Supplier<Long> clientVersionSupplier) {
-        Preconditions.checkState(kvs == null);
+        // TODO:
+//        Preconditions.checkState(kvs == null);
         kvs = RemotingKeyValueService.createClientSide(kvsUri, clientVersionSupplier);
         kvs = RemotingKeyValueService.FillInUrlProxy.newFillInUrlProxy(kvs, pmsUri);
     }

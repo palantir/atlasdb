@@ -1,11 +1,14 @@
 package com.palantir.atlasdb.keyvalue.partition.status;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
 
 public class EndpointWithLeavingStatus extends EndpointWithStatus {
 
-    public EndpointWithLeavingStatus(KeyValueEndpoint service) {
-        super(service);
+    @JsonCreator
+    public EndpointWithLeavingStatus(@JsonProperty("endpoint") KeyValueEndpoint endpoint) {
+        super(endpoint);
     }
 
     @Override

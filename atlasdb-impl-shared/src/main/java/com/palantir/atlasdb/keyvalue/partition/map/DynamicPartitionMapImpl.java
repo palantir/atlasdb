@@ -53,6 +53,7 @@ import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
 import com.palantir.atlasdb.keyvalue.partition.status.EndpointWithJoiningStatus;
+import com.palantir.atlasdb.keyvalue.partition.status.EndpointWithLeavingStatus;
 import com.palantir.atlasdb.keyvalue.partition.status.EndpointWithNormalStatus;
 import com.palantir.atlasdb.keyvalue.partition.status.EndpointWithStatus;
 import com.palantir.atlasdb.keyvalue.partition.util.ConsistentRingRangeRequest;
@@ -68,7 +69,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
 
     @JsonProperty("quorumParameters") private final QuorumParameters quorumParameters;
     @JsonProperty("ring") private final CycleMap<byte[], EndpointWithStatus> ring;
-    private Mutable<Long> version = Mutables.newMutable(0L);
+    final private Mutable<Long> version = Mutables.newMutable(0L);
 
     private transient final BlockingQueue<Future<Void>> removals = Queues.newLinkedBlockingQueue();
     private transient final BlockingQueue<Future<Void>> joins = Queues.newLinkedBlockingQueue();
@@ -83,6 +84,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     };
 
     @GuardedBy("this")
+    // TODO: Serialize and deserialize this!
     private transient int operationsInProgress;
 
     public static class Serializer extends JsonSerializer<DynamicPartitionMapImpl> {
@@ -477,7 +479,9 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
                     cells.put(entry.getKey(), entry.getValue());
                 }
             }
-            destination.keyValueService().putWithTimestamps(tableName, cells);
+            if (!cells.isEmpty()) {
+                destination.keyValueService().putWithTimestamps(tableName, cells);
+            }
             allRows.close();
         }
     }
@@ -539,7 +543,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
      * @return The first element is the farthest range.
      */
     private List<RangeRequest> getRangesOperatedByKvs(byte[] kvsKey, boolean isWrite) {
-        EndpointWithStatus kvsws = Preconditions.checkNotNull(ring.get(kvsKey));
+        Preconditions.checkNotNull(ring.get(kvsKey));
         List<RangeRequest> result = Lists.newArrayList();
 
         byte[] startRange = kvsKey;
@@ -585,6 +589,9 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
             return false;
         }
         operationsInProgress++;
+
+        kvs.build(versionSupplier);
+        delegates.add(kvs.keyValueService());
 
         joins.add(executor.submit(new Callable<Void>() {
             @Override
@@ -643,6 +650,8 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     }
 
     public synchronized void finalizeAddEndpoint(byte[] key, KeyValueEndpoint kvs) {
+        Preconditions.checkArgument(ring.get(key) instanceof EndpointWithJoiningStatus);
+//        Preconditions.checkArgument(ring.get(key).get() == kvs);
         version.set(version.get() + 1);
         while (!joins.isEmpty()) {
             try {
@@ -652,12 +661,13 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
             }
         }
         ring.put(key, new EndpointWithNormalStatus(kvs));
+        kvs.build(versionSupplier);
         operationsInProgress--;
     }
 
     @Override
-    public synchronized boolean removeEndpoint(final byte[] key, final KeyValueEndpoint kvs, String rack) {
-        Preconditions.checkNotNull(ring.get(key));
+    public synchronized boolean removeEndpoint(final byte[] key) {
+        final KeyValueEndpoint kve = Preconditions.checkNotNull(ring.get(key)).get();
         version.set(version.get() + 1);
 
         // Sanity checks
@@ -681,18 +691,17 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
                 // Etc.
                 byte[] dstKvsKey = ring.nextKey(key);
                 for (int i = 0; i < ranges.size() - 1; ++i) {
-                    copyData(ring.get(dstKvsKey).get(), kvs, ranges.get(i));
+                    copyData(ring.get(dstKvsKey).get(), kve, ranges.get(i));
                     dstKvsKey = ring.nextKey(dstKvsKey);
                 }
 
                 // The special case for the last range.
                 RangeRequest lastRange1 = ranges.get(ranges.size() - 1).getBuilder().endRowExclusive(key).build();
-                copyData(ring.get(dstKvsKey).get(), kvs, lastRange1);
+                copyData(ring.get(dstKvsKey).get(), kve, lastRange1);
 
                 // Remove the kvs from the ring.
                 // TODO: Not doing this for testing purposes.
                 // Use finalizer to finalize the removal.
-//                ring.remove(key);
 //                finalizeRemoveEndpoint(key, kvs);
                 return null;
             }
@@ -709,7 +718,9 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     }
 
     public synchronized void finalizeRemoveEndpoint(byte[] key, KeyValueEndpoint kvs) {
-        Preconditions.checkArgument(Preconditions.checkNotNull(ring.get(key).get()) == kvs);
+        Preconditions.checkArgument(ring.get(key) instanceof EndpointWithLeavingStatus);
+//        Preconditions.checkArgument(Preconditions.checkNotNull(ring.get(key).get()) == kvs);
+        KeyValueEndpoint kve = Preconditions.checkNotNull(ring.get(key)).get();
         version.set(version.get() + 1);
         while (!removals.isEmpty()) {
             try {
@@ -720,6 +731,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         }
         ring.remove(key);
         operationsInProgress--;
+        delegates.remove(kve.keyValueService());
     }
 
     @Override

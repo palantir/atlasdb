@@ -20,7 +20,7 @@ import com.palantir.common.annotation.Immutable;
     public VersionTooOldException(String pmsUri) {
     	this.pmsUri = Preconditions.checkNotNull(pmsUri);
     }
-    
+
     public VersionTooOldException() {
     	this.pmsUri = null;
     }
@@ -28,5 +28,10 @@ import com.palantir.common.annotation.Immutable;
 	@Override
 	public String toString() {
 		return "VersionTooOldException [pmsUri=" + pmsUri + "]";
+	}
+
+	@Override
+	public String getMessage() {
+	    return pmsUri;
 	}
 }
