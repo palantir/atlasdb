@@ -15,12 +15,14 @@
  */
 package com.palantir.atlasdb.keyvalue.partition;
 
+import static com.palantir.atlasdb.keyvalue.partition.util.RequestCompletionUtils.completeReadRequest;
+import static com.palantir.atlasdb.keyvalue.partition.util.RequestCompletionUtils.completeWriteRequest;
+import static com.palantir.atlasdb.keyvalue.partition.util.RequestCompletionUtils.retryUntilSuccess;
+
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -31,7 +33,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
-import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
@@ -50,17 +51,16 @@ import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.exception.VersionTooOldException;
 import com.palantir.atlasdb.keyvalue.partition.map.DynamicPartitionMapImpl;
-import com.palantir.atlasdb.keyvalue.partition.merge.MergeResultsUtils;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumTracker;
 import com.palantir.atlasdb.keyvalue.partition.util.ClosablePeekingIterator;
 import com.palantir.atlasdb.keyvalue.partition.util.ConsistentRingRangeRequest;
+import com.palantir.atlasdb.keyvalue.partition.util.MergeResultsUtils;
 import com.palantir.atlasdb.keyvalue.partition.util.PartitionedRangedIterator;
 import com.palantir.atlasdb.keyvalue.partition.util.RowResultUtil;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.NonIdempotent;
 import com.palantir.common.base.ClosableIterator;
-import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.util.Pair;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -79,84 +79,6 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
     private static final Logger log = LoggerFactory.getLogger(PartitionedKeyValueService.class);
     private final QuorumParameters quorumParameters;
     private final ExecutorService executor;
-
-    /**
-     * This will block until success or failure of the request can be concluded.
-     * In case of failure it will rethrow the last encountered exception.
-     *
-     * TODO: Is it ok if the remaining futures are not beign taken after tracker
-     * is finished? Zombie threads etc.
-     *
-     * @param tracker
-     * @param execSvc
-     * @param mergeFunction
-     */
-    <TrackingUnit, FutureReturnType> void completeRequest(QuorumTracker<FutureReturnType, TrackingUnit> tracker,
-                                                          ExecutorCompletionService<FutureReturnType> execSvc,
-                                                          Function<FutureReturnType, Void> mergeFunction) {
-        try {
-            // Wait until we can conclude success or failure
-            while (!tracker.finished()) {
-                Future<FutureReturnType> future = execSvc.take();
-                try {
-                    FutureReturnType result = future.get();
-                    mergeFunction.apply(result);
-                    tracker.handleSuccess(future);
-                } catch (ExecutionException e) {
-                    Throwable cause = e.getCause();
-                    // These two exceptions should be thrown immediately
-                    if (cause instanceof KeyAlreadyExistsException || cause instanceof VersionTooOldException) {
-                        Throwables.throwUncheckedException(cause);
-                    }
-                    tracker.handleFailure(future);
-                    // Check if the failure is fatal
-                    if (tracker.failed()) {
-                        Throwables.rewrapAndThrowUncheckedException(cause);
-                    }
-                }
-            }
-        } catch (InterruptedException e) {
-            throw Throwables.throwUncheckedException(e);
-        }
-    }
-
-    /**
-     * In case of read request we can cancel all remaining threads as soon as completeRequests
-     * returns - it means that either success or failure has been concluded.
-     *
-     * @param tracker
-     * @param execSvc
-     * @param mergeFunction
-     */
-    <TrackingUnit, FutureReturnType> void completeReadRequest(QuorumTracker<FutureReturnType, TrackingUnit> tracker,
-                                                              ExecutorCompletionService<FutureReturnType> execSvc,
-                                                              Function<FutureReturnType, Void> mergeFunction) {
-        try {
-            completeRequest(tracker, execSvc, mergeFunction);
-        } finally {
-            tracker.cancel(true);
-        }
-    }
-
-    /**
-     * In case of write requests we should only cancel all the threads if a failure can be
-     * concluded.
-     * Otherwise we just return as soon as success is concluded but we leave other write
-     * tasks running in the background.
-     *
-     * @param tracker
-     * @param execSvc
-     */
-    <TrackingUnit> void completeWriteRequest(QuorumTracker<Void, TrackingUnit> tracker,
-                                             ExecutorCompletionService<Void> execSvc) {
-
-        try {
-            completeRequest(tracker, execSvc, Functions.<Void> identity());
-        } catch (RuntimeException e) {
-            tracker.cancel(true);
-            throw e;
-        }
-    }
 
     // *** Read requests *************************************************************************
     @Override
@@ -472,27 +394,25 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
     public void put(final String tableName, final Map<Cell, byte[]> values, final long timestamp) {
 		runWithPartitionMap(new Function<DynamicPartitionMap, Void>() {
 			@Override
-			public Void apply(@Nullable DynamicPartitionMap input) {
-                final ExecutorCompletionService<Void> writeService = new ExecutorCompletionService<Void>(
-                        executor);
-                final QuorumTracker<Void, Cell> tracker = QuorumTracker.of(
-                        values.keySet(),
-                quorumParameters.getWriteRequestParameters());
+			public Void apply(DynamicPartitionMap input) {
+                final ExecutorCompletionService<Void> writeService = new ExecutorCompletionService<Void>(executor);
+                final QuorumTracker<Void, Cell> tracker =
+                        QuorumTracker.of(values.keySet(), quorumParameters.getWriteRequestParameters());
+
 				input.runForCellsWrite( tableName, values, new Function<Pair<KeyValueService, Map<Cell, byte[]>>, Void>() {
-							@Override
-                            public Void apply(final Pair<KeyValueService, Map<Cell, byte[]>> e) {
-                                Future<Void> future = writeService
-										.submit(new Callable<Void>() {
-											@Override
-											public Void call() throws Exception {
-												e.lhSide.put(tableName, e.rhSide, timestamp);
-												return null;
-											}
-										});
-								tracker.registerRef(future, e.rhSide.keySet());
-								return null;
-							}
-						});
+                    @Override
+                    public Void apply(final Pair<KeyValueService, Map<Cell, byte[]>> e) {
+                        Future<Void> future = writeService.submit(new Callable<Void>() {
+                            @Override
+                            public Void call() throws Exception {
+                                e.lhSide.put(tableName, e.rhSide, timestamp);
+                                return null;
+                            }
+                        });
+                        tracker.registerRef(future, e.rhSide.keySet());
+                        return null;
+                    }
+                });
 
                 completeWriteRequest(tracker, writeService);
 				return null;
@@ -504,17 +424,18 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
     @NonIdempotent
     public void putWithTimestamps(final String tableName, final Multimap<Cell, Value> cellValues)
             throws KeyAlreadyExistsException {
+
         runWithPartitionMap(new Function<DynamicPartitionMap, Void>() {
 			@Override
 			public Void apply(final DynamicPartitionMap input) {
                 final ExecutorCompletionService<Void> execSvc = new ExecutorCompletionService<Void>(
                         executor);
                 final QuorumTracker<Void, Map.Entry<Cell, Value>> tracker = QuorumTracker.of(
-                        cellValues.entries(),
-                quorumParameters.getWriteRequestParameters());
+                        cellValues.entries(), quorumParameters.getWriteRequestParameters());
+
                 input.runForCellsWrite(tableName, cellValues, new Function<Pair<KeyValueService, Multimap<Cell, Value>>, Void>() {
-                    @Override @Nullable
-                    public Void apply(@Nullable final Pair<KeyValueService, Multimap<Cell, Value>> e) {
+                    @Override
+                    public Void apply(final Pair<KeyValueService, Multimap<Cell, Value>> e) {
                         Future<Void> future = execSvc.submit(new Callable<Void>() {
                             @Override
                             public Void call() throws Exception {
@@ -533,22 +454,28 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 		});
     }
 
+    /**
+     * This operation is not supported for <code>PartitionedKeyValueService</code>.
+     *
+     */
     @Override
+    @Deprecated
     public void putUnlessExists(final String tableName, final Map<Cell, byte[]> values)
             throws KeyAlreadyExistsException {
-        // TODO
-        // put(tableName, values, 0);
+        // TODO: This should eventually throw new UnsupportedOperationException().
+        // For some testing purposes it does not do it now and calls putUnlessExists
+        // on all relevant delegates which is NOT a correct solution!
         runWithPartitionMap(new Function<DynamicPartitionMap, Void>() {
 			@Override
-			public Void apply(@Nullable DynamicPartitionMap input) {
+			public Void apply(DynamicPartitionMap input) {
                 final ExecutorCompletionService<Void> writeService = new ExecutorCompletionService<Void>(
                         executor);
                 final QuorumTracker<Void, Cell> tracker = QuorumTracker.of(
-                        values.keySet(),
-                quorumParameters.getWriteRequestParameters());
+                        values.keySet(), quorumParameters.getWriteRequestParameters());
+
                 input.runForCellsWrite(tableName, values, new Function<Pair<KeyValueService, Map<Cell, byte[]>>, Void>() {
                     @Override
-                    public Void apply(@Nullable final Pair<KeyValueService, Map<Cell, byte[]>> e) {
+                    public Void apply(final Pair<KeyValueService, Map<Cell, byte[]>> e) {
                         Future<Void> future = writeService.submit(new Callable<Void>() {
                             @Override
                             public Void call() throws Exception {
@@ -560,6 +487,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                         return null;
                     }
                 });
+
                 completeWriteRequest(tracker, writeService);
 				return null;
 			}
@@ -572,14 +500,13 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
         runWithPartitionMap(new Function<DynamicPartitionMap, Void>() {
 			@Override
 			public Void apply(DynamicPartitionMap input) {
+                final ExecutorCompletionService<Void> execSvc = new ExecutorCompletionService<Void>(executor);
                 final QuorumTracker<Void, Map.Entry<Cell, Long>> tracker = QuorumTracker.of(
-                        keys.entries(),
-                        quorumParameters.getNoFailureRequestParameters());
-                final ExecutorCompletionService<Void> execSvc = new ExecutorCompletionService<Void>(
-                        executor);
+                        keys.entries(), quorumParameters.getNoFailureRequestParameters());
+
                 input.runForCellsWrite(tableName, keys, new Function<Pair<KeyValueService, Multimap<Cell, Long>>, Void>() {
                     @Override
-                    public Void apply(@Nullable final Pair<KeyValueService, Multimap<Cell, Long>> e) {
+                    public Void apply(final Pair<KeyValueService, Multimap<Cell, Long>> e) {
                         final Future<Void> future = execSvc.submit(new Callable<Void>() {
                             @Override
                             public Void call() throws Exception {
@@ -591,6 +518,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                         return null;
                     }
                 });
+
                 completeWriteRequest(tracker, execSvc);
 				return null;
 			}
@@ -605,12 +533,11 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 			public Void apply(DynamicPartitionMap input) {
                 final ExecutorCompletionService<Void> execSvc = new ExecutorCompletionService<Void>(executor);
                 final QuorumTracker<Void, Cell> tracker = QuorumTracker.of(
-                        cells,
-                        quorumParameters.getWriteRequestParameters());
+                        cells, quorumParameters.getWriteRequestParameters());
 
                 input.runForCellsWrite(tableName, cells, new Function<Pair<KeyValueService, Set<Cell>>, Void>() {
-                    @Override @Nullable
-                    public Void apply(@Nullable final Pair<KeyValueService, Set<Cell>> e) {
+                    @Override
+                    public Void apply(final Pair<KeyValueService, Set<Cell>> e) {
                         Future<Void> future = execSvc.submit(new Callable<Void>() {
                             @Override
                             public Void call() throws Exception {
@@ -878,21 +805,6 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
     }
 
     // *** Helper methods *************************************************************************
-    private static <T, U, V extends Iterator<? extends U>> T retryUntilSuccess(V iterator, Function<U, T> fun) {
-
-        while (iterator.hasNext()) {
-            U service = iterator.next();
-            try {
-                return fun.apply(service);
-            } catch (RuntimeException e) {
-                log.warn("retryUntilSuccess: " + e.getMessage());
-                if (!iterator.hasNext()) {
-                    Throwables.rewrapAndThrowUncheckedException("retryUntilSuccess", e);
-                }
-            }
-        }
-        throw new RuntimeException("This should never happen!");
-    }
 
     public DynamicPartitionMapImpl getPartitionMap() {
         return runWithPartitionMap(new Function<DynamicPartitionMap, DynamicPartitionMapImpl>() {

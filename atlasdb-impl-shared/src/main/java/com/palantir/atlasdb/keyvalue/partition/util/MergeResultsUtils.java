@@ -1,4 +1,4 @@
-package com.palantir.atlasdb.keyvalue.partition.merge;
+package com.palantir.atlasdb.keyvalue.partition.util;
 
 import java.util.Map;
 
