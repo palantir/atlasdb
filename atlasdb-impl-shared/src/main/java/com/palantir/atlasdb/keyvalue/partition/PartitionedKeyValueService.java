@@ -96,10 +96,15 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                     mergeFunction.apply(result);
                     tracker.handleSuccess(future);
                 } catch (ExecutionException e) {
+                    Throwable cause = e.getCause();
+                    // These two exceptions should be thrown immediately
+                    if (cause instanceof KeyAlreadyExistsException || cause instanceof VersionTooOldException) {
+                        Throwables.throwUncheckedException(cause);
+                    }
                     tracker.handleFailure(future);
                     // Check if the failure is fatal
                     if (tracker.failed()) {
-                        Throwables.rewrapAndThrowUncheckedException(e.getCause());
+                        Throwables.rewrapAndThrowUncheckedException(cause);
                     }
                 }
             }
