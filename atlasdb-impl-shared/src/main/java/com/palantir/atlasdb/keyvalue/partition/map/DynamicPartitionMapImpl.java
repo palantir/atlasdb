@@ -440,45 +440,57 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
 
     /**
      * Copies rows within the specified range from all the tables.
-     * @param destination
-     * @param source
+     * @param destKve
+     * @param srcKve
      * @param rangeToCopy
      */
-    private void copyData(KeyValueEndpoint destination, KeyValueEndpoint source, RangeRequest rangeToCopy) {
-        for (String tableName : source.keyValueService().getAllTableNames()) {
+    private void copyData(KeyValueEndpoint destKve, KeyValueEndpoint srcKve, RangeRequest rangeToCopy) {
+        KeyValueService destKvs = destKve.keyValueService();
+        KeyValueService srcKvs = srcKve.keyValueService();
+
+        for (String tableName : srcKvs.getAllTableNames()) {
             Multimap<Cell, Value> cells = HashMultimap.create();
-            ClosableIterator<RowResult<Value>> allRows = source.keyValueService().getRange(tableName, rangeToCopy, Long.MAX_VALUE);
-            while (allRows.hasNext()) {
-                RowResult<Value> row = allRows.next();
-                for (Entry<Cell, Value> entry : row.getCells()) {
-                    cells.put(entry.getKey(), entry.getValue());
+
+            try (ClosableIterator<RowResult<Value>> allRows = srcKvs.getRange(tableName, rangeToCopy, Long.MAX_VALUE)) {
+
+                while (allRows.hasNext()) {
+                    RowResult<Value> row = allRows.next();
+                    for (Entry<Cell, Value> entry : row.getCells()) {
+                        cells.put(entry.getKey(), entry.getValue());
+                    }
+                }
+
+                if (!cells.isEmpty()) {
+                    destKvs.putWithTimestamps(tableName, cells);
                 }
             }
-            if (!cells.isEmpty()) {
-                destination.keyValueService().putWithTimestamps(tableName, cells);
-            }
-            allRows.close();
         }
     }
 
     /**
      * Deletes rows within the specified range from all the tables.
-     * @param kvs
+     * @param kve
      * @param rangeToDelete
      */
-    private void deleteData(KeyValueEndpoint kvs, RangeRequest rangeToDelete) {
-        for (String tableName : kvs.keyValueService().getAllTableNames()) {
+    private void deleteData(KeyValueEndpoint kve, RangeRequest rangeToDelete) {
+        KeyValueService kvs = kve.keyValueService();
+
+        for (String tableName : kvs.getAllTableNames()) {
             Multimap<Cell, Long> cells = HashMultimap.create();
-            ClosableIterator<RowResult<Set<Long>>> allTimestamps = kvs.keyValueService().getRangeOfTimestamps(tableName, rangeToDelete, Long.MAX_VALUE);
-            while (allTimestamps.hasNext()) {
-                RowResult<Set<Long>> row = allTimestamps.next();
-                for (Entry<Cell, Set<Long>> entry : row.getCells()) {
-                    for (Long timestamp : entry.getValue()) {
-                        cells.put(entry.getKey(), timestamp);
+
+            try (ClosableIterator<RowResult<Set<Long>>> allTimestamps =
+                    kvs.getRangeOfTimestamps(tableName, rangeToDelete, Long.MAX_VALUE)) {
+
+                while (allTimestamps.hasNext()) {
+                    RowResult<Set<Long>> row = allTimestamps.next();
+                    for (Entry<Cell, Set<Long>> entry : row.getCells()) {
+                        for (Long timestamp : entry.getValue()) {
+                            cells.put(entry.getKey(), timestamp);
+                        }
                     }
                 }
+                kvs.delete(tableName, cells);
             }
-            kvs.keyValueService().delete(tableName, cells);
         }
     }
 
