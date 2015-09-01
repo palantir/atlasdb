@@ -126,17 +126,17 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                                     final Iterable<byte[]> rows,
                                     final ColumnSelection columnSelection,
                                     final long timestamp) {
-        final Map<Cell, Value> overallResult = Maps.newHashMap();
-        final ExecutorCompletionService<Map<Cell, Value>> execSvc = new ExecutorCompletionService<Map<Cell, Value>>(
-                executor);
-        final QuorumTracker<Map<Cell, Value>, byte[]> tracker = QuorumTracker.of(
-                rows,
-                quorumParameters.getReadRequestParameters());
-
         // Schedule tasks for execution
-        runWithPartitionMap(new Function<DynamicPartitionMap, Void>() {
+        return runWithPartitionMap(new Function<DynamicPartitionMap, Map<Cell, Value>>() {
 			@Override @Nullable
-			public Void apply(DynamicPartitionMap input) {
+			public Map<Cell, Value> apply(DynamicPartitionMap input) {
+                final Map<Cell, Value> overallResult = Maps.newHashMap();
+                final ExecutorCompletionService<Map<Cell, Value>> execSvc = new ExecutorCompletionService<Map<Cell, Value>>(
+                        executor);
+                final QuorumTracker<Map<Cell, Value>, byte[]> tracker = QuorumTracker.of(
+                        rows,
+                        quorumParameters.getReadRequestParameters());
+
                 input.runForRowsRead(tableName, rows, new Function<Pair<KeyValueService,Iterable<byte[]>>, Void>() {
                     @Override @Nullable
                     public Void apply(@Nullable final Pair<KeyValueService, Iterable<byte[]>> e) {
@@ -150,34 +150,33 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                         return null;
                     }
                 });
-                return null;
+
+                completeReadRequest(tracker, execSvc, new Function<Map<Cell, Value>, Void>() {
+                    @Override
+                    public Void apply(@Nullable Map<Cell, Value> input) {
+                        mergeCellValueMapIntoMap(overallResult, input);
+                        return null;
+                    }
+                });
+                return overallResult;
 			}
         });
-
-        completeReadRequest(tracker, execSvc, new Function<Map<Cell, Value>, Void>() {
-            @Override
-            public Void apply(@Nullable Map<Cell, Value> input) {
-                mergeCellValueMapIntoMap(overallResult, input);
-                return null;
-            }
-        });
-        return overallResult;
     }
 
     @Override
     @Idempotent
     public Map<Cell, Value> get(final String tableName, final Map<Cell, Long> timestampByCell) {
-        final ExecutorCompletionService<Map<Cell, Value>> execSvc = new ExecutorCompletionService<Map<Cell, Value>>(
-                executor);
-        final QuorumTracker<Map<Cell, Value>, Cell> tracker = QuorumTracker.of(
-                timestampByCell.keySet(),
-                quorumParameters.getReadRequestParameters());
-        final Map<Cell, Value> globalResult = Maps.newHashMap();
-
         // Schedule the tasks
-        runWithPartitionMap(new Function<DynamicPartitionMap, Void>() {
+        return runWithPartitionMap(new Function<DynamicPartitionMap, Map<Cell, Value>>() {
 			@Override
-			public Void apply(@Nullable DynamicPartitionMap input) {
+			public Map<Cell, Value> apply(@Nullable DynamicPartitionMap input) {
+                final ExecutorCompletionService<Map<Cell, Value>> execSvc = new ExecutorCompletionService<Map<Cell, Value>>(
+                        executor);
+                final QuorumTracker<Map<Cell, Value>, Cell> tracker = QuorumTracker.of(
+                        timestampByCell.keySet(),
+                        quorumParameters.getReadRequestParameters());
+                final Map<Cell, Value> globalResult = Maps.newHashMap();
+
                 input.runForCellsRead(tableName, timestampByCell, new Function<Pair<KeyValueService, Map<Cell, Long>>, Void>() {
                     @Override @Nullable
                     public Void apply(@Nullable final Pair<KeyValueService, Map<Cell, Long>> e) {
@@ -191,18 +190,17 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                         return null;
                     }
                 });
-				return null;
+
+                completeReadRequest(tracker, execSvc, new Function<Map<Cell, Value>, Void>() {
+                    @Override @Nullable
+                    public Void apply(@Nullable Map<Cell, Value> input) {
+                        mergeCellValueMapIntoMap(globalResult, input);
+                        return null;
+                    }
+                });
+                return globalResult;
 			}
         });
-
-        completeRequest(tracker, execSvc, new Function<Map<Cell, Value>, Void>() {
-            @Override @Nullable
-            public Void apply(@Nullable Map<Cell, Value> input) {
-                mergeCellValueMapIntoMap(globalResult, input);
-                return null;
-            }
-        });
-        return globalResult;
     }
 
     @Override
@@ -211,16 +209,15 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                                                  final Set<Cell> cells,
                                                  final long timestamp)
             throws InsufficientConsistencyException {
-        final ExecutorCompletionService<Multimap<Cell, Long>> execSvc = new ExecutorCompletionService<Multimap<Cell, Long>>(
-                executor);
-        final QuorumTracker<Multimap<Cell, Long>, Cell> tracker = QuorumTracker.of(
-                cells,
-                quorumParameters.getNoFailureRequestParameters());
-        final Multimap<Cell, Long> globalResult = HashMultimap.create();
-
-        runWithPartitionMap(new Function<DynamicPartitionMap, Void>() {
+        return runWithPartitionMap(new Function<DynamicPartitionMap, Multimap<Cell, Long>>() {
 			@Override
-			public Void apply(DynamicPartitionMap input) {
+			public Multimap<Cell, Long> apply(DynamicPartitionMap input) {
+                final ExecutorCompletionService<Multimap<Cell, Long>> execSvc = new ExecutorCompletionService<Multimap<Cell, Long>>(
+                        executor);
+                final QuorumTracker<Multimap<Cell, Long>, Cell> tracker = QuorumTracker.of(
+                        cells,
+                        quorumParameters.getNoFailureRequestParameters());
+                final Multimap<Cell, Long> globalResult = HashMultimap.create();
                 input.runForCellsRead(tableName, cells, new Function<Pair<KeyValueService, Set<Cell>>, Void>() {
                     @Override @Nullable
                     public Void apply(@Nullable final Pair<KeyValueService, Set<Cell>> e) {
@@ -234,34 +231,31 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                         return null;
                     }
                 });
-				return null;
+                completeReadRequest(tracker, execSvc, new Function<Multimap<Cell, Long>, Void>() {
+                    @Override @Nullable
+                    public Void apply(@Nullable Multimap<Cell, Long> input) {
+                        mergeAllTimestampsMapIntoMap(globalResult, input);
+                        return null;
+                    }
+                });
+                return globalResult;
 			}
 		});
-
-        completeReadRequest(tracker, execSvc, new Function<Multimap<Cell, Long>, Void>() {
-            @Override @Nullable
-            public Void apply(@Nullable Multimap<Cell, Long> input) {
-                mergeAllTimestampsMapIntoMap(globalResult, input);
-                return null;
-            }
-        });
-        return globalResult;
     }
 
     @Override
     @Idempotent
     public Map<Cell, Long> getLatestTimestamps(final String tableName,
                                                final Map<Cell, Long> timestampByCell) {
-        final Map<Cell, Long> globalResult = Maps.newHashMap();
-        final QuorumTracker<Map<Cell, Long>, Cell> tracker = QuorumTracker.of(
-                timestampByCell.keySet(),
-                quorumParameters.getReadRequestParameters());
-        final ExecutorCompletionService<Map<Cell, Long>> execSvc = new ExecutorCompletionService<Map<Cell, Long>>(
-                executor);
-
-        runWithPartitionMap(new Function<DynamicPartitionMap, Void>() {
+        return runWithPartitionMap(new Function<DynamicPartitionMap, Map<Cell, Long>>() {
 			@Override @Nullable
-			public Void apply(@Nullable DynamicPartitionMap input) {
+			public Map<Cell, Long> apply(@Nullable DynamicPartitionMap input) {
+                final Map<Cell, Long> globalResult = Maps.newHashMap();
+                final QuorumTracker<Map<Cell, Long>, Cell> tracker = QuorumTracker.of(
+                        timestampByCell.keySet(),
+                        quorumParameters.getReadRequestParameters());
+                final ExecutorCompletionService<Map<Cell, Long>> execSvc = new ExecutorCompletionService<Map<Cell, Long>>(
+                        executor);
                 input.runForCellsRead(tableName, timestampByCell, new Function<Pair<KeyValueService, Map<Cell, Long>>, Void>() {
                     @Override @Nullable
                     public Void apply(@Nullable final Pair<KeyValueService, Map<Cell, Long>> e) {
@@ -275,18 +269,16 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                         return null;
                     }
                 });
-				return null;
+                completeReadRequest(tracker, execSvc, new Function<Map<Cell, Long>, Void>() {
+                    @Override @Nullable
+                    public Void apply(@Nullable Map<Cell, Long> input) {
+                        mergeLatestTimestampMapIntoMap(globalResult, input);
+                        return null;
+                    }
+                });
+                return globalResult;
 			}
 		});
-
-        completeReadRequest(tracker, execSvc, new Function<Map<Cell, Long>, Void>() {
-            @Override @Nullable
-            public Void apply(@Nullable Map<Cell, Long> input) {
-                mergeLatestTimestampMapIntoMap(globalResult, input);
-                return null;
-            }
-        });
-        return globalResult;
     }
 
     @Override
@@ -431,15 +423,14 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
     // *** Write requests *************************************************************************
     @Override
     public void put(final String tableName, final Map<Cell, byte[]> values, final long timestamp) {
-        final ExecutorCompletionService<Void> writeService = new ExecutorCompletionService<Void>(
-                executor);
-        final QuorumTracker<Void, Cell> tracker = QuorumTracker.of(
-                values.keySet(),
-                quorumParameters.getWriteRequestParameters());
-
 		runWithPartitionMap(new Function<DynamicPartitionMap, Void>() {
 			@Override
 			public Void apply(@Nullable DynamicPartitionMap input) {
+                final ExecutorCompletionService<Void> writeService = new ExecutorCompletionService<Void>(
+                        executor);
+                final QuorumTracker<Void, Cell> tracker = QuorumTracker.of(
+                        values.keySet(),
+                quorumParameters.getWriteRequestParameters());
 				input.runForCellsWrite( tableName, values, new Function<Pair<KeyValueService, Map<Cell, byte[]>>, Void>() {
 							@Override
                             public Void apply(final Pair<KeyValueService, Map<Cell, byte[]>> e) {
@@ -455,25 +446,24 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 								return null;
 							}
 						});
+                completeWriteRequest(tracker, writeService);
 				return null;
 			}
 		});
-        completeWriteRequest(tracker, writeService);
     }
 
     @Override
     @NonIdempotent
     public void putWithTimestamps(final String tableName, final Multimap<Cell, Value> cellValues)
             throws KeyAlreadyExistsException {
-        final ExecutorCompletionService<Void> execSvc = new ExecutorCompletionService<Void>(
-                executor);
-        final QuorumTracker<Void, Map.Entry<Cell, Value>> tracker = QuorumTracker.of(
-                cellValues.entries(),
-                quorumParameters.getWriteRequestParameters());
-
         runWithPartitionMap(new Function<DynamicPartitionMap, Void>() {
 			@Override
 			public Void apply(final DynamicPartitionMap input) {
+                final ExecutorCompletionService<Void> execSvc = new ExecutorCompletionService<Void>(
+                        executor);
+                final QuorumTracker<Void, Map.Entry<Cell, Value>> tracker = QuorumTracker.of(
+                        cellValues.entries(),
+                quorumParameters.getWriteRequestParameters());
                 input.runForCellsWrite(tableName, cellValues, new Function<Pair<KeyValueService, Multimap<Cell, Value>>, Void>() {
                     @Override @Nullable
                     public Void apply(@Nullable final Pair<KeyValueService, Multimap<Cell, Value>> e) {
@@ -488,11 +478,10 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                         return null;
                     }
                 });
+                completeWriteRequest(tracker, execSvc);
 				return null;
 			}
 		});
-
-        completeWriteRequest(tracker, execSvc);
     }
 
     @Override
@@ -500,15 +489,14 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
             throws KeyAlreadyExistsException {
         // TODO
         // put(tableName, values, 0);
-        final ExecutorCompletionService<Void> writeService = new ExecutorCompletionService<Void>(
-                executor);
-        final QuorumTracker<Void, Cell> tracker = QuorumTracker.of(
-                values.keySet(),
-                quorumParameters.getWriteRequestParameters());
-
         runWithPartitionMap(new Function<DynamicPartitionMap, Void>() {
 			@Override
 			public Void apply(@Nullable DynamicPartitionMap input) {
+                final ExecutorCompletionService<Void> writeService = new ExecutorCompletionService<Void>(
+                        executor);
+                final QuorumTracker<Void, Cell> tracker = QuorumTracker.of(
+                        values.keySet(),
+                quorumParameters.getWriteRequestParameters());
                 input.runForCellsWrite(tableName, values, new Function<Pair<KeyValueService, Map<Cell, byte[]>>, Void>() {
                     @Override
                     public Void apply(@Nullable final Pair<KeyValueService, Map<Cell, byte[]>> e) {
@@ -523,27 +511,25 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                         return null;
                     }
                 });
+                completeWriteRequest(tracker, writeService);
 				return null;
 			}
 		});
-
-        completeWriteRequest(tracker, writeService);
     }
 
     @Override
     @Idempotent
     public void delete(final String tableName, final Multimap<Cell, Long> keys) {
-        final QuorumTracker<Void, Map.Entry<Cell, Long>> tracker = QuorumTracker.of(
-                keys.entries(),
-                quorumParameters.getNoFailureRequestParameters());
-        final ExecutorCompletionService<Void> execSvc = new ExecutorCompletionService<Void>(
-                executor);
-
         runWithPartitionMap(new Function<DynamicPartitionMap, Void>() {
 			@Override
-			public Void apply(@Nullable DynamicPartitionMap input) {
+			public Void apply(DynamicPartitionMap input) {
+                final QuorumTracker<Void, Map.Entry<Cell, Long>> tracker = QuorumTracker.of(
+                        keys.entries(),
+                        quorumParameters.getNoFailureRequestParameters());
+                final ExecutorCompletionService<Void> execSvc = new ExecutorCompletionService<Void>(
+                        executor);
                 input.runForCellsWrite(tableName, keys, new Function<Pair<KeyValueService, Multimap<Cell, Long>>, Void>() {
-                    @Override @Nullable
+                    @Override
                     public Void apply(@Nullable final Pair<KeyValueService, Multimap<Cell, Long>> e) {
                         final Future<Void> future = execSvc.submit(new Callable<Void>() {
                             @Override
@@ -556,24 +542,23 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                         return null;
                     }
                 });
+                completeWriteRequest(tracker, execSvc);
 				return null;
 			}
 		});
-
-        completeWriteRequest(tracker, execSvc);
     }
 
     @Override
     @Idempotent
     public void addGarbageCollectionSentinelValues(final String tableName, final Set<Cell> cells) {
-        final ExecutorCompletionService<Void> execSvc = new ExecutorCompletionService<Void>(executor);
-        final QuorumTracker<Void, Cell> tracker = QuorumTracker.of(
-                cells,
-                quorumParameters.getWriteRequestParameters());
-
         runWithPartitionMap(new Function<DynamicPartitionMap, Void>() {
 			@Override
 			public Void apply(DynamicPartitionMap input) {
+                final ExecutorCompletionService<Void> execSvc = new ExecutorCompletionService<Void>(executor);
+                final QuorumTracker<Void, Cell> tracker = QuorumTracker.of(
+                        cells,
+                        quorumParameters.getWriteRequestParameters());
+
                 input.runForCellsWrite(tableName, cells, new Function<Pair<KeyValueService, Set<Cell>>, Void>() {
                     @Override @Nullable
                     public Void apply(@Nullable final Pair<KeyValueService, Set<Cell>> e) {
@@ -588,11 +573,11 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                         return null;
                     }
                 });
+
+                completeWriteRequest(tracker, execSvc);
 				return null;
 			}
 		});
-
-        completeWriteRequest(tracker, execSvc);
     }
 
     @Override
