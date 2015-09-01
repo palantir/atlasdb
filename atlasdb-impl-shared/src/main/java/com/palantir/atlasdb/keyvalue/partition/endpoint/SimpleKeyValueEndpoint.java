@@ -10,7 +10,20 @@ import com.palantir.atlasdb.keyvalue.remoting.RemotingKeyValueService;
 import com.palantir.atlasdb.keyvalue.remoting.RemotingPartitionMapService;
 import com.palantir.atlasdb.keyvalue.remoting.proxy.FillInUrlProxy;
 
+/**
+ * This is a serializable version of KeyValueEndpoint.
+ * It serializes to service URIs and creates Feign proxies
+ * on deserialization.
+ *
+ * You should call build() method each time after deserialization
+ * or when assigning to a different partition map, so that the
+ * endpoint knows its local partition map version.
+ *
+ * @author htarasiuk
+ *
+ */
 public class SimpleKeyValueEndpoint implements KeyValueEndpoint {
+
     transient KeyValueService kvs;
     final transient PartitionMapService pms;
     @JsonProperty("kvsUri") final String kvsUri;
