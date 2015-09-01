@@ -92,13 +92,12 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                 final ExecutorCompletionService<Map<Cell, Value>> execSvc = new ExecutorCompletionService<Map<Cell, Value>>(
                         executor);
                 final QuorumTracker<Map<Cell, Value>, byte[]> tracker = QuorumTracker.of(
-                        rows,
-                        quorumParameters.getReadRequestParameters());
+                        rows, quorumParameters.getReadRequestParameters());
 
                 // Schedule tasks for execution
                 input.runForRowsRead(tableName, rows, new Function<Pair<KeyValueService,Iterable<byte[]>>, Void>() {
                     @Override
-                    public Void apply(@Nullable final Pair<KeyValueService, Iterable<byte[]>> e) {
+                    public Void apply(final Pair<KeyValueService, Iterable<byte[]>> e) {
                         Future<Map<Cell, Value>> future = execSvc.submit(new Callable<Map<Cell, Value>>() {
                             @Override
                             public Map<Cell, Value> call() throws Exception {
