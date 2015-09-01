@@ -28,7 +28,6 @@ public interface DynamicPartitionMap extends PartitionMap {
      * The initial version MUST be 0L!
      * @return Curent version of the map.
      */
-    @Override
     long getVersion();
 
     /**

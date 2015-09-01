@@ -118,6 +118,4 @@ public interface PartitionMap {
      */
     Set<? extends KeyValueService> getDelegates();
 
-    long getVersion();
-
 }
