@@ -78,7 +78,7 @@ public abstract class PartitionedRangedIterator<T> implements ClosableIterator<R
                     "Row must be non-descending.");
         }
         cachedResult = newResult;
-        return cachedResult;
+        return newResult;
     }
 
     protected abstract RowResult<T> computeNext();

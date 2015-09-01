@@ -48,6 +48,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
+import com.palantir.atlasdb.keyvalue.partition.exception.VersionTooOldException;
 import com.palantir.atlasdb.keyvalue.partition.map.DynamicPartitionMapImpl;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumTracker;
@@ -300,43 +301,54 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                                                        final RangeRequest rangeRequest,
                                                        final long timestamp) {
 
-		final Multimap<ConsistentRingRangeRequest, KeyValueEndpoint> services =
-				runWithPartitionMap(new Function<DynamicPartitionMap, Multimap<ConsistentRingRangeRequest, KeyValueEndpoint>>() {
-			@Override
-			public Multimap<ConsistentRingRangeRequest, KeyValueEndpoint> apply(
-					DynamicPartitionMap input) {
-				return input.getServicesForRangeRead(tableName, rangeRequest);
-			}
-		});
+        final Multimap<ConsistentRingRangeRequest, KeyValueEndpoint> services =
+                runWithPartitionMap(new Function<DynamicPartitionMap, Multimap<ConsistentRingRangeRequest, KeyValueEndpoint>>() {
+            @Override
+            public Multimap<ConsistentRingRangeRequest, KeyValueEndpoint> apply(
+                    DynamicPartitionMap input) {
+                return input.getServicesForRangeRead(tableName, rangeRequest);
+            }
+        });
 
         return new PartitionedRangedIterator<Value>(services.keySet()) {
             @Override
             public RowResult<Value> computeNext() {
                 Preconditions.checkState(hasNext());
-                return RowResultUtil.mergeResults(
-                        getRowIterator(),
-                        quorumParameters.getReadRequestParameters());
+                return runWithPartitionMap(new Function<DynamicPartitionMap, RowResult<Value>>() {
+                    @Override
+                    public RowResult<Value> apply(DynamicPartitionMap input) {
+                        return RowResultUtil.mergeResults(getRowIterator(), quorumParameters.getReadRequestParameters());
+                    }
+                });
             }
 
             @Override
             protected Set<ClosablePeekingIterator<RowResult<Value>>> computeNextRange(final ConsistentRingRangeRequest range) {
-                final Set<ClosablePeekingIterator<RowResult<Value>>> result = Sets.newHashSet();
-                for (KeyValueEndpoint vkve : services.get(range)) {
-                    try {
-                        ClosableIterator<RowResult<Value>> it = vkve.keyValueService().getRange(tableName, range.get(), timestamp);
-                        result.add(ClosablePeekingIterator.of(it));
-                    } catch (RuntimeException e) {
-                        // TODO:
-                        // If this failure is fatal for the range, the exception will be thrown when
-                        // retrieving data from the iterators.
-                        log.warn("Failed to getRange in table " + tableName);
-                    } finally {
+                return runWithPartitionMap(new Function<DynamicPartitionMap, Set<ClosablePeekingIterator<RowResult<Value>>>>() {
+                    @Override
+                    public Set<ClosablePeekingIterator<RowResult<Value>>> apply(
+                            @Nullable DynamicPartitionMap input) {
+                        final Set<ClosablePeekingIterator<RowResult<Value>>> result = Sets.newHashSet();
+                        for (KeyValueEndpoint vkve : services.get(range)) {
+                            try {
+                                ClosableIterator<RowResult<Value>> it = vkve.keyValueService().getRange(tableName, range.get(), timestamp);
+                                result.add(ClosablePeekingIterator.of(it));
+                            } catch (VersionTooOldException e) {
+                                throw e;
+                            } catch (RuntimeException e) {
+                                // TODO:
+                                // If this failure is fatal for the range, the exception will be thrown when
+                                // retrieving data from the iterators.
+                                log.warn("Failed to getRange in table " + tableName);
+                            } finally {
+                            }
+                        }
+                        return result;
                     }
-                }
-                return result;
+                });
             }
         };
-    }
+}
 
     @Override
     @Idempotent
@@ -356,25 +368,36 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
             @Override
             public RowResult<Set<Value>> computeNext() {
                 Preconditions.checkState(hasNext());
-                return RowResultUtil.allResults(getRowIterator());
+                return runWithPartitionMap(new Function<DynamicPartitionMap, RowResult<Set<Value>>>() {
+                    @Override
+                    public RowResult<Set<Value>> apply(DynamicPartitionMap input) {
+                        return RowResultUtil.allResults(getRowIterator());
+                    }});
             }
 
             @Override
             protected Set<ClosablePeekingIterator<RowResult<Set<Value>>>> computeNextRange(final ConsistentRingRangeRequest range) {
-                final Set<ClosablePeekingIterator<RowResult<Set<Value>>>> result = Sets.newHashSet();
-                for (KeyValueEndpoint vkve : services.get(range)) {
-                    try {
-                        ClosableIterator<RowResult<Set<Value>>> it = vkve.keyValueService().getRangeWithHistory(
-                                tableName, range.get(), timestamp);
-                        result.add(ClosablePeekingIterator.of(it));
-                    } catch (RuntimeException e) {
-                        // TODO:
-                        // If this failure is fatal for the range, the exception will be thrown when
-                        // retrieving data from the iterators.
-                        log.warn("Failed to getRangeWithHistory in table " + tableName);
+                return runWithPartitionMap(new Function<DynamicPartitionMap, Set<ClosablePeekingIterator<RowResult<Set<Value>>>>>() {
+                    @Override
+                    public Set<ClosablePeekingIterator<RowResult<Set<Value>>>> apply(DynamicPartitionMap input) {
+                        final Set<ClosablePeekingIterator<RowResult<Set<Value>>>> result = Sets.newHashSet();
+                        for (KeyValueEndpoint vkve : services.get(range)) {
+                            try {
+                                ClosableIterator<RowResult<Set<Value>>> it = vkve.keyValueService().getRangeWithHistory(
+                                        tableName, range.get(), timestamp);
+                                result.add(ClosablePeekingIterator.of(it));
+                            } catch (VersionTooOldException e) {
+                                throw e;
+                            } catch (RuntimeException e) {
+                                // TODO:
+                                // If this failure is fatal for the range, the exception will be thrown when
+                                // retrieving data from the iterators.
+                                log.warn("Failed to getRangeWithHistory in table " + tableName);
+                            }
+                        }
+                        return result;
                     }
-                }
-                return result;
+                });
             }
         };
     }
@@ -397,25 +420,37 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
             @Override
             public RowResult<Set<Long>> computeNext() {
                 Preconditions.checkState(hasNext());
-                return RowResultUtil.allTimestamps(getRowIterator());
+                return runWithPartitionMap(new Function<DynamicPartitionMap, RowResult<Set<Long>>>() {
+                    @Override
+                    public RowResult<Set<Long>> apply(DynamicPartitionMap input) {
+                        return RowResultUtil.allTimestamps(getRowIterator());
+                    }
+                });
             }
 
             @Override
             protected Set<ClosablePeekingIterator<RowResult<Set<Long>>>> computeNextRange(final ConsistentRingRangeRequest range) {
-                final Set<ClosablePeekingIterator<RowResult<Set<Long>>>> result = Sets.newHashSet();
-                for (KeyValueEndpoint vkve : services.get(range)) {
-                    try {
-                        ClosableIterator<RowResult<Set<Long>>> it = vkve.keyValueService().getRangeOfTimestamps(
-                                tableName, range.get(), timestamp);
-                        result.add(ClosablePeekingIterator.of(it));
-                    } catch (RuntimeException e) {
-                        // TODO:
-                        // If this failure is fatal for the range, the exception will be thrown when
-                        // retrieving data from the iterators.
-                        log.warn("Failed to getRangeOfTimestamps in table " + tableName);
+                return runWithPartitionMap(new Function<DynamicPartitionMap, Set<ClosablePeekingIterator<RowResult<Set<Long>>>>>() {
+                    @Override
+                    public Set<ClosablePeekingIterator<RowResult<Set<Long>>>> apply(DynamicPartitionMap input) {
+                        final Set<ClosablePeekingIterator<RowResult<Set<Long>>>> result = Sets.newHashSet();
+                        for (KeyValueEndpoint vkve : services.get(range)) {
+                            try {
+                                ClosableIterator<RowResult<Set<Long>>> it = vkve.keyValueService().getRangeOfTimestamps(
+                                        tableName, range.get(), timestamp);
+                                result.add(ClosablePeekingIterator.of(it));
+                            } catch (VersionTooOldException e) {
+                                throw e;
+                            } catch (RuntimeException e) {
+                                // TODO:
+                                // If this failure is fatal for the range, the exception will be thrown when
+                                // retrieving data from the iterators.
+                                log.warn("Failed to getRangeOfTimestamps in table " + tableName);
+                            }
+                        }
+                        return result;
                     }
-                }
-                return result;
+                });
             }
         };
     }
