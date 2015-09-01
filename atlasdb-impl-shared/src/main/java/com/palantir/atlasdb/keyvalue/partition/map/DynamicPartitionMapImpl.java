@@ -641,10 +641,12 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         return true;
     }
 
-    public synchronized void syncAddEndpoint() {
+    public void syncAddEndpoint() {
         // Do it synchronously now for testing purposes
         try {
-            Futures.getUnchecked(joins.take());
+            while (!joins.isEmpty()) {
+                Futures.getUnchecked(joins.take());
+            }
         } catch (InterruptedException e) {
             throw Throwables.throwUncheckedException(e);
         }
@@ -715,10 +717,12 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         return true;
     }
 
-    public synchronized void syncRemoveEndpoint() {
+    public void syncRemoveEndpoint() {
         // Do it synchronously for testing purposes.
         try {
-            Futures.getUnchecked(removals.take());
+            while (!removals.isEmpty()) {
+                Futures.getUnchecked(removals.take());
+            }
         } catch (InterruptedException e) {
             throw Throwables.throwUncheckedException(e);
         }

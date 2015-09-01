@@ -51,7 +51,8 @@ public class DynamicPartitionMapTest extends AbstractPartitionMapTest {
         testCellsRead(svc234, sampleCell);
         testCellsWrite(svc234, sampleCell);
 
-        assertEquals(true, dpm.removeEndpoint(newByteArray(0, 5)));
+        assertEquals(true, dpm.removeEndpoint(newByteArray(0, 5), false));
+        dpm.syncRemoveEndpoint();
         /**
          * Now kvs (2) C is being removed.
          * The reads should still come from (2, 3, 4).
@@ -70,7 +71,7 @@ public class DynamicPartitionMapTest extends AbstractPartitionMapTest {
         testCellsWrite(svc345, sampleCell);
 
         assertEquals(true, dpm.addEndpoint(newByteArray(0, 5), endpoints.get(2), ""));
-        dpm.finalizeAddEndpoint(newByteArray(0, 5));
+        dpm.syncAddEndpoint();
         testCellsRead(svc234, sampleCell);
         testCellsWrite(svc234, sampleCell);
     }
@@ -81,11 +82,12 @@ public class DynamicPartitionMapTest extends AbstractPartitionMapTest {
         testCellsWrite(svc234, sampleCell);
 
         assertEquals(true, dpm.removeEndpoint(newByteArray(0, 5)));
-        dpm.finalizeRemoveEndpoint(newByteArray(0, 5));
+        dpm.syncRemoveEndpoint();
         testCellsRead(svc345, sampleCell);
         testCellsWrite(svc345, sampleCell);
 
-        assertEquals(true, dpm.addEndpoint(newByteArray(0, 5), endpoints.get(2), ""));
+        assertEquals(true, dpm.addEndpoint(newByteArray(0, 5), endpoints.get(2), "", false));
+        dpm.syncAddEndpoint();
 
         /**
          * Now kvs (2) C is being added.
@@ -105,12 +107,14 @@ public class DynamicPartitionMapTest extends AbstractPartitionMapTest {
      */
     @Test
     public void testAddRemoveEndpoint() {
-        assertEquals(true, dpm.removeEndpoint(newByteArray(0, 5)));
+        assertEquals(true, dpm.removeEndpoint(newByteArray(0, 5), false));
         assertEquals(false, dpm.removeEndpoint(newByteArray(1, 1)));
+        dpm.syncRemoveEndpoint();
         dpm.finalizeRemoveEndpoint(newByteArray(0, 5));
 
-        assertEquals(true, dpm.removeEndpoint(newByteArray(1, 1)));
+        assertEquals(true, dpm.removeEndpoint(newByteArray(1, 1), false));
         assertEquals(false, dpm.addEndpoint(newByteArray(0, 5), endpoints.get(2), ""));
+        dpm.syncRemoveEndpoint();
     }
 
 }
