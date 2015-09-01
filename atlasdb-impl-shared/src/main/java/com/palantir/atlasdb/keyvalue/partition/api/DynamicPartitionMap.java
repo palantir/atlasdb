@@ -2,6 +2,13 @@ package com.palantir.atlasdb.keyvalue.partition.api;
 
 import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
 
+/**
+ * Dynamic means that the actual partition map can
+ * be modified during its life span.
+ *
+ * @author htarasiuk
+ *
+ */
 public interface DynamicPartitionMap extends PartitionMap {
 
     /**

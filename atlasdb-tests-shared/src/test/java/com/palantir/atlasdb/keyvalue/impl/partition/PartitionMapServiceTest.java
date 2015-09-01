@@ -28,9 +28,9 @@ public class PartitionMapServiceTest {
     }
 
     protected static final QuorumParameters QUORUM_PARAMETERS = new QuorumParameters(3, 2, 2);
-    protected DynamicPartitionMap samplePartitionMap;
+    protected DynamicPartitionMapImpl samplePartitionMap;
     protected static final long INITIAL_VERSION = 0L;
-    
+
     @Before
     public void setUp() {
     	samplePartitionMap = DynamicPartitionMapImpl.create(RING);
@@ -64,7 +64,7 @@ public class PartitionMapServiceTest {
     protected PartitionMapService createPartitionMapService(DynamicPartitionMap partitionMap) {
     	return new PartitionMapServiceImpl(DynamicPartitionMapImpl.create(RING));
     }
-    
+
     protected PartitionMapServiceImpl createEmptyPartitionMapService() {
     	return new PartitionMapServiceImpl();
     }
