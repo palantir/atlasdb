@@ -8,6 +8,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
 import com.palantir.atlasdb.keyvalue.remoting.RemotingKeyValueService;
 import com.palantir.atlasdb.keyvalue.remoting.RemotingPartitionMapService;
+import com.palantir.atlasdb.keyvalue.remoting.proxy.FillInUrlProxy;
 
 public class SimpleKeyValueEndpoint implements KeyValueEndpoint {
     transient KeyValueService kvs;
@@ -38,7 +39,7 @@ public class SimpleKeyValueEndpoint implements KeyValueEndpoint {
         // TODO:
 //        Preconditions.checkState(kvs == null);
         kvs = RemotingKeyValueService.createClientSide(kvsUri, clientVersionSupplier);
-        kvs = RemotingKeyValueService.FillInUrlProxy.newFillInUrlProxy(kvs, pmsUri);
+        kvs = FillInUrlProxy.newFillInUrlProxy(kvs, pmsUri);
     }
 
     @Override

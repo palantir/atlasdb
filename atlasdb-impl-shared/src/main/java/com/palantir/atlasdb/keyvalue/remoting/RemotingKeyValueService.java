@@ -15,10 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.remoting;
 
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -30,7 +26,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
@@ -40,12 +35,12 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
-import com.palantir.atlasdb.keyvalue.partition.exception.VersionTooOldException;
 import com.palantir.atlasdb.keyvalue.partition.map.DynamicPartitionMapImpl;
 import com.palantir.atlasdb.keyvalue.remoting.iterators.HistoryRangeIterator;
 import com.palantir.atlasdb.keyvalue.remoting.iterators.RangeIterator;
 import com.palantir.atlasdb.keyvalue.remoting.iterators.TimestampsRangeIterator;
 import com.palantir.atlasdb.keyvalue.remoting.iterators.ValueRangeIterator;
+import com.palantir.atlasdb.keyvalue.remoting.proxy.VersionCheckProxy;
 import com.palantir.atlasdb.keyvalue.remoting.serialization.BytesAsKeyDeserializer;
 import com.palantir.atlasdb.keyvalue.remoting.serialization.CellAsKeyDeserializer;
 import com.palantir.atlasdb.keyvalue.remoting.serialization.RowResultDeserializer;
@@ -66,21 +61,24 @@ import feign.jackson.JacksonEncoder;
 import feign.jaxrs.JAXRSContract;
 
 public class RemotingKeyValueService extends ForwardingKeyValueService {
-    final static ServiceContext<KeyValueService> serviceContext = ExecutorInheritableServiceContext.create();
-    final static ServiceContext<Long> clientVersionContext = ExecutorInheritableServiceContext.create();
     private static final Logger log = LoggerFactory.getLogger(RemotingKeyValueService.class);
+    private final static ServiceContext<KeyValueService> serviceContext = ExecutorInheritableServiceContext.create();
+
+    private final KeyValueService delegate;
 
     public static ServiceContext<KeyValueService> getServiceContext() {
         return serviceContext;
     }
 
-    public static ServiceContext<Long> getClientVersionContext() {
-        return clientVersionContext;
-    }
 
-    final KeyValueService delegate;
-
-    public static KeyValueService createClientSide(final KeyValueService remoteService) {
+    /**
+     * This is to inject the local KVS instance reference into the context.
+     * It is used by the range iterators to download additional pages of data.
+     *
+     * @param remoteService
+     * @return
+     */
+    private static KeyValueService createClientSideInternal(final KeyValueService remoteService) {
         return new ForwardingKeyValueService() {
             @Override
             protected KeyValueService delegate() {
@@ -125,9 +123,18 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
         }
     }
 
+    /**
+     * This will convert a remote KVS service URI into a fully functional Java class instance
+     * that supports empty byte arrays, exceptions and sends the partition map version out-of-band
+     * automatically.
+     *
+     * @param uri
+     * @param localVersionSupplier The version of local partition map to be sent out-of-band.
+     * @return
+     */
     public static KeyValueService createClientSide(String uri, Supplier<Long> localVersionSupplier) {
         ServiceContext<Long> ctx = RemoteContextHolder.OUTBOX.getProviderForKey(HOLDER.PM_VERSION);
-        KeyValueService ret = createClientSide(Feign.builder()
+        KeyValueService ret = createClientSideInternal(Feign.builder()
                 .encoder(new JacksonEncoder(kvsMapper()))
                 .decoder(new EmptyOctetStreamDelegateDecoder(new JacksonDecoder(kvsMapper())))
                 .errorDecoder(KeyValueServiceErrorDecoder.instance())
@@ -138,84 +145,16 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
                 KeyValueService.class, ret, localVersionSupplier, ctx);
     }
 
+    /**
+     * This will convert the range iterators to serializable page-based versions and will
+     * ensure that the partition map version of the client and of the server are compatible.
+     * @param delegate
+     * @param serverVersionSupplier Use <code>Suppliers.<Long>ofInstance(-1L)</code> if you want to disable version check.
+     * @return
+     */
     public static KeyValueService createServerSide(KeyValueService delegate, Supplier<Long> serverVersionSupplier) {
         final KeyValueService kvs = new RemotingKeyValueService(delegate);
         return VersionCheckProxy.newProxyInstance(kvs, serverVersionSupplier);
-    }
-
-    static class VersionCheckProxy implements InvocationHandler {
-        final Supplier<Long> serverVersionProvider;
-        final KeyValueService delegate;
-
-        private VersionCheckProxy(Supplier<Long> serverVersionProvider, KeyValueService delegate) {
-            this.serverVersionProvider = serverVersionProvider;
-            this.delegate = delegate;
-        }
-
-        @Override
-        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-            ServiceContext<Long> remoteClientCtx = RemoteContextHolder.INBOX.getProviderForKey(HOLDER.PM_VERSION);
-            if (method.getDeclaringClass() == KeyValueService.class) {
-                Long clientVersion = remoteClientCtx.get();
-                Long serverVersion = Preconditions.checkNotNull(serverVersionProvider.get());
-                if (serverVersion < 0L) {
-                    // In this case the version check is simply disabled.
-                    assert clientVersion == null;
-                } else {
-                    if (clientVersion < serverVersion) {
-                        throw new VersionTooOldException();
-                    }
-                    if (clientVersion > serverVersion) {
-                        log.warn("Server partition map version is out-of-date.");
-                    }
-                }
-            }
-            try {
-                return method.invoke(delegate, args);
-            } catch (InvocationTargetException e) {
-                throw e.getCause();
-            }
-        }
-
-        public static KeyValueService newProxyInstance(KeyValueService delegate, Supplier<Long> serverVersionProvider) {
-            VersionCheckProxy vcp = new VersionCheckProxy(serverVersionProvider, delegate);
-            return (KeyValueService) Proxy.newProxyInstance(
-                    KeyValueService.class.getClassLoader(),
-                    new Class<?>[] { KeyValueService.class }, vcp);
-        }
-
-    }
-
-    public static class FillInUrlProxy implements InvocationHandler {
-
-        final KeyValueService remoteKvs;
-        final String pmsUri;
-
-        private FillInUrlProxy(KeyValueService delegate,
-                               String pmsUri) {
-            this.remoteKvs = delegate;
-            this.pmsUri = pmsUri;
-        }
-
-        public static KeyValueService newFillInUrlProxy(KeyValueService delegate, String pmsUri) {
-            FillInUrlProxy handler = new FillInUrlProxy(delegate, pmsUri);
-            return (KeyValueService) Proxy.newProxyInstance( KeyValueService.class.getClassLoader(),
-                    new Class<?>[] { KeyValueService.class }, handler);
-        }
-
-        @Override
-        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-            try {
-                return method.invoke(remoteKvs, args);
-            } catch (InvocationTargetException e) {
-                Throwable cause = e.getCause();
-                if (cause instanceof VersionTooOldException) {
-                	throw new  VersionTooOldException(pmsUri);
-                }
-                throw cause;
-            }
-        }
-
     }
 
     private RemotingKeyValueService(KeyValueService service) {
