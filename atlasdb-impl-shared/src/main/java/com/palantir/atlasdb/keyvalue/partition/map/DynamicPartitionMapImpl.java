@@ -16,9 +16,7 @@ import java.util.concurrent.Future;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -64,18 +62,87 @@ import com.palantir.util.Mutable;
 import com.palantir.util.Mutables;
 import com.palantir.util.Pair;
 
+/**
+ * Removal in progress:
+ * - direct the reads to the endpoint that is being deleted
+ * - direct the writes to the endpoint that is being deleted
+ *   and to the next endpoint
+ *
+ * Addition in progress:
+ * - direct the reads to the next endpoint
+ * - direct the writes to the endpoint that is being added
+ *   and to the next endpoint
+ *
+ * Summary:
+ *
+ *  status    | use for read | count for read | use for write | count for write
+ *  ----------|--------------|----------------|---------------|----------------
+ *  normal    | X            | X              | X             | X
+ *  leaving   | X            | X              | X             |
+ *  joining   |              |                | X             |
+ *
+ * Explanation:
+ * - do not count for read means: read and use the data but do not increment the
+ *   counter of endpoints used ie. use one more endpoint from the ring than you would
+ *   usually do to complete the operation
+ * - do not count for write means: write the data but do not increment the counter
+ *   of endpoints used ie. use one more endpoint from the ring than you would usually
+ *   do to complete the operation
+ *
+ * Note (sanity check): countForX implicates useForX.
+ *
+ * @see EndpointWithStatus
+ * @see EndpointWithNormalStatus
+ * @see EndpointWithJoiningStatus
+ * @see EndpointWithLeavingStatus
+ *
+ *
+ * Sample partition map ring:
+ *  A - 3
+ *  B - 5
+ *  C - 8
+ *  D - 10
+ *  E - 12
+ *
+ *
+ * removeEndpoint scenario:
+ *   - Change endpoint status from regular to leaving.
+ *   - Get the ranges operated by this kvs for read (because I will be reading
+ *     from the kvs and writing to other kvss). Note that the kind of operation
+ *     (read/write) is not relevant in the current impl since it supports at most
+ *     one operation running at a time.
+ *   - Copy the farthest range to the first higher KVS.
+ *   - Copy the second-farthest range to the second higher KVS.
+ *   - etc...
+ *   - Remove the KVS completely from the ring.
+ *
+ * addEndpoint scenario:
+ *   - Insert as endpoint with joining status.
+ *   - Get ranges operated by this KVS for write (because I will be reading
+ *     from other kvss and writing to this one). Note that the kind of operation
+ *     (read/write) is not relevant in the current impl since it supports at most
+ *     one operation running at a time.
+ *   - Copy all the ranges but the highest one from the first higher KVS.
+ *     TODO: high availability.
+ *   - Copy the part of the highest range that is below the new KVS.
+ *   - Change endpoint status to regular.
+ *   - Remove the farthest range from the first higher KVS.
+ *   - Remove the second-farthest range from the second higher KVS.
+ *   - etc...
+ *
+ */
 public class DynamicPartitionMapImpl implements DynamicPartitionMap {
 
-    @JsonProperty("quorumParameters") private final QuorumParameters quorumParameters;
-    @JsonProperty("ring") private final CycleMap<byte[], EndpointWithStatus> ring;
-    final private Mutable<Long> version = Mutables.newMutable(0L);
+    private final QuorumParameters quorumParameters;
+    private final CycleMap<byte[], EndpointWithStatus> ring;
+    private final Mutable<Long> version = Mutables.newMutable(0L);
 
     private transient final BlockingQueue<Future<Void>> removals = Queues.newLinkedBlockingQueue();
     private transient final BlockingQueue<Future<Void>> joins = Queues.newLinkedBlockingQueue();
     private transient final Set<KeyValueService> delegates;
     private transient final ExecutorService executor = PTExecutors.newCachedThreadPool();
 
-    final Supplier<Long> versionSupplier = new Supplier<Long>() {
+    private final Supplier<Long> versionSupplier = new Supplier<Long>() {
         @Override
         public Long get() {
             return Preconditions.checkNotNull(version.get());
@@ -143,14 +210,11 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         public Object deserializeWithType(JsonParser p,
                                           DeserializationContext ctxt,
                                           TypeDeserializer typeDeserializer) throws IOException {
-            // typeDeserializer.deserializeTypedFromObject(p, ctxt);
             return deserialize(p, ctxt);
         }
     }
 
-    @JsonCreator
-    public DynamicPartitionMapImpl(@JsonProperty("quorumParameters") QuorumParameters quorumParameters,
-                                   @JsonProperty("ring") NavigableMap<byte[], EndpointWithStatus> ring) {
+    public DynamicPartitionMapImpl(QuorumParameters quorumParameters, NavigableMap<byte[], EndpointWithStatus> ring) {
         Preconditions.checkArgument(ring.keySet().size() >= quorumParameters.getReplicationFactor());
         this.quorumParameters = quorumParameters;
         this.ring = CycleMap.wrap(ring);
@@ -230,7 +294,9 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
                 result.get(kvs).add(cell);
             }
         }
-        assert result.keySet().size() >= quorumParameters.getReplicationFactor();
+        if (!cells.isEmpty()) {
+            assert result.keySet().size() >= quorumParameters.getReplicationFactor();
+        }
         return result;
     }
 
@@ -273,29 +339,6 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     }
     // *********************************************************************************************
 
-    /**
-     *  Kasowanie w trakcie realizacji:
-     *      - odczyty są kierowane do endpointa, który jest kasowany
-     *      - zapisy są kierowane do obydwu
-     *
-     *  Dodawanie w trakcie realizacji:
-     *      - odczyty są kierowane do następnika
-     *      - zapisy są kierowane do obydwu
-     *
-     *  Struktura:
-     *      - Map<byte[], KeyValueServiceWithInfo> ring
-     *      - class KeyValueServiceWithInfo
-     *
-     */
-
-    /**
-     *  Statusy endpointów:
-     *      - normalny: use for read, count for read, use for write, count for write
-     *      - kasowany: use for read, count for read, use for write
-     *      - dodawany:                               use for write
-     *
-     *  Generalnie: countForX => useForX
-     */
 
     @Override
     // *** Public methods **************************************************************************
@@ -502,33 +545,6 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     /**
      * Returns ranges that should be stored and/or read from the given kvs.
      * It is intended for use when adding and/or removing endpoints.
-     *
-     * A - 3
-     * B - 5
-     * C - 8
-     * D - 10
-     * E - 12
-     *
-     * removeEndpoint scenario:
-     *   - change status from regular to 'leaving'
-     *   - get the ranges operated by this kvs for read (because I will be reading
-     *     from the kvs and writing to other kvss)
-     *   - copy the farthest range to the first higher kvs
-     *   - copy the second-farthest range to the second higher kvs
-     *   - etc...
-     *   - remove the kvs from the ring
-     *
-     * addEndpoint scenario:
-     *   - insert with the 'joining' status
-     *   - get ranges operated by this kvs for write (because I will be reading
-     *     from other kvss and writing to this one)
-     *   - copy all the range from the first higher kvs (TODO: high availability)
-     *     BUT the very highest range
-     *   - copy the part of the very highest range that is below the new kvs
-     *   - change status to 'regular'
-     *   - remove the farthest range from the first higher kvs
-     *   - remove the second-farthest range from the second higher kvs
-     *   - etc...
      *
      * @param kvsKey Consider kvs at this key.
      * @param isWrite Are we looking for write or read access?
