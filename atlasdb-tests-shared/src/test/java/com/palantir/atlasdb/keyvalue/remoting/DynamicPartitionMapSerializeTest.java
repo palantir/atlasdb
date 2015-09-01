@@ -1,6 +1,7 @@
 package com.palantir.atlasdb.keyvalue.remoting;
 
 import static org.junit.Assert.assertEquals;
+import io.dropwizard.testing.junit.DropwizardClientRule;
 
 import java.io.IOException;
 import java.util.NavigableMap;
@@ -22,8 +23,7 @@ import com.palantir.atlasdb.keyvalue.partition.map.DynamicPartitionMapImpl;
 import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapServiceImpl;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
-
-import io.dropwizard.testing.junit.DropwizardClientRule;
+import com.palantir.common.concurrent.PTExecutors;
 
 public class DynamicPartitionMapSerializeTest {
 
@@ -47,7 +47,7 @@ public class DynamicPartitionMapSerializeTest {
                 .put(new byte[] {0, 0}, endpoint)
                 .put(new byte[] {0, 0, 0}, endpoint)
                 .build();
-        partitionMap = DynamicPartitionMapImpl.create(QUORUM_PARAMETERS, ring);
+        partitionMap = DynamicPartitionMapImpl.create(QUORUM_PARAMETERS, ring, PTExecutors.newCachedThreadPool());
     }
 
     @Test

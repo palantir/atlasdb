@@ -16,7 +16,6 @@ import java.util.concurrent.Future;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -24,9 +23,7 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.jsontype.TypeDeserializer;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
@@ -55,6 +52,7 @@ import com.palantir.atlasdb.keyvalue.partition.status.EndpointWithNormalStatus;
 import com.palantir.atlasdb.keyvalue.partition.status.EndpointWithStatus;
 import com.palantir.atlasdb.keyvalue.partition.util.ConsistentRingRangeRequest;
 import com.palantir.atlasdb.keyvalue.partition.util.CycleMap;
+import com.palantir.atlasdb.keyvalue.remoting.RemotingKeyValueService;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
@@ -88,6 +86,11 @@ import com.palantir.util.Pair;
  * - do not count for write means: write the data but do not increment the counter
  *   of endpoints used ie. use one more endpoint from the ring than you would usually
  *   do to complete the operation
+ *
+ * Note: after reading from enough endpoints you shall not proceed to check if the
+ *   next endpoint is to be counted for the operation. Example: qp=(3,2,2) and the 3
+ *   higher endpoints at your key have normal status. You shall only use these 3 even
+ *   if the 4-th one should not be counted for your operation!
  *
  * Note (sanity check): countForX implicates useForX.
  *
@@ -130,6 +133,9 @@ import com.palantir.util.Pair;
  *   - Remove the second-farthest range from the second higher KVS.
  *   - etc...
  *
+ *
+ * Jackson notice: This class has custom serializer and deserializer.
+ *
  */
 public class DynamicPartitionMapImpl implements DynamicPartitionMap {
 
@@ -140,7 +146,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     private transient final BlockingQueue<Future<Void>> removals = Queues.newLinkedBlockingQueue();
     private transient final BlockingQueue<Future<Void>> joins = Queues.newLinkedBlockingQueue();
     private transient final Set<KeyValueService> delegates;
-    private transient final ExecutorService executor = PTExecutors.newCachedThreadPool();
+    private transient final ExecutorService executor;
 
     private final Supplier<Long> versionSupplier = new Supplier<Long>() {
         @Override
@@ -152,115 +158,84 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     @GuardedBy("this")
     private long operationsInProgress;
 
-    public static class Serializer extends JsonSerializer<DynamicPartitionMapImpl> {
-        private static final Serializer instance = new Serializer();
-        public static final Serializer instance() { return instance; }
-        @Override
-        public void serialize(DynamicPartitionMapImpl value,
-                              JsonGenerator gen,
-                              SerializerProvider serializers) throws IOException,
-                JsonProcessingException {
-            gen.writeStartObject();
-            gen.writeObjectField("quorumParameters", value.quorumParameters);
-            gen.writeObjectField("version", Preconditions.checkNotNull(value.version.get()));
-            gen.writeObjectField("operationsInProgress", value.operationsInProgress);
-            gen.writeFieldName("ring");
-            gen.writeStartArray();
-            for (Entry<byte[], EndpointWithStatus> entry : value.ring.entrySet()) {
-                gen.writeStartObject();
-                gen.writeBinaryField("key", entry.getKey());
-                gen.writeObjectField("endpointWithStatus", entry.getValue());
-                gen.writeEndObject();
-            }
-            gen.writeEndArray();
-            gen.writeEndObject();
-        }
-    }
-
-    public static class Deserializer extends JsonDeserializer<DynamicPartitionMapImpl>{
-        static final Deserializer instance = new Deserializer();
-        public static final Deserializer instance() { return instance; }
-        @Override
-        public DynamicPartitionMapImpl deserialize(JsonParser p, DeserializationContext ctxt)
-                throws IOException, JsonProcessingException {
-            JsonNode root = p.getCodec().readTree(p);
-            long version = root.get("version").asLong();
-            long operationsInProgress = root.get("operationsInProgress").asLong();
-            QuorumParameters parameters = new ObjectMapper().readValue(
-                    "" + root.get("quorumParameters"),
-                    QuorumParameters.class);
-            Iterator<JsonNode> it = root.get("ring").elements();
-            NavigableMap<byte[], EndpointWithStatus> ring = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
-            while (it.hasNext()) {
-                JsonNode entry = it.next();
-                byte[] key = entry.get("key").binaryValue();
-                String strEndpoint = "" + entry.get("endpointWithStatus");
-                EndpointWithStatus endpoint = new ObjectMapper().readValue(
-                        strEndpoint,
-                        EndpointWithStatus.class);
-                ring.put(key, endpoint);
-            }
-            DynamicPartitionMapImpl ret = new DynamicPartitionMapImpl(parameters, ring);
-            ret.version.set(version);
-            ret.operationsInProgress = operationsInProgress;
-            return ret;
-        }
-
-        @Override
-        public Object deserializeWithType(JsonParser p,
-                                          DeserializationContext ctxt,
-                                          TypeDeserializer typeDeserializer) throws IOException {
-            return deserialize(p, ctxt);
-        }
-    }
-
-    public DynamicPartitionMapImpl(QuorumParameters quorumParameters, NavigableMap<byte[], EndpointWithStatus> ring) {
+    /*** Creation ********************************************************************************/
+    /**
+     * This is used for deserialization.
+     *
+     * @param quorumParameters
+     * @param ring
+     */
+    private DynamicPartitionMapImpl(QuorumParameters quorumParameters,
+            CycleMap<byte[], EndpointWithStatus> ring, long version,
+            long operationsInProgress, ExecutorService executor) {
         Preconditions.checkArgument(ring.keySet().size() >= quorumParameters.getReplicationFactor());
+
         this.quorumParameters = quorumParameters;
-        this.ring = CycleMap.wrap(ring);
-        buildRing(this.ring);
-        delegates = Sets.newHashSet();
+        this.version.set(version);
+        this.operationsInProgress = operationsInProgress;
+        this.executor = executor;
+
+        this.ring = buildRing(ring);
+
+        this.delegates = Sets.newHashSet();
+
         for (EndpointWithStatus kve : this.ring.values()) {
             delegates.add(kve.get().keyValueService());
         }
     }
 
-    private CycleMap<byte[], EndpointWithStatus> toRing(NavigableMap<byte[], KeyValueEndpoint> map) {
+	private DynamicPartitionMapImpl(QuorumParameters quorumParameters, NavigableMap<byte[], KeyValueEndpoint> ring, ExecutorService executor) {
+	    this(quorumParameters, toRing(ring), 0L, 0, executor);
+    }
+
+	public static DynamicPartitionMapImpl create(QuorumParameters quorumParameters, NavigableMap<byte[], KeyValueEndpoint> ring, ExecutorService executor) {
+        return new DynamicPartitionMapImpl(quorumParameters, ring, executor);
+    }
+
+	/**
+	 * Convenience method. Uses default <code>quorumParameters</code> = (3, 2, 2) and
+	 * <code>PTExecutors.newCachedThreadPool()</code> as the <code>ExecutorService</code>.
+	 *
+	 * @param ring
+	 * @return
+	 */
+	public static DynamicPartitionMapImpl create(NavigableMap<byte[], KeyValueEndpoint> ring) {
+        return create(new QuorumParameters(3, 2, 2), ring, PTExecutors.newCachedThreadPool());
+    }
+
+	/*** Creation helpers ***/
+	/**
+	 * Supply the version of this partition map to all endpoints in the ring.
+	 *
+	 * @param ring
+	 * @return The same object as supplied ie. <code>ring</code>.
+	 */
+    private <T extends Map<byte[], EndpointWithStatus>> T buildRing(T ring) {
+        for (EndpointWithStatus e : ring.values()) {
+            e.get().build(versionSupplier);
+        }
+        return ring;
+    }
+
+	/**
+	 * Convert bare endpoints to EndpointsWithNormalStatus.
+	 *
+	 * @param map
+	 * @return
+	 */
+    private static CycleMap<byte[], EndpointWithStatus> toRing(NavigableMap<byte[], KeyValueEndpoint> map) {
         NavigableMap<byte[], EndpointWithStatus> transformedMap = Maps.transformValues(map, new Function<KeyValueEndpoint, EndpointWithStatus>() {
             @Override
             public EndpointWithStatus apply(@Nullable KeyValueEndpoint input) {
                 return new EndpointWithNormalStatus(input);
             }
         });
+        // Make a mutable copy of the immutable result.
         return CycleMap.wrap(Maps.newTreeMap(transformedMap));
     }
 
-    private void buildRing(NavigableMap<byte[], EndpointWithStatus> map) {
-        for (EndpointWithStatus e : map.values()) {
-            e.get().build(versionSupplier);
-        }
-    }
-
-	private DynamicPartitionMapImpl(QuorumParameters quorumParameters, NavigableMap<byte[], KeyValueEndpoint> ring, int nothin) {
-        this.ring = toRing(ring);
-        buildRing(this.ring);
-        this.quorumParameters = quorumParameters;
-        delegates = Sets.newHashSet();
-        for (EndpointWithStatus kve : this.ring.values()) {
-                        kve.get().keyValueService();
-            delegates.add(kve.get().keyValueService());
-        }
-    }
-
-	public static DynamicPartitionMapImpl create(QuorumParameters quorumParameters, NavigableMap<byte[], KeyValueEndpoint> ring) {
-        return new DynamicPartitionMapImpl(quorumParameters, ring, 0);
-    }
-
-	public static DynamicPartitionMapImpl create(NavigableMap<byte[], KeyValueEndpoint> ring) {
-        return create(new QuorumParameters(3, 2, 2), ring);
-    }
-
-    // *** Helper methods **************************************************************************
+    /** Helper methods ***************************************************************************/
+    // This is the METHOD
     private Set<KeyValueEndpoint> getServicesHavingRow(byte[] key, boolean isWrite) {
         Set<KeyValueEndpoint> result = Sets.newHashSet();
         byte[] point = key;
@@ -339,9 +314,8 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     // *********************************************************************************************
 
 
-    @Override
     // *** Public methods **************************************************************************
-    @JsonIgnore
+    @Override
     public Multimap<ConsistentRingRangeRequest, KeyValueEndpoint> getServicesForRangeRead(String tableName,
                                                                                          RangeRequest range) {
         if (range.isReverse()) {
@@ -395,9 +369,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
             Set<KeyValueEndpoint> services = getServicesHavingRow(row, false);
             for (KeyValueEndpoint kvs : services) {
                 if (!result.containsKey(kvs)) {
-                    result.put(
-                            kvs,
-                            Sets.<byte[]> newTreeSet(UnsignedBytes.lexicographicalComparator()));
+                    result.put(kvs, Sets.<byte[]>newTreeSet(UnsignedBytes.lexicographicalComparator()));
                 }
                 assert !result.get(kvs).contains(row);
                 result.get(kvs).add(row);
@@ -414,87 +386,56 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     }
 
     @Override
-    public void runForRowsRead(String tableName,
-                                Iterable<byte[]> rows,
-                                final Function<Pair<KeyValueService, Iterable<byte[]>>, Void> task) {
+    public void runForRowsRead(String tableName, Iterable<byte[]> rows,
+                               final Function<Pair<KeyValueService, Iterable<byte[]>>, Void> task) {
         for (final Entry<KeyValueEndpoint, NavigableSet<byte[]>> e : getServicesForRowsRead(tableName, rows).entrySet()) {
             apply(e, task);
         }
     }
 
-    private Map<KeyValueEndpoint, Set<Cell>> getServicesForCellsRead(String tableName, Set<Cell> cells) {
-        return getServicesForCellsSet(tableName, cells, false);
-    }
-
     @Override
-    public void runForCellsRead(String tableName,
-                                Set<Cell> cells,
+    public void runForCellsRead(String tableName, Set<Cell> cells,
                                 final Function<Pair<KeyValueService, Set<Cell>>, Void> task) {
-        for (final Entry<KeyValueEndpoint, Set<Cell>> e : getServicesForCellsRead(tableName, cells).entrySet()) {
+        for (final Entry<KeyValueEndpoint, Set<Cell>> e : getServicesForCellsSet(tableName, cells, false).entrySet()) {
             apply(e, task);
         }
     }
 
-    private <T> Map<KeyValueEndpoint, Map<Cell, T>> getServicesForCellsRead(String tableName,
-                                                                         Map<Cell, T> timestampByCell) {
-        return getServicesForCellsMap(tableName, timestampByCell, false);
-    }
-
     @Override
-    public <T> void runForCellsRead(String tableName,
-                                    Map<Cell, T> cells,
+    public <T> void runForCellsRead(String tableName, Map<Cell, T> cells,
                                     final Function<Pair<KeyValueService, Map<Cell, T>>, Void> task) {
-        for (final Entry<KeyValueEndpoint, Map<Cell, T>> e : getServicesForCellsRead(tableName, cells).entrySet()) {
+        for (final Entry<KeyValueEndpoint, Map<Cell, T>> e : getServicesForCellsMap(tableName, cells, false).entrySet()) {
             apply(e, task);
         }
     }
 
-    private Map<KeyValueEndpoint, Set<Cell>> getServicesForCellsWrite(String tableName,
-                                                                    Set<Cell> cells) {
-        return getServicesForCellsSet(tableName, cells, true);
-    }
-
     @Override
-    public void runForCellsWrite(String tableName,
-                                 Set<Cell> cells,
+    public void runForCellsWrite(String tableName, Set<Cell> cells,
                                  final Function<Pair<KeyValueService, Set<Cell>>, Void> task) {
-        for (final Entry<KeyValueEndpoint, Set<Cell>> e : getServicesForCellsWrite(tableName, cells).entrySet()) {
+        for (final Entry<KeyValueEndpoint, Set<Cell>> e : getServicesForCellsSet(tableName, cells, true).entrySet()) {
             apply(e, task);
         }
-    }
-
-    private <T> Map<KeyValueEndpoint, Multimap<Cell, T>> getServicesForCellsWrite(String tableName,
-                                                                           Multimap<Cell, T> keys) {
-        return getServicesForCellsMultimap(tableName, keys, true);
     }
 
     @Override
-    public <T> void runForCellsWrite(String tableName,
-                                     Multimap<Cell, T> cells,
+    public <T> void runForCellsWrite(String tableName, Multimap<Cell, T> cells,
                                      final Function<Pair<KeyValueService, Multimap<Cell, T>>, Void> task) {
-        for (final Entry<KeyValueEndpoint, Multimap<Cell, T>> e : getServicesForCellsWrite(tableName, cells).entrySet()) {
+        for (final Entry<KeyValueEndpoint, Multimap<Cell, T>> e : getServicesForCellsMultimap(tableName, cells, true).entrySet()) {
             apply(e, task);
         }
     }
 
-    @JsonIgnore
+    @Override
+    public <T> void runForCellsWrite(String tableName, Map<Cell, T> cells,
+                                     Function<Pair<KeyValueService, Map<Cell, T>>, Void> task) {
+        for (Entry<KeyValueEndpoint, Map<Cell, T>> e : getServicesForCellsMap(tableName, cells, true).entrySet()) {
+            apply(e, task);
+        }
+    }
+
     @Override
     public Set<? extends KeyValueService> getDelegates() {
         return delegates;
-    }
-
-    private <T> Map<KeyValueEndpoint, Map<Cell, T>> getServicesForCellsWrite(String tableName,
-                                                                           Map<Cell, T> values) {
-        return getServicesForCellsMap(tableName, values, true);
-    }
-
-    @Override
-    public <T> void runForCellsWrite(String tableName,
-                                     Map<Cell, T> cells,
-                                     Function<Pair<KeyValueService, Map<Cell, T>>, Void> task) {
-        for (Entry<KeyValueEndpoint, Map<Cell, T>> e : getServicesForCellsWrite(tableName, cells).entrySet()) {
-            apply(e, task);
-        }
     }
 
     /**
@@ -585,11 +526,33 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         return Lists.reverse(result);
     }
 
+    /**
+     * This implementation supports at most one add/remove operation at a time and will
+     * return <code>false</code> if there is one running already.
+     */
     @Override
     public boolean addEndpoint(byte[] key, KeyValueEndpoint kvs, String rack) {
         return addEndpoint(key, kvs, rack, true);
     }
 
+    /**
+     * Set <code>autoFinalize</code> to <code>false</code> if you want to test the behavior while
+     * add operation is in progress. Then call <code>syncAddEndpoint</code> to block
+     * until the add operation ends (but it will not finalize in such case).
+     * To finalize the operation, call <code>finalizaAddEndpoint</code>.
+     * <p>
+     * If <code>autoFinalize == true</code> the finalization will occur asynchronously after the
+     * addition process finishes.
+     * <p>
+     * Note that this implementation supports at most one addEndpoint or removeEndpoint operation at
+     * a time. This method will return <code>false</code> if such operation is already in progress.
+     *
+     * @param key
+     * @param kvs
+     * @param rack
+     * @param autoFinalize
+     * @return <code>true</code> if the operation has been accepted for execution, <code>false</code> otherwise.
+     */
     public synchronized boolean addEndpoint(final byte[] key, final KeyValueEndpoint kvs, String rack, final boolean autoFinalize) {
         version.set(version.get() + 1);
 
@@ -632,16 +595,12 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
                 assert UnsignedBytes.lexicographicalComparator().compare(lastRange.getStartInclusive(), key) < 0;
                 assert UnsignedBytes.lexicographicalComparator().compare(lastRange.getEndExclusive(), key) > 0;
 
-                // Change the status to regular
-                // TODO: Not doing this for testing purporses.
-                // Use finalizer to finalize the join.
-                // finalizeAddEndpoint(key, kvs);
-                if (autoFinalize) {
-                    finalizeAddEndpoint(key);
-                }
-
-                // The last thing to be done is removing the farthest
-                // range from the following kvss.
+                // The last thing to be done is to remove the farthest
+                // ranges from the endpoints following this one.
+                //
+                // Note that this could be theoretically completed after changing the status to normal, but
+                // we do not allow this now as finalizeAddEndpoints also gives up the lock and thus another
+                // add/remove operation could potentially begin and interfere with this.
                 byte[] keyToRemove = nextKey;
                 for (int i = 0; i < ranges.size() - 1; ++i) {
                     RangeRequest rangeToRemove = ranges.get(i);
@@ -649,6 +608,11 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
                     keyToRemove = ring.nextKey(keyToRemove);
                 }
                 deleteData(ring.get(keyToRemove).get(), lastRange1);
+
+                if (autoFinalize) {
+                    finalizeAddEndpoint(key);
+                }
+
                 return null;
             }
         }));
@@ -656,6 +620,11 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         return true;
     }
 
+    /**
+     * Block until the add operation is completed. If <code>autoFinalize</code> was false, it will NOT
+     * finalize that operation and <code>finalizeAddEndpoint</code> should still be called after calling
+     * this method.
+     */
     public void syncAddEndpoint() {
         // Do it synchronously now for testing purposes
         try {
@@ -667,6 +636,11 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         }
     }
 
+    /**
+     * This should be called after the add operations finishes. It will change the endpoint status
+     * from joining to normal and release the add/remove operation lock.
+     * @param key
+     */
     public synchronized void finalizeAddEndpoint(byte[] key) {
         Preconditions.checkArgument(ring.get(key) instanceof EndpointWithJoiningStatus);
         KeyValueEndpoint kve = ring.get(key).get();
@@ -683,11 +657,31 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         operationsInProgress--;
     }
 
+    /**
+     * This implementation supports at most one add/remove operation at a time and will
+     * return <code>false</code> if there is one running already.
+     */
     @Override
     public synchronized boolean removeEndpoint(byte[] key) {
         return removeEndpoint(key, true);
     }
 
+    /**
+     * Set <code>autoFinalize</code> to <code>false</code> if you want to test the behavior while
+     * remove operation is in progress. Then call <code>syncRemoveEndpoint</code> to block
+     * until the remove operation ends (but it will not finalize automatically in such case).
+     * To finalize the operation, call <code>finalizaAddEndpoint</code>.
+     * <p>
+     * If <code>autoFinalize == true</code> the finalization will occur asynchronously after the
+     * addition process finishes.
+     * <p>
+     * Note that this implementation supports at most one addEndpoint or removeEndpoint operation at
+     * a time. This method will return <code>false</code> if such operation is already in progress.
+     *
+     * @param key
+     * @param autoFinalize
+     * @return <code>true</code> if the operation has been accepted for execution, <code>false</code> otherwise.
+     */
     public synchronized boolean removeEndpoint(final byte[] key, final boolean autoFinalize) {
         final KeyValueEndpoint kve = Preconditions.checkNotNull(ring.get(key)).get();
         version.set(version.get() + 1);
@@ -768,6 +762,9 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     /**
      * For test purposes only!
      *
+     * Directly set the version of this map to <code>version</code> without
+     * any other side effects.
+     *
      * @param version
      */
     @Deprecated
@@ -775,6 +772,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
 		this.version.set(version);
 	}
 
+    /*** toString, hashCode and equals ***********************************************************/
     @Override
     public String toString() {
         return "DynamicPartitionMapImpl [quorumParameters=" + quorumParameters + ", ring=" + ring
@@ -819,5 +817,68 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
 			return false;
 		return true;
 	}
+
+	/*** serialization and deserialization *******************************************************/
+    public static class Serializer extends JsonSerializer<DynamicPartitionMapImpl> {
+        private static final Serializer instance = new Serializer();
+        public static final Serializer instance() { return instance; }
+
+        @Override
+        public void serialize(DynamicPartitionMapImpl instance,
+                              JsonGenerator gen, SerializerProvider serializers) throws IOException,
+                JsonProcessingException {
+
+            gen.writeStartObject();
+            gen.writeObjectField("quorumParameters", instance.quorumParameters);
+            gen.writeObjectField("version", instance.version.get());
+            gen.writeObjectField("operationsInProgress", instance.operationsInProgress);
+            gen.writeFieldName("ring");
+            gen.writeStartArray();
+            for (Entry<byte[], EndpointWithStatus> entry : instance.ring.entrySet()) {
+                gen.writeStartObject();
+                gen.writeBinaryField("key", entry.getKey());
+                gen.writeObjectField("endpointWithStatus", entry.getValue());
+                gen.writeEndObject();
+            }
+            gen.writeEndArray();
+            gen.writeEndObject();
+        }
+    }
+
+    public static class Deserializer extends JsonDeserializer<DynamicPartitionMapImpl>{
+        static final Deserializer instance = new Deserializer();
+        public static final Deserializer instance() { return instance; }
+
+        @Override
+        public DynamicPartitionMapImpl deserialize(JsonParser p, DeserializationContext ctxt)
+                throws IOException, JsonProcessingException {
+
+            JsonNode root = p.getCodec().readTree(p);
+
+            long version = root.get("version").asLong();
+            long operationsInProgress = root.get("operationsInProgress").asLong();
+            QuorumParameters parameters = RemotingKeyValueService.kvsMapper().readValue(
+                    root.get("quorumParameters").toString(), QuorumParameters.class);
+
+            Iterator<JsonNode> ringIterator = root.get("ring").elements();
+            NavigableMap<byte[], EndpointWithStatus> ring =
+                    Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
+
+            while (ringIterator.hasNext()) {
+                JsonNode endpointNode = ringIterator.next();
+
+                byte[] key = endpointNode.get("key").binaryValue();
+
+                EndpointWithStatus endpoint = RemotingKeyValueService.kvsMapper().readValue(
+                        endpointNode.get("endpointWithStatus").toString(),
+                        EndpointWithStatus.class);
+
+                ring.put(key, endpoint);
+            }
+
+            return new DynamicPartitionMapImpl(parameters, CycleMap.wrap(ring),
+                    version, operationsInProgress, PTExecutors.newCachedThreadPool());
+        }
+    }
 
 }

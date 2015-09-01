@@ -14,6 +14,7 @@ import com.palantir.atlasdb.keyvalue.partition.api.PartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.map.DynamicPartitionMapImpl;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
+import com.palantir.common.concurrent.PTExecutors;
 
 public class DynamicPartitionMapTest extends AbstractPartitionMapTest {
 
@@ -42,7 +43,7 @@ public class DynamicPartitionMapTest extends AbstractPartitionMapTest {
     @Override
     protected PartitionMap getPartitionMap(QuorumParameters qp,
                                            NavigableMap<byte[], KeyValueEndpoint> ring) {
-        dpm = DynamicPartitionMapImpl.create(qp, ring);
+        dpm = DynamicPartitionMapImpl.create(qp, ring, PTExecutors.newCachedThreadPool());
         return dpm;
     }
 
