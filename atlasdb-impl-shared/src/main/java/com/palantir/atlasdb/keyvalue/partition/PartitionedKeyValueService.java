@@ -64,6 +64,15 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.util.Pair;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
+/**
+ * Do not let any partition map or key value service references
+ * "escape" from runWithPartitionMap function!
+ * Otherwise the auto-update feature on VersionTooOldException
+ * will not work.
+ *
+ * @author htarasiuk
+ *
+ */
 public class PartitionedKeyValueService extends PartitionMapProvider implements KeyValueService {
 
     // Thread-safe
