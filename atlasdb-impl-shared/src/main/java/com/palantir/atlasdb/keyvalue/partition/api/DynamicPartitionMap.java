@@ -5,33 +5,48 @@ import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
 public interface DynamicPartitionMap extends PartitionMap {
 
     /**
+     * Add additional endpoint to the existing partition map.
+     *
+     * The preconditions for this operation are implementation-defined.
+     * It will return <code>false</code> if the preconditions were not
+     * met and the request was rejected. It will return <code>true</code>
+     * if the request was accepted.
+     *
+     * The request might be completed asynchronously, after returning
+     * from this method.
      *
      * @param key
      * @param kvs
      * @param rack
-     * @return True if the operation was started. False if the operation
-     * was rejected (eg. due to another operation being in progress).
+     * @return
      */
     boolean addEndpoint(byte[] key, KeyValueEndpoint kvs, String rack);
 
     /**
+     * Remove existing endpoint from the partition map.
+     *
+     * The preconditions for this operation are implementation-defined.
+     * It will return <code>false</code> if the preconditions were not
+     * met and the request was rejected. It will return <code>true</code>
+     * if the request was accepted.
+     *
+     * The request might be completed asynchronosuly, after returning
+     * from this method.
      *
      * @param key
      * @param kvs
      * @param rack
-     * @return True if the operation was started. False if the operation
-     * was rejected (eg. due to antoher operation bein in progress).
+     * @return
      */
     boolean removeEndpoint(byte[] key);
 
     /**
+     * In order to ensure consistency across multiple clients and endpoint, the
+     * partition map must be versioned.
+     *
      * The initial version MUST be 0L!
-     * @return Curent version of the map.
+     *
+     * @return Current version of the map.
      */
     long getVersion();
-
-    /**
-     * For testing purposes only. Will be removed soon.
-     */
-    @Deprecated void setVersion(long version);
 }

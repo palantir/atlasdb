@@ -750,7 +750,12 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         return version.get();
     }
 
-	@Override
+    /**
+     * For test purposes only!
+     *
+     * @param version
+     */
+    @Deprecated
 	public void setVersion(long version) {
 		this.version.set(version);
 	}
