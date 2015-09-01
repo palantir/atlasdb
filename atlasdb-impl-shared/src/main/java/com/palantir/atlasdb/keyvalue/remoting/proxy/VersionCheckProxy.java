@@ -19,11 +19,19 @@ import com.palantir.common.supplier.ServiceContext;
 /**
  * This is for the endpoint to ensure that client and server partition map versions are compatible.
  * It will throw <code>VersionTooOldException</code> if the client is out of date.
+ *
+ * The server version supplier is passed as an argument. Client version supplier is taken
+ * from <code>RemoteContextHolder.INBOX.getProviderForKey(HOLDER.PM_VERSION)</code>.
+ *
+ * @see VersionTooOldException
+ * @see RemoteContextHolder
+ * @see HOLDER
+ *
  * @author htarasiuk
  *
  */
 public class VersionCheckProxy implements InvocationHandler {
-    private static final Logger log = LoggerFactory .getLogger(VersionCheckProxy.class);
+    private static final Logger log = LoggerFactory.getLogger(VersionCheckProxy.class);
     private final Supplier<Long> serverVersionProvider;
     private final KeyValueService delegate;
 
@@ -34,7 +42,10 @@ public class VersionCheckProxy implements InvocationHandler {
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+
         ServiceContext<Long> remoteClientCtx = RemoteContextHolder.INBOX.getProviderForKey(HOLDER.PM_VERSION);
+
+        // Only check the version for the interface methods.
         if (method.getDeclaringClass() == KeyValueService.class) {
             Long clientVersion = remoteClientCtx.get();
             Long serverVersion = Preconditions.checkNotNull(serverVersionProvider.get());
@@ -46,10 +57,12 @@ public class VersionCheckProxy implements InvocationHandler {
                     throw new VersionTooOldException();
                 }
                 if (clientVersion > serverVersion) {
+                    // TODO:
                     log.warn("Server partition map version is out-of-date.");
                 }
             }
         }
+
         try {
             return method.invoke(delegate, args);
         } catch (InvocationTargetException e) {
@@ -57,6 +70,13 @@ public class VersionCheckProxy implements InvocationHandler {
         }
     }
 
+    /**
+     *
+     * @param delegate
+     * @param serverVersionProvider Use <code>Suppliers.<Long>ofInstance(-1L)</code> to disable version check. In
+     * such case this proxy is just a no-op.
+     * @return
+     */
     public static KeyValueService newProxyInstance(KeyValueService delegate, Supplier<Long> serverVersionProvider) {
         VersionCheckProxy vcp = new VersionCheckProxy(serverVersionProvider, delegate);
         return (KeyValueService) Proxy.newProxyInstance(

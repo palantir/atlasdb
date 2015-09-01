@@ -46,7 +46,7 @@ public class FillInUrlProxy implements InvocationHandler {
         } catch (InvocationTargetException e) {
             Throwable cause = e.getCause();
             if (cause instanceof VersionTooOldException) {
-            	throw new  VersionTooOldException(pmsUri);
+            	throw new VersionTooOldException(pmsUri);
             }
             throw cause;
         }
