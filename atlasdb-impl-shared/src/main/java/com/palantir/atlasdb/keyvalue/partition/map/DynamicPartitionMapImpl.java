@@ -219,7 +219,6 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         this.quorumParameters = quorumParameters;
         this.ring = CycleMap.wrap(ring);
         buildRing(this.ring);
-        // TODO: Make this set immutable
         delegates = Sets.newHashSet();
         for (EndpointWithStatus kve : this.ring.values()) {
             delegates.add(kve.get().keyValueService());
