@@ -29,7 +29,6 @@ import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeDeserializer;
-import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
@@ -84,8 +83,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     };
 
     @GuardedBy("this")
-    // TODO: Serialize and deserialize this!
-    private transient int operationsInProgress;
+    private long operationsInProgress;
 
     public static class Serializer extends JsonSerializer<DynamicPartitionMapImpl> {
         private static final Serializer instance = new Serializer();
@@ -98,6 +96,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
             gen.writeStartObject();
             gen.writeObjectField("quorumParameters", value.quorumParameters);
             gen.writeObjectField("version", Preconditions.checkNotNull(value.version.get()));
+            gen.writeObjectField("operationsInProgress", value.operationsInProgress);
             gen.writeFieldName("ring");
             gen.writeStartArray();
             for (Entry<byte[], EndpointWithStatus> entry : value.ring.entrySet()) {
@@ -109,15 +108,6 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
             gen.writeEndArray();
             gen.writeEndObject();
         }
-        @Override
-        public void serializeWithType(DynamicPartitionMapImpl value,
-                                      JsonGenerator gen,
-                                      SerializerProvider serializers,
-                                      TypeSerializer typeSer) throws IOException {
-//            typeSer.writeTypePrefixForObject(value, gen);
-            serialize(value, gen, serializers);
-//            typeSer.writeTypeSuffixForObject(value, gen);
-        }
     }
 
     public static class Deserializer extends JsonDeserializer<DynamicPartitionMapImpl>{
@@ -128,6 +118,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
                 throws IOException, JsonProcessingException {
             JsonNode root = p.getCodec().readTree(p);
             long version = root.get("version").asLong();
+            long operationsInProgress = root.get("operationsInProgress").asLong();
             QuorumParameters parameters = new ObjectMapper().readValue(
                     "" + root.get("quorumParameters"),
                     QuorumParameters.class);
@@ -144,6 +135,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
             }
             DynamicPartitionMapImpl ret = new DynamicPartitionMapImpl(parameters, ring);
             ret.version.set(version);
+            ret.operationsInProgress = operationsInProgress;
             return ret;
         }
 
