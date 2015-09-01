@@ -23,6 +23,9 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
@@ -39,7 +42,6 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.exception.VersionTooOldException;
 import com.palantir.atlasdb.keyvalue.partition.map.DynamicPartitionMapImpl;
-import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
 import com.palantir.atlasdb.keyvalue.remoting.iterators.HistoryRangeIterator;
 import com.palantir.atlasdb.keyvalue.remoting.iterators.RangeIterator;
 import com.palantir.atlasdb.keyvalue.remoting.iterators.TimestampsRangeIterator;
@@ -66,6 +68,7 @@ import feign.jaxrs.JAXRSContract;
 public class RemotingKeyValueService extends ForwardingKeyValueService {
     final static ServiceContext<KeyValueService> serviceContext = ExecutorInheritableServiceContext.create();
     final static ServiceContext<Long> clientVersionContext = ExecutorInheritableServiceContext.create();
+    private static final Logger log = LoggerFactory.getLogger(RemotingKeyValueService.class);
 
     public static ServiceContext<KeyValueService> getServiceContext() {
         return serviceContext;
@@ -161,6 +164,9 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
                 } else {
                     if (clientVersion < serverVersion) {
                         throw new VersionTooOldException();
+                    }
+                    if (clientVersion > serverVersion) {
+                        log.warn("Server partition map version is out-of-date.");
                     }
                 }
             }
