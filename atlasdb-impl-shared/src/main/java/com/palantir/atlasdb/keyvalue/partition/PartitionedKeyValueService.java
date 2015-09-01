@@ -50,6 +50,7 @@ import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.exception.VersionTooOldException;
 import com.palantir.atlasdb.keyvalue.partition.map.DynamicPartitionMapImpl;
+import com.palantir.atlasdb.keyvalue.partition.merge.MergeResultsUtils;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumTracker;
 import com.palantir.atlasdb.keyvalue.partition.util.ClosablePeekingIterator;
@@ -75,15 +76,21 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
  */
 public class PartitionedKeyValueService extends PartitionMapProvider implements KeyValueService {
 
-    // Thread-safe
     private static final Logger log = LoggerFactory.getLogger(PartitionedKeyValueService.class);
-
-    // Immutable
     private final QuorumParameters quorumParameters;
-
-    // Thread-safe
     private final ExecutorService executor;
 
+    /**
+     * This will block until success or failure of the request can be concluded.
+     * In case of failure it will rethrow the last encountered exception.
+     *
+     * TODO: Is it ok if the remaining futures are not beign taken after tracker
+     * is finished? Zombie threads etc.
+     *
+     * @param tracker
+     * @param execSvc
+     * @param mergeFunction
+     */
     <TrackingUnit, FutureReturnType> void completeRequest(QuorumTracker<FutureReturnType, TrackingUnit> tracker,
                                                           ExecutorCompletionService<FutureReturnType> execSvc,
                                                           Function<FutureReturnType, Void> mergeFunction) {
@@ -113,6 +120,14 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
         }
     }
 
+    /**
+     * In case of read request we can cancel all remaining threads as soon as completeRequests
+     * returns - it means that either success or failure has been concluded.
+     *
+     * @param tracker
+     * @param execSvc
+     * @param mergeFunction
+     */
     <TrackingUnit, FutureReturnType> void completeReadRequest(QuorumTracker<FutureReturnType, TrackingUnit> tracker,
                                                               ExecutorCompletionService<FutureReturnType> execSvc,
                                                               Function<FutureReturnType, Void> mergeFunction) {
@@ -123,6 +138,15 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
         }
     }
 
+    /**
+     * In case of write requests we should only cancel all the threads if a failure can be
+     * concluded.
+     * Otherwise we just return as soon as success is concluded but we leave other write
+     * tasks running in the background.
+     *
+     * @param tracker
+     * @param execSvc
+     */
     <TrackingUnit> void completeWriteRequest(QuorumTracker<Void, TrackingUnit> tracker,
                                              ExecutorCompletionService<Void> execSvc) {
 
@@ -137,13 +161,10 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
     // *** Read requests *************************************************************************
     @Override
     @Idempotent
-    public Map<Cell, Value> getRows(final String tableName,
-                                    final Iterable<byte[]> rows,
-                                    final ColumnSelection columnSelection,
-                                    final long timestamp) {
-        // Schedule tasks for execution
+    public Map<Cell, Value> getRows(final String tableName, final Iterable<byte[]> rows,
+                                    final ColumnSelection columnSelection, final long timestamp) {
         return runWithPartitionMap(new Function<DynamicPartitionMap, Map<Cell, Value>>() {
-			@Override @Nullable
+			@Override
 			public Map<Cell, Value> apply(DynamicPartitionMap input) {
                 final Map<Cell, Value> overallResult = Maps.newHashMap();
                 final ExecutorCompletionService<Map<Cell, Value>> execSvc = new ExecutorCompletionService<Map<Cell, Value>>(
@@ -152,8 +173,9 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                         rows,
                         quorumParameters.getReadRequestParameters());
 
+                // Schedule tasks for execution
                 input.runForRowsRead(tableName, rows, new Function<Pair<KeyValueService,Iterable<byte[]>>, Void>() {
-                    @Override @Nullable
+                    @Override
                     public Void apply(@Nullable final Pair<KeyValueService, Iterable<byte[]>> e) {
                         Future<Map<Cell, Value>> future = execSvc.submit(new Callable<Map<Cell, Value>>() {
                             @Override
@@ -166,13 +188,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                     }
                 });
 
-                completeReadRequest(tracker, execSvc, new Function<Map<Cell, Value>, Void>() {
-                    @Override
-                    public Void apply(@Nullable Map<Cell, Value> input) {
-                        mergeCellValueMapIntoMap(overallResult, input);
-                        return null;
-                    }
-                });
+                completeReadRequest(tracker, execSvc, MergeResultsUtils.newCellValueMapMerger(overallResult));
                 return overallResult;
 			}
         });
@@ -181,7 +197,6 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
     @Override
     @Idempotent
     public Map<Cell, Value> get(final String tableName, final Map<Cell, Long> timestampByCell) {
-        // Schedule the tasks
         return runWithPartitionMap(new Function<DynamicPartitionMap, Map<Cell, Value>>() {
 			@Override
 			public Map<Cell, Value> apply(@Nullable DynamicPartitionMap input) {
@@ -192,9 +207,10 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                         quorumParameters.getReadRequestParameters());
                 final Map<Cell, Value> globalResult = Maps.newHashMap();
 
+                // Schedule the tasks
                 input.runForCellsRead(tableName, timestampByCell, new Function<Pair<KeyValueService, Map<Cell, Long>>, Void>() {
-                    @Override @Nullable
-                    public Void apply(@Nullable final Pair<KeyValueService, Map<Cell, Long>> e) {
+                    @Override
+                    public Void apply(final Pair<KeyValueService, Map<Cell, Long>> e) {
                         Future<Map<Cell, Value>> future = execSvc.submit(new Callable<Map<Cell, Value>>() {
                             @Override
                             public Map<Cell, Value> call() throws Exception {
@@ -206,13 +222,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                     }
                 });
 
-                completeReadRequest(tracker, execSvc, new Function<Map<Cell, Value>, Void>() {
-                    @Override @Nullable
-                    public Void apply(@Nullable Map<Cell, Value> input) {
-                        mergeCellValueMapIntoMap(globalResult, input);
-                        return null;
-                    }
-                });
+                completeReadRequest(tracker, execSvc, MergeResultsUtils.newCellValueMapMerger(globalResult));
                 return globalResult;
 			}
         });
@@ -224,6 +234,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                                                  final Set<Cell> cells,
                                                  final long timestamp)
             throws InsufficientConsistencyException {
+
         return runWithPartitionMap(new Function<DynamicPartitionMap, Multimap<Cell, Long>>() {
 			@Override
 			public Multimap<Cell, Long> apply(DynamicPartitionMap input) {
@@ -246,13 +257,8 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                         return null;
                     }
                 });
-                completeReadRequest(tracker, execSvc, new Function<Multimap<Cell, Long>, Void>() {
-                    @Override @Nullable
-                    public Void apply(@Nullable Multimap<Cell, Long> input) {
-                        mergeAllTimestampsMapIntoMap(globalResult, input);
-                        return null;
-                    }
-                });
+
+                completeReadRequest(tracker, execSvc, MergeResultsUtils.newAllTimestampsMapMerger(globalResult));
                 return globalResult;
 			}
 		});
@@ -263,8 +269,8 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
     public Map<Cell, Long> getLatestTimestamps(final String tableName,
                                                final Map<Cell, Long> timestampByCell) {
         return runWithPartitionMap(new Function<DynamicPartitionMap, Map<Cell, Long>>() {
-			@Override @Nullable
-			public Map<Cell, Long> apply(@Nullable DynamicPartitionMap input) {
+			@Override
+			public Map<Cell, Long> apply(DynamicPartitionMap input) {
                 final Map<Cell, Long> globalResult = Maps.newHashMap();
                 final QuorumTracker<Map<Cell, Long>, Cell> tracker = QuorumTracker.of(
                         timestampByCell.keySet(),
@@ -284,13 +290,8 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                         return null;
                     }
                 });
-                completeReadRequest(tracker, execSvc, new Function<Map<Cell, Long>, Void>() {
-                    @Override @Nullable
-                    public Void apply(@Nullable Map<Cell, Long> input) {
-                        mergeLatestTimestampMapIntoMap(globalResult, input);
-                        return null;
-                    }
-                });
+
+                completeReadRequest(tracker, execSvc, MergeResultsUtils.newLatestTimestampMapMerger(globalResult));
                 return globalResult;
 			}
 		});
@@ -301,11 +302,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
     public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(String tableName,
                                                                                                            Iterable<RangeRequest> rangeRequests,
                                                                                                            long timestamp) {
-        return KeyValueServices.getFirstBatchForRangesUsingGetRange(
-                this,
-                tableName,
-                rangeRequests,
-                timestamp);
+        return KeyValueServices.getFirstBatchForRangesUsingGetRange(this, tableName, rangeRequests, timestamp);
     }
 
     // *** Read range requests ***
@@ -350,9 +347,10 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                             } catch (VersionTooOldException e) {
                                 throw e;
                             } catch (RuntimeException e) {
-                                // TODO:
                                 // If this failure is fatal for the range, the exception will be thrown when
                                 // retrieving data from the iterators.
+                                //
+                                // TODO: This is not true if there are no elements to be retrieved!
                                 log.warn("Failed to getRange in table " + tableName);
                             } finally {
                             }
@@ -403,9 +401,9 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                             } catch (VersionTooOldException e) {
                                 throw e;
                             } catch (RuntimeException e) {
-                                // TODO:
                                 // If this failure is fatal for the range, the exception will be thrown when
                                 // retrieving data from the iterators.
+                                // TODO
                                 log.warn("Failed to getRangeWithHistory in table " + tableName);
                             }
                         }
@@ -495,6 +493,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 								return null;
 							}
 						});
+
                 completeWriteRequest(tracker, writeService);
 				return null;
 			}
@@ -527,6 +526,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                         return null;
                     }
                 });
+
                 completeWriteRequest(tracker, execSvc);
 				return null;
 			}
@@ -894,41 +894,12 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
         throw new RuntimeException("This should never happen!");
     }
 
-    private void mergeCellValueMapIntoMap(Map<Cell, Value> globalResult, Map<Cell, Value> partResult) {
-        for (Map.Entry<Cell, Value> e : partResult.entrySet()) {
-            if (!globalResult.containsKey(e.getKey())
-                    || globalResult.get(e.getKey()).getTimestamp() < e.getValue().getTimestamp()) {
-                globalResult.put(e.getKey(), e.getValue());
-            }
-        }
-    }
-
-    private void mergeLatestTimestampMapIntoMap(Map<Cell, Long> globalResult,
-                                                Map<Cell, Long> partResult) {
-        for (Map.Entry<Cell, Long> e : partResult.entrySet()) {
-            if (!globalResult.containsKey(e.getKey())
-                    || globalResult.get(e.getKey()) < e.getValue()) {
-                globalResult.put(e.getKey(), e.getValue());
-            }
-        }
-    }
-
-    private void mergeAllTimestampsMapIntoMap(Multimap<Cell, Long> globalResult,
-                                              Multimap<Cell, Long> partResult) {
-        for (Map.Entry<Cell, Long> e : partResult.entries()) {
-            if (!globalResult.containsEntry(e.getKey(), e.getValue())) {
-                globalResult.put(e.getKey(), e.getValue());
-            }
-        }
-    }
-
     public DynamicPartitionMapImpl getPartitionMap() {
         return runWithPartitionMap(new Function<DynamicPartitionMap, DynamicPartitionMapImpl>() {
-            @Override @Nullable
-            public DynamicPartitionMapImpl apply(@Nullable DynamicPartitionMap input) {
+            @Override
+            public DynamicPartitionMapImpl apply(DynamicPartitionMap input) {
                 return (DynamicPartitionMapImpl) input;
             }
         });
     }
-
 }
