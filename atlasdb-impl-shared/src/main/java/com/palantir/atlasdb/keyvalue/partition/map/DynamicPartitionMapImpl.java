@@ -92,7 +92,7 @@ import com.palantir.util.Pair;
  *   higher endpoints at your key have normal status. You shall only use these 3 even
  *   if the 4-th one should not be counted for your operation!
  *
- * Note (sanity check): countForX implicates useForX.
+ * Note (sanity check): countForX implies useForX.
  *
  * @see EndpointWithStatus
  * @see EndpointWithNormalStatus
