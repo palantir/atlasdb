@@ -22,6 +22,8 @@ import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Set;
 
+import javax.annotation.concurrent.ThreadSafe;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
@@ -39,7 +41,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.partition.api.PartitionMap;
 import com.palantir.common.annotation.Immutable;
 
-@Immutable public final class BasicPartitionMap implements PartitionMap {
+@Immutable @ThreadSafe public final class BasicPartitionMap implements PartitionMap {
 
     private final QuorumParameters quorumParameters;
     // This map is never modified
@@ -226,15 +228,9 @@ import com.palantir.common.annotation.Immutable;
     }
 
     @Override
-    public Map<KeyValueService, Map<Cell, Long>> getServicesForCellsRead(String tableName,
-                                                                         Map<Cell, Long> timestampByCell) {
+    public <T> Map<KeyValueService, Map<Cell, T>> getServicesForCellsRead(String tableName,
+                                                                         Map<Cell, T> timestampByCell) {
         return getServicesForCellsMap(tableName, timestampByCell);
-    }
-
-    @Override
-    public Map<KeyValueService, Map<Cell, byte[]>> getServicesForCellsWrite(String tableName,
-                                                                            Map<Cell, byte[]> values) {
-        return getServicesForCellsMap(tableName, values);
     }
 
     @Override
@@ -244,13 +240,19 @@ import com.palantir.common.annotation.Immutable;
     }
 
     @Override
-    public <T> Map<KeyValueService, Multimap<Cell, T>> getServicesForWrite(String tableName,
-                                                                           Multimap<Cell, T> keys) {
+    public <T> Map<KeyValueService, Multimap<Cell, T>> getServicesForCellsWrite(String tableName,
+                                                                                Multimap<Cell, T> keys) {
         return getServicesForCellsMultimap(tableName, keys);
     }
 
     @Override
     public Set<? extends KeyValueService> getDelegates() {
         return services;
+    }
+
+    @Override
+    public <T> Map<KeyValueService, Map<Cell, T>> getServicesForCellsWrite(String tableName,
+                                                                           Map<Cell, T> values) {
+        return getServicesForCellsMap(tableName, values);
     }
 }

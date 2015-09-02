@@ -164,7 +164,7 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
 
     @Override
     public Map<Cell, Value> getRows(String tableName, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
-        if (Iterables.isEmpty(rows) || columnSelection.noColumnsSelected()) {
+        if (Iterables.isEmpty(rows)) {
             return ImmutableMap.of();
         }
         return delegate.getRows(tableName, rows, columnSelection, timestamp);
