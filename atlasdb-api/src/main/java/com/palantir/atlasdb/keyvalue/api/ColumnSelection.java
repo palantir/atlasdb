@@ -17,9 +17,10 @@ package com.palantir.atlasdb.keyvalue.api;
 
 import java.io.Serializable;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.Set;
 
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
@@ -59,15 +60,12 @@ public class ColumnSelection implements Serializable {
         if (selectedColumns == null) {
             return "";
         }
-        StringBuilder builder = new StringBuilder();
-        Iterator<byte[]> it = selectedColumns.iterator();
-        while (it.hasNext()) {
-            builder.append(PtBytes.encodeBase64String(it.next()));
-            if (it.hasNext()) {
-                builder.append(",");
+        return Joiner.on(',').join(Iterables.transform(selectedColumns, new Function<byte[], String>() {
+            @Override
+            public String apply(byte[] input) {
+                return PtBytes.encodeBase64String(input);
             }
-        }
-        return builder.toString();
+        }));
     };
 
     // Factory methods.
