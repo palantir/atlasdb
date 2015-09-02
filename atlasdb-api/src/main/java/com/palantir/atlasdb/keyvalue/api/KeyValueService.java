@@ -74,7 +74,6 @@ public interface KeyValueService extends AutoCloseable {
     @POST
     @Path("get-delegates")
     @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
     Collection<? extends KeyValueService> getDelegates();
 
     /**
