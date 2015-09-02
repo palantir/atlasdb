@@ -25,7 +25,7 @@ import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
-import com.sun.org.apache.xerces.internal.impl.dv.util.Base64;
+import com.palantir.atlasdb.encoding.PtBytes;
 
 public class ColumnSelection implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -44,7 +44,7 @@ public class ColumnSelection implements Serializable {
             if (strColumn.equals("")) {
                 continue;
             }
-            byte[] column = Base64.decode(strColumn);
+            byte[] column = PtBytes.decodeBase64(strColumn);
             assert !columns.contains(column);
             columns.add(column);
         }
@@ -62,7 +62,7 @@ public class ColumnSelection implements Serializable {
         StringBuilder builder = new StringBuilder();
         Iterator<byte[]> it = selectedColumns.iterator();
         while (it.hasNext()) {
-            builder.append(Base64.encode(it.next()));
+            builder.append(PtBytes.encodeBase64String(it.next()));
             if (it.hasNext()) {
                 builder.append(",");
             }
