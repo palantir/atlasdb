@@ -1,12 +1,6 @@
 package com.palantir.atlasdb.keyvalue.remoting;
 
 import static org.junit.Assert.assertEquals;
-
-import javax.ws.rs.Consumes;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-
 import io.dropwizard.testing.junit.DropwizardClientRule;
 
 import org.junit.Before;
@@ -33,25 +27,25 @@ public class KeyValueEndpointTest extends AbstractAtlasDbKeyValueServiceTest {
 	public final DropwizardClientRule endpointPmsService = new DropwizardClientRule(
 			Preconditions.checkNotNull(new PartitionMapService() {
 				long version = 0L;
-				
+
 				@Override
-				public void update(DynamicPartitionMap partitionMap) {
+				public void updateMap(DynamicPartitionMap partitionMap) {
 					version = partitionMap.getVersion();
 				}
-				
+
 				@Override
-				public long getVersion() {
+				public long getMapVersion() {
 					return version;
 				}
-				
+
 				@Override
-				public DynamicPartitionMap get() {
+				public DynamicPartitionMap getMap() {
 					return null;
 				}
 			}));
 
     private KeyValueEndpoint endpoint;
-    
+
     @Before
     public void setupPrivate() {
         Utils.setupRuleHacks(endpointKvsService);
@@ -67,7 +61,7 @@ public class KeyValueEndpointTest extends AbstractAtlasDbKeyValueServiceTest {
 
     @Test
     public void testSimple() {
-        assertEquals(0L, getEndpoint().partitionMapService().getVersion());
+        assertEquals(0L, getEndpoint().partitionMapService().getMapVersion());
     }
 
     @Override

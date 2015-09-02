@@ -39,7 +39,7 @@ import com.palantir.common.annotation.Immutable;
      */
     public DynamicPartitionMap getUpdatedMap() {
     	return RemotingPartitionMapService.createClientSide(
-    			Preconditions.checkNotNull(pmsUri)).get();
+    			Preconditions.checkNotNull(pmsUri)).getMap();
     }
 
     public VersionTooOldException(String pmsUri) {

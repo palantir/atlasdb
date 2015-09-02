@@ -8,10 +8,8 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.NavigableMap;
-import java.util.Set;
 
 import org.apache.commons.lang.ArrayUtils;
-import org.assertj.core.util.Sets;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
@@ -20,7 +18,6 @@ import com.google.common.base.Supplier;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.InMemoryKeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
@@ -28,6 +25,7 @@ import com.palantir.atlasdb.keyvalue.partition.endpoint.SimpleKeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.map.DynamicPartitionMapImpl;
 import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapServiceImpl;
+import com.palantir.atlasdb.keyvalue.partition.server.EndpointServer;
 import com.palantir.atlasdb.server.InboxPopulatingContainerRequestFilter;
 import com.palantir.common.base.Throwables;
 import com.palantir.util.Pair;
@@ -60,7 +58,7 @@ public class Utils {
             throw Throwables.throwUncheckedException(e);
         }
     }
-    
+
     public static DynamicPartitionMap createNewMap(Collection<? extends Pair<RemoteKvs, RemotePms>> endpoints) {
     	ArrayList<Byte> keyList = new ArrayList<>();
     	NavigableMap<byte[], KeyValueEndpoint> ring = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
@@ -73,7 +71,7 @@ public class Utils {
     	}
     	return DynamicPartitionMapImpl.create(ring);
     }
-    
+
     public static DynamicPartitionMap createInMemoryMap(Collection<? extends KeyValueService> services) {
     	ArrayList<Byte> keyList = new ArrayList<>();
     	NavigableMap<byte[], KeyValueEndpoint> ring = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
@@ -86,21 +84,22 @@ public class Utils {
     	}
     	DynamicPartitionMap partitionMap = DynamicPartitionMapImpl.create(ring);
     	for (KeyValueEndpoint endpoint : ring.values()) {
-    		endpoint.partitionMapService().update(partitionMap);
+    		endpoint.partitionMapService().updateMap(partitionMap);
     	}
     	return partitionMap;
     }
 
     public static class RemoteKvs {
-        public final KeyValueService inMemoryKvs = new InMemoryKeyValueService(false);
+        public final KeyValueService delegate;
         public final KeyValueService remoteKvs;
         public final DropwizardClientRule rule;
 
-        public RemoteKvs(final RemotePms remotePms) {
-            remoteKvs = RemotingKeyValueService.createServerSide(inMemoryKvs, new Supplier<Long>() {
+        public RemoteKvs(KeyValueService delegate, final RemotePms remotePms) {
+            this.delegate = delegate;
+            remoteKvs = RemotingKeyValueService.createServerSide(delegate, new Supplier<Long>() {
                 @Override
                 public Long get() {
-                    Long version = RemotingPartitionMapService.createClientSide(remotePms.rule.baseUri().toString()).getVersion();
+                    Long version = RemotingPartitionMapService.createClientSide(remotePms.rule.baseUri().toString()).getMapVersion();
                     return version;
                 }
             });
@@ -109,8 +108,24 @@ public class Utils {
     }
 
     public static class RemotePms {
-        public PartitionMapService service = new PartitionMapServiceImpl();
-        public DropwizardClientRule rule = new DropwizardClientRule(service);
+        public final PartitionMapService service;
+        public final DropwizardClientRule rule;
+        public RemotePms(PartitionMapService pms) {
+            this.service = pms;
+            this.rule = new DropwizardClientRule(pms);
+        }
+    }
+
+    public static class RemoteEndpoint {
+        final EndpointServer server;
+        final public RemotePms pms;
+        final public RemoteKvs kvs;
+
+        public RemoteEndpoint(KeyValueService kvsDelegate, PartitionMapService pmsDelegate) {
+            this.server = new EndpointServer(kvsDelegate, pmsDelegate);
+            this.pms = new RemotePms(server);
+            this.kvs = new RemoteKvs(server, this.pms);
+        }
     }
 
 }

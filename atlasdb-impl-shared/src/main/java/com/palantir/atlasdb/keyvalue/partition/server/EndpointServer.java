@@ -33,7 +33,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
  * @author htarasiuk
  *
  */
-public class EndpointServer implements KeyValueService, PartitionMapService {
+public class EndpointServer implements PartitionMapService, KeyValueService {
 
     private final KeyValueService kvsDelegate;
     public KeyValueService kvs() {
@@ -75,31 +75,31 @@ public class EndpointServer implements KeyValueService, PartitionMapService {
     }
 
     @Override
-    public DynamicPartitionMap get() {
+    public DynamicPartitionMap getMap() {
         return runPartitionMapReadOperation(new Function<Void, DynamicPartitionMap>() {
             @Override
             public DynamicPartitionMap apply(Void input) {
-                return pms().get();
+                return pms().getMap();
             }
         });
     }
 
     @Override
-    public long getVersion() {
+    public long getMapVersion() {
         return runPartitionMapReadOperation(new Function<Void, Long>() {
             @Override
             public Long apply(Void input) {
-                return pms().getVersion();
+                return pms().getMapVersion();
             }
         });
     }
 
     @Override
-    public void update(final DynamicPartitionMap partitionMap) {
+    public void updateMap(final DynamicPartitionMap partitionMap) {
         runPartitionMapWriteOperation(new Function<Void, Void>() {
             @Override
             public Void apply(Void input) {
-                pms().update(partitionMap);
+                pms().updateMap(partitionMap);
                 return null;
             }
 

@@ -40,25 +40,25 @@ public class PartitionMapServiceTest {
 	@Test
     public void testPms() {
         PartitionMapService pms = createPartitionMapService(samplePartitionMap);
-        assertEquals(INITIAL_VERSION, pms.getVersion());
-        assertEquals(samplePartitionMap, pms.get());
+        assertEquals(INITIAL_VERSION, pms.getMapVersion());
+        assertEquals(samplePartitionMap, pms.getMap());
         samplePartitionMap.setVersion(INITIAL_VERSION + 1);
-        pms.update(samplePartitionMap);
-        assertEquals(INITIAL_VERSION + 1, pms.getVersion());
-        assertEquals(samplePartitionMap, pms.get());
+        pms.updateMap(samplePartitionMap);
+        assertEquals(INITIAL_VERSION + 1, pms.getMapVersion());
+        assertEquals(samplePartitionMap, pms.getMap());
     }
 
     @SuppressWarnings("deprecation")
 	@Test
     public void testPmsEmptyFirst() {
         PartitionMapService pms = createEmptyPartitionMapService();
-        pms.update(samplePartitionMap);
-        assertEquals(INITIAL_VERSION, pms.getVersion());
-        assertEquals(samplePartitionMap, pms.get());
+        pms.updateMap(samplePartitionMap);
+        assertEquals(INITIAL_VERSION, pms.getMapVersion());
+        assertEquals(samplePartitionMap, pms.getMap());
         samplePartitionMap.setVersion(INITIAL_VERSION + 1);
-        pms.update(samplePartitionMap);
-        assertEquals(INITIAL_VERSION + 1, pms.getVersion());
-        assertEquals(samplePartitionMap, pms.get());
+        pms.updateMap(samplePartitionMap);
+        assertEquals(INITIAL_VERSION + 1, pms.getMapVersion());
+        assertEquals(samplePartitionMap, pms.getMap());
     }
 
     protected PartitionMapService createPartitionMapService(DynamicPartitionMap partitionMap) {

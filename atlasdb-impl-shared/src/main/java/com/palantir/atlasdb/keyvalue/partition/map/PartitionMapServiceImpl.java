@@ -3,8 +3,6 @@ package com.palantir.atlasdb.keyvalue.partition.map;
 import org.assertj.core.util.Preconditions;
 
 import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
-import com.palantir.atlasdb.keyvalue.partition.api.PartitionMap;
-import com.palantir.atlasdb.keyvalue.partition.util.VersionedObject;
 
 public final class PartitionMapServiceImpl implements PartitionMapService {
 
@@ -23,17 +21,17 @@ public final class PartitionMapServiceImpl implements PartitionMapService {
     }
 
     @Override
-    public synchronized DynamicPartitionMap get() {
+    public synchronized DynamicPartitionMap getMap() {
         return Preconditions.checkNotNull(partitionMap);
     }
 
     @Override
-    public synchronized long getVersion() {
+    public synchronized long getMapVersion() {
         return partitionMap.getVersion();
     }
 
     @Override
-    public synchronized void update(DynamicPartitionMap partitionMap) {
+    public synchronized void updateMap(DynamicPartitionMap partitionMap) {
     	this.partitionMap = Preconditions.checkNotNull(partitionMap);
     }
 
