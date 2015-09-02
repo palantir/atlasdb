@@ -1,5 +1,8 @@
 apply from: "../gradle/shared.gradle"
 
+// disable tests if building on Travis (Travis CI kills test processes due to load)
+[test, check].each { it.onlyIf { !System.getenv().containsKey('CI') } }
+
 dependencies {
   compile(project(":atlasdb-client"))
   compile 'org.jdbi:jdbi:2.59'

@@ -1,14 +1,12 @@
 apply plugin: 'java'
 apply plugin: 'eclipse'
 apply plugin: 'checkstyle'
-apply plugin: 'maven'
-apply plugin: 'maven-publish'
 apply plugin: 'jacoco-coverage'
-
 apply plugin: 'com.github.hierynomus.license'
 
+apply from: "${rootDir}/gradle/publish.gradle"
+
 sourceCompatibility = 1.7
-targetCompatibility = 1.7
 
 version = rootProject.version
 group = rootProject.group
@@ -44,33 +42,3 @@ license {
     exclude '**/generated/*.java'
 }
 
-task sourceJar(type: Jar) {
-    from sourceSets.main.allSource
-    classifier 'sources'
-}
-
-publishing {
-    publications {
-        local(MavenPublication) {
-            from components.java
-
-            artifact(sourceJar) {
-                classifier 'sources'
-            }
-            pom.withXml {
-                def scm = asNode().appendNode('scm')
-                scm.appendNode('url', 'https://github.com/palantir/atlasdb')
-                def licenses = asNode().appendNode('licenses')
-                def license = licenses.appendNode('license')
-                license.appendNode('name', 'BSD-3')
-                license.appendNode('url', 'http://opensource.org/licenses/BSD-3-Clause')
-            }
-        }
-    }
-
-    repositories {
-        maven {
-            url localPublishDir
-        }
-    }
-}
