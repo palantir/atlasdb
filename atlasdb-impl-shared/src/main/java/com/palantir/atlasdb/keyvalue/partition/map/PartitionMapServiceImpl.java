@@ -5,6 +5,7 @@ import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
 
 public final class PartitionMapServiceImpl implements PartitionMapService {
 
+    // TODO: Store this in KVS
     private DynamicPartitionMap partitionMap;
 
     public PartitionMapServiceImpl(DynamicPartitionMap partitionMap) {

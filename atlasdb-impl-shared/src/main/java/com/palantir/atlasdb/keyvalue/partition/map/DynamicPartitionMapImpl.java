@@ -8,13 +8,13 @@ import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
@@ -28,16 +28,16 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
-import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
@@ -54,7 +54,6 @@ import com.palantir.atlasdb.keyvalue.partition.util.ConsistentRingRangeRequest;
 import com.palantir.atlasdb.keyvalue.partition.util.CycleMap;
 import com.palantir.atlasdb.keyvalue.remoting.RemotingKeyValueService;
 import com.palantir.common.base.ClosableIterator;
-import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.util.Mutable;
 import com.palantir.util.Mutables;
@@ -139,12 +138,12 @@ import com.palantir.util.Pair;
  */
 public class DynamicPartitionMapImpl implements DynamicPartitionMap {
 
+	private static final Logger log = LoggerFactory.getLogger(DynamicPartitionMapImpl.class);
+
     private final QuorumParameters quorumParameters;
     private final CycleMap<byte[], EndpointWithStatus> ring;
     private final Mutable<Long> version = Mutables.newMutable(0L);
 
-    private transient final BlockingQueue<Future<Void>> removals = Queues.newLinkedBlockingQueue();
-    private transient final BlockingQueue<Future<Void>> joins = Queues.newLinkedBlockingQueue();
     private transient final Set<KeyValueService> delegates;
     private transient final ExecutorService executor;
 
@@ -444,10 +443,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
      * @param srcKve
      * @param rangeToCopy
      */
-    private void copyData(KeyValueEndpoint destKve, KeyValueEndpoint srcKve, RangeRequest rangeToCopy) {
-        KeyValueService destKvs = destKve.keyValueService();
-        KeyValueService srcKvs = srcKve.keyValueService();
-
+    private void copyData(KeyValueService destKvs, KeyValueService srcKvs, RangeRequest rangeToCopy) {
         for (String tableName : srcKvs.getAllTableNames()) {
             Multimap<Cell, Value> cells = HashMultimap.create();
 
@@ -461,7 +457,17 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
                 }
 
                 if (!cells.isEmpty()) {
-                    destKvs.putWithTimestamps(tableName, cells);
+                	// TODO: Is there any way to batch it?
+                	// Maybe some wrapper function that will first try to put everything and if
+                	// it fails it will partition the data to smaller parts.
+                	for (Entry<Cell, Value> entry : cells.entries()) {
+                		try {
+                            destKvs.putWithTimestamps(tableName, ImmutableMultimap.of(entry.getKey(), entry.getValue()));
+                		} catch (KeyAlreadyExistsException e) {
+                			log.warn("Key already exists: " + entry.getKey() + ". Ignoring.");
+                		}
+                	}
+                    // destKvs.putWithTimestamps(tableName, cells);
                 }
             }
         }
@@ -472,9 +478,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
      * @param kve
      * @param rangeToDelete
      */
-    private void deleteData(KeyValueEndpoint kve, RangeRequest rangeToDelete) {
-        KeyValueService kvs = kve.keyValueService();
-
+    private void deleteData(KeyValueService kvs, RangeRequest rangeToDelete) {
         for (String tableName : kvs.getAllTableNames()) {
             Multimap<Cell, Long> cells = HashMultimap.create();
 
@@ -539,231 +543,196 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     }
 
     /**
-     * This implementation supports at most one add/remove operation at a time and will
-     * return <code>false</code> if there is one running already.
-     */
-    @Override
-    public boolean addEndpoint(byte[] key, KeyValueEndpoint kvs, String rack) {
-        return addEndpoint(key, kvs, rack, true);
-    }
-
-    /**
-     * Set <code>autoFinalize</code> to <code>false</code> if you want to test the behavior while
-     * add operation is in progress. Then call <code>syncAddEndpoint</code> to block
-     * until the add operation ends (but it will not finalize in such case).
-     * To finalize the operation, call <code>finalizaAddEndpoint</code>.
-     * <p>
-     * If <code>autoFinalize == true</code> the finalization will occur asynchronously after the
-     * addition process finishes.
-     * <p>
      * Note that this implementation supports at most one addEndpoint or removeEndpoint operation at
      * a time. This method will return <code>false</code> if such operation is already in progress.
      *
      * @param key
      * @param kvs
      * @param rack
-     * @param autoFinalize
      * @return <code>true</code> if the operation has been accepted for execution, <code>false</code> otherwise.
      */
-    public synchronized boolean addEndpoint(final byte[] key, final KeyValueEndpoint kvs, String rack, final boolean autoFinalize) {
-        version.set(version.get() + 1);
-
+    @Override
+    public synchronized boolean addEndpoint(final byte[] key, final KeyValueEndpoint kvs, String rack) {
         // Sanity checks
         Preconditions.checkArgument(!ring.containsKey(key));
 
-        if (!removals.isEmpty() || !joins.isEmpty() || operationsInProgress > 0) {
+        if (operationsInProgress > 0) {
             return false;
         }
-        operationsInProgress++;
 
         kvs.build(versionSupplier);
         delegates.add(kvs.keyValueService());
 
-        joins.add(executor.submit(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                byte[] nextKey = ring.nextKey(key);
-                List<RangeRequest> ranges = getRangesOperatedByKvs(nextKey, false);
-
-                // Insert the joiner into the ring
-                KeyValueEndpoint sourceKvs = ring.get(nextKey).get();
-                ring.put(key, new EndpointWithJoiningStatus(kvs));
-
-                // First, copy all the ranges besides the one in which
-                // the new kvs is located. All these will be operated
-                // by the new kvs.
-                for (int i = 0; i < ranges.size() - 1; ++i) {
-                    copyData(kvs, sourceKvs, ranges.get(i));
-                }
-
-                // Now we need to split the last range into two pieces.
-                // The second piece will not be operated by the joiner,
-                // thus I only need to copy the first part over.
-                RangeRequest lastRange = ranges.get(ranges.size() - 1);
-                RangeRequest lastRange1 = lastRange.getBuilder().endRowExclusive(key).build();
-                copyData(kvs, sourceKvs, lastRange1);
-
-                // Some anti-bug asserts
-                assert UnsignedBytes.lexicographicalComparator().compare(lastRange.getStartInclusive(), key) < 0;
-                assert UnsignedBytes.lexicographicalComparator().compare(lastRange.getEndExclusive(), key) > 0;
-
-                // The last thing to be done is to remove the farthest
-                // ranges from the endpoints following this one.
-                //
-                // Note that this could be theoretically completed after changing the status to normal, but
-                // we do not allow this now as finalizeAddEndpoints also gives up the lock and thus another
-                // add/remove operation could potentially begin and interfere with this.
-                byte[] keyToRemove = nextKey;
-                for (int i = 0; i < ranges.size() - 1; ++i) {
-                    RangeRequest rangeToRemove = ranges.get(i);
-                    deleteData(ring.get(keyToRemove).get(), rangeToRemove);
-                    keyToRemove = ring.nextKey(keyToRemove);
-                }
-                deleteData(ring.get(keyToRemove).get(), lastRange1);
-
-                if (autoFinalize) {
-                    finalizeAddEndpoint(key);
-                }
-
-                return null;
-            }
-        }));
+        ring.put(key, new EndpointWithJoiningStatus(kvs));
+        version.set(version.get() + 1);
+        operationsInProgress++;
 
         return true;
     }
 
     /**
-     * Block until the add operation is completed. If <code>autoFinalize</code> was false, it will NOT
-     * finalize that operation and <code>finalizeAddEndpoint</code> should still be called after calling
-     * this method.
+     * Before:
+     *
+     * ranges operated by F
+     * A     B     C     D     E     F     G     H     I
+     * |     |     |-----|-----|-----|     |     |     |
+     *
+     * ranges operated by G
+     * A     B     C     D     E     F     G     H     I
+     * |     |     |     |-----|-----|-----|     |     |
+     *
+     * ranges operated by H
+     * A     B     C     D     E     F     G     H     I
+     * |     |     |     |     |-----|-----|-----|     |
+     *
+     *
+     * Inserting E':
+     *
+     * ranges operated by E'
+     * A     B     C     D     E  E' F     G     H     I
+     * |     |     |-----|-----|--|  |     |     |     |
+     *
+     * ranges operated by F
+     * A     B     C     D     E  E' F     G     H     I
+     * |     |     |     |-----|--|--|     |     |     |
+     *
+     * ranges operated by G
+     * A     B     C     D     E  E' F     G     H     I
+     * |     |     |     |     |--|--|-----|     |     |
+     *
+     * ranges operated by H
+     * A     B     C     D     E  E' F     G     H     I
+     * |     |     |     |     |  |--|-----|-----|     |
+     *
+     *
+     * Idea: remove the lowest range from REPF higher endpoints.
+     * Copy REPF lower ranges to the newly added endpoint.
+     *
      */
-    public void syncAddEndpoint() {
-        // Do it synchronously now for testing purposes
-        try {
-            while (!joins.isEmpty()) {
-                Futures.getUnchecked(joins.take());
-            }
-        } catch (InterruptedException e) {
-            throw Throwables.throwUncheckedException(e);
-        }
-    }
+    @Override
+    public synchronized void promoteAddedEndpoint(byte[] key) {
+    	Preconditions.checkArgument(ring.get(key) instanceof EndpointWithJoiningStatus);
+    	Preconditions.checkState(operationsInProgress == 1);
 
-    /**
-     * This should be called after the add operations finishes. It will change the endpoint status
-     * from joining to normal and release the add/remove operation lock.
-     * @param key
-     */
-    public synchronized void finalizeAddEndpoint(byte[] key) {
-        Preconditions.checkArgument(ring.get(key) instanceof EndpointWithJoiningStatus);
-        KeyValueEndpoint kve = ring.get(key).get();
-        version.set(version.get() + 1);
-        while (!joins.isEmpty()) {
-            try {
-                Futures.getUnchecked(joins.take());
-            } catch (InterruptedException e) {
-                Throwables.throwUncheckedException(e);
-            }
+    	KeyValueService kvs = ring.get(key).get().keyValueService();
+
+        byte[] nextKey = ring.nextKey(key);
+        List<RangeRequest> ranges = getRangesOperatedByKvs(key, false);
+
+        KeyValueService sourceKvs = ring.get(nextKey).get().keyValueService();
+
+        // First, copy all the ranges besides the one in which
+        // the new kvs is located. All these will be operated
+        // by the new kvs.
+        // TODO: Use multiple nodes to complete this task!
+        // (Cycle reference to the corrresponding PKVS?)
+        for (int i = 0; i < ranges.size(); ++i) {
+            copyData(kvs, sourceKvs, ranges.get(i));
         }
-        ring.put(key, new EndpointWithNormalStatus(kve));
-        kve.build(versionSupplier);
+
+        // TODO: Finalize here?
+
+        // The last thing to be done is to remove the farthest
+        // ranges from the endpoints following this one.
+        byte[] keyToRemove = nextKey;
+        for (int i = 0; i < ranges.size(); ++i) {
+            deleteData(ring.get(keyToRemove).get().keyValueService(), ranges.get(i));
+            keyToRemove = ring.nextKey(keyToRemove);
+        }
+
+        // Finalize
+        ring.put(key, ring.get(key).asNormal());
+        version.set(version.get() + 1);
         operationsInProgress--;
     }
 
     /**
-     * This implementation supports at most one add/remove operation at a time and will
-     * return <code>false</code> if there is one running already.
-     */
-    @Override
-    public synchronized boolean removeEndpoint(byte[] key) {
-        return removeEndpoint(key, true);
-    }
-
-    /**
-     * Set <code>autoFinalize</code> to <code>false</code> if you want to test the behavior while
-     * remove operation is in progress. Then call <code>syncRemoveEndpoint</code> to block
-     * until the remove operation ends (but it will not finalize automatically in such case).
-     * To finalize the operation, call <code>finalizaAddEndpoint</code>.
-     * <p>
-     * If <code>autoFinalize == true</code> the finalization will occur asynchronously after the
-     * addition process finishes.
-     * <p>
      * Note that this implementation supports at most one addEndpoint or removeEndpoint operation at
      * a time. This method will return <code>false</code> if such operation is already in progress.
      *
      * @param key
-     * @param autoFinalize
      * @return <code>true</code> if the operation has been accepted for execution, <code>false</code> otherwise.
      */
-    public synchronized boolean removeEndpoint(final byte[] key, final boolean autoFinalize) {
-        final KeyValueEndpoint kve = Preconditions.checkNotNull(ring.get(key)).get();
-        version.set(version.get() + 1);
-
-        // Sanity checks
+    @Override
+	public synchronized boolean removeEndpoint(final byte[] key) {
+    	Preconditions.checkArgument(ring.get(key) instanceof EndpointWithNormalStatus);
         Preconditions.checkArgument(ring.keySet().size() > quorumParameters.getReplicationFactor());
-
-        if (!removals.isEmpty() || !joins.isEmpty() || operationsInProgress > 0) {
+        if (operationsInProgress > 0) {
             return false;
         }
+
+    	ring.put(key, ring.get(key).asLeaving());
+        version.set(version.get() + 1);
         operationsInProgress++;
-
-        removals.add(executor.submit(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                List<RangeRequest> ranges = getRangesOperatedByKvs(key, true);
-
-                // Set the status to leaving
-                ring.put(key, Preconditions.checkNotNull(ring.get(key).asLeaving()));
-
-                // Copy the farthest range to the first higher kvs.
-                // Copy the second-farthest range to the second-higher kvs.
-                // Etc.
-                byte[] dstKvsKey = ring.nextKey(key);
-                for (int i = 0; i < ranges.size() - 1; ++i) {
-                    copyData(ring.get(dstKvsKey).get(), kve, ranges.get(i));
-                    dstKvsKey = ring.nextKey(dstKvsKey);
-                }
-
-                // The special case for the last range.
-                RangeRequest lastRange1 = ranges.get(ranges.size() - 1).getBuilder().endRowExclusive(key).build();
-                copyData(ring.get(dstKvsKey).get(), kve, lastRange1);
-
-                if (autoFinalize) {
-                    // Remove the kvs from the ring.
-                    finalizeRemoveEndpoint(key);
-                }
-                return null;
-            }
-        }));
 
         return true;
     }
 
-    public void syncRemoveEndpoint() {
-        // Do it synchronously for testing purposes.
-        try {
-            while (!removals.isEmpty()) {
-                Futures.getUnchecked(removals.take());
-            }
-        } catch (InterruptedException e) {
-            throw Throwables.throwUncheckedException(e);
+    /**
+     * Before:
+     *
+     * ranges operated by E:
+     * A     B     C     D     E     F     G     H     I
+     * |     |-----|-----|-----|     |     |     |     |
+     *
+     * ranges operated by F
+     * A     B     C     D     E     F     G     H     I
+     * |     |     |-----|-----|-----|     |     |     |
+     *
+     * ranges operated by G
+     * A     B     C     D     E     F     G     H     I
+     * |     |     |     |-----|-----|-----|     |     |
+     *
+     * ranges operated by H
+     * A     B     C     D     E     F     G     H     I
+     * |     |     |     |     |-----|-----|-----|     |
+     *
+     *
+     * Removing E:
+     *
+     * ranges operated by F
+     * A     B     C     D     *     F     G     H     I
+     * |     |-----|-----|-----------|     |     |     |
+     *
+     * ranges operated by G
+     * A     B     C     D     *     F     G     H     I
+     * |     |     |-----|-----------|-----|     |     |
+     *
+     * ranges operated by H
+     * A     B     C     D     *     F     G     H     I
+     * |     |     |     |-----------|-----|-----|     |
+     *
+     *
+     * Idea: add one lower range to REPF higher endpoints.
+     * In case of the last one (H) I only need to add part
+     * of the new range that this endpoint did not have
+     * previously ([DE]).
+     *
+     *
+     */
+    @Override
+    public synchronized void promoteRemovedEndpoint(byte[] key) {
+    	Preconditions.checkArgument(ring.get(key) instanceof EndpointWithLeavingStatus);
+    	Preconditions.checkState(operationsInProgress == 1);
+
+    	KeyValueService kvs = ring.get(key).get().keyValueService();
+        List<RangeRequest> ranges = getRangesOperatedByKvs(key, true);
+
+        // Since I am currently taking the data just from E, I do
+        // not need to split up the last range - this endpoint only
+        // has the first part anyway.
+        // TODO: High availability (use more nodes to copy the data from).
+        byte[] dstKvsKey = ring.nextKey(key);
+        for (int i = 0; i < ranges.size(); ++i) {
+            copyData(ring.get(dstKvsKey).get().keyValueService(), kvs, ranges.get(i));
+            dstKvsKey = ring.nextKey(dstKvsKey);
         }
 
-    }
-
-    public synchronized void finalizeRemoveEndpoint(byte[] key) {
-        Preconditions.checkArgument(ring.get(key) instanceof EndpointWithLeavingStatus);
-        KeyValueEndpoint kve = Preconditions.checkNotNull(ring.get(key)).get();
-        version.set(version.get() + 1);
-        while (!removals.isEmpty()) {
-            try {
-                Futures.getUnchecked(removals.take());
-            } catch (InterruptedException e) {
-                Throwables.throwUncheckedException(e);
-            }
-        }
+        // Finalize
         ring.remove(key);
+        version.set(version.get() + 1);
         operationsInProgress--;
-        delegates.remove(kve.keyValueService());
+        delegates.remove(kvs);
     }
 
     @Override

@@ -3,7 +3,6 @@ package com.palantir.atlasdb.keyvalue.impl.partition;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import io.dropwizard.testing.junit.DropwizardClientRule;
 
 import java.util.Map;
 import java.util.NavigableMap;
@@ -30,6 +29,8 @@ import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapServiceImpl;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
 import com.palantir.atlasdb.keyvalue.remoting.Utils;
 import com.palantir.atlasdb.keyvalue.remoting.Utils.RemoteEndpoint;
+
+import io.dropwizard.testing.junit.DropwizardClientRule;
 
 /**
  * This test is to make sure that out of date exceptions are handled in a proper way.
@@ -127,13 +128,14 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
     	}
     }
 
+    byte[] sampleKey = new byte[] {(byte)0xff, 0, 0, 0};
+
     @Test
     public void testAddEndpoint() {
         Map<Cell, Value> emptyResult = ImmutableMap.<Cell, Value>of();
 
         skves[NUM_EPTS - 1].partitionMapService().updateMap(pkvs.getPartitionMap());
-        pkvs.getPartitionMap().addEndpoint(new byte[] {(byte)0xff, 0, 0, 0}, skves[NUM_EPTS-1], "", false);
-        pkvs.getPartitionMap().syncAddEndpoint();
+        pkvs.getPartitionMap().addEndpoint(sampleKey, skves[NUM_EPTS-1], "");
         skves[NUM_EPTS - 1].partitionMapService().updateMap(pkvs.getPartitionMap());
         for (int i=0; i<NUM_EPTS - 1; ++i) {
             skves[i].partitionMapService().updateMap(pkvs.getPartitionMap());
@@ -158,7 +160,7 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
             assertEquals(result0, epts[i].kvs.delegate.get(TEST_TABLE, cells0));
         }
 
-        pkvs.getPartitionMap().finalizeAddEndpoint(new byte[] {(byte)0xff, 0, 0, 0});
+        pkvs.getPartitionMap().promoteAddedEndpoint(sampleKey);
         skves[NUM_EPTS - 1].partitionMapService().updateMap(pkvs.getPartitionMap());
         for (int i=0; i<NUM_EPTS - 1; ++i) {
             skves[i].partitionMapService().updateMap(pkvs.getPartitionMap());
@@ -188,25 +190,22 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
         Map<Cell, Value> emptyResult = ImmutableMap.<Cell, Value>of();
 
         // First add the endpoint so that we can remove one
-        skves[NUM_EPTS - 1].partitionMapService().updateMap(pkvs.getPartitionMap());
-
-        pkvs.getPartitionMap().addEndpoint(new byte[] {(byte)0xff, 0, 0, 0}, skves[NUM_EPTS - 1], "", false);
-        pkvs.getPartitionMap().syncAddEndpoint();
+        pkvs.getPartitionMap().addEndpoint(sampleKey, skves[NUM_EPTS - 1], "");
         skves[NUM_EPTS - 1].partitionMapService().updateMap(pkvs.getPartitionMap());
         for (int i=0; i<NUM_EPTS - 1; ++i) {
             skves[i].partitionMapService().updateMap(pkvs.getPartitionMap());
         }
 
-        pkvs.getPartitionMap().finalizeAddEndpoint(new byte[] {(byte)0xff, 0, 0, 0});
-        skves[NUM_EPTS - 1].partitionMapService().updateMap(pkvs.getPartitionMap());
-        for (int i=0; i<NUM_EPTS - 1; ++i) {
+        pkvs.getPartitionMap().promoteAddedEndpoint(sampleKey);
+        for (int i=0; i<NUM_EPTS; ++i) {
             skves[i].partitionMapService().updateMap(pkvs.getPartitionMap());
         }
 
         pkvs.createTable(TEST_TABLE, 12345);
 
-        pkvs.getPartitionMap().removeEndpoint(new byte[] {0, 0}, false);
-        pkvs.getPartitionMap().syncRemoveEndpoint();
+        // Begin the remove operation
+        byte[] anotherSampleKey = new byte[] {0, 0};
+        pkvs.getPartitionMap().removeEndpoint(anotherSampleKey);
         for (int i=0; i<NUM_EPTS; ++i) {
             skves[i].partitionMapService().updateMap(pkvs.getPartitionMap());
         }
@@ -215,15 +214,19 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
         Map<Cell, byte[]> values0 = ImmutableMap.of(Cell.create(row0, column0), value00);
         Map<Cell, Value> result0 = ImmutableMap.of(Cell.create(row0, column0), Value.create(value00, TEST_TIMESTAMP));
 
+        // Removal is in progress -> new data should be stored to all the nodes in the ring
         pkvs.put(TEST_TABLE, values0, TEST_TIMESTAMP);
         for (int i=0; i<NUM_EPTS; ++i) {
             assertEquals(result0, epts[i].kvs.delegate.get(TEST_TABLE, cells0));
         }
 
-        pkvs.getPartitionMap().finalizeRemoveEndpoint(new byte[] {0, 0});
-        skves[0].partitionMapService().updateMap(pkvs.getPartitionMap());
-        skves[2].partitionMapService().updateMap(pkvs.getPartitionMap());
-        skves[3].partitionMapService().updateMap(pkvs.getPartitionMap());
+        // Finish the remove operation
+        pkvs.getPartitionMap().promoteRemovedEndpoint(anotherSampleKey);
+        // Push the new map to the remove endpoint as well - in case someone will
+        // still have the old map
+        for (int i=0; i<NUM_EPTS; ++i) {
+        	skves[i].partitionMapService().updateMap(pkvs.getPartitionMap());
+        }
 
         Map<Cell, Long> cells1 = ImmutableMap.of(Cell.create(row0, column1), TEST_TIMESTAMP + 1);
         Map<Cell, byte[]> values1 = ImmutableMap.of(Cell.create(row0, column1), value01);
@@ -231,6 +234,7 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
 
         pkvs.put(TEST_TABLE, values1, TEST_TIMESTAMP);
 
+        // Now the data should not be sent to the removed endpoint anymore
         assertEquals(result1, epts[0].kvs.delegate.get(TEST_TABLE, cells1));
         assertEquals(emptyResult, epts[1].kvs.delegate.get(TEST_TABLE, cells1));
         assertEquals(result1, epts[2].kvs.delegate.get(TEST_TABLE, cells1));
