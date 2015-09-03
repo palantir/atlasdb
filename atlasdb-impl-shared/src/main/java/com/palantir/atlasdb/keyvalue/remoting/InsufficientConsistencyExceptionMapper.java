@@ -17,8 +17,11 @@ public class InsufficientConsistencyExceptionMapper implements
 
     @Override
     public Response toResponse(InsufficientConsistencyException exception) {
-        // TODO: Add content (how?) with explanation
-        return Response.noContent().status(503).build();
+        return Response
+        		.status(503)
+        		.entity("Insufficient consistency!")
+        		.header(feign.Util.RETRY_AFTER, "0")
+        		.build();
     }
 
 }

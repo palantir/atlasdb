@@ -15,8 +15,10 @@ public class KeyAlreadyExistsExceptionMapper implements ExceptionMapper<KeyAlrea
 
     @Override
     public Response toResponse(KeyAlreadyExistsException exception) {
-        // TODO: Add content (how?) with explanation
-        return Response.noContent().status(409).build();
+        return Response
+        		.status(409)
+        		.entity("Key already exists!")
+        		.build();
     }
 
 }
