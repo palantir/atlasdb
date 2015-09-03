@@ -26,11 +26,11 @@ shadowJar {
 
 publishing {
     publications {
-        local(MavenPublication) {
-            artifacts = [shadowJar]
+        bintray(MavenPublication) {
+            artifact(shadowJar)
             pom.withXml {
-                def node = asNode();
-                node.remove(node.get('licenses'));
+                def node = asNode()
+                node.remove(node.get('licenses'))
             }
         }
     }

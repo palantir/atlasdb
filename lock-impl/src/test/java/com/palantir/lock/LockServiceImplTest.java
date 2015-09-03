@@ -326,7 +326,7 @@ public final class LockServiceImplTest {
 
         server.unlock(resp2.getToken());
 
-        future.get(10, TimeUnit.MILLISECONDS);
+        future.get(60, TimeUnit.MILLISECONDS);
 
         resp2 = server.lock(LockClient.ANONYMOUS, hasLock2);
         server.unlock(resp2.getToken());
