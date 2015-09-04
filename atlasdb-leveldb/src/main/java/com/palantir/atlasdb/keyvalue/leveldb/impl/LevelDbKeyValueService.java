@@ -215,13 +215,12 @@ public final class LevelDbKeyValueService implements KeyValueService {
 
 
     private static void validateTableName(String tableName) {
-        Validate.isTrue(!tableName.isEmpty());
-        for (int i = 0, length = tableName.length(); i != length; ++i) {
-            final char c = tableName.charAt(i);
-            if (!Character.isLetterOrDigit(c) && c != '_') {
-                throw new IllegalArgumentException("illegal table name: " + tableName);
-            }
-        }
+        Validate.isTrue(
+                !tableName.startsWith("_")
+                || AtlasDbConstants.hiddenTables.contains(tableName)
+                || tableName.startsWith(AtlasDbConstants.TEMP_TABLE_PREFIX)
+                || tableName.startsWith(AtlasDbConstants.NAMESPACE_PREFIX),
+                "invalid tableName: " + tableName);
     }
 
 
