@@ -51,7 +51,7 @@ public class KeyValueEndpointTest extends AbstractAtlasDbKeyValueServiceTest {
         Utils.setupRuleHacks(endpointKvsService);
         Utils.setupRuleHacks(endpointPmsService);
         endpoint = new SimpleKeyValueEndpoint(endpointKvsService.baseUri().toString(), endpointPmsService.baseUri().toString());
-        endpoint.build(Suppliers.ofInstance(-1L));
+        endpoint.registerPartitionMapVersion(Suppliers.ofInstance(-1L));
     }
 
     private KeyValueEndpoint getEndpoint() {

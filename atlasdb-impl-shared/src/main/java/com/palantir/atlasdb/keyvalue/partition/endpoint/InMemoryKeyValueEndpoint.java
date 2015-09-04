@@ -38,7 +38,7 @@ public class InMemoryKeyValueEndpoint implements KeyValueEndpoint {
     }
 
     @Override
-    public void build(Supplier<Long> clientVersionSupplier) {
+    public void registerPartitionMapVersion(Supplier<Long> clientVersionSupplier) {
         // No-op
     }
 

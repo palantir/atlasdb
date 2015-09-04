@@ -214,7 +214,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap, StorablePar
 	 */
     private <T extends Map<byte[], EndpointWithStatus>> T buildRing(T ring) {
         for (EndpointWithStatus e : ring.values()) {
-            e.get().build(versionSupplier);
+            e.get().registerPartitionMapVersion(versionSupplier);
         }
         return ring;
     }
@@ -563,7 +563,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap, StorablePar
             return false;
         }
 
-        kvs.build(versionSupplier);
+        kvs.registerPartitionMapVersion(versionSupplier);
         delegates.add(kvs.keyValueService());
 
         ring.put(key, new EndpointWithJoiningStatus(kvs));

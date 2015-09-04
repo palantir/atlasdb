@@ -26,5 +26,5 @@ public interface KeyValueEndpoint {
      * TODO: This should be replaced by a nicer solution eventually.
      * @param clientVersionSupplier
      */
-    void build(Supplier<Long> clientVersionSupplier);
+    void registerPartitionMapVersion(Supplier<Long> clientVersionSupplier);
 }
