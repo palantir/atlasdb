@@ -1,0 +1,19 @@
+sudo: false
+language: java
+jdk:
+- oraclejdk7
+env:
+  matrix:
+  - CI=true
+  global:
+  - secure: POUjbpa+bp/FqRffgochok2VMEF22ZdiZLN6E1HW7Ik5vLjs4DNzDT9oFJxGsPmwC5goXrkPUyVgg2UH+59bzcExw3YS3A29zXwSbUkcIg8JJ7w1WZbM3KOeREzWr5LhkRRMY7QiidATrM9yjHgV7cIhd2HKwwZcdATUj95wYAg=
+  - secure: oKW6sgnhL4+ixCgW4b/0PDPjOHYBeRPTygCq/pJvz8MeZKvtaRz9Snawb99t0CwwvqBSDxAdbaD6xrQ6iGZP2IshvLsyNclKOVpwWtpAZkJCZIbC4egekn8o6st/nsz3ybGQ6qTOU1KOx8UK/8rNEbZsIYnrkMTO552Qjy/JIGM=
+after_success:
+- "./gradlew bintrayUpload"
+cache:
+  directories:
+  - "$HOME/.gradle/wrapper"
+  - "$HOME/.gradle/native"
+  - "$HOME/.gradle/caches/2.6"
+  - "$HOME/.gradle/caches/modules-2/files-2.1"
+  - "$HOME/.gradle/caches/modules-2/metadata-2.15"
