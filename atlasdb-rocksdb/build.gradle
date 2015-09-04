@@ -1,0 +1,9 @@
+apply from: "../gradle/shared.gradle"
+
+dependencies {
+  compile(project(":atlasdb-client"))
+  compile project(':timestamp-impl')
+  compile(project(":atlasdb-spi"))
+  compile "org.rocksdb:rocksdbjni:3.10.1"
+}
+
