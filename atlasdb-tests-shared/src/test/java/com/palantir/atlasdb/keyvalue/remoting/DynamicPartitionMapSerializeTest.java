@@ -1,7 +1,6 @@
 package com.palantir.atlasdb.keyvalue.remoting;
 
 import static org.junit.Assert.assertEquals;
-import io.dropwizard.testing.junit.DropwizardClientRule;
 
 import java.io.IOException;
 import java.util.NavigableMap;
@@ -20,15 +19,17 @@ import com.palantir.atlasdb.keyvalue.partition.api.PartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.SimpleKeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.map.DynamicPartitionMapImpl;
+import com.palantir.atlasdb.keyvalue.partition.map.InMemoryPartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
-import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapServiceImpl;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
 import com.palantir.common.concurrent.PTExecutors;
+
+import io.dropwizard.testing.junit.DropwizardClientRule;
 
 public class DynamicPartitionMapSerializeTest {
 
     static final KeyValueService endpointKvs = new InMemoryKeyValueService(false);
-    static final PartitionMapService endpointPms = new PartitionMapServiceImpl();
+    static final PartitionMapService endpointPms = InMemoryPartitionMapService.createEmpty();
     static final QuorumParameters QUORUM_PARAMETERS = new QuorumParameters(3, 2, 2);
     static final ObjectMapper mapper = RemotingKeyValueService.kvsMapper();
 

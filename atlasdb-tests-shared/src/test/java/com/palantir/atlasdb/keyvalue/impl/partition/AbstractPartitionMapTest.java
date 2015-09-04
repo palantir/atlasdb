@@ -35,7 +35,7 @@ import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.api.PartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.InMemoryKeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
-import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapServiceImpl;
+import com.palantir.atlasdb.keyvalue.partition.map.InMemoryPartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
 import com.palantir.atlasdb.keyvalue.partition.util.ConsistentRingRangeRequest;
 import com.palantir.common.collect.Maps2;
@@ -84,13 +84,13 @@ public abstract class AbstractPartitionMapTest {
             new InMemoryKeyValueService(false));
 
     protected ArrayList<KeyValueEndpoint> endpoints = Lists.<KeyValueEndpoint> newArrayList(
-            InMemoryKeyValueEndpoint.create(services.get(0), new PartitionMapServiceImpl()),
-            InMemoryKeyValueEndpoint.create(services.get(1), new PartitionMapServiceImpl()),
-            InMemoryKeyValueEndpoint.create(services.get(2), new PartitionMapServiceImpl()),
-            InMemoryKeyValueEndpoint.create(services.get(3), new PartitionMapServiceImpl()),
-            InMemoryKeyValueEndpoint.create(services.get(4), new PartitionMapServiceImpl()),
-            InMemoryKeyValueEndpoint.create(services.get(5), new PartitionMapServiceImpl()),
-            InMemoryKeyValueEndpoint.create(services.get(6), new PartitionMapServiceImpl()));
+            InMemoryKeyValueEndpoint.create(services.get(0), InMemoryPartitionMapService.createEmpty()),
+            InMemoryKeyValueEndpoint.create(services.get(1), InMemoryPartitionMapService.createEmpty()),
+            InMemoryKeyValueEndpoint.create(services.get(2), InMemoryPartitionMapService.createEmpty()),
+            InMemoryKeyValueEndpoint.create(services.get(3), InMemoryPartitionMapService.createEmpty()),
+            InMemoryKeyValueEndpoint.create(services.get(4), InMemoryPartitionMapService.createEmpty()),
+            InMemoryKeyValueEndpoint.create(services.get(5), InMemoryPartitionMapService.createEmpty()),
+            InMemoryKeyValueEndpoint.create(services.get(6), InMemoryPartitionMapService.createEmpty()));
 
     private void testRangeIntervalsOk(final RangeRequest rangeRequest) {
         Multimap<ConsistentRingRangeRequest, KeyValueEndpoint> result = tpm.getServicesForRangeRead(

@@ -1,9 +1,5 @@
 package com.palantir.atlasdb.keyvalue.remoting;
 
-import io.dropwizard.Configuration;
-import io.dropwizard.testing.DropwizardTestSupport;
-import io.dropwizard.testing.junit.DropwizardClientRule;
-
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -23,12 +19,16 @@ import com.palantir.atlasdb.keyvalue.partition.endpoint.InMemoryKeyValueEndpoint
 import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.SimpleKeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.map.DynamicPartitionMapImpl;
+import com.palantir.atlasdb.keyvalue.partition.map.InMemoryPartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
-import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapServiceImpl;
 import com.palantir.atlasdb.keyvalue.partition.server.EndpointServer;
 import com.palantir.atlasdb.keyvalue.remoting.outofband.InboxPopulatingContainerRequestFilter;
 import com.palantir.common.base.Throwables;
 import com.palantir.util.Pair;
+
+import io.dropwizard.Configuration;
+import io.dropwizard.testing.DropwizardTestSupport;
+import io.dropwizard.testing.junit.DropwizardClientRule;
 
 public class Utils {
 
@@ -77,7 +77,7 @@ public class Utils {
     	NavigableMap<byte[], KeyValueEndpoint> ring = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
     	keyList.add((byte) 0);
     	for (KeyValueService kvs : services) {
-    		KeyValueEndpoint endpoint = InMemoryKeyValueEndpoint.create(kvs, new PartitionMapServiceImpl());
+    		KeyValueEndpoint endpoint = InMemoryKeyValueEndpoint.create(kvs, InMemoryPartitionMapService.createEmpty());
     		byte[] key = ArrayUtils.toPrimitive(keyList.toArray(new Byte[keyList.size()]));
     		ring.put(key, endpoint);
             keyList.add((byte) 0);

@@ -14,17 +14,18 @@ import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.InMemoryKeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.map.DynamicPartitionMapImpl;
+import com.palantir.atlasdb.keyvalue.partition.map.InKvsPartitionMapService;
+import com.palantir.atlasdb.keyvalue.partition.map.InMemoryPartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
-import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapServiceImpl;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
 
-public class PartitionMapServiceTest {
+public class InMemoryPartitionMapServiceTest {
 
     protected static final NavigableMap<byte[], KeyValueEndpoint> RING; static {
         RING = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
-        RING.put(new byte[] {0},       InMemoryKeyValueEndpoint.create(new InMemoryKeyValueService(false), new PartitionMapServiceImpl()));
-        RING.put(new byte[] {0, 0},    InMemoryKeyValueEndpoint.create(new InMemoryKeyValueService(false), new PartitionMapServiceImpl()));
-        RING.put(new byte[] {0, 0, 0}, InMemoryKeyValueEndpoint.create(new InMemoryKeyValueService(false), new PartitionMapServiceImpl()));
+        RING.put(new byte[] {0},       InMemoryKeyValueEndpoint.create(new InMemoryKeyValueService(false), InKvsPartitionMapService.createEmptyInMemory()));
+        RING.put(new byte[] {0, 0},    InMemoryKeyValueEndpoint.create(new InMemoryKeyValueService(false), InKvsPartitionMapService.createEmptyInMemory()));
+        RING.put(new byte[] {0, 0, 0}, InMemoryKeyValueEndpoint.create(new InMemoryKeyValueService(false), InKvsPartitionMapService.createEmptyInMemory()));
     }
 
     protected static final QuorumParameters QUORUM_PARAMETERS = new QuorumParameters(3, 2, 2);
@@ -62,10 +63,10 @@ public class PartitionMapServiceTest {
     }
 
     protected PartitionMapService createPartitionMapService(DynamicPartitionMap partitionMap) {
-    	return new PartitionMapServiceImpl(DynamicPartitionMapImpl.create(RING));
+    	return InMemoryPartitionMapService.create(DynamicPartitionMapImpl.create(RING));
     }
 
-    protected PartitionMapServiceImpl createEmptyPartitionMapService() {
-    	return new PartitionMapServiceImpl();
+    protected PartitionMapService createEmptyPartitionMapService() {
+        return InMemoryPartitionMapService.createEmpty();
     }
 }

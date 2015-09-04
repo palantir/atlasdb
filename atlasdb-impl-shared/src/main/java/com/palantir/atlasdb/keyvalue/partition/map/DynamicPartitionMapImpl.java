@@ -45,8 +45,8 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
-import com.palantir.atlasdb.keyvalue.partition.api.StorablePartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
+import com.palantir.atlasdb.keyvalue.partition.endpoint.SimpleKeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
 import com.palantir.atlasdb.keyvalue.partition.status.EndpointWithJoiningStatus;
 import com.palantir.atlasdb.keyvalue.partition.status.EndpointWithLeavingStatus;
@@ -139,7 +139,7 @@ import com.palantir.util.Pair;
  * Jackson notice: This class has custom serializer and deserializer.
  *
  */
-public class DynamicPartitionMapImpl implements DynamicPartitionMap, StorablePartitionMap {
+public class DynamicPartitionMapImpl implements DynamicPartitionMap {
 
 	private static final Logger log = LoggerFactory.getLogger(DynamicPartitionMapImpl.class);
 
@@ -819,6 +819,9 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap, StorablePar
             gen.writeFieldName("ring");
             gen.writeStartArray();
             for (Entry<byte[], EndpointWithStatus> entry : instance.ring.entrySet()) {
+                if (!(entry.getValue().get() instanceof SimpleKeyValueEndpoint)) {
+                    throw new IllegalArgumentException("DynamicPartitionMapImpl serialization is only supported with SimplKeyValueEndpoint endpoints!");
+                }
                 gen.writeStartObject();
                 gen.writeBinaryField("key", entry.getKey());
                 gen.writeObjectField("endpointWithStatus", entry.getValue());
@@ -870,7 +873,6 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap, StorablePar
     private static final Cell WRITEF_CELL = Cell.create("quorumParameters".getBytes(), "writef".getBytes());
     private static final Cell VERSION_CELL = Cell.create("version".getBytes(), "version".getBytes());
 
-    @Override
     public Map<Cell, byte[]> toTable() {
         try {
             Map<Cell, byte[]> result = Maps.newHashMap();
@@ -887,6 +889,9 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap, StorablePar
             for (Entry<byte[], EndpointWithStatus> entry : ring.entrySet()) {
                 byte[] row = "map".getBytes();
                 byte[] col = entry.getKey();
+                if (!(entry.getValue().get() instanceof SimpleKeyValueEndpoint)) {
+                    throw new IllegalArgumentException("DynamicPartitionMapImpl serialization is only supported with SimplKeyValueEndpoint endpoints!");
+                }
                 byte[] value = RemotingKeyValueService.kvsMapper().writeValueAsBytes(entry.getValue());
                 result.put(Cell.create(row, col), value);
             }
@@ -897,8 +902,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap, StorablePar
         }
     }
 
-    @Override
-    public DynamicPartitionMapImpl fromTable(Map<Cell, byte[]> table) {
+    public static DynamicPartitionMapImpl fromTable(Map<Cell, byte[]> table) {
         try {
 
             int repf = Integer.parseInt(new String(table.get(REPF_CELL)));

@@ -25,7 +25,7 @@ import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.SimpleKeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.exception.VersionTooOldException;
 import com.palantir.atlasdb.keyvalue.partition.map.DynamicPartitionMapImpl;
-import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapServiceImpl;
+import com.palantir.atlasdb.keyvalue.partition.map.InKvsPartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
 import com.palantir.atlasdb.keyvalue.remoting.Utils;
 import com.palantir.atlasdb.keyvalue.remoting.Utils.RemoteEndpoint;
@@ -61,7 +61,7 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
     private static int NUM_EPTS = 4;
     RemoteEndpoint[] epts = new RemoteEndpoint[NUM_EPTS]; {
         for (int i=0; i<NUM_EPTS; ++i) {
-            epts[i] = new RemoteEndpoint(new InMemoryKeyValueService(false), new PartitionMapServiceImpl());
+            epts[i] = new RemoteEndpoint(new InMemoryKeyValueService(false), InKvsPartitionMapService.createEmptyInMemory());
         }
     };
 

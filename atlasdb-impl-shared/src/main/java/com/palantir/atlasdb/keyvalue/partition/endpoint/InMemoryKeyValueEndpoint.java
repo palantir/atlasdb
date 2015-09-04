@@ -15,8 +15,8 @@ import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
  */
 public class InMemoryKeyValueEndpoint implements KeyValueEndpoint {
 
-    KeyValueService kvs;
-    final PartitionMapService pms;
+    transient KeyValueService kvs;
+    transient final PartitionMapService pms;
 
     private InMemoryKeyValueEndpoint(KeyValueService kvs, PartitionMapService pms) {
         this.kvs = Preconditions.checkNotNull(kvs);
