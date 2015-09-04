@@ -36,7 +36,7 @@ public class AtlasDbServerConfiguration extends Configuration {
 
 	@NotNull
 	@Valid
-	public String serverType = "leveldb";
+	public String serverType = "rocksdb";
 
 	public JsonNode extraConfig;
 }

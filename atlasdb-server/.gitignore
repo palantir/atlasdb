@@ -1,5 +1,5 @@
 /learner-log/
 /acceptor-log/
 /paxosLog/
-/leveldb/
-/.pt_kv_lock_leveldb
+/rocksdb/
+/.pt_kv_lock_rocksdb
