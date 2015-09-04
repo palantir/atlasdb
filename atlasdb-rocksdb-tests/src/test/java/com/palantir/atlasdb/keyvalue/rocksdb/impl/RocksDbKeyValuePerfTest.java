@@ -27,6 +27,7 @@ import java.util.concurrent.Future;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Maps;
@@ -37,7 +38,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.util.Pair;
 
-
+@Ignore
 public final class RocksDbKeyValuePerfTest {
 	private static final Random RAND = new Random();
 	private static final int KEY_SIZE = 16;
