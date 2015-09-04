@@ -1,6 +1,7 @@
 package com.palantir.atlasdb.keyvalue.partition.map;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +45,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
+import com.palantir.atlasdb.keyvalue.partition.api.StorablePartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
 import com.palantir.atlasdb.keyvalue.partition.status.EndpointWithJoiningStatus;
@@ -54,6 +56,7 @@ import com.palantir.atlasdb.keyvalue.partition.util.ConsistentRingRangeRequest;
 import com.palantir.atlasdb.keyvalue.partition.util.CycleMap;
 import com.palantir.atlasdb.keyvalue.remoting.RemotingKeyValueService;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.util.Mutable;
 import com.palantir.util.Mutables;
@@ -136,7 +139,7 @@ import com.palantir.util.Pair;
  * Jackson notice: This class has custom serializer and deserializer.
  *
  */
-public class DynamicPartitionMapImpl implements DynamicPartitionMap {
+public class DynamicPartitionMapImpl implements DynamicPartitionMap, StorablePartitionMap {
 
 	private static final Logger log = LoggerFactory.getLogger(DynamicPartitionMapImpl.class);
 
@@ -859,6 +862,68 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
 
             return new DynamicPartitionMapImpl(parameters, CycleMap.wrap(ring),
                     version, operationsInProgress, PTExecutors.newCachedThreadPool());
+        }
+    }
+
+    private static final Cell REPF_CELL = Cell.create("quorumParameters".getBytes(), "repf".getBytes());
+    private static final Cell READF_CELL = Cell.create("quorumParameters".getBytes(), "readf".getBytes());
+    private static final Cell WRITEF_CELL = Cell.create("quorumParameters".getBytes(), "writef".getBytes());
+    private static final Cell VERSION_CELL = Cell.create("version".getBytes(), "version".getBytes());
+
+    @Override
+    public Map<Cell, byte[]> toTable() {
+        try {
+            Map<Cell, byte[]> result = Maps.newHashMap();
+
+            // Store the quorum parameters
+            result.put(REPF_CELL, Integer.toString(quorumParameters.getReplicationFactor()).getBytes());
+            result.put(READF_CELL, Integer.toString(quorumParameters.getReadFactor()).getBytes());
+            result.put(WRITEF_CELL, Integer.toString(quorumParameters.getWriteFactor()).getBytes());
+
+            // Store the map version
+            result.put(VERSION_CELL, Long.toString(version.get()).getBytes());
+
+            // Store the map
+            for (Entry<byte[], EndpointWithStatus> entry : ring.entrySet()) {
+                byte[] row = "map".getBytes();
+                byte[] col = entry.getKey();
+                byte[] value = RemotingKeyValueService.kvsMapper().writeValueAsBytes(entry.getValue());
+                result.put(Cell.create(row, col), value);
+            }
+            return result;
+
+        } catch (JsonProcessingException e) {
+            throw Throwables.throwUncheckedException(e);
+        }
+    }
+
+    @Override
+    public DynamicPartitionMapImpl fromTable(Map<Cell, byte[]> table) {
+        try {
+
+            int repf = Integer.parseInt(new String(table.get(REPF_CELL)));
+            int readf = Integer.parseInt(new String(table.get(READF_CELL)));
+            int writef = Integer.parseInt(new String(table.get(WRITEF_CELL)));
+            long version = Long.parseLong(new String(table.get(VERSION_CELL)));
+
+            QuorumParameters parameters = new QuorumParameters(repf, readf, writef);
+            NavigableMap<byte[], EndpointWithStatus> ring =
+                    Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
+
+            for (Entry<Cell, byte[]> entry : table.entrySet()) {
+                if (!Arrays.equals(entry.getKey().getRowName(), "map".getBytes())) {
+                    continue;
+                }
+                byte[] key = entry.getKey().getColumnName();
+                EndpointWithStatus ews = RemotingKeyValueService.kvsMapper().readValue(entry.getValue(), EndpointWithStatus.class);
+                ring.put(key, ews);
+            }
+
+            return new DynamicPartitionMapImpl(parameters, CycleMap.wrap(ring),
+                    version, 0, PTExecutors.newCachedThreadPool());
+
+        } catch (IOException e) {
+            throw Throwables.throwUncheckedException(e);
         }
     }
 
