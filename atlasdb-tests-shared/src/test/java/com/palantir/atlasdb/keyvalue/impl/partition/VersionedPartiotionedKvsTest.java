@@ -61,7 +61,8 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
     private static int NUM_EPTS = 4;
     RemoteEndpoint[] epts = new RemoteEndpoint[NUM_EPTS]; {
         for (int i=0; i<NUM_EPTS; ++i) {
-            epts[i] = new RemoteEndpoint(new InMemoryKeyValueService(false), InKvsPartitionMapService.createEmptyInMemory());
+            KeyValueService kvs = new InMemoryKeyValueService(false);
+            epts[i] = new RemoteEndpoint(kvs, InKvsPartitionMapService.createEmptyInMemory());
         }
     };
 

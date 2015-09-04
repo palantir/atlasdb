@@ -872,6 +872,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     private static final Cell READF_CELL = Cell.create("quorumParameters".getBytes(), "readf".getBytes());
     private static final Cell WRITEF_CELL = Cell.create("quorumParameters".getBytes(), "writef".getBytes());
     private static final Cell VERSION_CELL = Cell.create("version".getBytes(), "version".getBytes());
+    private static final Cell OPS_IN_PROGRESS_CELL = Cell.create("operations".getBytes(), "inProgress".getBytes());
 
     public Map<Cell, byte[]> toTable() {
         try {
@@ -885,6 +886,9 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
             // Store the map version
             result.put(VERSION_CELL, Long.toString(version.get()).getBytes());
 
+            // Store no of operations in progress
+            result.put(OPS_IN_PROGRESS_CELL, Long.toString(operationsInProgress).getBytes());
+
             // Store the map
             for (Entry<byte[], EndpointWithStatus> entry : ring.entrySet()) {
                 byte[] row = "map".getBytes();
@@ -895,6 +899,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
                 byte[] value = RemotingKeyValueService.kvsMapper().writeValueAsBytes(entry.getValue());
                 result.put(Cell.create(row, col), value);
             }
+
             return result;
 
         } catch (JsonProcessingException e) {
@@ -909,6 +914,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
             int readf = Integer.parseInt(new String(table.get(READF_CELL)));
             int writef = Integer.parseInt(new String(table.get(WRITEF_CELL)));
             long version = Long.parseLong(new String(table.get(VERSION_CELL)));
+            long operationsInProgress = Long.parseLong(new String(table.get(OPS_IN_PROGRESS_CELL)));
 
             QuorumParameters parameters = new QuorumParameters(repf, readf, writef);
             NavigableMap<byte[], EndpointWithStatus> ring =
@@ -924,7 +930,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
             }
 
             return new DynamicPartitionMapImpl(parameters, CycleMap.wrap(ring),
-                    version, 0, PTExecutors.newCachedThreadPool());
+                    version, operationsInProgress, PTExecutors.newCachedThreadPool());
 
         } catch (IOException e) {
             throw Throwables.throwUncheckedException(e);
