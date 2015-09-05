@@ -7,6 +7,7 @@ import static org.junit.Assert.fail;
 import java.util.Map;
 import java.util.NavigableMap;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -29,6 +30,7 @@ import com.palantir.atlasdb.keyvalue.partition.map.InKvsPartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
 import com.palantir.atlasdb.keyvalue.remoting.Utils;
 import com.palantir.atlasdb.keyvalue.remoting.Utils.RemoteEndpoint;
+import com.palantir.common.concurrent.PTExecutors;
 
 import io.dropwizard.testing.junit.DropwizardClientRule;
 
@@ -81,7 +83,18 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
     @Rule public DropwizardClientRule pmsRule3 = epts[2].pms.rule;
     @Rule public DropwizardClientRule pmsRule4 = epts[3].pms.rule;
 
+    @After
+    public void cleanupStuff() {
+        for (int i = 0; i < NUM_EPTS; ++i) {
+            for (String tableName : epts[i].kvs.delegate.getAllTableNames()) {
+                epts[i].kvs.delegate.dropTable(tableName);
+            }
+        }
+        setUpPrivate();
+    }
+
     public void setUpPrivate() {
+
         for (int i=0; i<NUM_EPTS; ++i) {
             skves[i] = new SimpleKeyValueEndpoint(epts[i].kvs.rule.baseUri().toString(), epts[i].pms.rule.baseUri().toString());
         }
@@ -92,7 +105,7 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
         ring.put(new byte[] {0, 0, 0}, skves[2]);
         // Do not insert skves[3] - it will be used later to test addEndpoint
 
-        pmap = DynamicPartitionMapImpl.create(ring);
+        pmap = DynamicPartitionMapImpl.create(new QuorumParameters(3, 3, 3), ring, PTExecutors.newCachedThreadPool());
         // We do not tolerate failures in this test. It is important since the
         // non-critical operations are done asynchronously and might not finishi
         // before checking the results.
@@ -132,6 +145,14 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
     byte[] sampleKey = new byte[] {(byte)0xff, 0, 0, 0};
 
     @Test
+    public void testMultiAddEndpoint() {
+        for (int i=0; i<100; ++i) {
+            testAddEndpoint();
+            cleanupStuff();
+        }
+    }
+
+    @Test
     public void testAddEndpoint() {
         Map<Cell, Value> emptyResult = ImmutableMap.<Cell, Value>of();
 
@@ -158,7 +179,8 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
         pkvs.put(TEST_TABLE, values0, TEST_TIMESTAMP);
 
         for (int i=0; i<NUM_EPTS; ++i) {
-            assertEquals(result0, epts[i].kvs.delegate.get(TEST_TABLE, cells0));
+            Map<Cell, Value> testResult = epts[i].kvs.delegate.get(TEST_TABLE, cells0);
+            assertEquals(result0, testResult);
         }
 
         pkvs.getPartitionMap().promoteAddedEndpoint(sampleKey);

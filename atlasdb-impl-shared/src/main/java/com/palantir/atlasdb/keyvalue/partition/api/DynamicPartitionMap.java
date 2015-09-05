@@ -1,6 +1,13 @@
 package com.palantir.atlasdb.keyvalue.partition.api;
 
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+
+import com.google.common.collect.Multimap;
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
+import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters.QuorumRequestParameters;
 
 /**
  * Dynamic means that the actual partition map can
@@ -80,4 +87,13 @@ public interface DynamicPartitionMap extends PartitionMap {
      * @return Current version of the map.
      */
     long getVersion();
+
+    Map<byte[], QuorumRequestParameters> getReadRowsParameters(Iterable<byte[]> rows);
+    Map<byte[], QuorumRequestParameters> getWriteRowsParameters(Set<byte[]> rows);
+    Map<Cell, QuorumRequestParameters> getReadCellsParameters(Set<Cell> cells);
+    Map<Cell, QuorumRequestParameters> getWriteCellsParameters(Set<Cell> cells);
+    <T> Map<Entry<Cell, T>, QuorumRequestParameters> getReadEntriesParameters(Map<Cell, T> entries);
+    <T> Map<Entry<Cell, T>, QuorumRequestParameters> getWriteEntriesParameters(Map<Cell, T> entries);
+    <T> Map<Entry<Cell, T>, QuorumRequestParameters> getReadEntriesParameters(Multimap<Cell, T> entries);
+    <T> Map<Entry<Cell, T>, QuorumRequestParameters> getWriteEntriesParameters(Multimap<Cell, T> entries);
 }

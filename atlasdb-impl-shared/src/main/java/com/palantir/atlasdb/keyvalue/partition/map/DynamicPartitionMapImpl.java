@@ -48,6 +48,7 @@ import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.SimpleKeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
+import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters.QuorumRequestParameters;
 import com.palantir.atlasdb.keyvalue.partition.status.EndpointWithJoiningStatus;
 import com.palantir.atlasdb.keyvalue.partition.status.EndpointWithLeavingStatus;
 import com.palantir.atlasdb.keyvalue.partition.status.EndpointWithNormalStatus;
@@ -201,6 +202,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
 	 * @param ring
 	 * @return
 	 */
+	@Deprecated
 	public static DynamicPartitionMapImpl create(NavigableMap<byte[], KeyValueEndpoint> ring) {
         return create(new QuorumParameters(3, 2, 2), ring, PTExecutors.newCachedThreadPool());
     }
@@ -937,4 +939,109 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         }
     }
 
+    @Override
+    public Map<byte[], QuorumRequestParameters> getReadRowsParameters(
+            Iterable<byte[]> rows) {
+        Map<byte[], QuorumRequestParameters> result = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
+
+        for (byte[] row : rows) {
+            int repf = getServicesHavingRow(row, false).size();
+            int readf = repf - (quorumParameters.getReplicationFactor() - quorumParameters.getReadFactor());
+            int writef = repf - (quorumParameters.getReplicationFactor() - quorumParameters.getWriteFactor());
+            QuorumParameters params = new QuorumParameters(repf, readf, writef);
+            result.put(row, params.getReadRequestParameters());
+        }
+
+        return result;
+    }
+
+    @Override
+    public Map<byte[], QuorumRequestParameters> getWriteRowsParameters(
+            Set<byte[]> rows) {
+        Map<byte[], QuorumRequestParameters> result = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
+
+        for (byte[] row : rows) {
+            int repf = getServicesHavingRow(row, true).size();
+            int readf = repf - (quorumParameters.getReplicationFactor() - quorumParameters.getReadFactor());
+            int writef = repf - (quorumParameters.getReplicationFactor() - quorumParameters.getWriteFactor());
+            QuorumParameters params = new QuorumParameters(repf, readf, writef);
+            result.put(row, params.getWriteRequestParameters());
+        }
+
+        return result;
+    }
+
+    private static Set<byte[]> getRows(Set<Cell> cells) {
+        Set<byte[]> result = Sets.newTreeSet(UnsignedBytes.lexicographicalComparator());
+        for (Cell cell : cells) {
+            result.add(cell.getRowName());
+        }
+        return result;
+    }
+
+    @Override
+    public Map<Cell, QuorumRequestParameters> getReadCellsParameters(
+            Set<Cell> cells) {
+        Map<Cell, QuorumRequestParameters> result = Maps.newHashMap();
+        Map<byte[], QuorumRequestParameters> rowsResult = getReadRowsParameters(getRows(cells));
+        for (Cell cell : cells) {
+            result.put(cell, rowsResult.get(cell.getRowName()));
+        }
+        return result;
+    }
+
+    @Override
+    public Map<Cell, QuorumRequestParameters> getWriteCellsParameters(
+            Set<Cell> cells) {
+        Map<Cell, QuorumRequestParameters> result = Maps.newHashMap();
+        Map<byte[], QuorumRequestParameters> rowsResult = getWriteRowsParameters(getRows(cells));
+        for (Cell cell : cells) {
+            result.put(cell, rowsResult.get(cell.getRowName()));
+        }
+        return result;
+    }
+
+    @Override
+    public <T> Map<Entry<Cell, T>, QuorumRequestParameters> getReadEntriesParameters(
+            Map<Cell, T> entries) {
+        Map<Entry<Cell, T>, QuorumRequestParameters> result = Maps.newHashMap();
+        Map<byte[], QuorumRequestParameters> rowsResult = getReadRowsParameters(getRows(entries.keySet()));
+        for (Entry<Cell, T> e : entries.entrySet()) {
+            result.put(e, rowsResult.get(e.getKey().getRowName()));
+        }
+        return result;
+    }
+
+    @Override
+    public <T> Map<Entry<Cell, T>, QuorumRequestParameters> getReadEntriesParameters(
+            Multimap<Cell, T> entries) {
+        Map<Entry<Cell, T>, QuorumRequestParameters> result = Maps.newHashMap();
+        Map<byte[], QuorumRequestParameters> rowsResult = getReadRowsParameters(getRows(entries.keySet()));
+        for (Entry<Cell, T> e : entries.entries()) {
+            result.put(e, rowsResult.get(e.getKey().getRowName()));
+        }
+        return result;
+    }
+
+    @Override
+    public <T> Map<Entry<Cell, T>, QuorumRequestParameters> getWriteEntriesParameters(
+            Map<Cell, T> entries) {
+        Map<Entry<Cell, T>, QuorumRequestParameters> result = Maps.newHashMap();
+        Map<byte[], QuorumRequestParameters> rowsResult = getWriteRowsParameters(getRows(entries.keySet()));
+        for (Entry<Cell, T> e : entries.entrySet()) {
+            result.put(e, rowsResult.get(e.getKey().getRowName()));
+        }
+        return result;
+    }
+
+    @Override
+    public <T> Map<Entry<Cell, T>, QuorumRequestParameters> getWriteEntriesParameters(
+            Multimap<Cell, T> entries) {
+        Map<Entry<Cell, T>, QuorumRequestParameters> result = Maps.newHashMap();
+        Map<byte[], QuorumRequestParameters> rowsResult = getWriteRowsParameters(getRows(entries.keySet()));
+        for (Entry<Cell, T> e : entries.entries()) {
+            result.put(e, rowsResult.get(e.getKey().getRowName()));
+        }
+        return result;
+    }
 }

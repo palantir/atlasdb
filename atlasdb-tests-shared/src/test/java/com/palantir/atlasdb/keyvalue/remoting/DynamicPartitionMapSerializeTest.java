@@ -36,17 +36,20 @@ public class DynamicPartitionMapSerializeTest {
     @Rule public final DropwizardClientRule endpointKvsService = new DropwizardClientRule(endpointKvs);
     @Rule public final DropwizardClientRule endpointPmsService = new DropwizardClientRule(endpointPms);
 
-    KeyValueEndpoint endpoint;
+    static final int NUM_EPTS = 3;
+    KeyValueEndpoint[] endpoint = new KeyValueEndpoint[NUM_EPTS];
     DynamicPartitionMapImpl partitionMap;
 
     @Before
     public void setUp() {
-        endpoint = new SimpleKeyValueEndpoint(endpointKvsService.baseUri().toString(), endpointPmsService.baseUri().toString());
+        for (int i=0; i<NUM_EPTS; ++i) {
+            endpoint[i] = new SimpleKeyValueEndpoint(endpointKvsService.baseUri().toString(), endpointPmsService.baseUri().toString());
+        }
         NavigableMap<byte[], KeyValueEndpoint> ring = ImmutableSortedMap
                 .<byte[], KeyValueEndpoint>orderedBy(UnsignedBytes.lexicographicalComparator())
-                .put(new byte[] {0}, endpoint)
-                .put(new byte[] {0, 0}, endpoint)
-                .put(new byte[] {0, 0, 0}, endpoint)
+                .put(new byte[] {0}, endpoint[0])
+                .put(new byte[] {0, 0}, endpoint[1])
+                .put(new byte[] {0, 0, 0}, endpoint[2])
                 .build();
         partitionMap = DynamicPartitionMapImpl.create(QUORUM_PARAMETERS, ring, PTExecutors.newCachedThreadPool());
     }

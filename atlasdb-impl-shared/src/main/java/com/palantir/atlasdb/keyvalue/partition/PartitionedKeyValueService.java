@@ -92,7 +92,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                 final ExecutorCompletionService<Map<Cell, Value>> execSvc = new ExecutorCompletionService<Map<Cell, Value>>(
                         executor);
                 final QuorumTracker<Map<Cell, Value>, byte[]> tracker = QuorumTracker.of(
-                        rows, quorumParameters.getReadRequestParameters());
+                        rows, input.getReadRowsParameters(rows));
 
                 // Schedule tasks for execution
                 input.runForRowsRead(tableName, rows, new Function<Pair<KeyValueService,Iterable<byte[]>>, Void>() {
@@ -125,7 +125,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                         executor);
                 final QuorumTracker<Map<Cell, Value>, Cell> tracker = QuorumTracker.of(
                         timestampByCell.keySet(),
-                        quorumParameters.getReadRequestParameters());
+                        input.getReadCellsParameters(timestampByCell.keySet()));
                 final Map<Cell, Value> globalResult = Maps.newHashMap();
 
                 // Schedule the tasks
@@ -163,7 +163,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                         executor);
                 final QuorumTracker<Multimap<Cell, Long>, Cell> tracker = QuorumTracker.of(
                         cells,
-                        quorumParameters.getNoFailureRequestParameters());
+                        input.getReadCellsParameters(cells));
                 final Multimap<Cell, Long> globalResult = HashMultimap.create();
                 input.runForCellsRead(tableName, cells, new Function<Pair<KeyValueService, Set<Cell>>, Void>() {
                     @Override @Nullable
@@ -195,7 +195,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                 final Map<Cell, Long> globalResult = Maps.newHashMap();
                 final QuorumTracker<Map<Cell, Long>, Cell> tracker = QuorumTracker.of(
                         timestampByCell.keySet(),
-                        quorumParameters.getReadRequestParameters());
+                        input.getReadCellsParameters(timestampByCell.keySet()));
                 final ExecutorCompletionService<Map<Cell, Long>> execSvc = new ExecutorCompletionService<Map<Cell, Long>>(
                         executor);
                 input.runForCellsRead(tableName, timestampByCell, new Function<Pair<KeyValueService, Map<Cell, Long>>, Void>() {
@@ -396,9 +396,9 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 			public Void apply(DynamicPartitionMap input) {
                 final ExecutorCompletionService<Void> writeService = new ExecutorCompletionService<Void>(executor);
                 final QuorumTracker<Void, Cell> tracker =
-                        QuorumTracker.of(values.keySet(), quorumParameters.getWriteRequestParameters());
+                        QuorumTracker.of(values.keySet(), input.getWriteCellsParameters(values.keySet()));
 
-				input.runForCellsWrite( tableName, values, new Function<Pair<KeyValueService, Map<Cell, byte[]>>, Void>() {
+				input.runForCellsWrite(tableName, values, new Function<Pair<KeyValueService, Map<Cell, byte[]>>, Void>() {
                     @Override
                     public Void apply(final Pair<KeyValueService, Map<Cell, byte[]>> e) {
                         Future<Void> future = writeService.submit(new Callable<Void>() {
@@ -430,7 +430,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                 final ExecutorCompletionService<Void> execSvc = new ExecutorCompletionService<Void>(
                         executor);
                 final QuorumTracker<Void, Map.Entry<Cell, Value>> tracker = QuorumTracker.of(
-                        cellValues.entries(), quorumParameters.getWriteRequestParameters());
+                        cellValues.entries(), input.getWriteEntriesParameters(cellValues));
 
                 input.runForCellsWrite(tableName, cellValues, new Function<Pair<KeyValueService, Multimap<Cell, Value>>, Void>() {
                     @Override
@@ -501,7 +501,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 			public Void apply(DynamicPartitionMap input) {
                 final ExecutorCompletionService<Void> execSvc = new ExecutorCompletionService<Void>(executor);
                 final QuorumTracker<Void, Map.Entry<Cell, Long>> tracker = QuorumTracker.of(
-                        keys.entries(), quorumParameters.getNoFailureRequestParameters());
+                        keys.entries(), input.getWriteEntriesParameters(keys));
 
                 input.runForCellsWrite(tableName, keys, new Function<Pair<KeyValueService, Multimap<Cell, Long>>, Void>() {
                     @Override
@@ -532,7 +532,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 			public Void apply(DynamicPartitionMap input) {
                 final ExecutorCompletionService<Void> execSvc = new ExecutorCompletionService<Void>(executor);
                 final QuorumTracker<Void, Cell> tracker = QuorumTracker.of(
-                        cells, quorumParameters.getWriteRequestParameters());
+                        cells, input.getWriteCellsParameters(cells));
 
                 input.runForCellsWrite(tableName, cells, new Function<Pair<KeyValueService, Set<Cell>>, Void>() {
                     @Override

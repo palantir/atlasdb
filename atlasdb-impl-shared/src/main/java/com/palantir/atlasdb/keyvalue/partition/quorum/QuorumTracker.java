@@ -18,8 +18,10 @@ package com.palantir.atlasdb.keyvalue.partition.quorum;
 import java.util.Map;
 import java.util.concurrent.Future;
 
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters.QuorumRequestParameters;
 import com.palantir.common.collect.Maps2;
 
@@ -38,12 +40,39 @@ public class QuorumTracker<FutureReturnType, TrackingUnit> {
         failure = false;
     }
 
+    public QuorumTracker(Iterable<TrackingUnit> allTrackedUnits,
+                         Map<TrackingUnit, QuorumRequestParameters> quorumRequestParameters) {
+        numberOfRemainingFailuresForFailure = Maps.newHashMap(Maps.transformValues(quorumRequestParameters, new Function<QuorumRequestParameters, Integer>() {
+            @Override
+            public Integer apply(QuorumRequestParameters input) {
+                return input.getFailureFactor();
+            }
+        }));
+        numberOfRemainingSuccessesForSuccess = Maps.newHashMap(Maps.transformValues(quorumRequestParameters, new Function<QuorumRequestParameters, Integer> () {
+            @Override
+            public Integer apply(QuorumRequestParameters input) {
+                return input.getSuccessFactor();
+            }
+        }));
+        Preconditions.checkArgument(numberOfRemainingFailuresForFailure.keySet().equals(Sets.newHashSet(allTrackedUnits)));
+        Preconditions.checkArgument(numberOfRemainingSuccessesForSuccess.keySet().equals(Sets.newHashSet(allTrackedUnits)));
+        unitsByReference = Maps.newHashMap();
+        failure = false;
+    }
+
+    @Deprecated
     public static <FutureReturnType, TrackingUnit> QuorumTracker<FutureReturnType, TrackingUnit>
             of(Iterable<TrackingUnit> allTrackedUnits,
                     QuorumRequestParameters quorumRequestParameters) {
         return new QuorumTracker<FutureReturnType, TrackingUnit>(
                 allTrackedUnits,
                 quorumRequestParameters);
+    }
+
+    public static <FutureReturnType, TrackingUnit> QuorumTracker<FutureReturnType, TrackingUnit>
+            of(Iterable<TrackingUnit> allTrackedUnits,
+                    Map<TrackingUnit, QuorumRequestParameters> quorumRequestParameters) {
+        return new QuorumTracker<>(allTrackedUnits, quorumRequestParameters);
     }
 
     public void handleSuccess(Future<FutureReturnType> ref) {
