@@ -49,7 +49,6 @@ public class SimpleKeyValueEndpoint implements KeyValueEndpoint {
 
     @Override
     public void registerPartitionMapVersion(Supplier<Long> clientVersionSupplier) {
-        // TODO:
         Preconditions.checkState(kvs == null);
         kvs = RemotingKeyValueService.createClientSide(kvsUri, clientVersionSupplier);
         kvs = FillInUrlProxy.newFillInUrlProxy(kvs, pmsUri);
