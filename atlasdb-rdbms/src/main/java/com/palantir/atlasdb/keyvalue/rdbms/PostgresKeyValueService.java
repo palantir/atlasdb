@@ -36,6 +36,7 @@ import javax.annotation.Nullable;
 import javax.sql.DataSource;
 
 import org.apache.commons.lang.ArrayUtils;
+import org.postgresql.jdbc2.optional.PoolingDataSource;
 import org.skife.jdbi.v2.DBI;
 import org.skife.jdbi.v2.Handle;
 import org.skife.jdbi.v2.Query;
@@ -105,6 +106,16 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
 
     public PostgresKeyValueService(DataSource dataSource) {
         this(dataSource, PTExecutors.newCachedThreadPool());
+    }
+
+    public static PostgresKeyValueService create(PostgresKeyValueConfiguration config) {
+        PoolingDataSource ds = new PoolingDataSource();
+        ds.setServerName(config.host);
+        ds.setPortNumber(config.port);
+        ds.setDatabaseName(config.db);
+        ds.setUser(config.user);
+        ds.setPassword(config.password);
+        return new PostgresKeyValueService(ds);
     }
 
     // *** Initialization and teardown ************************************************************

@@ -5,6 +5,7 @@ import java.util.Map.Entry;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
@@ -24,7 +25,7 @@ public final class InKvsPartitionMapService implements PartitionMapService {
 
     private final KeyValueService storage;
 
-    public static final String PARTITION_MAP_TABLE = "_partition_map";
+    public static final String PARTITION_MAP_TABLE = AtlasDbConstants.PARTITION_MAP_TABLE;
 
     private InKvsPartitionMapService(DynamicPartitionMapImpl partitionMap, KeyValueService storage) {
     	this.storage = storage;
