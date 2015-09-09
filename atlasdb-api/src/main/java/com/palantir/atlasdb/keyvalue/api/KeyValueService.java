@@ -468,13 +468,13 @@ public interface KeyValueService extends AutoCloseable {
 
     @POST
     @Path("put-metadata-for-table")
-    @Consumes(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_OCTET_STREAM)
     @Idempotent
     void putMetadataForTable(@QueryParam("tableName") String tableName, byte[] metadata);
 
     @POST
     @Path("put-metadata-for-tables")
-    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
     void putMetadataForTables(final Map<String, byte[]> tableNameToMetadata);
 
