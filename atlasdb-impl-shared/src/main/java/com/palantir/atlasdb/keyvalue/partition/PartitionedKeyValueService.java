@@ -85,8 +85,11 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
     // *** Read requests *************************************************************************
     @Override
     @Idempotent
-    public Map<Cell, Value> getRows(final String tableName, final Iterable<byte[]> rows,
+    public Map<Cell, Value> getRows(final String tableName, final Iterable<byte[]> rowsArg,
                                     final ColumnSelection columnSelection, final long timestamp) {
+        // This is necessary to ensure consistent hashes for the rows arrays
+        // which is necessary for the quorum tracker.
+        final Set<byte[]> rows = Sets.newHashSet(rowsArg);
         return runWithPartitionMap(new Function<DynamicPartitionMap, Map<Cell, Value>>() {
 			@Override
 			public Map<Cell, Value> apply(DynamicPartitionMap input) {
@@ -813,7 +816,10 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 
         DynamicPartitionMapImpl dpmi = DynamicPartitionMapImpl.create(config.quorumParameters, navEndpoints, executor);
 
-        return new PartitionedKeyValueService(PTExecutors.newCachedThreadPool(), config.quorumParameters, dpmi);
+        PartitionedKeyValueService ret = new PartitionedKeyValueService(PTExecutors.newCachedThreadPool(), config.quorumParameters, dpmi);
+        ret.getPartitionMap().pushMapToEndpoints();
+
+        return ret;
     }
 
     // *** Helper methods *************************************************************************

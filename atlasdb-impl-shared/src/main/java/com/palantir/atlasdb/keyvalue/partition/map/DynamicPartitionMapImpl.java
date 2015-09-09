@@ -195,6 +195,12 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         return new DynamicPartitionMapImpl(quorumParameters, ring, executor);
     }
 
+	public void pushMapToEndpoints() {
+	    for (EndpointWithStatus kve : this.ring.values()) {
+	        kve.get().partitionMapService().updateMap(this);
+	    }
+	}
+
 	/**
 	 * Convenience method. Uses default <code>quorumParameters</code> = (3, 2, 2) and
 	 * <code>PTExecutors.newCachedThreadPool()</code> as the <code>ExecutorService</code>.
