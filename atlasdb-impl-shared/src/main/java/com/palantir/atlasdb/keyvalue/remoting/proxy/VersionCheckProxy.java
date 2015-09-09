@@ -51,7 +51,7 @@ public class VersionCheckProxy implements InvocationHandler {
             Long serverVersion = Preconditions.checkNotNull(serverVersionProvider.get());
             if (serverVersion < 0L) {
                 // In this case the version check is simply disabled.
-                assert clientVersion == null;
+                assert clientVersion == null || clientVersion < 0;
             } else {
                 if (clientVersion < serverVersion) {
                     throw new VersionTooOldException();
