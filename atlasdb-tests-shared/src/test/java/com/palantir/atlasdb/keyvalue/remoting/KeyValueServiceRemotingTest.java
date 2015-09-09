@@ -88,11 +88,24 @@ public class KeyValueServiceRemotingTest extends AbstractAtlasDbKeyValueServiceT
         Assert.assertArrayEquals(ArrayUtils.EMPTY_BYTE_ARRAY, readValue);
     }
 
+    @Test
+    public void testMeta() {
+        byte[] someWeiredMeta = new byte[256];
+        for (int i=0; i<256; ++i) {
+            someWeiredMeta[i] = (byte) i;
+        }
+        getKeyValueService().putMetadataForTable(TEST_TABLE, someWeiredMeta);
+        byte[] result = getKeyValueService().getMetadataForTable(TEST_TABLE);
+        Assert.assertArrayEquals(someWeiredMeta, result);
+        byte[] remoteResult = remoteKvs.getMetadataForTable(TEST_TABLE);
+        Assert.assertArrayEquals(someWeiredMeta, remoteResult);
+    }
+
     @Override
     protected KeyValueService getKeyValueService() {
         if (localKvs == null) {
             String uri = Rule.baseUri().toString();
-            localKvs = RemotingKeyValueService.createClientSide(uri, Suppliers.ofInstance(1L));
+            localKvs = RemotingKeyValueService.createClientSide(uri, Suppliers.ofInstance(-1L));
         }
         return Preconditions.checkNotNull(localKvs);
     }
