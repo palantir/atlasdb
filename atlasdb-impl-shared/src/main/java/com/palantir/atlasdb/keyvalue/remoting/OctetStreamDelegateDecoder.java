@@ -7,18 +7,16 @@ import java.util.Collection;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 
-import org.apache.commons.lang.ArrayUtils;
-
 import com.google.common.collect.Iterables;
 
 import feign.FeignException;
 import feign.codec.DecodeException;
 import feign.codec.Decoder;
 
-final class EmptyOctetStreamDelegateDecoder implements Decoder {
+final class OctetStreamDelegateDecoder implements Decoder {
     private final Decoder delegate;
 
-    public EmptyOctetStreamDelegateDecoder(Decoder delegate) {
+    public OctetStreamDelegateDecoder(Decoder delegate) {
         this.delegate = delegate;
     }
 
@@ -32,9 +30,18 @@ final class EmptyOctetStreamDelegateDecoder implements Decoder {
             if (response.body() == null || response.body().length() == null) {
               return null;
             }
-            if (0 == response.body().length()) {
-                return ArrayUtils.EMPTY_BYTE_ARRAY;
+            byte[] data = new byte[response.body().length()];
+            int bytesRead = 0;
+            int bytesLeft = response.body().length();
+            while (bytesLeft > 0) {
+                int ret = response.body().asInputStream().read(data, bytesRead, bytesLeft);
+                if (ret < 0) {
+                    throw new RuntimeException("Unexpected end of stream");
+                }
+                bytesLeft -= ret;
+                bytesRead += ret;
             }
+            return data;
         }
         return delegate.decode(response, type);
     }

@@ -135,8 +135,8 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
     public static KeyValueService createClientSide(String uri, Supplier<Long> localVersionSupplier) {
         ServiceContext<Long> ctx = RemoteContextHolder.OUTBOX.getProviderForKey(HOLDER.PM_VERSION);
         KeyValueService ret = createClientSideInternal(Feign.builder()
-                .encoder(new JacksonEncoder(kvsMapper()))
-                .decoder(new EmptyOctetStreamDelegateDecoder(new JacksonDecoder(kvsMapper())))
+                .encoder(new OctetStreamDelegateEncoder(new JacksonEncoder(kvsMapper())))
+                .decoder(new OctetStreamDelegateDecoder(new JacksonDecoder(kvsMapper())))
                 .errorDecoder(KeyValueServiceErrorDecoder.instance())
                 .contract(new JAXRSContract())
                 .requestInterceptor(new OutboxShippingInterceptor(kvsMapper))
