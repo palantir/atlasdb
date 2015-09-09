@@ -753,7 +753,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
     @Override
     @Idempotent
     public byte[] getMetadataForTable(final String tableName) {
-        return getDbi().withHandle(new HandleCallback<byte[]>() {
+        byte[] ret = getDbi().withHandle(new HandleCallback<byte[]>() {
             @Override
             public byte[] withHandle(Handle conn) throws Exception {
                 return conn.createQuery(
@@ -765,6 +765,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                 		.first();
             }
         });
+        return Preconditions.checkNotNull(ret);
     }
 
     @Override
