@@ -699,7 +699,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
         getDbi().inTransaction(new TransactionCallback<Void>() {
             @Override
             public Void inTransaction(Handle handle, TransactionStatus status) throws Exception {
-                handle.execute("DROP TABLE " + USR_TABLE(tableName));
+                handle.execute("DROP TABLE IF EXISTS " + USR_TABLE(tableName));
                 handle.execute(
                         "DELETE FROM " + MetaTable.META_TABLE_NAME + " " +
                 		"WHERE " + MetaTable.Columns.TABLE_NAME + " = ?",
