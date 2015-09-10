@@ -42,6 +42,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -484,12 +485,12 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         for (String tableName : srcKvs.getAllTableNames()) {
             Multimap<Cell, Value> cells = HashMultimap.create();
 
-            try (ClosableIterator<RowResult<Value>> allRows = srcKvs.getRange(tableName, rangeToCopy, Long.MAX_VALUE)) {
+            try (ClosableIterator<RowResult<Set<Value>>> allRows = srcKvs.getRangeWithHistory(tableName, rangeToCopy, Long.MAX_VALUE)) {
 
                 while (allRows.hasNext()) {
-                    RowResult<Value> row = allRows.next();
-                    for (Entry<Cell, Value> entry : row.getCells()) {
-                        cells.put(entry.getKey(), entry.getValue());
+                    RowResult<Set<Value>> row = allRows.next();
+                    for (Entry<Cell, Set<Value>> entry : row.getCells()) {
+                        cells.putAll(entry.getKey(), entry.getValue());
                     }
                 }
 
@@ -658,6 +659,12 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
 
         KeyValueService sourceKvs = ring.get(nextKey).get().keyValueService();
 
+        for (String table : sourceKvs.getAllTableNames()) {
+            if (!AtlasDbConstants.hiddenTables.contains(table)) {
+                kvs.createTable(table, 128);
+            }
+        }
+
         // First, copy all the ranges besides the one in which
         // the new kvs is located. All these will be operated
         // by the new kvs.
@@ -774,6 +781,13 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         version.set(version.get() + 1);
         operationsInProgress--;
         delegates.remove(kvs);
+
+        // Now we can safely remove data from the endpoint.
+        for (String table : kvs.getAllTableNames()) {
+            if (!AtlasDbConstants.hiddenTables.contains(table)) {
+                kvs.dropTable(table);
+            }
+        }
     }
 
     @Override
