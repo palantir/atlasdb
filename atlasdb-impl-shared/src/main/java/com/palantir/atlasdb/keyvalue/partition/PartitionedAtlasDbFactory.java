@@ -11,7 +11,7 @@ import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.SimpleKeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
-import com.palantir.timestamp.InMemoryTimestampService;
+import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.TimestampService;
 
 public class PartitionedAtlasDbFactory implements AtlasDbFactory<PartitionedKeyValueService> {
@@ -30,7 +30,7 @@ public class PartitionedAtlasDbFactory implements AtlasDbFactory<PartitionedKeyV
     @Override
     public TimestampService createTimestampService(
             PartitionedKeyValueService rawKvs) {
-        return new InMemoryTimestampService();
+        return PersistentTimestampService.create(PartitionedBoundStore.create(rawKvs));
     }
 
     private PartitionedKeyValueConfiguration createConfig(JsonNode node) {
@@ -48,7 +48,6 @@ public class PartitionedAtlasDbFactory implements AtlasDbFactory<PartitionedKeyV
             byte[] key = BaseEncoding.base16().decode(endpointNode.get("key").asText());
             endpoints.put(key, new SimpleKeyValueEndpoint(kvsUri, pmsUri));
         }
-
         return new PartitionedKeyValueConfiguration(parameters, endpoints);
     }
 
