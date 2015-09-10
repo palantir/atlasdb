@@ -126,7 +126,8 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
             public Void withHandle(Handle conn) throws Exception {
                 conn.execute("CREATE TABLE IF NOT EXISTS " + MetaTable.META_TABLE_NAME + " ("
                         + MetaTable.Columns.TABLE_NAME + " VARCHAR(" + MAX_TABLE_NAME_LEN + "), "
-                        + MetaTable.Columns.METADATA + " BYTEA NOT NULL)");
+                        + MetaTable.Columns.METADATA + " BYTEA NOT NULL, "
+                        + "PRIMARY KEY (" + MetaTable.Columns.TABLE_NAME + "))");
                 return null;
             }
         });
@@ -727,10 +728,18 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
         				"        " + Columns.ROW + ", " +
 						"        " + Columns.COLUMN + ", " +
         				"        " + Columns.TIMESTAMP + "))");
-                handle.execute("INSERT INTO " + MetaTable.META_TABLE_NAME + " (" +
-                        "    " + MetaTable.Columns.TABLE_NAME + ", " +
-                        "    " + MetaTable.Columns.METADATA + " ) VALUES (" +
-                        "    ?, ?)", tableName, ArrayUtils.EMPTY_BYTE_ARRAY);
+                try {
+                    handle.execute("INSERT INTO " + MetaTable.META_TABLE_NAME + " (" +
+                            "    " + MetaTable.Columns.TABLE_NAME + ", " +
+                            "    " + MetaTable.Columns.METADATA + " ) VALUES (" +
+                            "    ?, ?)", tableName, ArrayUtils.EMPTY_BYTE_ARRAY);
+                } catch (RuntimeException e) {
+                    if (AtlasSqlUtils.isKeyAlreadyExistsException(e)) {
+                        // The table has existed perviously: no-op
+                    } else {
+                        throw e;
+                    }
+                }
                 return null;
             }
         });
