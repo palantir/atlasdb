@@ -175,7 +175,8 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                             "WHERE " + Columns.ROW("t") + " IN (" + makeSlots("row", rows.size()) + ") " +
             				"    AND " + Columns.TIMESTAMP("t2") + " IS NULL" +
                             // This is a LEFT JOIN -> the below condition cannot be in ON clause
-                            "    AND " + Columns.TIMESTAMP("t") + " < " + timestamp)
+                            "    AND " + Columns.TIMESTAMP("t") + " < " + timestamp +
+                            "ORDER BY " + Columns.ROW_COLUMN_TIMESTAMP_AS("t"))
                             .map(CellValueMapper.instance());
                     AtlasSqlUtils.bindAll(query, rows);
                     list = query.list();
