@@ -50,6 +50,7 @@ public abstract class PartitionedRangedIterator<T> implements ClosableIterator<R
         ConsistentRingRangeRequest newRange = currentRange.next();
         closeCurrentRangeIterators();
         currentRangeIterators = computeNextRange(newRange);
+        // TODO: if (currentRangeIterators.isEmpty()) { throw whatever; }
         rowIterator = Iterators.<RowResult<T>> peekingIterator(Iterators.mergeSorted(
                 currentRangeIterators,
                 RowResult.<T>getOrderingByRowName()));
