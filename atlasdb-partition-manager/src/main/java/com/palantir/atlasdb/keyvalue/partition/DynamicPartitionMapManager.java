@@ -19,7 +19,7 @@ public class DynamicPartitionMapManager {
 
     private DynamicPartitionMap partitionMap;
 
-    public DynamicPartitionMapManager(String masterUri, String[] allUris) {
+    public DynamicPartitionMapManager(String masterUri) {
         PartitionMapService masterPms = RemotingPartitionMapService.createClientSide(masterUri);
         partitionMap = masterPms.getMap();
     }
@@ -111,8 +111,11 @@ public class DynamicPartitionMapManager {
         return key;
     }
 
-    public void updateLocalMapInteractive() {
-        throw new UnsupportedOperationException();
+    public void updateLocalMapInteractive(Scanner scanner) {
+        System.out.println("Updating local map");
+        System.out.println("Enter PMS Uri to download new map: ");
+        String pmsUri = scanner.nextLine();
+        updateLocalMap(pmsUri);
     }
 
     public void setVersionInteractive(Scanner scanner) {
@@ -134,7 +137,7 @@ public class DynamicPartitionMapManager {
         try (Scanner scanner = new Scanner(System.in)) {
             String initialPmsUri = scanner.nextLine();
             System.out.println();
-            instance = new DynamicPartitionMapManager(initialPmsUri, args);
+            instance = new DynamicPartitionMapManager(initialPmsUri);
 
             boolean exit = false;
             while (!exit) {
@@ -156,7 +159,7 @@ public class DynamicPartitionMapManager {
                         instance.removeEndpointInteractive(scanner);
                         continue;
                     case 3:
-                        instance.updateLocalMapInteractive();
+                        instance.updateLocalMapInteractive(scanner);
                         continue;
                     case 4:
                         instance.setVersionInteractive(scanner);
