@@ -9,7 +9,11 @@ import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
@@ -30,6 +34,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
@@ -196,11 +201,31 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     }
 
 	@Override
-	public void pushMapToEndpoints() {
-	    for (EndpointWithStatus kve : this.ring.values()) {
-	        kve.get().partitionMapService().updateMap(this);
-	    }
-	}
+    public void pushMapToEndpoints() {
+        ExecutorCompletionService<Void> execSvc = new ExecutorCompletionService<>(executor);
+        Set<Future<Void>> futures = Sets.newHashSet();
+
+        for (final EndpointWithStatus kve : ImmutableSet
+                .copyOf(ring.values())) {
+            futures.add(execSvc.submit(new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    kve.get().partitionMapService().updateMap(DynamicPartitionMapImpl.this);
+                    return null;
+                }
+            }));
+        }
+
+        while (!futures.isEmpty()) {
+            try {
+                Future<?> future = execSvc.take();
+                future.get();
+                futures.remove(future);
+            } catch (InterruptedException | ExecutionException e) {
+                Throwables.throwUncheckedException(e);
+            }
+        }
+    }
 
 	/**
 	 * Convenience method. Uses default <code>quorumParameters</code> = (3, 2, 2) and
@@ -667,7 +692,11 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
      */
     @Override
 	public synchronized boolean removeEndpoint(final byte[] key) {
-    	Preconditions.checkArgument(ring.get(key) instanceof EndpointWithNormalStatus);
+        if (ring.get(key) instanceof EndpointWithJoiningStatus) {
+            log.warn("Removing endpoint with joining status at " + Arrays.toString(key) + ": " + ring.get(key));
+        } else {
+            Preconditions.checkArgument(ring.get(key) instanceof EndpointWithNormalStatus);
+    	}
         Preconditions.checkArgument(ring.keySet().size() > quorumParameters.getReplicationFactor());
         if (operationsInProgress > 0) {
             return false;
