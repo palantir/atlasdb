@@ -266,6 +266,12 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                     public Set<ClosablePeekingIterator<RowResult<Value>>> apply(
                             @Nullable DynamicPartitionMap input) {
                         final Set<ClosablePeekingIterator<RowResult<Value>>> result = Sets.newHashSet();
+
+                        // We need at least one iterator for each range in order for the
+                        // quorum exception mechanism to work properly. If all iterator
+                        // requests failed we need to throw immediately to avoid silent failure.
+                        RuntimeException lastSuppressedException = null;
+
                         for (KeyValueEndpoint vkve : services.get(range)) {
                             try {
                                 ClosableIterator<RowResult<Value>> it = vkve.keyValueService().getRange(tableName, range.get(), timestamp);
@@ -275,11 +281,16 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                             } catch (RuntimeException e) {
                                 // If this failure is fatal for the range, the exception will be thrown when
                                 // retrieving data from the iterators.
-                                //
-                                // TODO: This is not true if there are no elements to be retrieved!
                                 log.warn("Failed to getRange in table " + tableName);
-                            } finally {
+
+                                // The only exception is if all iterators for given range fail.
+                                // In such case it will rethrow last encountered exception immediately.
+                                lastSuppressedException = e;
                             }
+                        }
+
+                        if (result.isEmpty()) {
+                            throw lastSuppressedException;
                         }
                         return result;
                     }
@@ -319,6 +330,12 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                     @Override
                     public Set<ClosablePeekingIterator<RowResult<Set<Value>>>> apply(DynamicPartitionMap input) {
                         final Set<ClosablePeekingIterator<RowResult<Set<Value>>>> result = Sets.newHashSet();
+
+                        // We need at least one iterator for each range in order for the
+                        // quorum exception mechanism to work properly. If all iterator
+                        // requests failed we need to throw immediately to avoid silent failure.
+                        RuntimeException lastSuppressedException = null;
+
                         for (KeyValueEndpoint vkve : services.get(range)) {
                             try {
                                 ClosableIterator<RowResult<Set<Value>>> it = vkve.keyValueService().getRangeWithHistory(
@@ -329,9 +346,15 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                             } catch (RuntimeException e) {
                                 // If this failure is fatal for the range, the exception will be thrown when
                                 // retrieving data from the iterators.
-                                // TODO
                                 log.warn("Failed to getRangeWithHistory in table " + tableName);
+
+                                // The only exception is if all iterators for given range fail.
+                                // In such case it will rethrow last encountered exception immediately.
+                                lastSuppressedException = e;
                             }
+                        }
+                        if (result.isEmpty()) {
+                            throw lastSuppressedException;
                         }
                         return result;
                     }
@@ -372,6 +395,12 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                     @Override
                     public Set<ClosablePeekingIterator<RowResult<Set<Long>>>> apply(DynamicPartitionMap input) {
                         final Set<ClosablePeekingIterator<RowResult<Set<Long>>>> result = Sets.newHashSet();
+
+                        // We need at least one iterator for each range in order for the
+                        // quorum exception mechanism to work properly. If all iterator
+                        // requests failed we need to throw immediately to avoid silent failure.
+                        RuntimeException lastSuppressedException = null;
+
                         for (KeyValueEndpoint vkve : services.get(range)) {
                             try {
                                 ClosableIterator<RowResult<Set<Long>>> it = vkve.keyValueService().getRangeOfTimestamps(
@@ -380,11 +409,18 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                             } catch (VersionTooOldException e) {
                                 throw e;
                             } catch (RuntimeException e) {
-                                // TODO:
                                 // If this failure is fatal for the range, the exception will be thrown when
                                 // retrieving data from the iterators.
                                 log.warn("Failed to getRangeOfTimestamps in table " + tableName);
+
+                                // The only exception is if all iterators for given range fail.
+                                // In such case it will rethrow last encountered exception immediately.
+                                lastSuppressedException = e;
                             }
+                        }
+
+                        if (result.isEmpty()) {
+                            throw lastSuppressedException;
                         }
                         return result;
                     }
