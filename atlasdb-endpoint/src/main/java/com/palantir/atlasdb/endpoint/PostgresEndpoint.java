@@ -23,6 +23,19 @@ import io.dropwizard.setup.Environment;
 
 public class PostgresEndpoint extends Application<EndpointServerConfiguration> {
 
+    @SuppressWarnings("unchecked")
+    static <T> T identityProxy(final T delegate, Class<T> delegateClass) {
+        return (T) Proxy.newProxyInstance(
+                delegateClass.getClassLoader(),
+                new Class<?>[] { delegateClass },
+                new AbstractDelegatingInvocationHandler() {
+            @Override
+            public Object getDelegate() {
+                return delegate;
+            }
+        });
+    }
+
     private final ObjectMapper mapper = RemotingKeyValueService.kvsMapper();
 
     public static void main(String[] args) throws Exception {
@@ -51,18 +64,8 @@ public class PostgresEndpoint extends Application<EndpointServerConfiguration> {
         // Otherwise Jersey will not handle properly a single
         // object that implements two annotated interfaces.
 
-        KeyValueService kvsProxy = (KeyValueService) Proxy.newProxyInstance(KeyValueService.class.getClassLoader(), new Class<?>[] { KeyValueService.class }, new AbstractDelegatingInvocationHandler() {
-            @Override
-            public Object getDelegate() {
-                return server;
-            }
-        });
-        PartitionMapService pmsProxy = (PartitionMapService) Proxy.newProxyInstance(PartitionMapService.class.getClassLoader(), new Class<?>[] { PartitionMapService.class }, new AbstractDelegatingInvocationHandler() {
-            @Override
-            public Object getDelegate() {
-                return server;
-            }
-        });
+        KeyValueService kvsProxy = identityProxy(server, KeyValueService.class);
+        PartitionMapService pmsProxy = identityProxy(server, PartitionMapService.class);
 
         environment.jersey().register(new InboxPopulatingContainerRequestFilter(mapper));
         environment.jersey().register(KeyAlreadyExistsExceptionMapper.instance());
