@@ -345,6 +345,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
             if (AtlasSqlUtils.isKeyAlreadyExistsException(e)) {
                 throw new KeyAlreadyExistsException("Unique constraint violation", e);
             }
+            throw e;
         }
     }
 
