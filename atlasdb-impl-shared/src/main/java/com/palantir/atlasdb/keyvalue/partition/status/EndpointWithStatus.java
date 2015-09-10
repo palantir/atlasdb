@@ -80,7 +80,6 @@ public abstract class EndpointWithStatus {
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " kvs=" + endpoint.hashCode();
+        return "EndpointWithStatus [endpoint=" + endpoint + "]";
     }
-
 }

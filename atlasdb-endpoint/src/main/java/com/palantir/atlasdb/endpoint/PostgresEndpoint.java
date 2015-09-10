@@ -63,7 +63,6 @@ public class PostgresEndpoint extends Application<EndpointServerConfiguration> {
         // Wrap server with two proxies.
         // Otherwise Jersey will not handle properly a single
         // object that implements two annotated interfaces.
-
         KeyValueService kvsProxy = identityProxy(server, KeyValueService.class);
         PartitionMapService pmsProxy = identityProxy(server, PartitionMapService.class);
 

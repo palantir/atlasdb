@@ -195,6 +195,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         return new DynamicPartitionMapImpl(quorumParameters, ring, executor);
     }
 
+	@Override
 	public void pushMapToEndpoints() {
 	    for (EndpointWithStatus kve : this.ring.values()) {
 	        kve.get().partitionMapService().updateMap(this);
@@ -767,8 +768,32 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     /*** toString, hashCode and equals ***********************************************************/
     @Override
     public String toString() {
-        return "DynamicPartitionMapImpl [quorumParameters=" + quorumParameters + ", ring=" + ring
-                + ", version=" + version + "]";
+        return "DynamicPartitionMapImpl (" + version +
+               "): QP=(" + quorumParameters.getReplicationFactor() +
+               "," + quorumParameters.getReadFactor() +
+               "," + quorumParameters.getWriteFactor() + ")\n" +
+               ringDescription();
+    }
+
+    private String ringDescription() {
+        StringBuilder builder = new StringBuilder();
+        for (Entry<byte[], EndpointWithStatus> e : ring.entrySet()) {
+            builder.append(e.getValue().get() + " (" + statusDescription(e.getValue()) + ") @ " + Arrays.toString(e.getKey()) + "\n");
+        }
+        return builder.toString();
+    }
+
+    private static String statusDescription(EndpointWithStatus ews) {
+        if (ews instanceof EndpointWithNormalStatus) {
+            return "N";
+        }
+        if (ews instanceof EndpointWithJoiningStatus) {
+            return "J";
+        }
+        if (ews instanceof EndpointWithLeavingStatus) {
+            return "L";
+        }
+        throw new IllegalArgumentException("Unsupported EndpointWithStatus instance");
     }
 
 	@Override

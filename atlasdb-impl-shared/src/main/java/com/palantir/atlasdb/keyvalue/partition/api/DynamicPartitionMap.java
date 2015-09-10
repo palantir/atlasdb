@@ -88,6 +88,12 @@ public interface DynamicPartitionMap extends PartitionMap {
      */
     long getVersion();
 
+    /**
+     * Pushes this map to all endpoints on the ring.
+     * Useful after modifying.
+     */
+    void pushMapToEndpoints();
+
     Map<byte[], QuorumRequestParameters> getReadRowsParameters(Iterable<byte[]> rows);
     Map<byte[], QuorumRequestParameters> getWriteRowsParameters(Set<byte[]> rows);
     Map<Cell, QuorumRequestParameters> getReadCellsParameters(Set<Cell> cells);

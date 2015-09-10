@@ -85,4 +85,10 @@ public class SimpleKeyValueEndpoint implements KeyValueEndpoint {
         return true;
     }
 
+    @Override
+    public String toString() {
+        return "SimpleKeyValueEndpoint [kvsUri=" + kvsUri + ", pmsUri=" + pmsUri
+                + "]";
+    }
+
 }
