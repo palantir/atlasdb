@@ -26,14 +26,14 @@ public class DynamicPartitionMapManager {
 
     public void addEndpoint(String kvsUri, String pmsUri, byte[] key, Scanner scanner) {
         SimpleKeyValueEndpoint skve = new SimpleKeyValueEndpoint(kvsUri, pmsUri);
-        partitionMap.addEndpoint(key, skve, "");
+        Preconditions.checkState(partitionMap.addEndpoint(key, skve, ""));
         pushMapToEndpointsWithRetry(scanner);
         partitionMap.promoteAddedEndpoint(key);
         pushMapToEndpointsWithRetry(scanner);
     }
 
     public void removeEndpoint(byte[] key, Scanner scanner) {
-        partitionMap.removeEndpoint(key);
+        Preconditions.checkState(partitionMap.removeEndpoint(key));
         pushMapToEndpointsWithRetry(scanner);
         partitionMap.promoteRemovedEndpoint(key);
         pushMapToEndpointsWithRetry(scanner);
@@ -128,6 +128,14 @@ public class DynamicPartitionMapManager {
         pushMapToEndpointsWithRetry(scanner);
     }
 
+    public void pushToUriInteractive(Scanner scanner) {
+        System.out.println("Pushing local map to URI");
+
+        System.out.print("Enter PMS URI: ");
+        String pmsUri = scanner.nextLine();
+        RemotingPartitionMapService.createClientSide(pmsUri).updateMap(partitionMap);
+    }
+
     public static void main(String[] args) {
 
         System.out.println("AtlasDb Dynamic Partition Map Manager");
@@ -148,6 +156,7 @@ public class DynamicPartitionMapManager {
                 System.out.println("2. Remove endpoint");
                 System.out.println("3. Update local map");
                 System.out.println("4. Set version (deprecated, test only)");
+                System.out.println("5. Push local map to Uri");
                 System.out.println("0. Exit");
 
                 try {
@@ -163,6 +172,9 @@ public class DynamicPartitionMapManager {
                         continue;
                     case 4:
                         instance.setVersionInteractive(scanner);
+                        continue;
+                    case 5:
+                        instance.pushToUriInteractive(scanner);
                         continue;
                     case 0:
                         exit = true;
