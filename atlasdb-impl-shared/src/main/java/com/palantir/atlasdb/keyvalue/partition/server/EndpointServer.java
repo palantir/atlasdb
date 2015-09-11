@@ -10,6 +10,7 @@ import javax.annotation.Nullable;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
@@ -19,6 +20,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
+import com.palantir.atlasdb.keyvalue.partition.map.InKvsPartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.NonIdempotent;
@@ -372,7 +374,10 @@ public class EndpointServer implements PartitionMapService, KeyValueService {
         return runPartitionMapReadOperation(new Function<Void, Set<String>>() {
             @Override
             public Set<String> apply(Void input) {
-                return kvs().getAllTableNames();
+                // TODO: Hack
+                Set<String> ret = Sets.newHashSet(kvs().getAllTableNames());
+                ret.remove(InKvsPartitionMapService.PARTITION_MAP_TABLE);
+                return ret;
             }
         });
     }

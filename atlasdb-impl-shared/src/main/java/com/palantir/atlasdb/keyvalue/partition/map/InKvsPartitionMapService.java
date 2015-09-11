@@ -116,6 +116,7 @@ public final class InKvsPartitionMapService implements PartitionMapService {
         }
 
         DynamicPartitionMapImpl dpmi = (DynamicPartitionMapImpl) partitionMap;
+        storage.createTable(PARTITION_MAP_TABLE, 1234);
         storage.truncateTable(PARTITION_MAP_TABLE);
         storage.put(PARTITION_MAP_TABLE, dpmi.toTable(), 0L);
     }

@@ -42,7 +42,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -483,6 +482,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
      */
     private void copyData(KeyValueService destKvs, KeyValueService srcKvs, RangeRequest rangeToCopy) {
         for (String tableName : srcKvs.getAllTableNames()) {
+
             Multimap<Cell, Value> cells = HashMultimap.create();
 
             try (ClosableIterator<RowResult<Set<Value>>> allRows = srcKvs.getRangeWithHistory(tableName, rangeToCopy, Long.MAX_VALUE)) {
@@ -518,6 +518,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
      */
     private void deleteData(KeyValueService kvs, RangeRequest rangeToDelete) {
         for (String tableName : kvs.getAllTableNames()) {
+
             Multimap<Cell, Long> cells = HashMultimap.create();
 
             try (ClosableIterator<RowResult<Set<Long>>> allTimestamps =
@@ -660,9 +661,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         KeyValueService sourceKvs = ring.get(nextKey).get().keyValueService();
 
         for (String table : sourceKvs.getAllTableNames()) {
-            if (!AtlasDbConstants.hiddenTables.contains(table)) {
-                kvs.createTable(table, 128);
-            }
+            kvs.createTable(table, 128);
         }
 
         // First, copy all the ranges besides the one in which
@@ -773,7 +772,15 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         byte[] dstKvsKey = ring.nextKey(key);
         for (int i = 0; i < ranges.size(); ++i) {
             copyData(ring.get(dstKvsKey).get().keyValueService(), kvs, ranges.get(i));
-            dstKvsKey = ring.nextKey(dstKvsKey);
+
+            // If it is unbounded, we need to move both ranges to the
+            // same destination kvs (it really is the same range).
+            if (ranges.get(i).getEndExclusive().length != 0) {
+                dstKvsKey = ring.nextKey(dstKvsKey);
+            } else {
+                assert ranges.size() >= i;
+                assert ranges.get(i + 1).getStartInclusive().length == 0;
+            }
         }
 
         // Finalize
@@ -784,9 +791,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
 
         // Now we can safely remove data from the endpoint.
         for (String table : kvs.getAllTableNames()) {
-            if (!AtlasDbConstants.hiddenTables.contains(table)) {
-                kvs.dropTable(table);
-            }
+            kvs.dropTable(table);
         }
     }
 

@@ -289,6 +289,8 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                             }
                         }
 
+                        // TODO: Do NOT throw it now. Perhaps this subrange will never
+                        // be reached by the client. (?)
                         if (result.isEmpty()) {
                             throw lastSuppressedException;
                         }

@@ -25,6 +25,7 @@ public class DynamicPartitionMapManager {
     }
 
     public void addEndpoint(String kvsUri, String pmsUri, byte[] key, Scanner scanner) {
+        pushMapToUri(pmsUri);
         SimpleKeyValueEndpoint skve = new SimpleKeyValueEndpoint(kvsUri, pmsUri);
         Preconditions.checkState(partitionMap.addEndpoint(key, skve, ""));
         pushMapToEndpointsWithRetry(scanner);
@@ -41,7 +42,7 @@ public class DynamicPartitionMapManager {
 
     private void pushMapToEndpointsWithRetry(Scanner scanner) {
         while (true) {
-            System.out.println("Pushing map to endpoints.");
+            System.out.println("Pushing map to endpoints...");
             try {
                 partitionMap.pushMapToEndpoints();
                 break;
@@ -133,6 +134,10 @@ public class DynamicPartitionMapManager {
 
         System.out.print("Enter PMS URI: ");
         String pmsUri = scanner.nextLine();
+        pushMapToUri(pmsUri);
+    }
+
+    public void pushMapToUri(String pmsUri) {
         RemotingPartitionMapService.createClientSide(pmsUri).updateMap(partitionMap);
     }
 
