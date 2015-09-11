@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
+import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.partition.exception.VersionTooOldException;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumTracker;
@@ -111,6 +112,8 @@ public class RequestCompletionUtils {
      * @return
      */
     public static <T, U, V extends Iterator<? extends U>> T retryUntilSuccess(V iterator, Function<U, T> fun) {
+
+        Preconditions.checkArgument(iterator.hasNext());
 
         while (iterator.hasNext()) {
             U service = iterator.next();
