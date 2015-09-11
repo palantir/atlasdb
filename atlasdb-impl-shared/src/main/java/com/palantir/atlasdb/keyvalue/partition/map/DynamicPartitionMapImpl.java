@@ -678,9 +678,15 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         // The last thing to be done is to remove the farthest
         // ranges from the endpoints following this one.
         byte[] keyToRemove = nextKey;
+        // TODO: Is the last range not a special case?
         for (int i = 0; i < ranges.size(); ++i) {
             deleteData(ring.get(keyToRemove).get().keyValueService(), ranges.get(i));
-            keyToRemove = ring.nextKey(keyToRemove);
+            if (ranges.get(i).getEndExclusive().length > 0) {
+                keyToRemove = ring.nextKey(keyToRemove);
+            } else {
+                assert i < ranges.size();
+                assert ranges.get(i+1).getStartInclusive().length == 0;
+            }
         }
 
         // Finalize
