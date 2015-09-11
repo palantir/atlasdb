@@ -31,6 +31,8 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.LinkedListMultimap;
+import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimaps;
@@ -86,6 +88,16 @@ public class AtlasSqlUtils {
         return throwableContainsMessage(e, "ORA-00001", "unique constraint");
     }
 
+    public static <K, V> ListMultimap<K, V> listToListMultimap(List<Pair<K, V>> list) {
+        ListMultimap<K, V> result = LinkedListMultimap.create();
+        for (Pair<K, V> p : list) {
+            // High cost, only check with assertions enabled
+            assert !result.containsEntry(p.lhSide, p.rhSide);
+            result.put(p.lhSide, p.rhSide);
+        }
+        return result;
+    }
+
     public static <K, V> SetMultimap<K, V> listToSetMultimap(List<Pair<K, V>> list) {
         SetMultimap<K, V> result = HashMultimap.create();
         for (Pair<K, V> p : list) {
@@ -104,11 +116,19 @@ public class AtlasSqlUtils {
         return result;
     }
 
-    public static <T> Set<RowResult<Set<T>>> cellsToRows(SetMultimap<Cell, T> cells) {
-        Set<RowResult<Set<T>>> result = Sets.newHashSet();
-        NavigableMap<byte[], SortedMap<byte[], Set<T>>> s = Cells.breakCellsUpByRow(Multimaps.asMap(cells));
-        for (Entry<byte[], SortedMap<byte[], Set<T>>> e : s.entrySet()) {
-            result.add(RowResult.create(e.getKey(), e.getValue()));
+    private static <K, V> SortedMap<K, Set<V>> listSortedMapToSetSortedMap(SortedMap<K, List<V>> map) {
+        SortedMap<K, Set<V>> result = Maps.newTreeMap(map.comparator());
+        for (Entry<K, List<V>> e : map.entrySet()) {
+            result.put(e.getKey(), Sets.<V>newHashSet(e.getValue()));
+        }
+        return result;
+    }
+
+    public static <T> List<RowResult<Set<T>>> cellsToRows(ListMultimap<Cell, T> cells) {
+        List<RowResult<Set<T>>> result = Lists.newArrayList();
+        NavigableMap<byte[],SortedMap<byte[],List<T>>> s = Cells.breakCellsUpByRow(Multimaps.asMap(cells));
+        for (Entry<byte[], SortedMap<byte[], List<T>>> e : s.entrySet()) {
+            result.add(RowResult.create(e.getKey(), listSortedMapToSetSortedMap(e.getValue())));
         }
         return result;
     }
