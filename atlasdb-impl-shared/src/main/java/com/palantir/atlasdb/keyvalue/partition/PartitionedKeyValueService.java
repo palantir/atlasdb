@@ -842,6 +842,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
         return new PartitionedKeyValueService(PTExecutors.newCachedThreadPool(), quorumParameters, partitionMap);
     }
 
+    @Deprecated
     public static PartitionedKeyValueService create(DynamicPartitionMap partitionMap) {
         return create(new QuorumParameters(3, 2, 2), partitionMap);
     }
