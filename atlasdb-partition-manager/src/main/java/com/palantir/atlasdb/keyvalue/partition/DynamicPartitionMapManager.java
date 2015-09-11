@@ -29,6 +29,7 @@ public class DynamicPartitionMapManager {
         SimpleKeyValueEndpoint skve = new SimpleKeyValueEndpoint(kvsUri, pmsUri);
         Preconditions.checkState(partitionMap.addEndpoint(key, skve, ""));
         pushMapToEndpointsWithRetry(scanner);
+        System.out.println("Promoting...");
         partitionMap.promoteAddedEndpoint(key);
         pushMapToEndpointsWithRetry(scanner);
     }
@@ -36,6 +37,7 @@ public class DynamicPartitionMapManager {
     public void removeEndpoint(byte[] key, Scanner scanner) {
         Preconditions.checkState(partitionMap.removeEndpoint(key));
         pushMapToEndpointsWithRetry(scanner);
+        System.out.println("Promoting...");
         partitionMap.promoteRemovedEndpoint(key);
         pushMapToEndpointsWithRetry(scanner);
     }
