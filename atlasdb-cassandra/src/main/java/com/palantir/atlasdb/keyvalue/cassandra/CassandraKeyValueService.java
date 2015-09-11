@@ -1223,7 +1223,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
-
     }
 
     private void trySchemaMutationLock() throws InterruptedException, TimeoutException {
