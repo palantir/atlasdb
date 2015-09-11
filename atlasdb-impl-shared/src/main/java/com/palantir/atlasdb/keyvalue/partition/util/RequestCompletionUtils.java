@@ -118,6 +118,12 @@ public class RequestCompletionUtils {
                 return fun.apply(service);
             } catch (RuntimeException e) {
                 log.warn("retryUntilSuccess: " + e.getMessage());
+
+                // These two exceptions should be thrown immediately
+                if (e instanceof KeyAlreadyExistsException || e instanceof VersionTooOldException) {
+                    Throwables.throwUncheckedException(e);
+                }
+
                 if (!iterator.hasNext()) {
                     Throwables.rewrapAndThrowUncheckedException("retryUntilSuccess", e);
                 }
