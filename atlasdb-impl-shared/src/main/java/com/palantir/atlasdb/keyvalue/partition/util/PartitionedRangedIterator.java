@@ -69,6 +69,7 @@ public abstract class PartitionedRangedIterator<T> implements ClosableIterator<R
     RowResult<T> cachedResult;
     @Override
     public final RowResult<T> next() {
+        Preconditions.checkState(hasNext());
         RowResult<T> newResult = computeNext();
         if (cachedResult != null) {
             Preconditions.checkState(
