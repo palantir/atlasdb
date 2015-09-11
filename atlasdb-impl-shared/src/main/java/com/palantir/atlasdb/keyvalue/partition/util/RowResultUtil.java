@@ -59,6 +59,8 @@ public class RowResultUtil {
         byte[] row = it.peek().getRowName();
         final SortedMap<byte[], Value> result = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
         int failCount = 0;
+        int succCount = 0;
+        RuntimeException lastSuppressedException = null;
 
         while (it.hasNext() && Arrays.equals(it.peek().getRowName(), row)) {
             try {
@@ -69,6 +71,7 @@ public class RowResultUtil {
                         result.put(col, e.getValue());
                     }
                 }
+                succCount++;
             } catch (RuntimeException e) {
                 System.err.println("Could not read for rangeRequest.");
                 failCount++;
@@ -77,8 +80,18 @@ public class RowResultUtil {
                             "Could not get enough reads.",
                             e);
                 }
+                lastSuppressedException = e;
             }
         }
+
+        if (succCount < quorumRequestParameters.getSuccessFactor()) {
+            if (lastSuppressedException != null) {
+                throw lastSuppressedException;
+            } else {
+                throw new RuntimeException("Not enough reads for row " + Arrays.toString(row));
+            }
+        }
+
         return RowResult.create(row, result);
     }
 
