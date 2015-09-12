@@ -676,7 +676,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
             if (ranges.get(i).getEndExclusive().length > 0) {
                 keyToRemove = ring.nextKey(keyToRemove);
             } else {
-                assert i < ranges.size();
+                assert i + 1 < ranges.size();
                 assert ranges.get(i+1).getStartInclusive().length == 0;
             }
         }
@@ -768,7 +768,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
             if (ranges.get(i).getEndExclusive().length != 0) {
                 dstKvsKey = ring.nextKey(dstKvsKey);
             } else {
-                assert ranges.size() >= i;
+                assert ranges.size() > i + 1;
                 assert ranges.get(i + 1).getStartInclusive().length == 0;
             }
         }
