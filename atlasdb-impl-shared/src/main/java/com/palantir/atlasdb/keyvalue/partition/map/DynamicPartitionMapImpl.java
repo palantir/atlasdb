@@ -33,7 +33,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
@@ -43,12 +42,12 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.partition.PartitionedKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.SimpleKeyValueEndpoint;
@@ -480,32 +479,27 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
      * @param srcKve
      * @param rangeToCopy
      */
-    private void copyData(KeyValueService destKvs, KeyValueService srcKvs, RangeRequest rangeToCopy) {
-        for (String tableName : srcKvs.getAllTableNames()) {
-
-            Multimap<Cell, Value> cells = HashMultimap.create();
-
-            try (ClosableIterator<RowResult<Set<Value>>> allRows = srcKvs.getRangeWithHistory(tableName, rangeToCopy, Long.MAX_VALUE)) {
-
+    private void copyData(KeyValueService destKvs, RangeRequest rangeToCopy) {
+        PartitionedKeyValueService pkvs = PartitionedKeyValueService.create(quorumParameters, this);
+        for (String tableName : pkvs.getAllTableNames()) {
+            // TODO: getRangeOfTimestamps?
+            try (ClosableIterator<RowResult<Set<Value>>> allRows = pkvs
+                    .getRangeWithHistory(tableName, rangeToCopy,
+                            Long.MAX_VALUE)) {
                 while (allRows.hasNext()) {
                     RowResult<Set<Value>> row = allRows.next();
-                    for (Entry<Cell, Set<Value>> entry : row.getCells()) {
-                        cells.putAll(entry.getKey(), entry.getValue());
-                    }
-                }
+                    for (Entry<Cell, Set<Value>> cell : row.getCells()) {
 
-                if (!cells.isEmpty()) {
-                	// TODO: Is there any way to batch it?
-                	// Maybe some wrapper function that will first try to put everything and if
-                	// it fails it will partition the data to smaller parts.
-                	for (Entry<Cell, Value> entry : cells.entries()) {
-                		try {
-                            destKvs.putWithTimestamps(tableName, ImmutableMultimap.of(entry.getKey(), entry.getValue()));
-                		} catch (KeyAlreadyExistsException e) {
-                			log.warn("Key already exists: " + entry.getKey() + ". Ignoring.");
-                		}
-                	}
-                    // destKvs.putWithTimestamps(tableName, cells);
+                        Multimap<Cell, Value> rowMap = HashMultimap.create();
+                        rowMap.putAll(cell.getKey(), cell.getValue());
+
+                        Multimap<Cell, Long> rowTsMap = HashMultimap.create();
+                        for (Entry<Cell, Value> entry : rowMap.entries()) {
+                            rowTsMap.put(entry.getKey(), entry.getValue().getTimestamp());
+                        }
+
+                        destKvs.putWithTimestamps(tableName, rowMap);
+                    }
                 }
             }
         }
@@ -667,10 +661,8 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         // First, copy all the ranges besides the one in which
         // the new kvs is located. All these will be operated
         // by the new kvs.
-        // TODO: Use multiple nodes to complete this task!
-        // (Cycle reference to the corrresponding PKVS?)
         for (int i = 0; i < ranges.size(); ++i) {
-            copyData(kvs, sourceKvs, ranges.get(i));
+            copyData(kvs, ranges.get(i));
         }
 
         // TODO: Finalize here?
@@ -704,11 +696,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
      */
     @Override
 	public synchronized boolean removeEndpoint(final byte[] key) {
-        if (ring.get(key) instanceof EndpointWithJoiningStatus) {
-            log.warn("Removing endpoint with joining status at " + Arrays.toString(key) + ": " + ring.get(key));
-        } else {
-            Preconditions.checkArgument(ring.get(key) instanceof EndpointWithNormalStatus);
-    	}
+        Preconditions.checkArgument(ring.get(key) instanceof EndpointWithNormalStatus);
         Preconditions.checkArgument(ring.keySet().size() > quorumParameters.getReplicationFactor());
         if (operationsInProgress > 0) {
             return false;
@@ -771,13 +759,9 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     	KeyValueService kvs = ring.get(key).get().keyValueService();
         List<RangeRequest> ranges = getRangesOperatedByKvs(key, true);
 
-        // Since I am currently taking the data just from E, I do
-        // not need to split up the last range - this endpoint only
-        // has the first part anyway.
-        // TODO: High availability (use more nodes to copy the data from).
         byte[] dstKvsKey = ring.nextKey(key);
-        for (int i = 0; i < ranges.size(); ++i) {
-            copyData(ring.get(dstKvsKey).get().keyValueService(), kvs, ranges.get(i));
+        for (int i = 0; i < ranges.size() - 1; ++i) {
+            copyData(ring.get(dstKvsKey).get().keyValueService(), ranges.get(i));
 
             // If it is unbounded, we need to move both ranges to the
             // same destination kvs (it really is the same range).
@@ -788,6 +772,10 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
                 assert ranges.get(i + 1).getStartInclusive().length == 0;
             }
         }
+
+        // The special case for last range
+        copyData(ring.get(dstKvsKey).get().keyValueService(),
+                 ranges.get(ranges.size() - 1).getBuilder().endRowExclusive(key).build());
 
         // Finalize
         ring.remove(key);
