@@ -25,6 +25,7 @@ import java.util.SortedMap;
 
 import javax.annotation.Nullable;
 
+import org.apache.commons.lang.text.StrBuilder;
 import org.skife.jdbi.v2.SQLStatement;
 
 import com.google.common.base.Function;
@@ -154,33 +155,33 @@ public class AtlasSqlUtils {
     }
 
     public static String makeSlots(String prefix, int number) {
-        String result = "";
+        StringBuilder builder = new StringBuilder();
         for (int i=0; i<number; ++i) {
-            result += ":" + prefix + i;
+            builder.append(":").append(prefix).append(i);
             if (i + 1 < number) {
-                result += ", ";
+                builder.append(", ");
             }
         }
-        return result;
+        return builder.toString();
     }
 
     public static String makeSlots(String prefix, int number, int arity) {
         Preconditions.checkArgument(arity > 0);
-        String result = "";
+        StrBuilder builder = new StrBuilder();
         for (int i=0; i<number; ++i) {
-            result += "(";
+            builder.append("(");
             for (int j=0; j<arity; ++j) {
-                result += ":" + prefix + i + "_" + j;
+                builder.append(":").append(prefix).append(i).append("_").append(j);
                 if (j + 1 < arity) {
-                    result += ", ";
+                    builder.append(", ");
                 }
             }
-            result += ")";
+            builder.append(")");
             if (i + 1 < number) {
-                result += ", ";
+                builder.append(", ");
             }
         }
-        return result;
+        return builder.toString();
     }
 
     public static <T> void bindAll(SQLStatement<?> query, Iterable<T> values) {
