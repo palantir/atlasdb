@@ -52,7 +52,7 @@ public class VersionCheckProxy implements InvocationHandler {
      *
      * Some other "technical" methods are also exempt.
      */
-    private static final boolean isMethodVersionExempts(Method method) {
+    private static final boolean isMethodVersionExempt(Method method) {
         return method.getDeclaringClass() == KeyValueService.class && EXEMPT_METHODS.contains(method.getName());
     }
 
@@ -82,7 +82,7 @@ public class VersionCheckProxy implements InvocationHandler {
         ServiceContext<Long> remoteClientCtx = RemoteContextHolder.INBOX.getProviderForKey(HOLDER.PM_VERSION);
 
         // Only check the version for the interface methods.
-        if (method.getDeclaringClass() == KeyValueService.class && !isMethodVersionExempts(method)) {
+        if (method.getDeclaringClass() == KeyValueService.class && !isMethodVersionExempt(method)) {
             Long clientVersion = remoteClientCtx.get();
             Long serverVersion = Preconditions.checkNotNull(serverVersionProvider.get());
             if (serverVersion < 0L) {
