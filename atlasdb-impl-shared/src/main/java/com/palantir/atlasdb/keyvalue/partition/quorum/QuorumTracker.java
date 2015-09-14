@@ -115,7 +115,7 @@ public class QuorumTracker<FutureReturnType, TrackingUnit> {
         unitsByReference.put(ref, items);
     }
 
-    private void unregisterRef(Future<FutureReturnType> ref) {
+    public void unregisterRef(Future<FutureReturnType> ref) {
         Preconditions.checkArgument(unitsByReference.containsKey(ref));
         unitsByReference.remove(ref);
     }
@@ -136,5 +136,9 @@ public class QuorumTracker<FutureReturnType, TrackingUnit> {
 
     public boolean finished() {
         return failed() || succeeded();
+    }
+
+    public boolean hasJobsRunning() {
+        return !unitsByReference.isEmpty();
     }
 }

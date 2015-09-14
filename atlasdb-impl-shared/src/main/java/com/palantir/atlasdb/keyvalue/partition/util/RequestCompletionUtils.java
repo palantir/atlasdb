@@ -108,14 +108,38 @@ public class RequestCompletionUtils {
      * @param execSvc
      */
     public static <TrackingUnit> void completeWriteRequest(
-            QuorumTracker<Void, TrackingUnit> tracker,
-            ExecutorCompletionService<Void> execSvc) {
+            final QuorumTracker<Void, TrackingUnit> tracker,
+            final ExecutorCompletionService<Void> execSvc) {
 
         try {
             completeRequest(tracker, execSvc, Functions.<Void> identity());
         } catch (RuntimeException e) {
             tracker.cancel(true);
             throw e;
+        } finally {
+            /* This thread will pick up all the remaining write tasks asynchronously
+             * to free up the ExecutionService thread pool.
+             * TODO: Set it to daemon? */
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        while (tracker.hasJobsRunning()) {
+                            Future<Void> future = execSvc.take();
+                            try {
+                                future.get();
+                            } catch (ExecutionException e) {
+                                log.warn("Exception in redundant write operation. Ignoring.");
+                                e.printStackTrace();
+                            } finally {
+                                tracker.unregisterRef(future);
+                            }
+                        }
+                    } catch (InterruptedException e) {
+                        Throwables.throwUncheckedException(e);
+                    }
+                };
+            }).start();
         }
     }
 
