@@ -53,6 +53,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
+import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
@@ -296,6 +297,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                     getDbi().withHandle(new HandleCallback<Void>() {
                         @Override
                         public Void withHandle(Handle handle) throws Exception {
+                            deleteInternalInTransaction(tableName, Maps.transformValues(values, Functions.constant(timestamp)).entrySet(), handle);
                             putInternalInTransaction(tableName, input, timestamp, handle);
                             return null;
                         }
@@ -382,7 +384,26 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
     @Override
     public void putUnlessExists(final String tableName, final Map<Cell, byte[]> values)
             throws KeyAlreadyExistsException {
-        put(tableName, values, 0);
+        try {
+            batch(values.entrySet(), new Function<Collection<Entry<Cell, byte[]>>, Void>() {
+                @Override @Nullable
+                public Void apply(@Nullable final Collection<Entry<Cell, byte[]>> input) {
+                    getDbi().withHandle(new HandleCallback<Void>() {
+                        @Override
+                        public Void withHandle(Handle handle) throws Exception {
+                            putInternalInTransaction(tableName, input, 0L, handle);
+                            return null;
+                        }
+                    });
+                    return null;
+                }
+            });
+        } catch (RuntimeException e) {
+            if (AtlasSqlUtils.isKeyAlreadyExistsException(e)) {
+                throw new KeyAlreadyExistsException("Unique constraint violation", e);
+            }
+            throw e;
+        }
     }
 
     // *** delete *********************************************************************************

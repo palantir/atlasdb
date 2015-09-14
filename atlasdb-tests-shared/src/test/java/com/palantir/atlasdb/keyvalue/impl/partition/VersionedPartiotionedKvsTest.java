@@ -175,26 +175,25 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
 
     @Test
     public void testAddEndpoint() {
+        Cell sampleNonExistingCell = Cell.create("thisCell".getBytes(), "doesNotExist".getBytes());
         Map<Cell, Value> emptyResult = ImmutableMap.<Cell, Value>of();
 
-        skves[NUM_EPTS - 1].partitionMapService().updateMap(pkvs.getPartitionMap());
         pkvs.getPartitionMap().addEndpoint(sampleKey, skves[NUM_EPTS-1], "");
-        skves[NUM_EPTS - 1].partitionMapService().updateMap(pkvs.getPartitionMap());
-        for (int i=0; i<NUM_EPTS - 1; ++i) {
-            skves[i].partitionMapService().updateMap(pkvs.getPartitionMap());
-        }
+        pkvs.getPartitionMap().pushMapToEndpoints();
 
         Map<Cell, Long> cells0 = ImmutableMap.of(Cell.create(row0, column0), TEST_TIMESTAMP + 1);
         Map<Cell, byte[]> values0 = ImmutableMap.of(Cell.create(row0, column0), value00);
         Map<Cell, Value> result0 = ImmutableMap.of(Cell.create(row0, column0), Value.create(value00, TEST_TIMESTAMP));
 
+        pkvs.createTable(TEST_TABLE, 12345);
+
         // Force pmap updateMap (why not)
         pkvs.getPartitionMap().setVersion(0L);
         try {
-            pkvs.createTable(TEST_TABLE, 12345);
+            pkvs.delete(TEST_TABLE, ImmutableMultimap.of(sampleNonExistingCell, 0L));
             fail();
         } catch (VersionTooOldException e) {
-            pkvs.createTable(TEST_TABLE, 12345);
+            pkvs.delete(TEST_TABLE, ImmutableMultimap.of(sampleNonExistingCell, 0L));
         }
         assertEquals(1L, pkvs.getPartitionMap().getVersion());
         pkvs.put(TEST_TABLE, values0, TEST_TIMESTAMP);
@@ -231,28 +230,19 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
     @Test
     public void testRemoveEndpoint() {
 
-        Map<Cell, Value> emptyResult = ImmutableMap.<Cell, Value>of();
-
         // First add the endpoint so that we can remove one
         pkvs.getPartitionMap().addEndpoint(sampleKey, skves[NUM_EPTS - 1], "");
-        skves[NUM_EPTS - 1].partitionMapService().updateMap(pkvs.getPartitionMap());
-        for (int i=0; i<NUM_EPTS - 1; ++i) {
-            skves[i].partitionMapService().updateMap(pkvs.getPartitionMap());
-        }
+        pkvs.getPartitionMap().pushMapToEndpoints();
 
         pkvs.getPartitionMap().promoteAddedEndpoint(sampleKey);
-        for (int i=0; i<NUM_EPTS; ++i) {
-            skves[i].partitionMapService().updateMap(pkvs.getPartitionMap());
-        }
+        pkvs.getPartitionMap().pushMapToEndpoints();
 
         pkvs.createTable(TEST_TABLE, 12345);
 
         // Begin the remove operation
         byte[] anotherSampleKey = new byte[] {0, 0};
         pkvs.getPartitionMap().removeEndpoint(anotherSampleKey);
-        for (int i=0; i<NUM_EPTS; ++i) {
-            skves[i].partitionMapService().updateMap(pkvs.getPartitionMap());
-        }
+        pkvs.getPartitionMap().pushMapToEndpoints();
 
         Map<Cell, Long> cells0 = ImmutableMap.of(Cell.create(row0, column0), TEST_TIMESTAMP + 1);
         Map<Cell, byte[]> values0 = ImmutableMap.of(Cell.create(row0, column0), value00);
@@ -266,11 +256,10 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
 
         // Finish the remove operation
         pkvs.getPartitionMap().promoteRemovedEndpoint(anotherSampleKey);
+        pkvs.getPartitionMap().pushMapToEndpoints();
         // Push the new map to the remove endpoint as well - in case someone will
         // still have the old map
-        for (int i=0; i<NUM_EPTS; ++i) {
-        	skves[i].partitionMapService().updateMap(pkvs.getPartitionMap());
-        }
+        skves[NUM_EPTS - 1].partitionMapService().updateMap(pkvs.getPartitionMap());
 
         Map<Cell, Long> cells1 = ImmutableMap.of(Cell.create(row0, column1), TEST_TIMESTAMP + 1);
         Map<Cell, byte[]> values1 = ImmutableMap.of(Cell.create(row0, column1), value01);
@@ -280,7 +269,7 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
 
         // Now the data should not be sent to the removed endpoint anymore
         assertEquals(result1, epts[0].kvs.delegate.get(TEST_TABLE, cells1));
-        assertEquals(emptyResult, epts[1].kvs.delegate.get(TEST_TABLE, cells1));
+        Assert.assertFalse(epts[1].kvs.delegate.getAllTableNames().contains(TEST_TABLE));
         assertEquals(result1, epts[2].kvs.delegate.get(TEST_TABLE, cells1));
         assertEquals(result1, epts[3].kvs.delegate.get(TEST_TABLE, cells1));
     }

@@ -158,7 +158,10 @@ public interface KeyValueService extends AutoCloseable {
      * This method should NEVER write a value if timestamp &lt;= gc_ts. This means that the
      * checkAndAct must be atomic.
      *
-     * May throw KeyAlreadyExistsException, but this is not guaranteed even if the key exists - see {@link putUnlessExists}.
+     * May throw KeyAlreadyExistsException, if storing a different value to existing key,
+     * but this is not guaranteed even if the key exists - see {@link putUnlessExists}.
+     *
+     * Must not throw KeyAlreadyExistsException when overwriting a cell with the original value (idempotent).
      *
      * @param tableName the name of the table to put values into.
      * @param values map containing the key-value entries to put.
@@ -167,6 +170,7 @@ public interface KeyValueService extends AutoCloseable {
     @POST
     @Path("put")
     @Consumes(MediaType.APPLICATION_JSON)
+    @Idempotent
     void put(@QueryParam("tableName") String tableName,
              Map<Cell, byte[]> values,
              @QueryParam("timestamp") long timestamp) throws KeyAlreadyExistsException;
