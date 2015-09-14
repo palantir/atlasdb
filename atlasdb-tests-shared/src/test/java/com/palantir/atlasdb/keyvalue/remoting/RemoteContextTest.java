@@ -15,12 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.remoting;
 
-import feign.Feign;
-import feign.jackson.JacksonDecoder;
-import feign.jackson.JacksonEncoder;
-import feign.jaxrs.JAXRSContract;
-import io.dropwizard.testing.junit.DropwizardClientRule;
-
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -39,6 +33,12 @@ import com.palantir.common.supplier.PopulateServiceContextProxy;
 import com.palantir.common.supplier.RemoteContextHolder;
 import com.palantir.common.supplier.RemoteContextHolder.RemoteContextType;
 import com.palantir.common.supplier.ServiceContext;
+
+import feign.Feign;
+import feign.jackson.JacksonDecoder;
+import feign.jackson.JacksonEncoder;
+import feign.jaxrs.JAXRSContract;
+import io.dropwizard.testing.junit.DropwizardClientRule;
 
 public class RemoteContextTest {
     @ClassRule
