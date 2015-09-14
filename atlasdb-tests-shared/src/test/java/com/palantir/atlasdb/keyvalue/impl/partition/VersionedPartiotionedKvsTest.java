@@ -16,19 +16,20 @@
 package com.palantir.atlasdb.keyvalue.impl.partition;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.Map;
 import java.util.NavigableMap;
 
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -142,18 +143,23 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
 
     @Test
     public void testVersionTooOld() {
+        Cell firstCell = Cell.create(new byte[] {0}, new byte[] {0});
     	pmap.setVersion(1L);
     	skves[0].partitionMapService().updateMap(pmap);
     	pmap.setVersion(0L);
     	assertEquals(1L, skves[0].partitionMapService().getMapVersion());
     	try {
     		pkvs.createTable("TABLE_NAME_2", 12345);
+    		pkvs.put(TEST_TABLE, ImmutableMap.of(firstCell, "whatever".getBytes()), 0L);
     		// This has to throw since table metadata is to be
     		// stored on all endpoints.
     		fail();
     	} catch (VersionTooOldException e) {
-    		pkvs.createTable("TABLE_NAME_2", 12345);
-    		assertTrue(pkvs.getAllTableNames().contains("TABLE_NAME_2"));
+    	    // The write could have succeeded for some endpoints, so first remove it
+    	    // to avoid pkey violation exception.
+    	    pkvs.delete(TEST_TABLE, ImmutableMultimap.of(firstCell, 0L));
+    		pkvs.put(TEST_TABLE, ImmutableMap.of(firstCell, "whatever".getBytes()), 0L);
+            Assert.assertArrayEquals("whatever".getBytes(), pkvs.get(TEST_TABLE, ImmutableMap.of(firstCell, 1L)).get(firstCell).getContents());
     	}
     }
 
