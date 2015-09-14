@@ -398,32 +398,14 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                     public Set<ClosablePeekingIterator<RowResult<Set<Long>>>> apply(DynamicPartitionMap input) {
                         final Set<ClosablePeekingIterator<RowResult<Set<Long>>>> result = Sets.newHashSet();
 
-                        // We need at least one iterator for each range in order for the
-                        // quorum exception mechanism to work properly. If all iterator
-                        // requests failed we need to throw immediately to avoid silent failure.
-                        RuntimeException lastSuppressedException = null;
-
+                        // This method has stronger consistency guarantees. It has to talk to all endpoints
+                        // and thus must throw immediately on any failure encountered.
                         for (KeyValueEndpoint vkve : services.get(range)) {
-                            try {
-                                ClosableIterator<RowResult<Set<Long>>> it = vkve.keyValueService().getRangeOfTimestamps(
-                                        tableName, range.get(), timestamp);
-                                result.add(ClosablePeekingIterator.of(it));
-                            } catch (VersionTooOldException e) {
-                                throw e;
-                            } catch (RuntimeException e) {
-                                // If this failure is fatal for the range, the exception will be thrown when
-                                // retrieving data from the iterators.
-                                log.warn("Failed to getRangeOfTimestamps in table " + tableName);
-
-                                // The only exception is if all iterators for given range fail.
-                                // In such case it will rethrow last encountered exception immediately.
-                                lastSuppressedException = e;
-                            }
+                            ClosableIterator<RowResult<Set<Long>>> it = vkve.keyValueService().getRangeOfTimestamps(
+                                    tableName, range.get(), timestamp);
+                            result.add(ClosablePeekingIterator.of(it));
                         }
 
-                        if (result.isEmpty()) {
-                            throw lastSuppressedException;
-                        }
                         return result;
                     }
                 });
