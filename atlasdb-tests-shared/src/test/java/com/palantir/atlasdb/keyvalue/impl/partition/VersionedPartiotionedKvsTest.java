@@ -28,12 +28,15 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.AbstractAtlasDbKeyValueServiceTest;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
@@ -49,6 +52,7 @@ import com.palantir.atlasdb.keyvalue.remoting.Utils.RemoteEndpoint;
 import com.palantir.common.concurrent.PTExecutors;
 
 import io.dropwizard.testing.junit.DropwizardClientRule;
+import jersey.repackaged.com.google.common.collect.Iterators;
 
 /**
  * This test is to make sure that out of date exceptions are handled in a proper way.
@@ -273,6 +277,58 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
         Assert.assertFalse(epts[1].kvs.delegate.getAllTableNames().contains(TEST_TABLE));
         assertEquals(result1, epts[2].kvs.delegate.get(TEST_TABLE, cells1));
         assertEquals(result1, epts[3].kvs.delegate.get(TEST_TABLE, cells1));
+    }
+
+    @Test
+    public void testGetRangeThrowsOnNotEnoughReads() {
+        putTestDataForSingleTimestamp();
+        Iterators.size(pkvs.getRange(TEST_TABLE, RangeRequest.all(), Long.MAX_VALUE));
+        epts[0].kvs.delegate.dropTable(TEST_TABLE);
+        try {
+            Iterators.size(pkvs.getRange(TEST_TABLE, RangeRequest.all(), Long.MAX_VALUE));
+            Assert.fail("getRange must throw on not enough reads!");
+        } catch (RuntimeException e) {
+            // Expected
+        }
+    }
+
+    @Test
+    public void testGetRangeWithHistoryThrowsOnNotEnoughReads() {
+        putTestDataForSingleTimestamp();
+        System.err.println(Iterators.size(pkvs.getRangeWithHistory(TEST_TABLE, RangeRequest.all(), Long.MAX_VALUE)));
+        epts[0].kvs.delegate.dropTable(TEST_TABLE);
+        try {
+            System.err.println(Iterators.size(pkvs.getRangeWithHistory(TEST_TABLE, RangeRequest.all(), Long.MAX_VALUE)));
+            Assert.fail("getRangeWithHistory must throw on not enough reads!");
+        } catch (RuntimeException e) {
+            // Expected
+        }
+    }
+
+    @Test
+    public void testGetRangeOfTimestampsThrowsOnNotEnoughReads() {
+        putTestDataForSingleTimestamp();
+        Iterators.size(pkvs.getRangeOfTimestamps(TEST_TABLE, RangeRequest.all(), Long.MAX_VALUE));
+        epts[0].kvs.delegate.dropTable(TEST_TABLE);
+        try {
+            Iterators.size(pkvs.getRangeOfTimestamps(TEST_TABLE, RangeRequest.all(), Long.MAX_VALUE));
+            Assert.fail("getRangeOfTimestamps must throw on not enough reads!");
+        } catch (RuntimeException e) {
+            // Expected
+        }
+    }
+
+    @Test
+    public void testGetRowsThrowsOnNotEnoughReads() {
+        putTestDataForSingleTimestamp();
+        pkvs.getRows(TEST_TABLE, ImmutableList.of(row0), ColumnSelection.all(), Long.MAX_VALUE);
+        epts[0].kvs.delegate.dropTable(TEST_TABLE);
+        try {
+            pkvs.getRows(TEST_TABLE, ImmutableList.of(row0), ColumnSelection.all(), Long.MAX_VALUE);
+            Assert.fail("getRows must throw on not enough reads!");
+        } catch (RuntimeException e) {
+            // Expected
+        }
     }
 
     @Override

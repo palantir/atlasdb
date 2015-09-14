@@ -52,6 +52,7 @@ import com.palantir.common.base.ClosableIterator;
 
 public abstract class AbstractAtlasDbKeyValueServiceTest {
     protected static final String TEST_TABLE = "pt_kvs_test";
+    protected static final String TEST_NONEXISTING_TABLE = "some_nonexisting_table";
 
     protected static final byte[] row0 = "row0".getBytes();
     protected static final byte[] row1 = "row1".getBytes();
@@ -540,14 +541,38 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         assertTrue(timestampsAfter2.containsEntry(cell, Value.INVALID_VALUE_TIMESTAMP));
     }
 
-    private void putTestDataForMultipleTimestamps() {
+    @Test
+    public void testGetRangeThrowsOnError() {
+        try {
+            keyValueService.getRange(TEST_NONEXISTING_TABLE, RangeRequest.all(), Long.MAX_VALUE).hasNext();
+            Assert.fail("getRange must throw on failure");
+        } catch (RuntimeException e) {
+            // Expected
+        }
+
+        try {
+            keyValueService.getRangeWithHistory(TEST_NONEXISTING_TABLE, RangeRequest.all(), Long.MAX_VALUE).hasNext();
+            Assert.fail("getRangeWithHistory must throw on failure");
+        } catch (RuntimeException e) {
+            // Expected
+        }
+
+        try {
+            keyValueService.getRangeOfTimestamps(TEST_NONEXISTING_TABLE, RangeRequest.all(), Long.MAX_VALUE).hasNext();
+            Assert.fail("getRangeOfTimestamps must throw on failure");
+        } catch (RuntimeException e) {
+            // Expected
+        }
+    }
+
+    protected void putTestDataForMultipleTimestamps() {
         keyValueService.put(TEST_TABLE,
                 ImmutableMap.of(Cell.create(row0, column0), value0_t0), TEST_TIMESTAMP);
         keyValueService.put(TEST_TABLE,
                 ImmutableMap.of(Cell.create(row0, column0), value0_t1), TEST_TIMESTAMP + 1);
     }
 
-    private void putTestDataForSingleTimestamp() {
+    protected void putTestDataForSingleTimestamp() {
         /*      | column0     column1     column2
          * -----+---------------------------------
          * row0 | "value00"   "value01"   -
