@@ -549,14 +549,20 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         } catch (RuntimeException e) {
             // Expected
         }
+    }
 
+    @Test
+    public void testGetRangeWithHistoryThrowsOnError() {
         try {
             keyValueService.getRangeWithHistory(TEST_NONEXISTING_TABLE, RangeRequest.all(), Long.MAX_VALUE).hasNext();
             Assert.fail("getRangeWithHistory must throw on failure");
         } catch (RuntimeException e) {
             // Expected
         }
+    }
 
+    @Test
+    public void testGetRangeOfTimestampsThrowsOnError() {
         try {
             keyValueService.getRangeOfTimestamps(TEST_NONEXISTING_TABLE, RangeRequest.all(), Long.MAX_VALUE).hasNext();
             Assert.fail("getRangeOfTimestamps must throw on failure");

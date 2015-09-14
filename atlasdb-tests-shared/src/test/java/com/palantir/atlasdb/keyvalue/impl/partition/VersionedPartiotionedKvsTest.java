@@ -295,10 +295,10 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
     @Test
     public void testGetRangeWithHistoryThrowsOnNotEnoughReads() {
         putTestDataForSingleTimestamp();
-        System.err.println(Iterators.size(pkvs.getRangeWithHistory(TEST_TABLE, RangeRequest.all(), Long.MAX_VALUE)));
+        Iterators.size(pkvs.getRangeWithHistory(TEST_TABLE, RangeRequest.all(), Long.MAX_VALUE));
         epts[0].kvs.delegate.dropTable(TEST_TABLE);
         try {
-            System.err.println(Iterators.size(pkvs.getRangeWithHistory(TEST_TABLE, RangeRequest.all(), Long.MAX_VALUE)));
+            Iterators.size(pkvs.getRangeWithHistory(TEST_TABLE, RangeRequest.all(), Long.MAX_VALUE));
             Assert.fail("getRangeWithHistory must throw on not enough reads!");
         } catch (RuntimeException e) {
             // Expected
