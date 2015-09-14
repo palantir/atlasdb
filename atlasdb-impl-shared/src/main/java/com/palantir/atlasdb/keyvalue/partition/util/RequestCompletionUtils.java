@@ -35,6 +35,11 @@ public class RequestCompletionUtils {
 
     private static final Logger log = LoggerFactory.getLogger(RequestCompletionUtils.class);
 
+    // These exceptions should be thrown immediately
+    private static boolean isNonInterceptableException(Throwable e) {
+        return e instanceof VersionTooOldException || e instanceof KeyAlreadyExistsException;
+    }
+
     /**
      * This will block until success or failure of the request can be concluded.
      * In case of failure it will rethrow the last encountered exception.
@@ -60,14 +65,10 @@ public class RequestCompletionUtils {
                     mergeFunction.apply(result);
                     tracker.handleSuccess(future);
                 } catch (ExecutionException e) {
-                    Throwable cause = e.getCause();
-                    // These two exceptions should be thrown immediately
-                    if (cause instanceof KeyAlreadyExistsException || cause instanceof VersionTooOldException) {
-                        Throwables.throwUncheckedException(cause);
-                    }
                     tracker.handleFailure(future);
                     // Check if the failure is fatal
-                    if (tracker.failed()) {
+                    Throwable cause = e.getCause();
+                    if (isNonInterceptableException(cause) || tracker.failed()) {
                         Throwables.rewrapAndThrowUncheckedException(cause);
                     }
                 }
@@ -138,8 +139,9 @@ public class RequestCompletionUtils {
                 log.warn("retryUntilSuccess: " + e.getMessage());
 
                 // These two exceptions should be thrown immediately
-                if (e instanceof KeyAlreadyExistsException || e instanceof VersionTooOldException) {
-                    Throwables.throwUncheckedException(e);
+                if (isNonInterceptableException(e)) {
+                    // Do NOT add a message here
+                    Throwables.rewrapAndThrowUncheckedException(e);
                 }
 
                 if (!iterator.hasNext()) {
