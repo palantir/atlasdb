@@ -343,7 +343,9 @@ public interface KeyValueService extends AutoCloseable {
     /**
      * For each row in the specified range, returns all versions strictly before
      * timestamp.
-     *
+     * <p>
+     * This has the same consistency guarantees that {@link #getRangeOfTimestamps(String, RangeRequest, long)}.
+     * <p>
      * Remember to close any {@link ClosableIterator}s you get in a finally block.
      *
      * @param tableName
