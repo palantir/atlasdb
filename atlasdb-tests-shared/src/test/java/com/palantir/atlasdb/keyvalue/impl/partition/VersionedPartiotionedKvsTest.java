@@ -167,6 +167,7 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
 
     @Test
     public void testMultiAddEndpoint() {
+        // This tests that the put function will block for long enough.
         for (int i=0; i<100; ++i) {
             testAddEndpoint();
             cleanupStuff();
