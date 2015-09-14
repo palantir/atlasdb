@@ -123,7 +123,7 @@ public class RocksDbKeyValueService implements KeyValueService {
 
                    NB: The documentation for File#deleteOnExit() advises against using it in concert with file locking,
                        so we'll allow this file to remain in place after the program exits.
-                       See http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4676183.
+                       See http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4676183
                  */
                 new File(dbDir.getParentFile(),
                          String.format("%s_%s", LOCK_FILE_PREFIX, dbDir.getName())),
