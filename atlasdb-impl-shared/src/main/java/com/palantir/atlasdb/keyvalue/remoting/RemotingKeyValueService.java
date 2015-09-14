@@ -133,16 +133,22 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
      * @return
      */
     public static KeyValueService createClientSide(String uri, Supplier<Long> localVersionSupplier) {
-        ServiceContext<Long> ctx = RemoteContextHolder.OUTBOX.getProviderForKey(HOLDER.PM_VERSION);
-        KeyValueService ret = createClientSideInternal(Feign.builder()
+        ServiceContext<Long> outboxVersionCtx = RemoteContextHolder.OUTBOX.getProviderForKey(HOLDER.PM_VERSION);
+
+        KeyValueService remotingKvs = Feign.builder()
                 .encoder(new OctetStreamDelegateEncoder(new JacksonEncoder(kvsMapper())))
                 .decoder(new OctetStreamDelegateDecoder(new JacksonDecoder(kvsMapper())))
                 .errorDecoder(KeyValueServiceErrorDecoder.instance())
                 .contract(new JAXRSContract())
-                .requestInterceptor(new OutboxShippingInterceptor(kvsMapper))
-                .target(KeyValueService.class, uri));
-        return PopulateServiceContextProxy.newProxyInstance(
-                KeyValueService.class, ret, localVersionSupplier, ctx);
+                .requestInterceptor(new OutboxShippingInterceptor(kvsMapper()))
+                .target(KeyValueService.class, uri);
+
+        KeyValueService versionSettingRemotingKvs = PopulateServiceContextProxy.newProxyInstance(
+                KeyValueService.class, remotingKvs, localVersionSupplier, outboxVersionCtx);
+
+        KeyValueService pagingIteratorsVersionSettingRemotingKvs = createClientSideInternal(versionSettingRemotingKvs);
+
+        return pagingIteratorsVersionSettingRemotingKvs;
     }
 
     /**

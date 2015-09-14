@@ -2,6 +2,8 @@ package com.palantir.atlasdb.keyvalue.partition.endpoint;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -22,6 +24,7 @@ import com.palantir.atlasdb.keyvalue.remoting.proxy.FillInUrlProxy;
  * @author htarasiuk
  *
  */
+@JsonTypeInfo(use=Id.CLASS, property="@class")
 public class SimpleKeyValueEndpoint implements KeyValueEndpoint {
 
     transient KeyValueService kvs;
