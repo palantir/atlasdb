@@ -116,30 +116,6 @@ public class RequestCompletionUtils {
         } catch (RuntimeException e) {
             tracker.cancel(true);
             throw e;
-        } finally {
-            /* This thread will pick up all the remaining write tasks asynchronously
-             * to free up the ExecutionService thread pool.
-             * TODO: Set it to daemon? */
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        while (tracker.hasJobsRunning()) {
-                            Future<Void> future = execSvc.take();
-                            try {
-                                future.get();
-                            } catch (ExecutionException e) {
-                                log.warn("Exception in redundant write operation. Ignoring.");
-                                e.printStackTrace(System.out);
-                            } finally {
-                                tracker.unregisterRef(future);
-                            }
-                        }
-                    } catch (InterruptedException e) {
-                        Throwables.throwUncheckedException(e);
-                    }
-                };
-            }).start();
         }
     }
 
