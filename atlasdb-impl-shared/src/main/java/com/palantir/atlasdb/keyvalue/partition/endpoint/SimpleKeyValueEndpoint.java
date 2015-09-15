@@ -62,6 +62,14 @@ public class SimpleKeyValueEndpoint implements KeyValueEndpoint {
         return pms;
     }
 
+    public String partitionMapServiceUri() {
+        return pmsUri;
+    }
+
+    public String keyValueServiceUri() {
+        return kvsUri;
+    }
+
     @Override
     public void registerPartitionMapVersion(Supplier<Long> clientVersionSupplier) {
         Preconditions.checkState(kvs == null);
