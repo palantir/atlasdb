@@ -23,6 +23,7 @@ import static com.palantir.atlasdb.keyvalue.rdbms.utils.AtlasSqlUtils.makeSlots;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -55,6 +56,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
@@ -333,28 +335,15 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
     }
 
     // *** putWithTimestamps **********************************************************************
-    private void putWithTimestampsInternal(final String tableName,
-                                           final Collection<Entry<Cell, Value>> cellValues) {
-        try {
-            getDbi().withHandle(new HandleCallback<Void>() {
-                @Override
-                public Void withHandle(Handle handle) throws Exception {
-                    Update update = handle.createStatement(
-                            "INSERT INTO " + USR_TABLE(tableName) + " (" +
-                                Columns.ROW.comma(Columns.COLUMN).comma(
-                                Columns.TIMESTAMP).comma(Columns.CONTENT) +
-                            ") VALUES " + makeSlots("cell", cellValues.size(), 4));
-                    AtlasSqlUtils.bindCellsValues(update, cellValues);
-                    update.execute();
-                    return null;
-                }
-            });
-        } catch (RuntimeException e) {
-            if (AtlasSqlUtils.isKeyAlreadyExistsException(e)) {
-                throw new KeyAlreadyExistsException("Unique constraint violation", e);
-            }
-            throw e;
-        }
+    private void putWithTimestampsInternalInTransaction(final String tableName, final Collection<Entry<Cell, Value>> cellValues,
+                                                        final Handle handle) {
+        Update update = handle.createStatement(
+                "INSERT INTO " + USR_TABLE(tableName) + " (" +
+                    Columns.ROW.comma(Columns.COLUMN).comma(
+                    Columns.TIMESTAMP).comma(Columns.CONTENT) +
+                ") VALUES " + makeSlots("cell", cellValues.size(), 4));
+        AtlasSqlUtils.bindCellsValues(update, cellValues);
+        update.execute();
     }
 
     @Override
@@ -373,9 +362,22 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
 
         batch(cellValues.entries(), new Function<Collection<Entry<Cell, Value>>, Void>() {
             @Override @Nullable
-            public Void apply(@Nullable Collection<Entry<Cell, Value>> input) {
-                putWithTimestampsInternal(tableName, input);
-                return null;
+            public Void apply(@Nullable final Collection<Entry<Cell, Value>> input) {
+                return getDbi().inTransaction(new TransactionCallback<Void>() {
+                    @Override
+                    public Void inTransaction(Handle conn,
+                            TransactionStatus status) throws Exception {
+                        deleteInternalInTransaction(tableName, Collections2.transform(input, new Function<Entry<Cell, Value>, Entry<Cell, Long>>() {
+                            @Override
+                            public Entry<Cell, Long> apply(
+                                    Entry<Cell, Value> input) {
+                                return new AbstractMap.SimpleEntry<Cell, Long>(input.getKey(), input.getValue().getTimestamp());
+                            }
+                        }), conn);
+                        putWithTimestampsInternalInTransaction(tableName, input, conn);
+                        return null;
+                    }
+                });
             }
         });
     }
