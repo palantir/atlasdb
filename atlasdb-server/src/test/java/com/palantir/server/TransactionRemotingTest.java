@@ -16,6 +16,7 @@
 package com.palantir.server;
 
 import java.lang.reflect.Field;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
@@ -27,6 +28,8 @@ import org.junit.Test;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
+import com.google.common.base.Function;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -95,7 +98,13 @@ public class TransactionRemotingTest {
     @Test
     public void testGetAllTableNames() {
         Set<String> allTableNames = service.getAllTableNames();
-        Set<String> expectedTableNames = schema.getLatestSchema().getAllTablesAndIndexMetadata().keySet();
+        Collection<String> expectedTableNames = schema.getLatestSchema().getAllTablesAndIndexMetadata().keySet();
+        expectedTableNames = Collections2.transform(expectedTableNames, new Function<String, String>() {
+            @Override
+            public String apply(String input) {
+                return schema.getNamespace().getName() + "." + input;
+            }
+        });
         Assert.assertTrue(allTableNames.containsAll(expectedTableNames));
     }
 
@@ -217,7 +226,7 @@ public class TransactionRemotingTest {
 
     @Test
     public void testRaw() throws JsonProcessingException {
-        String tableName = "my_table";
+        String tableName = "ns.my_table";
         service.createTable(tableName);
         TransactionToken txId = service.startTransaction();
         TableCellVal putArg = new TableCellVal(tableName, getUpgradeMetadataTableContents());
@@ -228,7 +237,7 @@ public class TransactionRemotingTest {
 
     @Test
     public void testRaw2() throws JsonProcessingException {
-        String tableName = "my_table";
+        String tableName = "ns.my_table";
         service.createTable(tableName);
         TransactionToken txId = service.startTransaction();
         Cell rawCell = Cell.create(new byte[] {0, 1, 2}, new byte[] {3, 4, 5});
