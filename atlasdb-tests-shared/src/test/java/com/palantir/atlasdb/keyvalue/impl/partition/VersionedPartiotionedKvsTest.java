@@ -41,6 +41,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.AbstractAtlasDbKeyValueServiceTest;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.PartitionedKeyValueService;
+import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.SimpleKeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.exception.ClientVersionTooOldException;
@@ -91,7 +92,6 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
     SimpleKeyValueEndpoint[] skves = new SimpleKeyValueEndpoint[NUM_EPTS];
 
     NavigableMap<byte[], KeyValueEndpoint> ring;
-    DynamicPartitionMapImpl pmap;
     PartitionedKeyValueService pkvs;
 
     @Rule public DropwizardClientRule kvsRule1 = epts[0].kvs.rule;
@@ -125,9 +125,9 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
         ring.put(new byte[] {0, 0, 0}, skves[2]);
         // Do not insert skves[3] - it will be used later to test addEndpoint
 
-        pmap = DynamicPartitionMapImpl.create(new QuorumParameters(3, 3, 3), ring, PTExecutors.newCachedThreadPool());
+        DynamicPartitionMap pmap = DynamicPartitionMapImpl.create(new QuorumParameters(3, 3, 3), ring, PTExecutors.newCachedThreadPool());
         // We do not tolerate failures in this test. It is important since the
-        // non-critical operations are done asynchronously and might not finishi
+        // non-critical operations are done asynchronously and might not finish
         // before checking the results.
         pkvs = PartitionedKeyValueService.create(new QuorumParameters(3, 3, 3), pmap);
 
@@ -148,20 +148,28 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
     @Test
     public void testVersionTooOld() {
         Cell firstCell = Cell.create(new byte[] {0}, new byte[] {0});
-    	pmap.setVersion(1L);
-    	skves[0].partitionMapService().updateMap(pmap);
-    	pmap.setVersion(0L);
-    	assertEquals(1L, skves[0].partitionMapService().getMapVersion());
+        pkvs.getPartitionMap().setVersion(1L);
+
+        skves[0].partitionMapService().updateMap(pkvs.getPartitionMap());
+        skves[1].partitionMapService().updateMap(pkvs.getPartitionMap());
+        skves[2].partitionMapService().updateMap(pkvs.getPartitionMap());
+        skves[3].partitionMapService().updateMap(pkvs.getPartitionMap());
+
+        pkvs.getPartitionMap().setVersion(0L);
+
+        assertEquals(1L, skves[0].partitionMapService().getMapVersion());
+        assertEquals(1L, skves[1].partitionMapService().getMapVersion());
+        assertEquals(1L, skves[2].partitionMapService().getMapVersion());
+        assertEquals(1L, skves[3].partitionMapService().getMapVersion());
+
+        // This must not throw - createTable is an "exempt" method.
+        pkvs.createTable("TABLE_NAME_2", 12345);
+
     	try {
-    		pkvs.createTable("TABLE_NAME_2", 12345);
+    	    // This must throw - client partition map is out of date
     		pkvs.put(TEST_TABLE, ImmutableMap.of(firstCell, "whatever".getBytes()), 0L);
-    		// This has to throw since table metadata is to be
-    		// stored on all endpoints.
     		fail();
     	} catch (ClientVersionTooOldException e) {
-    	    // The write could have succeeded for some endpoints, so first remove it
-    	    // to avoid pkey violation exception.
-    	    pkvs.delete(TEST_TABLE, ImmutableMultimap.of(firstCell, 0L));
     		pkvs.put(TEST_TABLE, ImmutableMap.of(firstCell, "whatever".getBytes()), 0L);
             Assert.assertArrayEquals("whatever".getBytes(), pkvs.get(TEST_TABLE, ImmutableMap.of(firstCell, 1L)).get(firstCell).getContents());
     	}
