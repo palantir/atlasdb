@@ -15,8 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.partition.endpoint;
 
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
@@ -29,7 +29,8 @@ import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
  * @author htarasiuk
  *
  */
-@JsonTypeInfo(use=Id.CLASS, property="@class")
+@JsonSerialize(as=SimpleKeyValueEndpoint.class)
+@JsonDeserialize(as=SimpleKeyValueEndpoint.class)
 public interface KeyValueEndpoint {
     KeyValueService keyValueService();
     PartitionMapService partitionMapService();
