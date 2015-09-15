@@ -51,7 +51,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
-import com.palantir.atlasdb.keyvalue.partition.exception.VersionTooOldException;
+import com.palantir.atlasdb.keyvalue.partition.exception.ClientVersionTooOldException;
 import com.palantir.atlasdb.keyvalue.partition.map.DynamicPartitionMapImpl;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumTracker;
@@ -276,7 +276,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                             try {
                                 ClosableIterator<RowResult<Value>> it = vkve.keyValueService().getRange(tableName, range.get(), timestamp);
                                 result.add(ClosablePeekingIterator.of(it));
-                            } catch (VersionTooOldException e) {
+                            } catch (ClientVersionTooOldException e) {
                                 throw e;
                             } catch (RuntimeException e) {
                                 // If this failure is fatal for the range, the exception will be thrown when

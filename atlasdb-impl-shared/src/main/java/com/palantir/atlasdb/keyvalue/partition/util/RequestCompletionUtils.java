@@ -27,7 +27,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
-import com.palantir.atlasdb.keyvalue.partition.exception.VersionTooOldException;
+import com.palantir.atlasdb.keyvalue.partition.exception.ClientVersionTooOldException;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumTracker;
 import com.palantir.common.base.Throwables;
 
@@ -37,7 +37,7 @@ public class RequestCompletionUtils {
 
     // These exceptions should be thrown immediately
     private static boolean isNonInterceptableException(Throwable e) {
-        return e instanceof VersionTooOldException || e instanceof KeyAlreadyExistsException;
+        return e instanceof ClientVersionTooOldException || e instanceof KeyAlreadyExistsException;
     }
 
     /**
@@ -130,7 +130,7 @@ public class RequestCompletionUtils {
                                 future.get();
                             } catch (ExecutionException e) {
                                 log.warn("Exception in redundant write operation. Ignoring.");
-                                e.printStackTrace();
+                                e.printStackTrace(System.out);
                             } finally {
                                 tracker.unregisterRef(future);
                             }

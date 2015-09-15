@@ -40,7 +40,7 @@ import com.palantir.common.annotation.Immutable;
  * @author htarasiuk
  *
  */
-@Immutable public class VersionTooOldException extends TransactionFailedRetriableException {
+@Immutable public class ClientVersionTooOldException extends TransactionFailedRetriableException {
 
     private static final long serialVersionUID = 1L;
 
@@ -57,7 +57,7 @@ import com.palantir.common.annotation.Immutable;
     			Preconditions.checkNotNull(pmsUri)).getMap();
     }
 
-    public VersionTooOldException(String pmsUri) {
+    public ClientVersionTooOldException(String pmsUri) {
         // WARNING! The message has to be filled in with pmsUri since some
         // Palantir Throwables rewrapping logic will recreate the exception by
         // passing the getMessage() result to the single-argument constructor.
@@ -65,7 +65,7 @@ import com.palantir.common.annotation.Immutable;
     	this.pmsUri = Preconditions.checkNotNull(pmsUri);
     }
 
-    public VersionTooOldException() {
+    public ClientVersionTooOldException() {
         super(null);
     	this.pmsUri = null;
     }

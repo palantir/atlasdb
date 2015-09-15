@@ -18,10 +18,10 @@ package com.palantir.atlasdb.keyvalue.remoting;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 
-import com.palantir.atlasdb.keyvalue.partition.exception.VersionTooOldException;
+import com.palantir.atlasdb.keyvalue.partition.exception.ClientVersionTooOldException;
 
 
-public class VersionTooOldExceptionMapper implements ExceptionMapper<VersionTooOldException> {
+public class VersionTooOldExceptionMapper implements ExceptionMapper<ClientVersionTooOldException> {
 
     private VersionTooOldExceptionMapper() {}
     private static VersionTooOldExceptionMapper instance = new VersionTooOldExceptionMapper();
@@ -30,7 +30,7 @@ public class VersionTooOldExceptionMapper implements ExceptionMapper<VersionTooO
     }
 
     @Override
-    public Response toResponse(VersionTooOldException exception) {
+    public Response toResponse(ClientVersionTooOldException exception) {
         return Response.noContent().status(410).build();
     }
 

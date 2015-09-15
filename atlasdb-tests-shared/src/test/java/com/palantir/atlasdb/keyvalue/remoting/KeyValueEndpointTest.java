@@ -21,6 +21,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
+import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -37,7 +38,7 @@ public class KeyValueEndpointTest extends AbstractAtlasDbKeyValueServiceTest {
 
 	@Rule
 	public final DropwizardClientRule endpointKvsService = Utils.getRemoteKvsRule(
-			RemotingKeyValueService.createServerSide(new InMemoryKeyValueService(false), Suppliers.ofInstance(-1L)));
+			RemotingKeyValueService.createServerSide(new InMemoryKeyValueService(false), Suppliers.ofInstance(-1L), Functions.<Void>constant(null)));
 
 	@Rule
 	public final DropwizardClientRule endpointPmsService = new DropwizardClientRule(

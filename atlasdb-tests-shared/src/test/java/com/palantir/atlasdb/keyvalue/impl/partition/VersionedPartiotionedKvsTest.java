@@ -43,7 +43,7 @@ import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.PartitionedKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.SimpleKeyValueEndpoint;
-import com.palantir.atlasdb.keyvalue.partition.exception.VersionTooOldException;
+import com.palantir.atlasdb.keyvalue.partition.exception.ClientVersionTooOldException;
 import com.palantir.atlasdb.keyvalue.partition.map.DynamicPartitionMapImpl;
 import com.palantir.atlasdb.keyvalue.partition.map.InKvsPartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
@@ -158,7 +158,7 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
     		// This has to throw since table metadata is to be
     		// stored on all endpoints.
     		fail();
-    	} catch (VersionTooOldException e) {
+    	} catch (ClientVersionTooOldException e) {
     	    // The write could have succeeded for some endpoints, so first remove it
     	    // to avoid pkey violation exception.
     	    pkvs.delete(TEST_TABLE, ImmutableMultimap.of(firstCell, 0L));
@@ -197,7 +197,7 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
         try {
             pkvs.delete(TEST_TABLE, ImmutableMultimap.of(sampleNonExistingCell, 0L));
             fail();
-        } catch (VersionTooOldException e) {
+        } catch (ClientVersionTooOldException e) {
             pkvs.delete(TEST_TABLE, ImmutableMultimap.of(sampleNonExistingCell, 0L));
         }
         assertEquals(1L, pkvs.getPartitionMap().getVersion());

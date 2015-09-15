@@ -27,6 +27,7 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.google.common.base.Function;
 import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -35,6 +36,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
+import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.map.DynamicPartitionMapImpl;
 import com.palantir.atlasdb.keyvalue.remoting.iterators.HistoryRangeIterator;
 import com.palantir.atlasdb.keyvalue.remoting.iterators.RangeIterator;
@@ -114,11 +116,20 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
         };
     }
 
-    public enum HOLDER implements RemoteContextType<Long> {
+    public enum LONG_HOLDER implements RemoteContextType<Long> {
         PM_VERSION {
             @Override
             public Class<Long> getValueType() {
                 return Long.class;
+            }
+        }
+    }
+
+    public enum STRING_HOLDER implements RemoteContextType<String> {
+        PMS_URI {
+            @Override
+            public Class<String> getValueType() {
+                return String.class;
             }
         }
     }
@@ -133,7 +144,8 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
      * @return
      */
     public static KeyValueService createClientSide(String uri, Supplier<Long> localVersionSupplier) {
-        ServiceContext<Long> outboxVersionCtx = RemoteContextHolder.OUTBOX.getProviderForKey(HOLDER.PM_VERSION);
+        ServiceContext<Long> outboxVersionCtx = RemoteContextHolder.OUTBOX.getProviderForKey(LONG_HOLDER.PM_VERSION);
+        ServiceContext<String> outboxPmsUriCtx = RemoteContextHolder.OUTBOX.getProviderForKey(STRING_HOLDER.PMS_URI);
 
         KeyValueService remotingKvs = Feign.builder()
                 .encoder(new OctetStreamDelegateEncoder(new JacksonEncoder(kvsMapper())))
@@ -145,10 +157,12 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
 
         KeyValueService versionSettingRemotingKvs = PopulateServiceContextProxy.newProxyInstance(
                 KeyValueService.class, remotingKvs, localVersionSupplier, outboxVersionCtx);
+        KeyValueService pmsUriSettingVersionSettingRemotingKvs = PopulateServiceContextProxy.newProxyInstance(
+                KeyValueService.class, versionSettingRemotingKvs, Suppliers.ofInstance("xxx"), outboxPmsUriCtx);
 
-        KeyValueService pagingIteratorsVersionSettingRemotingKvs = createClientSideInternal(versionSettingRemotingKvs);
+        KeyValueService pagingIteratorsPmsUriSettingVersionSettingRemotingKvs = createClientSideInternal(pmsUriSettingVersionSettingRemotingKvs);
 
-        return pagingIteratorsVersionSettingRemotingKvs;
+        return pagingIteratorsPmsUriSettingVersionSettingRemotingKvs;
     }
 
     /**
@@ -158,9 +172,9 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
      * @param serverVersionSupplier Use <code>Suppliers.<Long>ofInstance(-1L)</code> if you want to disable version check.
      * @return
      */
-    public static KeyValueService createServerSide(KeyValueService delegate, Supplier<Long> serverVersionSupplier) {
+    public static KeyValueService createServerSide(KeyValueService delegate, Supplier<Long> serverVersionSupplier, Function<? super DynamicPartitionMap, Void> serverPartitionMapUpdater) {
         final KeyValueService kvs = new RemotingKeyValueService(delegate);
-        return VersionCheckProxy.newProxyInstance(kvs, serverVersionSupplier);
+        return VersionCheckProxy.newProxyInstance(kvs, serverVersionSupplier, serverPartitionMapUpdater);
     }
 
     private RemotingKeyValueService(KeyValueService service) {

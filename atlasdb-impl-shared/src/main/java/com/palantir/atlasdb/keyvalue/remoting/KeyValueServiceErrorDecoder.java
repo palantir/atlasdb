@@ -19,7 +19,7 @@ import java.util.Objects;
 
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
-import com.palantir.atlasdb.keyvalue.partition.exception.VersionTooOldException;
+import com.palantir.atlasdb.keyvalue.partition.exception.ClientVersionTooOldException;
 
 import feign.Response;
 import feign.codec.ErrorDecoder;
@@ -44,7 +44,7 @@ public final class KeyValueServiceErrorDecoder implements ErrorDecoder {
                 return new InsufficientConsistencyException(Objects.toString(response.body()));
             }
             if (response.status() == 410) {
-                return new VersionTooOldException();
+                return new ClientVersionTooOldException();
             }
         }
         return defaultDecoder.decode(methodKey, response);

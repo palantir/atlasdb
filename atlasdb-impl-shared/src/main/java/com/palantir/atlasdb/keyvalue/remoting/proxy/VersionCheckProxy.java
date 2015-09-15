@@ -24,12 +24,17 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.partition.exception.VersionTooOldException;
-import com.palantir.atlasdb.keyvalue.remoting.RemotingKeyValueService.HOLDER;
+import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
+import com.palantir.atlasdb.keyvalue.partition.exception.ClientVersionTooOldException;
+import com.palantir.atlasdb.keyvalue.partition.exception.EndpointVersionTooOldException;
+import com.palantir.atlasdb.keyvalue.remoting.RemotingKeyValueService.LONG_HOLDER;
+import com.palantir.atlasdb.keyvalue.remoting.RemotingKeyValueService.STRING_HOLDER;
+import com.palantir.atlasdb.keyvalue.remoting.RemotingPartitionMapService;
 import com.palantir.common.supplier.RemoteContextHolder;
 import com.palantir.common.supplier.ServiceContext;
 
@@ -40,9 +45,10 @@ import com.palantir.common.supplier.ServiceContext;
  * The server version supplier is passed as an argument. Client version supplier is taken
  * from <code>RemoteContextHolder.INBOX.getProviderForKey(HOLDER.PM_VERSION)</code>.
  *
- * @see VersionTooOldException
+ * @see ClientVersionTooOldException
  * @see RemoteContextHolder
- * @see HOLDER
+ * @see LONG_HOLDER
+ * @see STRING_HOLDER
  *
  * @author htarasiuk
  *
@@ -50,10 +56,12 @@ import com.palantir.common.supplier.ServiceContext;
 public class VersionCheckProxy implements InvocationHandler {
     private static final Logger log = LoggerFactory.getLogger(VersionCheckProxy.class);
     private final Supplier<Long> serverVersionProvider;
+    private final Function<? super DynamicPartitionMap, Void> serverPartitionMapUpdater;
     private final KeyValueService delegate;
 
-    private VersionCheckProxy(Supplier<Long> serverVersionProvider, KeyValueService delegate) {
+    private VersionCheckProxy(Supplier<Long> serverVersionProvider, Function<? super DynamicPartitionMap, Void> serverPartitionMapUpdater, KeyValueService delegate) {
         this.serverVersionProvider = serverVersionProvider;
+        this.serverPartitionMapUpdater = serverPartitionMapUpdater;
         this.delegate = delegate;
     }
 
@@ -94,22 +102,35 @@ public class VersionCheckProxy implements InvocationHandler {
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
 
-        ServiceContext<Long> remoteClientCtx = RemoteContextHolder.INBOX.getProviderForKey(HOLDER.PM_VERSION);
+        ServiceContext<Long> remoteVersionClientCtx = RemoteContextHolder.INBOX.getProviderForKey(LONG_HOLDER.PM_VERSION);
+        ServiceContext<String> newPmsUriCtx = RemoteContextHolder.INBOX.getProviderForKey(STRING_HOLDER.PMS_URI);
 
         // Only check the version for appropriate methods
         if (!isMethodVersionExempt(method)) {
-            Long clientVersion = remoteClientCtx.get();
+            Long clientVersion = remoteVersionClientCtx.get();
             Long serverVersion = Preconditions.checkNotNull(serverVersionProvider.get());
             if (serverVersion < 0L) {
                 // In this case the version check is simply disabled.
                 assert clientVersion == null || clientVersion < 0;
             } else {
+                if (!serverVersion.equals(clientVersion)) {
+                    log.warn("Server map version: " + serverVersion + ", client map version: " + clientVersion);
+                }
                 if (clientVersion < serverVersion) {
-                    throw new VersionTooOldException();
+                    throw new ClientVersionTooOldException();
                 }
                 if (clientVersion > serverVersion) {
-                    // TODO:
-                    log.warn("Server partition map version is out-of-date.");
+                    String newPmsUri = newPmsUriCtx.get();
+                    if (newPmsUri != null) {
+                        try {
+                            serverPartitionMapUpdater.apply(RemotingPartitionMapService.createClientSide(newPmsUri).getMap());
+                        } catch (RuntimeException e) {
+                            log.warn("Could not update server partition map");
+                            throw new EndpointVersionTooOldException("Server partition map out-of-date and update failed.", e);
+                        }
+                    } else {
+                        throw new EndpointVersionTooOldException("Server partition map out-of-date.");
+                    }
                 }
             }
         }
@@ -128,8 +149,9 @@ public class VersionCheckProxy implements InvocationHandler {
      * such case this proxy is just a no-op.
      * @return
      */
-    public static KeyValueService newProxyInstance(KeyValueService delegate, Supplier<Long> serverVersionProvider) {
-        VersionCheckProxy vcp = new VersionCheckProxy(serverVersionProvider, delegate);
+    public static KeyValueService newProxyInstance(KeyValueService delegate, Supplier<Long> serverVersionProvider,
+                                                   Function<? super DynamicPartitionMap, Void> serverPartitionMapUpdater) {
+        VersionCheckProxy vcp = new VersionCheckProxy(serverVersionProvider, serverPartitionMapUpdater, delegate);
         return (KeyValueService) Proxy.newProxyInstance(
                 KeyValueService.class.getClassLoader(),
                 new Class<?>[] { KeyValueService.class }, vcp);

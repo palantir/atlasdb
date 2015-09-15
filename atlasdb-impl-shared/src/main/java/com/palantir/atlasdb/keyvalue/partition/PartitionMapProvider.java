@@ -17,7 +17,7 @@ package com.palantir.atlasdb.keyvalue.partition;
 
 import com.google.common.base.Function;
 import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
-import com.palantir.atlasdb.keyvalue.partition.exception.VersionTooOldException;
+import com.palantir.atlasdb.keyvalue.partition.exception.ClientVersionTooOldException;
 
 /**
  * This is to make sure that no one extending this class
@@ -37,7 +37,7 @@ public class PartitionMapProvider {
     protected <T> T runWithPartitionMap(Function<DynamicPartitionMap, T> task) {
     	try {
     		return task.apply(partitionMap);
-    	} catch (VersionTooOldException e) {
+    	} catch (ClientVersionTooOldException e) {
     		partitionMap = e.getUpdatedMap();
     		/**
     		 * Update the map but let the transaction manager retry the task.
