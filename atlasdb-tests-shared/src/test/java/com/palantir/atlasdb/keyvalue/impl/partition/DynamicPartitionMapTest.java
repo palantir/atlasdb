@@ -124,10 +124,12 @@ public class DynamicPartitionMapTest extends AbstractPartitionMapTest {
         assertEquals(true, dpm.removeEndpoint(newByteArray(0, 5)));
         assertEquals(false, dpm.removeEndpoint(newByteArray(1, 1)));
         dpm.promoteRemovedEndpoint(newByteArray(0, 5));
+        dpm.pushMapToEndpoints();
 
         assertEquals(true, dpm.removeEndpoint(newByteArray(1, 1)));
         assertEquals(false, dpm.addEndpoint(newByteArray(0, 5), endpoints.get(2), ""));
         dpm.promoteRemovedEndpoint(newByteArray(1, 1));
+        dpm.pushMapToEndpoints();
     }
 
 }

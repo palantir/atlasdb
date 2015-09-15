@@ -81,18 +81,30 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
      *
      */
 
-    private static int NUM_EPTS = 4;
-    RemoteEndpoint[] epts = new RemoteEndpoint[NUM_EPTS]; {
+    private static final int NUM_EPTS = 4;
+
+    // We do not tolerate failures in this test. It is important since the
+    // non-critical operations are done asynchronously and might not finish
+    // before checking the results.
+    private static final QuorumParameters QUORUM_PARAMETERS = new QuorumParameters(3, 3, 3);
+
+    static {
+        assert NUM_EPTS >= QUORUM_PARAMETERS.getReplicationFactor();
+        assert QUORUM_PARAMETERS.getReplicationFactor() == QUORUM_PARAMETERS.getReadFactor();
+        assert QUORUM_PARAMETERS.getReplicationFactor() == QUORUM_PARAMETERS.getWriteFactor();
+    }
+
+    // This array is the actual remote side of the endpoints
+    private final RemoteEndpoint[] epts = new RemoteEndpoint[NUM_EPTS]; {
         for (int i=0; i<NUM_EPTS; ++i) {
             KeyValueService kvs = new InMemoryKeyValueService(false);
             epts[i] = new RemoteEndpoint(kvs, InKvsPartitionMapService.createEmptyInMemory());
         }
     };
 
-    SimpleKeyValueEndpoint[] skves = new SimpleKeyValueEndpoint[NUM_EPTS];
-
-    NavigableMap<byte[], KeyValueEndpoint> ring;
-    PartitionedKeyValueService pkvs;
+    // This array is the local "remoting" side of the endpoints
+    private final SimpleKeyValueEndpoint[] skves = new SimpleKeyValueEndpoint[NUM_EPTS];
+    private PartitionedKeyValueService pkvs;
 
     @Rule public DropwizardClientRule kvsRule1 = epts[0].kvs.rule;
     @Rule public DropwizardClientRule kvsRule2 = epts[1].kvs.rule;
@@ -102,6 +114,8 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
     @Rule public DropwizardClientRule pmsRule2 = epts[1].pms.rule;
     @Rule public DropwizardClientRule pmsRule3 = epts[2].pms.rule;
     @Rule public DropwizardClientRule pmsRule4 = epts[3].pms.rule;
+
+    private static final byte[] SAMPLE_KEY = new byte[] {(byte)0xff, 0, 0, 0};
 
     @After
     public void cleanupStuff() {
@@ -114,22 +128,19 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
     }
 
     public void setUpPrivate() {
-
         for (int i=0; i<NUM_EPTS; ++i) {
             skves[i] = new SimpleKeyValueEndpoint(epts[i].kvs.rule.baseUri().toString(), epts[i].pms.rule.baseUri().toString());
         }
 
-        ring = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
+        NavigableMap<byte[], KeyValueEndpoint> ring = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
         ring.put(new byte[] {0},       skves[0]);
         ring.put(new byte[] {0, 0},    skves[1]);
         ring.put(new byte[] {0, 0, 0}, skves[2]);
         // Do not insert skves[3] - it will be used later to test addEndpoint
 
         DynamicPartitionMap pmap = DynamicPartitionMapImpl.create(new QuorumParameters(3, 3, 3), ring, PTExecutors.newCachedThreadPool());
-        // We do not tolerate failures in this test. It is important since the
-        // non-critical operations are done asynchronously and might not finish
-        // before checking the results.
-        pkvs = PartitionedKeyValueService.create(new QuorumParameters(3, 3, 3), pmap);
+
+        pkvs = PartitionedKeyValueService.create(QUORUM_PARAMETERS, pmap);
 
         // Push the map to all the endpoints
         for (int i=0; i<NUM_EPTS-1; ++i) {
@@ -175,8 +186,6 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
     	}
     }
 
-    byte[] sampleKey = new byte[] {(byte)0xff, 0, 0, 0};
-
     @Test
     public void testMultiAddEndpoint() {
         // This tests that the put function will block for long enough.
@@ -191,7 +200,7 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
         Cell sampleNonExistingCell = Cell.create("thisCell".getBytes(), "doesNotExist".getBytes());
         Map<Cell, Value> emptyResult = ImmutableMap.<Cell, Value>of();
 
-        pkvs.getPartitionMap().addEndpoint(sampleKey, skves[NUM_EPTS-1], "");
+        pkvs.getPartitionMap().addEndpoint(SAMPLE_KEY, skves[NUM_EPTS-1], "");
         pkvs.getPartitionMap().pushMapToEndpoints();
 
         Map<Cell, Long> cells0 = ImmutableMap.of(Cell.create(row0, column0), TEST_TIMESTAMP + 1);
@@ -216,7 +225,7 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
             assertEquals(result0, testResult);
         }
 
-        pkvs.getPartitionMap().promoteAddedEndpoint(sampleKey);
+        pkvs.getPartitionMap().promoteAddedEndpoint(SAMPLE_KEY);
         skves[NUM_EPTS - 1].partitionMapService().updateMap(pkvs.getPartitionMap());
         for (int i=0; i<NUM_EPTS - 1; ++i) {
             skves[i].partitionMapService().updateMap(pkvs.getPartitionMap());
@@ -244,10 +253,10 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
     public void testRemoveEndpoint() {
 
         // First add the endpoint so that we can remove one
-        pkvs.getPartitionMap().addEndpoint(sampleKey, skves[NUM_EPTS - 1], "");
+        pkvs.getPartitionMap().addEndpoint(SAMPLE_KEY, skves[NUM_EPTS - 1], "");
         pkvs.getPartitionMap().pushMapToEndpoints();
 
-        pkvs.getPartitionMap().promoteAddedEndpoint(sampleKey);
+        pkvs.getPartitionMap().promoteAddedEndpoint(SAMPLE_KEY);
         pkvs.getPartitionMap().pushMapToEndpoints();
 
         pkvs.createTable(TEST_TABLE, 12345);
