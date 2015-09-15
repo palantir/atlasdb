@@ -158,7 +158,8 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
         KeyValueService versionSettingRemotingKvs = PopulateServiceContextProxy.newProxyInstance(
                 KeyValueService.class, remotingKvs, localVersionSupplier, outboxVersionCtx);
         KeyValueService pmsUriSettingVersionSettingRemotingKvs = PopulateServiceContextProxy.newProxyInstance(
-                KeyValueService.class, versionSettingRemotingKvs, Suppliers.ofInstance("xxx"), outboxPmsUriCtx);
+                //                                                                             TODO
+                KeyValueService.class, versionSettingRemotingKvs, Suppliers.<String>ofInstance(null), outboxPmsUriCtx);
 
         KeyValueService pagingIteratorsPmsUriSettingVersionSettingRemotingKvs = createClientSideInternal(pmsUriSettingVersionSettingRemotingKvs);
 
