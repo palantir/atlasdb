@@ -33,6 +33,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
 
+import org.apache.commons.lang.mutable.MutableLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -83,8 +84,6 @@ import com.palantir.atlasdb.keyvalue.remoting.RemotingKeyValueService;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.util.Mutable;
-import com.palantir.util.Mutables;
 import com.palantir.util.Pair;
 
 /**
@@ -167,10 +166,11 @@ import com.palantir.util.Pair;
 public class DynamicPartitionMapImpl implements DynamicPartitionMap {
 
     private static final Logger log = LoggerFactory.getLogger(DynamicPartitionMapImpl.class);
+    private static final int MAX_VALUE_SIZE = 1024 * 1024 * 1024;
 
     private final QuorumParameters quorumParameters;
     private final CycleMap<byte[], EndpointWithStatus> ring;
-    private final Mutable<Long> version = Mutables.newMutable(0L);
+    private final MutableLong version = new MutableLong(0L);
 
     private transient final Set<KeyValueService> delegates;
     private transient final ExecutorService executor;
@@ -178,7 +178,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     private transient final Supplier<Long> versionSupplier = new Supplier<Long>() {
         @Override
         public Long get() {
-            return Preconditions.checkNotNull(version.get());
+            return version.longValue();
         }
     };
 
@@ -202,7 +202,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         Preconditions.checkArgument(ring.keySet().size() >= quorumParameters.getReplicationFactor());
 
         this.quorumParameters = quorumParameters;
-        this.version.set(version);
+        this.version.setValue(version);
         this.operationsInProgress = operationsInProgress;
         this.executor = executor;
 
@@ -639,7 +639,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         // Sanity checks
         Preconditions.checkArgument(!ring.containsKey(key));
 
-        if (operationsInProgress > 0) {
+        if (operationsInProgress != 0) {
             return false;
         }
 
@@ -647,13 +647,13 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
 
         PartitionedKeyValueService pkvs = PartitionedKeyValueService.create(quorumParameters, this);
         for (String tableName : pkvs.getAllTableNames()) {
-            kve.keyValueService().createTable(tableName, 128);
+            kve.keyValueService().createTable(tableName, MAX_VALUE_SIZE);
             kve.keyValueService().putMetadataForTables(pkvs.getMetadataForTables());
         }
 
         ring.put(key, new EndpointWithJoiningStatus(kve));
-        version.set(version.get() + 1);
-        operationsInProgress++;
+        version.increment();
+        operationsInProgress = 1;
 
         // Push the map to crucial endpoints
         try {
@@ -665,7 +665,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
             }
         } catch (RuntimeException e) {
             ring.remove(key);
-            version.set(version.get() - 1);
+            version.decrement();
             operationsInProgress = 0;
             throw e;
         }
@@ -757,7 +757,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         // First push the map to crucial endpoints
         // This is to ensure that no garbage is left behind
         ring.put(key,  ring.get(key).asNormal());
-        version.set(version.get() + 1);
+        version.increment();
         operationsInProgress = 0;
 
         try {
@@ -768,7 +768,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
             }
         } catch (RuntimeException e) {
             ring.put(key, ews);
-            version.set(version.get() - 1);
+            version.decrement();
             operationsInProgress = 1;
             throw e;
         }
@@ -811,13 +811,13 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     public synchronized boolean removeEndpoint(final byte[] key) {
         Preconditions.checkArgument(ring.get(key) instanceof EndpointWithNormalStatus);
         Preconditions.checkArgument(ring.keySet().size() > quorumParameters.getReplicationFactor());
-        if (operationsInProgress > 0) {
+        if (operationsInProgress != 0) {
             return false;
         }
 
         ring.put(key, ring.get(key).asLeaving());
         operationsInProgress = 1;
-        version.set(version.get() + 1);
+        version.increment();
 
         // Push the map to crucial endpoints
         try {
@@ -828,7 +828,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
             }
         } catch (RuntimeException e) {
             ring.put(key, ring.get(key).asNormal());
-            version.set(version.get() - 1);
+            version.decrement();
             operationsInProgress = 0;
             throw e;
         }
@@ -923,7 +923,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         // Finalize
         lastRemovedKeyValueEndpoint.set(ring.get(key).get());
         ring.remove(key);
-        version.set(version.get() + 1);
+        version.increment();
         operationsInProgress = 0;
 
         byte[] otherKey = key;
@@ -934,7 +934,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
             }
         } catch (RuntimeException e) {
             ring.put(key, ews);
-            version.set(version.get() - 1);
+            version.decrement();
             operationsInProgress = 1;
             throw e;
         }
@@ -956,7 +956,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
 
     @Override
     public long getVersion() {
-        return version.get();
+        return version.toLong();
     }
 
     /**
@@ -969,7 +969,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
      */
     @Deprecated @VisibleForTesting
     public void setVersion(long version) {
-        this.version.set(version);
+        this.version.setValue(version);
     }
 
     /*** toString, hashCode and equals ***********************************************************/
@@ -1068,7 +1068,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
 
             gen.writeStartObject();
             gen.writeObjectField("quorumParameters", instance.quorumParameters);
-            gen.writeObjectField("version", instance.version.get());
+            gen.writeObjectField("version", instance.version.longValue());
             gen.writeObjectField("operationsInProgress", instance.operationsInProgress);
             gen.writeObjectField("lastRemovedEndpoint", instance.lastRemovedKeyValueEndpoint);
             gen.writeFieldName("ring");
@@ -1155,7 +1155,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
             }
 
             // Store the map version
-            result.put(VERSION_CELL, Long.toString(version.get()).getBytes());
+            result.put(VERSION_CELL, Long.toString(version.longValue()).getBytes());
 
             // Store no of operations in progress
             result.put(OPS_IN_PROGRESS_CELL, Long.toString(operationsInProgress).getBytes());
