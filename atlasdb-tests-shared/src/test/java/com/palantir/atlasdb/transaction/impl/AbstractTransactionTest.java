@@ -92,7 +92,7 @@ import com.palantir.util.Pair;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 public abstract class AbstractTransactionTest {
-    protected static final String TEST_TABLE = "table1";
+    protected static final String TEST_TABLE = "ns.table1";
     protected static final TableMetadata TEST_TABLE_METADATA = new TableMetadata(
             new NameMetadataDescription(ImmutableList.of(new NameComponentDescription(
                     "row_name",
