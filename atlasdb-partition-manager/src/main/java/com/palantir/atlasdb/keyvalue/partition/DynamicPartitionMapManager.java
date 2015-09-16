@@ -17,6 +17,9 @@ package com.palantir.atlasdb.keyvalue.partition;
 
 import java.util.Arrays;
 import java.util.Scanner;
+import java.util.concurrent.Callable;
+
+import javax.annotation.CheckForNull;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,6 +30,7 @@ import com.palantir.atlasdb.keyvalue.partition.endpoint.SimpleKeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.map.DynamicPartitionMapImpl;
 import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
 import com.palantir.atlasdb.keyvalue.remoting.RemotingPartitionMapService;
+import com.palantir.common.base.Throwables;
 
 public class DynamicPartitionMapManager {
 
@@ -39,37 +43,108 @@ public class DynamicPartitionMapManager {
         partitionMap = masterPms.getMap();
     }
 
-    public void addEndpoint(String kvsUri, String pmsUri, byte[] key, Scanner scanner) {
-        pushMapToUri(pmsUri);
-        SimpleKeyValueEndpoint skve = new SimpleKeyValueEndpoint(kvsUri, pmsUri);
-        Preconditions.checkState(partitionMap.addEndpoint(key, skve, ""));
-        pushMapToEndpointsWithRetry(scanner);
-        System.out.println("Promoting...");
-        partitionMap.promoteAddedEndpoint(key);
-        pushMapToEndpointsWithRetry(scanner);
-    }
-
-    public void removeEndpoint(byte[] key, Scanner scanner) {
-        Preconditions.checkState(partitionMap.removeEndpoint(key));
-        pushMapToEndpointsWithRetry(scanner);
-        System.out.println("Promoting...");
-        partitionMap.promoteRemovedEndpoint(key);
-        pushMapToEndpointsWithRetry(scanner);
-    }
-
-    private void pushMapToEndpointsWithRetry(Scanner scanner) {
+    @CheckForNull
+    private static <T> T runRetryableTask(Callable<T> task, Scanner scanner) {
         while (true) {
-            System.out.println("Pushing map to endpoints...");
             try {
-                partitionMap.pushMapToEndpoints();
-                break;
-            } catch (RuntimeException e) {
-                e.printStackTrace();
-                System.out.print("Retry? (y/n)");
+                return task.call();
+            } catch (Exception e) {
+                e.printStackTrace(System.out);
+                System.out.print("Retry? (y/n) ");
                 if (!scanner.nextLine().equals("y")) {
-                    throw e;
+                    System.out.println("Fatal? (y/n)");
+                    if (!scanner.nextLine().equals("n")) {
+                        throw Throwables.throwUncheckedException(e);
+                    }
+                    break;
                 }
             }
+        }
+        return null;
+    }
+
+    public void addEndpoint(String kvsUri, String pmsUri, final byte[] key, Scanner scanner) {
+        final SimpleKeyValueEndpoint skve = new SimpleKeyValueEndpoint(kvsUri, pmsUri);
+
+        runRetryableTask(new Callable<Void>() {
+            @Override
+            public Void call() throws Exception {
+                System.out.println("Adding...");
+                boolean added = partitionMap.addEndpoint(key, skve, "");
+                Preconditions.checkState(added);
+                return null;
+            }
+
+        }, scanner);
+
+        pushMapToEndpointsNonCritical();
+
+        runRetryableTask(new Callable<Void>() {
+            @Override
+            public Void call() throws Exception {
+                System.out.println("Backfilling...");
+                partitionMap.backfillAddedEndpoint(key);
+                return null;
+            }
+        }, scanner);
+
+        pushMapToEndpointsNonCritical();
+
+        runRetryableTask(new Callable<Void>() {
+            @Override
+            public Void call() throws Exception {
+                System.out.println("Promoting...");
+                partitionMap.promoteAddedEndpoint(key);
+                return null;
+            }
+        }, scanner);
+
+        pushMapToEndpointsNonCritical();
+    }
+
+    public void removeEndpoint(final byte[] key, Scanner scanner) {
+        runRetryableTask(new Callable<Void>() {
+            @Override
+            public Void call() throws Exception {
+                System.out.println("Removing...");
+                boolean removed = partitionMap.removeEndpoint(key);
+                Preconditions.checkState(removed);
+                return null;
+            }
+
+        }, scanner);
+
+        pushMapToEndpointsNonCritical();
+
+        runRetryableTask(new Callable<Void>() {
+            @Override
+            public Void call() throws Exception {
+                System.out.println("Backfilling...");
+                partitionMap.backfillRemovedEndpoint(key);
+                return null;
+            }
+        }, scanner);
+
+        pushMapToEndpointsNonCritical();
+
+        runRetryableTask(new Callable<Void>() {
+            @Override
+            public Void call() throws Exception {
+                System.out.println("Promoting...");
+                partitionMap.promoteRemovedEndpoint(key);
+                return null;
+            }
+        }, scanner);
+
+        pushMapToEndpointsNonCritical();
+    }
+
+    private void pushMapToEndpointsNonCritical() {
+        try {
+            partitionMap.pushMapToEndpoints();
+        } catch (RuntimeException e) {
+            System.out.println("Non-critical error encountered while pushing map to endpoints:");
+            e.printStackTrace(System.out);
         }
     }
 
@@ -143,7 +218,7 @@ public class DynamicPartitionMapManager {
         System.out.print("New version: ");
         long newVersion = Long.parseLong(scanner.nextLine());
         ((DynamicPartitionMapImpl) partitionMap).setVersion(newVersion);
-        pushMapToEndpointsWithRetry(scanner);
+        pushMapToEndpointsNonCritical();
     }
 
     public void pushToUriInteractive(Scanner scanner) {
@@ -203,7 +278,12 @@ public class DynamicPartitionMapManager {
                         continue;
                     }
                 } catch (NumberFormatException e) {
-                    e.printStackTrace();
+                    e.printStackTrace(System.out);
+                    continue;
+                } catch (RuntimeException e) {
+                    System.out.println("ERROR DURING OPERATION");
+                    e.printStackTrace(System.out);
+                    System.out.println("\n\nReturning to main menu\n\n");
                     continue;
                 }
 
