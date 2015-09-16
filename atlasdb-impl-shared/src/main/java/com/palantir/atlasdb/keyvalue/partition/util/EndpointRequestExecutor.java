@@ -22,8 +22,8 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
     private static final int MAX_TASKS_PER_ENDPOINT = 32;
     private static final Logger log = LoggerFactory.getLogger(EndpointRequestExecutor.class);
 
-    final ConcurrentMap<Future<?>, KeyValueService> endpointByFuture;
-    final ConcurrentHashMultiset<KeyValueService> numberOfTasksByEndpoint;
+    private final ConcurrentMap<Future<?>, KeyValueService> endpointByFuture;
+    private final ConcurrentHashMultiset<KeyValueService> numberOfTasksByEndpoint;
 
     private EndpointRequestExecutor() {
         numberOfTasksByEndpoint = ConcurrentHashMultiset.create();
