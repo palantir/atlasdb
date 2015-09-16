@@ -612,6 +612,18 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     }
 
     /**
+     *
+     * This will set the status of given endpoint to joining and push the updated map to
+     * "crucial" endpoints. This means that if this operation succeeds, you can safely call
+     * {@link #promoteAddedEndpoint(byte[])}.
+     * <p>
+     * It is recommended that you push the map to all endpoints using {@link #pushMapToEndpoints()}
+     * after calling this function.
+     * <p>
+     * If the function fails, the local map will be reverted to previous state. It is possible that
+     * some remote endpoints will have received the new version of map and they will not be reverted.
+     * You should retry this function until it succeeds.
+     * <p>
      * Note that this implementation supports at most one addEndpoint or removeEndpoint operation at
      * a time. This method will return <code>false</code> if such operation is already in progress.
      *
@@ -619,6 +631,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
      * @param kvs
      * @param rack
      * @return <code>true</code> if the operation has been accepted for execution, <code>false</code> otherwise.
+     * @throws RuntimeException if an update of a crucial endpoint fails.
      */
     @Override
     public synchronized boolean addEndpoint(final byte[] key, final KeyValueEndpoint kvs, String rack) {
@@ -636,6 +649,22 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         version.set(version.get() + 1);
         operationsInProgress++;
 
+        // Push the map to crucial endpoints
+        try {
+            ring.get(key).get().partitionMapService().updateMap(this);
+            byte[] otherKey = key;
+            for (int i = 0; i < quorumParameters.getReplicationFactor(); ++i) {
+                otherKey = ring.nextKey(otherKey);
+                ring.get(otherKey).get().partitionMapService().updateMap(this);
+            }
+        } catch (RuntimeException e) {
+            ring.remove(key);
+            version.set(version.get() - 1);
+            operationsInProgress = 0;
+            throw e;
+        }
+
+        // The operation has succeeded
         return true;
     }
 
@@ -724,11 +753,23 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     }
 
     /**
+     * This will set the status of given endpoint to leaving and push the updated map to
+     * "crucial" endpoints. This means that if this operation succeeds, you can safely call
+     * {@link #promoteRemovedEndpoint(byte[])}.
+     * <p>
+     * It is recommended that you push the map to all endpoints using {@link #pushMapToEndpoints()}
+     * after calling this function.
+     * <p>
+     * If the function fails, the local map will be reverted to previous state. It is possible that
+     * some remote endpoints will have received the new version of map and they will not be reverted.
+     * You should retry this function until it succeeds.
+     * <p>
      * Note that this implementation supports at most one addEndpoint or removeEndpoint operation at
      * a time. This method will return <code>false</code> if such operation is already in progress.
      *
      * @param key
      * @return <code>true</code> if the operation has been accepted for execution, <code>false</code> otherwise.
+     * @throws RuntimeException if an update of a crucial endpoint fails.
      */
     @Override
 	public synchronized boolean removeEndpoint(final byte[] key) {
@@ -738,10 +779,25 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
             return false;
         }
 
-    	ring.put(key, ring.get(key).asLeaving());
+        ring.put(key, ring.get(key).asLeaving());
+        operationsInProgress = 1;
         version.set(version.get() + 1);
-        operationsInProgress++;
 
+        // Push the map to crucial endpoints
+        try {
+            byte[] otherKey = key;
+            for (int i = 0; i < quorumParameters.getReplicationFactor(); ++i) {
+                otherKey = ring.nextKey(otherKey);
+                ring.get(otherKey).get().partitionMapService().updateMap(this);
+            }
+        } catch (RuntimeException e) {
+            ring.put(key, ring.get(key).asNormal());
+            version.set(version.get() - 1);
+            operationsInProgress = 0;
+            throw e;
+        }
+
+        // The operation has succeeded
         return true;
     }
 
