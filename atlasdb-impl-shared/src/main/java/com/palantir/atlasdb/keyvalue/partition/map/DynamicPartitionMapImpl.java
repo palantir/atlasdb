@@ -26,7 +26,6 @@ import java.util.NavigableSet;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
@@ -77,6 +76,8 @@ import com.palantir.atlasdb.keyvalue.partition.status.EndpointWithNormalStatus;
 import com.palantir.atlasdb.keyvalue.partition.status.EndpointWithStatus;
 import com.palantir.atlasdb.keyvalue.partition.util.ConsistentRingRangeRequest;
 import com.palantir.atlasdb.keyvalue.partition.util.CycleMap;
+import com.palantir.atlasdb.keyvalue.partition.util.EndpointRequestExecutor;
+import com.palantir.atlasdb.keyvalue.partition.util.EndpointRequestExecutor.EndpointRequestCompletionService;
 import com.palantir.atlasdb.keyvalue.remoting.RemotingKeyValueService;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.Throwables;
@@ -225,18 +226,17 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
 
 	@Override
     public synchronized void pushMapToEndpoints() {
-        ExecutorCompletionService<Void> execSvc = new ExecutorCompletionService<>(executor);
+        EndpointRequestCompletionService<Void> execSvc = EndpointRequestExecutor.newService(executor);
         Set<Future<Void>> futures = Sets.newHashSet();
 
-        for (final EndpointWithStatus kve : ImmutableSet
-                .copyOf(ring.values())) {
+        for (final EndpointWithStatus kve : ImmutableSet.copyOf(ring.values())) {
             futures.add(execSvc.submit(new Callable<Void>() {
                 @Override
                 public Void call() throws Exception {
                     kve.get().partitionMapService().updateMap(DynamicPartitionMapImpl.this);
                     return null;
                 }
-            }));
+            }, kve.get().keyValueService()));
         }
 
         final KeyValueEndpoint removedEndpoint = lastRemovedKeyValueEndpoint.getAndSet(null);
@@ -248,7 +248,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
                     removedEndpoint.partitionMapService().updateMap(DynamicPartitionMapImpl.this);
                     return null;
                 }
-            }));
+            }, removedEndpoint.keyValueService()));
         }
 
         while (!futures.isEmpty()) {
