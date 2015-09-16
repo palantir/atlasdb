@@ -5,7 +5,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 import javax.annotation.concurrent.ThreadSafe;
 
@@ -36,8 +35,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
     // This API is like ExecutionCompletionService but also takes endpoint reference
     // when submitting a new task.
     public interface EndpointRequestCompletionService<FutureReturnType> {
-        Future<FutureReturnType> poll();
-        Future<FutureReturnType> poll(long timeout, TimeUnit timeUnit) throws InterruptedException;
         Future<FutureReturnType> submit(Callable<FutureReturnType> callable, KeyValueService kvs);
         Future<FutureReturnType> take() throws InterruptedException;
     }
@@ -57,17 +54,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
                     numberOfTasksByEndpoint.remove(kvs);
                 }
                 return future;
-            }
-
-            @Override
-            public Future<FutureReturnType> poll() {
-                return registerTaskCompleted(execSvc.poll());
-            }
-
-            @Override
-            public Future<FutureReturnType> poll(long timeout,
-                    TimeUnit timeUnit) throws InterruptedException {
-                return registerTaskCompleted(execSvc.poll(timeout, timeUnit));
             }
 
             @Override
