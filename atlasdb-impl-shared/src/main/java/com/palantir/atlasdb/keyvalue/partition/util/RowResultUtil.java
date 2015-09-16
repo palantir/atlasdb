@@ -66,6 +66,12 @@ public class RowResultUtil {
             try {
                 for (Map.Entry<Cell, Value> e : it.next().getCells()) {
                     final byte[] col = e.getKey().getColumnName();
+
+                    // Assert that there is not contradictory data
+                    if (result.containsKey(col) && e.getValue().getTimestamp() == result.get(col).getTimestamp()) {
+                        assert Arrays.equals(result.get(col).getContents(), e.getValue().getContents());
+                    }
+
                     if (!result.containsKey(col)
                             || result.get(col).getTimestamp() < e.getValue().getTimestamp()) {
                         result.put(col, e.getValue());
@@ -111,6 +117,18 @@ public class RowResultUtil {
                 result.get(col).addAll(e.getValue());
             }
         }
+
+        // Assert that there is no multiple values for same key
+        for (Set<Value> cell : result.values()) {
+            for (Value val : cell) {
+                for (Value otherVal : cell) {
+                    if (val != otherVal) {
+                        assert val.getTimestamp() != otherVal.getTimestamp();
+                    }
+                }
+            }
+        }
+
         return RowResult.create(row, result);
     }
 
