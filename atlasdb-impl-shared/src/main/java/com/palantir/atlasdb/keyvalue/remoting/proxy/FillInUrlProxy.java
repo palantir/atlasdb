@@ -23,6 +23,7 @@ import java.lang.reflect.Proxy;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.exception.ClientVersionTooOldException;
+import com.palantir.atlasdb.keyvalue.partition.exception.EndpointVersionTooOldException;
 
 /**
  * This is to inject remote partition map service URI to a VersionTooOldException. New partition map
@@ -62,6 +63,9 @@ public class FillInUrlProxy implements InvocationHandler {
             Throwable cause = e.getCause();
             if (cause instanceof ClientVersionTooOldException) {
             	throw new ClientVersionTooOldException(pmsUri);
+            }
+            if (cause instanceof EndpointVersionTooOldException) {
+                throw new EndpointVersionTooOldException(pmsUri);
             }
             throw cause;
         }
