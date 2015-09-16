@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.partition;
 import com.google.common.base.Function;
 import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.exception.ClientVersionTooOldException;
+import com.palantir.atlasdb.keyvalue.partition.exception.EndpointVersionTooOldException;
 
 /**
  * This is to make sure that no one extending this class
@@ -32,28 +33,39 @@ import com.palantir.atlasdb.keyvalue.partition.exception.ClientVersionTooOldExce
  */
 public class PartitionMapProvider {
 
-	private DynamicPartitionMap partitionMap;
+    private DynamicPartitionMap partitionMap;
 
     protected <T> T runWithPartitionMap(Function<DynamicPartitionMap, T> task) {
-    	try {
-    		return task.apply(partitionMap);
-    	} catch (ClientVersionTooOldException e) {
-    		partitionMap = e.getUpdatedMap();
-    		/**
-    		 * Update the map but let the transaction manager retry the task.
-    		 * It seems to be reasonable since some of the KVS operations
-    		 * are not idempotent so retrying them from here could get
-    		 * other errors that would confuse the transaction manager.
-    		 */
-    		throw e;
-    	}
-    }
-
-    protected void updatePartitionMap(DynamicPartitionMap partitionMap) {
-    	this.partitionMap = partitionMap;
+        try {
+            return task.apply(partitionMap);
+        } catch (ClientVersionTooOldException e) {
+            partitionMap = e.getUpdatedMap();
+            /**
+             * Update the map but let the transaction manager retry the task.
+             * It seems to be reasonable since some of the KVS operations
+             * are not idempotent so retrying them from here could get
+             * other errors that would confuse the transaction manager.
+             */
+            throw e;
+        } catch (EndpointVersionTooOldException e) {
+            e.pushNewMap(partitionMap);
+            /**
+             * Push my map version to the endpoint but let the transaction
+             * manager retry this task for same reasons as above.
+             */
+            throw e;
+        } catch (RuntimeException e) {
+            /**
+             * TODO:
+             * Consult the seed partition map servers to ensure that my map is
+             * up-to-date.
+             *
+             */
+            throw e;
+        }
     }
 
     protected PartitionMapProvider(DynamicPartitionMap partitionMap) {
-    	this.partitionMap = partitionMap;
+        this.partitionMap = partitionMap;
     }
 }
