@@ -19,7 +19,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
 
-public class EndpointWithLeavingStatus extends EndpointWithStatus {
+public class EndpointWithLeavingStatus extends BackfillableEndpointWithStatus {
 
     @JsonCreator
     public EndpointWithLeavingStatus(@JsonProperty("endpoint") KeyValueEndpoint endpoint) {

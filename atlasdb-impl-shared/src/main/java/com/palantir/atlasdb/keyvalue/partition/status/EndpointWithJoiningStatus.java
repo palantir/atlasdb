@@ -17,9 +17,10 @@ package com.palantir.atlasdb.keyvalue.partition.status;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
 
-public class EndpointWithJoiningStatus extends EndpointWithStatus {
+public class EndpointWithJoiningStatus extends BackfillableEndpointWithStatus {
 
     @JsonCreator
     public EndpointWithJoiningStatus(@JsonProperty("endpoint") KeyValueEndpoint endpoint) {
@@ -44,6 +45,12 @@ public class EndpointWithJoiningStatus extends EndpointWithStatus {
     @Override
     public boolean shouldCountForWrite() {
         return false;
+    }
+
+    @Override
+    public EndpointWithNormalStatus asNormal() {
+        Preconditions.checkState(backfilled());
+        return super.asNormal();
     }
 
 }
