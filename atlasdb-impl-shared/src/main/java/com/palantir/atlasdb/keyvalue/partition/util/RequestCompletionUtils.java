@@ -17,7 +17,6 @@ package com.palantir.atlasdb.keyvalue.partition.util;
 
 import java.util.Iterator;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.Future;
 
 import org.slf4j.Logger;
@@ -29,6 +28,7 @@ import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.partition.exception.ClientVersionTooOldException;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumTracker;
+import com.palantir.atlasdb.keyvalue.partition.util.EndpointRequestExecutor.EndpointRequestCompletionService;
 import com.palantir.common.base.Throwables;
 
 public class RequestCompletionUtils {
@@ -53,7 +53,7 @@ public class RequestCompletionUtils {
      */
     private static <TrackingUnit, FutureReturnType> void completeRequest(
             QuorumTracker<FutureReturnType, TrackingUnit> tracker,
-            ExecutorCompletionService<FutureReturnType> execSvc,
+            EndpointRequestCompletionService<FutureReturnType> execSvc,
             Function<FutureReturnType, Void> mergeFunction) {
 
         try {
@@ -88,7 +88,7 @@ public class RequestCompletionUtils {
      */
     public static <TrackingUnit, FutureReturnType> void completeReadRequest(
             QuorumTracker<FutureReturnType, TrackingUnit> tracker,
-            ExecutorCompletionService<FutureReturnType> execSvc,
+            EndpointRequestCompletionService<FutureReturnType> execSvc,
             Function<FutureReturnType, Void> mergeFunction) {
 
         try {
@@ -109,7 +109,7 @@ public class RequestCompletionUtils {
      */
     public static <TrackingUnit> void completeWriteRequest(
             final QuorumTracker<Void, TrackingUnit> tracker,
-            final ExecutorCompletionService<Void> execSvc) {
+            final EndpointRequestCompletionService<Void> execSvc) {
 
         try {
             completeRequest(tracker, execSvc, Functions.<Void> identity());

@@ -24,7 +24,6 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
@@ -57,6 +56,8 @@ import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumTracker;
 import com.palantir.atlasdb.keyvalue.partition.util.ClosablePeekingIterator;
 import com.palantir.atlasdb.keyvalue.partition.util.ConsistentRingRangeRequest;
+import com.palantir.atlasdb.keyvalue.partition.util.EndpointRequestExecutor;
+import com.palantir.atlasdb.keyvalue.partition.util.EndpointRequestExecutor.EndpointRequestCompletionService;
 import com.palantir.atlasdb.keyvalue.partition.util.MergeResultsUtils;
 import com.palantir.atlasdb.keyvalue.partition.util.PartitionedRangedIterator;
 import com.palantir.atlasdb.keyvalue.partition.util.RowResultUtil;
@@ -94,8 +95,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 			@Override
 			public Map<Cell, Value> apply(DynamicPartitionMap input) {
                 final Map<Cell, Value> overallResult = Maps.newHashMap();
-                final ExecutorCompletionService<Map<Cell, Value>> execSvc = new ExecutorCompletionService<Map<Cell, Value>>(
-                        executor);
+                final EndpointRequestCompletionService<Map<Cell, Value>> execSvc = EndpointRequestExecutor.newService(executor);
                 final QuorumTracker<Map<Cell, Value>, byte[]> tracker = QuorumTracker.of(
                         rows, input.getReadRowsParameters(rows));
 
@@ -108,7 +108,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                             public Map<Cell, Value> call() throws Exception {
                                 return e.lhSide.getRows(tableName, e.rhSide, columnSelection, timestamp);
                             }
-                        });
+                        }, e.lhSide);
                         tracker.registerRef(future, e.rhSide);
                         return null;
                     }
@@ -126,8 +126,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
         return runWithPartitionMap(new Function<DynamicPartitionMap, Map<Cell, Value>>() {
 			@Override
 			public Map<Cell, Value> apply(@Nullable DynamicPartitionMap input) {
-                final ExecutorCompletionService<Map<Cell, Value>> execSvc = new ExecutorCompletionService<Map<Cell, Value>>(
-                        executor);
+                final EndpointRequestCompletionService<Map<Cell, Value>> execSvc = EndpointRequestExecutor.newService(executor);
                 final QuorumTracker<Map<Cell, Value>, Cell> tracker = QuorumTracker.of(
                         timestampByCell.keySet(),
                         input.getReadCellsParameters(timestampByCell.keySet()));
@@ -142,7 +141,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                             public Map<Cell, Value> call() throws Exception {
                                 return e.lhSide.get(tableName, e.rhSide);
                             }
-                        });
+                        }, e.lhSide);
                         tracker.registerRef(future, e.rhSide.keySet());
                         return null;
                     }
@@ -164,8 +163,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
         return runWithPartitionMap(new Function<DynamicPartitionMap, Multimap<Cell, Long>>() {
 			@Override
 			public Multimap<Cell, Long> apply(DynamicPartitionMap input) {
-                final ExecutorCompletionService<Multimap<Cell, Long>> execSvc = new ExecutorCompletionService<Multimap<Cell, Long>>(
-                        executor);
+                final EndpointRequestCompletionService<Multimap<Cell, Long>> execSvc = EndpointRequestExecutor.newService(executor);
                 final QuorumTracker<Multimap<Cell, Long>, Cell> tracker = QuorumTracker.of(
                         cells,
                         input.getReadCellsParameters(cells));
@@ -178,7 +176,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                             public Multimap<Cell, Long> call() throws Exception {
                                 return e.lhSide.getAllTimestamps(tableName, cells, timestamp);
                             }
-                        });
+                        }, e.lhSide);
                         tracker.registerRef(future, e.rhSide);
                         return null;
                     }
@@ -201,8 +199,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                 final QuorumTracker<Map<Cell, Long>, Cell> tracker = QuorumTracker.of(
                         timestampByCell.keySet(),
                         input.getReadCellsParameters(timestampByCell.keySet()));
-                final ExecutorCompletionService<Map<Cell, Long>> execSvc = new ExecutorCompletionService<Map<Cell, Long>>(
-                        executor);
+                final EndpointRequestCompletionService<Map<Cell, Long>> execSvc = EndpointRequestExecutor.newService(executor);
                 input.runForCellsRead(tableName, timestampByCell, new Function<Pair<KeyValueService, Map<Cell, Long>>, Void>() {
                     @Override @Nullable
                     public Void apply(@Nullable final Pair<KeyValueService, Map<Cell, Long>> e) {
@@ -211,7 +208,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                             public Map<Cell, Long> call() throws Exception {
                                 return e.lhSide.getLatestTimestamps(tableName, e.rhSide);
                             }
-                        });
+                        }, e.lhSide);
                         tracker.registerRef(future, e.rhSide.keySet());
                         return null;
                     }
@@ -401,7 +398,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 		runWithPartitionMap(new Function<DynamicPartitionMap, Void>() {
 			@Override
 			public Void apply(DynamicPartitionMap input) {
-                final ExecutorCompletionService<Void> writeService = new ExecutorCompletionService<Void>(executor);
+                final EndpointRequestCompletionService<Void> writeService = EndpointRequestExecutor.newService(executor);
                 final QuorumTracker<Void, Cell> tracker =
                         QuorumTracker.of(values.keySet(), input.getWriteCellsParameters(values.keySet()));
 
@@ -414,7 +411,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                                 e.lhSide.put(tableName, e.rhSide, timestamp);
                                 return null;
                             }
-                        });
+                        }, e.lhSide);
                         tracker.registerRef(future, e.rhSide.keySet());
                         return null;
                     }
@@ -434,8 +431,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
         runWithPartitionMap(new Function<DynamicPartitionMap, Void>() {
 			@Override
 			public Void apply(final DynamicPartitionMap input) {
-                final ExecutorCompletionService<Void> execSvc = new ExecutorCompletionService<Void>(
-                        executor);
+                final EndpointRequestCompletionService<Void> execSvc = EndpointRequestExecutor.newService(executor);
                 final QuorumTracker<Void, Map.Entry<Cell, Value>> tracker = QuorumTracker.of(
                         cellValues.entries(), input.getWriteEntriesParameters(cellValues));
 
@@ -448,7 +444,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                                 e.lhSide.putWithTimestamps(tableName, e.rhSide);
                                 return null;
                             }
-                        });
+                        }, e.lhSide);
                         tracker.registerRef(future, e.rhSide.entries());
                         return null;
                     }
@@ -474,8 +470,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
         runWithPartitionMap(new Function<DynamicPartitionMap, Void>() {
 			@Override
 			public Void apply(DynamicPartitionMap input) {
-                final ExecutorCompletionService<Void> writeService = new ExecutorCompletionService<Void>(
-                        executor);
+                final EndpointRequestCompletionService<Void> writeService = EndpointRequestExecutor.newService(executor);
                 final QuorumTracker<Void, Cell> tracker = QuorumTracker.of(
                         values.keySet(), quorumParameters.getWriteRequestParameters());
 
@@ -488,7 +483,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                                 e.lhSide.putUnlessExists(tableName, e.rhSide);
                                 return null;
                             }
-                        });
+                        }, e.lhSide);
                         tracker.registerRef(future, e.rhSide.keySet());
                         return null;
                     }
@@ -506,7 +501,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
         runWithPartitionMap(new Function<DynamicPartitionMap, Void>() {
 			@Override
 			public Void apply(DynamicPartitionMap input) {
-                final ExecutorCompletionService<Void> execSvc = new ExecutorCompletionService<Void>(executor);
+                final EndpointRequestCompletionService<Void> execSvc = EndpointRequestExecutor.newService(executor);
                 final QuorumTracker<Void, Map.Entry<Cell, Long>> tracker = QuorumTracker.of(
                         keys.entries(), input.getWriteEntriesParameters(keys));
 
@@ -519,7 +514,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                                 e.lhSide.delete(tableName, e.rhSide);
                                 return null;
                             }
-                        });
+                        }, e.lhSide);
                         tracker.registerRef(future, e.rhSide.entries());
                         return null;
                     }
@@ -537,7 +532,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
         runWithPartitionMap(new Function<DynamicPartitionMap, Void>() {
 			@Override
 			public Void apply(DynamicPartitionMap input) {
-                final ExecutorCompletionService<Void> execSvc = new ExecutorCompletionService<Void>(executor);
+                final EndpointRequestCompletionService<Void> execSvc = EndpointRequestExecutor.newService(executor);
                 final QuorumTracker<Void, Cell> tracker = QuorumTracker.of(
                         cells, input.getWriteCellsParameters(cells));
 
@@ -550,7 +545,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                                 e.lhSide.addGarbageCollectionSentinelValues(tableName, e.rhSide);
                                 return null;
                             }
-                        });
+                        }, e.lhSide);
                         tracker.registerRef(future, e.rhSide);
                         return null;
                     }
