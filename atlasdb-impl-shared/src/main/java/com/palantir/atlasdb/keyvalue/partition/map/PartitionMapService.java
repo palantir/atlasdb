@@ -43,10 +43,10 @@ public interface PartitionMapService {
     @Produces(MediaType.APPLICATION_JSON)
     DynamicPartitionMap getMap();
 
-     @POST
-     @Path("get-map-version")
-     @Produces(MediaType.APPLICATION_JSON)
-     long getMapVersion();
+    @POST
+    @Path("get-map-version")
+    @Produces(MediaType.APPLICATION_JSON)
+    long getMapVersion();
 
     @POST
     @Path("update-map")
