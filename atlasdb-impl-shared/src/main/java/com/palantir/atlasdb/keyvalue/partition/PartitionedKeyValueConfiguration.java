@@ -34,19 +34,23 @@ public class PartitionedKeyValueConfiguration {
 
     public final QuorumParameters quorumParameters;
     public final ImmutableList<PartitionMapService> partitionMapProviders;
+    public final int partitionMapProvidersReadFactor;
 
-    private PartitionedKeyValueConfiguration(QuorumParameters quorumParameters, List<PartitionMapService> partitionMapProviders) {
+    private PartitionedKeyValueConfiguration(QuorumParameters quorumParameters,
+            List<PartitionMapService> partitionMapProviders, int partitionMapProvidersReadFactor) {
         this.quorumParameters = quorumParameters;
         this.partitionMapProviders = ImmutableList.copyOf(partitionMapProviders);
+        this.partitionMapProvidersReadFactor = partitionMapProvidersReadFactor;
     }
 
-    public static PartitionedKeyValueConfiguration of(QuorumParameters quorumParameters, List<PartitionMapService> partitionMapProviders) {
-        return new PartitionedKeyValueConfiguration(quorumParameters, partitionMapProviders);
+    public static PartitionedKeyValueConfiguration of(QuorumParameters quorumParameters,
+            List<PartitionMapService> partitionMapProviders, int partitionMapProvidersReadFactor) {
+        return new PartitionedKeyValueConfiguration(quorumParameters, partitionMapProviders, partitionMapProvidersReadFactor);
     }
 
     public static PartitionedKeyValueConfiguration of(QuorumParameters quorumParameters, DynamicPartitionMap partitionMap) {
         return new PartitionedKeyValueConfiguration(quorumParameters,
-                ImmutableList.<PartitionMapService> of(InMemoryPartitionMapService.create(partitionMap)));
+                ImmutableList.<PartitionMapService> of(InMemoryPartitionMapService.create(partitionMap)), 1);
     }
 
 }

@@ -45,6 +45,7 @@ public class PartitionMapProvider {
     private static final Logger log = LoggerFactory.getLogger(PartitionMapProvider.class);
 
     private final ImmutableList<PartitionMapService> partitionMapProviders;
+    private final int partitionMapProvidersReadFactor;
     private final PartitionMapService localService = InMemoryPartitionMapService.createEmpty();
 
     protected <T> T runWithPartitionMapRetryable(Function<? super DynamicPartitionMap, T> task) {
@@ -92,15 +93,22 @@ public class PartitionMapProvider {
              */
             try {
                 log.info("Trying to consult seed servers in case local partition map is out of date");
-                DynamicPartitionMap downloadedMap = RequestCompletionUtils.retryUntilSuccess(
-                        partitionMapProviders.iterator(), new Function<PartitionMapService, DynamicPartitionMap>() {
-                            @Override
-                            public DynamicPartitionMap apply(PartitionMapService input) {
-                                return input.getMap();
-                            }
-                        });
                 log.info("Local map version before consulting: " + localService.getMapVersion());
-                localService.updateMapIfNewer(downloadedMap);
+
+                int numSucc = 0;
+                for (PartitionMapService pms : partitionMapProviders) {
+                    try {
+                        localService.updateMapIfNewer(pms.getMap());
+                        numSucc++;
+                    } catch (RuntimeException e) {
+                        log.warn("Error when connecting to seed server:");
+                        e.printStackTrace(System.out);
+                    }
+                }
+                if (numSucc < partitionMapProvidersReadFactor) {
+                    log.error("Could not contact enough seed servers. Ignoring...");
+                }
+
                 log.info("Local map version after consulting: " + localService.getMapVersion());
             } catch (RuntimeErrorException re) {
                 log.warn("Error while trying to update map from seed servers.");
@@ -110,8 +118,9 @@ public class PartitionMapProvider {
         }
     }
 
-    protected PartitionMapProvider(ImmutableList<PartitionMapService> partitionMapProviders) {
+    protected PartitionMapProvider(ImmutableList<PartitionMapService> partitionMapProviders, int partitionMapProvidersReadFactor) {
         this.partitionMapProviders = partitionMapProviders;
+        this.partitionMapProvidersReadFactor = partitionMapProvidersReadFactor;
         localService.updateMapIfNewer(getPartitionMapFromSeedServers());
     }
 
