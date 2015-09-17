@@ -15,11 +15,14 @@
  */
 package com.palantir.atlasdb.keyvalue.partition.map;
 
+import javax.annotation.concurrent.GuardedBy;
+
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
 
 public class InMemoryPartitionMapService implements PartitionMapService {
 
+    @GuardedBy("this")
     private DynamicPartitionMap partitionMap;
 
     private InMemoryPartitionMapService(DynamicPartitionMap partitionMap) {
@@ -40,18 +43,26 @@ public class InMemoryPartitionMapService implements PartitionMapService {
     }
 
     @Override
-    public DynamicPartitionMap getMap() {
+    public synchronized DynamicPartitionMap getMap() {
         return Preconditions.checkNotNull(partitionMap);
     }
 
     @Override
-    public long getMapVersion() {
+    public synchronized long getMapVersion() {
         return partitionMap.getVersion();
     }
 
     @Override
-    public void updateMap(DynamicPartitionMap partitionMap) {
+    public synchronized void updateMap(DynamicPartitionMap partitionMap) {
         this.partitionMap = Preconditions.checkNotNull(partitionMap);
+    }
+
+    @Override
+    public synchronized long updateMapIfNewer(DynamicPartitionMap partitionMap) {
+        if (this.partitionMap == null || this.partitionMap.getVersion() < partitionMap.getVersion()) {
+            updateMap(partitionMap);
+        }
+        return this.partitionMap.getVersion();
     }
 
 }

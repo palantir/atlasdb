@@ -136,4 +136,24 @@ public final class InKvsPartitionMapService implements PartitionMapService {
         storage.put(PARTITION_MAP_TABLE, dpmi.toTable(), 0L);
     }
 
+    /**
+     * TODO: This can be done more efficient if needed.
+     */
+    @Override
+    public synchronized long updateMapIfNewer(DynamicPartitionMap partitionMap) {
+        if (!hasValidMap() || getMap().getVersion() < partitionMap.getVersion()) {
+            updateMap(partitionMap);
+        }
+        return getMap().getVersion();
+    }
+
+    private boolean hasValidMap() {
+        try {
+            getMap().getVersion();
+            return true;
+        } catch (RuntimeException e) {
+            return false;
+        }
+    }
+
 }

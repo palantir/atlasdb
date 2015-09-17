@@ -21,6 +21,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
 
 /**
@@ -50,6 +51,21 @@ public interface PartitionMapService {
     @POST
     @Path("update-map")
     @Consumes(MediaType.APPLICATION_JSON)
+    @VisibleForTesting
     void updateMap(DynamicPartitionMap partitionMap);
+
+    /**
+     * This method must atomically check the version of partition map
+     * and update it if the provided map is newer than the stored map.
+     *
+     * @param partitionMap
+     * @return Version of the map that is stored in this service after
+     * the operation. Must be greater or equal to the version of
+     * <tt>partitionMap</tt>.
+     */
+    @POST
+    @Path("update-map-if-newer")
+    @Consumes(MediaType.APPLICATION_JSON)
+    long updateMapIfNewer(DynamicPartitionMap partitionMap);
 
 }

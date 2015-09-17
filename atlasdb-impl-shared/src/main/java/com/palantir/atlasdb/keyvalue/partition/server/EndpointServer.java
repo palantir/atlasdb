@@ -124,6 +124,16 @@ public class EndpointServer implements PartitionMapService, KeyValueService {
     }
 
     @Override
+    public long updateMapIfNewer(final DynamicPartitionMap partitionMap) {
+        return runPartitionMapWriteOperation(new Function<Void, Long>() {
+            @Override
+            public Long apply(Void input) {
+                return pms().updateMapIfNewer(partitionMap);
+            }
+        });
+    }
+
+    @Override
     public void initializeFromFreshInstance() {
         runPartitionMapReadOperation(new Function<Void, Void>() {
             @Override

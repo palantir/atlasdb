@@ -36,30 +36,36 @@ import io.dropwizard.testing.junit.DropwizardClientRule;
 
 public class KeyValueEndpointTest extends AbstractAtlasDbKeyValueServiceTest {
 
-	@Rule
-	public final DropwizardClientRule endpointKvsService = Utils.getRemoteKvsRule(
-			RemotingKeyValueService.createServerSide(new InMemoryKeyValueService(false), Suppliers.ofInstance(-1L), Functions.<Void>constant(null)));
+    @Rule
+    public final DropwizardClientRule endpointKvsService = Utils.getRemoteKvsRule(
+            RemotingKeyValueService.createServerSide(new InMemoryKeyValueService(false), Suppliers.ofInstance(-1L), Functions.<Void>constant(null)));
 
-	@Rule
-	public final DropwizardClientRule endpointPmsService = new DropwizardClientRule(
-			Preconditions.checkNotNull(new PartitionMapService() {
-				long version = 0L;
+    @Rule
+    public final DropwizardClientRule endpointPmsService = new DropwizardClientRule(
+            Preconditions.checkNotNull(new PartitionMapService() {
+                long version = 0L;
 
-				@Override
-				public void updateMap(DynamicPartitionMap partitionMap) {
-					version = partitionMap.getVersion();
-				}
+                @Override
+                public synchronized void updateMap(DynamicPartitionMap partitionMap) {
+                    version = partitionMap.getVersion();
+                }
 
-				@Override
-				public long getMapVersion() {
-					return version;
-				}
+                @Override
+                public synchronized long updateMapIfNewer(DynamicPartitionMap partitionMap) {
+                    version = Math.max(version, partitionMap.getVersion());
+                    return version;
+                }
 
-				@Override
-				public DynamicPartitionMap getMap() {
-					return null;
-				}
-			}));
+                @Override
+                public synchronized long getMapVersion() {
+                    return version;
+                }
+
+                @Override
+                public synchronized DynamicPartitionMap getMap() {
+                    return null;
+                }
+            }));
 
     private KeyValueEndpoint endpoint;
 
@@ -72,7 +78,7 @@ public class KeyValueEndpointTest extends AbstractAtlasDbKeyValueServiceTest {
     }
 
     private KeyValueEndpoint getEndpoint() {
-    	setupPrivate();
+        setupPrivate();
         return Preconditions.checkNotNull(endpoint);
     }
 
@@ -83,7 +89,7 @@ public class KeyValueEndpointTest extends AbstractAtlasDbKeyValueServiceTest {
 
     @Override
     protected KeyValueService getKeyValueService() {
-    	setupPrivate();
+        setupPrivate();
         return Preconditions.checkNotNull(getEndpoint().keyValueService());
     }
 
