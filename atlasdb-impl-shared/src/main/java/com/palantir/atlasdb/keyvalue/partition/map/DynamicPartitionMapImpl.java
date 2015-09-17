@@ -66,6 +66,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.partition.PartitionedKeyValueConfiguration;
 import com.palantir.atlasdb.keyvalue.partition.PartitionedKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
@@ -517,7 +518,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
      * @param rangeToCopy
      */
     private void copyData(KeyValueService destKvs, RangeRequest rangeToCopy) {
-        PartitionedKeyValueService pkvs = PartitionedKeyValueService.create(quorumParameters, this);
+        PartitionedKeyValueService pkvs = PartitionedKeyValueService.create(PartitionedKeyValueConfiguration.of(quorumParameters, this));
         for (String tableName : pkvs.getAllTableNames()) {
             // TODO: getRangeOfTimestamps?
             try (ClosableIterator<RowResult<Set<Value>>> allRows = pkvs
@@ -645,7 +646,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
 
         kve.registerPartitionMapVersion(versionSupplier);
 
-        PartitionedKeyValueService pkvs = PartitionedKeyValueService.create(quorumParameters, this);
+        PartitionedKeyValueService pkvs = PartitionedKeyValueService.create(PartitionedKeyValueConfiguration.of(quorumParameters, this));
         for (String tableName : pkvs.getAllTableNames()) {
             kve.keyValueService().createTable(tableName, MAX_VALUE_SIZE);
             kve.keyValueService().putMetadataForTables(pkvs.getMetadataForTables());

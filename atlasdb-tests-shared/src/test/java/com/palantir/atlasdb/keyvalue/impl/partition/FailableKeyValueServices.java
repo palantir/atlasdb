@@ -32,6 +32,7 @@ import com.google.common.collect.Sets;
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.keyvalue.partition.PartitionedKeyValueConfiguration;
 import com.palantir.atlasdb.keyvalue.partition.PartitionedKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters.QuorumRequestParameters;
@@ -241,7 +242,8 @@ public class FailableKeyValueServices {
             svcs.add(fkvs);
             rawSvcs.add(fkvs.get());
         }
-        PartitionedKeyValueService parition = PartitionedKeyValueService.create(quorumParameters, Utils.createInMemoryMap(rawSvcs));
+        PartitionedKeyValueService parition = PartitionedKeyValueService
+                .create(PartitionedKeyValueConfiguration.of(quorumParameters, Utils.createInMemoryMap(rawSvcs)));
         return ShutdownNodesProxy.newProxyInstance(parition, svcs, quorumParameters);
     }
 

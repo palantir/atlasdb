@@ -40,6 +40,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.AbstractAtlasDbKeyValueServiceTest;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.keyvalue.partition.PartitionedKeyValueConfiguration;
 import com.palantir.atlasdb.keyvalue.partition.PartitionedKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
@@ -140,7 +141,7 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
 
         DynamicPartitionMap pmap = DynamicPartitionMapImpl.create(new QuorumParameters(3, 3, 3), ring, PTExecutors.newCachedThreadPool());
 
-        pkvs = PartitionedKeyValueService.create(QUORUM_PARAMETERS, pmap);
+        pkvs = PartitionedKeyValueService.create(PartitionedKeyValueConfiguration.of(QUORUM_PARAMETERS, pmap));
 
         // Push the map to all the endpoints
         for (int i=0; i<NUM_EPTS-1; ++i) {

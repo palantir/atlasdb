@@ -17,17 +17,36 @@ package com.palantir.atlasdb.keyvalue.partition;
 
 import java.util.List;
 
+import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
+import com.palantir.atlasdb.keyvalue.partition.map.InMemoryPartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
 
+/**
+ * This class is to provide configuration for PartitionedKeyValueService.
+ * The only mutable data is partition map services supplied to the constructor.
+ *
+ * @author htarasiuk
+ *
+ */
 public class PartitionedKeyValueConfiguration {
 
     public final QuorumParameters quorumParameters;
-    public final List<PartitionMapService> partitionMapProviders;
+    public final ImmutableList<PartitionMapService> partitionMapProviders;
 
-    public PartitionedKeyValueConfiguration(QuorumParameters quorumParameters, List<PartitionMapService> partitionMapProviders) {
+    private PartitionedKeyValueConfiguration(QuorumParameters quorumParameters, List<PartitionMapService> partitionMapProviders) {
         this.quorumParameters = quorumParameters;
-        this.partitionMapProviders = partitionMapProviders;
+        this.partitionMapProviders = ImmutableList.copyOf(partitionMapProviders);
+    }
+
+    public static PartitionedKeyValueConfiguration of(QuorumParameters quorumParameters, List<PartitionMapService> partitionMapProviders) {
+        return new PartitionedKeyValueConfiguration(quorumParameters, partitionMapProviders);
+    }
+
+    public static PartitionedKeyValueConfiguration of(QuorumParameters quorumParameters, DynamicPartitionMap partitionMap) {
+        return new PartitionedKeyValueConfiguration(quorumParameters,
+                ImmutableList.<PartitionMapService> of(InMemoryPartitionMapService.create(partitionMap)));
     }
 
 }

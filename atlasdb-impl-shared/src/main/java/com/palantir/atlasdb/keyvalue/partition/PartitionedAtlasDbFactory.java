@@ -59,7 +59,7 @@ public class PartitionedAtlasDbFactory implements AtlasDbFactory<PartitionedKeyV
             String pmsUri = endpointsIterator.next().asText();
             partitionMapProviders.add(RemotingPartitionMapService.createClientSide(pmsUri));
         }
-        return new PartitionedKeyValueConfiguration(parameters, partitionMapProviders);
+        return PartitionedKeyValueConfiguration.of(parameters, partitionMapProviders);
     }
 
 }
