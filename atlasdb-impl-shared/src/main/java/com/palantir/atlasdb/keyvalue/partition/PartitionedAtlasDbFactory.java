@@ -17,14 +17,13 @@ package com.palantir.atlasdb.keyvalue.partition;
 
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.Map;
+import java.util.List;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.google.common.collect.Maps;
-import com.google.common.io.BaseEncoding;
-import com.google.common.primitives.UnsignedBytes;
-import com.palantir.atlasdb.keyvalue.partition.endpoint.SimpleKeyValueEndpoint;
+import com.google.common.collect.Lists;
+import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
+import com.palantir.atlasdb.keyvalue.remoting.RemotingPartitionMapService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.TimestampService;
@@ -54,16 +53,13 @@ public class PartitionedAtlasDbFactory implements AtlasDbFactory<PartitionedKeyV
         int writef = node.get("writeFactor").asInt();
         QuorumParameters parameters = new QuorumParameters(repf, readf, writef);
 
-        Map<byte[], SimpleKeyValueEndpoint> endpoints = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
-        Iterator<JsonNode> endpointsIterator = node.get("endpoints").elements();
+        List<PartitionMapService> partitionMapProviders = Lists.newArrayList();
+        Iterator<JsonNode> endpointsIterator = node.get("partitionMapProviders").elements();
         while (endpointsIterator.hasNext()) {
-            JsonNode endpointNode = endpointsIterator.next();
-            String kvsUri = endpointNode.get("kvsUri").asText();
-            String pmsUri = endpointNode.get("pmsUri").asText();
-            byte[] key = BaseEncoding.base16().decode(endpointNode.get("key").asText());
-            endpoints.put(key, new SimpleKeyValueEndpoint(kvsUri, pmsUri));
+            String pmsUri = endpointsIterator.next().asText();
+            partitionMapProviders.add(RemotingPartitionMapService.createClientSide(pmsUri));
         }
-        return new PartitionedKeyValueConfiguration(parameters, endpoints);
+        return new PartitionedKeyValueConfiguration(parameters, partitionMapProviders);
     }
 
 }

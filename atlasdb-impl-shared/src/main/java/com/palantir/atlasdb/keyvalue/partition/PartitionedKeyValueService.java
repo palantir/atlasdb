@@ -21,7 +21,6 @@ import static com.palantir.atlasdb.keyvalue.partition.util.RequestCompletionUtil
 
 import java.util.Collection;
 import java.util.Map;
-import java.util.NavigableMap;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -38,7 +37,6 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
-import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
@@ -52,6 +50,7 @@ import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.exception.ClientVersionTooOldException;
 import com.palantir.atlasdb.keyvalue.partition.map.DynamicPartitionMapImpl;
+import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumTracker;
 import com.palantir.atlasdb.keyvalue.partition.util.ClosablePeekingIterator;
@@ -807,17 +806,14 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
     }
 
     public static PartitionedKeyValueService create(PartitionedKeyValueConfiguration config) {
+        DynamicPartitionMap dpm = retryUntilSuccess(config.partitionMapProviders.iterator(), new Function<PartitionMapService, DynamicPartitionMap>() {
+            @Override
+            public DynamicPartitionMap apply(PartitionMapService input) {
+                return input.getMap();
+            }
+        });
         ExecutorService executor = PTExecutors.newCachedThreadPool();
-
-        NavigableMap<byte[], KeyValueEndpoint> navEndpoints = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
-        navEndpoints.putAll(config.endpoints);
-
-        DynamicPartitionMapImpl dpmi = DynamicPartitionMapImpl.create(config.quorumParameters, navEndpoints, executor);
-
-        PartitionedKeyValueService ret = new PartitionedKeyValueService(PTExecutors.newCachedThreadPool(), config.quorumParameters, dpmi);
-        ret.getPartitionMap().pushMapToEndpoints();
-
-        return ret;
+        return new PartitionedKeyValueService(executor, config.quorumParameters, dpm);
     }
 
     // *** Helper methods *************************************************************************

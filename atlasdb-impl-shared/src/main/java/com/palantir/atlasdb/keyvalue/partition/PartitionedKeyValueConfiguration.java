@@ -15,19 +15,19 @@
  */
 package com.palantir.atlasdb.keyvalue.partition;
 
-import java.util.Map;
+import java.util.List;
 
-import com.palantir.atlasdb.keyvalue.partition.endpoint.SimpleKeyValueEndpoint;
+import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
 
 public class PartitionedKeyValueConfiguration {
 
     public final QuorumParameters quorumParameters;
-    public final Map<byte[], SimpleKeyValueEndpoint> endpoints;
+    public final List<PartitionMapService> partitionMapProviders;
 
-    public PartitionedKeyValueConfiguration(QuorumParameters quorumParameters, Map<byte[], SimpleKeyValueEndpoint> endpoint) {
+    public PartitionedKeyValueConfiguration(QuorumParameters quorumParameters, List<PartitionMapService> partitionMapProviders) {
         this.quorumParameters = quorumParameters;
-        this.endpoints = endpoint;
+        this.partitionMapProviders = partitionMapProviders;
     }
 
 }
