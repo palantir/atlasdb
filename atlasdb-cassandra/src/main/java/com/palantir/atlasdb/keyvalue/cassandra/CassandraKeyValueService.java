@@ -239,10 +239,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         Map<String, byte[]> tablesToUpgrade = Maps.newHashMapWithExpectedSize(metadataForTables.size());
 
         for (CfDef clusterSideCf : client.describe_keyspace(keyspace).getCf_defs()) {
-            String tableName = clusterSideCf.getName();
+            String tableName = fromInternalTableName(clusterSideCf.getName());
             if (metadataForTables.containsKey(tableName)) {
                 byte[] clusterSideMetadata = metadataForTables.get(tableName);
-                CfDef clientSideCf = getCfForTable(clusterSideCf.getName(), clusterSideMetadata);
+                CfDef clientSideCf = getCfForTable(tableName, clusterSideMetadata);
                 if (!CassandraKeyValueServices.isMatchingCf(clientSideCf, clusterSideCf)) { // mismatch; we have changed how we generate schema since we last persisted
                     tablesToUpgrade.put(tableName, clusterSideMetadata);
                 }
@@ -371,7 +371,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                             final long startTs,
                             final ThreadSafeResultVisitor v,
                             final ConsistencyLevel consistency) throws Exception {
-        final ColumnParent colFam = new ColumnParent(tableName);
+        final ColumnParent colFam = new ColumnParent(internalTableName(tableName));
         final Multimap<byte[], Cell> cellsByCol = TreeMultimap.create(UnsignedBytes.lexicographicalComparator(), Ordering.natural());
         for (Cell cell : cells) {
             cellsByCol.put(cell.getColumnName(), cell);
@@ -495,10 +495,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                             map.put(rowName, Maps.<String, List<Mutation>>newHashMap());
                         }
                         Map<String, List<Mutation>> rowPuts = map.get(rowName);
-                        if (!rowPuts.containsKey(tableName)) {
-                            rowPuts.put(tableName, Lists.<Mutation>newArrayList());
+                        if (!rowPuts.containsKey(internalTableName(tableName))) {
+                            rowPuts.put(internalTableName(tableName), Lists.<Mutation>newArrayList());
                         }
-                        rowPuts.get(tableName).add(m);
+                        rowPuts.get(internalTableName(tableName)).add(m);
                     }
                     batchMutateInternal(client, tableName, map, writeConsistency);
                 }
@@ -551,17 +551,17 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     KsDef ks = client.describe_keyspace(keyspace);
 
                     for (CfDef cf : ks.getCf_defs()) {
-                        if (cf.getName().equalsIgnoreCase(tableName)) {
+                        if (cf.getName().equalsIgnoreCase(internalTableName(tableName))) {
                             if (shouldTraceQuery(tableName)) {
                                 ByteBuffer recv_trace = client.trace_next_query();
                                 Stopwatch stopwatch = Stopwatch.createStarted();
-                                client.truncate(tableName);
+                                client.truncate(internalTableName(tableName));
                                 long duration = stopwatch.elapsed(TimeUnit.MILLISECONDS);
                                 if (duration > getMinimumDurationToTraceMillis()) {
                                     log.error("Traced a call to "+tableName+" that took "+duration+" ms. It will appear in system_traces with UUID="+CassandraKeyValueServices.convertCassandraByteBufferUUIDtoString(recv_trace));
                                 }
                             } else {
-                                client.truncate(tableName);
+                                client.truncate(internalTableName(tableName));
                             }
                             return null;
                         }
@@ -606,10 +606,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                                 map.put(rowName, Maps.<String, List<Mutation>>newHashMap());
                             }
                             Map<String, List<Mutation>> rowPuts = map.get(rowName);
-                            if (!rowPuts.containsKey(tableName)) {
-                                rowPuts.put(tableName, Lists.<Mutation>newArrayList());
+                            if (!rowPuts.containsKey(internalTableName(tableName))) {
+                                rowPuts.put(internalTableName(tableName), Lists.<Mutation>newArrayList());
                             }
-                            rowPuts.get(tableName).add(m);
+                            rowPuts.get(internalTableName(tableName)).add(m);
                             mapIndex++;
                         }
                     }
@@ -629,7 +629,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     // update CKVS.isMatchingCf if you update this method
     private CfDef getCfForTable(String tableName, byte[] rawMetadata) {
         Map<String, String> compressionOptions = Maps.newHashMap();
-        CfDef cf = CassandraConstants.getStandardCfDef(keyspace, tableName);
+        CfDef cf = CassandraConstants.getStandardCfDef(keyspace, internalTableName(tableName));
 
         boolean dbCompressionRequested = false;
         boolean rangeScanAllowed = false;
@@ -712,7 +712,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         final SlicePredicate pred = new SlicePredicate();
         pred.setSlice_range(slice);
 
-        final ColumnParent colFam = new ColumnParent(tableName);
+        final ColumnParent colFam = new ColumnParent(internalTableName(tableName));
         final ColumnSelection selection = rangeRequest.getColumnNames().isEmpty() ? ColumnSelection.all()
                                                                                   : ColumnSelection.create(rangeRequest.getColumnNames());
         return ClosableIterators.wrap(
@@ -783,8 +783,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     KsDef ks = client.describe_keyspace(keyspace);
 
                     for (CfDef cf : ks.getCf_defs()) {
-                        if (cf.getName().equalsIgnoreCase(tableName)) {
-                            client.system_drop_column_family(tableName);
+                        if (cf.getName().equalsIgnoreCase(internalTableName(tableName))) {
+                            client.system_drop_column_family(internalTableName(tableName));
                             putMetadataWithoutChangingSettings(tableName, PtBytes.EMPTY_BYTE_ARRAY);
                             CassandraKeyValueServices.waitForSchemaVersions(client, tableName);
                             return null;
@@ -800,6 +800,20 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         } finally {
             schemaMutationLock.unlock();
         }
+    }
+
+    private static String internalTableName(String tableName) {
+        if (tableName.startsWith("_")) {
+            return tableName;
+        }
+        return tableName.replaceFirst("\\.", "_");
+    }
+
+    private static String fromInternalTableName(String tableName) {
+        if (tableName.startsWith("_")) {
+            return tableName;
+        }
+        return tableName.replaceFirst("_", ".");
     }
 
     @Override
@@ -830,11 +844,11 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     private void createTableInternal(Client client, final String tableName, int maxValueSizeInBytes) throws InvalidRequestException, SchemaDisagreementException, TException, NotFoundException {
         KsDef ks = client.describe_keyspace(keyspace);
         for (CfDef cf : ks.getCf_defs()) {
-            if (cf.getName().equalsIgnoreCase(tableName)) {
+            if (cf.getName().equalsIgnoreCase(internalTableName(tableName))) {
                 return;
             }
         }
-        CfDef cf = CassandraConstants.getStandardCfDef(keyspace, tableName);
+        CfDef cf = CassandraConstants.getStandardCfDef(keyspace, internalTableName(tableName));
         client.system_add_column_family(cf);
         CassandraKeyValueServices.waitForSchemaVersions(client, tableName);
         return;
@@ -855,14 +869,14 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                         existingTables.add(cf.getName().toLowerCase());
                     }
 
-                    for (String table : tablesToCreate) {
-                        CassandraVerifier.sanityCheckTableName(table);
+                    for (String tableName : tablesToCreate) {
+                        CassandraVerifier.sanityCheckTableName(tableName);
 
-                        if (!existingTables.contains(table.toLowerCase())) {
-                            CfDef newCf = CassandraConstants.getStandardCfDef(keyspace, table);
+                        if (!existingTables.contains(internalTableName(tableName.toLowerCase()))) {
+                            CfDef newCf = CassandraConstants.getStandardCfDef(keyspace, internalTableName(tableName));
                             client.system_add_column_family(newCf);
                         } else {
-                            log.warn(String.format("Ignored call to create a table (%s) that already existed.", table));
+                            log.warn(String.format("Ignored call to create a table (%s) that already existed.", tableName));
                         }
                     }
                     CassandraKeyValueServices.waitForSchemaVersions(client, "(all tables in a call to createTables)");
@@ -889,7 +903,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     Set<String> ret = Sets.newHashSet();
                     for (CfDef cf : ks.getCf_defs()) {
                         if (!cf.getName().equals(CassandraConstants.METADATA_TABLE)) {
-                            ret.add(cf.getName());
+                            ret.add(fromInternalTableName(cf.getName()));
                         }
                     }
                     return ret;
