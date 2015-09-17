@@ -69,7 +69,7 @@ public final class Namespace {
     public static boolean isNamespaceValid(String namespace) {
         for (int i = 0; i < namespace.length() ; i++) {
             char c = namespace.charAt(i);
-            if (!Character.isLetterOrDigit(c) && c != '_' && c != '-') {
+            if (!Character.isLetterOrDigit(c)) {
                 return false;
             }
         }
