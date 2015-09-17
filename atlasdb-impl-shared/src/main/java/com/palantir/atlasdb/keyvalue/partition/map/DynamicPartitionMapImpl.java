@@ -28,7 +28,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
@@ -45,10 +44,8 @@ import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.node.NullNode;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
-import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.collect.HashMultimap;
@@ -186,9 +183,6 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     @GuardedBy("this")
     private long operationsInProgress;
 
-    // Used to push the map to the removed endpoint pm service.
-    private final AtomicReference<KeyValueEndpoint> lastRemovedKeyValueEndpoint;
-
     /*** Creation ********************************************************************************/
     /**
      * This is used for deserialization.
@@ -198,8 +192,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
      */
     private DynamicPartitionMapImpl(QuorumParameters quorumParameters,
             CycleMap<byte[], EndpointWithStatus> ring, long version,
-            long operationsInProgress, ExecutorService executor,
-            AtomicReference<KeyValueEndpoint> lastRemovedKeyValueEndpoint) {
+            long operationsInProgress, ExecutorService executor) {
         Preconditions.checkArgument(ring.keySet().size() >= quorumParameters.getReplicationFactor());
 
         this.quorumParameters = quorumParameters;
@@ -214,12 +207,10 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         for (EndpointWithStatus kve : this.ring.values()) {
             delegates.add(kve.get().keyValueService());
         }
-
-        this.lastRemovedKeyValueEndpoint = lastRemovedKeyValueEndpoint;
     }
 
     private DynamicPartitionMapImpl(QuorumParameters quorumParameters, NavigableMap<byte[], KeyValueEndpoint> ring, ExecutorService executor) {
-        this(quorumParameters, toRing(ring), 0L, 0, executor, new AtomicReference<KeyValueEndpoint>());
+        this(quorumParameters, toRing(ring), 0L, 0, executor);
     }
 
     public static DynamicPartitionMapImpl create(QuorumParameters quorumParameters, NavigableMap<byte[], KeyValueEndpoint> ring, ExecutorService executor) {
@@ -239,18 +230,6 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
                     return null;
                 }
             }, kve.get().keyValueService()));
-        }
-
-        final KeyValueEndpoint removedEndpoint = lastRemovedKeyValueEndpoint.getAndSet(null);
-
-        if (removedEndpoint != null) {
-            futures.add(execSvc.submit(new Callable<Void>() {
-                @Override
-                public Void call() throws Exception {
-                    removedEndpoint.partitionMapService().updateMap(DynamicPartitionMapImpl.this);
-                    return null;
-                }
-            }, removedEndpoint.keyValueService()));
         }
 
         while (!futures.isEmpty()) {
@@ -915,14 +894,12 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     public synchronized void promoteRemovedEndpoint(byte[] key) {
         Preconditions.checkArgument(ring.get(key) instanceof EndpointWithLeavingStatus);
         Preconditions.checkState(operationsInProgress == 1);
-        Preconditions.checkState(lastRemovedKeyValueEndpoint.get() == null, "You must push the map to endpoints before removing another endpoint.");
         EndpointWithLeavingStatus ews = (EndpointWithLeavingStatus) ring.get(key);
         Preconditions.checkArgument(ews.backfilled());
 
         KeyValueService kvs = ring.get(key).get().keyValueService();
 
         // Finalize
-        lastRemovedKeyValueEndpoint.set(ring.get(key).get());
         ring.remove(key);
         version.increment();
         operationsInProgress = 0;
@@ -979,8 +956,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         return "DynamicPartitionMapImpl (" + version +
                "): QP=(" + quorumParameters.getReplicationFactor() +
                "," + quorumParameters.getReadFactor() +
-               "," + quorumParameters.getWriteFactor() + ")" +
-               " LastRemoved=(" + lastRemovedKeyValueEndpoint.get() + ")\n" +
+               "," + quorumParameters.getWriteFactor() + ")\n" +
                ringDescription();
     }
 
@@ -1010,8 +986,6 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + ((lastRemovedKeyValueEndpoint.get() == null) ? 0
-                : lastRemovedKeyValueEndpoint.get().hashCode());
         result = prime * result
                 + (int) (operationsInProgress ^ (operationsInProgress >>> 32));
         result = prime * result + ((quorumParameters == null) ? 0
@@ -1030,11 +1004,6 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         if (getClass() != obj.getClass())
             return false;
         DynamicPartitionMapImpl other = (DynamicPartitionMapImpl) obj;
-        if (lastRemovedKeyValueEndpoint == null) {
-            if (other.lastRemovedKeyValueEndpoint != null)
-                return false;
-        } else if (!Objects.equal(lastRemovedKeyValueEndpoint.get(), other.lastRemovedKeyValueEndpoint.get()))
-            return false;
         if (operationsInProgress != other.operationsInProgress)
             return false;
         if (quorumParameters == null) {
@@ -1071,7 +1040,6 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
             gen.writeObjectField("quorumParameters", instance.quorumParameters);
             gen.writeObjectField("version", instance.version.longValue());
             gen.writeObjectField("operationsInProgress", instance.operationsInProgress);
-            gen.writeObjectField("lastRemovedEndpoint", instance.lastRemovedKeyValueEndpoint);
             gen.writeFieldName("ring");
             gen.writeStartArray();
             for (Entry<byte[], EndpointWithStatus> entry : instance.ring.entrySet()) {
@@ -1102,13 +1070,6 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
             long operationsInProgress = root.get("operationsInProgress").asLong();
             QuorumParameters parameters = RemotingKeyValueService.kvsMapper().readValue(
                     root.get("quorumParameters").toString(), QuorumParameters.class);
-            KeyValueEndpoint lastRemovedEndpoint = null;
-            if (root.get("lastRemovedEndpoint") != null && root.get("lastRemovedEndpoint") == NullNode.instance
-                && root.get("lastRemovedEndpoint").toString().length() > 0) {
-                    lastRemovedEndpoint = RemotingKeyValueService.kvsMapper()
-                            .readValue(root.get("lastRemovedEndpoint").toString(), KeyValueEndpoint.class);
-                }
-
             Iterator<JsonNode> ringIterator = root.get("ring").elements();
             NavigableMap<byte[], EndpointWithStatus> ring =
                     Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
@@ -1126,8 +1087,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
             }
 
             return new DynamicPartitionMapImpl(parameters, CycleMap.wrap(ring),
-                    version, operationsInProgress, PTExecutors.newCachedThreadPool(),
-                    new AtomicReference<KeyValueEndpoint>(lastRemovedEndpoint));
+                    version, operationsInProgress, PTExecutors.newCachedThreadPool());
         }
     }
 
@@ -1136,8 +1096,6 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     private static final Cell WRITEF_CELL = Cell.create("quorumParameters".getBytes(), "writef".getBytes());
     private static final Cell VERSION_CELL = Cell.create("version".getBytes(), "version".getBytes());
     private static final Cell OPS_IN_PROGRESS_CELL = Cell.create("operations".getBytes(), "inProgress".getBytes());
-    private static final Cell LAST_REMOVED_ENDPOINT_KVS_CELL = Cell.create("lastRemovedEndpoint".getBytes(), "kvs".getBytes());
-    private static final Cell LAST_REMOVED_ENDPOINT_PMS_CELL = Cell.create("lastRemovedEndpoint".getBytes(), "pms".getBytes());
 
     public Map<Cell, byte[]> toTable() {
         try {
@@ -1148,22 +1106,11 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
             result.put(READF_CELL, Integer.toString(quorumParameters.getReadFactor()).getBytes());
             result.put(WRITEF_CELL, Integer.toString(quorumParameters.getWriteFactor()).getBytes());
 
-            String lastRemovedEndpointKvsUri = "";
-            String lastRemovedEndpointPmsUri = "";
-            if (lastRemovedKeyValueEndpoint.get() != null) {
-                lastRemovedEndpointKvsUri = ((SimpleKeyValueEndpoint) lastRemovedKeyValueEndpoint.get()).keyValueServiceUri();
-                lastRemovedEndpointPmsUri = ((SimpleKeyValueEndpoint) lastRemovedKeyValueEndpoint.get()).partitionMapServiceUri();
-            }
-
             // Store the map version
             result.put(VERSION_CELL, Long.toString(version.longValue()).getBytes());
 
             // Store no of operations in progress
             result.put(OPS_IN_PROGRESS_CELL, Long.toString(operationsInProgress).getBytes());
-
-            // Store last removed endpoint
-            result.put(LAST_REMOVED_ENDPOINT_KVS_CELL, lastRemovedEndpointKvsUri.getBytes());
-            result.put(LAST_REMOVED_ENDPOINT_PMS_CELL, lastRemovedEndpointPmsUri.getBytes());
 
             // Store the map
             for (Entry<byte[], EndpointWithStatus> entry : ring.entrySet()) {
@@ -1191,14 +1138,6 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
             int writef = Integer.parseInt(new String(table.get(WRITEF_CELL)));
             long version = Long.parseLong(new String(table.get(VERSION_CELL)));
             long operationsInProgress = Long.parseLong(new String(table.get(OPS_IN_PROGRESS_CELL)));
-            String lastRemovedEndpointKvsUri = new String(table.get(LAST_REMOVED_ENDPOINT_KVS_CELL));
-            String lastRemovedEndpointPmsUri = new String(table.get(LAST_REMOVED_ENDPOINT_PMS_CELL));
-            AtomicReference<KeyValueEndpoint> lastRemovedEndpoint = new AtomicReference<>();
-            if (lastRemovedEndpointKvsUri != null && lastRemovedEndpointKvsUri.length() > 0) {
-                assert lastRemovedEndpointPmsUri.length() > 0;
-                lastRemovedEndpoint.set(new SimpleKeyValueEndpoint(lastRemovedEndpointKvsUri, lastRemovedEndpointPmsUri));
-            }
-
             QuorumParameters parameters = new QuorumParameters(repf, readf, writef);
             NavigableMap<byte[], EndpointWithStatus> ring =
                     Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
@@ -1213,7 +1152,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
             }
 
             return new DynamicPartitionMapImpl(parameters, CycleMap.wrap(ring),
-                    version, operationsInProgress, PTExecutors.newCachedThreadPool(), lastRemovedEndpoint);
+                    version, operationsInProgress, PTExecutors.newCachedThreadPool());
 
         } catch (IOException e) {
             throw Throwables.throwUncheckedException(e);
