@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.partition;
 
+import javax.management.RuntimeErrorException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,6 +45,18 @@ public class PartitionMapProvider {
 
     private DynamicPartitionMap partitionMap;
     private final ImmutableList<PartitionMapService> partitionMapProviders;
+
+    protected <T> T runWithPartitionMapRetryable(Function<DynamicPartitionMap, T> task) {
+        while (true) {
+            try {
+                return runWithPartitionMap(task);
+            } catch (ClientVersionTooOldException | EndpointVersionTooOldException e) {
+                // New version should be used now, retry.
+                e.printStackTrace(System.out);
+                log.info("Retrying...");
+            }
+        }
+    }
 
     protected <T> T runWithPartitionMap(Function<DynamicPartitionMap, T> task) {
         try {
@@ -73,19 +87,27 @@ public class PartitionMapProvider {
              * TODO: Use quorum instead of first success?
              *
              */
-            DynamicPartitionMap downloadedMap = RequestCompletionUtils.retryUntilSuccess(
-                    partitionMapProviders.iterator(), new Function<PartitionMapService, DynamicPartitionMap>() {
-                        @Override
-                        public DynamicPartitionMap apply(PartitionMapService input) {
-                            return input.getMap();
-                        }
-                    });
-            if (downloadedMap.getVersion() > partitionMap.getVersion()) {
-                log.info("Updating partition map (old version="
-                        + partitionMap.getVersion() + ", new version="
-                        + downloadedMap.getVersion()
-                        + ") from partitionMapProvider.");
-                partitionMap = downloadedMap;
+            try {
+                log.info("Trying to consult seed servers in case local partition map is out of date");
+                DynamicPartitionMap downloadedMap = RequestCompletionUtils.retryUntilSuccess(
+                        partitionMapProviders.iterator(), new Function<PartitionMapService, DynamicPartitionMap>() {
+                            @Override
+                            public DynamicPartitionMap apply(PartitionMapService input) {
+                                return input.getMap();
+                            }
+                        });
+                if (downloadedMap.getVersion() > partitionMap.getVersion()) {
+                    log.info("Updating partition map (old version="
+                            + partitionMap.getVersion() + ", new version="
+                            + downloadedMap.getVersion()
+                            + ") from partitionMapProvider.");
+                    partitionMap = downloadedMap;
+                } else {
+                    log.info("Seed server map is not newer than local map.");
+                }
+            } catch (RuntimeErrorException re) {
+                log.warn("Error while trying to update map from seed servers.");
+                re.printStackTrace(System.out);
             }
             throw e;
         }

@@ -72,6 +72,6 @@ import com.palantir.common.annotation.Immutable;
 
 	@Override
 	public String toString() {
-		return "VersionTooOldException [pmsUri=" + pmsUri + "]";
+		return "ClientVersionTooOldException [pmsUri=" + pmsUri + "]";
 	}
 }

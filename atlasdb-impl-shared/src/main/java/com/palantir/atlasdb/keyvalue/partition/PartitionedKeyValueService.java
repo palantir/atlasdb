@@ -92,7 +92,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
         // This is necessary to ensure consistent hashes for the rows arrays
         // which is necessary for the quorum tracker.
         final Set<byte[]> rows = Sets.newHashSet(rowsArg);
-        return runWithPartitionMap(new Function<DynamicPartitionMap, Map<Cell, Value>>() {
+        return runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Map<Cell, Value>>() {
             @Override
             public Map<Cell, Value> apply(DynamicPartitionMap input) {
                 final Map<Cell, Value> overallResult = Maps.newHashMap();
@@ -124,7 +124,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
     @Override
     @Idempotent
     public Map<Cell, Value> get(final String tableName, final Map<Cell, Long> timestampByCell) {
-        return runWithPartitionMap(new Function<DynamicPartitionMap, Map<Cell, Value>>() {
+        return runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Map<Cell, Value>>() {
             @Override
             public Map<Cell, Value> apply(@Nullable DynamicPartitionMap input) {
                 final EndpointRequestCompletionService<Map<Cell, Value>> execSvc = EndpointRequestExecutor.newService(executor);
@@ -161,7 +161,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                                                  final long timestamp)
             throws InsufficientConsistencyException {
 
-        return runWithPartitionMap(new Function<DynamicPartitionMap, Multimap<Cell, Long>>() {
+        return runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Multimap<Cell, Long>>() {
             @Override
             public Multimap<Cell, Long> apply(DynamicPartitionMap input) {
                 final EndpointRequestCompletionService<Multimap<Cell, Long>> execSvc = EndpointRequestExecutor.newService(executor);
@@ -193,7 +193,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
     @Idempotent
     public Map<Cell, Long> getLatestTimestamps(final String tableName,
                                                final Map<Cell, Long> timestampByCell) {
-        return runWithPartitionMap(new Function<DynamicPartitionMap, Map<Cell, Long>>() {
+        return runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Map<Cell, Long>>() {
             @Override
             public Map<Cell, Long> apply(DynamicPartitionMap input) {
                 final Map<Cell, Long> globalResult = Maps.newHashMap();
@@ -237,7 +237,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                                                        final long timestamp) {
 
         final Multimap<ConsistentRingRangeRequest, KeyValueEndpoint> services =
-                runWithPartitionMap(new Function<DynamicPartitionMap, Multimap<ConsistentRingRangeRequest, KeyValueEndpoint>>() {
+                runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Multimap<ConsistentRingRangeRequest, KeyValueEndpoint>>() {
             @Override
             public Multimap<ConsistentRingRangeRequest, KeyValueEndpoint> apply(
                     DynamicPartitionMap input) {
@@ -249,7 +249,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
             @Override
             public RowResult<Value> computeNext() {
                 Preconditions.checkState(hasNext());
-                return runWithPartitionMap(new Function<DynamicPartitionMap, RowResult<Value>>() {
+                return runWithPartitionMapRetryable(new Function<DynamicPartitionMap, RowResult<Value>>() {
                     @Override
                     public RowResult<Value> apply(DynamicPartitionMap input) {
                         return RowResultUtil.mergeResults(getRowIterator(), quorumParameters.getReadRequestParameters());
@@ -259,7 +259,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 
             @Override
             protected Set<ClosablePeekingIterator<RowResult<Value>>> computeNextRange(final ConsistentRingRangeRequest range) {
-                return runWithPartitionMap(new Function<DynamicPartitionMap, Set<ClosablePeekingIterator<RowResult<Value>>>>() {
+                return runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Set<ClosablePeekingIterator<RowResult<Value>>>>() {
                     @Override
                     public Set<ClosablePeekingIterator<RowResult<Value>>> apply(
                             @Nullable DynamicPartitionMap input) {
@@ -305,7 +305,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                                                                        final RangeRequest rangeRequest,
                                                                        final long timestamp) {
         final Multimap<ConsistentRingRangeRequest, KeyValueEndpoint> services =
-                runWithPartitionMap(new Function<DynamicPartitionMap, Multimap<ConsistentRingRangeRequest, KeyValueEndpoint>>() {
+                runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Multimap<ConsistentRingRangeRequest, KeyValueEndpoint>>() {
                     @Override
                     public Multimap<ConsistentRingRangeRequest, KeyValueEndpoint> apply(
                             DynamicPartitionMap input) {
@@ -317,7 +317,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
             @Override
             public RowResult<Set<Value>> computeNext() {
                 Preconditions.checkState(hasNext());
-                return runWithPartitionMap(new Function<DynamicPartitionMap, RowResult<Set<Value>>>() {
+                return runWithPartitionMapRetryable(new Function<DynamicPartitionMap, RowResult<Set<Value>>>() {
                     @Override
                     public RowResult<Set<Value>> apply(DynamicPartitionMap input) {
                         return RowResultUtil.allResults(getRowIterator());
@@ -326,7 +326,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 
             @Override
             protected Set<ClosablePeekingIterator<RowResult<Set<Value>>>> computeNextRange(final ConsistentRingRangeRequest range) {
-                return runWithPartitionMap(new Function<DynamicPartitionMap, Set<ClosablePeekingIterator<RowResult<Set<Value>>>>>() {
+                return runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Set<ClosablePeekingIterator<RowResult<Set<Value>>>>>() {
                     @Override
                     public Set<ClosablePeekingIterator<RowResult<Set<Value>>>> apply(DynamicPartitionMap input) {
                         final Set<ClosablePeekingIterator<RowResult<Set<Value>>>> result = Sets.newHashSet();
@@ -352,7 +352,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                                                                        final long timestamp)
             throws InsufficientConsistencyException {
         final Multimap<ConsistentRingRangeRequest, KeyValueEndpoint> services =
-                runWithPartitionMap(new Function<DynamicPartitionMap, Multimap<ConsistentRingRangeRequest, KeyValueEndpoint>>() {
+                runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Multimap<ConsistentRingRangeRequest, KeyValueEndpoint>>() {
                     @Override
                     public Multimap<ConsistentRingRangeRequest, KeyValueEndpoint> apply(DynamicPartitionMap input) {
                         return input.getServicesForRangeRead(tableName, rangeRequest);
@@ -363,7 +363,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
             @Override
             public RowResult<Set<Long>> computeNext() {
                 Preconditions.checkState(hasNext());
-                return runWithPartitionMap(new Function<DynamicPartitionMap, RowResult<Set<Long>>>() {
+                return runWithPartitionMapRetryable(new Function<DynamicPartitionMap, RowResult<Set<Long>>>() {
                     @Override
                     public RowResult<Set<Long>> apply(DynamicPartitionMap input) {
                         return RowResultUtil.allTimestamps(getRowIterator());
@@ -373,7 +373,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 
             @Override
             protected Set<ClosablePeekingIterator<RowResult<Set<Long>>>> computeNextRange(final ConsistentRingRangeRequest range) {
-                return runWithPartitionMap(new Function<DynamicPartitionMap, Set<ClosablePeekingIterator<RowResult<Set<Long>>>>>() {
+                return runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Set<ClosablePeekingIterator<RowResult<Set<Long>>>>>() {
                     @Override
                     public Set<ClosablePeekingIterator<RowResult<Set<Long>>>> apply(DynamicPartitionMap input) {
                         final Set<ClosablePeekingIterator<RowResult<Set<Long>>>> result = Sets.newHashSet();
@@ -499,7 +499,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
     @Override
     @Idempotent
     public void delete(final String tableName, final Multimap<Cell, Long> keys) {
-        runWithPartitionMap(new Function<DynamicPartitionMap, Void>() {
+        runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Void>() {
             @Override
             public Void apply(DynamicPartitionMap input) {
                 final EndpointRequestCompletionService<Void> execSvc = EndpointRequestExecutor.newService(executor);
@@ -530,7 +530,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
     @Override
     @Idempotent
     public void addGarbageCollectionSentinelValues(final String tableName, final Set<Cell> cells) {
-        runWithPartitionMap(new Function<DynamicPartitionMap, Void>() {
+        runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Void>() {
             @Override
             public Void apply(DynamicPartitionMap input) {
                 final EndpointRequestCompletionService<Void> execSvc = EndpointRequestExecutor.newService(executor);
@@ -573,7 +573,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
     @Override
     @Idempotent
     public void dropTable(final String tableName) throws InsufficientConsistencyException {
-        runWithPartitionMap(new Function<DynamicPartitionMap, Void>() {
+        runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Void>() {
             @Override
             public Void apply(@Nullable DynamicPartitionMap input) {
                 for (KeyValueService kvs : input.getDelegates()) {
@@ -588,7 +588,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
     @Idempotent
     public void createTable(final String tableName, final int maxValueSizeInBytes)
             throws InsufficientConsistencyException {
-        runWithPartitionMap(new Function<DynamicPartitionMap, Void>() {
+        runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Void>() {
             @Override
             public Void apply(@Nullable DynamicPartitionMap input) {
                 for (KeyValueService kvs : input.getDelegates()) {
@@ -602,7 +602,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
     @Override
     @Idempotent
     public void truncateTable(final String tableName) throws InsufficientConsistencyException {
-        runWithPartitionMap(new Function<DynamicPartitionMap, Void>() {
+        runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Void>() {
             @Override
             public Void apply(@Nullable DynamicPartitionMap input) {
                 for (KeyValueService kvs : input.getDelegates()) {
@@ -616,7 +616,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
     @Override
     @Idempotent
     public void truncateTables(final Set<String> tableNames) throws InsufficientConsistencyException {
-        runWithPartitionMap(new Function<DynamicPartitionMap, Void>() {
+        runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Void>() {
             @Override
             public Void apply(@Nullable DynamicPartitionMap input) {
                 for (KeyValueService kvs : input.getDelegates()) {
@@ -631,7 +631,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
     @Idempotent
     public void createTables(final Map<String, Integer> tableNamesToMaxValueSizeInBytes)
             throws InsufficientConsistencyException {
-        runWithPartitionMap(new Function<DynamicPartitionMap, Void>() {
+        runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Void>() {
             @Override
             public Void apply(@Nullable DynamicPartitionMap input) {
                 for (KeyValueService kvs : input.getDelegates()) {
@@ -645,7 +645,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
     @Override
     @Idempotent
     public Set<String> getAllTableNames() {
-        return runWithPartitionMap(new Function<DynamicPartitionMap, Set<String>>() {
+        return runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Set<String>>() {
             @Override
             public Set<String> apply(@Nullable DynamicPartitionMap input) {
                 return retryUntilSuccess(
@@ -666,7 +666,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
     @Override
     @Idempotent
     public byte[] getMetadataForTable(final String tableName) {
-        return runWithPartitionMap(new Function<DynamicPartitionMap, byte[]>() {
+        return runWithPartitionMapRetryable(new Function<DynamicPartitionMap, byte[]>() {
             @Override
             public byte[] apply(@Nullable DynamicPartitionMap input) {
                 return retryUntilSuccess(
@@ -684,7 +684,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
     @Override
     @Idempotent
     public void putMetadataForTable(final String tableName, final byte[] metadata) {
-        runWithPartitionMap(new Function<DynamicPartitionMap, Void>() {
+        runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Void>() {
             @Override
             public Void apply(@Nullable DynamicPartitionMap input) {
                 for (KeyValueService kvs : input.getDelegates()) {
@@ -698,7 +698,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
     @Override
     @Idempotent
     public Map<String, byte[]> getMetadataForTables() {
-        return runWithPartitionMap(new Function<DynamicPartitionMap, Map<String, byte[]>>() {
+        return runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Map<String, byte[]>>() {
             @Override
             public Map<String, byte[]> apply(@Nullable DynamicPartitionMap input) {
                 return retryUntilSuccess(
@@ -716,7 +716,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
     @Override
     @Idempotent
     public void putMetadataForTables(final Map<String, byte[]> tableNameToMetadata) {
-        runWithPartitionMap(new Function<DynamicPartitionMap, Void>() {
+        runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Void>() {
             @Override
             public Void apply(@Nullable DynamicPartitionMap input) {
                 for (KeyValueService kvs : input.getDelegates()) {
@@ -730,7 +730,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
     // *** Simple forward methods ***************************************************************
     @Override
     public void compactInternally(final String tableName) {
-        runWithPartitionMap(new Function<DynamicPartitionMap, Void>() {
+        runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Void>() {
             @Override
             public Void apply(@Nullable DynamicPartitionMap input) {
                 for (KeyValueService kvs : input.getDelegates()) {
@@ -769,7 +769,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 
     @Override
     public Collection<? extends KeyValueService> getDelegates() {
-        return runWithPartitionMap(new Function<DynamicPartitionMap, Collection<? extends KeyValueService>>() {
+        return runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Collection<? extends KeyValueService>>() {
             @Override
             public Collection<? extends KeyValueService> apply(
                     DynamicPartitionMap input) {
@@ -780,7 +780,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 
     @Override
     public void initializeFromFreshInstance() {
-        runWithPartitionMap(new Function<DynamicPartitionMap, Void>() {
+        runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Void>() {
             @Override
             public Void apply(@Nullable DynamicPartitionMap input) {
                 for (KeyValueService kvs : input.getDelegates()) {
@@ -807,7 +807,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
     // *** Helper methods *************************************************************************
     @VisibleForTesting @Deprecated
     public DynamicPartitionMapImpl getPartitionMap() {
-        return runWithPartitionMap(new Function<DynamicPartitionMap, DynamicPartitionMapImpl>() {
+        return runWithPartitionMapRetryable(new Function<DynamicPartitionMap, DynamicPartitionMapImpl>() {
             @Override
             public DynamicPartitionMapImpl apply(DynamicPartitionMap input) {
                 return (DynamicPartitionMapImpl) input;
