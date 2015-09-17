@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.exception.ClientVersionTooOldException;
 import com.palantir.atlasdb.keyvalue.partition.exception.EndpointVersionTooOldException;
+import com.palantir.atlasdb.keyvalue.partition.map.InMemoryPartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.util.RequestCompletionUtils;
 
@@ -43,10 +44,10 @@ public class PartitionMapProvider {
 
     private static final Logger log = LoggerFactory.getLogger(PartitionMapProvider.class);
 
-    private DynamicPartitionMap partitionMap;
     private final ImmutableList<PartitionMapService> partitionMapProviders;
+    private final PartitionMapService localService = InMemoryPartitionMapService.createEmpty();
 
-    protected <T> T runWithPartitionMapRetryable(Function<DynamicPartitionMap, T> task) {
+    protected <T> T runWithPartitionMapRetryable(Function<? super DynamicPartitionMap, T> task) {
         while (true) {
             try {
                 return runWithPartitionMap(task);
@@ -58,12 +59,14 @@ public class PartitionMapProvider {
         }
     }
 
-    protected <T> T runWithPartitionMap(Function<DynamicPartitionMap, T> task) {
+    protected <T> T runWithPartitionMap(Function<? super DynamicPartitionMap, T> task) {
         try {
-            return task.apply(partitionMap);
+            log.info("Running task with pm version=" + localService.getMapVersion());
+            return task.apply(localService.getMap());
         } catch (ClientVersionTooOldException e) {
             log.info("Downloading partition map from endpoint");
-            partitionMap = e.getUpdatedMap();
+            localService.updateMapIfNewer(e.getUpdatedMap());
+            log.info("Downloaded version " + localService.getMapVersion());
             /**
              * Update the map but let the transaction manager retry the task.
              * It seems to be reasonable since some of the KVS operations
@@ -73,7 +76,7 @@ public class PartitionMapProvider {
             throw e;
         } catch (EndpointVersionTooOldException e) {
             log.info("Pushing local partition map to endpoint");
-            e.pushNewMap(partitionMap);
+            e.pushNewMap(localService.getMap());
             /**
              * Push my map version to the endpoint but let the transaction
              * manager retry this task for same reasons as above.
@@ -96,15 +99,9 @@ public class PartitionMapProvider {
                                 return input.getMap();
                             }
                         });
-                if (downloadedMap.getVersion() > partitionMap.getVersion()) {
-                    log.info("Updating partition map (old version="
-                            + partitionMap.getVersion() + ", new version="
-                            + downloadedMap.getVersion()
-                            + ") from partitionMapProvider.");
-                    partitionMap = downloadedMap;
-                } else {
-                    log.info("Seed server map is not newer than local map.");
-                }
+                log.info("Local map version before consulting: " + localService.getMapVersion());
+                localService.updateMapIfNewer(downloadedMap);
+                log.info("Local map version after consulting: " + localService.getMapVersion());
             } catch (RuntimeErrorException re) {
                 log.warn("Error while trying to update map from seed servers.");
                 re.printStackTrace(System.out);
@@ -115,7 +112,11 @@ public class PartitionMapProvider {
 
     protected PartitionMapProvider(ImmutableList<PartitionMapService> partitionMapProviders) {
         this.partitionMapProviders = partitionMapProviders;
-        partitionMap = RequestCompletionUtils.retryUntilSuccess(partitionMapProviders.iterator(), new Function<PartitionMapService, DynamicPartitionMap>() {
+        localService.updateMapIfNewer(getPartitionMapFromSeedServers());
+    }
+
+    private DynamicPartitionMap getPartitionMapFromSeedServers() {
+        return RequestCompletionUtils.retryUntilSuccess(partitionMapProviders.iterator(), new Function<PartitionMapService, DynamicPartitionMap>() {
             @Override
             public DynamicPartitionMap apply(PartitionMapService input) {
                 return input.getMap();

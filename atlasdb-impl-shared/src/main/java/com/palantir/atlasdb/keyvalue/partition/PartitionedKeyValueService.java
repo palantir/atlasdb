@@ -249,7 +249,8 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
             @Override
             public RowResult<Value> computeNext() {
                 Preconditions.checkState(hasNext());
-                return runWithPartitionMapRetryable(new Function<DynamicPartitionMap, RowResult<Value>>() {
+                // This is NOT retryable
+                return runWithPartitionMap(new Function<DynamicPartitionMap, RowResult<Value>>() {
                     @Override
                     public RowResult<Value> apply(DynamicPartitionMap input) {
                         return RowResultUtil.mergeResults(getRowIterator(), quorumParameters.getReadRequestParameters());
@@ -259,7 +260,8 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 
             @Override
             protected Set<ClosablePeekingIterator<RowResult<Value>>> computeNextRange(final ConsistentRingRangeRequest range) {
-                return runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Set<ClosablePeekingIterator<RowResult<Value>>>>() {
+                // This is NOT retryable
+                return runWithPartitionMap(new Function<DynamicPartitionMap, Set<ClosablePeekingIterator<RowResult<Value>>>>() {
                     @Override
                     public Set<ClosablePeekingIterator<RowResult<Value>>> apply(
                             @Nullable DynamicPartitionMap input) {
@@ -317,7 +319,8 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
             @Override
             public RowResult<Set<Value>> computeNext() {
                 Preconditions.checkState(hasNext());
-                return runWithPartitionMapRetryable(new Function<DynamicPartitionMap, RowResult<Set<Value>>>() {
+                // This is NOT retryable
+                return runWithPartitionMap(new Function<DynamicPartitionMap, RowResult<Set<Value>>>() {
                     @Override
                     public RowResult<Set<Value>> apply(DynamicPartitionMap input) {
                         return RowResultUtil.allResults(getRowIterator());
@@ -326,7 +329,8 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 
             @Override
             protected Set<ClosablePeekingIterator<RowResult<Set<Value>>>> computeNextRange(final ConsistentRingRangeRequest range) {
-                return runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Set<ClosablePeekingIterator<RowResult<Set<Value>>>>>() {
+                // This is NOT retryable
+                return runWithPartitionMap(new Function<DynamicPartitionMap, Set<ClosablePeekingIterator<RowResult<Set<Value>>>>>() {
                     @Override
                     public Set<ClosablePeekingIterator<RowResult<Set<Value>>>> apply(DynamicPartitionMap input) {
                         final Set<ClosablePeekingIterator<RowResult<Set<Value>>>> result = Sets.newHashSet();
@@ -363,7 +367,8 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
             @Override
             public RowResult<Set<Long>> computeNext() {
                 Preconditions.checkState(hasNext());
-                return runWithPartitionMapRetryable(new Function<DynamicPartitionMap, RowResult<Set<Long>>>() {
+                // This is NOT retryable
+                return runWithPartitionMap(new Function<DynamicPartitionMap, RowResult<Set<Long>>>() {
                     @Override
                     public RowResult<Set<Long>> apply(DynamicPartitionMap input) {
                         return RowResultUtil.allTimestamps(getRowIterator());
@@ -373,7 +378,8 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 
             @Override
             protected Set<ClosablePeekingIterator<RowResult<Set<Long>>>> computeNextRange(final ConsistentRingRangeRequest range) {
-                return runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Set<ClosablePeekingIterator<RowResult<Set<Long>>>>>() {
+                // This is NOT retryable
+                return runWithPartitionMap(new Function<DynamicPartitionMap, Set<ClosablePeekingIterator<RowResult<Set<Long>>>>>() {
                     @Override
                     public Set<ClosablePeekingIterator<RowResult<Set<Long>>>> apply(DynamicPartitionMap input) {
                         final Set<ClosablePeekingIterator<RowResult<Set<Long>>>> result = Sets.newHashSet();

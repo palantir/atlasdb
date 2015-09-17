@@ -15,6 +15,9 @@
  */
 package com.palantir.atlasdb.keyvalue.partition.map;
 
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
 import javax.annotation.concurrent.GuardedBy;
 
 import com.google.common.base.Preconditions;
@@ -24,6 +27,7 @@ public class InMemoryPartitionMapService implements PartitionMapService {
 
     @GuardedBy("this")
     private DynamicPartitionMap partitionMap;
+    private final ReadWriteLock lock = new ReentrantReadWriteLock(true);
 
     private InMemoryPartitionMapService(DynamicPartitionMap partitionMap) {
         this.partitionMap = partitionMap;
@@ -44,25 +48,45 @@ public class InMemoryPartitionMapService implements PartitionMapService {
 
     @Override
     public synchronized DynamicPartitionMap getMap() {
-        return Preconditions.checkNotNull(partitionMap);
+        lock.readLock().lock();
+        try {
+            return Preconditions.checkNotNull(partitionMap);
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     @Override
     public synchronized long getMapVersion() {
-        return partitionMap.getVersion();
+        lock.readLock().lock();
+        try {
+            return partitionMap.getVersion();
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     @Override
     public synchronized void updateMap(DynamicPartitionMap partitionMap) {
-        this.partitionMap = Preconditions.checkNotNull(partitionMap);
+        lock.writeLock().lock();
+        try {
+            this.partitionMap = Preconditions.checkNotNull(partitionMap);
+        } finally {
+            lock.writeLock().unlock();
+        }
     }
 
     @Override
     public synchronized long updateMapIfNewer(DynamicPartitionMap partitionMap) {
-        if (this.partitionMap == null || this.partitionMap.getVersion() < partitionMap.getVersion()) {
-            updateMap(partitionMap);
+        lock.writeLock().lock();
+        try {
+            if (this.partitionMap == null || this.partitionMap.getVersion() < partitionMap.getVersion()) {
+                this.partitionMap = Preconditions.checkNotNull(partitionMap);
+            }
+            return this.partitionMap.getVersion();
+        } finally {
+            lock.writeLock().unlock();
         }
-        return this.partitionMap.getVersion();
     }
 
 }
