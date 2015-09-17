@@ -51,7 +51,7 @@ public interface PartitionMapService {
     @POST
     @Path("update-map")
     @Consumes(MediaType.APPLICATION_JSON)
-    @VisibleForTesting
+    @VisibleForTesting @Deprecated
     void updateMap(DynamicPartitionMap partitionMap);
 
     /**
