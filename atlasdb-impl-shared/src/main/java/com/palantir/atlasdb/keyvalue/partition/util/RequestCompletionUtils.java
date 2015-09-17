@@ -27,6 +27,7 @@ import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.partition.exception.ClientVersionTooOldException;
+import com.palantir.atlasdb.keyvalue.partition.exception.EndpointVersionTooOldException;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumTracker;
 import com.palantir.atlasdb.keyvalue.partition.util.EndpointRequestExecutor.EndpointRequestCompletionService;
 import com.palantir.common.base.Throwables;
@@ -37,7 +38,10 @@ public class RequestCompletionUtils {
 
     // These exceptions should be thrown immediately
     private static boolean isNonInterceptableException(Throwable e) {
-        return e instanceof ClientVersionTooOldException || e instanceof KeyAlreadyExistsException;
+        return
+                e instanceof ClientVersionTooOldException ||
+                e instanceof EndpointVersionTooOldException ||
+                e instanceof KeyAlreadyExistsException;
     }
 
     /**
