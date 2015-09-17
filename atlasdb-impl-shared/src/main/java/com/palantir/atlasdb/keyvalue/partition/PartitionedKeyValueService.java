@@ -83,7 +83,6 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
     private static final Logger log = LoggerFactory.getLogger(PartitionedKeyValueService.class);
     private final QuorumParameters quorumParameters;
     private final ExecutorService executor;
-    private final ImmutableList<PartitionMapService> partitionMapProviders;
 
     // *** Read requests *************************************************************************
     @Override
@@ -793,24 +792,16 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
     }
 
     // *** Creation *******************************************************************************
-    protected PartitionedKeyValueService(ExecutorService executor,
-            QuorumParameters quorumParameters, DynamicPartitionMap partitionMap,
+    protected PartitionedKeyValueService(ExecutorService executor, QuorumParameters quorumParameters,
             ImmutableList<PartitionMapService> partitionMapProviders) {
-        super(partitionMap);
+        super(partitionMapProviders);
         this.executor = executor;
         this.quorumParameters = quorumParameters;
-        this.partitionMapProviders = partitionMapProviders;
     }
 
     public static PartitionedKeyValueService create(PartitionedKeyValueConfiguration config) {
-        DynamicPartitionMap dpm = retryUntilSuccess(config.partitionMapProviders.iterator(), new Function<PartitionMapService, DynamicPartitionMap>() {
-            @Override
-            public DynamicPartitionMap apply(PartitionMapService input) {
-                return input.getMap();
-            }
-        });
         ExecutorService executor = PTExecutors.newCachedThreadPool();
-        return new PartitionedKeyValueService(executor, config.quorumParameters, dpm, config.partitionMapProviders);
+        return new PartitionedKeyValueService(executor, config.quorumParameters, config.partitionMapProviders);
     }
 
     // *** Helper methods *************************************************************************

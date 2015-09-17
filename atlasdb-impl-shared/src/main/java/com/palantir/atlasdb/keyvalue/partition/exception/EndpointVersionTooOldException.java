@@ -17,7 +17,7 @@ public class EndpointVersionTooOldException extends TransactionFailedRetriableEx
      */
     public void pushNewMap(DynamicPartitionMap map) {
         RemotingPartitionMapService.createClientSide(
-                Preconditions.checkNotNull(pmsUri)).updateMap(map);
+                Preconditions.checkNotNull(pmsUri)).updateMapIfNewer(map);
     }
 
     public EndpointVersionTooOldException() {

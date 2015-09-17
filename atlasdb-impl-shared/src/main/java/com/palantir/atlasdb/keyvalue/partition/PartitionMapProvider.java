@@ -15,10 +15,16 @@
  */
 package com.palantir.atlasdb.keyvalue.partition;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.exception.ClientVersionTooOldException;
 import com.palantir.atlasdb.keyvalue.partition.exception.EndpointVersionTooOldException;
+import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
+import com.palantir.atlasdb.keyvalue.partition.util.RequestCompletionUtils;
 
 /**
  * This is to make sure that no one extending this class
@@ -33,12 +39,16 @@ import com.palantir.atlasdb.keyvalue.partition.exception.EndpointVersionTooOldEx
  */
 public class PartitionMapProvider {
 
+    private static final Logger log = LoggerFactory.getLogger(PartitionMapProvider.class);
+
     private DynamicPartitionMap partitionMap;
+    private final ImmutableList<PartitionMapService> partitionMapProviders;
 
     protected <T> T runWithPartitionMap(Function<DynamicPartitionMap, T> task) {
         try {
             return task.apply(partitionMap);
         } catch (ClientVersionTooOldException e) {
+            log.info("Downloading partition map from endpoint");
             partitionMap = e.getUpdatedMap();
             /**
              * Update the map but let the transaction manager retry the task.
@@ -48,6 +58,7 @@ public class PartitionMapProvider {
              */
             throw e;
         } catch (EndpointVersionTooOldException e) {
+            log.info("Pushing local partition map to endpoint");
             e.pushNewMap(partitionMap);
             /**
              * Push my map version to the endpoint but let the transaction
@@ -56,16 +67,37 @@ public class PartitionMapProvider {
             throw e;
         } catch (RuntimeException e) {
             /**
-             * TODO:
              * Consult the seed partition map servers to ensure that my map is
              * up-to-date.
              *
+             * TODO: Use quorum instead of first success?
+             *
              */
+            DynamicPartitionMap downloadedMap = RequestCompletionUtils.retryUntilSuccess(
+                    partitionMapProviders.iterator(), new Function<PartitionMapService, DynamicPartitionMap>() {
+                        @Override
+                        public DynamicPartitionMap apply(PartitionMapService input) {
+                            return input.getMap();
+                        }
+                    });
+            if (downloadedMap.getVersion() > partitionMap.getVersion()) {
+                log.info("Updating partition map (old version="
+                        + partitionMap.getVersion() + ", new version="
+                        + downloadedMap.getVersion()
+                        + ") from partitionMapProvider.");
+                partitionMap = downloadedMap;
+            }
             throw e;
         }
     }
 
-    protected PartitionMapProvider(DynamicPartitionMap partitionMap) {
-        this.partitionMap = partitionMap;
+    protected PartitionMapProvider(ImmutableList<PartitionMapService> partitionMapProviders) {
+        this.partitionMapProviders = partitionMapProviders;
+        partitionMap = RequestCompletionUtils.retryUntilSuccess(partitionMapProviders.iterator(), new Function<PartitionMapService, DynamicPartitionMap>() {
+            @Override
+            public DynamicPartitionMap apply(PartitionMapService input) {
+                return input.getMap();
+            }
+        });
     }
 }
