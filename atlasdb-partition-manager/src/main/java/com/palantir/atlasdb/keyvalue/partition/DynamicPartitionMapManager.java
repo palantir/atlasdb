@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.partition;
 
+import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.NavigableMap;
 import java.util.Scanner;
@@ -22,12 +23,10 @@ import java.util.concurrent.Callable;
 
 import javax.annotation.CheckForNull;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.UnsignedBytes;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.SimpleKeyValueEndpoint;
@@ -35,13 +34,13 @@ import com.palantir.atlasdb.keyvalue.partition.exception.EndpointVersionTooOldEx
 import com.palantir.atlasdb.keyvalue.partition.map.DynamicPartitionMapImpl;
 import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
+import com.palantir.atlasdb.keyvalue.partition.status.EndpointWithStatus;
+import com.palantir.atlasdb.keyvalue.partition.util.CycleMap;
 import com.palantir.atlasdb.keyvalue.remoting.RemotingPartitionMapService;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 
 public class DynamicPartitionMapManager {
-
-    private static final Logger log = LoggerFactory.getLogger(DynamicPartitionMapManager.class);
 
     private DynamicPartitionMap partitionMap;
 
@@ -291,12 +290,15 @@ public class DynamicPartitionMapManager {
                 System.out.println("Local partition map:");
                 System.out.println(instance.partitionMap);
 
+                System.out.println("MAIN MENU");
                 System.out.println("1. Add endpoint");
                 System.out.println("2. Remove endpoint");
                 System.out.println("3. Update local map");
                 System.out.println("4. Set version (deprecated, test only)");
                 System.out.println("5. Push local map to Uri");
+                System.out.println("6. Clear all endpoint kvss");
                 System.out.println("0. Exit");
+                System.out.print("Choice: ");
 
                 try {
                     switch (Integer.parseInt(scanner.nextLine())) {
@@ -315,6 +317,9 @@ public class DynamicPartitionMapManager {
                     case 5:
                         instance.pushToUriInteractive(scanner);
                         continue;
+                    case 6:
+                        instance.clearAllEndpointKvssInteractive(scanner);
+                        continue;
                     case 0:
                         exit = true;
                         continue;
@@ -331,6 +336,26 @@ public class DynamicPartitionMapManager {
 
                 System.out.println("Unrecognized command.");
             }
+        }
+    }
+
+    private void clearAllEndpointKvssInteractive(Scanner scanner) {
+        try {
+            Field f = partitionMap.getClass().getDeclaredField("ring");
+            f.setAccessible(true);
+            @SuppressWarnings("unchecked")
+            CycleMap<byte[], EndpointWithStatus> ring = (CycleMap<byte[], EndpointWithStatus>) f.get(partitionMap);
+            f.setAccessible(false);
+            System.err.println("Ring=" + ring);
+            for (EndpointWithStatus ews : ring.values()) {
+                KeyValueService kvs = ews.get().keyValueService();
+                for (String tableName : kvs.getAllTableNames()) {
+                    System.err.println("Dropping table " + tableName + " from " + kvs);
+                    kvs.dropTable(tableName);
+                }
+            }
+        } catch (Exception e) {
+            throw Throwables.throwUncheckedException(e);
         }
     }
 }
