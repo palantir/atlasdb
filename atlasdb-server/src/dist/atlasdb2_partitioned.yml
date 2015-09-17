@@ -38,11 +38,6 @@ extraConfig:
     replicationFactor: 1
     writeFactor: 1
     readFactor: 1
-    endpoints:
-      - kvsUri: http://localhost:3818
-        pmsUri: http://localhost:3818
-        # example key: 01dead23beaf
-        key: "31"
-      - kvsUri: http://localhost:4818
-        pmsUri: http://localhost:4818
-        key: "33"
+    partitionMapProviders:
+      - http://localhost:6818
+      - http://localhost:3818
