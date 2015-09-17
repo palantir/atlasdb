@@ -19,7 +19,6 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,7 +26,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
-import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.exception.ClientVersionTooOldException;
@@ -76,28 +74,8 @@ public class VersionCheckProxy implements InvocationHandler {
      * Some other "technical" methods are also exempt.
      */
     private static final boolean isMethodVersionExempt(Method method) {
-        return method.getDeclaringClass() != KeyValueService.class || EXEMPT_METHODS.contains(method.getName());
+        return method.getDeclaringClass() != KeyValueService.class;
     }
-
-    private static final Set<String> EXEMPT_METHODS = ImmutableSet.<String>builder()
-            // Table and table metadata methods
-            .add("dropTable")
-            .add("createTable")
-            .add("createTables")
-            .add("truncateTable")
-            .add("truncateTables")
-            .add("getAllTableNames")
-            .add("getAllTableNames")
-            .add("getMetadataForTable")
-            .add("getMetadataForTables")
-            .add("putMetadataForTable")
-            .add("putMetadataForTables")
-            // Technical methods
-            .add("close")
-            .add("teardown")
-            .add("initializeFromFreshInstance")
-            .add("compactInternally")
-            .build();
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
