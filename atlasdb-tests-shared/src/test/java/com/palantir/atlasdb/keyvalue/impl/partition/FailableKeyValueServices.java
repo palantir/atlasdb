@@ -241,7 +241,7 @@ public class FailableKeyValueServices {
             svcs.add(fkvs);
             rawSvcs.add(fkvs.get());
         }
-        PartitionedKeyValueService parition = PartitionedKeyValueService.create(Utils.createInMemoryMap(rawSvcs));
+        PartitionedKeyValueService parition = PartitionedKeyValueService.create(quorumParameters, Utils.createInMemoryMap(rawSvcs));
         return ShutdownNodesProxy.newProxyInstance(parition, svcs, quorumParameters);
     }
 
