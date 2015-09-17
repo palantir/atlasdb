@@ -9,6 +9,6 @@ dependencies {
   compile 'postgresql:postgresql:9.0-801.jdbc4'
 
   testCompile 'ru.yandex.qatools.embed:postgresql-embedded:1.3'
-  testCompile project(path: ":atlasdb-tests-shared", configuration: 'test')
+  testCompile project(path: ":atlasdb-tests-shared")
 }
 
