@@ -344,7 +344,7 @@ public class DynamicPartitionMapManager {
             Field f = partitionMap.getClass().getDeclaredField("ring");
             f.setAccessible(true);
             @SuppressWarnings("unchecked")
-            CycleMap<byte[], EndpointWithStatus> ring = (CycleMap<byte[], EndpointWithStatus>) f.get(partitionMap);
+            CycleMap<?, EndpointWithStatus> ring = (CycleMap<?, EndpointWithStatus>) f.get(partitionMap);
             f.setAccessible(false);
             System.err.println("Ring=" + ring);
             for (EndpointWithStatus ews : ring.values()) {
