@@ -48,9 +48,6 @@ public class RequestCompletionUtils {
      * This will block until success or failure of the request can be concluded.
      * In case of failure it will rethrow the last encountered exception.
      *
-     * TODO: Is it ok if the remaining futures are not beign taken after tracker
-     * is finished? Zombie threads etc.
-     *
      * @param tracker
      * @param execSvc
      * @param mergeFunction
