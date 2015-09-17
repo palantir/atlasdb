@@ -38,6 +38,8 @@ extraConfig:
     replicationFactor: 3
     writeFactor: 2
     readFactor: 2
+    partitionMapProvidersReadFactor: 2
     partitionMapProviders:
-      - http://lcoalhost:6818
+      - http://whatever:1234
+      - http://localhost:6818
       - http://localhost:3818
