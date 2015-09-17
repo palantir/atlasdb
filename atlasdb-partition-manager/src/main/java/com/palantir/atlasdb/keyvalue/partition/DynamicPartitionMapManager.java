@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.partition;
 
 import java.util.Arrays;
+import java.util.NavigableMap;
 import java.util.Scanner;
 import java.util.concurrent.Callable;
 
@@ -25,13 +26,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
+import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
+import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.SimpleKeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.exception.EndpointVersionTooOldException;
 import com.palantir.atlasdb.keyvalue.partition.map.DynamicPartitionMapImpl;
 import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
+import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
 import com.palantir.atlasdb.keyvalue.remoting.RemotingPartitionMapService;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.concurrent.PTExecutors;
 
 public class DynamicPartitionMapManager {
 
@@ -42,6 +48,10 @@ public class DynamicPartitionMapManager {
     public DynamicPartitionMapManager(String masterUri) {
         PartitionMapService masterPms = RemotingPartitionMapService.createClientSide(masterUri);
         partitionMap = masterPms.getMap();
+    }
+
+    public DynamicPartitionMapManager(DynamicPartitionMap dpm) {
+        partitionMap = dpm;
     }
 
     @CheckForNull
@@ -242,13 +252,39 @@ public class DynamicPartitionMapManager {
     public static void main(String[] args) {
 
         System.out.println("AtlasDb Dynamic Partition Map Manager");
-        System.out.print("Enter PMS Uri to download initial map: ");
-        DynamicPartitionMapManager instance;
+        System.out.print("Enter PMS Uri to download initial map (empty for empty map): ");
+        final DynamicPartitionMapManager instance;
 
         try (Scanner scanner = new Scanner(System.in)) {
             String initialPmsUri = scanner.nextLine();
-            System.out.println();
-            instance = new DynamicPartitionMapManager(initialPmsUri);
+            if (!initialPmsUri.equals("")) {
+                instance = new DynamicPartitionMapManager(initialPmsUri);
+            } else {
+                System.out.println("This is new partition map wizard");
+
+                System.out.print("replication factor: ");
+                int repf = Integer.parseInt(scanner.nextLine());
+                System.out.print("read factor: ");
+                int readf = Integer.parseInt(scanner.nextLine());
+                System.out.print("write factor: ");
+                int writef = Integer.parseInt(scanner.nextLine());
+
+                QuorumParameters parameters = new QuorumParameters(repf, readf, writef);
+                NavigableMap<byte[], KeyValueEndpoint> initialRing = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
+
+                while (initialRing.size() < repf) {
+                    System.out.print("kvs URI: ");
+                    String kvsUri = scanner.nextLine();
+                    System.out.print("pms URI: ");
+                    String pmsUri = scanner.nextLine();
+                    byte[] key = readKey(scanner);
+                    SimpleKeyValueEndpoint kve = new SimpleKeyValueEndpoint(kvsUri, pmsUri);
+                    initialRing.put(key, kve);
+                }
+
+                DynamicPartitionMapImpl dpmi = DynamicPartitionMapImpl.create(parameters, initialRing, PTExecutors.newCachedThreadPool());
+                instance = new DynamicPartitionMapManager(dpmi);
+            }
 
             boolean exit = false;
             while (!exit) {
