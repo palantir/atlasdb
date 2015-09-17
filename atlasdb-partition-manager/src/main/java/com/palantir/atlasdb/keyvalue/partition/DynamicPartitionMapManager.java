@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.SimpleKeyValueEndpoint;
+import com.palantir.atlasdb.keyvalue.partition.exception.EndpointVersionTooOldException;
 import com.palantir.atlasdb.keyvalue.partition.map.DynamicPartitionMapImpl;
 import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
 import com.palantir.atlasdb.keyvalue.remoting.RemotingPartitionMapService;
@@ -44,12 +45,17 @@ public class DynamicPartitionMapManager {
     }
 
     @CheckForNull
-    private static <T> T runRetryableTask(Callable<T> task, Scanner scanner) {
+    private <T> T runRetryableTask(Callable<T> task, Scanner scanner) {
         while (true) {
             try {
                 return task.call();
             } catch (Exception e) {
                 e.printStackTrace(System.out);
+                if (e instanceof EndpointVersionTooOldException) {
+                    System.out.println("Pushing new map to endpoint...");
+                    ((EndpointVersionTooOldException) e).pushNewMap(partitionMap);
+                    System.out.println("Pushed.");
+                }
                 System.out.print("Retry? (y/n) ");
                 if (!scanner.nextLine().equals("y")) {
                     System.out.println("Fatal? (y/n)");

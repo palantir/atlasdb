@@ -55,7 +55,8 @@ public class Utils {
         DropwizardClientRule rule = new DropwizardClientRule(remoteKvs,
                 KeyAlreadyExistsExceptionMapper.instance(),
                 InsufficientConsistencyExceptionMapper.instance(),
-                VersionTooOldExceptionMapper.instance(),
+                ClientVersionTooOldExceptionMapper.instance(),
+                EndpointVersionTooOldExceptionMapper.instance(),
                 new InboxPopulatingContainerRequestFilter(mapper));
         return rule;
     }

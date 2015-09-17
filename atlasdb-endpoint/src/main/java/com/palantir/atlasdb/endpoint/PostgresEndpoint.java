@@ -28,10 +28,11 @@ import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.server.EndpointServer;
 import com.palantir.atlasdb.keyvalue.rdbms.PostgresKeyValueConfiguration;
 import com.palantir.atlasdb.keyvalue.rdbms.PostgresKeyValueService;
+import com.palantir.atlasdb.keyvalue.remoting.ClientVersionTooOldExceptionMapper;
+import com.palantir.atlasdb.keyvalue.remoting.EndpointVersionTooOldExceptionMapper;
 import com.palantir.atlasdb.keyvalue.remoting.InsufficientConsistencyExceptionMapper;
 import com.palantir.atlasdb.keyvalue.remoting.KeyAlreadyExistsExceptionMapper;
 import com.palantir.atlasdb.keyvalue.remoting.RemotingKeyValueService;
-import com.palantir.atlasdb.keyvalue.remoting.VersionTooOldExceptionMapper;
 import com.palantir.atlasdb.keyvalue.remoting.outofband.InboxPopulatingContainerRequestFilter;
 import com.palantir.common.proxy.AbstractDelegatingInvocationHandler;
 
@@ -92,7 +93,8 @@ public class PostgresEndpoint extends Application<EndpointServerConfiguration> {
         environment.jersey().register(new InboxPopulatingContainerRequestFilter(mapper));
         environment.jersey().register(KeyAlreadyExistsExceptionMapper.instance());
         environment.jersey().register(InsufficientConsistencyExceptionMapper.instance());
-        environment.jersey().register(VersionTooOldExceptionMapper.instance());
+        environment.jersey().register(ClientVersionTooOldExceptionMapper.instance());
+        environment.jersey().register(EndpointVersionTooOldExceptionMapper.instance());
         environment.getObjectMapper().registerModule(RemotingKeyValueService.kvsModule());
         environment.getObjectMapper().registerModule(new GuavaModule());
         environment.jersey().register(kvsProxy);
