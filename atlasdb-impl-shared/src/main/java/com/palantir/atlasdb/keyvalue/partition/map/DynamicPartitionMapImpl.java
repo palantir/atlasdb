@@ -899,7 +899,8 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         EndpointWithLeavingStatus ews = (EndpointWithLeavingStatus) ring.get(key);
         Preconditions.checkArgument(ews.backfilled());
 
-        KeyValueService kvs = ring.get(key).get().keyValueService();
+        KeyValueEndpoint kve = ring.get(key).get();
+        KeyValueService kvs = kve.keyValueService();
 
         // Finalize
         ring.remove(key);
@@ -925,6 +926,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         // Now we can safely remove data from the endpoint.
         // If this fails... I don't care.
         try {
+            kve.partitionMapService().updateMap(this);
             for (String table : kvs.getAllTableNames()) {
                 kvs.dropTable(table);
             }
