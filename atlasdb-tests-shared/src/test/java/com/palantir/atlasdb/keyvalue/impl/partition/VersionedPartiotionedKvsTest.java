@@ -30,7 +30,6 @@ import org.junit.Test;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -144,9 +143,7 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
         pkvs = PartitionedKeyValueService.create(PartitionedKeyValueConfiguration.of(QUORUM_PARAMETERS, pmap));
 
         // Push the map to all the endpoints
-        for (int i=0; i<NUM_EPTS-1; ++i) {
-            skves[i].partitionMapService().updateMap(pmap);
-        }
+        pmap.pushMapToEndpoints();
     }
 
     @Before
@@ -196,50 +193,57 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
 
     @Test
     public void testAddEndpoint() {
-        Cell sampleNonExistingCell = Cell.create("thisCell".getBytes(), "doesNotExist".getBytes());
-        Map<Cell, Value> emptyResult = ImmutableMap.<Cell, Value>of();
+        final Map<Cell, Value> emptyResult = ImmutableMap.<Cell, Value>of();
+
+        final Map<Cell, Long> cells0 = ImmutableMap.of(Cell.create(row0, column0), TEST_TIMESTAMP + 1);
+        final Map<Cell, byte[]> values0 = ImmutableMap.of(Cell.create(row0, column0), value00);
+        final Map<Cell, Value> result0 = ImmutableMap.of(Cell.create(row0, column0), Value.create(value00, TEST_TIMESTAMP));
 
         pkvs.getPartitionMap().addEndpoint(SAMPLE_KEY, skves[NUM_EPTS-1], "");
         pkvs.getPartitionMap().pushMapToEndpoints();
-
-        Map<Cell, Long> cells0 = ImmutableMap.of(Cell.create(row0, column0), TEST_TIMESTAMP + 1);
-        Map<Cell, byte[]> values0 = ImmutableMap.of(Cell.create(row0, column0), value00);
-        Map<Cell, Value> result0 = ImmutableMap.of(Cell.create(row0, column0), Value.create(value00, TEST_TIMESTAMP));
 
         pkvs.createTable(TEST_TABLE, 12345);
 
         // Force pmap updateMap (why not)
         pkvs.getPartitionMap().setVersion(0L);
+
         try {
-            pkvs.delete(TEST_TABLE, ImmutableMultimap.of(sampleNonExistingCell, 0L));
+            // put is not retryable and must throw in this case
+            pkvs.put(TEST_TABLE, values0, TEST_TIMESTAMP);
             fail();
         } catch (ClientVersionTooOldException e) {
-            pkvs.delete(TEST_TABLE, ImmutableMultimap.of(sampleNonExistingCell, 0L));
+            // Expected
         }
+
+        // Make sure that the new version was downloaded
         assertEquals(1L, pkvs.getPartitionMap().getVersion());
+
+        // Retry the put
         pkvs.put(TEST_TABLE, values0, TEST_TIMESTAMP);
 
+        // Make sure that the writes went to all 4 endpoints
         for (int i=0; i<NUM_EPTS; ++i) {
             Map<Cell, Value> testResult = epts[i].kvs.delegate.get(TEST_TABLE, cells0);
             assertEquals(result0, testResult);
         }
 
+        // Finish the adding
+        pkvs.getPartitionMap().backfillAddedEndpoint(SAMPLE_KEY);
         pkvs.getPartitionMap().promoteAddedEndpoint(SAMPLE_KEY);
-        skves[NUM_EPTS - 1].partitionMapService().updateMap(pkvs.getPartitionMap());
-        for (int i=0; i<NUM_EPTS - 1; ++i) {
-            skves[i].partitionMapService().updateMap(pkvs.getPartitionMap());
-        }
+        pkvs.getPartitionMap().pushMapToEndpoints();
 
         Map<Cell, Long> cells1 = ImmutableMap.of(Cell.create(row0, column1), TEST_TIMESTAMP + 1);
         Map<Cell, byte[]> values1 = ImmutableMap.of(Cell.create(row0, column1), value01);
         Map<Cell, Value> result1 = ImmutableMap.of(Cell.create(row0, column1), Value.create(value01, TEST_TIMESTAMP));
 
-        // This time without a forced updateMap
+        // Make sure that all endpoints got the new map
         assertEquals(2L, pkvs.getPartitionMap().getVersion());
         for (int i=0; i<NUM_EPTS; ++i) {
             assertEquals(2L, skves[i].partitionMapService().getMapVersion());
         }
 
+        // Finally make sure that after the add operation completes, writes go
+        // to 3 endpoints only
         pkvs.put(TEST_TABLE, values1, TEST_TIMESTAMP);
 
         assertEquals(result1, epts[0].kvs.delegate.get(TEST_TABLE, cells1));

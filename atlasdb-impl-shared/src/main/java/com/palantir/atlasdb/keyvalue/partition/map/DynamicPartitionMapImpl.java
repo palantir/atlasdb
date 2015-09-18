@@ -623,6 +623,8 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
             return false;
         }
 
+        // First push current map version so that we can actually re-create tables etc.
+        kve.partitionMapService().updateMap(this);
         kve.registerPartitionMapVersion(versionSupplier);
 
         PartitionedKeyValueService pkvs = PartitionedKeyValueService.create(PartitionedKeyValueConfiguration.of(quorumParameters, this));

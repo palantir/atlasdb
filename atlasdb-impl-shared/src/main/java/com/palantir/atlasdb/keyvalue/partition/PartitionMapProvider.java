@@ -93,7 +93,7 @@ public class PartitionMapProvider {
             try {
                 log.info("Trying to consult seed servers in case local partition map is out of date");
                 log.info("Local map version before consulting: " + localService.getMapVersion());
-                updatePartitionMapFromSeedServers();
+                updatePartitionMapFromSeedServers(false);
                 log.info("Local map version after consulting: " + localService.getMapVersion());
             } catch (RuntimeErrorException re) {
                 log.warn("Error while trying to update map from seed servers.");
@@ -106,11 +106,12 @@ public class PartitionMapProvider {
     protected PartitionMapProvider(ImmutableList<PartitionMapService> partitionMapProviders, int partitionMapProvidersReadFactor) {
         this.partitionMapProviders = partitionMapProviders;
         this.partitionMapProvidersReadFactor = partitionMapProvidersReadFactor;
-        updatePartitionMapFromSeedServers();
+        updatePartitionMapFromSeedServers(true);
     }
 
-    private void updatePartitionMapFromSeedServers() {
+    private void updatePartitionMapFromSeedServers(boolean mustSucceed) {
         int numSucc = 0;
+        RuntimeException lastSuppressedException = null;
         for (PartitionMapService pms : partitionMapProviders) {
             try {
                 localService.updateMapIfNewer(pms.getMap());
@@ -118,10 +119,16 @@ public class PartitionMapProvider {
             } catch (RuntimeException re) {
                 log.warn("Error when connecting to seed server:");
                 re.printStackTrace(System.out);
+                lastSuppressedException = re;
             }
         }
+
         if (numSucc < partitionMapProvidersReadFactor) {
-            log.error("Could not contact enough seed servers. Ignoring...");
+            if (!mustSucceed) {
+                log.error("Could not contact enough seed servers. Ignoring...");
+            } else {
+                throw lastSuppressedException;
+            }
         } else {
             log.info("Seed servers consulted successfully");
         }
