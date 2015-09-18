@@ -19,6 +19,8 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.Iterator;
 
+import com.google.common.collect.ImmutableSet;
+
 
 public class ClosableIterators {
     private ClosableIterators() {/* */}
@@ -45,6 +47,12 @@ public class ClosableIterators {
         public void close() {
             // do nothing
         }
+    }
+
+    private static final ClosableIterator<?> EMPTY_IMMUTABLE_CLOSABLE_ITERATOR = wrap(ImmutableSet.of().iterator());
+    @SuppressWarnings("unchecked")
+    public static final <T> ClosableIterator<T> emptyImmutableClosableIterator() {
+        return (ClosableIterator<T>) EMPTY_IMMUTABLE_CLOSABLE_ITERATOR;
     }
 
     public static <T> ClosableIterator<T> wrap(final Iterator<? extends T> it, final Closeable closable) {
