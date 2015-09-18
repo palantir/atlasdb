@@ -27,7 +27,6 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.google.common.base.Function;
 import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -36,7 +35,6 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
-import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.map.DynamicPartitionMapImpl;
 import com.palantir.atlasdb.keyvalue.remoting.iterators.HistoryRangeIterator;
 import com.palantir.atlasdb.keyvalue.remoting.iterators.RangeIterator;
@@ -145,7 +143,6 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
      */
     public static KeyValueService createClientSide(String uri, Supplier<Long> localVersionSupplier) {
         ServiceContext<Long> outboxVersionCtx = RemoteContextHolder.OUTBOX.getProviderForKey(LONG_HOLDER.PM_VERSION);
-        ServiceContext<String> outboxPmsUriCtx = RemoteContextHolder.OUTBOX.getProviderForKey(STRING_HOLDER.PMS_URI);
 
         KeyValueService remotingKvs = Feign.builder()
                 .encoder(new OctetStreamDelegateEncoder(new JacksonEncoder(kvsMapper())))
@@ -157,13 +154,9 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
 
         KeyValueService versionSettingRemotingKvs = PopulateServiceContextProxy.newProxyInstance(
                 KeyValueService.class, remotingKvs, localVersionSupplier, outboxVersionCtx);
-        KeyValueService pmsUriSettingVersionSettingRemotingKvs = PopulateServiceContextProxy.newProxyInstance(
-                //                                                                             TODO
-                KeyValueService.class, versionSettingRemotingKvs, Suppliers.<String>ofInstance(null), outboxPmsUriCtx);
+        KeyValueService pagingIteratorsVersionSettingRemotingKvs = createClientSideInternal(versionSettingRemotingKvs);
 
-        KeyValueService pagingIteratorsPmsUriSettingVersionSettingRemotingKvs = createClientSideInternal(pmsUriSettingVersionSettingRemotingKvs);
-
-        return pagingIteratorsPmsUriSettingVersionSettingRemotingKvs;
+        return pagingIteratorsVersionSettingRemotingKvs;
     }
 
     /**
@@ -173,9 +166,9 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
      * @param serverVersionSupplier Use <code>Suppliers.<Long>ofInstance(-1L)</code> if you want to disable version check.
      * @return
      */
-    public static KeyValueService createServerSide(KeyValueService delegate, Supplier<Long> serverVersionSupplier, Function<? super DynamicPartitionMap, Void> serverPartitionMapUpdater) {
-        final KeyValueService kvs = new RemotingKeyValueService(delegate);
-        return VersionCheckProxy.newProxyInstance(kvs, serverVersionSupplier, serverPartitionMapUpdater);
+    public static KeyValueService createServerSide(KeyValueService delegate, Supplier<Long> serverVersionSupplier) {
+        final KeyValueService versionCheckingKvs = VersionCheckProxy.newProxyInstance(delegate, serverVersionSupplier);
+        return new RemotingKeyValueService(versionCheckingKvs);
     }
 
     private RemotingKeyValueService(KeyValueService service) {

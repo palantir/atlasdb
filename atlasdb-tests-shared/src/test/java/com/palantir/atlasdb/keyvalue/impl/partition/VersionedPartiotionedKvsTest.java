@@ -37,6 +37,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.AbstractAtlasDbKeyValueServiceTest;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
@@ -51,6 +52,7 @@ import com.palantir.atlasdb.keyvalue.partition.map.InKvsPartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
 import com.palantir.atlasdb.keyvalue.remoting.Utils;
 import com.palantir.atlasdb.keyvalue.remoting.Utils.RemoteEndpoint;
+import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.concurrent.PTExecutors;
 
 import io.dropwizard.testing.junit.DropwizardClientRule;
@@ -349,6 +351,41 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
         } catch (RuntimeException e) {
             // Expected
         }
+    }
+
+    @Test
+    public void testRangeIteratorRetryTransparentlyOnVersionMismatch() {
+        putTestDataForSingleTimestamp();
+        final int pagingSize = 3;
+        RangeRequest allNonPaged = RangeRequest.builder().batchHint(pagingSize).build();
+
+        for (int i=0; i<NUM_EPTS-1; ++i) {
+            assertEquals(0L, epts[i].pms.service.getMapVersion());
+        }
+
+        ClosableIterator<RowResult<Value>> it = pkvs.getRange(TEST_TABLE, allNonPaged, Long.MAX_VALUE);
+
+        // This first row goes through with the original map
+        it.next();
+
+        // Now the map gets updated on remote endpoints
+        for (int i=0; i<NUM_EPTS-1; ++i) {
+            assertEquals(0L, epts[i].pms.service.getMapVersion());
+            DynamicPartitionMapImpl remoteDpmi = ((DynamicPartitionMapImpl) epts[i].pms.service.getMap());
+            remoteDpmi.setVersion(2L);
+            epts[i].pms.service.updateMap(remoteDpmi);
+            assertEquals(2L, epts[i].pms.service.getMapVersion());
+        }
+
+        // Local map still out-of-date (TODO: This must not be)
+        assertEquals(0L, pkvs.getPartitionMap().getVersion());
+
+        // This should trigger map update
+        assertEquals(2, Iterators.size(it));
+
+        // And local map shall be now updated
+        // Yes, because the request got retried.
+        assertEquals(2L, pkvs.getPartitionMap().getVersion());
     }
 
     @Override

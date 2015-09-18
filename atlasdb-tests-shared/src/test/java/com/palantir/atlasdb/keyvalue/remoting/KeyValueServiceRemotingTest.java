@@ -29,7 +29,6 @@ import org.junit.Test;
 
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
@@ -47,7 +46,7 @@ import io.dropwizard.testing.junit.DropwizardClientRule;
 public class KeyValueServiceRemotingTest extends AbstractAtlasDbKeyValueServiceTest {
 
     final KeyValueService remoteKvs = RemotingKeyValueService.createServerSide(new InMemoryKeyValueService(
-            false), Suppliers.ofInstance(-1L), Functions.<Void>constant(null));
+            false), Suppliers.ofInstance(-1L));
 
     @Rule
     public final DropwizardClientRule Rule = Utils.getRemoteKvsRule(remoteKvs);

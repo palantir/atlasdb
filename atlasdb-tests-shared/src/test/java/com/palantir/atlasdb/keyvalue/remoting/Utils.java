@@ -25,7 +25,6 @@ import org.apache.commons.lang.ArrayUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
-import com.google.common.base.Function;
 import com.google.common.base.Supplier;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.UnsignedBytes;
@@ -118,12 +117,6 @@ public class Utils {
                 public Long get() {
                     Long version = RemotingPartitionMapService.createClientSide(remotePms.rule.baseUri().toString()).getMapVersion();
                     return version;
-                }
-            }, new Function<DynamicPartitionMap, Void>() {
-                @Override
-                public Void apply(DynamicPartitionMap input) {
-                    RemotingPartitionMapService.createClientSide(remotePms.rule.baseUri().toString()).updateMap(input);
-                    return null;
                 }
             });
             rule = Utils.getRemoteKvsRule(remoteKvs);

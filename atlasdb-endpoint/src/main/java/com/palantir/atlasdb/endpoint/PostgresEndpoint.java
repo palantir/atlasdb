@@ -19,10 +19,8 @@ import java.lang.reflect.Proxy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
-import com.google.common.base.Function;
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.map.InKvsPartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.server.EndpointServer;
@@ -75,12 +73,6 @@ public class PostgresEndpoint extends Application<EndpointServerConfiguration> {
             @Override
             public Long get() {
                 return pms.getMapVersion();
-            }
-        }, new Function<DynamicPartitionMap, Void>() {
-            @Override
-            public Void apply(DynamicPartitionMap input) {
-                pms.updateMap(input);
-                return null;
             }
         }), pms);
 
