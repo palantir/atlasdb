@@ -124,7 +124,9 @@ public class VersionCheckProxy<T> implements InvocationHandler {
      * Caveat: If client version is changed after the iterator is created, it will not throw.
      * But if we say that endpoint should auto-update on request only, this should be fine.
      * (The endpoint version will be updated on next kvs request.)
-     * BTW. This is only relevant for the case when endpoints are not remoted.
+     * Note: This is relevant even when the kvs is remoted and iterators are serialized - in case
+     * partition map version changes during the serialization (after obtaining the iterator but
+     * before downloading entire page).
      *
      * @param delegate
      * @param serverVersionProvider
