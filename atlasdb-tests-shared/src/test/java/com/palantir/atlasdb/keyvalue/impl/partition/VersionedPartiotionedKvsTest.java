@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.impl.partition;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 
 import java.util.Map;
@@ -257,8 +258,7 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
 
         // First add the endpoint so that we can remove one
         pkvs.getPartitionMap().addEndpoint(SAMPLE_KEY, skves[NUM_EPTS - 1], "");
-        pkvs.getPartitionMap().pushMapToEndpoints();
-
+        pkvs.getPartitionMap().backfillAddedEndpoint(SAMPLE_KEY);
         pkvs.getPartitionMap().promoteAddedEndpoint(SAMPLE_KEY);
         pkvs.getPartitionMap().pushMapToEndpoints();
 
@@ -280,23 +280,23 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
         }
 
         // Finish the remove operation
+        pkvs.getPartitionMap().backfillRemovedEndpoint(anotherSampleKey);
         pkvs.getPartitionMap().promoteRemovedEndpoint(anotherSampleKey);
         pkvs.getPartitionMap().pushMapToEndpoints();
-        // Push the new map to the remove endpoint as well - in case someone will
-        // still have the old map
-        skves[NUM_EPTS - 1].partitionMapService().updateMap(pkvs.getPartitionMap());
 
         Map<Cell, Long> cells1 = ImmutableMap.of(Cell.create(row0, column1), TEST_TIMESTAMP + 1);
         Map<Cell, byte[]> values1 = ImmutableMap.of(Cell.create(row0, column1), value01);
         Map<Cell, Value> result1 = ImmutableMap.of(Cell.create(row0, column1), Value.create(value01, TEST_TIMESTAMP));
 
+        // Now the data should not be sent to the removed endpoint anymore
         pkvs.put(TEST_TABLE, values1, TEST_TIMESTAMP);
 
-        // Now the data should not be sent to the removed endpoint anymore
         assertEquals(result1, epts[0].kvs.delegate.get(TEST_TABLE, cells1));
-        Assert.assertFalse(epts[1].kvs.delegate.getAllTableNames().contains(TEST_TABLE));
         assertEquals(result1, epts[2].kvs.delegate.get(TEST_TABLE, cells1));
         assertEquals(result1, epts[3].kvs.delegate.get(TEST_TABLE, cells1));
+
+        // And the data shall be removed from the removed endpoint
+        assertFalse(epts[1].kvs.delegate.getAllTableNames().contains(TEST_TABLE));
     }
 
     @Test
