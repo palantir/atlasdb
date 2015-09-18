@@ -99,12 +99,14 @@ public class AutoRetryingClosableIterator<T> implements ClosableIterator<RowResu
 
     @Override
     public RowResult<T> next() {
-        return runTaskWithRetry(new Function<Void, RowResult<T>>() {
+        RowResult<T> ret = runTaskWithRetry(new Function<Void, RowResult<T>>() {
             @Override
             public RowResult<T> apply(Void input) {
                 return backingIterator.next();
             }
         });
+        lastRow = ret.getRowName();
+        return ret;
     }
 
     @Override
