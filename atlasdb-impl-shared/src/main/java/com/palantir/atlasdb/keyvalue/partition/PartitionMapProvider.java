@@ -27,7 +27,6 @@ import com.palantir.atlasdb.keyvalue.partition.exception.ClientVersionTooOldExce
 import com.palantir.atlasdb.keyvalue.partition.exception.EndpointVersionTooOldException;
 import com.palantir.atlasdb.keyvalue.partition.map.InMemoryPartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
-import com.palantir.atlasdb.keyvalue.partition.util.RequestCompletionUtils;
 
 /**
  * This is to make sure that no one extending this class
@@ -94,21 +93,7 @@ public class PartitionMapProvider {
             try {
                 log.info("Trying to consult seed servers in case local partition map is out of date");
                 log.info("Local map version before consulting: " + localService.getMapVersion());
-
-                int numSucc = 0;
-                for (PartitionMapService pms : partitionMapProviders) {
-                    try {
-                        localService.updateMapIfNewer(pms.getMap());
-                        numSucc++;
-                    } catch (RuntimeException e) {
-                        log.warn("Error when connecting to seed server:");
-                        e.printStackTrace(System.out);
-                    }
-                }
-                if (numSucc < partitionMapProvidersReadFactor) {
-                    log.error("Could not contact enough seed servers. Ignoring...");
-                }
-
+                updatePartitionMapFromSeedServers();
                 log.info("Local map version after consulting: " + localService.getMapVersion());
             } catch (RuntimeErrorException re) {
                 log.warn("Error while trying to update map from seed servers.");
@@ -121,15 +106,24 @@ public class PartitionMapProvider {
     protected PartitionMapProvider(ImmutableList<PartitionMapService> partitionMapProviders, int partitionMapProvidersReadFactor) {
         this.partitionMapProviders = partitionMapProviders;
         this.partitionMapProvidersReadFactor = partitionMapProvidersReadFactor;
-        localService.updateMapIfNewer(getPartitionMapFromSeedServers());
+        updatePartitionMapFromSeedServers();
     }
 
-    private DynamicPartitionMap getPartitionMapFromSeedServers() {
-        return RequestCompletionUtils.retryUntilSuccess(partitionMapProviders.iterator(), new Function<PartitionMapService, DynamicPartitionMap>() {
-            @Override
-            public DynamicPartitionMap apply(PartitionMapService input) {
-                return input.getMap();
+    private void updatePartitionMapFromSeedServers() {
+        int numSucc = 0;
+        for (PartitionMapService pms : partitionMapProviders) {
+            try {
+                localService.updateMapIfNewer(pms.getMap());
+                numSucc++;
+            } catch (RuntimeException re) {
+                log.warn("Error when connecting to seed server:");
+                re.printStackTrace(System.out);
             }
-        });
+        }
+        if (numSucc < partitionMapProvidersReadFactor) {
+            log.error("Could not contact enough seed servers. Ignoring...");
+        } else {
+            log.info("Seed servers consulted successfully");
+        }
     }
 }

@@ -55,6 +55,7 @@ import com.palantir.atlasdb.keyvalue.partition.map.DynamicPartitionMapImpl;
 import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumTracker;
+import com.palantir.atlasdb.keyvalue.partition.util.AutoRetryingClosableIterator;
 import com.palantir.atlasdb.keyvalue.partition.util.ClosablePeekingIterator;
 import com.palantir.atlasdb.keyvalue.partition.util.ConsistentRingRangeRequest;
 import com.palantir.atlasdb.keyvalue.partition.util.EndpointRequestExecutor;
@@ -231,8 +232,18 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 
     // *** Read range requests ***
     @Override
-    @Idempotent
     public ClosableIterator<RowResult<Value>> getRange(final String tableName,
+            final RangeRequest rangeRequest, final long timestamp) {
+        return AutoRetryingClosableIterator.of(rangeRequest, new Function<RangeRequest, ClosableIterator<RowResult<Value>>>() {
+            @Override
+            public ClosableIterator<RowResult<Value>> apply(
+                    RangeRequest input) {
+                return getRangeInternal(tableName, input, timestamp);
+            }
+        });
+    }
+
+    private ClosableIterator<RowResult<Value>> getRangeInternal(final String tableName,
                                                        final RangeRequest rangeRequest,
                                                        final long timestamp) {
 
@@ -299,11 +310,21 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                 });
             }
         };
-}
+    }
 
     @Override
-    @Idempotent
-    public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(final String tableName,
+    public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(
+            final String tableName, RangeRequest rangeRequest, final long timestamp) {
+        return AutoRetryingClosableIterator.of(rangeRequest, new Function<RangeRequest, ClosableIterator<RowResult<Set<Value>>>>() {
+            @Override
+            public ClosableIterator<RowResult<Set<Value>>> apply(
+                    RangeRequest input) {
+                return getRangeWithHistoryInternal(tableName, input, timestamp);
+            }
+        });
+    }
+
+    private ClosableIterator<RowResult<Set<Value>>> getRangeWithHistoryInternal(final String tableName,
                                                                        final RangeRequest rangeRequest,
                                                                        final long timestamp) {
         final Multimap<ConsistentRingRangeRequest, KeyValueEndpoint> services =
@@ -350,8 +371,19 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
     }
 
     @Override
-    @Idempotent
-    public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(final String tableName,
+    public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(
+            final String tableName, RangeRequest rangeRequest, final long timestamp)
+                    throws InsufficientConsistencyException {
+        return AutoRetryingClosableIterator.of(rangeRequest, new Function<RangeRequest, ClosableIterator<RowResult<Set<Long>>>>() {
+            @Override
+            public ClosableIterator<RowResult<Set<Long>>> apply(
+                    RangeRequest input) {
+                return getRangeOfTimestampsInternal(tableName, input, timestamp);
+            }
+        });
+    }
+
+    private ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestampsInternal(final String tableName,
                                                                        final RangeRequest rangeRequest,
                                                                        final long timestamp)
             throws InsufficientConsistencyException {
@@ -799,15 +831,16 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 
     // *** Creation *******************************************************************************
     protected PartitionedKeyValueService(ExecutorService executor, QuorumParameters quorumParameters,
-            ImmutableList<PartitionMapService> partitionMapProviders) {
-        super(partitionMapProviders);
+            ImmutableList<PartitionMapService> partitionMapProviders, int partitionMapProvidersReadFactor) {
+        super(partitionMapProviders, partitionMapProvidersReadFactor);
         this.executor = executor;
         this.quorumParameters = quorumParameters;
     }
 
     public static PartitionedKeyValueService create(PartitionedKeyValueConfiguration config) {
         ExecutorService executor = PTExecutors.newCachedThreadPool();
-        return new PartitionedKeyValueService(executor, config.quorumParameters, config.partitionMapProviders);
+        return new PartitionedKeyValueService(executor, config.quorumParameters,
+                config.partitionMapProviders, config.partitionMapProvidersReadFactor);
     }
 
     // *** Helper methods *************************************************************************

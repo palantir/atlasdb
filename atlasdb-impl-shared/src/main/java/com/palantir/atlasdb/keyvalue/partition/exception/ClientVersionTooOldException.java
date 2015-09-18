@@ -20,7 +20,6 @@ import com.palantir.atlasdb.keyvalue.partition.PartitionedKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
 import com.palantir.atlasdb.keyvalue.remoting.RemotingPartitionMapService;
 import com.palantir.atlasdb.keyvalue.remoting.proxy.FillInUrlProxy;
-import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.common.annotation.Immutable;
 
 /**
@@ -40,7 +39,7 @@ import com.palantir.common.annotation.Immutable;
  * @author htarasiuk
  *
  */
-@Immutable public class ClientVersionTooOldException extends TransactionFailedRetriableException {
+@Immutable public class ClientVersionTooOldException extends VersionMismatchException {
 
     private static final long serialVersionUID = 1L;
 
