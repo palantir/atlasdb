@@ -79,6 +79,7 @@ public class AutoRetryingClosableIterator<T> implements ClosableIterator<RowResu
             Function<RangeRequest, ClosableIterator<RowResult<T>>> backingIteratorSupplier) {
         this.originalRange = originalRange;
         this.backingIteratorSupplier = backingIteratorSupplier;
+        this.backingIterator = backingIteratorSupplier.apply(originalRange);
     }
 
     public static <T> AutoRetryingClosableIterator<T> of(RangeRequest originalRange,
