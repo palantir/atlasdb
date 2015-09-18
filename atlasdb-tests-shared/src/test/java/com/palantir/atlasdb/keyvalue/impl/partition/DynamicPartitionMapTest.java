@@ -76,6 +76,7 @@ public class DynamicPartitionMapTest extends AbstractPartitionMapTest {
         testCellsRead(svc234, sampleCell);
         testCellsWrite(svc2345, sampleCell);
 
+        dpm.backfillRemovedEndpoint(newByteArray(0, 5));
         dpm.promoteRemovedEndpoint(newByteArray(0, 5));
         /**
          * Now it should be back to normal, ie.
@@ -86,6 +87,7 @@ public class DynamicPartitionMapTest extends AbstractPartitionMapTest {
         testCellsWrite(svc345, sampleCell);
 
         assertEquals(true, dpm.addEndpoint(newByteArray(0, 5), endpoints.get(2), ""));
+        dpm.backfillAddedEndpoint(newByteArray(0, 5));
         dpm.promoteAddedEndpoint(newByteArray(0, 5));
         testCellsRead(svc234, sampleCell);
         testCellsWrite(svc234, sampleCell);
@@ -97,6 +99,7 @@ public class DynamicPartitionMapTest extends AbstractPartitionMapTest {
         testCellsWrite(svc234, sampleCell);
 
         assertEquals(true, dpm.removeEndpoint(newByteArray(0, 5)));
+        dpm.backfillRemovedEndpoint(newByteArray(0, 5));
         dpm.promoteRemovedEndpoint(newByteArray(0, 5));
         testCellsRead(svc345, sampleCell);
         testCellsWrite(svc345, sampleCell);
@@ -111,6 +114,7 @@ public class DynamicPartitionMapTest extends AbstractPartitionMapTest {
         testCellsRead(svc345, sampleCell);
         testCellsWrite(svc2345, sampleCell);
 
+        dpm.backfillAddedEndpoint(newByteArray(0, 5));
         dpm.promoteAddedEndpoint(newByteArray(0, 5));
         testCellsRead(svc234, sampleCell);
         testCellsWrite(svc234, sampleCell);
@@ -123,11 +127,13 @@ public class DynamicPartitionMapTest extends AbstractPartitionMapTest {
     public void testAddRemoveEndpoint() {
         assertEquals(true, dpm.removeEndpoint(newByteArray(0, 5)));
         assertEquals(false, dpm.removeEndpoint(newByteArray(1, 1)));
+        dpm.backfillRemovedEndpoint(newByteArray(0, 5));
         dpm.promoteRemovedEndpoint(newByteArray(0, 5));
         dpm.pushMapToEndpoints();
 
         assertEquals(true, dpm.removeEndpoint(newByteArray(1, 1)));
         assertEquals(false, dpm.addEndpoint(newByteArray(0, 5), endpoints.get(2), ""));
+        dpm.backfillRemovedEndpoint(newByteArray(1, 1));
         dpm.promoteRemovedEndpoint(newByteArray(1, 1));
         dpm.pushMapToEndpoints();
     }
