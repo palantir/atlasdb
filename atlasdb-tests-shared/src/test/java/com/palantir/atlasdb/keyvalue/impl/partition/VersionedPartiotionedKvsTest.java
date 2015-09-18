@@ -166,6 +166,7 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
         skves[1].partitionMapService().updateMap(pkvs.getPartitionMap());
         skves[2].partitionMapService().updateMap(pkvs.getPartitionMap());
         skves[3].partitionMapService().updateMap(pkvs.getPartitionMap());
+        pkvs.createTable("TABLE_NAME_2", 12345);
 
         pkvs.getPartitionMap().setVersion(0L);
 
@@ -173,9 +174,6 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
         assertEquals(1L, skves[1].partitionMapService().getMapVersion());
         assertEquals(1L, skves[2].partitionMapService().getMapVersion());
         assertEquals(1L, skves[3].partitionMapService().getMapVersion());
-
-        // This must not throw - createTable is an "exempt" method.
-        pkvs.createTable("TABLE_NAME_2", 12345);
 
     	try {
     	    // This must throw - client partition map is out of date
