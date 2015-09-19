@@ -21,6 +21,7 @@ import static org.junit.Assert.fail;
 
 import java.util.Map;
 import java.util.NavigableMap;
+import java.util.Set;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -130,19 +131,23 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
         setUpPrivate();
     }
 
+    private static final byte[] ept_key_0 = new byte[] {0};
+    private static final byte[] ept_key_1 = new byte[] {0, 0};
+    private static final byte[] ept_key_2 = new byte[] {0, 0, 0};
+    private static final byte[] ept_key_3 = new byte[] {0, 0, 0, 0};
+
     public void setUpPrivate() {
         for (int i=0; i<NUM_EPTS; ++i) {
             skves[i] = new SimpleKeyValueEndpoint(epts[i].kvs.rule.baseUri().toString(), epts[i].pms.rule.baseUri().toString());
         }
 
         NavigableMap<byte[], KeyValueEndpoint> ring = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
-        ring.put(new byte[] {0},       skves[0]);
-        ring.put(new byte[] {0, 0},    skves[1]);
-        ring.put(new byte[] {0, 0, 0}, skves[2]);
+        ring.put(ept_key_0, skves[0]);
+        ring.put(ept_key_1, skves[1]);
+        ring.put(ept_key_2, skves[2]);
         // Do not insert skves[3] - it will be used later to test addEndpoint
 
-        DynamicPartitionMap pmap = DynamicPartitionMapImpl.create(new QuorumParameters(3, 3, 3), ring, PTExecutors.newCachedThreadPool());
-
+        DynamicPartitionMap pmap = DynamicPartitionMapImpl.create(QUORUM_PARAMETERS, ring, PTExecutors.newCachedThreadPool());
         pkvs = PartitionedKeyValueService.create(PartitionedKeyValueConfiguration.of(QUORUM_PARAMETERS, pmap));
 
         // Push the map to all the endpoints
@@ -267,8 +272,7 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
         pkvs.createTable(TEST_TABLE, 12345);
 
         // Begin the remove operation
-        byte[] anotherSampleKey = new byte[] {0, 0};
-        pkvs.getPartitionMap().removeEndpoint(anotherSampleKey);
+        pkvs.getPartitionMap().removeEndpoint(ept_key_1);
         pkvs.getPartitionMap().pushMapToEndpoints();
 
         Map<Cell, Long> cells0 = ImmutableMap.of(Cell.create(row0, column0), TEST_TIMESTAMP + 1);
@@ -282,8 +286,8 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
         }
 
         // Finish the remove operation
-        pkvs.getPartitionMap().backfillRemovedEndpoint(anotherSampleKey);
-        pkvs.getPartitionMap().promoteRemovedEndpoint(anotherSampleKey);
+        pkvs.getPartitionMap().backfillRemovedEndpoint(ept_key_1);
+        pkvs.getPartitionMap().promoteRemovedEndpoint(ept_key_1);
         pkvs.getPartitionMap().pushMapToEndpoints();
 
         Map<Cell, Long> cells1 = ImmutableMap.of(Cell.create(row0, column1), TEST_TIMESTAMP + 1);
@@ -356,8 +360,7 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
     @Test
     public void testRangeIteratorRetryTransparentlyOnVersionMismatch() {
         putTestDataForSingleTimestamp();
-        final int pagingSize = 3;
-        RangeRequest allNonPaged = RangeRequest.builder().batchHint(pagingSize).build();
+        RangeRequest allNonPaged = RangeRequest.builder().batchHint(1).build();
 
         for (int i=0; i<NUM_EPTS-1; ++i) {
             assertEquals(0L, epts[i].pms.service.getMapVersion());
@@ -368,24 +371,83 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
         // This first row goes through with the original map
         it.next();
 
+        // Moving one endpoint is enough, our failure factor is 1.
+        pkvs.getPartitionMap().addEndpoint(SAMPLE_KEY, skves[NUM_EPTS-1], "");
+        pkvs.getPartitionMap().backfillAddedEndpoint(SAMPLE_KEY);
+        pkvs.getPartitionMap().promoteAddedEndpoint(SAMPLE_KEY);
+        pkvs.getPartitionMap().removeEndpoint(ept_key_0);
+        pkvs.getPartitionMap().backfillRemovedEndpoint(ept_key_0);
+        pkvs.getPartitionMap().promoteRemovedEndpoint(ept_key_0);
+
         // Now the map gets updated on remote endpoints
-        for (int i=0; i<NUM_EPTS-1; ++i) {
-            assertEquals(0L, epts[i].pms.service.getMapVersion());
-            DynamicPartitionMapImpl remoteDpmi = ((DynamicPartitionMapImpl) epts[i].pms.service.getMap());
-            remoteDpmi.setVersion(2L);
-            epts[i].pms.service.updateMap(remoteDpmi);
-            assertEquals(2L, epts[i].pms.service.getMapVersion());
+        for (int i=0; i<NUM_EPTS; ++i) {
+            assertEquals(4L, epts[i].pms.service.getMapVersion());
         }
 
-        // Local map still out-of-date (TODO: This must not be)
-        assertEquals(0L, pkvs.getPartitionMap().getVersion());
-
-        // This should trigger map update
+        // This should trigger a retry
         assertEquals(2, Iterators.size(it));
+    }
 
-        // And local map shall be now updated
-        // Yes, because the request got retried.
-        assertEquals(2L, pkvs.getPartitionMap().getVersion());
+    @Test
+    public void testRangeWithHistoryIteratorRetryTransparentlyOnVersionMismatch() {
+        putTestDataForSingleTimestamp();
+        RangeRequest allNonPaged = RangeRequest.builder().batchHint(1).build();
+
+        for (int i=0; i<NUM_EPTS-1; ++i) {
+            assertEquals(0L, epts[i].pms.service.getMapVersion());
+        }
+
+        ClosableIterator<RowResult<Set<Value>>> it = pkvs.getRangeWithHistory(TEST_TABLE, allNonPaged, Long.MAX_VALUE);
+
+        // This first row goes through with the original map
+        it.next();
+
+        // Moving one endpoint is enough, our failure factor is 1.
+        pkvs.getPartitionMap().addEndpoint(SAMPLE_KEY, skves[NUM_EPTS-1], "");
+        pkvs.getPartitionMap().backfillAddedEndpoint(SAMPLE_KEY);
+        pkvs.getPartitionMap().promoteAddedEndpoint(SAMPLE_KEY);
+        pkvs.getPartitionMap().removeEndpoint(ept_key_0);
+        pkvs.getPartitionMap().backfillRemovedEndpoint(ept_key_0);
+        pkvs.getPartitionMap().promoteRemovedEndpoint(ept_key_0);
+
+        // Now the map gets updated on remote endpoints
+        for (int i=0; i<NUM_EPTS; ++i) {
+            assertEquals(4L, epts[i].pms.service.getMapVersion());
+        }
+
+        // This should trigger a retry
+        assertEquals(2, Iterators.size(it));
+    }
+
+    @Test
+    public void testRangeOfTimestampsIteratorRetryTransparentlyOnVersionMismatch() {
+        putTestDataForSingleTimestamp();
+        RangeRequest allNonPaged = RangeRequest.builder().batchHint(1).build();
+
+        for (int i=0; i<NUM_EPTS-1; ++i) {
+            assertEquals(0L, epts[i].pms.service.getMapVersion());
+        }
+
+        ClosableIterator<RowResult<Set<Long>>> it = pkvs.getRangeOfTimestamps(TEST_TABLE, allNonPaged, Long.MAX_VALUE);
+
+        // This first row goes through with the original map
+        it.next();
+
+        // Moving one endpoint is enough, our failure factor is 1.
+        pkvs.getPartitionMap().addEndpoint(SAMPLE_KEY, skves[NUM_EPTS-1], "");
+        pkvs.getPartitionMap().backfillAddedEndpoint(SAMPLE_KEY);
+        pkvs.getPartitionMap().promoteAddedEndpoint(SAMPLE_KEY);
+        pkvs.getPartitionMap().removeEndpoint(ept_key_0);
+        pkvs.getPartitionMap().backfillRemovedEndpoint(ept_key_0);
+        pkvs.getPartitionMap().promoteRemovedEndpoint(ept_key_0);
+
+        // Now the map gets updated on remote endpoints
+        for (int i=0; i<NUM_EPTS; ++i) {
+            assertEquals(4L, epts[i].pms.service.getMapVersion());
+        }
+
+        // This should trigger a retry
+        assertEquals(2, Iterators.size(it));
     }
 
     @Override
