@@ -70,7 +70,6 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
         return serviceContext;
     }
 
-
     /**
      * This is to inject the local KVS instance reference into the context.
      * It is used by the range iterators to download additional pages of data.
@@ -240,6 +239,8 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
         return kvsMapper;
     }
 
+    // This method transforms an iterator into paging iterator that can be
+    // sent over-the-wire in json.
     private static <T> RangeIterator<T> transformIterator(String tableName, RangeRequest range,
                                                    long timestamp, ClosableIterator<RowResult<T>> closableIterator,
                                                    Function<Pair<Boolean, ImmutableList<RowResult<T>>>, RangeIterator<T>> resultSupplier) {
