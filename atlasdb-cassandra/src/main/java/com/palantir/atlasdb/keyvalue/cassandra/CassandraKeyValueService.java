@@ -93,7 +93,6 @@ import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.schema.UpgradeFailedException;
 import com.palantir.atlasdb.table.description.TableMetadata;
-import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
@@ -1028,7 +1027,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     @Override
     public void putUnlessExists(final String tableName, final Map<Cell, byte[]> values)
             throws KeyAlreadyExistsException {
-        Validate.isTrue(TransactionConstants.TRANSACTION_TABLE.equals(tableName));
+        Validate.isTrue(AtlasDbConstants.ATOMIC_TABLES.contains(tableName));
         try {
             clientPool.runWithPooledResource(new FunctionCheckedException<Client, Void, Exception>() {
                 @Override
