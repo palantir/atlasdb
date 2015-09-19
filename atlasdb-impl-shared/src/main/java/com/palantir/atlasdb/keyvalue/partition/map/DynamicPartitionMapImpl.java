@@ -909,6 +909,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
 
         byte[] otherKey = key;
         try {
+            // TODO: Shouldn't this be +1, or filter based on normal status?
             for (int i=0; i<quorumParameters.getReplicationFactor(); ++i) {
                 otherKey = ring.nextKey(otherKey);
                 ring.get(otherKey).get().partitionMapService().updateMap(this);
