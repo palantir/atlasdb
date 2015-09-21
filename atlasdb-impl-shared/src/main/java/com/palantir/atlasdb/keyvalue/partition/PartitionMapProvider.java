@@ -77,20 +77,10 @@ public class PartitionMapProvider {
             log.info("Downloading partition map from endpoint");
             localService.updateMapIfNewer(e.getUpdatedMap());
             log.info("Downloaded version " + localService.getMapVersion());
-            /**
-             * Update the map but let the transaction manager retry the task.
-             * It seems to be reasonable since some of the KVS operations
-             * are not idempotent so retrying them from here could get
-             * other errors that would confuse the transaction manager.
-             */
             throw e;
         } catch (EndpointVersionTooOldException e) {
             log.info("Pushing local partition map to endpoint");
             e.pushNewMap(localService.getMap());
-            /**
-             * Push my map version to the endpoint but let the transaction
-             * manager retry this task for same reasons as above.
-             */
             throw e;
         } catch (RuntimeException e) {
             /**
