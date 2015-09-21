@@ -31,14 +31,6 @@ public class AutoRetryingClosableIterator<T> implements ClosableIterator<RowResu
     private ClosableIterator<RowResult<T>> backingIterator;
     private byte[] lastRow = null;
 
-    // This iterator will always catch VersionMismatchException. HOWEVER imagine that
-    // you removed an endpoint. Then you will get a different RuntimeException when trying
-    // to communicate with it.
-    // In such case this iterator will retry the request ONCE to give a chance to have
-    // the map updated anyway. If it still fails, we assume that the problem is
-    // not map-version-related and rethrow.
-    private boolean runtimeExceptionRetried = false;
-
     // This will make a range request that can be used to continue
     // the range iteration with a new iterator.
     private RangeRequest makeNewRange() {
@@ -76,16 +68,8 @@ public class AutoRetryingClosableIterator<T> implements ClosableIterator<RowResu
     private <V> V runTaskWithRetry(Function<Void, V> task) {
         while (true) {
             try {
-                V ret = task.apply(null);
-                runtimeExceptionRetried = false;
-                return ret;
+                return task.apply(null);
             } catch (VersionMismatchException e) {
-                requestNewIteratorAfterVersionMismatch();
-            } catch (RuntimeException e) {
-                if (runtimeExceptionRetried) {
-                    throw e;
-                }
-                runtimeExceptionRetried = true;
                 requestNewIteratorAfterVersionMismatch();
             }
         }
