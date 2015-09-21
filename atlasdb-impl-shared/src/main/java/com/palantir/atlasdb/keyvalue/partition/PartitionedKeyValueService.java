@@ -34,6 +34,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Supplier;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
@@ -63,6 +64,7 @@ import com.palantir.atlasdb.keyvalue.partition.util.EndpointRequestExecutor.Endp
 import com.palantir.atlasdb.keyvalue.partition.util.MergeResultsUtils;
 import com.palantir.atlasdb.keyvalue.partition.util.PartitionedRangedIterator;
 import com.palantir.atlasdb.keyvalue.partition.util.RowResultUtil;
+import com.palantir.atlasdb.keyvalue.remoting.proxy.VersionCheckProxy;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.NonIdempotent;
 import com.palantir.common.base.ClosableIterator;
@@ -238,7 +240,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
             @Override
             public ClosableIterator<RowResult<Value>> apply(
                     RangeRequest input) {
-                return getRangeInternal(tableName, input, timestamp);
+                return invalidateOnVersionChangeIterator(getRangeInternal(tableName, input, timestamp));
             }
         });
     }
@@ -319,7 +321,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
             @Override
             public ClosableIterator<RowResult<Set<Value>>> apply(
                     RangeRequest input) {
-                return getRangeWithHistoryInternal(tableName, input, timestamp);
+                return invalidateOnVersionChangeIterator(getRangeWithHistoryInternal(tableName, input, timestamp));
             }
         });
     }
@@ -378,7 +380,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
             @Override
             public ClosableIterator<RowResult<Set<Long>>> apply(
                     RangeRequest input) {
-                return getRangeOfTimestampsInternal(tableName, input, timestamp);
+                return invalidateOnVersionChangeIterator(getRangeOfTimestampsInternal(tableName, input, timestamp));
             }
         });
     }
@@ -850,6 +852,24 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
             @Override
             public DynamicPartitionMapImpl apply(DynamicPartitionMap input) {
                 return (DynamicPartitionMapImpl) input;
+            }
+        });
+    }
+
+    private long getMapVersion() {
+        return runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Long>() {
+            @Override
+            public Long apply(DynamicPartitionMap input) {
+                return input.getVersion();
+            }
+        });
+    }
+
+    private <T> ClosableIterator<RowResult<T>> invalidateOnVersionChangeIterator(ClosableIterator<RowResult<T>> it) {
+        return VersionCheckProxy.newProxyInstance(it, new Supplier<Long>() {
+            @Override
+            public Long get() {
+                return getMapVersion();
             }
         });
     }
