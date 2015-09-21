@@ -141,10 +141,19 @@ public final class InKvsPartitionMapService implements PartitionMapService {
      */
     @Override
     public synchronized long updateMapIfNewer(DynamicPartitionMap partitionMap) {
-        if (!hasValidMap() || getMap().getVersion() < partitionMap.getVersion()) {
+        final long originalVersion;
+
+        if (hasValidMap()) {
+            originalVersion = getMap().getVersion();
+        } else {
+            originalVersion = -1L;
+        }
+
+        if (partitionMap.getVersion() > originalVersion) {
             updateMap(partitionMap);
         }
-        return getMap().getVersion();
+
+        return originalVersion;
     }
 
     private boolean hasValidMap() {

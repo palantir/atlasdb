@@ -57,10 +57,11 @@ public interface PartitionMapService {
     /**
      * This method must atomically check the version of partition map
      * and update it if the provided map is newer than the stored map.
+     * (No update takes place if the versions are equal.)
      *
      * @param partitionMap
-     * @return Version of the map that is stored in this service after
-     * the operation. Must be greater or equal to the version of
+     * @return Version of the map that was stored in the service before
+     * the operation. Negative if the service was "empty".
      * <tt>partitionMap</tt>.
      */
     @POST
