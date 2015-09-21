@@ -68,6 +68,8 @@ public class PartitionMapProvider {
     }
 
     protected <T> T runWithPartitionMap(Function<? super DynamicPartitionMap, T> task) {
+        final long versionBeforeRequest = localService.getMapVersion();
+
         try {
             log.info("Running task with pm version=" + localService.getMapVersion());
             return task.apply(localService.getMap());
@@ -101,12 +103,23 @@ public class PartitionMapProvider {
 
             if (updatePartitionMapFromSeedServers(false)) {
                 log.info("Local map updated from seed servers.");
+            } else {
+                // Just a fatal RuntimeException
+                log.info("Local map not updated from seed servers.");
+            }
+
+            final long versionAfterRequest = localService.getMapVersion();
+            log.info("Version before request: " + versionBeforeRequest + ", after request: " + versionAfterRequest);
+
+            if (versionAfterRequest != versionBeforeRequest) {
                 /**
-                 * The update has taken place. This means that the client partition map was really
+                 * An update has taken place. This means that the client partition map was really
                  * out-of-date and that could be the reason we received another RuntimeException (as
                  * one of the endpoints might have been removed and taken down).
                  * Thus I propagate it as a ClientVersionTooOldException to the caller.
                  */
+                assert versionAfterRequest > versionBeforeRequest;
+
                 ClientVersionTooOldException exc = new ClientVersionTooOldException() {
                     private static final long serialVersionUID = -2500173504794874136L;
                     @Override
@@ -117,8 +130,7 @@ public class PartitionMapProvider {
                 exc.initCause(e);
                 throw exc;
             } else {
-                // Just a fatal RuntimeException
-                log.info("Local map not updated from seed servers.");
+                // Just another RuntimeException
                 throw e;
             }
         }
