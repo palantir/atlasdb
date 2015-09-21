@@ -866,7 +866,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
     }
 
     private <T> ClosableIterator<RowResult<T>> invalidateOnVersionChangeIterator(ClosableIterator<RowResult<T>> it) {
-        return VersionCheckProxy.newProxyInstance(it, new Supplier<Long>() {
+        return VersionCheckProxy.invalidateOnVersionChangeProxy(it, new Supplier<Long>() {
             @Override
             public Long get() {
                 return getMapVersion();

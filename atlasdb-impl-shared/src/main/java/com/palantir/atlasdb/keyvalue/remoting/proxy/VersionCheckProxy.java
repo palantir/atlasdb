@@ -121,24 +121,18 @@ public class VersionCheckProxy<T> implements InvocationHandler {
     }
 
     /**
-     * Caveat: If client version is changed after the iterator is created, it will not throw.
-     * But if we say that endpoint should auto-update on request only, this should be fine.
-     * (The endpoint version will be updated on next kvs request.)
-     * Note: This is relevant even when the kvs is remoted and iterators are serialized - in case
-     * partition map version changes during the serialization (after obtaining the iterator but
-     * before downloading entire page).
+     * This will simply throw EndpointVersionTooOldException whenever the
+     * invoke-time version is different (must be greater) than the creation-time
+     * version.
      *
      * @param delegate
-     * @param serverVersionProvider
+     * @param currentVersionProvider
      * @return
      */
     @SuppressWarnings("unchecked")
-    public static <T> ClosableIterator<RowResult<T>> newProxyInstance(ClosableIterator<RowResult<T>> delegate, Supplier<Long> serverVersionProvider) {
-        // In case of the iterators we have to ensure that our endpoint version did not change since the iterator was created.
-        // Whether endpoint version matches client version has been checked during iterator creation.
-        // Therefore the "clientVersion" here is the server version at this moment.
+    public static <T> ClosableIterator<RowResult<T>> invalidateOnVersionChangeProxy(ClosableIterator<RowResult<T>> delegate, Supplier<Long> currentVersionProvider) {
         VersionCheckProxy<ClosableIterator<RowResult<T>>> vcp = new VersionCheckProxy<>(
-                serverVersionProvider, Suppliers.ofInstance(serverVersionProvider.get()), delegate);
+                currentVersionProvider, Suppliers.ofInstance(currentVersionProvider.get()), delegate);
         return (ClosableIterator<RowResult<T>>) Proxy.newProxyInstance(
                 ClosableIterator.class.getClassLoader(), new Class<?>[] { ClosableIterator.class }, vcp);
     }
@@ -162,19 +156,19 @@ public class VersionCheckProxy<T> implements InvocationHandler {
         @Override
         public ClosableIterator<RowResult<Value>> getRange(String tableName,
                 RangeRequest rangeRequest, long timestamp) {
-            return newProxyInstance(super.getRange(tableName, rangeRequest, timestamp), serverVersionSupplier);
+            return invalidateOnVersionChangeProxy(super.getRange(tableName, rangeRequest, timestamp), serverVersionSupplier);
         }
 
         @Override
         public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(
                 String tableName, RangeRequest rangeRequest, long timestamp) {
-            return newProxyInstance(super.getRangeWithHistory(tableName, rangeRequest, timestamp), serverVersionSupplier);
+            return invalidateOnVersionChangeProxy(super.getRangeWithHistory(tableName, rangeRequest, timestamp), serverVersionSupplier);
         }
 
         @Override
         public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(
                 String tableName, RangeRequest rangeRequest, long timestamp) {
-            return newProxyInstance(super.getRangeOfTimestamps(tableName, rangeRequest, timestamp), serverVersionSupplier);
+            return invalidateOnVersionChangeProxy(super.getRangeOfTimestamps(tableName, rangeRequest, timestamp), serverVersionSupplier);
         }
 
     }
