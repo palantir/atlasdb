@@ -243,18 +243,6 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         }
     }
 
-    /**
-     * Convenience method. Uses default <code>quorumParameters</code> = (3, 2, 2) and
-     * <code>PTExecutors.newCachedThreadPool()</code> as the <code>ExecutorService</code>.
-     *
-     * @param ring
-     * @return
-     */
-    @Deprecated
-    public static DynamicPartitionMapImpl create(NavigableMap<byte[], KeyValueEndpoint> ring) {
-        return create(new QuorumParameters(3, 2, 2), ring, PTExecutors.newCachedThreadPool());
-    }
-
     /*** Creation helpers ***/
     /**
      * Supply the version of this partition map to all endpoints in the ring.

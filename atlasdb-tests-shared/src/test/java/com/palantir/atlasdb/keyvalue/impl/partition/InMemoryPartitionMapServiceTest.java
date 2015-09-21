@@ -33,6 +33,7 @@ import com.palantir.atlasdb.keyvalue.partition.map.InKvsPartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.map.InMemoryPartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
+import com.palantir.common.concurrent.PTExecutors;
 
 public class InMemoryPartitionMapServiceTest {
 
@@ -49,11 +50,11 @@ public class InMemoryPartitionMapServiceTest {
 
     @Before
     public void setUp() {
-    	samplePartitionMap = DynamicPartitionMapImpl.create(RING);
+        samplePartitionMap = DynamicPartitionMapImpl.create(QUORUM_PARAMETERS, RING, PTExecutors.newCachedThreadPool());
     }
 
     @SuppressWarnings("deprecation")
-	@Test
+    @Test
     public void testPms() {
         PartitionMapService pms = createPartitionMapService(samplePartitionMap);
         assertEquals(INITIAL_VERSION, pms.getMapVersion());
@@ -65,7 +66,7 @@ public class InMemoryPartitionMapServiceTest {
     }
 
     @SuppressWarnings("deprecation")
-	@Test
+    @Test
     public void testPmsEmptyFirst() {
         PartitionMapService pms = createEmptyPartitionMapService();
         pms.updateMap(samplePartitionMap);
@@ -78,7 +79,7 @@ public class InMemoryPartitionMapServiceTest {
     }
 
     protected PartitionMapService createPartitionMapService(DynamicPartitionMap partitionMap) {
-    	return InMemoryPartitionMapService.create(DynamicPartitionMapImpl.create(RING));
+        return InMemoryPartitionMapService.create(partitionMap);
     }
 
     protected PartitionMapService createEmptyPartitionMapService() {

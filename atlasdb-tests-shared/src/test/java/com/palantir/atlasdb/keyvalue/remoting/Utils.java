@@ -32,14 +32,14 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.InMemoryKeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
-import com.palantir.atlasdb.keyvalue.partition.endpoint.SimpleKeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.map.DynamicPartitionMapImpl;
 import com.palantir.atlasdb.keyvalue.partition.map.InMemoryPartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
+import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
 import com.palantir.atlasdb.keyvalue.partition.server.EndpointServer;
 import com.palantir.atlasdb.keyvalue.remoting.outofband.InboxPopulatingContainerRequestFilter;
 import com.palantir.common.base.Throwables;
-import com.palantir.util.Pair;
+import com.palantir.common.concurrent.PTExecutors;
 
 import io.dropwizard.Configuration;
 import io.dropwizard.testing.DropwizardTestSupport;
@@ -75,34 +75,21 @@ public class Utils {
         }
     }
 
-    public static DynamicPartitionMap createNewMap(Collection<? extends Pair<RemoteKvs, RemotePms>> endpoints) {
-    	ArrayList<Byte> keyList = new ArrayList<>();
-    	NavigableMap<byte[], KeyValueEndpoint> ring = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
-    	keyList.add((byte) 0);
-    	for (Pair<RemoteKvs, RemotePms> p : endpoints) {
-    		SimpleKeyValueEndpoint kvs = new SimpleKeyValueEndpoint(p.lhSide.rule.baseUri().toString(), p.rhSide.rule.baseUri().toString());
-    		byte[] key = ArrayUtils.toPrimitive(keyList.toArray(new Byte[keyList.size()]));
-    		ring.put(key, kvs);
+    public static DynamicPartitionMap createInMemoryMap(Collection<? extends KeyValueService> services, QuorumParameters parameters) {
+        ArrayList<Byte> keyList = new ArrayList<>();
+        NavigableMap<byte[], KeyValueEndpoint> ring = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
+        keyList.add((byte) 0);
+        for (KeyValueService kvs : services) {
+            KeyValueEndpoint endpoint = InMemoryKeyValueEndpoint.create(kvs, InMemoryPartitionMapService.createEmpty());
+            byte[] key = ArrayUtils.toPrimitive(keyList.toArray(new Byte[keyList.size()]));
+            ring.put(key, endpoint);
             keyList.add((byte) 0);
-    	}
-    	return DynamicPartitionMapImpl.create(ring);
-    }
-
-    public static DynamicPartitionMap createInMemoryMap(Collection<? extends KeyValueService> services) {
-    	ArrayList<Byte> keyList = new ArrayList<>();
-    	NavigableMap<byte[], KeyValueEndpoint> ring = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
-    	keyList.add((byte) 0);
-    	for (KeyValueService kvs : services) {
-    		KeyValueEndpoint endpoint = InMemoryKeyValueEndpoint.create(kvs, InMemoryPartitionMapService.createEmpty());
-    		byte[] key = ArrayUtils.toPrimitive(keyList.toArray(new Byte[keyList.size()]));
-    		ring.put(key, endpoint);
-            keyList.add((byte) 0);
-    	}
-    	DynamicPartitionMap partitionMap = DynamicPartitionMapImpl.create(ring);
-    	for (KeyValueEndpoint endpoint : ring.values()) {
-    		endpoint.partitionMapService().updateMap(partitionMap);
-    	}
-    	return partitionMap;
+        }
+        DynamicPartitionMap partitionMap = DynamicPartitionMapImpl.create(parameters, ring, PTExecutors.newCachedThreadPool());
+        for (KeyValueEndpoint endpoint : ring.values()) {
+            endpoint.partitionMapService().updateMap(partitionMap);
+        }
+        return partitionMap;
     }
 
     public static class RemoteKvs {
