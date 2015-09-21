@@ -122,13 +122,14 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
     private static final byte[] SAMPLE_KEY = new byte[] {(byte)0xff, 0, 0, 0};
 
     @After
-    public void cleanupStuff() {
+    public void cleanupStuff() throws Exception {
         for (int i = 0; i < NUM_EPTS; ++i) {
             for (String tableName : epts[i].kvs.delegate.getAllTableNames()) {
                 epts[i].kvs.delegate.dropTable(tableName);
             }
         }
         setUpPrivate();
+        super.setUp();
     }
 
     private static final byte[] ept_key_0 = new byte[] {0};
@@ -191,7 +192,7 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
     }
 
     @Test
-    public void testMultiAddEndpoint() {
+    public void testMultiAddEndpoint() throws Exception {
         // This tests that the put function will block for long enough.
         for (int i=0; i<100; ++i) {
             testAddEndpoint();
@@ -358,6 +359,15 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
     }
 
     @Test
+    public void testMultiRangeIteratorRetryTransparentlyOnVersionMismatch() throws Exception {
+        // This tests that the put function will block for long enough.
+        for (int i=0; i<50; ++i) {
+            testRangeIteratorRetryTransparentlyOnVersionMismatch();
+            cleanupStuff();
+        }
+    }
+
+    @Test
     public void testRangeIteratorRetryTransparentlyOnVersionMismatch() {
         putTestDataForSingleTimestamp();
         RangeRequest allNonPaged = RangeRequest.builder().batchHint(1).build();
@@ -389,6 +399,15 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
     }
 
     @Test
+    public void testMultiRangeWithHistoryIteratorRetryTransparentlyOnVersionMismatch() throws Exception {
+        // This tests that the put function will block for long enough.
+        for (int i=0; i<50; ++i) {
+            testRangeWithHistoryIteratorRetryTransparentlyOnVersionMismatch();
+            cleanupStuff();
+        }
+    }
+
+    @Test
     public void testRangeWithHistoryIteratorRetryTransparentlyOnVersionMismatch() {
         putTestDataForSingleTimestamp();
         RangeRequest allNonPaged = RangeRequest.builder().batchHint(1).build();
@@ -411,12 +430,22 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
         pkvs.getPartitionMap().promoteRemovedEndpoint(ept_key_0);
 
         // Now the map gets updated on remote endpoints
+        assertEquals(4L, pkvs.getPartitionMap().getVersion());
         for (int i=0; i<NUM_EPTS; ++i) {
             assertEquals(4L, epts[i].pms.service.getMapVersion());
         }
 
         // This should trigger a retry
         assertEquals(2, Iterators.size(it));
+    }
+
+    @Test
+    public void testMultiRangeOfTimestampsIteratorRetryTransparentlyOnVersionMismatch() throws Exception {
+        // This tests that the put function will block for long enough.
+        for (int i=0; i<50; ++i) {
+            testRangeOfTimestampsIteratorRetryTransparentlyOnVersionMismatch();
+            cleanupStuff();
+        }
     }
 
     @Test
@@ -451,7 +480,7 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
     }
 
     @Override
-    protected KeyValueService getKeyValueService() {
+    protected PartitionedKeyValueService getKeyValueService() {
         setUpPrivate();
         return Preconditions.checkNotNull(pkvs);
     }
