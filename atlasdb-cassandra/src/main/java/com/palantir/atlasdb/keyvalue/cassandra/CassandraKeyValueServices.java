@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.List;
@@ -23,9 +22,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
 
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.CfDef;
@@ -35,12 +31,6 @@ import org.apache.cassandra.thrift.InvalidRequestException;
 import org.apache.cassandra.thrift.KeySlice;
 import org.apache.commons.lang.Validate;
 import org.apache.thrift.TException;
-import org.apache.thrift.protocol.TBinaryProtocol;
-import org.apache.thrift.protocol.TProtocol;
-import org.apache.thrift.transport.TFramedTransport;
-import org.apache.thrift.transport.TSocket;
-import org.apache.thrift.transport.TTransport;
-import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,7 +38,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.Value;
@@ -189,32 +178,6 @@ public class CassandraKeyValueServices {
     // /Obviously/ this is long (internal cassandra timestamp) + long (internal cassandra clock sequence and node id)
     static String convertCassandraByteBufferUUIDtoString(ByteBuffer uuid) {
         return new UUID(uuid.getLong(uuid.position()), uuid.getLong(uuid.position() + 8)).toString();
-    }
-
-    static Cassandra.Client getClientInternal(String host, int port, boolean isSsl) throws TTransportException {
-        TSocket tSocket = new TSocket(host, port, CassandraConstants.CONNECTION_TIMEOUT_MILLIS);
-        tSocket.open();
-        tSocket.setTimeout(CassandraKeyValueServiceConfig.DEFAULT.socketTimeoutMillis());
-        if (isSsl) {
-            boolean success = false;
-            try {
-                SSLSocketFactory factory = (SSLSocketFactory) SSLSocketFactory.getDefault();
-                @SuppressWarnings("resource") // caller uses and closes
-                SSLSocket socket = (SSLSocket) factory.createSocket(tSocket.getSocket(), host, port, true);
-                tSocket = new TSocket(socket);
-                success = true;
-            } catch (IOException e) {
-                throw new TTransportException(e);
-            } finally {
-                if (!success) {
-                    tSocket.close();
-                }
-            }
-        }
-        TTransport tFramedTransport = new TFramedTransport(tSocket, CassandraConstants.CLIENT_MAX_THRIFT_FRAME_SIZE_BYTES);
-        TProtocol protocol = new TBinaryProtocol(tFramedTransport);
-        Cassandra.Client client = new Cassandra.Client(protocol);
-        return client;
     }
 
     static String buildErrorMessage(String prefix, Map<String, Throwable> errorsByHost) {

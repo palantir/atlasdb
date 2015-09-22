@@ -172,13 +172,14 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
         int port = config.port();
         String keyspace = config.keyspace();
+        boolean ssl = config.ssl();
         boolean safetyDisabled = config.safetyDisabled();
         int socketTimeoutMillis = config.socketTimeoutMillis();
         int socketQueryTimeoutMillis = config.socketQueryTimeoutMillis();
         for (String addr : addrList) {
             Cassandra.Client client = null;
             try {
-                client = CassandraKeyValueServices.getClientInternal(addr, port, config.ssl());
+                client = CassandraClientPoolingContainer.getClientInternal(addr, port, ssl, socketTimeoutMillis, socketQueryTimeoutMillis);
                 String partitioner = client.describe_partitioner();
                 if (safetyDisabled) {
                     Validate.isTrue(CassandraConstants.PARTITIONER.equals(partitioner)

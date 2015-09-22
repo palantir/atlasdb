@@ -28,12 +28,6 @@ import com.google.common.collect.Maps;
 
 public class CassandraConstants {
     static final int LONG_RUNNING_QUERY_SOCKET_TIMEOUT_MILLIS = 62000;
-    /**
-     * This is how long we will wait when we first open a socket to the cassandra server.
-     * This should be long enough to enough to handle cross data center latency, but short enough
-     * that it will fail out quickly if it is clear we can't reach that server.
-     */
-    static final int CONNECTION_TIMEOUT_MILLIS = 2000;
     static final String METADATA_TABLE = "_metadata";
     public static final int DEFAULT_REPLICATION_FACTOR = 3;
     static final int SECONDS_BETWEEN_GETTING_HOST_LIST = 600; // 10 min

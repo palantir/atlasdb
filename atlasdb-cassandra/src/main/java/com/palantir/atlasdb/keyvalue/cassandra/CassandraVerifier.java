@@ -64,7 +64,7 @@ public class CassandraVerifier {
                 }
                 tokenRangesToHost.put(ImmutableSet.copyOf(client.describe_ring(keyspace)), host);
             } catch (Exception e) {
-                log.warn("failed to get ring info from host: " + host, e);
+                log.warn("failed to get ring info from host: {}", host, e);
             } finally {
                 if (client != null) {
                     client.getOutputProtocol().getTransport().close();

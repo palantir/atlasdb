@@ -299,7 +299,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                 int socketTimeoutMillis = config.socketTimeoutMillis();
                 int socketQueryTimeoutMillis = config.socketQueryTimeoutMillis();
 
-                client = CassandraKeyValueServices.getClientInternal(host, port, ssl);
+                client = CassandraClientPoolingContainer.getClientInternal(host, port, ssl, socketTimeoutMillis, socketQueryTimeoutMillis);
                 String partitioner = client.describe_partitioner();
                 if (!safetyDisabled) {
                     Validate.isTrue(
