@@ -31,7 +31,7 @@ import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
  */
 public class InMemoryKeyValueEndpoint implements KeyValueEndpoint {
 
-    transient KeyValueService kvs;
+    transient final KeyValueService kvs;
     transient final PartitionMapService pms;
     transient final String rack;
 
