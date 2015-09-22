@@ -278,18 +278,26 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     // This is the METHOD
     private Set<KeyValueEndpoint> getServicesHavingRow(byte[] key, boolean isWrite) {
         Set<KeyValueEndpoint> result = Sets.newHashSet();
+        Set<String> racksToBeExcluded = Sets.newHashSet();
+
         byte[] point = key;
         int extraServices = 0; // These are included in the result set but
                                // Are not counted against the replication factor
         while (result.size() < quorumParameters.getReplicationFactor() + extraServices) {
             point = ring.nextKey(point);
             EndpointWithStatus kvs = ring.get(point);
-            if (!kvs.shouldUseFor(isWrite)) {
-                assert !kvs.shouldCountFor(isWrite);
+            KeyValueEndpoint kve = kvs.get();
+
+            if (!kvs.shouldUseFor(isWrite, racksToBeExcluded)) {
+                assert !kvs.shouldCountFor(isWrite, racksToBeExcluded);
                 continue;
             }
-            result.add(kvs.get());
-            if (!kvs.shouldCountFor(isWrite)) {
+
+            result.add(kve);
+            // Do not use more than one endpoint from given rack
+            racksToBeExcluded.add(kve.rack());
+
+            if (!kvs.shouldCountFor(isWrite, racksToBeExcluded)) {
                 extraServices += 1;
             }
         }

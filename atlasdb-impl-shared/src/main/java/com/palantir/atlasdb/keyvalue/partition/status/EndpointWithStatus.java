@@ -15,10 +15,13 @@
  */
 package com.palantir.atlasdb.keyvalue.partition.status;
 
+import java.util.Collection;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
+import com.palantir.atlasdb.keyvalue.partition.PartitionedKeyValueConstants;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
 
 
@@ -74,11 +77,25 @@ public abstract class EndpointWithStatus {
         return shouldUseForRead();
     }
 
+    public boolean shouldUseFor(boolean write, Collection<String> racksToBeExcluded) {
+        if (PartitionedKeyValueConstants.NO_RACK.equals(get().rack())) {
+            return shouldUseFor(write);
+        }
+        return shouldUseFor(write) && !racksToBeExcluded.contains(get().rack());
+    }
+
     public boolean shouldCountFor(boolean write) {
         if (write) {
             return shouldCountForWrite();
         }
         return shouldCountForRead();
+    }
+
+    public boolean shouldCountFor(boolean write, Collection<String> racksToBeExcluded) {
+        if (PartitionedKeyValueConstants.NO_RACK.equals(get().rack())) {
+            return shouldCountFor(write);
+        }
+        return shouldCountFor(write) && !racksToBeExcluded.contains(get().rack());
     }
 
     public EndpointWithLeavingStatus asLeaving() {
