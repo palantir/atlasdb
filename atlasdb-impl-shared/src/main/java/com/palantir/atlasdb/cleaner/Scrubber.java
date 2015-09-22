@@ -75,7 +75,8 @@ public final class Scrubber {
     private static final int MAX_RETRY_ATTEMPTS = 100;
     private static final int RETRY_SLEEP_INTERVAL_IN_MILLIS = 1000;
 
-    private final ScheduledExecutorService service = PTExecutors.newSingleThreadScheduledExecutor();
+    private final ScheduledExecutorService service = PTExecutors.newSingleThreadScheduledExecutor(
+            new NamedThreadFactory("scrubber", true /* daemon */));
     @GuardedBy("this") private boolean scrubTaskLaunched = false;
 
     private final KeyValueService keyValueService;
@@ -481,5 +482,17 @@ public final class Scrubber {
 
     public void shutdown() {
         service.shutdownNow();
+        boolean shutdown = false;
+        try {
+            shutdown = service.awaitTermination(5, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            log.error("Interrupted while shutting down the scrubber. This shouldn't happen.");
+            Thread.currentThread().interrupt();
+        }
+        if (!shutdown) {
+            log.error("Failed to shutdown scrubber in a timely manner. The scrubber may attempt " +
+                    "to access a key value service after the key value service closes. This shouldn't " +
+                    "cause any problems, but may result in some scary looking error messages.");
+        }
     }
 }

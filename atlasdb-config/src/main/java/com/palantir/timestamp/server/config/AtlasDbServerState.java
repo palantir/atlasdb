@@ -15,12 +15,14 @@
  */
 package com.palantir.timestamp.server.config;
 
+import java.io.Closeable;
+
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.timestamp.TimestampService;
 
-public class AtlasDbServerState {
+public class AtlasDbServerState implements Closeable {
     final KeyValueService keyValueService;
     final Supplier<TimestampService> timestampSupplier;
     final SerializableTransactionManager transactionManager;
@@ -43,5 +45,11 @@ public class AtlasDbServerState {
 
     public SerializableTransactionManager getTransactionManager() {
         return transactionManager;
+    }
+
+    @Override
+    public void close() {
+        transactionManager.getCleaner().close();
+        keyValueService.close();
     }
 }
