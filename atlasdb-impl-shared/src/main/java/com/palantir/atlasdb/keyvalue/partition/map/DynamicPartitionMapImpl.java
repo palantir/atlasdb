@@ -294,12 +294,13 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
             }
 
             result.add(kve);
-            // Do not use more than one endpoint from given rack
-            racksToBeExcluded.add(kve.rack());
 
             if (!kvs.shouldCountFor(isWrite, racksToBeExcluded)) {
                 extraServices += 1;
             }
+
+            // Do not use more than one endpoint from given rack
+            racksToBeExcluded.add(kve.rack());
         }
         return result;
     }
