@@ -78,8 +78,8 @@ public class DynamicPartitionMapManager {
         return null;
     }
 
-    public void addEndpoint(String kvsUri, String pmsUri, final byte[] key, Scanner scanner) {
-        final SimpleKeyValueEndpoint skve = new SimpleKeyValueEndpoint(kvsUri, pmsUri);
+    public void addEndpoint(String kvsUri, String pmsUri, final byte[] key, String rack, Scanner scanner) {
+        final SimpleKeyValueEndpoint skve = new SimpleKeyValueEndpoint(kvsUri, pmsUri, rack);
 
         runRetryableTask(new Callable<Void>() {
             @Override
@@ -177,14 +177,17 @@ public class DynamicPartitionMapManager {
         System.out.print("Enter partition map service URI: ");
         String pmsUri = scanner.nextLine();
 
-        System.out.println("Adding " + new SimpleKeyValueEndpoint(kvsUri, pmsUri) + " at key " + Arrays.toString(key));
-        System.out.println("y/n?");
+        System.out.print("Enter rack name: ");
+        String rack = scanner.nextLine();
+
+        System.out.println("Adding " + new SimpleKeyValueEndpoint(kvsUri, pmsUri, rack) + " at key " + Arrays.toString(key));
+        System.out.print("y/n? ");
         if (!scanner.nextLine().equals("y")) {
             System.out.println("Aborting.");
             return;
         }
 
-        addEndpoint(kvsUri, pmsUri, key, scanner);
+        addEndpoint(kvsUri, pmsUri, key, rack, scanner);
     }
 
     public void removeEndpointInteractive(Scanner scanner) {
@@ -276,8 +279,10 @@ public class DynamicPartitionMapManager {
                     String kvsUri = scanner.nextLine();
                     System.out.print("pms URI: ");
                     String pmsUri = scanner.nextLine();
+                    System.out.print("rack: ");
+                    String rack = scanner.nextLine();
                     byte[] key = readKey(scanner);
-                    SimpleKeyValueEndpoint kve = new SimpleKeyValueEndpoint(kvsUri, pmsUri);
+                    SimpleKeyValueEndpoint kve = new SimpleKeyValueEndpoint(kvsUri, pmsUri, rack);
                     initialRing.put(key, kve);
                 }
 
