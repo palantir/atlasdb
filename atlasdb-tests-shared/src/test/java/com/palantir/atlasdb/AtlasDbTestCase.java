@@ -106,8 +106,7 @@ public class AtlasDbTestCase {
     @Before
     public void setUp() throws Exception {
         timestampService = new InMemoryTimestampService();
-        KeyValueService kvs = NamespacedKeyValueServices.wrapWithNamespaceMappingKvs(
-                getBaseKeyValueService(), timestampService);
+        KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(getBaseKeyValueService());
         keyValueServiceWithStats = new StatsTrackingKeyValueService(kvs);
         keyValueService = new TrackingKeyValueService(keyValueServiceWithStats);
         keyValueService.initializeFromFreshInstance();

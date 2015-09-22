@@ -48,6 +48,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
+import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
@@ -88,27 +89,35 @@ public final class UpgTaskMetadataTable implements
                                     UpgTaskMetadataTable.UpgTaskMetadataRowResult> {
     private final Transaction t;
     private final List<UpgTaskMetadataTrigger> triggers;
-    private final static String tableName = "upgrade.upg_task_metadata";
+    private final static String rawTableName = "upg_task_metadata";
+    private final String tableName;
+    private final Namespace namespace;
 
-    static UpgTaskMetadataTable of(Transaction t) {
-        return new UpgTaskMetadataTable(t, ImmutableList.<UpgTaskMetadataTrigger>of());
+    static UpgTaskMetadataTable of(Transaction t, Namespace namespace) {
+        return new UpgTaskMetadataTable(t, namespace, ImmutableList.<UpgTaskMetadataTrigger>of());
     }
 
-    static UpgTaskMetadataTable of(Transaction t, UpgTaskMetadataTrigger trigger, UpgTaskMetadataTrigger... triggers) {
-        return new UpgTaskMetadataTable(t, ImmutableList.<UpgTaskMetadataTrigger>builder().add(trigger).add(triggers).build());
+    static UpgTaskMetadataTable of(Transaction t, Namespace namespace, UpgTaskMetadataTrigger trigger, UpgTaskMetadataTrigger... triggers) {
+        return new UpgTaskMetadataTable(t, namespace, ImmutableList.<UpgTaskMetadataTrigger>builder().add(trigger).add(triggers).build());
     }
 
-    static UpgTaskMetadataTable of(Transaction t, List<UpgTaskMetadataTrigger> triggers) {
-        return new UpgTaskMetadataTable(t, triggers);
+    static UpgTaskMetadataTable of(Transaction t, Namespace namespace, List<UpgTaskMetadataTrigger> triggers) {
+        return new UpgTaskMetadataTable(t, namespace, triggers);
     }
 
-    private UpgTaskMetadataTable(Transaction t, List<UpgTaskMetadataTrigger> triggers) {
+    private UpgTaskMetadataTable(Transaction t, Namespace namespace, List<UpgTaskMetadataTrigger> triggers) {
         this.t = t;
+        this.tableName = namespace.getName() + "." + rawTableName;
         this.triggers = triggers;
+        this.namespace = namespace;
     }
 
-    public static String getTableName() {
+    public String getTableName() {
         return tableName;
+    }
+
+    public Namespace getNamespace() {
+        return namespace;
     }
 
     /**
@@ -809,6 +818,7 @@ public final class UpgTaskMetadataTable implements
      * {@link Multimap}
      * {@link Multimaps}
      * {@link NamedColumnValue}
+     * {@link Namespace}
      * {@link Objects}
      * {@link Optional}
      * {@link Persistable}
@@ -828,5 +838,5 @@ public final class UpgTaskMetadataTable implements
      * {@link TypedRowResult}
      * {@link UnsignedBytes}
      */
-    static String __CLASS_HASH = "haecqDNc+BqR7aosJy2Acw==";
+    static String __CLASS_HASH = "uvQWz/woKoz3/oq/RzjVNA==";
 }

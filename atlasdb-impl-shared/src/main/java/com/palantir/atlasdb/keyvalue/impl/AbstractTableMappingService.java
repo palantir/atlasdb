@@ -65,7 +65,7 @@ public abstract class AbstractTableMappingService implements TableMappingService
     }
 
     protected void validateShortName(TableReference tableRef, String shortName) {
-        Validate.isTrue(Schemas.validateTableName(shortName), "Table mapper has an invalid table name for table reference " + tableRef + ": " + shortName);
+        Validate.isTrue(Schemas.isTableNameValid(shortName), "Table mapper has an invalid table name for table reference " + tableRef + ": " + shortName);
     }
 
     private TableReference getFullTableName(String shortTableName) {

@@ -84,6 +84,7 @@ import com.palantir.atlasdb.table.description.IndexDefinition.IndexType;
 import com.palantir.atlasdb.table.description.IndexMetadata;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
+import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.generation.ColumnValues;
@@ -140,6 +141,9 @@ public class TableRenderer {
         public ClassRenderer(String rawTableName,
                              TableDefinition table,
                              SortedSet<IndexMetadata> indices) {
+            Preconditions.checkArgument(
+                    Schemas.isTableNameValid(rawTableName),
+                    "Invalid table name " + rawTableName);
             this.tableName = Renderers.getClassTableName(rawTableName, table);
             this.table = table.toTableMetadata();
             this.indices = indices;

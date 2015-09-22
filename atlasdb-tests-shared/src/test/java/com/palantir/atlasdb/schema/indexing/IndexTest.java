@@ -62,9 +62,9 @@ public class IndexTest extends AtlasDbTestCase {
         txManager.runTaskWithRetry(new RuntimeTransactionTask<Void>() {
             @Override
             public Void execute(Transaction t) {
-                DataTable.Index1IdxTable index1 = DataTable.Index1IdxTable.of(t);
-                DataTable.Index2IdxTable index2 = DataTable.Index2IdxTable.of(t);
-                DataTable.Index3IdxTable index3 = DataTable.Index3IdxTable.of(t);
+                DataTable.Index1IdxTable index1 = DataTable.Index1IdxTable.of(getTableFactory().getDataTable(t));
+                DataTable.Index2IdxTable index2 = DataTable.Index2IdxTable.of(getTableFactory().getDataTable(t));
+                DataTable.Index3IdxTable index3 = DataTable.Index3IdxTable.of(getTableFactory().getDataTable(t));
                 assert index1.getRange(RangeRequest.builder().build()).count() == 1;
                 assert index2.getRange(RangeRequest.builder().build()).count() == 2;
                 assert index3.getRange(RangeRequest.builder().build()).count() == 1;
@@ -82,9 +82,9 @@ public class IndexTest extends AtlasDbTestCase {
         txManager.runTaskWithRetry(new RuntimeTransactionTask<Void>() {
             @Override
             public Void execute(Transaction t) {
-                DataTable.Index1IdxTable index1 = DataTable.Index1IdxTable.of(t);
-                DataTable.Index2IdxTable index2 = DataTable.Index2IdxTable.of(t);
-                DataTable.Index3IdxTable index3 = DataTable.Index3IdxTable.of(t);
+                DataTable.Index1IdxTable index1 = DataTable.Index1IdxTable.of(getTableFactory().getDataTable(t));
+                DataTable.Index2IdxTable index2 = DataTable.Index2IdxTable.of(getTableFactory().getDataTable(t));
+                DataTable.Index3IdxTable index3 = DataTable.Index3IdxTable.of(getTableFactory().getDataTable(t));
                 assert index1.getRange(RangeRequest.builder().build()).count() == 1;
                 assert index2.getRange(RangeRequest.builder().build()).count() == 1;
                 assert index3.getRange(RangeRequest.builder().build()).count() == 1;
@@ -106,7 +106,7 @@ public class IndexTest extends AtlasDbTestCase {
         txManager.runTaskWithRetry(new RuntimeTransactionTask<Void>() {
             @Override
             public Void execute(Transaction t) {
-                DataTable.Index1IdxTable index1 = DataTable.Index1IdxTable.of(t);
+                DataTable.Index1IdxTable index1 = DataTable.Index1IdxTable.of(getTableFactory().getDataTable(t));
                 assert Iterables.getOnlyElement(index1.getRowColumns(Index1IdxRow.of(2L))).getColumnName().getId() == 1L;
                 return null;
             }
@@ -122,7 +122,7 @@ public class IndexTest extends AtlasDbTestCase {
         txManager.runTaskWithRetry(new RuntimeTransactionTask<Void>() {
             @Override
             public Void execute(Transaction t) {
-                DataTable.Index1IdxTable index1 = DataTable.Index1IdxTable.of(t);
+                DataTable.Index1IdxTable index1 = DataTable.Index1IdxTable.of(getTableFactory().getDataTable(t));
                 assert index1.getRowColumns(Index1IdxRow.of(2L)).isEmpty();
                 return null;
             }
@@ -154,7 +154,7 @@ public class IndexTest extends AtlasDbTestCase {
         txManager.runTaskWithRetry(new RuntimeTransactionTask<Void>() {
             @Override
             public Void execute(Transaction t) {
-                FooToIdIdxTable index = FooToIdIdxTable.of(t);
+                FooToIdIdxTable index = FooToIdIdxTable.of(getTableFactory().getTwoColumnsTable(t));
                 List<FooToIdIdxRowResult> result = index.getAllRowsUnordered().immutableCopy();
                 Assert.assertEquals(2L, Iterables.getOnlyElement(result).getRowName().getFoo());
                 return null;

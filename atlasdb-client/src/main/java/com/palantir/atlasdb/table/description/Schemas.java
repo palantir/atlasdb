@@ -71,7 +71,7 @@ public final class Schemas {
     }
 
     public static String getFullTableName(String tableName, Namespace namespace) {
-        validateTableName(tableName);
+        isTableNameValid(tableName);
         String namespaceName = namespace.getName();
         // Hacks for schemas that were created before namespaces were created.
         if (namespace.isEmptyNamespace() || namespaceName.equals("met")) {
@@ -81,7 +81,7 @@ public final class Schemas {
         }
     }
 
-    public static boolean validateTableName(String tableName) {
+    public static boolean isTableNameValid(String tableName) {
         for (int i = 0; i < tableName.length() ; i++) {
             char c = tableName.charAt(i);
             if (!Character.isLetterOrDigit(c) && c != '_') {

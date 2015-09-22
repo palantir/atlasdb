@@ -14,6 +14,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
+
+
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -46,6 +48,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
+import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
@@ -84,27 +87,35 @@ public final class StreamTestStreamIdxTable implements
                                                 StreamTestStreamIdxTable.StreamTestStreamIdxRowResult> {
     private final Transaction t;
     private final List<StreamTestStreamIdxTrigger> triggers;
-    private final static String tableName = "default.stream_test_stream_idx";
+    private final static String rawTableName = "stream_test_stream_idx";
+    private final String tableName;
+    private final Namespace namespace;
 
-    static StreamTestStreamIdxTable of(Transaction t) {
-        return new StreamTestStreamIdxTable(t, ImmutableList.<StreamTestStreamIdxTrigger>of());
+    static StreamTestStreamIdxTable of(Transaction t, Namespace namespace) {
+        return new StreamTestStreamIdxTable(t, namespace, ImmutableList.<StreamTestStreamIdxTrigger>of());
     }
 
-    static StreamTestStreamIdxTable of(Transaction t, StreamTestStreamIdxTrigger trigger, StreamTestStreamIdxTrigger... triggers) {
-        return new StreamTestStreamIdxTable(t, ImmutableList.<StreamTestStreamIdxTrigger>builder().add(trigger).add(triggers).build());
+    static StreamTestStreamIdxTable of(Transaction t, Namespace namespace, StreamTestStreamIdxTrigger trigger, StreamTestStreamIdxTrigger... triggers) {
+        return new StreamTestStreamIdxTable(t, namespace, ImmutableList.<StreamTestStreamIdxTrigger>builder().add(trigger).add(triggers).build());
     }
 
-    static StreamTestStreamIdxTable of(Transaction t, List<StreamTestStreamIdxTrigger> triggers) {
-        return new StreamTestStreamIdxTable(t, triggers);
+    static StreamTestStreamIdxTable of(Transaction t, Namespace namespace, List<StreamTestStreamIdxTrigger> triggers) {
+        return new StreamTestStreamIdxTable(t, namespace, triggers);
     }
 
-    private StreamTestStreamIdxTable(Transaction t, List<StreamTestStreamIdxTrigger> triggers) {
+    private StreamTestStreamIdxTable(Transaction t, Namespace namespace, List<StreamTestStreamIdxTrigger> triggers) {
         this.t = t;
+        this.tableName = namespace.getName() + "." + rawTableName;
         this.triggers = triggers;
+        this.namespace = namespace;
     }
 
-    public static String getTableName() {
+    public String getTableName() {
         return tableName;
+    }
+
+    public Namespace getNamespace() {
+        return namespace;
     }
 
     /**
@@ -297,7 +308,7 @@ public final class StreamTestStreamIdxTable implements
      * <pre>
      * Column name description {
      *   {@literal byte[] reference};
-     * } 
+     * }
      * Column value description {
      *   type: Long;
      * }
@@ -646,6 +657,7 @@ public final class StreamTestStreamIdxTable implements
      * {@link Multimap}
      * {@link Multimaps}
      * {@link NamedColumnValue}
+     * {@link Namespace}
      * {@link Objects}
      * {@link Optional}
      * {@link Persistable}
@@ -665,5 +677,5 @@ public final class StreamTestStreamIdxTable implements
      * {@link TypedRowResult}
      * {@link UnsignedBytes}
      */
-    static String __CLASS_HASH = "qN2/99MTBmOzF8YXkhzcMA==";
+    static String __CLASS_HASH = "ldmV5qVojIVVFJkkZUWRPw==";
 }

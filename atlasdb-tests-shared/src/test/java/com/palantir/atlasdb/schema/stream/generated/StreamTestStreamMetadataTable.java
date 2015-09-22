@@ -14,6 +14,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
+
+
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -46,6 +48,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
+import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
@@ -86,27 +89,35 @@ public final class StreamTestStreamMetadataTable implements
                                     StreamTestStreamMetadataTable.StreamTestStreamMetadataRowResult> {
     private final Transaction t;
     private final List<StreamTestStreamMetadataTrigger> triggers;
-    private final static String tableName = "default.stream_test_stream_metadata";
+    private final static String rawTableName = "stream_test_stream_metadata";
+    private final String tableName;
+    private final Namespace namespace;
 
-    static StreamTestStreamMetadataTable of(Transaction t) {
-        return new StreamTestStreamMetadataTable(t, ImmutableList.<StreamTestStreamMetadataTrigger>of());
+    static StreamTestStreamMetadataTable of(Transaction t, Namespace namespace) {
+        return new StreamTestStreamMetadataTable(t, namespace, ImmutableList.<StreamTestStreamMetadataTrigger>of());
     }
 
-    static StreamTestStreamMetadataTable of(Transaction t, StreamTestStreamMetadataTrigger trigger, StreamTestStreamMetadataTrigger... triggers) {
-        return new StreamTestStreamMetadataTable(t, ImmutableList.<StreamTestStreamMetadataTrigger>builder().add(trigger).add(triggers).build());
+    static StreamTestStreamMetadataTable of(Transaction t, Namespace namespace, StreamTestStreamMetadataTrigger trigger, StreamTestStreamMetadataTrigger... triggers) {
+        return new StreamTestStreamMetadataTable(t, namespace, ImmutableList.<StreamTestStreamMetadataTrigger>builder().add(trigger).add(triggers).build());
     }
 
-    static StreamTestStreamMetadataTable of(Transaction t, List<StreamTestStreamMetadataTrigger> triggers) {
-        return new StreamTestStreamMetadataTable(t, triggers);
+    static StreamTestStreamMetadataTable of(Transaction t, Namespace namespace, List<StreamTestStreamMetadataTrigger> triggers) {
+        return new StreamTestStreamMetadataTable(t, namespace, triggers);
     }
 
-    private StreamTestStreamMetadataTable(Transaction t, List<StreamTestStreamMetadataTrigger> triggers) {
+    private StreamTestStreamMetadataTable(Transaction t, Namespace namespace, List<StreamTestStreamMetadataTrigger> triggers) {
         this.t = t;
+        this.tableName = namespace.getName() + "." + rawTableName;
         this.triggers = triggers;
+        this.namespace = namespace;
     }
 
-    public static String getTableName() {
+    public String getTableName() {
         return tableName;
+    }
+
+    public Namespace getNamespace() {
+        return namespace;
     }
 
     /**
@@ -635,6 +646,7 @@ public final class StreamTestStreamMetadataTable implements
      * {@link Multimap}
      * {@link Multimaps}
      * {@link NamedColumnValue}
+     * {@link Namespace}
      * {@link Objects}
      * {@link Optional}
      * {@link Persistable}
@@ -654,5 +666,5 @@ public final class StreamTestStreamMetadataTable implements
      * {@link TypedRowResult}
      * {@link UnsignedBytes}
      */
-    static String __CLASS_HASH = "SPvRNPVjaYxh6Xq+TgC1kQ==";
+    static String __CLASS_HASH = "kvrSnuVd/k6kzcB6l/ShwQ==";
 }

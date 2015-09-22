@@ -14,6 +14,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
+
+
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -46,6 +48,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
+import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
@@ -86,27 +89,35 @@ public final class StreamTestStreamValueTable implements
                                     StreamTestStreamValueTable.StreamTestStreamValueRowResult> {
     private final Transaction t;
     private final List<StreamTestStreamValueTrigger> triggers;
-    private final static String tableName = "default.stream_test_stream_value";
+    private final static String rawTableName = "stream_test_stream_value";
+    private final String tableName;
+    private final Namespace namespace;
 
-    static StreamTestStreamValueTable of(Transaction t) {
-        return new StreamTestStreamValueTable(t, ImmutableList.<StreamTestStreamValueTrigger>of());
+    static StreamTestStreamValueTable of(Transaction t, Namespace namespace) {
+        return new StreamTestStreamValueTable(t, namespace, ImmutableList.<StreamTestStreamValueTrigger>of());
     }
 
-    static StreamTestStreamValueTable of(Transaction t, StreamTestStreamValueTrigger trigger, StreamTestStreamValueTrigger... triggers) {
-        return new StreamTestStreamValueTable(t, ImmutableList.<StreamTestStreamValueTrigger>builder().add(trigger).add(triggers).build());
+    static StreamTestStreamValueTable of(Transaction t, Namespace namespace, StreamTestStreamValueTrigger trigger, StreamTestStreamValueTrigger... triggers) {
+        return new StreamTestStreamValueTable(t, namespace, ImmutableList.<StreamTestStreamValueTrigger>builder().add(trigger).add(triggers).build());
     }
 
-    static StreamTestStreamValueTable of(Transaction t, List<StreamTestStreamValueTrigger> triggers) {
-        return new StreamTestStreamValueTable(t, triggers);
+    static StreamTestStreamValueTable of(Transaction t, Namespace namespace, List<StreamTestStreamValueTrigger> triggers) {
+        return new StreamTestStreamValueTable(t, namespace, triggers);
     }
 
-    private StreamTestStreamValueTable(Transaction t, List<StreamTestStreamValueTrigger> triggers) {
+    private StreamTestStreamValueTable(Transaction t, Namespace namespace, List<StreamTestStreamValueTrigger> triggers) {
         this.t = t;
+        this.tableName = namespace.getName() + "." + rawTableName;
         this.triggers = triggers;
+        this.namespace = namespace;
     }
 
-    public static String getTableName() {
+    public String getTableName() {
         return tableName;
+    }
+
+    public Namespace getNamespace() {
+        return namespace;
     }
 
     /**
@@ -623,6 +634,7 @@ public final class StreamTestStreamValueTable implements
      * {@link Multimap}
      * {@link Multimaps}
      * {@link NamedColumnValue}
+     * {@link Namespace}
      * {@link Objects}
      * {@link Optional}
      * {@link Persistable}
@@ -642,5 +654,5 @@ public final class StreamTestStreamValueTable implements
      * {@link TypedRowResult}
      * {@link UnsignedBytes}
      */
-    static String __CLASS_HASH = "Tl4BO5hhEayRU2ljaGXgtA==";
+    static String __CLASS_HASH = "KgDjpYY/hhtb65xuM1XOYA==";
 }

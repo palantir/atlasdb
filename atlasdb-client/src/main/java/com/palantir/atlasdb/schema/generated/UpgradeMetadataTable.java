@@ -48,6 +48,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
+import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
@@ -88,27 +89,35 @@ public final class UpgradeMetadataTable implements
                                     UpgradeMetadataTable.UpgradeMetadataRowResult> {
     private final Transaction t;
     private final List<UpgradeMetadataTrigger> triggers;
-    private final static String tableName = "upgrade.upgrade_metadata";
+    private final static String rawTableName = "upgrade_metadata";
+    private final String tableName;
+    private final Namespace namespace;
 
-    static UpgradeMetadataTable of(Transaction t) {
-        return new UpgradeMetadataTable(t, ImmutableList.<UpgradeMetadataTrigger>of());
+    static UpgradeMetadataTable of(Transaction t, Namespace namespace) {
+        return new UpgradeMetadataTable(t, namespace, ImmutableList.<UpgradeMetadataTrigger>of());
     }
 
-    static UpgradeMetadataTable of(Transaction t, UpgradeMetadataTrigger trigger, UpgradeMetadataTrigger... triggers) {
-        return new UpgradeMetadataTable(t, ImmutableList.<UpgradeMetadataTrigger>builder().add(trigger).add(triggers).build());
+    static UpgradeMetadataTable of(Transaction t, Namespace namespace, UpgradeMetadataTrigger trigger, UpgradeMetadataTrigger... triggers) {
+        return new UpgradeMetadataTable(t, namespace, ImmutableList.<UpgradeMetadataTrigger>builder().add(trigger).add(triggers).build());
     }
 
-    static UpgradeMetadataTable of(Transaction t, List<UpgradeMetadataTrigger> triggers) {
-        return new UpgradeMetadataTable(t, triggers);
+    static UpgradeMetadataTable of(Transaction t, Namespace namespace, List<UpgradeMetadataTrigger> triggers) {
+        return new UpgradeMetadataTable(t, namespace, triggers);
     }
 
-    private UpgradeMetadataTable(Transaction t, List<UpgradeMetadataTrigger> triggers) {
+    private UpgradeMetadataTable(Transaction t, Namespace namespace, List<UpgradeMetadataTrigger> triggers) {
         this.t = t;
+        this.tableName = namespace.getName() + "." + rawTableName;
         this.triggers = triggers;
+        this.namespace = namespace;
     }
 
-    public static String getTableName() {
+    public String getTableName() {
         return tableName;
+    }
+
+    public Namespace getNamespace() {
+        return namespace;
     }
 
     /**
@@ -1020,6 +1029,7 @@ public final class UpgradeMetadataTable implements
      * {@link Multimap}
      * {@link Multimaps}
      * {@link NamedColumnValue}
+     * {@link Namespace}
      * {@link Objects}
      * {@link Optional}
      * {@link Persistable}
@@ -1039,5 +1049,5 @@ public final class UpgradeMetadataTable implements
      * {@link TypedRowResult}
      * {@link UnsignedBytes}
      */
-    static String __CLASS_HASH = "yaECFYy1UoxSiBKktzQI/A==";
+    static String __CLASS_HASH = "hj0fEiXJn3irRRZaLxbcLg==";
 }

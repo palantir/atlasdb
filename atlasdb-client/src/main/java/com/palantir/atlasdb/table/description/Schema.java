@@ -38,7 +38,6 @@ import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
 import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ExpirationStrategy;
@@ -68,6 +67,16 @@ public class Schema {
     private final String packageName;
     private final Namespace namespace;
 
+    private final Multimap<String, Supplier<OnCleanupTask>> cleanupTasks = ArrayListMultimap.create();
+    private final Map<String, TableDefinition> tempTableDefinitions = Maps.newHashMap();
+    private final Map<String, TableDefinition> tableDefinitions = Maps.newHashMap();
+    private final Map<String, IndexDefinition> indexDefinitions = Maps.newHashMap();
+    private final List<StreamStoreRenderer> streamStoreRenderers = Lists.newArrayList();
+
+    // N.B., the following is a list multimap because we want to preserve order
+    // for code generation purposes.
+    private final ListMultimap<String, String> indexesByTable = ArrayListMultimap.create();
+
     public Schema() {
         this(null, null, Namespace.DEFAULT_NAMESPACE);
     }
@@ -76,6 +85,17 @@ public class Schema {
         this.name = name;
         this.packageName = packageName;
         this.namespace = namespace;
+    }
+
+    public Schema withNamespace(Namespace newNamespace) {
+        Schema ret = new Schema(name, packageName, newNamespace);
+        ret.cleanupTasks.putAll(cleanupTasks);
+        ret.tempTableDefinitions.putAll(tempTableDefinitions);
+        ret.tableDefinitions.putAll(tableDefinitions);
+        ret.indexDefinitions.putAll(indexDefinitions);
+        ret.streamStoreRenderers.addAll(streamStoreRenderers);
+        ret.indexesByTable.putAll(indexesByTable);
+        return ret;
     }
 
 
@@ -92,7 +112,7 @@ public class Schema {
                 !tableDefinitions.containsKey(tableName) && !indexDefinitions.containsKey(tableName),
                 "Table already defined: %s", tableName);
         Preconditions.checkArgument(
-                Schemas.validateTableName(tableName),
+                Schemas.isTableNameValid(tableName),
                 "Invalid table name " + tableName);
         tableDefinitions.put(tableName, definition);
     }
@@ -194,7 +214,7 @@ public class Schema {
                 tableDefinitions.containsKey(definition.getSourceTable()),
                 "Index source table undefined.");
         Preconditions.checkArgument(
-                Schemas.validateTableName(idxName),
+                Schemas.isTableNameValid(idxName),
                 "Invalid table name " + idxName);
         Preconditions.checkArgument(!tableDefinitions.get(definition.getSourceTable()).toTableMetadata().getColumns().hasDynamicColumns() || !definition.getIndexType().equals(IndexType.CELL_REFERENCING),
                 "Cell referencing indexes not implemented for tables with dynamic columns.");
@@ -363,32 +383,19 @@ public class Schema {
         os.close();
     }
 
-    public void addCleanupTask(String tableName, OnCleanupTask task) {
-        String fullTableName = Schemas.getFullTableName(tableName, namespace);
-        cleanupTasks.put(fullTableName, Suppliers.ofInstance(task));
+    public void addCleanupTask(String rawTableName, OnCleanupTask task) {
+        cleanupTasks.put(rawTableName, Suppliers.ofInstance(task));
     }
 
-    public void addCleanupTask(String tableName, Supplier<OnCleanupTask> task) {
-        String fullTableName = Schemas.getFullTableName(tableName, namespace);
-        cleanupTasks.put(fullTableName, task);
+    public void addCleanupTask(String rawTableName, Supplier<OnCleanupTask> task) {
+        cleanupTasks.put(rawTableName, task);
     }
 
     public Multimap<String, OnCleanupTask> getCleanupTasksByTable() {
-        return Multimaps.transformValues(cleanupTasks, new Function<Supplier<OnCleanupTask>, OnCleanupTask>() {
-            @Override
-            public OnCleanupTask apply(Supplier<OnCleanupTask> task) {
-                return task.get();
-            }
-        });
+        Multimap<String, OnCleanupTask> ret = ArrayListMultimap.create();
+        for (Map.Entry<String, Supplier<OnCleanupTask>> e : cleanupTasks.entries()) {
+            ret.put(Schemas.getFullTableName(e.getKey(), namespace), e.getValue().get());
+        }
+        return ret;
     }
-
-    private final Multimap<String, Supplier<OnCleanupTask>> cleanupTasks = ArrayListMultimap.create();
-    private final Map<String, TableDefinition> tempTableDefinitions = Maps.newHashMap();
-    private final Map<String, TableDefinition> tableDefinitions = Maps.newHashMap();
-    private final Map<String, IndexDefinition> indexDefinitions = Maps.newHashMap();
-    private final List<StreamStoreRenderer> streamStoreRenderers = Lists.newArrayList();
-
-    // N.B., the following is a list multimap because we want to preserve order
-    // for code generation purposes.
-    private final ListMultimap<String, String> indexesByTable = ArrayListMultimap.create();
 }
