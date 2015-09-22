@@ -34,6 +34,7 @@ import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
 public interface KeyValueEndpoint {
     KeyValueService keyValueService();
     PartitionMapService partitionMapService();
+    String rack();
 
     /**
      * TODO: This should be replaced by a nicer solution eventually.

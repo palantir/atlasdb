@@ -43,13 +43,16 @@ public class SimpleKeyValueEndpoint implements KeyValueEndpoint {
     final transient PartitionMapService pms;
     @JsonProperty("kvsUri") final String kvsUri;
     @JsonProperty("pmsUri") final String pmsUri;
+    @JsonProperty("rack") final String rack;
 
     @JsonCreator
     public SimpleKeyValueEndpoint(@JsonProperty("kvsUri") String kvsUri,
-                                  @JsonProperty("pmsUri") String pmsUri) {
+                                  @JsonProperty("pmsUri") String pmsUri,
+                                  @JsonProperty("rack") String rack) {
         this.kvsUri = Preconditions.checkNotNull(kvsUri);
         this.pmsUri = Preconditions.checkNotNull(pmsUri);
         this.pms = RemotingPartitionMapService.createClientSide(pmsUri);
+        this.rack = Preconditions.checkNotNull(rack);
     }
 
     @Override
@@ -60,6 +63,11 @@ public class SimpleKeyValueEndpoint implements KeyValueEndpoint {
     @Override
     public PartitionMapService partitionMapService() {
         return pms;
+    }
+
+    @Override
+    public String rack() {
+        return rack;
     }
 
     public String partitionMapServiceUri() {
@@ -83,6 +91,7 @@ public class SimpleKeyValueEndpoint implements KeyValueEndpoint {
         int result = 1;
         result = prime * result + ((kvsUri == null) ? 0 : kvsUri.hashCode());
         result = prime * result + ((pmsUri == null) ? 0 : pmsUri.hashCode());
+        result = prime * result + ((rack == null) ? 0 : rack.hashCode());
         return result;
     }
 
@@ -105,13 +114,18 @@ public class SimpleKeyValueEndpoint implements KeyValueEndpoint {
                 return false;
         } else if (!pmsUri.equals(other.pmsUri))
             return false;
+        if (rack == null) {
+            if (other.rack != null)
+                return false;
+        } else if (!rack.equals(other.rack))
+            return false;
         return true;
     }
 
     @Override
     public String toString() {
         return "SimpleKeyValueEndpoint [kvsUri=" + kvsUri + ", pmsUri=" + pmsUri
-                + "]";
+                + ", rack=" + rack + "]";
     }
 
 }

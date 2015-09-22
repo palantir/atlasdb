@@ -32,14 +32,16 @@ public class InMemoryKeyValueEndpoint implements KeyValueEndpoint {
 
     transient KeyValueService kvs;
     transient final PartitionMapService pms;
+    transient final String rack;
 
-    private InMemoryKeyValueEndpoint(KeyValueService kvs, PartitionMapService pms) {
+    private InMemoryKeyValueEndpoint(KeyValueService kvs, PartitionMapService pms, String rack) {
         this.kvs = Preconditions.checkNotNull(kvs);
         this.pms = Preconditions.checkNotNull(pms);
+        this.rack = Preconditions.checkNotNull(rack);
     }
 
-    public static InMemoryKeyValueEndpoint create(KeyValueService kvs, PartitionMapService pms) {
-        return new InMemoryKeyValueEndpoint(kvs, pms);
+    public static InMemoryKeyValueEndpoint create(KeyValueService kvs, PartitionMapService pms, String rack) {
+        return new InMemoryKeyValueEndpoint(kvs, pms, rack);
     }
 
     @Override
@@ -50,6 +52,11 @@ public class InMemoryKeyValueEndpoint implements KeyValueEndpoint {
     @Override
     public PartitionMapService partitionMapService() {
         return pms;
+    }
+
+    @Override
+    public String rack() {
+        return rack;
     }
 
     @Override
