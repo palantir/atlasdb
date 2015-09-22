@@ -480,8 +480,8 @@ import com.palantir.util.Pair;
     public boolean unlock(HeldLocksToken token) {
         Preconditions.checkNotNull(token);
         boolean success = unlockInternal(token, heldLocksTokenMap);
-        if (log.isInfoEnabled()) {
-            log.info(".unlock(" + token + ") returns " + success);
+        if (log.isTraceEnabled()) {
+            log.trace(".unlock(" + token + ") returns " + success);
         }
         return success;
     }
@@ -506,8 +506,8 @@ import com.palantir.util.Pair;
         Preconditions.checkNotNull(token);
         @Nullable HeldLocks<HeldLocksToken> heldLocks = heldLocksTokenMap.remove(token);
         if (heldLocks == null) {
-            if (log.isInfoEnabled()) {
-                log.info(".unlockAndFreeze(" + token + ") returns false");
+            if (log.isTraceEnabled()) {
+                log.trace(".unlockAndFreeze(" + token + ") returns false");
             }
             return false;
         }
@@ -518,7 +518,7 @@ import com.palantir.util.Pair;
             String errorMessage =
                     "Received .unlockAndFreeze() call for anonymous client with token "
                     + heldLocks.realToken;
-            log.error(errorMessage);
+            log.warn(errorMessage);
             throw new IllegalArgumentException(errorMessage);
         }
         if (heldLocks.locks.hasReadLock()) {
@@ -526,7 +526,7 @@ import com.palantir.util.Pair;
             lockTokenReaperQueue.add(token);
             String errorMessage = "Received .unlockAndFreeze() call for read locks: "
                     + heldLocks.realToken;
-            log.error(errorMessage);
+            log.warn(errorMessage);
             throw new IllegalArgumentException(errorMessage);
         }
         for (ClientAwareReadWriteLock lock : heldLocks.locks.getKeys()) {
@@ -536,8 +536,8 @@ import com.palantir.util.Pair;
         if (heldLocks.realToken.getVersionId() != null) {
             versionIdMap.remove(client, heldLocks.realToken.getVersionId());
         }
-        if (log.isInfoEnabled()) {
-            log.info(".unlockAndFreeze(" + token + ") returns true");
+        if (log.isTraceEnabled()) {
+            log.trace(".unlockAndFreeze(" + token + ") returns true");
         }
         return true;
     }
@@ -605,8 +605,8 @@ import com.palantir.util.Pair;
             }
         }
         Set<HeldLocksToken> refreshedTokenSet = refreshedTokens.build();
-        if (log.isInfoEnabled()) {
-            log.info(".refreshTokens(" + Iterables.transform(tokens, TOKEN_TO_ID) + ") returns "
+        if (log.isTraceEnabled()) {
+            log.trace(".refreshTokens(" + Iterables.transform(tokens, TOKEN_TO_ID) + ") returns "
                     + Iterables.transform(refreshedTokenSet, TOKEN_TO_ID));
         }
         return refreshedTokenSet;
@@ -685,8 +685,8 @@ import com.palantir.util.Pair;
         }
         HeldLocksGrant refreshedGrant = heldLocks.realToken;
         logIfAbnormallyOld(refreshedGrant, now);
-        if (log.isInfoEnabled()) {
-            log.info(".refreshGrant(" + grant.getGrantId().toString(Character.MAX_RADIX)
+        if (log.isTraceEnabled()) {
+            log.trace(".refreshGrant(" + grant.getGrantId().toString(Character.MAX_RADIX)
                     + ") returns " + refreshedGrant.getGrantId().toString(Character.MAX_RADIX));
         }
         return refreshedGrant;
@@ -713,11 +713,10 @@ import com.palantir.util.Pair;
     }
 
     private void logIfAbnormallyOld(ExpiringToken token, long now, Supplier<String> description) {
-        if (!log.isInfoEnabled()) {
-            return;
+        if (log.isInfoEnabled()) {
+            long age = now - token.getCreationDateMs();
+            log.info("Token refreshed which is " + age + " ms old: " + description.get());
         }
-        long age = now - token.getCreationDateMs();
-        log.info("Token refreshed which is " + age + " ms old: " + description.get());
     }
 
     @Override
@@ -730,13 +729,13 @@ import com.palantir.util.Pair;
         Preconditions.checkNotNull(token);
         @Nullable HeldLocks<HeldLocksToken> heldLocks = heldLocksTokenMap.remove(token);
         if (heldLocks == null) {
-            log.error("Cannot convert to grant; invalid token: " + token);
+            log.warn("Cannot convert to grant; invalid token: " + token);
             throw new IllegalArgumentException("token is invalid: " + token);
         }
         if (isFrozen(heldLocks.locks.getKeys())) {
             heldLocksTokenMap.put(token, heldLocks);
             lockTokenReaperQueue.add(token);
-            log.error("Cannot convert to grant because token is frozen: " + token);
+            log.warn("Cannot convert to grant because token is frozen: " + token);
             throw new IllegalArgumentException("token is frozen: " + token);
         }
         try {
@@ -745,15 +744,15 @@ import com.palantir.util.Pair;
         } catch (IllegalMonitorStateException e) {
             heldLocksTokenMap.put(token, heldLocks);
             lockTokenReaperQueue.add(token);
-            log.error("Failure converting " + token + " to grant", e);
+            log.warn("Failure converting " + token + " to grant", e);
             throw e;
         }
         lockClientMultimap.remove(heldLocks.realToken.getClient(), token);
         HeldLocksGrant grant = createHeldLocksGrant(heldLocks.realToken.getLocks(),
                 heldLocks.locks, heldLocks.realToken.getLockTimeout(),
                 heldLocks.realToken.getVersionId());
-        if (log.isInfoEnabled()) {
-            log.info(".convertToGrant(" + token + ") returns " + grant);
+        if (log.isTraceEnabled()) {
+            log.trace(".convertToGrant(" + token + ") returns " + grant);
         }
         return grant;
     }
@@ -765,15 +764,15 @@ import com.palantir.util.Pair;
         Preconditions.checkNotNull(grant);
         @Nullable HeldLocks<HeldLocksGrant> heldLocks = heldLocksGrantMap.remove(grant);
         if (heldLocks == null) {
-            log.error("Tried to use invalid grant: " + grant);
+            log.warn("Tried to use invalid grant: " + grant);
             throw new IllegalArgumentException("grant is invalid: " + grant);
         }
         HeldLocksGrant realGrant = heldLocks.realToken;
         changeOwner(heldLocks.locks, INTERNAL_LOCK_GRANT_CLIENT, client);
         HeldLocksToken token = createHeldLocksToken(client, realGrant.getLocks(),
                 heldLocks.locks, realGrant.getLockTimeout(), realGrant.getVersionId());
-        if (log.isInfoEnabled()) {
-            log.info(".useGrant(" + client + ", " + grant + ") returns " + token);
+        if (log.isTraceEnabled()) {
+            log.trace(".useGrant(" + client + ", " + grant + ") returns " + token);
         }
         return token;
     }
@@ -789,15 +788,15 @@ import com.palantir.util.Pair;
             String message = "Lock client " + client + " tried to use a lock grant that doesn't" +
                     " correspond to any held locks (grantId: " + grantId.toString(Character.MAX_RADIX) +
                     "); it's likely that this lock grant has expired due to timeout";
-            log.error(message);
+            log.warn(message);
             throw new IllegalArgumentException(message);
         }
         HeldLocksGrant realGrant = heldLocks.realToken;
         changeOwner(heldLocks.locks, INTERNAL_LOCK_GRANT_CLIENT, client);
         HeldLocksToken token = createHeldLocksToken(client, realGrant.getLocks(),
                 heldLocks.locks, realGrant.getLockTimeout(), realGrant.getVersionId());
-        if (log.isInfoEnabled()) {
-            log.info(".useGrant(" + client + ", " + grantId.toString(Character.MAX_RADIX)
+        if (log.isTraceEnabled()) {
+            log.trace(".useGrant(" + client + ", " + grantId.toString(Character.MAX_RADIX)
                     + ") returns " + token);
         }
         return token;
@@ -884,7 +883,7 @@ import com.palantir.util.Pair;
                     if (isShutDown) {
                         break;
                     } else {
-                        log.error("The lock server reaper thread should not be " +
+                        log.warn("The lock server reaper thread should not be " +
                                 "interrupted if the server is not shutting down.", e);
                         if (token == null) {
                             continue;
