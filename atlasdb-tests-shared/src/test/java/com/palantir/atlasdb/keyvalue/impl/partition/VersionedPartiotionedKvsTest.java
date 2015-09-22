@@ -137,7 +137,7 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
 
     public void setUpPrivate() {
         for (int i=0; i<NUM_EPTS; ++i) {
-            skves[i] = new SimpleKeyValueEndpoint(epts[i].kvs.rule.baseUri().toString(), epts[i].pms.rule.baseUri().toString());
+            skves[i] = SimpleKeyValueEndpoint.create(epts[i].kvs.rule.baseUri().toString(), epts[i].pms.rule.baseUri().toString());
         }
 
         NavigableMap<byte[], KeyValueEndpoint> ring = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());

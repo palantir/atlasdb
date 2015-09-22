@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.partition.PartitionedKeyValueConstants;
 import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
 import com.palantir.atlasdb.keyvalue.remoting.RemotingKeyValueService;
 import com.palantir.atlasdb.keyvalue.remoting.RemotingPartitionMapService;
@@ -45,14 +46,22 @@ public class SimpleKeyValueEndpoint implements KeyValueEndpoint {
     @JsonProperty("pmsUri") final String pmsUri;
     @JsonProperty("rack") final String rack;
 
-    @JsonCreator
-    public SimpleKeyValueEndpoint(@JsonProperty("kvsUri") String kvsUri,
-                                  @JsonProperty("pmsUri") String pmsUri,
-                                  @JsonProperty("rack") String rack) {
+    private SimpleKeyValueEndpoint(String kvsUri, String pmsUri, String rack) {
         this.kvsUri = Preconditions.checkNotNull(kvsUri);
         this.pmsUri = Preconditions.checkNotNull(pmsUri);
         this.pms = RemotingPartitionMapService.createClientSide(pmsUri);
         this.rack = Preconditions.checkNotNull(rack);
+    }
+
+    @JsonCreator
+    public static SimpleKeyValueEndpoint create(@JsonProperty("kvsUri") String kvsUri,
+                                                @JsonProperty("pmsUri") String pmsUri,
+                                                @JsonProperty("rack") String rack) {
+        return new SimpleKeyValueEndpoint(kvsUri, pmsUri, rack);
+    }
+
+    public static SimpleKeyValueEndpoint create(String kvsUri, String pmsUri) {
+        return create(kvsUri, pmsUri, PartitionedKeyValueConstants.NO_RACK);
     }
 
     @Override

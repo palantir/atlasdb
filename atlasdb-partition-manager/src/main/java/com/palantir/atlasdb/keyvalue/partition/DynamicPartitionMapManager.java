@@ -79,7 +79,7 @@ public class DynamicPartitionMapManager {
     }
 
     public void addEndpoint(String kvsUri, String pmsUri, final byte[] key, String rack, Scanner scanner) {
-        final SimpleKeyValueEndpoint skve = new SimpleKeyValueEndpoint(kvsUri, pmsUri, rack);
+        final SimpleKeyValueEndpoint skve = SimpleKeyValueEndpoint.create(kvsUri, pmsUri, rack);
 
         runRetryableTask(new Callable<Void>() {
             @Override
@@ -180,7 +180,7 @@ public class DynamicPartitionMapManager {
         System.out.print("Enter rack name: ");
         String rack = scanner.nextLine();
 
-        System.out.println("Adding " + new SimpleKeyValueEndpoint(kvsUri, pmsUri, rack) + " at key " + Arrays.toString(key));
+        System.out.println("Adding " + SimpleKeyValueEndpoint.create(kvsUri, pmsUri, rack) + " at key " + Arrays.toString(key));
         System.out.print("y/n? ");
         if (!scanner.nextLine().equals("y")) {
             System.out.println("Aborting.");
@@ -282,7 +282,7 @@ public class DynamicPartitionMapManager {
                     System.out.print("rack: ");
                     String rack = scanner.nextLine();
                     byte[] key = readKey(scanner);
-                    SimpleKeyValueEndpoint kve = new SimpleKeyValueEndpoint(kvsUri, pmsUri, rack);
+                    SimpleKeyValueEndpoint kve = SimpleKeyValueEndpoint.create(kvsUri, pmsUri, rack);
                     initialRing.put(key, kve);
                 }
 

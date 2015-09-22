@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.partition.endpoint;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.partition.PartitionedKeyValueConstants;
 import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
 
 /**
@@ -42,6 +43,10 @@ public class InMemoryKeyValueEndpoint implements KeyValueEndpoint {
 
     public static InMemoryKeyValueEndpoint create(KeyValueService kvs, PartitionMapService pms, String rack) {
         return new InMemoryKeyValueEndpoint(kvs, pms, rack);
+    }
+
+    public static InMemoryKeyValueEndpoint create(KeyValueService kvs, PartitionMapService pms) {
+        return create(kvs, pms, PartitionedKeyValueConstants.NO_RACK);
     }
 
     @Override

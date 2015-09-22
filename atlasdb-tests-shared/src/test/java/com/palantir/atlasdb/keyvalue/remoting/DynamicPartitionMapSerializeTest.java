@@ -58,7 +58,7 @@ public class DynamicPartitionMapSerializeTest {
     @Before
     public void setUp() {
         for (int i=0; i<NUM_EPTS; ++i) {
-            endpoint[i] = new SimpleKeyValueEndpoint(endpointKvsService.baseUri().toString(), endpointPmsService.baseUri().toString());
+            endpoint[i] = SimpleKeyValueEndpoint.create(endpointKvsService.baseUri().toString(), endpointPmsService.baseUri().toString());
         }
         NavigableMap<byte[], KeyValueEndpoint> ring = ImmutableSortedMap
                 .<byte[], KeyValueEndpoint>orderedBy(UnsignedBytes.lexicographicalComparator())
