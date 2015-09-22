@@ -86,7 +86,7 @@ public class DynamicPartitionMapTest extends AbstractPartitionMapTest {
         testCellsRead(svc345, sampleCell);
         testCellsWrite(svc345, sampleCell);
 
-        assertEquals(true, dpm.addEndpoint(newByteArray(0, 5), endpoints.get(2), ""));
+        assertEquals(true, dpm.addEndpoint(newByteArray(0, 5), endpoints.get(2)));
         dpm.backfillAddedEndpoint(newByteArray(0, 5));
         dpm.promoteAddedEndpoint(newByteArray(0, 5));
         testCellsRead(svc234, sampleCell);
@@ -104,7 +104,7 @@ public class DynamicPartitionMapTest extends AbstractPartitionMapTest {
         testCellsRead(svc345, sampleCell);
         testCellsWrite(svc345, sampleCell);
 
-        assertEquals(true, dpm.addEndpoint(newByteArray(0, 5), endpoints.get(2), ""));
+        assertEquals(true, dpm.addEndpoint(newByteArray(0, 5), endpoints.get(2)));
 
         /**
          * Now kvs (2) C is being added.
@@ -132,7 +132,7 @@ public class DynamicPartitionMapTest extends AbstractPartitionMapTest {
         dpm.pushMapToEndpoints();
 
         assertEquals(true, dpm.removeEndpoint(newByteArray(1, 1)));
-        assertEquals(false, dpm.addEndpoint(newByteArray(0, 5), endpoints.get(2), ""));
+        assertEquals(false, dpm.addEndpoint(newByteArray(0, 5), endpoints.get(2)));
         dpm.backfillRemovedEndpoint(newByteArray(1, 1));
         dpm.promoteRemovedEndpoint(newByteArray(1, 1));
         dpm.pushMapToEndpoints();

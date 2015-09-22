@@ -85,7 +85,7 @@ public class DynamicPartitionMapManager {
             @Override
             public Void call() throws Exception {
                 System.out.println("Adding...");
-                boolean added = partitionMap.addEndpoint(key, skve, "");
+                boolean added = partitionMap.addEndpoint(key, skve);
                 Preconditions.checkState(added);
                 return null;
             }

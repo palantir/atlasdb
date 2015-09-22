@@ -70,7 +70,7 @@ public interface DynamicPartitionMap extends PartitionMap {
      * @param kve
      * @return
      */
-    boolean addEndpoint(byte[] key, KeyValueEndpoint kve, String rack);
+    boolean addEndpoint(byte[] key, KeyValueEndpoint kve);
 
     /**
      * Backfills the new endpoint with data from other endpoints.

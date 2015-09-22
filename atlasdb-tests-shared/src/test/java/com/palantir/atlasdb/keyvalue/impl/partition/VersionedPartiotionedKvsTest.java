@@ -206,7 +206,7 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
         final Map<Cell, byte[]> values0 = ImmutableMap.of(Cell.create(row0, column0), value00);
         final Map<Cell, Value> result0 = ImmutableMap.of(Cell.create(row0, column0), Value.create(value00, TEST_TIMESTAMP));
 
-        pkvs.getPartitionMap().addEndpoint(ept_key_3, skves[NUM_EPTS-1], "");
+        pkvs.getPartitionMap().addEndpoint(ept_key_3, skves[NUM_EPTS-1]);
         pkvs.getPartitionMap().pushMapToEndpoints();
 
         pkvs.createTable(TEST_TABLE, 12345);
@@ -263,7 +263,7 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
     public void testRemoveEndpoint() {
 
         // First add the endpoint so that we can remove one
-        pkvs.getPartitionMap().addEndpoint(ept_key_3, skves[NUM_EPTS - 1], "");
+        pkvs.getPartitionMap().addEndpoint(ept_key_3, skves[NUM_EPTS - 1]);
         pkvs.getPartitionMap().backfillAddedEndpoint(ept_key_3);
         pkvs.getPartitionMap().promoteAddedEndpoint(ept_key_3);
         pkvs.getPartitionMap().pushMapToEndpoints();
@@ -380,7 +380,7 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
         it.next();
 
         // Moving one endpoint is enough, our failure factor is 1.
-        pkvs.getPartitionMap().addEndpoint(ept_key_3, skves[NUM_EPTS-1], "");
+        pkvs.getPartitionMap().addEndpoint(ept_key_3, skves[NUM_EPTS-1]);
         pkvs.getPartitionMap().backfillAddedEndpoint(ept_key_3);
         pkvs.getPartitionMap().promoteAddedEndpoint(ept_key_3);
         pkvs.getPartitionMap().removeEndpoint(ept_key_0);
@@ -420,7 +420,7 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
         it.next();
 
         // Moving one endpoint is enough, our failure factor is 1.
-        pkvs.getPartitionMap().addEndpoint(ept_key_3, skves[NUM_EPTS-1], "");
+        pkvs.getPartitionMap().addEndpoint(ept_key_3, skves[NUM_EPTS-1]);
         pkvs.getPartitionMap().backfillAddedEndpoint(ept_key_3);
         pkvs.getPartitionMap().promoteAddedEndpoint(ept_key_3);
         pkvs.getPartitionMap().removeEndpoint(ept_key_0);
@@ -461,7 +461,7 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
         it.next();
 
         // Moving one endpoint is enough, our failure factor is 1.
-        pkvs.getPartitionMap().addEndpoint(ept_key_3, skves[NUM_EPTS-1], "");
+        pkvs.getPartitionMap().addEndpoint(ept_key_3, skves[NUM_EPTS-1]);
         pkvs.getPartitionMap().backfillAddedEndpoint(ept_key_3);
         pkvs.getPartitionMap().promoteAddedEndpoint(ept_key_3);
         pkvs.getPartitionMap().removeEndpoint(ept_key_0);

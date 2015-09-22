@@ -611,7 +611,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
      * @throws RuntimeException if an update of a crucial endpoint fails.
      */
     @Override
-    public synchronized boolean addEndpoint(final byte[] key, final KeyValueEndpoint kve, String rack) {
+    public synchronized boolean addEndpoint(final byte[] key, final KeyValueEndpoint kve) {
         // Sanity checks
         Preconditions.checkArgument(!ring.containsKey(key));
 
