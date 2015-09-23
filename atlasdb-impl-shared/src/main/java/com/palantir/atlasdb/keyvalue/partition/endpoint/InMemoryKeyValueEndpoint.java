@@ -87,4 +87,10 @@ public class InMemoryKeyValueEndpoint implements KeyValueEndpoint {
         // No-op
     }
 
+    @Override
+    public String toString() {
+        return "InMemoryKeyValueEndpoint [kvs=" + kvs + ", pms=" + pms
+                + ", rack=" + rack + "]";
+    }
+
 }
