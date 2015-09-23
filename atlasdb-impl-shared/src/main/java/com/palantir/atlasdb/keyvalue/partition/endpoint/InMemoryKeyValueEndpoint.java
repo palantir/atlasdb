@@ -38,7 +38,7 @@ public class InMemoryKeyValueEndpoint implements KeyValueEndpoint {
     private InMemoryKeyValueEndpoint(KeyValueService kvs, PartitionMapService pms, String rack) {
         this.kvs = Preconditions.checkNotNull(kvs);
         this.pms = Preconditions.checkNotNull(pms);
-        this.rack = Preconditions.checkNotNull(rack);
+        this.rack = KeyValueEndpoints.makeUniqueRackIfNoneSpecified(rack);
     }
 
     public static InMemoryKeyValueEndpoint create(KeyValueService kvs, PartitionMapService pms, String rack) {

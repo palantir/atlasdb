@@ -193,7 +193,6 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     private DynamicPartitionMapImpl(QuorumParameters quorumParameters,
             CycleMap<byte[], EndpointWithStatus> ring, long version,
             long operationsInProgress, ExecutorService executor) {
-        Preconditions.checkArgument(ring.keySet().size() >= quorumParameters.getReplicationFactor());
 
         this.quorumParameters = quorumParameters;
         this.version.setValue(version);
@@ -201,6 +200,8 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         this.executor = executor;
 
         this.ring = buildRing(ring);
+        Preconditions.checkArgument(numOfRacks() >= quorumParameters.getReplicationFactor(),
+                "Cannot have less racks than replication factor.");
 
         this.delegates = Sets.newHashSet();
 
@@ -303,6 +304,20 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
             racksToBeExcluded.add(kve.rack());
         }
         return result;
+    }
+
+    private int numOfRacks() {
+        return numOfRacksWithoutEndpoint(null);
+    }
+
+    private int numOfRacksWithoutEndpoint(@Nullable byte[] key) {
+        final Set<String> racks = Sets.newHashSet();
+        for (Entry<byte[], EndpointWithStatus> entry : ring.entrySet()) {
+            if (!Arrays.equals(key, entry.getKey())) {
+                racks.add(entry.getValue().get().rack());
+            }
+        }
+        return racks.size();
     }
 
     private Map<KeyValueEndpoint, Set<Cell>> getServicesForCellsSet(String tableName, Set<Cell> cells, boolean isWrite) {
@@ -789,7 +804,8 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     @Override
     public synchronized boolean removeEndpoint(final byte[] key) {
         Preconditions.checkArgument(ring.get(key) instanceof EndpointWithNormalStatus);
-        Preconditions.checkArgument(ring.keySet().size() > quorumParameters.getReplicationFactor());
+        Preconditions.checkArgument(numOfRacksWithoutEndpoint(key) >= quorumParameters.getReplicationFactor(),
+                "Cannot have less racks than replication factor.");
         if (operationsInProgress != 0) {
             return false;
         }

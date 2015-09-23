@@ -50,7 +50,7 @@ public class SimpleKeyValueEndpoint implements KeyValueEndpoint {
         this.kvsUri = Preconditions.checkNotNull(kvsUri);
         this.pmsUri = Preconditions.checkNotNull(pmsUri);
         this.pms = RemotingPartitionMapService.createClientSide(pmsUri);
-        this.rack = Preconditions.checkNotNull(rack);
+        this.rack = KeyValueEndpoints.makeUniqueRackIfNoneSpecified(rack);
     }
 
     @JsonCreator
