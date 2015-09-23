@@ -120,6 +120,9 @@ public class NamedColumnValueRenderer extends Renderer {
             case PROTO:
                 _("byte[] bytes = value.toByteArray();");
                 break;
+            case PERSISTER:
+                _("byte[] bytes = ", col.getValue().getPersistCode("value"), ";");
+                break;
             case VALUE_TYPE:
                 _("byte[] bytes = ", col.getValue().getValueType().getPersistCode("value"), ";");
                 break;
@@ -152,6 +155,9 @@ public class NamedColumnValueRenderer extends Renderer {
                     } _("} catch (InvalidProtocolBufferException e) {"); {
                         _("throw Throwables.throwUncheckedException(e);");
                     } _("}");
+                    break;
+                case PERSISTER:
+                    _("return of(", col.getValue().getHydrateCode("bytes"), ");");
                     break;
                 case VALUE_TYPE:
                     _("return of(", col.getValue().getValueType().getHydrateCode("bytes", "0"), ");");

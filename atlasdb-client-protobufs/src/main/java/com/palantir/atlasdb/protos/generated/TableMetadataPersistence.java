@@ -261,6 +261,10 @@ public final class TableMetadataPersistence {
      * <code>VALUE_TYPE = 3;</code>
      */
     VALUE_TYPE(2, 3),
+    /**
+     * <code>PERSISTER = 4;</code>
+     */
+    PERSISTER(3, 4),
     ;
 
     /**
@@ -275,6 +279,10 @@ public final class TableMetadataPersistence {
      * <code>VALUE_TYPE = 3;</code>
      */
     public static final int VALUE_TYPE_VALUE = 3;
+    /**
+     * <code>PERSISTER = 4;</code>
+     */
+    public static final int PERSISTER_VALUE = 4;
 
 
     public final int getNumber() { return value; }
@@ -284,6 +292,7 @@ public final class TableMetadataPersistence {
         case 1: return PROTO;
         case 2: return PERSISTABLE;
         case 3: return VALUE_TYPE;
+        case 4: return PERSISTER;
         default: return null;
       }
     }
@@ -7624,20 +7633,20 @@ public final class TableMetadataPersistence {
       "VAR_SIGNED_LONG\020\005\022\034\n\030FIXED_LONG_LITTLE_E" +
       "NDIAN\020\006\022\016\n\nSHA256HASH\020\007\022\016\n\nVAR_STRING\020\010\022" +
       "\027\n\023NULLABLE_FIXED_LONG\020\t\022\016\n\nSIZED_BLOB\020\n" +
-      "*#\n\013Compression\022\010\n\004NONE\020\001\022\n\n\006SNAPPY\020\002*?\n" +
+      "*#\n\013Compression\022\010\n\004NONE\020\001\022\n\n\006SNAPPY\020\002*N\n" +
       "\021ColumnValueFormat\022\t\n\005PROTO\020\001\022\017\n\013PERSIST" +
-      "ABLE\020\002\022\016\n\nVALUE_TYPE\020\003*/\n\016ValueByteOrder" +
-      "\022\r\n\tASCENDING\020\001\022\016\n\nDESCENDING\020\002*\215\001\n\024Tabl" +
-      "eConflictHandler\022\016\n\nIGNORE_ALL\020\001\022\030\n\024RETR" +
-      "Y_ON_WRITE_WRITE\020\002\022\032\n\026RETRY_ON_VALUE_CHA" +
-      "NGED\020\003\022\020\n\014SERIALIZABLE\020\004\022\035\n\031RETRY_ON_WRI",
-      "TE_WRITE_CELL\020\005*F\n\rCachePriority\022\013\n\007COLD" +
-      "EST\020\000\022\010\n\004COLD\020 \022\010\n\004WARM\020@\022\007\n\003HOT\020`\022\013\n\007HO" +
-      "TTEST\020\177**\n\021PartitionStrategy\022\013\n\007ORDERED\020" +
-      "\000\022\010\n\004HASH\020\001*<\n\rSweepStrategy\022\013\n\007NOTHING\020" +
-      "\000\022\020\n\014CONSERVATIVE\020\001\022\014\n\010THOROUGH\020\002*;\n\022Exp" +
-      "irationStrategy\022\t\n\005NEVER\020\000\022\032\n\026INDIVIDUAL" +
-      "LY_SPECIFIED\020\001"
+      "ABLE\020\002\022\016\n\nVALUE_TYPE\020\003\022\r\n\tPERSISTER\020\004*/\n" +
+      "\016ValueByteOrder\022\r\n\tASCENDING\020\001\022\016\n\nDESCEN" +
+      "DING\020\002*\215\001\n\024TableConflictHandler\022\016\n\nIGNOR" +
+      "E_ALL\020\001\022\030\n\024RETRY_ON_WRITE_WRITE\020\002\022\032\n\026RET" +
+      "RY_ON_VALUE_CHANGED\020\003\022\020\n\014SERIALIZABLE\020\004\022",
+      "\035\n\031RETRY_ON_WRITE_WRITE_CELL\020\005*F\n\rCacheP" +
+      "riority\022\013\n\007COLDEST\020\000\022\010\n\004COLD\020 \022\010\n\004WARM\020@" +
+      "\022\007\n\003HOT\020`\022\013\n\007HOTTEST\020\177**\n\021PartitionStrat" +
+      "egy\022\013\n\007ORDERED\020\000\022\010\n\004HASH\020\001*<\n\rSweepStrat" +
+      "egy\022\013\n\007NOTHING\020\000\022\020\n\014CONSERVATIVE\020\001\022\014\n\010TH" +
+      "OROUGH\020\002*;\n\022ExpirationStrategy\022\t\n\005NEVER\020" +
+      "\000\022\032\n\026INDIVIDUALLY_SPECIFIED\020\001"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
