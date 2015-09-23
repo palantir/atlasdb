@@ -53,6 +53,15 @@ public class SimpleKeyValueEndpoint implements KeyValueEndpoint {
         this.rack = KeyValueEndpoints.makeUniqueRackIfNoneSpecified(rack);
     }
 
+    /**
+     *
+     * @param kvsUri
+     * @param pmsUri
+     * @param rack Use <tt>PartitionedKeyValueConstants.NO_RACK</tt> if you want
+     * to have a unique rack id created. A convenience method {@link #create(String, String)}
+     * is also available.
+     * @return
+     */
     @JsonCreator
     public static SimpleKeyValueEndpoint create(@JsonProperty("kvsUri") String kvsUri,
                                                 @JsonProperty("pmsUri") String pmsUri,
@@ -60,6 +69,14 @@ public class SimpleKeyValueEndpoint implements KeyValueEndpoint {
         return new SimpleKeyValueEndpoint(kvsUri, pmsUri, rack);
     }
 
+    /**
+     * Same as {@link #create(String, String, String)} but will automatically
+     * create a unique rack id for this enpoint.
+     *
+     * @param kvsUri
+     * @param pmsUri
+     * @return
+     */
     public static SimpleKeyValueEndpoint create(String kvsUri, String pmsUri) {
         return create(kvsUri, pmsUri, PartitionedKeyValueConstants.NO_RACK);
     }

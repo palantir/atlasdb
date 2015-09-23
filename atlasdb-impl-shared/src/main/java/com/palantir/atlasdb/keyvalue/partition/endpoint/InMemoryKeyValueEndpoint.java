@@ -41,10 +41,28 @@ public class InMemoryKeyValueEndpoint implements KeyValueEndpoint {
         this.rack = KeyValueEndpoints.makeUniqueRackIfNoneSpecified(rack);
     }
 
+    /**
+     *
+     * @param kvs
+     * @param pms
+     * @param rack Use <tt>PartitionedKeyValueConstants.NO_RACK</tt> if you want a unique
+     * rack name to be created for this endpoint. Also see a convenience method
+     * {@link #create(KeyValueService, PartitionMapService)}.
+     * @return
+     */
     public static InMemoryKeyValueEndpoint create(KeyValueService kvs, PartitionMapService pms, String rack) {
         return new InMemoryKeyValueEndpoint(kvs, pms, rack);
     }
 
+    /**
+     * Will automatically generate a unique rack name
+     * for this endpoint.
+     * Equivalent to calling {@link #create(KeyValueService, PartitionMapService, String)}
+     * with <tt>rack=PartitionedKeyValueConstants.NO_RACK</tt>.
+     * @param kvs
+     * @param pms
+     * @return
+     */
     public static InMemoryKeyValueEndpoint create(KeyValueService kvs, PartitionMapService pms) {
         return create(kvs, pms, PartitionedKeyValueConstants.NO_RACK);
     }

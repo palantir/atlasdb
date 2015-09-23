@@ -19,7 +19,7 @@ public class PartitionedKeyValueConstants {
     private PartitionedKeyValueConstants() {
     }
 
-    // Endpoints with this value for rack will be treated
-    // as if each were in its own separate rack.
+    // If you pass this value to endpoint constructor, a new
+    // unique rack name will be created for that endpoint.
     public static final String NO_RACK = "";
 }

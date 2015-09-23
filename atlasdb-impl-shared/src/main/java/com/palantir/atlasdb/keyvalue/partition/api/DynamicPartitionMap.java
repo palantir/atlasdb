@@ -65,8 +65,6 @@ public interface DynamicPartitionMap extends PartitionMap {
      * if the request was accepted.
      *
      * @param key
-     * @param rack If you use <tt>PartitionedKeyValueConstants.NO_RACK</tt>,
-     * this endpoint will be treated as if it were in its own separate rack.
      * @param kve
      * @return
      */
