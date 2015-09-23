@@ -37,6 +37,16 @@ import com.palantir.common.proxy.AbstractDelegatingInvocationHandler;
 import io.dropwizard.Application;
 import io.dropwizard.setup.Environment;
 
+/**
+ * This class is to be run as a stand-alone endpoint
+ * for <tt>PartitionedKeyValueService</tt>.
+ *
+ * Data as well as partition map are stored in a
+ * Postgres database based on the provided config file.
+ *
+ * @author htarasiuk
+ *
+ */
 public class PostgresEndpoint extends Application<EndpointServerConfiguration> {
 
     @SuppressWarnings("unchecked")
