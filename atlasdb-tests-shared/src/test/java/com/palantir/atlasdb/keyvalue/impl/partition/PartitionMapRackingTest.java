@@ -49,6 +49,8 @@ public class PartitionMapRackingTest {
     static final byte[] ROW5 = new byte[] {0,0,0,0,0};
     static final byte[] ROW6 = new byte[] {0,0,0,0,0,0};
 
+    static final byte[] COL0 = new byte[] {0};
+
     static final Set<byte[]> ROW0_SINGLETON = ImmutableSet.of(ROW0);
     static final Set<byte[]> ROW1_SINGLETON = ImmutableSet.of(ROW1);
     static final Set<byte[]> ROW2_SINGLETON = ImmutableSet.of(ROW2);
@@ -56,12 +58,12 @@ public class PartitionMapRackingTest {
     static final Set<byte[]> ROW4_SINGLETON = ImmutableSet.of(ROW4);
     static final Set<byte[]> ROW5_SINGLETON = ImmutableSet.of(ROW5);
 
-    static final Cell ROW0_COL0 = Cell.create(ROW0, new byte[] {0});
-    static final Cell ROW1_COL0 = Cell.create(ROW1, new byte[] {0});
-    static final Cell ROW2_COL0 = Cell.create(ROW2, new byte[] {0});
-    static final Cell ROW3_COL0 = Cell.create(ROW3, new byte[] {0});
-    static final Cell ROW4_COL0 = Cell.create(ROW4, new byte[] {0});
-    static final Cell ROW5_COL0 = Cell.create(ROW5, new byte[] {0});
+    static final Cell ROW0_COL0 = Cell.create(ROW0, COL0);
+    static final Cell ROW1_COL0 = Cell.create(ROW1, COL0);
+    static final Cell ROW2_COL0 = Cell.create(ROW2, COL0);
+    static final Cell ROW3_COL0 = Cell.create(ROW3, COL0);
+    static final Cell ROW4_COL0 = Cell.create(ROW4, COL0);
+    static final Cell ROW5_COL0 = Cell.create(ROW5, COL0);
 
     DynamicPartitionMapImpl dpmi;
     final KeyValueEndpoint[] epts = new KeyValueEndpoint[6];
