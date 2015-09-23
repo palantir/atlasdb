@@ -123,7 +123,7 @@ public class RocksDbKeyValueService implements KeyValueService {
 
                    NB: The documentation for File#deleteOnExit() advises against using it in concert with file locking,
                        so we'll allow this file to remain in place after the program exits.
-                       See http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4676183.
+                       See http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4676183
                  */
                 new File(dbDir.getParentFile(),
                          String.format("%s_%s", LOCK_FILE_PREFIX, dbDir.getName())),
@@ -276,7 +276,7 @@ public class RocksDbKeyValueService implements KeyValueService {
     public void put(String tableName, Map<Cell, byte[]> values, long timestamp) {
         ColumnFamilyHandle table = getTable(tableName);
         try (Disposer d = new Disposer()) {
-            WriteOptions options = d.register(new WriteOptions());
+            WriteOptions options = d.register(new WriteOptions().setSync(true));
             WriteBatch batch = d.register(new WriteBatch());
             for (Entry<Cell, byte[]> entry : values.entrySet()) {
                 byte[] key = RocksDbKeyValueServices.getKey(entry.getKey(), timestamp);
@@ -291,7 +291,7 @@ public class RocksDbKeyValueService implements KeyValueService {
     @Override
     public void multiPut(Map<String, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
         try (Disposer d = new Disposer()) {
-            WriteOptions options = d.register(new WriteOptions());
+            WriteOptions options = d.register(new WriteOptions().setSync(true));
             WriteBatch batch = d.register(new WriteBatch());
             for (Entry<String, ? extends Map<Cell, byte[]>> entry : valuesByTable.entrySet()) {
                 ColumnFamilyHandle table = getTable(entry.getKey());
@@ -310,7 +310,7 @@ public class RocksDbKeyValueService implements KeyValueService {
     public void putWithTimestamps(String tableName, Multimap<Cell, Value> cellValues) {
         ColumnFamilyHandle table = getTable(tableName);
         try (Disposer d = new Disposer()) {
-            WriteOptions options = d.register(new WriteOptions());
+            WriteOptions options = d.register(new WriteOptions().setSync(true));
             WriteBatch batch = d.register(new WriteBatch());
             for (Entry<Cell, Value> entry : cellValues.entries()) {
                 Value value = entry.getValue();
@@ -356,7 +356,7 @@ public class RocksDbKeyValueService implements KeyValueService {
     public void delete(String tableName, Multimap<Cell, Long> keys) {
         ColumnFamilyHandle table = getTable(tableName);
         try (Disposer d = new Disposer()) {
-            WriteOptions options = d.register(new WriteOptions());
+            WriteOptions options = d.register(new WriteOptions().setSync(true));
             WriteBatch batch = d.register(new WriteBatch());
             for (Entry<Cell, Long> entry : keys.entries()) {
                 byte[] key = RocksDbKeyValueServices.getKey(entry.getKey(), entry.getValue());
