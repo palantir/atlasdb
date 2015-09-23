@@ -310,6 +310,17 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         return numOfRacksWithoutEndpoint(null);
     }
 
+    /**
+     * This is the number of racks that will be in the ring
+     * after the endpoint at <tt>key</tt> will be removed.
+     *
+     * Useful for checking that after removing an endpoint
+     * the ring still will be valid (before doing the actual
+     * removal).
+     *
+     * @param key
+     * @return
+     */
     private int numOfRacksWithoutEndpoint(@Nullable byte[] key) {
         final Set<String> racks = Sets.newHashSet();
         for (Entry<byte[], EndpointWithStatus> entry : ring.entrySet()) {
