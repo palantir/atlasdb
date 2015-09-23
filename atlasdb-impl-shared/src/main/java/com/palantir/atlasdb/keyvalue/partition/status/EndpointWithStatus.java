@@ -21,7 +21,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
-import com.palantir.atlasdb.keyvalue.partition.PartitionedKeyValueConstants;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
 
 
@@ -78,9 +77,6 @@ public abstract class EndpointWithStatus {
     }
 
     public boolean shouldUseFor(boolean write, Collection<String> racksToBeExcluded) {
-        if (PartitionedKeyValueConstants.NO_RACK.equals(get().rack())) {
-            return shouldUseFor(write);
-        }
         return shouldUseFor(write) && !racksToBeExcluded.contains(get().rack());
     }
 
@@ -92,9 +88,6 @@ public abstract class EndpointWithStatus {
     }
 
     public boolean shouldCountFor(boolean write, Collection<String> racksToBeExcluded) {
-        if (PartitionedKeyValueConstants.NO_RACK.equals(get().rack())) {
-            return shouldCountFor(write);
-        }
         return shouldCountFor(write) && !racksToBeExcluded.contains(get().rack());
     }
 
@@ -108,10 +101,5 @@ public abstract class EndpointWithStatus {
 
     public EndpointWithNormalStatus asNormal() {
         return new EndpointWithNormalStatus(get());
-    }
-
-    @Override
-    public String toString() {
-        return "EndpointWithStatus [endpoint=" + endpoint + "]";
     }
 }

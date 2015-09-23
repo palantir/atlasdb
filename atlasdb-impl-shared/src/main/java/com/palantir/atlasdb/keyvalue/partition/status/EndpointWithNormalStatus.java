@@ -46,4 +46,9 @@ public class EndpointWithNormalStatus extends EndpointWithStatus {
         return true;
     }
 
+    @Override
+    public String toString() {
+        return "EndpointWithNormalStatus [endpoint=" + endpoint + "]";
+    }
+
 }

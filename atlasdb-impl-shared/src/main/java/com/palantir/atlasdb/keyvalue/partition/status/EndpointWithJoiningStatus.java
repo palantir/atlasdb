@@ -53,4 +53,9 @@ public class EndpointWithJoiningStatus extends BackfillableEndpointWithStatus {
         return super.asNormal();
     }
 
+    @Override
+    public String toString() {
+        return "EndpointWithJoiningStatus [endpoint=" + endpoint + "]";
+    }
+
 }

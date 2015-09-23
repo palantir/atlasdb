@@ -47,4 +47,9 @@ public class EndpointWithLeavingStatus extends BackfillableEndpointWithStatus {
         return false;
     }
 
+    @Override
+    public String toString() {
+        return "EndpointWithLeavingStatus [endpoint=" + endpoint + "]";
+    }
+
 }
