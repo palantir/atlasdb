@@ -43,6 +43,9 @@ public enum ConflictHandler {
      * For a cell that is frequently touched and infrequently updated (i.e., a read-write lock design
      * with mostly reads), it may make sense to replicate the cell, have each reader touch one
      * replica, and have writers update all replicas.
+     * <p>
+     * Note: This ConflictHandler has the ABA problem (https://en.wikipedia.org/wiki/ABA_problem).  The easiest
+     * way to fix this is to have the value always increase.
      */
     RETRY_ON_VALUE_CHANGED,
 

@@ -136,6 +136,9 @@ public class DynamicColumnValueRenderer extends Renderer {
             case PROTO:
                 _("byte[] bytes = value.toByteArray();");
                 break;
+            case PERSISTER:
+                _("byte[] bytes = ", val.getPersistCode("value"), ";");
+                break;
             case VALUE_TYPE:
                 _("byte[] bytes = ", val.getValueType().getPersistCode("value"), ";");
                 break;
@@ -159,6 +162,9 @@ public class DynamicColumnValueRenderer extends Renderer {
                 } _("} catch (InvalidProtocolBufferException e) {"); {
                     _("throw Throwables.throwUncheckedException(e);");
                 } _("}");
+                break;
+            case PERSISTER:
+                _("return of(", val.getHydrateCode("bytes"), ");");
                 break;
             case VALUE_TYPE:
                 _("return ", val.getValueType().getHydrateCode("bytes", "0"), ";");

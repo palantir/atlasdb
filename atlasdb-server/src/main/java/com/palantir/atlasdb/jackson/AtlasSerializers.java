@@ -110,6 +110,7 @@ public class AtlasSerializers {
                                     byte[] val) throws IOException, JsonGenerationException {
         switch (description.getFormat()) {
         case PERSISTABLE:
+        case PERSISTER:
             jgen.writeBinary(val);
             break;
         case PROTO:

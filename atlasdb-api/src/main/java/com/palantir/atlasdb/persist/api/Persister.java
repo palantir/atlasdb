@@ -13,19 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.common.persist;
+package com.palantir.atlasdb.persist.api;
+
+import com.palantir.common.persist.Persistable.Hydrator;
 
 /**
- * Classes implementing {@link JsonPersistable} must also have a static field called <code>JSON_HYDRATOR</code>
- * that implements the {@link JsonPersistable.Hydrator} interface. It is also recommened that each
- * {@link JsonPersistable} class is a final class.
+ * {@link Persister}s are required to have a no arg constructor.
  */
-public interface JsonPersistable extends Persistable {
-    public static final String HYDRATOR_NAME = "JSON_HYDRATOR";
-
-    public interface Hydrator<T> {
-        T hydrateFromJson(String input);
-    }
-
-    String persistToJson();
+public interface Persister<T> extends Hydrator<T> {
+    byte[] persistToBytes(T t);
+    Class<T> getPersistingClassType();
 }

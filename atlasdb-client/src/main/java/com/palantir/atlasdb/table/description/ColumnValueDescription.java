@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.table.description;
 
+import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 import javax.annotation.Nullable;
@@ -24,6 +26,8 @@ import org.apache.commons.lang.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.google.protobuf.DescriptorProtos.FileDescriptorProto;
 import com.google.protobuf.Descriptors.Descriptor;
@@ -33,13 +37,11 @@ import com.google.protobuf.Message;
 import com.googlecode.protobuf.format.JsonFormat;
 import com.googlecode.protobuf.format.JsonFormat.ParseException;
 import com.palantir.atlasdb.compress.CompressionUtils;
+import com.palantir.atlasdb.persist.api.Persister;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription.Builder;
 import com.palantir.atlasdb.table.generation.ColumnValues;
 import com.palantir.common.base.Throwables;
-import com.palantir.common.persist.JsonPersistable;
-import com.palantir.common.persist.JsonPersistable.Hydrator;
-import com.palantir.common.persist.JsonPersistables;
 import com.palantir.common.persist.Persistable;
 import com.palantir.common.persist.Persistables;
 
@@ -50,7 +52,8 @@ public class ColumnValueDescription {
     public enum Format {
         PROTO,
         PERSISTABLE,
-        VALUE_TYPE;
+        VALUE_TYPE,
+        PERSISTER;
 
         public TableMetadataPersistence.ColumnValueFormat persistToProto() {
             return TableMetadataPersistence.ColumnValueFormat.valueOf(name());
@@ -108,10 +111,15 @@ public class ColumnValueDescription {
     public static ColumnValueDescription forPersistable(Class<? extends Persistable> clazz,
                                                         Compression compression) {
         Validate.notNull(Persistables.getHydrator(clazz), "Not a valid persistable class because it has no hydrator");
-        if (JsonPersistable.class.isAssignableFrom(clazz)) {
-            Validate.notNull(JsonPersistables.getHydrator((Class<? extends JsonPersistable>)clazz), "Not a valid jsonPersistable class because it has no hydrator");
-        }
         return new ColumnValueDescription(Format.PERSISTABLE, clazz.getName(), clazz.getCanonicalName(), compression, null);
+    }
+
+    public static ColumnValueDescription forPersister(Class<? extends Persister<?>> clazz) {
+        return forPersister(clazz, Compression.NONE);
+    }
+
+    public static ColumnValueDescription forPersister(Class<? extends Persister<?>> clazz, Compression compression) {
+        return new ColumnValueDescription(Format.PERSISTER, clazz.getName(), clazz.getCanonicalName(), compression, null);
     }
 
     public static ColumnValueDescription forProtoMessage(Class<? extends GeneratedMessage> clazz) {
@@ -150,17 +158,9 @@ public class ColumnValueDescription {
         Validate.notEmpty(className);
         Validate.notEmpty(canonicalClassName);
         Validate.isTrue(format != Format.VALUE_TYPE);
-
-        switch (format) {
-        case PERSISTABLE:
-        case PROTO:
-            this.canonicalClassName = Preconditions.checkNotNull(canonicalClassName);
-            this.className = Preconditions.checkNotNull(className);
-            this.protoDescriptor = protoDescriptor;
-            break;
-        default:
-            throw new IllegalArgumentException();
-        }
+        this.canonicalClassName = Preconditions.checkNotNull(canonicalClassName);
+        this.className = Preconditions.checkNotNull(className);
+        this.protoDescriptor = protoDescriptor;
     }
 
     public int getMaxValueSize() {
@@ -187,10 +187,26 @@ public class ColumnValueDescription {
      * This gets a string that represents the canonical name of the class that is stored in this column value.
      */
     public String getJavaObjectTypeName() {
+        if (format == Format.PERSISTER) {
+            return getPersister().getPersistingClassType().getCanonicalName();
+        }
         if (canonicalClassName != null) {
             return canonicalClassName;
         }
         return type.getJavaObjectClassName();
+    }
+
+    public Persister<?> getPersister() {
+        Preconditions.checkArgument(Format.PERSISTER == format);
+            @SuppressWarnings("unchecked")
+            Class<Persister<?>> persisterClass = (Class<Persister<?>>) getImportClass();
+            try {
+                Persister<?> persister = persisterClass.getConstructor().newInstance();
+                return persister;
+            } catch (InstantiationException | IllegalAccessException | IllegalArgumentException
+                    | InvocationTargetException | NoSuchMethodException | SecurityException e) {
+                throw Throwables.throwUncheckedException(e);
+            }
     }
 
     public String getPersistCode(String varName) {
@@ -199,6 +215,8 @@ public class ColumnValueDescription {
             result = varName + ".persistToBytes()";
         } else if (format == Format.PROTO) {
             result = varName + ".toByteArray()";
+        } else if (format == Format.PERSISTER) {
+            result = "new " + canonicalClassName + "().persistToBytes(" + varName + ")";
         } else {
             result = type.getPersistCode(varName);
         }
@@ -214,18 +232,22 @@ public class ColumnValueDescription {
     public byte[] persistJsonToBytes(ClassLoader classLoader, String str) throws ParseException {
         final byte[] bytes;
         if (format == Format.PERSISTABLE) {
-            Class<?> clazz = getImportClass(classLoader);
-            Hydrator<? extends JsonPersistable> hydrator = null;
-            if (JsonPersistable.class.isAssignableFrom(clazz)) {
-                hydrator = JsonPersistables.getHydrator((Class<? extends JsonPersistable>) clazz);
+            throw new IllegalArgumentException("Tried to pass json into a persistable type.");
+        } else if (format == Format.PERSISTER) {
+            Persister<?> persister = getPersister();
+            if (JsonNode.class == persister.getPersistingClassType()) {
+                try {
+                    JsonNode jsonNode = new ObjectMapper().readValue(str, JsonNode.class);
+                    return ((Persister<JsonNode>) persister).persistToBytes(jsonNode);
+                } catch (IOException e) {
+                    throw Throwables.throwUncheckedException(e);
+                }
+            } else {
+                throw new IllegalArgumentException("Tried to write json to a Persister that isn't for JsonNode.");
             }
-            if (hydrator == null) {
-                throw new IllegalArgumentException("Tried to write a Persistable object that is not a valid JsonPersistable");
-            }
-            bytes = hydrator.hydrateFromJson(str).persistToBytes();
         } else if (format == Format.PROTO) {
             GeneratedMessage.Builder<?> builder = createBuilder(classLoader);
-            // This will have issues with
+            // This will have issues with base64 blobs
             JsonFormat.merge(str, builder);
             bytes = builder.build().toByteArray();
         } else {
@@ -262,6 +284,8 @@ public class ColumnValueDescription {
         varName = "com.palantir.atlasdb.compress.CompressionUtils.decompress(" + varName + ", com.palantir.atlasdb.table.description.ColumnValueDescription.Compression." + compression + ")";
         if (format == Format.PERSISTABLE) {
             return canonicalClassName + "." + Persistable.HYDRATOR_NAME + ".hydrateFromBytes(" + varName + ")";
+        } else if (format == Format.PERSISTER) {
+            return "new " + canonicalClassName + "().hydrateFromBytes(" + varName + ")";
         } else if (format == Format.PROTO) {
                 return "new Supplier<" + canonicalClassName + ">() { " +
                     "@Override " +
@@ -288,6 +312,12 @@ public class ColumnValueDescription {
     public Persistable hydratePersistable(ClassLoader classLoader, byte[] value) {
         Preconditions.checkState(format == Format.PERSISTABLE, "Column value is not a Persistable.");
         return ColumnValues.parsePersistable((Class<? extends Persistable>)getImportClass(classLoader), CompressionUtils.decompress(value, compression));
+    }
+
+    public Object hydratePersister(ClassLoader classLoader, byte[] value) {
+        Preconditions.checkState(format == Format.PERSISTER, "Column value is not a Persister.");
+        Persister<?> persister = getPersister();
+        return persister.hydrateFromBytes(CompressionUtils.decompress(value, compression));
     }
 
 
@@ -324,46 +354,24 @@ public class ColumnValueDescription {
         }
 
         Validate.isTrue(type == ValueType.BLOB);
-        if (message.hasFormat()) {
-            Format format = Format.hydrateFromProto(message.getFormat());
-            Descriptor protoDescriptor = null;
-            if (message.hasProtoFileDescriptor()) {
-                try {
-                    FileDescriptorProto fileProto = FileDescriptorProto.parseFrom(message.getProtoFileDescriptor());
-                    FileDescriptor fileDescriptor = FileDescriptor.buildFrom(fileProto, new FileDescriptor[0]);
-                    protoDescriptor = fileDescriptor.findMessageTypeByName(message.getProtoMessageName());
-                } catch (Exception e) {
-                    log.warn("Failed to parse FileDescriptorProto.", e);
-                }
+
+        Format format = Format.hydrateFromProto(message.getFormat());
+        Descriptor protoDescriptor = null;
+        if (message.hasProtoFileDescriptor()) {
+            try {
+                FileDescriptorProto fileProto = FileDescriptorProto.parseFrom(message.getProtoFileDescriptor());
+                FileDescriptor fileDescriptor = FileDescriptor.buildFrom(fileProto, new FileDescriptor[0]);
+                protoDescriptor = fileDescriptor.findMessageTypeByName(message.getProtoMessageName());
+            } catch (Exception e) {
+                log.warn("Failed to parse FileDescriptorProto.", e);
             }
-            return new ColumnValueDescription(
-                    format,
-                    message.getClassName(),
-                    message.getCanonicalClassName(),
-                    compression,
-                    protoDescriptor);
         }
-
-        /*
-         * All the code in the rest of this method is to support old protos that don't have a format field.
-         * Format and canonicalClassName were added at the same time.
-         *
-         * Once we upgrade all the old protos (after 3.6.0), we can remove the below code.
-         */
-
-        final Class<?> clazz;
-        try {
-            clazz = Class.forName(message.getClassName());
-        } catch (ClassNotFoundException e) {
-            throw Throwables.throwUncheckedException(e);
-        }
-        final Format format;
-        if (GeneratedMessage.class.isAssignableFrom(clazz)) {
-            format = Format.PROTO;
-        } else {
-            format = Format.PERSISTABLE;
-        }
-        return new ColumnValueDescription(format, message.getClassName(), clazz.getCanonicalName(), compression, null);
+        return new ColumnValueDescription(
+                format,
+                message.getClassName(),
+                message.getCanonicalClassName(),
+                compression,
+                protoDescriptor);
     }
 
     @Override

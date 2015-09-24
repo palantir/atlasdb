@@ -104,6 +104,9 @@ public class AtlasShellRubyHelpers {
         case VALUE_TYPE:
             // TODO: this should support non-string types
             return columnValueDescription.getValueType().convertToString(rawValue);
+        case PERSISTER:
+            Object o = columnValueDescription.hydratePersistable(AtlasShellRubyHelpers.class.getClassLoader(), rawValue);
+            return String.valueOf(o);
         case PERSISTABLE:
             ClassLoader classLoader = AtlasShellRubyHelpers.class.getClassLoader();
             Persistable persistable = columnValueDescription.hydratePersistable(
