@@ -1,7 +1,6 @@
 package com.palantir.atlasdb.keyvalue.partition.map;
 
-import org.assertj.core.util.Preconditions;
-
+import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
 
 public final class PartitionMapServiceImpl implements PartitionMapService {

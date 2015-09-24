@@ -1,7 +1,6 @@
 package com.palantir.atlasdb.keyvalue.partition.endpoint;
 
-import org.assertj.core.util.Preconditions;
-
+import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;

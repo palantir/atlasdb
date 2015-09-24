@@ -13,7 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.server;
+package com.palantir.atlasdb.keyvalue.remoting;
+
+import feign.Feign;
+import feign.jackson.JacksonDecoder;
+import feign.jackson.JacksonEncoder;
+import feign.jaxrs.JAXRSContract;
+import io.dropwizard.testing.junit.DropwizardClientRule;
 
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -27,18 +33,12 @@ import org.junit.Test;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.client.TextDelegateDecoder;
-import com.palantir.atlasdb.server.InboxPopulatingContainerRequestFilter;
-import com.palantir.atlasdb.server.OutboxShippingInterceptor;
+import com.palantir.atlasdb.keyvalue.remoting.outofband.InboxPopulatingContainerRequestFilter;
+import com.palantir.atlasdb.keyvalue.remoting.outofband.OutboxShippingInterceptor;
 import com.palantir.common.supplier.PopulateServiceContextProxy;
 import com.palantir.common.supplier.RemoteContextHolder;
 import com.palantir.common.supplier.RemoteContextHolder.RemoteContextType;
 import com.palantir.common.supplier.ServiceContext;
-
-import feign.Feign;
-import feign.jackson.JacksonDecoder;
-import feign.jackson.JacksonEncoder;
-import feign.jaxrs.JAXRSContract;
-import io.dropwizard.testing.junit.DropwizardClientRule;
 
 public class RemoteContextTest {
     @ClassRule

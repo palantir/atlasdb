@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.server;
+package com.palantir.atlasdb.keyvalue.remoting.outofband;
 
 import java.io.IOException;
 import java.util.Iterator;

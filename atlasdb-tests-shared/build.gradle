@@ -15,6 +15,7 @@ dependencies {
       exclude module: 'jsr311-api'
   }
   testCompile "io.dropwizard:dropwizard-testing:" + libVersions.dropwizard
+  testCompile(project(":atlasdb-config"))
   test sourceSets.test.output
 
 }

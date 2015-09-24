@@ -26,7 +26,7 @@ import com.palantir.atlasdb.keyvalue.partition.map.DynamicPartitionMapImpl;
 import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapServiceImpl;
 import com.palantir.atlasdb.keyvalue.partition.server.EndpointServer;
-import com.palantir.atlasdb.server.InboxPopulatingContainerRequestFilter;
+import com.palantir.atlasdb.keyvalue.remoting.outofband.InboxPopulatingContainerRequestFilter;
 import com.palantir.common.base.Throwables;
 import com.palantir.util.Pair;
 
