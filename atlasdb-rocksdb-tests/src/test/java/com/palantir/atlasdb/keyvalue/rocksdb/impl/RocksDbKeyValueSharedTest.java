@@ -15,6 +15,12 @@
  */
 package com.palantir.atlasdb.keyvalue.rocksdb.impl;
 
+import java.io.File;
+
+import org.iq80.leveldb.DBFactory;
+import org.iq80.leveldb.Options;
+import org.junit.Test;
+
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.AbstractAtlasDbKeyValueServiceTest;
 
@@ -36,7 +42,6 @@ public class RocksDbKeyValueSharedTest extends AbstractAtlasDbKeyValueServiceTes
 	protected KeyValueService getKeyValueService() {
 	    return db;
 	}
-
     @Override
     public void tearDown() throws Exception {
         super.tearDown();

@@ -498,16 +498,16 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
      * Returns ranges that should be stored and/or read from the given kvs.
      * It is intended for use when adding and/or removing endpoints.
      *
-     * @param kvsKey Consider kvs at this key.
+     * @param kveKey Consider endpoint at this key.
      * @param isWrite Are we looking for write or read access?
-     * @return The first element is the farthest range.
+     * @return Ranges in order. The first element is the farthest range.
      */
-    private List<RangeRequest> getRangesOperatedByKvs(byte[] kvsKey, boolean isWrite) {
-        Preconditions.checkNotNull(ring.get(kvsKey));
+    private List<RangeRequest> getRangesOperatedByKvs(byte[] kveKey, boolean isWrite) {
+        Preconditions.checkNotNull(ring.get(kveKey));
         List<RangeRequest> result = Lists.newArrayList();
 
-        byte[] startRange = kvsKey;
-        byte[] endRange = kvsKey;
+        byte[] startRange = kveKey;
+        byte[] endRange = kveKey;
         for (int i = 0, extra = 0; i < quorumParameters.getReplicationFactor() + extra; ++i) {
             startRange = ring.previousKey(startRange);
             if (!ring.get(startRange).shouldUseFor(isWrite)) {
