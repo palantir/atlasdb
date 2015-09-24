@@ -46,7 +46,7 @@ import com.palantir.common.base.ClosableIterator;
 
 public class KVTableMappingService extends AbstractTableMappingService {
     public static final TableMetadata NAMESPACE_TABLE_METADATA = new TableMetadata(
-        new NameMetadataDescription(ImmutableList.of(
+        NameMetadataDescription.create(ImmutableList.of(
                 new NameComponentDescription("namespace", ValueType.VAR_STRING),
                 new NameComponentDescription("table_name", ValueType.STRING))),
         new ColumnMetadataDescription(ImmutableList.of(

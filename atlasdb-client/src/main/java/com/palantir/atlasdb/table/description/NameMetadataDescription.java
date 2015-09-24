@@ -15,20 +15,17 @@
  */
 package com.palantir.atlasdb.table.description;
 
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.apache.commons.lang.Validate;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
@@ -40,24 +37,48 @@ import com.palantir.util.Pair;
 
 @Immutable
 public class NameMetadataDescription {
-    final ImmutableList<NameComponentDescription> rowParts;
+    public static final String HASH_ROW_COMPONENT_NAME = "firstComponentHash";
+
+    private final List<NameComponentDescription> rowParts;
+    private final boolean hasFirstComponentHash;
 
     public NameMetadataDescription() {
-        this(Arrays.asList(new NameComponentDescription()));
+        this(ImmutableList.of(new NameComponentDescription()), false);
     }
 
-    public NameMetadataDescription(Iterable<NameComponentDescription> components) {
-        Validate.isTrue(!Iterables.isEmpty(components));
-        rowParts = ImmutableList.copyOf(components);
-        for (NameComponentDescription nameComponent : rowParts.subList(0, rowParts.size()-1)) {
+    private NameMetadataDescription(List<NameComponentDescription> components, boolean hasFirstComponentHash) {
+        Preconditions.checkArgument(!components.isEmpty());
+        this.rowParts = ImmutableList.copyOf(components);
+        for (NameComponentDescription nameComponent : rowParts.subList(0, rowParts.size() - 1)) {
             if (nameComponent.type == ValueType.BLOB || nameComponent.type == ValueType.STRING) {
                 throw new IllegalArgumentException("string or blob must be on end.  components were: " + components);
             }
+        }
+        this.hasFirstComponentHash = hasFirstComponentHash;
+    }
+
+    public static NameMetadataDescription create(List<NameComponentDescription> components) {
+        return create(components, false);
+    }
+
+    public static NameMetadataDescription create(List<NameComponentDescription> components,
+                                                 boolean hasFirstComponentHash) {
+        if (!hasFirstComponentHash) {
+            return new NameMetadataDescription(components, false);
+        } else {
+            List<NameComponentDescription> withHashRowComponent = Lists.newArrayListWithCapacity(components.size() + 1);
+            withHashRowComponent.add(new NameComponentDescription(HASH_ROW_COMPONENT_NAME, ValueType.FIXED_LONG));
+            withHashRowComponent.addAll(components);
+            return new NameMetadataDescription(withHashRowComponent, true);
         }
     }
 
     public List<NameComponentDescription> getRowParts() {
         return rowParts;
+    }
+
+    public boolean hasFirstComponentHash() {
+        return hasFirstComponentHash;
     }
 
     public List<RowNamePartitioner> getPartitionersForRow() {
@@ -131,14 +152,14 @@ public class NameMetadataDescription {
             byte[][] bytes = new byte[numDefinedFields][];
 
             Preconditions.checkArgument(numDefinedFields > 0,
-                    "JSON object needs a field named: " + rowParts.get(0).getComponentName() +
-                    "  Passed json was: " + json);
-            if (!allowPrefix && numDefinedFields != rowParts.size()) {
-                Preconditions.checkArgument(false,
-                    "JSON object is missing field: " + rowParts.get(numDefinedFields).getComponentName() +
-                    "  Passed json was: " + json);
-
-            }
+                    "JSON object needs a field named: %s.  Passed json was: %s",
+                    rowParts.get(0).getComponentName(),
+                    json);
+            Preconditions.checkArgument(allowPrefix || numDefinedFields == rowParts.size(),
+                    "JSON object has %s defined fields, but the number of row components is %s.  Passed json was: %s",
+                    numDefinedFields,
+                    rowParts.size(),
+                    json);
 
             for (int i = 0; i < numDefinedFields; ++i) {
                 NameComponentDescription d = rowParts.get(i);
@@ -177,6 +198,7 @@ public class NameMetadataDescription {
         for (NameComponentDescription part : rowParts) {
             builder.addNameParts(part.persistToProto());
         }
+        builder.setHasFirstComponentHash(hasFirstComponentHash);
         return builder;
     }
 
@@ -185,20 +207,22 @@ public class NameMetadataDescription {
         for (TableMetadataPersistence.NameComponentDescription part : message.getNamePartsList()) {
             list.add(NameComponentDescription.hydrateFromProto(part));
         }
-        return new NameMetadataDescription(list);
+        // Call constructor over factory because the list might already contain the hash row component
+        return new NameMetadataDescription(list, message.getHasFirstComponentHash());
     }
 
     @Override
     public String toString() {
-        return "NameMetadataDescription [rowParts=" + rowParts + "]";
+        return "NameMetadataDescription [rowParts=" + rowParts + ", hasFirstComponentHash=" + hasFirstComponentHash
+                + "]";
     }
 
     @Override
     public int hashCode() {
         final int prime = 31;
-
         int result = 1;
-        result = prime * result + (rowParts == null ? 0 : rowParts.hashCode());
+        result = prime * result + (hasFirstComponentHash ? 1231 : 1237);
+        result = prime * result + ((rowParts == null) ? 0 : rowParts.hashCode());
         return result;
     }
 
@@ -214,11 +238,14 @@ public class NameMetadataDescription {
             return false;
         }
         NameMetadataDescription other = (NameMetadataDescription) obj;
+        if (hasFirstComponentHash != other.hasFirstComponentHash) {
+            return false;
+        }
         if (rowParts == null) {
-            if (other.getRowParts() != null) {
+            if (other.rowParts != null) {
                 return false;
             }
-        } else if (!rowParts.equals(other.getRowParts())) {
+        } else if (!rowParts.equals(other.rowParts)) {
             return false;
         }
         return true;

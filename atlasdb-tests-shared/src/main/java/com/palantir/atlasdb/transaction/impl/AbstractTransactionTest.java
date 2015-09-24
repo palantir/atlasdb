@@ -94,11 +94,11 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 public abstract class AbstractTransactionTest {
     protected static final String TEST_TABLE = "ns.table1";
     protected static final TableMetadata TEST_TABLE_METADATA = new TableMetadata(
-            new NameMetadataDescription(ImmutableList.of(new NameComponentDescription(
+            NameMetadataDescription.create(ImmutableList.of(new NameComponentDescription(
                     "row_name",
                     ValueType.STRING))),
             new ColumnMetadataDescription(new DynamicColumnDescription(
-                    new NameMetadataDescription(ImmutableList.of(new NameComponentDescription(
+                    NameMetadataDescription.create(ImmutableList.of(new NameComponentDescription(
                             "col_name",
                             ValueType.STRING))),
                     ColumnValueDescription.forType(ValueType.STRING))),

@@ -54,7 +54,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
 
     private static final String TIMESTAMP_TABLE = "_timestamp";
     public static final TableMetadata TIMESTAMP_TABLE_METADATA = new TableMetadata(
-        new NameMetadataDescription(ImmutableList.of(new NameComponentDescription("timestamp_name", ValueType.STRING))),
+        NameMetadataDescription.create(ImmutableList.of(new NameComponentDescription("timestamp_name", ValueType.STRING))),
         new ColumnMetadataDescription(ImmutableList.of(
             new NamedColumnDescription(ROW_AND_COLUMN_NAME, "current_max_ts", ColumnValueDescription.forType(ValueType.FIXED_LONG)))),
         ConflictHandler.IGNORE_ALL);

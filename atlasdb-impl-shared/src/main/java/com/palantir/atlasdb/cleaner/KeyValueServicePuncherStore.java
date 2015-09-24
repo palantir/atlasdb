@@ -46,7 +46,7 @@ public class KeyValueServicePuncherStore implements PuncherStore {
     public static KeyValueServicePuncherStore create(KeyValueService keyValueService) {
         keyValueService.createTable(AtlasDbConstants.PUNCH_TABLE, EncodingUtils.sizeOfUnsignedVarLong(Long.MAX_VALUE));
         keyValueService.putMetadataForTable(AtlasDbConstants.PUNCH_TABLE, new TableMetadata(
-                new NameMetadataDescription(ImmutableList.of(new NameComponentDescription("time", ValueType.VAR_LONG, ValueByteOrder.DESCENDING))),
+                NameMetadataDescription.create(ImmutableList.of(new NameComponentDescription("time", ValueType.VAR_LONG, ValueByteOrder.DESCENDING))),
                 new ColumnMetadataDescription(ImmutableList.of(
                         new NamedColumnDescription("t", "t", ColumnValueDescription.forType(ValueType.VAR_LONG)))),
                         ConflictHandler.IGNORE_ALL).persistToBytes());

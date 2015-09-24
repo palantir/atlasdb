@@ -2323,6 +2323,15 @@ public final class TableMetadataPersistence {
      */
     com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescriptionOrBuilder getNamePartsOrBuilder(
         int index);
+
+    /**
+     * <code>optional bool hasFirstComponentHash = 2;</code>
+     */
+    boolean hasHasFirstComponentHash();
+    /**
+     * <code>optional bool hasFirstComponentHash = 2;</code>
+     */
+    boolean getHasFirstComponentHash();
   }
   /**
    * Protobuf type {@code com.palantir.atlasdb.protos.generated.NameMetadataDescription}
@@ -2384,6 +2393,11 @@ public final class TableMetadataPersistence {
               nameParts_.add(input.readMessage(com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription.PARSER, extensionRegistry));
               break;
             }
+            case 16: {
+              bitField0_ |= 0x00000001;
+              hasFirstComponentHash_ = input.readBool();
+              break;
+            }
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
@@ -2426,6 +2440,7 @@ public final class TableMetadataPersistence {
       return PARSER;
     }
 
+    private int bitField0_;
     public static final int NAMEPARTS_FIELD_NUMBER = 1;
     private java.util.List<com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription> nameParts_;
     /**
@@ -2461,8 +2476,24 @@ public final class TableMetadataPersistence {
       return nameParts_.get(index);
     }
 
+    public static final int HASFIRSTCOMPONENTHASH_FIELD_NUMBER = 2;
+    private boolean hasFirstComponentHash_;
+    /**
+     * <code>optional bool hasFirstComponentHash = 2;</code>
+     */
+    public boolean hasHasFirstComponentHash() {
+      return ((bitField0_ & 0x00000001) == 0x00000001);
+    }
+    /**
+     * <code>optional bool hasFirstComponentHash = 2;</code>
+     */
+    public boolean getHasFirstComponentHash() {
+      return hasFirstComponentHash_;
+    }
+
     private void initFields() {
       nameParts_ = java.util.Collections.emptyList();
+      hasFirstComponentHash_ = false;
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -2486,6 +2517,9 @@ public final class TableMetadataPersistence {
       for (int i = 0; i < nameParts_.size(); i++) {
         output.writeMessage(1, nameParts_.get(i));
       }
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        output.writeBool(2, hasFirstComponentHash_);
+      }
       getUnknownFields().writeTo(output);
     }
 
@@ -2498,6 +2532,10 @@ public final class TableMetadataPersistence {
       for (int i = 0; i < nameParts_.size(); i++) {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(1, nameParts_.get(i));
+      }
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBoolSize(2, hasFirstComponentHash_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -2623,6 +2661,8 @@ public final class TableMetadataPersistence {
         } else {
           namePartsBuilder_.clear();
         }
+        hasFirstComponentHash_ = false;
+        bitField0_ = (bitField0_ & ~0x00000002);
         return this;
       }
 
@@ -2650,6 +2690,7 @@ public final class TableMetadataPersistence {
       public com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription buildPartial() {
         com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription result = new com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription(this);
         int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
         if (namePartsBuilder_ == null) {
           if (((bitField0_ & 0x00000001) == 0x00000001)) {
             nameParts_ = java.util.Collections.unmodifiableList(nameParts_);
@@ -2659,6 +2700,11 @@ public final class TableMetadataPersistence {
         } else {
           result.nameParts_ = namePartsBuilder_.build();
         }
+        if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
+          to_bitField0_ |= 0x00000001;
+        }
+        result.hasFirstComponentHash_ = hasFirstComponentHash_;
+        result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
       }
@@ -2699,6 +2745,9 @@ public final class TableMetadataPersistence {
               namePartsBuilder_.addAllMessages(other.nameParts_);
             }
           }
+        }
+        if (other.hasHasFirstComponentHash()) {
+          setHasFirstComponentHash(other.getHasFirstComponentHash());
         }
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
@@ -2971,6 +3020,38 @@ public final class TableMetadataPersistence {
           nameParts_ = null;
         }
         return namePartsBuilder_;
+      }
+
+      private boolean hasFirstComponentHash_ ;
+      /**
+       * <code>optional bool hasFirstComponentHash = 2;</code>
+       */
+      public boolean hasHasFirstComponentHash() {
+        return ((bitField0_ & 0x00000002) == 0x00000002);
+      }
+      /**
+       * <code>optional bool hasFirstComponentHash = 2;</code>
+       */
+      public boolean getHasFirstComponentHash() {
+        return hasFirstComponentHash_;
+      }
+      /**
+       * <code>optional bool hasFirstComponentHash = 2;</code>
+       */
+      public Builder setHasFirstComponentHash(boolean value) {
+        bitField0_ |= 0x00000002;
+        hasFirstComponentHash_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional bool hasFirstComponentHash = 2;</code>
+       */
+      public Builder clearHasFirstComponentHash() {
+        bitField0_ = (bitField0_ & ~0x00000002);
+        hasFirstComponentHash_ = false;
+        onChanged();
+        return this;
       }
 
       // @@protoc_insertion_point(builder_scope:com.palantir.atlasdb.protos.generated.NameMetadataDescription)
@@ -8662,63 +8743,64 @@ public final class TableMetadataPersistence {
       "\027\n\017negativeLookups\030\010 \001(\010\022K\n\rsweepStrateg" +
       "y\030\t \001(\01624.com.palantir.atlasdb.protos.ge" +
       "nerated.SweepStrategy\022-\n%explicitCompres" +
-      "sionBlockSizeKiloBytes\030\n \001(\005\"m\n\027NameMeta" +
-      "dataDescription\022R\n\tnameParts\030\001 \003(\0132?.com",
-      ".palantir.atlasdb.protos.generated.NameC" +
-      "omponentDescription\"\362\001\n\030NameComponentDes" +
-      "cription\022\025\n\rcomponentName\030\001 \002(\t\022>\n\004type\030" +
-      "\002 \002(\01620.com.palantir.atlasdb.protos.gene" +
-      "rated.ValueType\022D\n\005order\030\003 \002(\01625.com.pal" +
-      "antir.atlasdb.protos.generated.ValueByte" +
-      "Order\022\035\n\025hasUniformPartitioner\030\004 \001(\010\022\032\n\022" +
-      "explicitPartitions\030\005 \003(\t\"\310\001\n\031ColumnMetad" +
-      "ataDescription\022S\n\014namedColumns\030\001 \003(\0132=.c" +
-      "om.palantir.atlasdb.protos.generated.Nam",
-      "edColumnDescription\022V\n\rdynamicColumn\030\002 \001" +
-      "(\0132?.com.palantir.atlasdb.protos.generat" +
-      "ed.DynamicColumnDescription\"\300\001\n\030DynamicC" +
-      "olumnDescription\022V\n\016columnNameDesc\030\001 \002(\013" +
-      "2>.com.palantir.atlasdb.protos.generated" +
-      ".NameMetadataDescription\022L\n\005value\030\002 \002(\0132" +
-      "=.com.palantir.atlasdb.protos.generated." +
-      "ColumnValueDescription\"\213\001\n\026NamedColumnDe" +
-      "scription\022\021\n\tshortName\030\001 \002(\t\022\020\n\010longName" +
-      "\030\002 \002(\t\022L\n\005value\030\003 \002(\0132=.com.palantir.atl",
-      "asdb.protos.generated.ColumnValueDescrip" +
-      "tion\"\274\003\n\026ColumnValueDescription\022>\n\004type\030" +
-      "\001 \002(\01620.com.palantir.atlasdb.protos.gene" +
-      "rated.ValueType\022\021\n\tclassName\030\002 \001(\t\022M\n\013co" +
-      "mpression\030\003 \001(\01622.com.palantir.atlasdb.p" +
-      "rotos.generated.Compression:\004NONE\022H\n\006for" +
-      "mat\030\004 \001(\01628.com.palantir.atlasdb.protos." +
-      "generated.ColumnValueFormat\022\032\n\022canonical" +
-      "ClassName\030\005 \001(\t\022\037\n\023protoFileDescriptor\030\006" +
-      " \001(\014B\002\030\001\022\030\n\020protoMessageName\030\007 \001(\t\022_\n\027pr",
-      "otoFileDescriptorTree\030\010 \001(\0132>.com.palant" +
-      "ir.atlasdb.protos.generated.FileDescript" +
-      "orTreeProto\"\214\001\n\027FileDescriptorTreeProto\022" +
-      "\033\n\023protoFileDescriptor\030\001 \002(\014\022T\n\014dependen" +
-      "cies\030\002 \003(\0132>.com.palantir.atlasdb.protos" +
-      ".generated.FileDescriptorTreeProto*\273\001\n\tV" +
-      "alueType\022\014\n\010VAR_LONG\020\001\022\016\n\nFIXED_LONG\020\002\022\n" +
-      "\n\006STRING\020\003\022\010\n\004BLOB\020\004\022\023\n\017VAR_SIGNED_LONG\020" +
-      "\005\022\034\n\030FIXED_LONG_LITTLE_ENDIAN\020\006\022\016\n\nSHA25" +
-      "6HASH\020\007\022\016\n\nVAR_STRING\020\010\022\027\n\023NULLABLE_FIXE",
-      "D_LONG\020\t\022\016\n\nSIZED_BLOB\020\n*#\n\013Compression\022" +
-      "\010\n\004NONE\020\001\022\n\n\006SNAPPY\020\002*N\n\021ColumnValueForm" +
-      "at\022\t\n\005PROTO\020\001\022\017\n\013PERSISTABLE\020\002\022\016\n\nVALUE_" +
-      "TYPE\020\003\022\r\n\tPERSISTER\020\004*/\n\016ValueByteOrder\022" +
-      "\r\n\tASCENDING\020\001\022\016\n\nDESCENDING\020\002*\215\001\n\024Table" +
-      "ConflictHandler\022\016\n\nIGNORE_ALL\020\001\022\030\n\024RETRY" +
-      "_ON_WRITE_WRITE\020\002\022\032\n\026RETRY_ON_VALUE_CHAN" +
-      "GED\020\003\022\020\n\014SERIALIZABLE\020\004\022\035\n\031RETRY_ON_WRIT" +
-      "E_WRITE_CELL\020\005*F\n\rCachePriority\022\013\n\007COLDE" +
-      "ST\020\000\022\010\n\004COLD\020 \022\010\n\004WARM\020@\022\007\n\003HOT\020`\022\013\n\007HOT",
-      "TEST\020\177**\n\021PartitionStrategy\022\013\n\007ORDERED\020\000" +
-      "\022\010\n\004HASH\020\001*<\n\rSweepStrategy\022\013\n\007NOTHING\020\000" +
-      "\022\020\n\014CONSERVATIVE\020\001\022\014\n\010THOROUGH\020\002*;\n\022Expi" +
-      "rationStrategy\022\t\n\005NEVER\020\000\022\032\n\026INDIVIDUALL" +
-      "Y_SPECIFIED\020\001"
+      "sionBlockSizeKiloBytes\030\n \001(\005\"\214\001\n\027NameMet" +
+      "adataDescription\022R\n\tnameParts\030\001 \003(\0132?.co",
+      "m.palantir.atlasdb.protos.generated.Name" +
+      "ComponentDescription\022\035\n\025hasFirstComponen" +
+      "tHash\030\002 \001(\010\"\362\001\n\030NameComponentDescription" +
+      "\022\025\n\rcomponentName\030\001 \002(\t\022>\n\004type\030\002 \002(\01620." +
+      "com.palantir.atlasdb.protos.generated.Va" +
+      "lueType\022D\n\005order\030\003 \002(\01625.com.palantir.at" +
+      "lasdb.protos.generated.ValueByteOrder\022\035\n" +
+      "\025hasUniformPartitioner\030\004 \001(\010\022\032\n\022explicit" +
+      "Partitions\030\005 \003(\t\"\310\001\n\031ColumnMetadataDescr" +
+      "iption\022S\n\014namedColumns\030\001 \003(\0132=.com.palan",
+      "tir.atlasdb.protos.generated.NamedColumn" +
+      "Description\022V\n\rdynamicColumn\030\002 \001(\0132?.com" +
+      ".palantir.atlasdb.protos.generated.Dynam" +
+      "icColumnDescription\"\300\001\n\030DynamicColumnDes" +
+      "cription\022V\n\016columnNameDesc\030\001 \002(\0132>.com.p" +
+      "alantir.atlasdb.protos.generated.NameMet" +
+      "adataDescription\022L\n\005value\030\002 \002(\0132=.com.pa" +
+      "lantir.atlasdb.protos.generated.ColumnVa" +
+      "lueDescription\"\213\001\n\026NamedColumnDescriptio" +
+      "n\022\021\n\tshortName\030\001 \002(\t\022\020\n\010longName\030\002 \002(\t\022L",
+      "\n\005value\030\003 \002(\0132=.com.palantir.atlasdb.pro" +
+      "tos.generated.ColumnValueDescription\"\274\003\n" +
+      "\026ColumnValueDescription\022>\n\004type\030\001 \002(\01620." +
+      "com.palantir.atlasdb.protos.generated.Va" +
+      "lueType\022\021\n\tclassName\030\002 \001(\t\022M\n\013compressio" +
+      "n\030\003 \001(\01622.com.palantir.atlasdb.protos.ge" +
+      "nerated.Compression:\004NONE\022H\n\006format\030\004 \001(" +
+      "\01628.com.palantir.atlasdb.protos.generate" +
+      "d.ColumnValueFormat\022\032\n\022canonicalClassNam" +
+      "e\030\005 \001(\t\022\037\n\023protoFileDescriptor\030\006 \001(\014B\002\030\001",
+      "\022\030\n\020protoMessageName\030\007 \001(\t\022_\n\027protoFileD" +
+      "escriptorTree\030\010 \001(\0132>.com.palantir.atlas" +
+      "db.protos.generated.FileDescriptorTreePr" +
+      "oto\"\214\001\n\027FileDescriptorTreeProto\022\033\n\023proto" +
+      "FileDescriptor\030\001 \002(\014\022T\n\014dependencies\030\002 \003" +
+      "(\0132>.com.palantir.atlasdb.protos.generat" +
+      "ed.FileDescriptorTreeProto*\273\001\n\tValueType" +
+      "\022\014\n\010VAR_LONG\020\001\022\016\n\nFIXED_LONG\020\002\022\n\n\006STRING" +
+      "\020\003\022\010\n\004BLOB\020\004\022\023\n\017VAR_SIGNED_LONG\020\005\022\034\n\030FIX" +
+      "ED_LONG_LITTLE_ENDIAN\020\006\022\016\n\nSHA256HASH\020\007\022",
+      "\016\n\nVAR_STRING\020\010\022\027\n\023NULLABLE_FIXED_LONG\020\t" +
+      "\022\016\n\nSIZED_BLOB\020\n*#\n\013Compression\022\010\n\004NONE\020" +
+      "\001\022\n\n\006SNAPPY\020\002*N\n\021ColumnValueFormat\022\t\n\005PR" +
+      "OTO\020\001\022\017\n\013PERSISTABLE\020\002\022\016\n\nVALUE_TYPE\020\003\022\r" +
+      "\n\tPERSISTER\020\004*/\n\016ValueByteOrder\022\r\n\tASCEN" +
+      "DING\020\001\022\016\n\nDESCENDING\020\002*\215\001\n\024TableConflict" +
+      "Handler\022\016\n\nIGNORE_ALL\020\001\022\030\n\024RETRY_ON_WRIT" +
+      "E_WRITE\020\002\022\032\n\026RETRY_ON_VALUE_CHANGED\020\003\022\020\n" +
+      "\014SERIALIZABLE\020\004\022\035\n\031RETRY_ON_WRITE_WRITE_" +
+      "CELL\020\005*F\n\rCachePriority\022\013\n\007COLDEST\020\000\022\010\n\004",
+      "COLD\020 \022\010\n\004WARM\020@\022\007\n\003HOT\020`\022\013\n\007HOTTEST\020\177**" +
+      "\n\021PartitionStrategy\022\013\n\007ORDERED\020\000\022\010\n\004HASH" +
+      "\020\001*<\n\rSweepStrategy\022\013\n\007NOTHING\020\000\022\020\n\014CONS" +
+      "ERVATIVE\020\001\022\014\n\010THOROUGH\020\002*;\n\022ExpirationSt" +
+      "rategy\022\t\n\005NEVER\020\000\022\032\n\026INDIVIDUALLY_SPECIF" +
+      "IED\020\001"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -8743,7 +8825,7 @@ public final class TableMetadataPersistence {
     internal_static_com_palantir_atlasdb_protos_generated_NameMetadataDescription_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_com_palantir_atlasdb_protos_generated_NameMetadataDescription_descriptor,
-        new java.lang.String[] { "NameParts", });
+        new java.lang.String[] { "NameParts", "HasFirstComponentHash", });
     internal_static_com_palantir_atlasdb_protos_generated_NameComponentDescription_descriptor =
       getDescriptor().getMessageTypes().get(2);
     internal_static_com_palantir_atlasdb_protos_generated_NameComponentDescription_fieldAccessorTable = new
