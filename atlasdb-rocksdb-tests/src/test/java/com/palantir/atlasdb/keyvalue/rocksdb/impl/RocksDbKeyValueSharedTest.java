@@ -15,12 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.rocksdb.impl;
 
-import java.io.File;
-
-import org.iq80.leveldb.DBFactory;
-import org.iq80.leveldb.Options;
-import org.junit.Test;
-
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.AbstractAtlasDbKeyValueServiceTest;
 
