@@ -1096,7 +1096,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         }
         ResultSet resultSet;
         try {
-            resultSet = session.executeAsync(preparedStatement.bind()).getUninterruptibly();
+            resultSet = session.executeAsync(boundStatement).getUninterruptibly();
             resultSet.all();
         } catch (com.datastax.driver.core.exceptions.UnavailableException e) {
             throw new InsufficientConsistencyException("Create table requires all Cassandra nodes to be up and available.", e);
