@@ -149,18 +149,12 @@ public interface KeyValueService extends AutoCloseable {
      * If the key-value store supports durability, this call guarantees that the
      * requests have successfully been written to disk before returning.
      * <p>
-     * This method may be non-idempotent. On some write-once implementations retrying this call may result in failure.
-     * Usually the way around this is to bump the timestamp if you wish to retry.
-     * <p>
      * Putting a null value is the same as putting the empty byte[].  If you want to delete a value
      * try {@link #delete(String, Multimap)}.
-     *
-     * This method should NEVER write a value if timestamp &lt;= gc_ts. This means that the
-     * checkAndAct must be atomic.
-     *
+     * <p>
      * May throw KeyAlreadyExistsException, if storing a different value to existing key,
      * but this is not guaranteed even if the key exists - see {@link putUnlessExists}.
-     *
+     * <p>
      * Must not throw KeyAlreadyExistsException when overwriting a cell with the original value (idempotent).
      *
      * @param tableName the name of the table to put values into.
@@ -184,16 +178,13 @@ public interface KeyValueService extends AutoCloseable {
      * If the key-value store supports durability, this call guarantees that the
      * requests have successfully been written to disk before returning.
      * <p>
-     * This method may be non-idempotent. On some write-once implementations retrying this call may result in failure.
-     * Usually the way around this is to bump the timestamp if you wish to retry.
-     * <p>
      * Putting a null value is the same as putting the empty byte[].  If you want to delete a value
      * try {@link #delete(String, Multimap)}.
-     *
-     * This method should NEVER write a value if timestamp &lt;= gc_ts. This means that the
-     * checkAndAct must be atomic.
-     *
-     * May throw KeyAlreadyExistsException, but this is not guaranteed even if the key exists - see {@link #putUnlessExists(String, Map)}.
+     * <p>
+     * May throw KeyAlreadyExistsException, if storing a different value to existing key,
+     * but this is not guaranteed even if the key exists - see {@link putUnlessExists}.
+     * <p>
+     * Must not throw KeyAlreadyExistsException when overwriting a cell with the original value (idempotent).
      *
      * @param valuesByTable map containing the key-value entries to put by table.
      * @param timestamp must be non-negative and not equal to {@link Long#MAX_VALUE}
@@ -201,6 +192,7 @@ public interface KeyValueService extends AutoCloseable {
     @POST
     @Path("multi-put")
     @Consumes(MediaType.APPLICATION_JSON)
+    @Idempotent
     void multiPut(Map<String, ? extends Map<Cell, byte[]>> valuesByTable,
                   @QueryParam("timestamp") long timestamp) throws KeyAlreadyExistsException;
 
@@ -218,8 +210,11 @@ public interface KeyValueService extends AutoCloseable {
      * <p>
      * Putting a null value is the same as putting the empty byte[].  If you want to delete a value
      * try {@link #delete(String, Multimap)}.
-     *
-     * May throw KeyAlreadyExistsException, but this is not guaranteed even if the key exists - see {@link #putUnlessExists(String, Map)}.
+     * <p>
+     * May throw KeyAlreadyExistsException, if storing a different value to existing key,
+     * but this is not guaranteed even if the key exists - see {@link putUnlessExists}.
+     * <p>
+     * Must not throw KeyAlreadyExistsException when overwriting a cell with the original value (idempotent).
      *
      * @param tableName the name of the table to put values into.
      * @param cellValues map containing the key-value entries to put with
@@ -229,6 +224,7 @@ public interface KeyValueService extends AutoCloseable {
     @Path("put-with-timestamps")
     @Consumes(MediaType.APPLICATION_JSON)
     @NonIdempotent
+    @Idempotent
     void putWithTimestamps(@QueryParam("tableName") String tableName,
                            Multimap<Cell, Value> cellValues) throws KeyAlreadyExistsException;
 
