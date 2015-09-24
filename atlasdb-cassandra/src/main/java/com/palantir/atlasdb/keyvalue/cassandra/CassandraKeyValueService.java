@@ -201,6 +201,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     // Can't call system_update_keyspace to update replication factor if CfDefs are set
                     ks.setCf_defs(ImmutableList.<CfDef>of());
                     client.system_update_keyspace(ks);
+                    CassandraKeyValueServices.waitForSchemaVersions(client, "(updating the existing keyspace)");
                     client.set_keyspace(keyspace);
                     createTableInternal(client, CassandraConstants.METADATA_TABLE);
                     CassandraVerifier.sanityCheckRingConsistency(currentHosts, port, keyspace, config.ssl(), safetyDisabled, socketTimeoutMillis, socketQueryTimeoutMillis);
@@ -214,6 +215,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 lowerConsistencyWhenSafe(client, ks, replicationFactor);
                 ks.setDurable_writes(true);
                 client.system_add_keyspace(ks);
+                CassandraKeyValueServices.waitForSchemaVersions(client, "(adding the initial empty keyspace)");
                 client.set_keyspace(keyspace);
                 createTableInternal(client, CassandraConstants.METADATA_TABLE);
                 CassandraVerifier.sanityCheckRingConsistency(currentHosts, port, keyspace, config.ssl(), safetyDisabled, socketTimeoutMillis, socketQueryTimeoutMillis);
