@@ -64,8 +64,8 @@ public class DynamicPartitionMapTest extends AbstractPartitionMapTest {
 
     @Test
     public void testRemoveEndpoint() {
-        testCellsRead(svc234, sampleCell);
-        testCellsWrite(svc234, sampleCell);
+        getTestUtils().testCellsRead(svc234, sampleCell);
+        getTestUtils().testCellsWrite(svc234, sampleCell);
 
         assertEquals(true, dpm.removeEndpoint(newByteArray(0, 5)));
         /**
@@ -73,8 +73,8 @@ public class DynamicPartitionMapTest extends AbstractPartitionMapTest {
          * The reads should still come from (2, 3, 4).
          * The writes should be directed to (2, 3, 4, 5).
          */
-        testCellsRead(svc234, sampleCell);
-        testCellsWrite(svc2345, sampleCell);
+        getTestUtils().testCellsRead(svc234, sampleCell);
+        getTestUtils().testCellsWrite(svc2345, sampleCell);
 
         dpm.backfillRemovedEndpoint(newByteArray(0, 5));
         dpm.promoteRemovedEndpoint(newByteArray(0, 5));
@@ -83,26 +83,26 @@ public class DynamicPartitionMapTest extends AbstractPartitionMapTest {
          * Reads -> (3, 4, 5)
          * Writes -> (3, 4, 5)
          */
-        testCellsRead(svc345, sampleCell);
-        testCellsWrite(svc345, sampleCell);
+        getTestUtils().testCellsRead(svc345, sampleCell);
+        getTestUtils().testCellsWrite(svc345, sampleCell);
 
         assertEquals(true, dpm.addEndpoint(newByteArray(0, 5), endpoints.get(2)));
         dpm.backfillAddedEndpoint(newByteArray(0, 5));
         dpm.promoteAddedEndpoint(newByteArray(0, 5));
-        testCellsRead(svc234, sampleCell);
-        testCellsWrite(svc234, sampleCell);
+        getTestUtils().testCellsRead(svc234, sampleCell);
+        getTestUtils().testCellsWrite(svc234, sampleCell);
     }
 
     @Test
     public void testAddEndpoint() {
-        testCellsRead(svc234, sampleCell);
-        testCellsWrite(svc234, sampleCell);
+        getTestUtils().testCellsRead(svc234, sampleCell);
+        getTestUtils().testCellsWrite(svc234, sampleCell);
 
         assertEquals(true, dpm.removeEndpoint(newByteArray(0, 5)));
         dpm.backfillRemovedEndpoint(newByteArray(0, 5));
         dpm.promoteRemovedEndpoint(newByteArray(0, 5));
-        testCellsRead(svc345, sampleCell);
-        testCellsWrite(svc345, sampleCell);
+        getTestUtils().testCellsRead(svc345, sampleCell);
+        getTestUtils().testCellsWrite(svc345, sampleCell);
 
         assertEquals(true, dpm.addEndpoint(newByteArray(0, 5), endpoints.get(2)));
 
@@ -111,13 +111,13 @@ public class DynamicPartitionMapTest extends AbstractPartitionMapTest {
          * The reads should be directed to (3, 4, 5).
          * Writes should be directed to (2, 3, 4, 5).
          */
-        testCellsRead(svc345, sampleCell);
-        testCellsWrite(svc2345, sampleCell);
+        getTestUtils().testCellsRead(svc345, sampleCell);
+        getTestUtils().testCellsWrite(svc2345, sampleCell);
 
         dpm.backfillAddedEndpoint(newByteArray(0, 5));
         dpm.promoteAddedEndpoint(newByteArray(0, 5));
-        testCellsRead(svc234, sampleCell);
-        testCellsWrite(svc234, sampleCell);
+        getTestUtils().testCellsRead(svc234, sampleCell);
+        getTestUtils().testCellsWrite(svc234, sampleCell);
     }
 
     /**

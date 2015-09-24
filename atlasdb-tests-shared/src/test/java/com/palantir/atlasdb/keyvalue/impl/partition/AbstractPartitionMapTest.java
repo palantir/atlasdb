@@ -42,7 +42,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multiset;
 import com.google.common.primitives.UnsignedBytes;
-import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
@@ -53,7 +52,6 @@ import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.map.InMemoryPartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
 import com.palantir.atlasdb.keyvalue.partition.util.ConsistentRingRangeRequest;
-import com.palantir.common.collect.Maps2;
 import com.palantir.util.Pair;
 
 public abstract class AbstractPartitionMapTest {
@@ -80,6 +78,11 @@ public abstract class AbstractPartitionMapTest {
     private PartitionMap tpm;
     protected abstract PartitionMap getPartitionMap(QuorumParameters qp,
                                                     NavigableMap<byte[], KeyValueEndpoint> ring);
+
+    private PartitionMapTestUtils testUtils;
+    protected final PartitionMapTestUtils getTestUtils() {
+        return testUtils;
+    }
 
     static protected byte[] newByteArray(int... bytes) {
         byte[] result = new byte[bytes.length];
@@ -203,56 +206,7 @@ public abstract class AbstractPartitionMapTest {
             ring.put(points[i], endpoints.get(i));
         }
         tpm = getPartitionMap(qp, ring);
-    }
-
-    protected void testRows(Map<KeyValueService, Set<byte[]>> expected, Collection<byte[]> rows) {
-        final Map<KeyValueService, Set<byte[]>> result = Maps.newHashMap();
-        tpm.runForRowsRead(TABLE1, rows, new Function<Pair<KeyValueService,Iterable<byte[]>>, Void>() {
-            @Override
-            public Void apply(@Nullable Pair<KeyValueService, Iterable<byte[]>> input) {
-                result.put(input.lhSide, ImmutableSortedSet
-                                .<byte[]> orderedBy(UnsignedBytes.lexicographicalComparator())
-                                .addAll(input.rhSide).build());
-                return null;
-            }
-        });
-        assertEquals(expected, result);
-    }
-
-    protected void testCellsRead(Map<KeyValueService, Set<Cell>> expected, Set<Cell> cells) {
-        final Map<KeyValueService, Set<Cell>> result = Maps.newHashMap();
-        tpm.runForCellsRead(TABLE1, cells, new Function<Pair<KeyValueService, Set<Cell>>, Void>() {
-            @Override
-            public Void apply(Pair<KeyValueService, Set<Cell>> input) {
-                result.put(input.lhSide, input.rhSide);
-                return null;
-            }
-        });
-        assertEquals(expected, result);
-    }
-
-    protected void testCellsRead(Set<KeyValueService> expected, Cell cell) {
-        Map<KeyValueService, Set<Cell>> expectedMap = Maps2
-                .<KeyValueService, Set<Cell>> createConstantValueMap(expected, ImmutableSet.of(cell));
-        testCellsRead(expectedMap, ImmutableSet.of(cell));
-    }
-
-    protected void testCellsWrite(Map<KeyValueService, Set<Cell>> expected, Set<Cell> cells) {
-        final Map<KeyValueService, Set<Cell>> result = Maps.newHashMap();
-        tpm.runForCellsWrite(TABLE1, cells, new Function<Pair<KeyValueService, Set<Cell>>, Void>() {
-            @Override
-            public Void apply(Pair<KeyValueService, Set<Cell>> input) {
-                result.put(input.lhSide, input.rhSide);
-                return null;
-            }
-        });
-        assertEquals(expected, result);
-    }
-
-    protected void testCellsWrite(Set<KeyValueService> expected, Cell cell) {
-        Map<KeyValueService, Set<Cell>> expectedMap = Maps2
-                .<KeyValueService, Set<Cell>> createConstantValueMap(expected, ImmutableSet.of(cell));
-        testCellsWrite(expectedMap, ImmutableSet.of(cell));
+        testUtils = new PartitionMapTestUtils(tpm, TABLE1);
     }
 
     @Test
@@ -274,35 +228,35 @@ public abstract class AbstractPartitionMapTest {
         Map<KeyValueService, Set<byte[]>> expected0 = ImmutableMap.<KeyValueService, Set<byte[]>>of(services.get(0), ImmutableSet.of(row0),
         																							services.get(1), ImmutableSet.of(row0),
         																							services.get(2), ImmutableSet.of(row0));
-        testRows(expected0, ImmutableList.of(row0));
+        testUtils.testRows(expected0, ImmutableList.of(row0));
 
         Map<KeyValueService, Set<byte[]>> expected1 = ImmutableMap.<KeyValueService, Set<byte[]>>of(services.get(1), ImmutableSet.of(row1),
                                                                                                     services.get(2), ImmutableSet.of(row1),
                                                                                                     services.get(3), ImmutableSet.of(row1));
-        testRows(expected1, ImmutableList.of(row1));
+        testUtils.testRows(expected1, ImmutableList.of(row1));
 
         Map<KeyValueService, Set<byte[]>> expected2 = ImmutableMap.<KeyValueService, Set<byte[]>>of(services.get(1), ImmutableSet.of(row2),
                                                                                                     services.get(2), ImmutableSet.of(row2),
                                                                                                     services.get(3), ImmutableSet.of(row2));
-        testRows(expected2, ImmutableList.of(row2));
+        testUtils.testRows(expected2, ImmutableList.of(row2));
 
         Map<KeyValueService, Set<byte[]>> expected3 = ImmutableMap.<KeyValueService, Set<byte[]>>of(services.get(6), ImmutableSet.of(row3),
                                                                                                     services.get(0), ImmutableSet.of(row3),
                                                                                                     services.get(1), ImmutableSet.of(row3));
-        testRows(expected3, ImmutableList.of(row3));
+        testUtils.testRows(expected3, ImmutableList.of(row3));
 
         Map<KeyValueService, Set<byte[]>> expected4 = ImmutableMap.<KeyValueService, Set<byte[]>>of(services.get(0), ImmutableSet.of(row4),
                                                                                                     services.get(1), ImmutableSet.of(row4),
                                                                                                     services.get(2), ImmutableSet.of(row4));
-        testRows(expected4, ImmutableList.of(row4));
+        testUtils.testRows(expected4, ImmutableList.of(row4));
 
         Map<KeyValueService, Set<byte[]>> expected5 = ImmutableMap.<KeyValueService, Set<byte[]>>of(services.get(0), ImmutableSet.of(row5),
                                                                                                     services.get(1), ImmutableSet.of(row5),
                                                                                                     services.get(2), ImmutableSet.of(row5));
-        testRows(expected5, ImmutableList.of(row5));
+        testUtils.testRows(expected5, ImmutableList.of(row5));
 
         Map<KeyValueService, Set<byte[]>> expectedEmpty = ImmutableMap.<KeyValueService, Set<byte[]>>of();
-        testRows(expectedEmpty, ImmutableList.<byte[]>of());
+        testUtils.testRows(expectedEmpty, ImmutableList.<byte[]>of());
     }
 
     @Test
