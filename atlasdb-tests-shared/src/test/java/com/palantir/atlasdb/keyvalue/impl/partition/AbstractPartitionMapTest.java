@@ -203,8 +203,6 @@ public abstract class AbstractPartitionMapTest {
             ring.put(points[i], endpoints.get(i));
         }
         tpm = getPartitionMap(qp, ring);
-//        tpm = BasicPartitionMap.create(qp, ring);
-//        tpm = new DynamicPartitionMapImpl(qp, ring);
     }
 
     protected void testRows(Map<KeyValueService, Set<byte[]>> expected, Collection<byte[]> rows) {
