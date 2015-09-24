@@ -58,11 +58,13 @@ import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
+import com.google.common.collect.Ordering;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
@@ -180,8 +182,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                             "WHERE " + Columns.ROW("t") + " IN (" + makeSlots("row", rows.size()) + ") " +
             				"    AND " + Columns.TIMESTAMP("t2") + " IS NULL" +
                             // This is a LEFT JOIN -> the below condition cannot be in ON clause
-                            "    AND " + Columns.TIMESTAMP("t") + " < " + timestamp +
-                            "ORDER BY " + Columns.ROW("t") + "," + Columns.COLUMN("t") + "," + Columns.TIMESTAMP("t"))
+                            "    AND " + Columns.TIMESTAMP("t") + " < " + timestamp)
                             .map(CellValueMapper.instance());
                     AtlasSqlUtils.bindAll(query, rows);
                     list = query.list();
@@ -201,9 +202,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
             				"    AND " + Columns.COLUMN("t") + " IN (" + makeSlots("column", columns.size()) + ") " +
                     		"    AND " + Columns.TIMESTAMP("t2") + " IS NULL " +
                             // This is a LEFT JOIN -> the below condition cannot be in ON clause
-                            "    AND " + Columns.TIMESTAMP("t") + " < " + timestamp + " " +
-                            "ORDER BY " + Columns.ROW("t") + "," + Columns.COLUMN("t") + "," +
-                            "    " + Columns.TIMESTAMP("t"))
+                            "    AND " + Columns.TIMESTAMP("t") + " < " + timestamp)
                     		.map(CellValueMapper.instance());
 
                     AtlasSqlUtils.bindAll(query, rows);
@@ -450,36 +449,49 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
     }
 
     // *** getRange *******************************************************************************
-    private List<byte[]> getRowsInRange(String tableName,
+    private Collection<byte[]> getRowsInRange(String tableName,
                                         RangeRequest rangeRequest,
                                         long timestamp,
                                         int limit,
                                         Handle handle) {
-        return handle.createQuery(
-                "SELECT DISTINCT " + Columns.ROW + " FROM " + USR_TABLE(tableName) + " " +
-                "WHERE " + Columns.ROW + " >= :startRow" +
-                "    AND " + Columns.ROW + " < :endRow " +
-                "    AND " + Columns.TIMESTAMP + " < :timestamp " +
-                "ORDER BY " + Columns.ROW + " " +
-                "LIMIT :limit")
-                .bind("startRow", rangeRequest.getStartInclusive())
-                .bind("endRow", RangeRequests.endRowExclusiveOrOneAfterMax(rangeRequest))
-                .bind("timestamp", timestamp)
-                .bind("limit", limit)
-                .map(ByteArrayMapper.FIRST)
-                .list();
+        if (rangeRequest.isReverse()) {
+            return handle.createQuery(
+                    "SELECT DISTINCT " + Columns.ROW + " FROM " + USR_TABLE(tableName) + " " +
+                    "WHERE " + Columns.ROW + " <= :startRow" +
+                    "    AND " + Columns.ROW + " > :endRow " +
+                    "    AND " + Columns.TIMESTAMP + " < :timestamp " +
+                    "LIMIT :limit")
+                    .bind("startRow", RangeRequests.startRowInclusiveOrLargestRow(rangeRequest))
+                    .bind("endRow", rangeRequest.getEndExclusive())
+                    .bind("timestamp", timestamp)
+                    .bind("limit", limit)
+                    .map(ByteArrayMapper.FIRST)
+                    .list();
+        } else {
+            return handle.createQuery(
+                    "SELECT DISTINCT " + Columns.ROW + " FROM " + USR_TABLE(tableName) + " " +
+                    "WHERE " + Columns.ROW + " >= :startRow" +
+                    "    AND " + Columns.ROW + " < :endRow " +
+                    "    AND " + Columns.TIMESTAMP + " < :timestamp " +
+                    "LIMIT :limit")
+                    .bind("startRow", rangeRequest.getStartInclusive())
+                    .bind("endRow", RangeRequests.endRowExclusiveOrOneAfterMax(rangeRequest))
+                    .bind("timestamp", timestamp)
+                    .bind("limit", limit)
+                    .map(ByteArrayMapper.FIRST)
+                    .list();
+        }
     }
 
     private TokenBackedBasicResultsPage<RowResult<Value>, byte[]> getPage(final String tableName,
                                                                           final RangeRequest rangeRequest,
                                                                           final long timestamp) {
-        Preconditions.checkArgument(!rangeRequest.isReverse());
         final int maxRows = getBatchSize(rangeRequest);
         return getDbi().withHandle(new HandleCallback<TokenBackedBasicResultsPage<RowResult<Value>, byte[]>>() {
             @Override
             public TokenBackedBasicResultsPage<RowResult<Value>, byte[]> withHandle(Handle handle)
                     throws Exception {
-                List<byte[]> rows = getRowsInRange(tableName, rangeRequest,
+                Collection<byte[]> rows = getRowsInRange(tableName, rangeRequest,
                         timestamp, maxRows, handle);
                 if (rows.isEmpty()) {
                     return SimpleTokenBackedResultsPage.create( rangeRequest.getStartInclusive(),
@@ -487,11 +499,14 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                 }
                 ColumnSelection columns = RangeRequests.extractColumnSelection(rangeRequest);
                 Map<Cell, Value> cells = getRows(tableName, rows, columns, timestamp);
-                List<RowResult<Value>> result = AtlasSqlUtils.cellsToRows(cells);
+
+                final Ordering<RowResult<Value>> ordering = RowResult.<Value>getOrderingByRowName(rangeRequest.isReverse());
+                final SortedSet<RowResult<Value>> result = ImmutableSortedSet.orderedBy(ordering)
+                            .addAll(AtlasSqlUtils.cellsToRows(cells)).build();
 
                 return SimpleTokenBackedResultsPage.create(
-                        AtlasSqlUtils.generateToken(rangeRequest, rows),
-                        assertThatRowResultsAreOrdered(result), rows.size() == maxRows);
+                        AtlasSqlUtils.generateToken(rangeRequest, result.last().getRowName()),
+                        assertThatRowResultsAreOrdered(result, rangeRequest), rows.size() == maxRows);
             }
         });
     }
@@ -501,9 +516,6 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
     public ClosableIterator<RowResult<Value>> getRange(final String tableName,
                                                        final RangeRequest rangeRequest,
                                                        final long timestamp) {
-        if (rangeRequest.isReverse()) {
-            throw new UnsupportedOperationException();
-        }
         return ClosableIterators.wrap(new AbstractPagingIterable<RowResult<Value>, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>>() {
             @Override
             protected TokenBackedBasicResultsPage<RowResult<Value>, byte[]> getFirstPage()
@@ -533,80 +545,86 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                         "FROM " + USR_TABLE(tableName, "t") + " " +
                         "WHERE (" + Columns.ROW + ") IN (" +
                         "    " + makeSlots("row", rows.size(), 1) + ") " +
-                        "    AND " + Columns.TIMESTAMP("t") + " < " + timestamp + " " +
-                        "ORDER BY " + Columns.ROW("t") + "," + Columns.COLUMN("t") + "," +
-                        "    " + Columns.TIMESTAMP("t"))
+                        "    AND " + Columns.TIMESTAMP("t") + " < " + timestamp)
                         .map(CellValueMapper.instance());
                 AtlasSqlUtils.bindAll(query, rows);
 
                 // Validate proper row ordering
                 List<Pair<Cell, Value>> list = query.list();
-                assertThatRowsAreOrdered(Iterables.transform(list, new Function<Pair<Cell, Value>, byte[]>() {
-                    @Override
-                    public byte[] apply(Pair<Cell, Value> input) {
-                        return input.lhSide.getRowName();
-                    }
-                }));
-
                 ListMultimap<Cell, Value> ret = AtlasSqlUtils.listToListMultimap(list);
-
-                // Validate proper row ordering
-                assertThatRowsAreOrdered(Iterables.transform(ret.keys(), new Function<Cell, byte[]>() {
-                    @Override
-                    public byte[] apply(Cell input) {
-                        return input.getRowName();
-                    }
-                }));
-
                 return ret;
             }
         });
     }
 
-    private static <T extends Iterable<byte[]>> T assertThatRowsAreOrdered(T cells) {
+    private static <T extends Iterable<byte[]>> T assertThatRowsAreOrdered(T cells, RangeRequest rangeRequest) {
         Iterator<byte[]> it = cells.iterator();
         if (!it.hasNext()) {
             return cells;
         }
+
+        final boolean reverse = rangeRequest.isReverse();
+        final byte[] startRow = rangeRequest.getStartInclusive();
+        final byte[] endRow = rangeRequest.getEndExclusive();
+
         byte[] row = it.next();
+
+        // Make sure that the first row is after startRow
+        // Only care if there is a lower-bound requested
+        if (startRow.length > 0) {
+            if (!reverse) {
+                assert UnsignedBytes.lexicographicalComparator().compare(startRow, row) <= 0;
+            } else {
+                assert UnsignedBytes.lexicographicalComparator().compare(startRow, row) >= 0;
+            }
+        }
+
+        // Make sure that rows are ordered
         while (it.hasNext()) {
             byte[] nextRow = it.next();
-            assert UnsignedBytes.lexicographicalComparator().compare(row, nextRow) <= 0;
+
+            if (!reverse) {
+                assert UnsignedBytes.lexicographicalComparator().compare(row, nextRow) <= 0;
+            } else {
+                assert UnsignedBytes.lexicographicalComparator().compare(row, nextRow) >= 0;
+            }
+
+            row = nextRow;
         }
+
+        // Make sure that the last row is before endRow
+        // Only care if there is an upper-bound requested
+        if (endRow.length > 0) {
+            if (!reverse) {
+                assert UnsignedBytes.lexicographicalComparator().compare(row, endRow) < 0;
+            } else {
+                assert UnsignedBytes.lexicographicalComparator().compare(row, endRow) > 0;
+            }
+        }
+
         return cells;
     }
 
-    private static <U, T extends Iterable<RowResult<U>>> T assertThatRowResultsAreOrdered(T rows) {
+    private static <U, T extends Iterable<RowResult<U>>> T assertThatRowResultsAreOrdered(T rows, RangeRequest rangeRequest) {
         assertThatRowsAreOrdered(Iterables.transform(rows, new Function<RowResult<?>, byte[]>() {
             @Override
             public byte[] apply(RowResult<?> input) {
                 return input.getRowName();
             }
-        }));
+        }), rangeRequest);
         return rows;
-    }
-
-    private static <T extends Iterable<Cell>> T assertThatRowsInCellsAreOrdered(T cells) {
-        assertThatRowsAreOrdered(Iterables.transform(cells, new Function<Cell, byte[]>() {
-            @Override
-            public byte[] apply(Cell input) {
-                return input.getRowName();
-            }
-        }));
-        return cells;
     }
 
     private TokenBackedBasicResultsPage<RowResult<Set<Value>>, byte[]> getPageWithHistory(final String tableName,
                                                                                   final RangeRequest rangeRequest,
                                                                                   final long timestamp) {
-        Preconditions.checkArgument(!rangeRequest.isReverse());
         final int maxRows = getBatchSize(rangeRequest);
         return getDbi().withHandle(
                 new HandleCallback<TokenBackedBasicResultsPage<RowResult<Set<Value>>, byte[]>>() {
                     @Override
                     public TokenBackedBasicResultsPage<RowResult<Set<Value>>, byte[]> withHandle(Handle handle)
                             throws Exception {
-                        List<byte[]> rows = getRowsInRange(tableName, rangeRequest, timestamp, maxRows, handle);
+                        Collection<byte[]> rows = getRowsInRange(tableName, rangeRequest, timestamp, maxRows, handle);
                         if (rows.isEmpty()) {
                             return SimpleTokenBackedResultsPage.create(rangeRequest.getStartInclusive(),
                                     Collections.<RowResult<Set<Value>>> emptyList(), false);
@@ -614,14 +632,13 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                         ListMultimap<Cell, Value> timestamps = getAllVersionsInternal(tableName, rows,
                                 RangeRequests.extractColumnSelection(rangeRequest), timestamp);
 
-                        // Validate proper ordering
-                        assertThatRowsInCellsAreOrdered(timestamps.keys());
-
-                        List<RowResult<Set<Value>>> finalResult = AtlasSqlUtils.cellsToRows(timestamps);
+                        final Ordering<RowResult<Set<Value>>> ordering = RowResult.getOrderingByRowName(rangeRequest.isReverse());
+                        final SortedSet<RowResult<Set<Value>>> result = ImmutableSortedSet.orderedBy(ordering)
+                                .addAll(AtlasSqlUtils.cellsToRows(timestamps)).build();
 
                         return SimpleTokenBackedResultsPage.create(
-                                AtlasSqlUtils.generateToken(rangeRequest, rows),
-                                assertThatRowResultsAreOrdered(finalResult),
+                                AtlasSqlUtils.generateToken(rangeRequest, result.last().getRowName()),
+                                assertThatRowResultsAreOrdered(result, rangeRequest),
                                 rows.size() == maxRows);
                     }
                 });
@@ -632,9 +649,6 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
     public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(final String tableName,
                                                                        final RangeRequest rangeRequest,
                                                                        final long timestamp) {
-        if (rangeRequest.isReverse()) {
-            throw new UnsupportedOperationException();
-        }
         return ClosableIterators.wrap(new AbstractPagingIterable<RowResult<Set<Value>>, TokenBackedBasicResultsPage<RowResult<Set<Value>>, byte[]>>() {
 
             @Override
@@ -667,9 +681,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                         "FROM " + USR_TABLE(tableName, "t") + " " +
                         "WHERE (" + Columns.ROW + ") IN (" +
                         "    " + makeSlots("row", rows.size(), 1) + ") " +
-                        "    AND " + Columns.TIMESTAMP("t") + " < " + timestamp + " " +
-                        "ORDER BY " + Columns.ROW("t") + "," + Columns.COLUMN("t") + "," +
-                        "    " + Columns.TIMESTAMP("t"))
+                        "    AND " + Columns.TIMESTAMP("t") + " < " + timestamp)
                         .map(new ResultSetMapper<Pair<Cell, Long>>() {
                             @Override
                             public Pair<Cell, Long> map(int index, ResultSet r, StatementContext ctx)
@@ -681,7 +693,6 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                         });
                 AtlasSqlUtils.bindAll(query, rows);
                 ListMultimap<Cell, Long> result = AtlasSqlUtils.listToListMultimap(query.list());
-                assertThatRowsInCellsAreOrdered(result.keys());
                 return result;
             }
         });
@@ -690,14 +701,13 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
     private TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]> getPageOfTimestamps(final String tableName,
                                                                                           final RangeRequest rangeRequest,
                                                                                           final long timestamp) {
-        Preconditions.checkArgument(!rangeRequest.isReverse());
         final int maxRows = getBatchSize(rangeRequest);
         return getDbi().withHandle(
                 new HandleCallback<TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]>>() {
                     @Override
                     public TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]> withHandle(Handle handle)
                             throws Exception {
-                        List<byte[]> rows = getRowsInRange(tableName, rangeRequest,
+                        Collection<byte[]> rows = getRowsInRange(tableName, rangeRequest,
                                 timestamp, maxRows, handle);
                         if (rows.isEmpty()) {
                             return SimpleTokenBackedResultsPage.create(rangeRequest.getStartInclusive(),
@@ -706,11 +716,14 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
 
                         ColumnSelection columns = RangeRequests.extractColumnSelection(rangeRequest);
                         ListMultimap<Cell,Long> timestamps = getAllTimestampsInternal(tableName, rows, columns, timestamp);
-                        List<RowResult<Set<Long>>> result = AtlasSqlUtils.cellsToRows(timestamps);
+
+                        final Ordering<RowResult<Set<Long>>> ordering = RowResult.<Set<Long>>getOrderingByRowName(rangeRequest.isReverse());
+                        final SortedSet<RowResult<Set<Long>>> result = ImmutableSortedSet.orderedBy(ordering)
+                                .addAll(AtlasSqlUtils.cellsToRows(timestamps)).build();
 
                         return new SimpleTokenBackedResultsPage<RowResult<Set<Long>>, byte[]>(
-                                AtlasSqlUtils.generateToken(rangeRequest, rows),
-                                assertThatRowResultsAreOrdered(result),
+                                AtlasSqlUtils.generateToken(rangeRequest, result.last().getRowName()),
+                                assertThatRowResultsAreOrdered(result, rangeRequest),
                                 rows.size() == maxRows);
                     }
                 });
@@ -722,9 +735,6 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                                                                        final RangeRequest rangeRequest,
                                                                        final long timestamp)
             throws InsufficientConsistencyException {
-        if (rangeRequest.isReverse()) {
-            throw new UnsupportedOperationException();
-        }
         return ClosableIterators.wrap(new AbstractPagingIterable<RowResult<Set<Long>>, TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]>>() {
 
             @Override
@@ -756,9 +766,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                         "FROM " + USR_TABLE(tableName, "t") + " " +
                         "WHERE (" + Columns.ROW.comma(Columns.COLUMN) + ") IN (" +
                         "    " + makeSlots("cell", cells.size(), 2) + ") " +
-                        "    AND " + Columns.TIMESTAMP("t") + " < " + timestamp + " " +
-                        "ORDER BY " + Columns.ROW("t") + "," + Columns.COLUMN("t") + "," +
-                        "    " + Columns.TIMESTAMP("t"))
+                        "    AND " + Columns.TIMESTAMP("t") + " < " + timestamp)
                         .map(new ResultSetMapper<Pair<Cell, Long>>() {
                             @Override
                             public Pair<Cell, Long> map(int index, ResultSet r, StatementContext ctx)
@@ -770,7 +778,6 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                         });
                 AtlasSqlUtils.bindCells(query, cells);
                 ListMultimap<Cell,Long> result = AtlasSqlUtils.listToListMultimap(query.list());
-                assertThatRowsInCellsAreOrdered(result.keys());
                 return result;
             }
         });

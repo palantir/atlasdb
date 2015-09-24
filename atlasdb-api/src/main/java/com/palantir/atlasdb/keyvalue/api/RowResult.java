@@ -77,6 +77,14 @@ public class RowResult<T> implements Serializable {
         return Ordering.from(UnsignedBytes.lexicographicalComparator()).onResultOf(RowResult.<T>getRowNameFun());
     }
 
+    public static <T> Ordering<RowResult<T>> getOrderingByRowName(boolean reverse) {
+        Ordering<RowResult<T>> ordering = getOrderingByRowName();
+        if (reverse) {
+            return ordering.reverse();
+        }
+        return ordering;
+    }
+
     public static <T> Function<RowResult<T>, byte[]> getRowNameFun() {
         return new Function<RowResult<T>, byte[]>() {
             @Override

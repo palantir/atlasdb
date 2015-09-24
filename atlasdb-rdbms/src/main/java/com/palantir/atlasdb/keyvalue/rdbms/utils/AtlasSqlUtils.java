@@ -144,11 +144,8 @@ public class AtlasSqlUtils {
     }
 
     @Nullable
-    public static byte[] generateToken(RangeRequest rangeRequest, List<byte[]> rows) {
-        Preconditions.checkArgument(!rangeRequest.isReverse());
-        Preconditions.checkArgument(rows.size() > 0);
-        byte[] lastRow = rows.get(rows.size() - 1);
-        if (RangeRequests.isLastRowName(lastRow)) {
+    public static byte[] generateToken(RangeRequest rangeRequest, byte[] lastRow) {
+        if (RangeRequests.isTerminalRow(rangeRequest.isReverse(), lastRow)) {
             return null;
         }
         return RangeRequests.getNextStartRow(rangeRequest.isReverse(), lastRow);
