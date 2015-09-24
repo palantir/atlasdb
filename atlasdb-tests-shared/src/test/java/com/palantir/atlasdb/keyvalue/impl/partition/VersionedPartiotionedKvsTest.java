@@ -482,4 +482,9 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
         setUpPrivate();
         return Preconditions.checkNotNull(pkvs);
     }
+
+    @Override
+    protected boolean reverseRangesSupported() {
+        return false;
+    }
 }

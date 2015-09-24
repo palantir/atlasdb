@@ -40,4 +40,9 @@ public class PartitionedKeyValueServiceAvailabilityTest extends AbstractAtlasDbK
         return FailableKeyValueServices.sampleFailingKeyValueService();
     }
 
+    @Override
+    protected boolean reverseRangesSupported() {
+        return false;
+    }
+
 }
