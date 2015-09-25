@@ -5,7 +5,8 @@ ext.libVersions = [
     junit:   '4.11',
     dropwizard:   '0.8.2',
     commons_lang: '2.6',
-    jackson: '2.5.0'
+    jackson: '2.5.1',
+    jackson_annotation: '2.5.0',
 ]
 
 configurations.matching({ it.name in ['compile', 'runtime'] }).all {

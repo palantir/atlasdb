@@ -34,20 +34,17 @@ dependencies {
           name: "protobuf-java",
           version: "2.6.0",
           configuration: "default")
-  compile 'com.netflix.feign:feign-jackson:8.6.1'
+  compile('com.netflix.feign:feign-jackson:8.6.1') {
+      exclude module: 'jackson-databind'
+  }
+
   compile('com.netflix.feign:feign-jaxrs:8.6.1') {
       exclude module: 'jsr311-api'
   }
   compile 'com.fasterxml.jackson.core:jackson-databind:' + libVersions.jackson
   compile 'com.fasterxml.jackson.core:jackson-core:' + libVersions.jackson
-  compile 'com.fasterxml.jackson.datatype:jackson-datatype-guava:' + libVersions.jackson
-}
+  compile('com.fasterxml.jackson.datatype:jackson-datatype-guava:' + libVersions.jackson) {
+      exclude(module: "guava")
+  }
 
-configurations.matching({ it.name in ['compile', 'runtime'] }).all {
-    resolutionStrategy {
-        force 'com.fasterxml.jackson.core:jackson-databind:' + libVersions.jackson
-        force 'com.fasterxml.jackson.core:jackson-core:' + libVersions.jackson
-        force 'com.fasterxml.jackson.datatype:jackson-datatype-guava:' + libVersions.jackson
-        force 'com.google.guava:guava:' + libVersions.guava
-    }
 }

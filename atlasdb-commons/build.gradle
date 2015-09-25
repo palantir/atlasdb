@@ -14,12 +14,6 @@ dependencies {
     compile group: 'org.slf4j', name: 'slf4j-api', version: libVersions.slf4j
     compile(project(":commons-executors"))
     compile 'javax.ws.rs:javax.ws.rs-api:2.0.1'
-    compile 'com.fasterxml.jackson.core:jackson-annotations:' + libVersions.jackson
+    compile 'com.fasterxml.jackson.core:jackson-annotations:' + libVersions.jackson_annotation
 }
 
-configurations.matching({ it.name in ['compile', 'runtime'] }).all {
-    resolutionStrategy {
-        force 'com.fasterxml.jackson.datatype:jackson-datatype-guava:' + libVersions.jackson
-        force 'com.google.guava:guava:' + libVersions.guava
-    }
-}
