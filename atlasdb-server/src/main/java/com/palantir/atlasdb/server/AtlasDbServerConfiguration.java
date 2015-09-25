@@ -13,30 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.timestamp.server.config;
+package com.palantir.atlasdb.server;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
-
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.palantir.atlasdb.config.AtlasDbConfig;
 
 import io.dropwizard.Configuration;
 
 public class AtlasDbServerConfiguration extends Configuration {
-	@NotNull
-	@Valid
-	public ClientConfiguration lockClient = new ClientConfiguration();
-
-	@NotNull
-	@Valid
-	public ClientConfiguration timestampClient = new ClientConfiguration();
-
-	@Valid
-	public LeaderConfiguration leader = new LeaderConfiguration();
-
-	@NotNull
-	@Valid
-	public String serverType = "rocksdb";
-
-	public JsonNode extraConfig;
+    
+    private final AtlasDbConfig atlasdb;
+    
+    public AtlasDbServerConfiguration(@JsonProperty("atlasdb") AtlasDbConfig atlasdb) {
+        this.atlasdb = atlasdb;
+    }
+    
+    public AtlasDbConfig getConfig() {
+        return atlasdb;
+    }
+    
 }

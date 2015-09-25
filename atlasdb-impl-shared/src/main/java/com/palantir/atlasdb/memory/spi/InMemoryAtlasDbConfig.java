@@ -13,19 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.timestamp.server.config;
+package com.palantir.atlasdb.memory.spi;
 
-import java.util.List;
+import com.fasterxml.jackson.annotation.JsonTypeName;
+import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
+@JsonTypeName(InMemoryAtlasDbConfig.TYPE)
+public class InMemoryAtlasDbConfig implements KeyValueServiceConfig {
 
-import com.google.common.collect.ImmutableList;
+    public static final String TYPE = "memory";
+    
+    @Override
+    public String getType() {
+        return TYPE;
+    }
 
-public class ClientConfiguration {
-	@NotNull
-	@Valid
-	public List<String> servers = ImmutableList.of("http://localhost:3828");
-
-	public boolean embedded = false;
 }

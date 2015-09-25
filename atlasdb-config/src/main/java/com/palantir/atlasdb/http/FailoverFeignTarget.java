@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.client;
+package com.palantir.atlasdb.http;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -25,6 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import feign.Client;
 import feign.Request;
@@ -34,7 +35,6 @@ import feign.Response;
 import feign.RetryableException;
 import feign.Retryer;
 import feign.Target;
-import jersey.repackaged.com.google.common.collect.ImmutableSet;
 
 public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     private static final Logger log = LoggerFactory.getLogger(FailoverFeignTarget.class);

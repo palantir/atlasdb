@@ -26,7 +26,7 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Closeables;
-import com.palantir.atlasdb.memory.InMemoryAtlasDb;
+import com.palantir.atlasdb.memory.spi.InMemoryAtlasDbFactory;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
@@ -44,7 +44,7 @@ public class ProfileStoreTest {
 
     @Before
     public void setup() {
-        txnMgr = InMemoryAtlasDb.createInMemoryTransactionManager(ProfileSchema.INSTANCE);
+        txnMgr = InMemoryAtlasDbFactory.createInMemoryTransactionManager(ProfileSchema.INSTANCE);
     }
 
     interface ProfileStoreTask<T> {

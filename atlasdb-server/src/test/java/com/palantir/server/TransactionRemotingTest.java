@@ -47,7 +47,7 @@ import com.palantir.atlasdb.jackson.AtlasJacksonModule;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.memory.InMemoryAtlasDb;
+import com.palantir.atlasdb.memory.spi.InMemoryAtlasDbFactory;
 import com.palantir.atlasdb.schema.AtlasSchema;
 import com.palantir.atlasdb.schema.UpgradeSchema;
 import com.palantir.atlasdb.schema.generated.UpgradeMetadataTable;
@@ -67,7 +67,7 @@ import io.dropwizard.testing.junit.DropwizardClientRule;
 
 public class TransactionRemotingTest {
     public final static AtlasSchema schema = UpgradeSchema.INSTANCE;
-    public final SnapshotTransactionManager txMgr = InMemoryAtlasDb.createInMemoryTransactionManager(schema);
+    public final SnapshotTransactionManager txMgr = InMemoryAtlasDbFactory.createInMemoryTransactionManager(schema);
     public final KeyValueService kvs = txMgr.getKeyValueService();
     public final TableMetadataCache cache = new TableMetadataCache(kvs);
     public final ObjectMapper mapper = new ObjectMapper(); { mapper.registerModule(new AtlasJacksonModule(cache).createModule()); }

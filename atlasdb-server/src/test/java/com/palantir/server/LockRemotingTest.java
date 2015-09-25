@@ -25,7 +25,7 @@ import org.junit.Test;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
-import com.palantir.atlasdb.client.TextDelegateDecoder;
+import com.palantir.atlasdb.http.TextDelegateDecoder;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
@@ -56,9 +56,9 @@ public class LockRemotingTest {
 
         long minVersion = 123;
         LockRequest request = LockRequest.builder(ImmutableSortedMap.of(desc, LockMode.WRITE))
-        		.doNotBlock()
-        		.withLockedInVersionId(minVersion)
-        		.build();
+                .doNotBlock()
+                .withLockedInVersionId(minVersion)
+                .build();
         writeValueAsString = mapper.writeValueAsString(request);
         LockRequest request2 = mapper.readValue(writeValueAsString, LockRequest.class);
 

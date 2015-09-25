@@ -3,12 +3,14 @@ apply from: "../gradle/shared.gradle"
 dependencies {
     compile project(':atlasdb-spi')
     compile project(':atlasdb-impl-shared')
-    compile "io.dropwizard:dropwizard-core:" + libVersions.dropwizard
+    compile project(':leader-election-impl')
+    compile project(':lock-impl')
+
     compile 'com.netflix.feign:feign-jackson:8.6.1'
     compile('com.netflix.feign:feign-jaxrs:8.6.1') {
         exclude module: 'jsr311-api'
     }
-    testCompile "io.dropwizard:dropwizard-testing:" + libVersions.dropwizard
+    compile "com.netflix.feign:feign-okhttp:8.6.1"
 }
 
 configurations.matching({ it.name in ['compile', 'runtime'] }).all {

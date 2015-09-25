@@ -13,11 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.memory;
+package com.palantir.atlasdb.memory.spi;
 
-import java.io.IOException;
-
-import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cleaner.Cleaner;
@@ -34,6 +31,7 @@ import com.palantir.atlasdb.schema.AtlasSchema;
 import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.schema.SchemaReference;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
+import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -60,7 +58,7 @@ import com.palantir.timestamp.TimestampService;
  * This method creates all the tables in the pass {@link Schema} and provides Snapshot Isolation
  * (SI) on all of the transactions it creates.
  */
-public class InMemoryAtlasDb implements AtlasDbFactory<InMemoryKeyValueService> {
+public class InMemoryAtlasDbFactory implements AtlasDbFactory {
 
     @Override
     public String getType() {
@@ -68,16 +66,14 @@ public class InMemoryAtlasDb implements AtlasDbFactory<InMemoryKeyValueService> 
     }
 
     @Override
-    public InMemoryKeyValueService createRawKeyValueService(JsonNode config) throws IOException {
+    public InMemoryKeyValueService createRawKeyValueService(KeyValueServiceConfig config) {
         return new InMemoryKeyValueService(false);
     }
 
     @Override
-    public TimestampService createTimestampService(InMemoryKeyValueService rawKvs) {
+    public TimestampService createTimestampService(KeyValueService rawKvs) {
         return new InMemoryTimestampService();
     }
-
-    private InMemoryAtlasDb() { /* */ }
 
     public static SerializableTransactionManager createInMemoryTransactionManager(Schema schema) {
         return createInMemoryTransactionManagerInternal(schema, null);

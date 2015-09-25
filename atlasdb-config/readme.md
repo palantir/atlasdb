@@ -1,0 +1,136 @@
+AtlasDB Configuration Support
+=============================
+This project provides convenience methods for initializing `TransactionManager`s
+and leader election systems for running your own HA server setups.
+
+It includes a configuration format that enables you to add a typed configuration
+block to systems like Dropwizard apps that accept such configuration objects.
+
+Initialization
+--------------
+Creating a `TransactionManager`:
+
+    AtlasDbConfig atlasConfig = ...
+    Schema atlasSchema = ...
+    Optional<SSLSocketFactory> sslSocketFactory = ...
+
+    SerializableTransactionManager tm = TransactionManagers.create(
+        atlasConfig,
+        sslSocketFactory,
+        atlasSchema,
+        (resource) -> {});
+
+The last item is a consumer of resources meant to be exposed to as web
+endpoints, and expects something akin to Dropwizard's
+`environment.jersey().register(Object)` method in order to support addition
+of necessary web endpoints for leader-based time and lock services.
+
+Dropwizard
+----------
+For Dropwizard apps, simply add an `AtlasDbConfig` type to your existing
+`Configuration` class, e.g.:
+
+    public final class MyAppConfiguration extends Configuration {
+        private final AtlasDbConfig atlas;
+        public MyAppConfiguration(@JsonProperty("atlas") AtlasDbConfig atlas) {
+            this.atlas = atlas;
+        }
+        public AtlasDbConfig getAtlas() {
+            return atlas;
+        }
+    }
+
+And initialization code to your run method:
+
+    public void run(AtlasDbServerConfiguration config, Environment env) throws Exception {
+        TransactionManager transactionManager =
+            TransactionManagers.create(
+              config.getAtlas(),
+              Optional.<SSLSocketFactory>absent(),
+              ImmutableSet.<Schema>of(),
+              env.jersey()::register);
+
+Which will enable the following config object:
+
+    # AtlasDB Configuration
+    # atlas:
+    #   keyValueService: (configuration for the storage backend)
+    #     type:          (rocksdb|cassandra) type of key value store to use
+    #     # rocksdb specific config
+    #     dataDir:       the data directory to use for storage
+    #     # cassandra specific config
+    #     servers:       a list of cassandra nodes to use
+    #       - [hostname] e.g. localhost
+    #     port:          the port to communicate on (Cassandra default is 9160)
+    #     ssl:           (true|false) true to use SSL
+    #     replicationFactor: replication factor
+    #     mutationBatchCount: (optional, default 5000)
+    #     mutationBatchSizeBytes: (optional, default 4*1024*1024)
+    #     fetchBatchCount:    (optional, default 5000)
+    #  lock:             (configuration of the lock client)
+    #    servers:        a list of available lock servers
+    #      - [uri]       e.g. https://localhost:8101/api/
+    #  timestamp:        (configuration of the timestamp client)
+    #    servers:        a list of available lock servers
+    #      - [uri]       e.g. https://localhost:8101/api/
+    #  leader:           (optional) leader configuration allows running lock-stamp
+    #                    services in a cluster, and should be used when Jobs Service
+    #                    will be run in a clustered mode
+    #                    regardless of configuration, AtlasDB will respect the lock
+    #                    and timestamp client configurations above
+    #                    when configured, the embedded lock and timestamp servers
+    #                    in this process will use the specified leader election
+    #                    criteria to determine if the embedded process should
+    #                    respond to requests
+    #    quorumSize:     quorum requirement, must be a majority
+    #    localServer:    the URI of this node
+    #    leaders:        a list of potential leaders
+    #      - [uri]       e.g. https://loclahost:8101/api/
+    #    learnerLogDir:  (optional, default var/data/paxos/learner) the persistence
+    #                    directory for the learner, must actually persist between
+    #                    executions of the server
+    #    acceptorLogDir: (optional, default var/data/paxos/acceptor) the persistence
+    #                    directory for the acceptor, must actually persist between
+    #                    executions of the server
+    #
+    # Example: a default configuration for running a single process Jobs Service
+    # backed by rocksdb and using the embedded lock-stamp services:
+    # atlas:
+    #   keyValueService:
+    #     type: rocksdb
+    #     dataDir: var/data/rocksdb
+    #   lock:
+    #     servers:
+    #       - https://localhost:8101/api/
+    #   timestamp:
+    #     servers:
+    #       - https://localhost:8101/api/
+    #
+    # Example: a default configuration for running a single process Jobs Service
+    # backed by a single node Cassandra instance and using the embedded
+    # lock-stamp services:
+    # atlas:
+    #   keyValueService:
+    #     type: cassandra
+    #     servers:
+    #       - localhost
+    #     port: 9160
+    #     ssl: false
+    #     replicationFactor: 1
+    #   lock:
+    #     servers:
+    #       - https://localhost:8101/api/
+    #   timestamp:
+    #     servers:
+    #       - https://localhost:8101/api/
+    #
+    atlas:
+      keyValueService:
+        type: rocksdb
+        dataDir: var/data/rocksdb
+      lock:
+        servers:
+          - https://localhost:8101/api/
+      timestamp:
+        servers:
+          - https://localhost:8101/api/

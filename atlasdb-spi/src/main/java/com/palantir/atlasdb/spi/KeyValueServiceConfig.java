@@ -13,20 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.cassandra.spi;
+package com.palantir.atlasdb.spi;
 
-import java.util.List;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
+import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
 
-public class CassandraKeyValueConfiguration {
-    public List<String> servers = null;
-    public int port = 9160;
-    public int poolSize = 20;
-    public String keyspace = "atlasdb";
-    public boolean isSsl = false;
-    public int replicationFactor = 3;
-    public int mutationBatchCount = 5000;
-    public int mutationBatchSizeBytes = 4 * 1024 * 1024;
-    public int fetchBatchCount = 5000;
-    public boolean safetyDisabled = false;
-    public boolean autoRefreshNodes = true;
+/**
+ * Marker interface for various AtlasDb KeyValueService config objects.
+ */
+@JsonTypeInfo(use = Id.NAME, include = As.PROPERTY, property = "type", visible = false)
+public interface KeyValueServiceConfig {
+
+    String getType();
+
 }
