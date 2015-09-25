@@ -32,9 +32,11 @@ import com.google.common.collect.Sets;
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.keyvalue.partition.PartitionedKeyValueConfiguration;
 import com.palantir.atlasdb.keyvalue.partition.PartitionedKeyValueService;
-import com.palantir.atlasdb.keyvalue.partition.QuorumParameters;
-import com.palantir.atlasdb.keyvalue.partition.QuorumParameters.QuorumRequestParameters;
+import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
+import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters.QuorumRequestParameters;
+import com.palantir.atlasdb.keyvalue.remoting.Utils;
 
 public class FailableKeyValueServices {
 
@@ -233,16 +235,15 @@ public class FailableKeyValueServices {
     public static KeyValueService sampleFailingKeyValueService() {
         Set<FailableKeyValueService> svcs = Sets.newHashSet();
         Set<KeyValueService> rawSvcs = Sets.newHashSet();
-        QuorumParameters quorumParameters = new QuorumParameters(5, 3, 3);
+        QuorumParameters quorumParameters = new QuorumParameters(3, 2, 2);
         for (int i = 0; i < 5; ++i) {
             FailableKeyValueService fkvs = FailableKeyValueServices.wrap(new InMemoryKeyValueService(
                     false));
             svcs.add(fkvs);
             rawSvcs.add(fkvs.get());
         }
-        PartitionedKeyValueService parition = PartitionedKeyValueService.create(
-                rawSvcs,
-                quorumParameters);
+        PartitionedKeyValueService parition = PartitionedKeyValueService
+                .create(PartitionedKeyValueConfiguration.of(quorumParameters, Utils.createInMemoryMap(rawSvcs, quorumParameters)));
         return ShutdownNodesProxy.newProxyInstance(parition, svcs, quorumParameters);
     }
 

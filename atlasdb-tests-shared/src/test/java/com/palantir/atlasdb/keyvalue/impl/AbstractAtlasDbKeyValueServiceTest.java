@@ -1,17 +1,17 @@
 /**
- * Copyright 2015 Palantir Technologies
- *
- * Licensed under the BSD-3 License (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://opensource.org/licenses/BSD-3-Clause
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * // Copyright 2015 Palantir Technologies
+ * //
+ * // Licensed under the BSD-3 License (the "License");
+ * // you may not use this file except in compliance with the License.
+ * // You may obtain a copy of the License at
+ * //
+ * // http://opensource.org/licenses/BSD-3-Clause
+ * //
+ * // Unless required by applicable law or agreed to in writing, software
+ * // distributed under the License is distributed on an "AS IS" BASIS,
+ * // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * // See the License for the specific language governing permissions and
+ * // limitations under the License.
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
@@ -21,10 +21,12 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.commons.lang.ArrayUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -50,30 +52,35 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 
 public abstract class AbstractAtlasDbKeyValueServiceTest {
-    static final String TEST_TABLE = "pt_kvs_test";
+    protected static final String TEST_TABLE = "pt_kvs_test";
+    protected static final String TEST_NONEXISTING_TABLE = "some_nonexisting_table";
 
-    private static final byte[] row0 = "row0".getBytes();
-    private static final byte[] row1 = "row1".getBytes();
-    private static final byte[] row2 = "row2".getBytes();
-    private static final byte[] column0 = "column0".getBytes();
-    private static final byte[] column1 = "column1".getBytes();
-    private static final byte[] column2 = "column2".getBytes();
-    private static final byte[] value00 = "value00".getBytes();
-    private static final byte[] value01 = "value01".getBytes();
-    private static final byte[] value10 = "value10".getBytes();
-    private static final byte[] value12 = "value12".getBytes();
-    private static final byte[] value21 = "value21".getBytes();
-    private static final byte[] value22 = "value22".getBytes();
+    protected static final byte[] row0 = "row0".getBytes();
+    protected static final byte[] row1 = "row1".getBytes();
+    protected static final byte[] row2 = "row2".getBytes();
+    protected static final byte[] column0 = "column0".getBytes();
+    protected static final byte[] column1 = "column1".getBytes();
+    protected static final byte[] column2 = "column2".getBytes();
+    protected static final byte[] value00 = "value00".getBytes();
+    protected static final byte[] value01 = "value01".getBytes();
+    protected static final byte[] value10 = "value10".getBytes();
+    protected static final byte[] value12 = "value12".getBytes();
+    protected static final byte[] value21 = "value21".getBytes();
+    protected static final byte[] value22 = "value22".getBytes();
 
-    private static final byte[] value0_t0 = "value0_t0".getBytes();
-    private static final byte[] value0_t1 = "value1_t1".getBytes();
-    private static final byte[] value0_t5 = "value5_t5".getBytes();
+    protected static final byte[] value0_t0 = "value0_t0".getBytes();
+    protected static final byte[] value0_t1 = "value1_t1".getBytes();
+    protected static final byte[] value0_t5 = "value5_t5".getBytes();
 
-    private static final byte[] metadata0 = "metadata0".getBytes();
+    protected static final byte[] metadata0 = "metadata0".getBytes();
 
-    private static final long TEST_TIMESTAMP = 1000000l;
+    protected static final long TEST_TIMESTAMP = 1000000l;
 
     KeyValueService keyValueService;
+
+    protected boolean reverseRangesSupported() {
+        return true;
+    }
 
     @Before
     public void setUp() throws Exception {
@@ -122,6 +129,9 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
                 ImmutableSet.of(cell1.getRowName()),
                 ColumnSelection.create(ImmutableList.<byte[]>of()),
                 1);
+
+        // This has changed recently - now empty column set means
+        // that all columns are selected.
         assertEquals(ImmutableSet.of(cell1, cell2, cell3), rows4.keySet());
     }
 
@@ -265,40 +275,103 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
     @Test
     public void testTableMetadata() {
         assertEquals(0, keyValueService.getMetadataForTable(TEST_TABLE).length);
+        keyValueService.putMetadataForTable(TEST_TABLE, ArrayUtils.EMPTY_BYTE_ARRAY);
+        assertEquals(0, keyValueService.getMetadataForTable(TEST_TABLE).length);
         keyValueService.putMetadataForTable(TEST_TABLE, metadata0);
         assertTrue(Arrays.equals(metadata0, keyValueService.getMetadataForTable(TEST_TABLE)));
     }
 
+    private static <V, T extends Iterator<RowResult<V>>> void assertRangeSizeAndOrdering(T it, int expectedSize, RangeRequest rangeRequest) {
+        if (!it.hasNext()) {
+            assertEquals(expectedSize, 0);
+            return;
+        }
+
+        byte[] row = it.next().getRowName();
+        int size = 1;
+
+        final boolean reverse = rangeRequest.isReverse();
+        final byte[] startRow = rangeRequest.getStartInclusive();
+        final byte[] endRow = rangeRequest.getEndExclusive();
+
+        if (startRow.length > 0) {
+            if (!reverse) {
+                assert UnsignedBytes.lexicographicalComparator().compare(startRow, row) <= 0;
+            } else {
+                assert UnsignedBytes.lexicographicalComparator().compare(startRow, row) >= 0;
+            }
+        }
+
+        while (it.hasNext()) {
+            byte[] nextRow = it.next().getRowName();
+
+            if (!reverse) {
+                assert UnsignedBytes.lexicographicalComparator().compare(row, nextRow) <= 0;
+            } else {
+                assert UnsignedBytes.lexicographicalComparator().compare(row, nextRow) >= 0;
+            }
+
+            row = nextRow;
+            size++;
+        }
+
+        if (endRow.length > 0) {
+            if (!reverse) {
+                assert UnsignedBytes.lexicographicalComparator().compare(row, endRow) < 0;
+            } else {
+                assert UnsignedBytes.lexicographicalComparator().compare(row, endRow) > 0;
+            }
+        }
+
+        assertEquals(expectedSize, size);
+    }
+
     @Test
     public void testGetRange() {
+        testGetRange(reverseRangesSupported());
+    }
+
+    public void testGetRange(boolean reverseSupported) {
         putTestDataForSingleTimestamp();
 
         // Unbounded
-        assertEquals(3, Iterators.size(keyValueService.getRange(
-                TEST_TABLE,
-                RangeRequest.all(),
-                TEST_TIMESTAMP + 1)));
+        final RangeRequest all = RangeRequest.all();
+        assertRangeSizeAndOrdering(keyValueService.getRange(TEST_TABLE, all, TEST_TIMESTAMP + 1), 3, all);
+
+        if (reverseSupported) {
+            final RangeRequest allReverse = RangeRequest.reverseBuilder().build();
+            assertRangeSizeAndOrdering(keyValueService.getRange(TEST_TABLE, allReverse, TEST_TIMESTAMP + 1), 3, allReverse);
+        }
 
         // Upbounded
-        assertEquals(2, Iterators.size(keyValueService.getRange(
-                TEST_TABLE,
-                RangeRequest.builder().endRowExclusive(row2).build(),
-                TEST_TIMESTAMP + 1)));
+        final RangeRequest upbounded = RangeRequest.builder().endRowExclusive(row2).build();
+        assertRangeSizeAndOrdering(keyValueService.getRange(TEST_TABLE, upbounded, TEST_TIMESTAMP + 1), 2, upbounded);
+
+        if (reverseSupported) {
+            final RangeRequest upboundedReverse = RangeRequest.reverseBuilder().endRowExclusive(row0).build();
+            assertRangeSizeAndOrdering(keyValueService.getRange(TEST_TABLE, upboundedReverse, TEST_TIMESTAMP + 1), 2, upboundedReverse);
+        }
 
         // Downbounded
-        assertEquals(2, Iterators.size(keyValueService.getRange(
-                TEST_TABLE,
-                RangeRequest.builder().startRowInclusive(row1).build(),
-                TEST_TIMESTAMP + 1)));
+        final RangeRequest downbounded = RangeRequest.builder().startRowInclusive(row1).build();
+        assertRangeSizeAndOrdering(keyValueService.getRange(TEST_TABLE, downbounded, TEST_TIMESTAMP + 1), 2, downbounded);
+
+        if (reverseSupported) {
+            final RangeRequest downboundedReverse = RangeRequest.reverseBuilder().startRowInclusive(row1).build();
+            assertRangeSizeAndOrdering(keyValueService.getRange(TEST_TABLE, downboundedReverse, TEST_TIMESTAMP + 1), 2, downboundedReverse);
+        }
 
         // Both-bounded
-        assertEquals(1, Iterators.size(keyValueService.getRange(
-                TEST_TABLE,
-                RangeRequest.builder().startRowInclusive(row1).endRowExclusive(row2).build(),
-                TEST_TIMESTAMP + 1)));
+        final RangeRequest bothbounded = RangeRequest.builder().startRowInclusive(row1).endRowExclusive(row2).build();
+        assertRangeSizeAndOrdering(keyValueService.getRange(TEST_TABLE, bothbounded, TEST_TIMESTAMP + 1), 1, bothbounded);
+
+        if (reverseSupported) {
+            final RangeRequest bothboundedReverse = RangeRequest.reverseBuilder().startRowInclusive(row2).endRowExclusive(row1).build();
+            assertRangeSizeAndOrdering(keyValueService.getRange(TEST_TABLE, bothboundedReverse, TEST_TIMESTAMP + 1), 1, bothboundedReverse);
+        }
 
         // Precise test for lower-bounded
-        RangeRequest rangeRequest = RangeRequest.builder().startRowInclusive(row1).build();
+        RangeRequest rangeRequest = downbounded;
         ClosableIterator<RowResult<Value>> rangeResult = keyValueService.getRange(
                 TEST_TABLE,
                 rangeRequest,
@@ -426,13 +499,22 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
 
     @Test
     public void testGetRangeWithHistory() {
+        testGetRangeWithHistory(false);
+        if (reverseRangesSupported()) {
+            testGetRangeWithHistory(true);
+        }
+    }
+
+    public void testGetRangeWithHistory(boolean reverse) {
         putTestDataForMultipleTimestamps();
-        final RangeRequest range = RangeRequest.builder().startRowInclusive(row0).endRowExclusive(
-                row1).build();
+        final RangeRequest range;
+        if (!reverse) {
+            range = RangeRequest.builder().startRowInclusive(row0).endRowExclusive(row1).build();
+        } else {
+            range = RangeRequest.reverseBuilder().startRowInclusive(row0).build();
+        }
         ClosableIterator<RowResult<Set<Value>>> rangeWithHistory = keyValueService.getRangeWithHistory(
-                TEST_TABLE,
-                range,
-                TEST_TIMESTAMP + 2);
+                TEST_TABLE, range, TEST_TIMESTAMP + 2);
         RowResult<Set<Value>> row0 = rangeWithHistory.next();
         assertTrue(!rangeWithHistory.hasNext());
         rangeWithHistory.close();
@@ -445,13 +527,22 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
 
     @Test
     public void testGetRangeWithTimestamps() {
+        testGetRangeWithTimestamps(false);
+        if (reverseRangesSupported()) {
+            testGetRangeWithTimestamps(true);
+        }
+    }
+
+    public void testGetRangeWithTimestamps(boolean reverse) {
         putTestDataForMultipleTimestamps();
-        final RangeRequest range = RangeRequest.builder().startRowInclusive(row0).endRowExclusive(
-                row1).build();
+        final RangeRequest range;
+        if (!reverse) {
+            range = RangeRequest.builder().startRowInclusive(row0).endRowExclusive(row1).build();
+        } else {
+            range = RangeRequest.reverseBuilder().startRowInclusive(row0).build();
+        }
         ClosableIterator<RowResult<Set<Long>>> rangeWithHistory = keyValueService.getRangeOfTimestamps(
-                TEST_TABLE,
-                range,
-                TEST_TIMESTAMP + 2);
+                TEST_TABLE, range, TEST_TIMESTAMP + 2);
         RowResult<Set<Long>> row0 = rangeWithHistory.next();
         assertTrue(!rangeWithHistory.hasNext());
         rangeWithHistory.close();
@@ -470,7 +561,7 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
             putTestDataForSingleTimestamp();
             // Legal
         } catch (KeyAlreadyExistsException e) {
-            // Legal
+            Assert.fail("Must not throw when overwriting with same value!");
         }
 
         keyValueService.putWithTimestamps(
@@ -485,6 +576,28 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
                             Cell.create(row0, column0),
                             Value.create(value00, TEST_TIMESTAMP + 1)));
             // Legal
+        } catch (KeyAlreadyExistsException e) {
+            Assert.fail("Must not throw when overwriting with same value!");
+        }
+
+        try {
+            keyValueService.putWithTimestamps(TEST_TABLE, ImmutableMultimap.of(Cell.create(row0, column0), Value.create(value01, TEST_TIMESTAMP + 1)));
+            // Legal
+        } catch (KeyAlreadyExistsException e) {
+            // Legal
+        }
+
+        // The first try might not throw as putUnlessExists must only be exclusive with other putUnlessExists.
+        try {
+            keyValueService.putUnlessExists(TEST_TABLE, ImmutableMap.of(Cell.create(row0, column0), value00));
+            // Legal
+        } catch (KeyAlreadyExistsException e) {
+            // Legal
+        }
+
+        try {
+            keyValueService.putUnlessExists(TEST_TABLE, ImmutableMap.of(Cell.create(row0, column0), value00));
+            Assert.fail("putUnlessExists must throw when overwriting the same cell!");
         } catch (KeyAlreadyExistsException e) {
             // Legal
         }
@@ -512,14 +625,44 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         assertTrue(timestampsAfter2.containsEntry(cell, Value.INVALID_VALUE_TIMESTAMP));
     }
 
-    private void putTestDataForMultipleTimestamps() {
+    @Test
+    public void testGetRangeThrowsOnError() {
+        try {
+            keyValueService.getRange(TEST_NONEXISTING_TABLE, RangeRequest.all(), Long.MAX_VALUE).hasNext();
+            Assert.fail("getRange must throw on failure");
+        } catch (RuntimeException e) {
+            // Expected
+        }
+    }
+
+    @Test
+    public void testGetRangeWithHistoryThrowsOnError() {
+        try {
+            keyValueService.getRangeWithHistory(TEST_NONEXISTING_TABLE, RangeRequest.all(), Long.MAX_VALUE).hasNext();
+            Assert.fail("getRangeWithHistory must throw on failure");
+        } catch (RuntimeException e) {
+            // Expected
+        }
+    }
+
+    @Test
+    public void testGetRangeOfTimestampsThrowsOnError() {
+        try {
+            keyValueService.getRangeOfTimestamps(TEST_NONEXISTING_TABLE, RangeRequest.all(), Long.MAX_VALUE).hasNext();
+            Assert.fail("getRangeOfTimestamps must throw on failure");
+        } catch (RuntimeException e) {
+            // Expected
+        }
+    }
+
+    protected void putTestDataForMultipleTimestamps() {
         keyValueService.put(TEST_TABLE,
                 ImmutableMap.of(Cell.create(row0, column0), value0_t0), TEST_TIMESTAMP);
         keyValueService.put(TEST_TABLE,
                 ImmutableMap.of(Cell.create(row0, column0), value0_t1), TEST_TIMESTAMP + 1);
     }
 
-    private void putTestDataForSingleTimestamp() {
+    protected void putTestDataForSingleTimestamp() {
         /*      | column0     column1     column2
          * -----+---------------------------------
          * row0 | "value00"   "value01"   -

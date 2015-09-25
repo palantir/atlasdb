@@ -20,7 +20,6 @@ import java.util.Comparator;
 import com.google.common.base.Preconditions;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
-import com.palantir.atlasdb.keyvalue.partition.ConsistentRingRangeRequest;
 
 
 public class ConsistentRingRangeRequests {

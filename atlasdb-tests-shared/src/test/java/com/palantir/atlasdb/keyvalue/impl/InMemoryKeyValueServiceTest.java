@@ -23,6 +23,6 @@ public class InMemoryKeyValueServiceTest extends AbstractAtlasDbKeyValueServiceT
 
     @Override
     protected KeyValueService getKeyValueService() {
-        return new InMemoryKeyValueService(true);
+        return new InMemoryKeyValueService(false);
     }
 }

@@ -88,11 +88,30 @@ public class RangeRequests {
         return ONE_AFTER_MAXIMUM_NAME;
     }
 
+    /**
+     * This is a replacement for endRow when doing a non-reverse range request.
+     * @param rangeRequest
+     * @return
+     */
     public static byte[] endRowExclusiveOrOneAfterMax(RangeRequest rangeRequest) {
+        Preconditions.checkArgument(!rangeRequest.isReverse());
         if (rangeRequest.getEndExclusive().length == 0) {
             return oneAfterMaximumName();
         }
         return rangeRequest.getEndExclusive();
+    }
+
+    /**
+     * This is a replacement for startRow when doing reverse range request.
+     * @param rangeRequest
+     * @return
+     */
+    public static byte[] startRowInclusiveOrLargestRow(RangeRequest rangeRequest) {
+        Preconditions.checkArgument(rangeRequest.isReverse());
+        if (rangeRequest.getStartInclusive().length == 0) {
+            return getLastRowName();
+        }
+        return rangeRequest.getStartInclusive();
     }
 
     public static ColumnSelection extractColumnSelection(RangeRequest rangeRequest) {

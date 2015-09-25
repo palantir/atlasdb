@@ -28,7 +28,7 @@ import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.keyvalue.partition.QuorumParameters;
+import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
 import com.palantir.common.base.Throwables;
 
 public class RowResultUtil {
@@ -59,16 +59,25 @@ public class RowResultUtil {
         byte[] row = it.peek().getRowName();
         final SortedMap<byte[], Value> result = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
         int failCount = 0;
+        int succCount = 0;
+        RuntimeException lastSuppressedException = null;
 
         while (it.hasNext() && Arrays.equals(it.peek().getRowName(), row)) {
             try {
                 for (Map.Entry<Cell, Value> e : it.next().getCells()) {
                     final byte[] col = e.getKey().getColumnName();
+
+                    // Assert that there is not contradictory data
+                    if (result.containsKey(col) && e.getValue().getTimestamp() == result.get(col).getTimestamp()) {
+                        assert Arrays.equals(result.get(col).getContents(), e.getValue().getContents());
+                    }
+
                     if (!result.containsKey(col)
                             || result.get(col).getTimestamp() < e.getValue().getTimestamp()) {
                         result.put(col, e.getValue());
                     }
                 }
+                succCount++;
             } catch (RuntimeException e) {
                 System.err.println("Could not read for rangeRequest.");
                 failCount++;
@@ -77,8 +86,18 @@ public class RowResultUtil {
                             "Could not get enough reads.",
                             e);
                 }
+                lastSuppressedException = e;
             }
         }
+
+        if (succCount < quorumRequestParameters.getSuccessFactor()) {
+            if (lastSuppressedException != null) {
+                throw lastSuppressedException;
+            } else {
+                throw new RuntimeException("Not enough reads for row " + Arrays.toString(row));
+            }
+        }
+
         return RowResult.create(row, result);
     }
 
@@ -98,6 +117,18 @@ public class RowResultUtil {
                 result.get(col).addAll(e.getValue());
             }
         }
+
+        // Assert that there is no multiple values for same key
+        for (Set<Value> cell : result.values()) {
+            for (Value val : cell) {
+                for (Value otherVal : cell) {
+                    if (val != otherVal) {
+                        assert val.getTimestamp() != otherVal.getTimestamp();
+                    }
+                }
+            }
+        }
+
         return RowResult.create(row, result);
     }
 

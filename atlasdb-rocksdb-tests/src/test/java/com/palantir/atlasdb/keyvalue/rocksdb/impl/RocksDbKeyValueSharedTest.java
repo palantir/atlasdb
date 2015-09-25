@@ -36,7 +36,6 @@ public class RocksDbKeyValueSharedTest extends AbstractAtlasDbKeyValueServiceTes
 	protected KeyValueService getKeyValueService() {
 	    return db;
 	}
-
     @Override
     public void tearDown() throws Exception {
         super.tearDown();

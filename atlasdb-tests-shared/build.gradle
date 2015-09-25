@@ -5,13 +5,17 @@ apply from: "../gradle/shared.gradle"
 
 configurations.create('test').extendsFrom(configurations.testRuntime)
 dependencies {
-  compile(group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.5', configuration: 'default')
   compile(project(":atlasdb-impl-shared"))
   compile(group: "org.jmock",
               name: "jmock",
               version: "2.5.1",
               configuration: "default")
-  runtime(group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.5', configuration: 'default')
+  compile 'com.netflix.feign:feign-jackson:8.6.1'
+  compile('com.netflix.feign:feign-jaxrs:8.6.1') {
+      exclude module: 'jsr311-api'
+  }
+  testCompile "io.dropwizard:dropwizard-testing:" + libVersions.dropwizard
+  testCompile(project(":atlasdb-config"))
   test sourceSets.test.output
 
 }

@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
@@ -333,15 +334,15 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
 
     @Override
     public void put(String tableName, Map<Cell, byte[]> values, long timestamp) {
-        putInternal(tableName, KeyValueServices.toConstantTimestampValues(values.entrySet(), timestamp));
+        putInternal(tableName, KeyValueServices.toConstantTimestampValues(values.entrySet(), timestamp), false);
     }
 
     @Override
     public void putWithTimestamps(String tableName, Multimap<Cell, Value> values) {
-        putInternal(tableName, values.entries());
+        putInternal(tableName, values.entries(), false);
     }
 
-    private void putInternal(String tableName, Collection<Map.Entry<Cell, Value>> values) {
+    private void putInternal(String tableName, Collection<Map.Entry<Cell, Value>> values, boolean doNotOverwriteWithSameValue) {
         Table table = getTableMap(tableName);
         for (Map.Entry<Cell, Value> e : values) {
             Cell cell = e.getKey();
@@ -359,7 +360,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
                 row = nextKey.row;
             }
             byte[] oldContents = table.entries.putIfAbsent(new Key(row, col, timestamp), contents);
-            if (oldContents != null) {
+            if (oldContents != null && (doNotOverwriteWithSameValue || !Arrays.equals(oldContents, contents))) {
                 throw new KeyAlreadyExistsException("We already have a value for this timestamp");
             }
         }
@@ -368,7 +369,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     @Override
     public void putUnlessExists(String tableName, Map<Cell, byte[]> values)
             throws KeyAlreadyExistsException {
-        put(tableName, values, 0);
+        putInternal(tableName, KeyValueServices.toConstantTimestampValues(values.entrySet(), 0), true);
     }
 
     @Override
