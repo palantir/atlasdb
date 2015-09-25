@@ -88,7 +88,6 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 
-@Ignore
 public class SnapshotTransactionTest extends AtlasDbTestCase {
     private class UnstableKeyValueService extends ForwardingKeyValueService {
         private final KeyValueService delegate;
