@@ -31,7 +31,7 @@ public class CassandraConstants {
     static final String METADATA_TABLE = "_metadata";
     public static final int DEFAULT_REPLICATION_FACTOR = 3;
     static final int SECONDS_BETWEEN_GETTING_HOST_LIST = 600; // 10 min
-    static final int SECONDS_WAIT_FOR_VERSIONS = 20;
+    static final int SECONDS_WAIT_FOR_VERSIONS = 60;
 
     static final String DEFAULT_COMPRESSION_TYPE = "LZ4Compressor";
     static final int PUT_BATCH_SIZE = 100;
