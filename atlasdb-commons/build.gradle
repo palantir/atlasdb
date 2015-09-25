@@ -16,3 +16,10 @@ dependencies {
     compile 'javax.ws.rs:javax.ws.rs-api:2.0.1'
     compile 'com.fasterxml.jackson.core:jackson-annotations:' + libVersions.jackson
 }
+
+configurations.matching({ it.name in ['compile', 'runtime'] }).all {
+    resolutionStrategy {
+        force 'com.fasterxml.jackson.datatype:jackson-datatype-guava:' + libVersions.jackson
+        force 'com.google.guava:guava:' + libVersions.guava
+    }
+}
