@@ -67,6 +67,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -611,41 +612,52 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     @Override
     public void truncateTable(final String tableName) {
+        truncateTables(ImmutableSet.of(tableName));
+    }
+
+    @Override
+    public void truncateTables(final Set<String> tableNames) {
         try {
+            trySchemaMutationLock();
             clientPool.runWithPooledResource(new FunctionCheckedException<Client, Void, Exception>() {
                 @Override
                 public Void apply(Client client) throws Exception {
                     KsDef ks = client.describe_keyspace(config.keyspace());
 
-                    for (CfDef cf : ks.getCf_defs()) {
-                        if (cf.getName().equalsIgnoreCase(internalTableName(tableName))) {
-                            if (shouldTraceQuery(tableName)) {
-                                ByteBuffer recv_trace = client.trace_next_query();
-                                Stopwatch stopwatch = Stopwatch.createStarted();
-                                client.truncate(internalTableName(tableName));
-                                long duration = stopwatch.elapsed(TimeUnit.MILLISECONDS);
-                                if (duration > getMinimumDurationToTraceMillis()) {
-                                    log.error("Traced a call to " + tableName + " that took " + duration + " ms."
-                                            + " It will appear in system_traces with UUID=" + CassandraKeyValueServices.convertCassandraByteBufferUUIDtoString(recv_trace));
+                    for (String tableName : tableNames) {
+                        for (CfDef cf : ks.getCf_defs()) {
+                            if (cf.getName().equalsIgnoreCase(internalTableName(tableName))) {
+                                if (shouldTraceQuery(tableName)) {
+                                    ByteBuffer recv_trace = client.trace_next_query();
+                                    Stopwatch stopwatch = Stopwatch.createStarted();
+                                    client.truncate(internalTableName(tableName));
+                                    long duration = stopwatch.elapsed(TimeUnit.MILLISECONDS);
+                                    if (duration > getMinimumDurationToTraceMillis()) {
+                                        log.error("Traced a call to " + tableName + " that took " + duration + " ms."
+                                                + " It will appear in system_traces with UUID=" + CassandraKeyValueServices.convertCassandraByteBufferUUIDtoString(recv_trace));
+                                    }
+                                } else {
+                                    client.truncate(internalTableName(tableName));
                                 }
-                            } else {
-                                client.truncate(internalTableName(tableName));
                             }
-                            return null;
                         }
                     }
-                    throw new IllegalArgumentException("Attempted to truncate a table that we could not locate in the active schema.");
+
+                    CassandraKeyValueServices.waitForSchemaVersions(client, "(" + tableNames.size() + " tables in a call to truncateTables)");
+                    return null;
                 }
 
                 @Override
                 public String toString() {
-                    return "truncate(" + "tableName" + ")";
+                    return "truncateTables(" + tableNames.size() + " tables)";
                 }
             });
         } catch (UnavailableException e) {
-            throw new InsufficientConsistencyException("Truncate requires all Cassandra nodes to be up and available.", e);
+            throw new PalantirRuntimeException("Creating tables requires all Cassandra nodes to be up and available.");
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
+        } finally {
+            schemaMutationLock.unlock();
         }
     }
 
