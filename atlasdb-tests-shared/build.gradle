@@ -1,17 +1,14 @@
 apply from: "../gradle/shared.gradle"
 
-// TODO fix tests in this project
-[test, check].each { it.onlyIf { !System.getenv().containsKey('CI') } }
-
 configurations.create('test').extendsFrom(configurations.testRuntime)
-dependencies {
-  compile(group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.5', configuration: 'default')
-  compile(project(":atlasdb-impl-shared"))
-  compile(group: "org.jmock",
-              name: "jmock",
-              version: "2.5.1",
-              configuration: "default")
-  runtime(group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.5', configuration: 'default')
-  test sourceSets.test.output
 
+dependencies {
+    compile project(":atlasdb-impl-shared")
+
+    compile group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.5', configuration: 'default'
+    compile group: "org.jmock", name: "jmock", version: "2.5.1", configuration: "default"
+
+    runtime group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.5', configuration: 'default'
+
+    test sourceSets.test.output
 }
