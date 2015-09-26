@@ -37,117 +37,117 @@ class NamedRowResultRenderer extends Renderer {
 
     @Override
     protected void run() {
-        _("public static final class ", RowResult, " implements TypedRowResult {"); {
+        line("public static final class ", RowResult, " implements TypedRowResult {"); {
             fields();
-            _();
+            line();
             staticFactory();
-            _();
+            line();
             constructor();
-            _();
+            line();
             getRowName();
-            _();
+            line();
             getRowNameFun();
-            _();
+            line();
             fromRawRowResultFun();
-            _();
+            line();
             for (NamedColumnDescription col : cols) {
                 hasCol(col);
-                _();
+                line();
             }
             for (NamedColumnDescription col : cols) {
                 getCol(col);
-                _();
+                line();
             }
             for (NamedColumnDescription col : cols) {
                 getColFun(col);
-                _();
+                line();
             }
             renderToString();
-        } _("}");
+        } line("}");
     }
 
     private void fields() {
-        _("private final RowResult<byte[]> row;");
+        line("private final RowResult<byte[]> row;");
     }
 
     private void staticFactory() {
-        _("public static ", RowResult, " of(RowResult<byte[]> row) {"); {
-            _("return new ", RowResult, "(row);");
-        } _("}");
+        line("public static ", RowResult, " of(RowResult<byte[]> row) {"); {
+            line("return new ", RowResult, "(row);");
+        } line("}");
     }
 
     private void constructor() {
-        _("private ", RowResult, "(RowResult<byte[]> row) {"); {
-            _("this.row = row;");
-        } _("}");
+        line("private ", RowResult, "(RowResult<byte[]> row) {"); {
+            line("this.row = row;");
+        } line("}");
     }
 
     private void getRowName() {
-        _("@Override");
-        _("public ", Row, " getRowName() {"); {
-            _("return ", Row, ".BYTES_HYDRATOR.hydrateFromBytes(row.getRowName());");
-        } _("}");
+        line("@Override");
+        line("public ", Row, " getRowName() {"); {
+            line("return ", Row, ".BYTES_HYDRATOR.hydrateFromBytes(row.getRowName());");
+        } line("}");
     }
 
     private void getRowNameFun() {
-        _("public static Function<", RowResult, ", ", Row, "> getRowNameFun() {"); {
-            _("return new Function<", RowResult, ", ", Row, ">() {"); {
-                _("@Override");
-                _("public ", Row, " apply(", RowResult, " rowResult) {"); {
-                    _("return rowResult.getRowName();");
-                } _("}");
-            } _("};");
-        } _("}");
+        line("public static Function<", RowResult, ", ", Row, "> getRowNameFun() {"); {
+            line("return new Function<", RowResult, ", ", Row, ">() {"); {
+                line("@Override");
+                line("public ", Row, " apply(", RowResult, " rowResult) {"); {
+                    line("return rowResult.getRowName();");
+                } line("}");
+            } line("};");
+        } line("}");
     }
 
     private void fromRawRowResultFun() {
-        _("public static Function<RowResult<byte[]>, ", RowResult, "> fromRawRowResultFun() {"); {
-            _("return new Function<RowResult<byte[]>, ", RowResult, ">() {"); {
-                _("@Override");
-                _("public ", RowResult, " apply(RowResult<byte[]> rowResult) {"); {
-                    _("return new ", RowResult, "(rowResult);");
-                } _("}");
-            } _("};");
-        } _("}");
+        line("public static Function<RowResult<byte[]>, ", RowResult, "> fromRawRowResultFun() {"); {
+            line("return new Function<RowResult<byte[]>, ", RowResult, ">() {"); {
+                line("@Override");
+                line("public ", RowResult, " apply(RowResult<byte[]> rowResult) {"); {
+                    line("return new ", RowResult, "(rowResult);");
+                } line("}");
+            } line("};");
+        } line("}");
     }
 
     private void hasCol(NamedColumnDescription col) {
-        _("public boolean has", VarName(col), "() {"); {
-            _("return row.getColumns().containsKey(PtBytes.toCachedBytes(", short_name(col), "));");
-        } _("}");
+        line("public boolean has", VarName(col), "() {"); {
+            line("return row.getColumns().containsKey(PtBytes.toCachedBytes(", short_name(col), "));");
+        } line("}");
     }
 
     private void getCol(NamedColumnDescription col) {
-        _("public ", TypeName(col), " get", VarName(col), "() {"); {
-            _("byte[] bytes = row.getColumns().get(PtBytes.toCachedBytes(", short_name(col), "));");
-            _("if (bytes == null) {"); {
-                _("return null;");
-            } _("}");
-            _(Renderers.CamelCase(col.getLongName()), " value = ", Renderers.CamelCase(col.getLongName()), ".BYTES_HYDRATOR.hydrateFromBytes(bytes);");
-            _("return value.getValue();");
-        } _("}");
+        line("public ", TypeName(col), " get", VarName(col), "() {"); {
+            line("byte[] bytes = row.getColumns().get(PtBytes.toCachedBytes(", short_name(col), "));");
+            line("if (bytes == null) {"); {
+                line("return null;");
+            } line("}");
+            line(Renderers.CamelCase(col.getLongName()), " value = ", Renderers.CamelCase(col.getLongName()), ".BYTES_HYDRATOR.hydrateFromBytes(bytes);");
+            line("return value.getValue();");
+        } line("}");
     }
 
     private void getColFun(NamedColumnDescription col) {
-        _("public static Function<", RowResult, ", ", TypeName(col), "> get", VarName(col), "Fun() {"); {
-            _("return new Function<", RowResult, ", ", TypeName(col), ">() {"); {
-                _("@Override");
-                _("public ", TypeName(col), " apply(", RowResult, " rowResult) {"); {
-                    _("return rowResult.get", VarName(col), "();");
-                } _("}");
-            } _("};");
-        } _("}");
+        line("public static Function<", RowResult, ", ", TypeName(col), "> get", VarName(col), "Fun() {"); {
+            line("return new Function<", RowResult, ", ", TypeName(col), ">() {"); {
+                line("@Override");
+                line("public ", TypeName(col), " apply(", RowResult, " rowResult) {"); {
+                    line("return rowResult.get", VarName(col), "();");
+                } line("}");
+            } line("};");
+        } line("}");
     }
 
     private void renderToString() {
-        _("@Override");
-        _("public String toString() {"); {
-            _("return MoreObjects.toStringHelper(this)");
-            _("        .add(\"RowName\", getRowName())");
+        line("@Override");
+        line("public String toString() {"); {
+            line("return MoreObjects.toStringHelper(this)");
+            line("        .add(\"RowName\", getRowName())");
             for (NamedColumnDescription col : cols) {
-                _("        .add(\"", VarName(col), "\", get", VarName(col), "())");
+                line("        .add(\"", VarName(col), "\", get", VarName(col), "())");
             }
-            _("    .toString();");
-        } _("}");
+            line("    .toString();");
+        } line("}");
     }
 }

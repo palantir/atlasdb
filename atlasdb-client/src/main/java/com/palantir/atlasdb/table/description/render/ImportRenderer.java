@@ -38,20 +38,20 @@ public class ImportRenderer extends Renderer {
         for (String prefix : ImmutableList.of("java.", "javax.", "org.", "com.")) {
             for (String importClass : importsSortedByFullName()) {
                 if (importClass.startsWith(prefix)) {
-                    _("import ", importClass, ";");
+                    line("import ", importClass, ";");
                 }
             }
-            _();
+            line();
         }
     }
 
     void renderImportJavaDoc() {
-        _("/**");
-        _(" * This exists to avoid unused import warnings");
+        line("/**");
+        line(" * This exists to avoid unused import warnings");
         for (String className : importsSortedBySimpleName()) {
-            _(" * {@link ", className, "}", "");
+            line(" * {@link ", className, "}", "");
         }
-        _(" */");
+        line(" */");
     }
 
     private SortedSet<String> importsSortedByFullName() {
