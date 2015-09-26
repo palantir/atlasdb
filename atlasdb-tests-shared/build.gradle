@@ -7,8 +7,8 @@ dependencies {
         exclude group: 'org.hamcrest'
     }
 
-    compile group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.5', configuration: 'default'
-    compile group: "org.jmock", name: "jmock", version: "2.5.1", configuration: "default"
+    compile group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.5'
+    compile group: "org.jmock", name: "jmock", version: "2.5.1"
 
-    runtime group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.5', configuration: 'default'
+    runtime group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.5'
 }

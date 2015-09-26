@@ -3,7 +3,7 @@ apply from: "../gradle/shared.gradle"
 dependencies {
   compile(project(":leader-election-api"))
   compile(project(":atlasdb-commons"))
-  compile(group: "com.google.protobuf", name: "protobuf-java", version: "2.6.0", configuration: "default")
-  compile(group: "commons-lang", name: "commons-lang", version: libVersions.commons_lang, configuration: "default")
-  testCompile(group: "commons-io", name: "commons-io", version: "2.1", configuration: "default")
+  compile(group: "com.google.protobuf", name: "protobuf-java", version: "2.6.0")
+  compile(group: "commons-lang", name: "commons-lang", version: libVersions.commons_lang)
+  testCompile(group: "commons-io", name: "commons-io", version: "2.1")
 }
