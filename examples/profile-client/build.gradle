@@ -1,5 +1,9 @@
 apply from: "../../gradle/shared.gradle"
 
+schemas = [
+    'com.palantir.example.profile.schema.ProfileSchema'
+]
+
 group = 'com.palantir.atlasdb.examples'
 dependencies {
   compile(project(":atlasdb-client"))
