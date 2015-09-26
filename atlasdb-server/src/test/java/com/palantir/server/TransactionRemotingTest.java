@@ -47,7 +47,7 @@ import com.palantir.atlasdb.jackson.AtlasJacksonModule;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.memory.spi.InMemoryAtlasDbFactory;
+import com.palantir.atlasdb.memory.InMemoryAtlasDbFactory;
 import com.palantir.atlasdb.schema.AtlasSchema;
 import com.palantir.atlasdb.schema.UpgradeSchema;
 import com.palantir.atlasdb.schema.generated.UpgradeMetadataTable;

@@ -17,22 +17,23 @@ package com.palantir.atlasdb.config;
 
 import java.util.Set;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import org.immutables.value.Value;
+
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
 
-public final class ServerListConfig {
+@JsonDeserialize(as = ImmutableServerListConfig.class)
+@JsonSerialize(as = ImmutableServerListConfig.class)
+@Value.Immutable
+public abstract class ServerListConfig {
 
-    private final Set<String> servers;
+    public abstract Set<String> servers();
 
-    public ServerListConfig(@JsonProperty("servers") Set<String> servers) {
-        Preconditions.checkNotNull(servers, "Server list must not be empty");
-        Preconditions.checkArgument(!servers.isEmpty(), "Server list must not be empty");
-        this.servers = ImmutableSet.copyOf(servers);
+    @Value.Check
+    protected final void check() {
+        Preconditions.checkArgument(!servers().isEmpty(), "Server list must not be empty");
     }
 
-    public Set<String> getServers() {
-        return servers;
-    }
 
 }

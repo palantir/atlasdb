@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.cassandra.spi;
+package com.palantir.atlasdb.cassandra;
 
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -34,17 +34,17 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
     }
     
     private static CassandraKeyValueService createKv(CassandraKeyValueServiceConfig config) {
-        return CassandraKeyValueService.create(config.getServers(),
-                config.getPort(),
-                config.getPoolSize(),
-                config.getKeyspace(),
-                config.isSsl(),
-                config.getReplicationFactor(),
-                config.getMutationBatchCount(),
-                config.getMutationBatchSizeBytes(),
-                config.getFetchBatchCount(),
-                config.getSafetyDisabled(),
-                config.getAutoRefreshNodes());
+        return CassandraKeyValueService.create(config.servers(),
+                config.port(),
+                config.poolSize(),
+                config.keyspace(),
+                config.ssl(),
+                config.replicationFactor(),
+                config.mutationBatchCount(),
+                config.mutationBatchSizeBytes(),
+                config.fetchBatchCount(),
+                config.safetyDisabled(),
+                config.autoRefreshNodes());
     }
 
     @Override

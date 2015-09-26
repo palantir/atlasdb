@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.rocksdb.spi;
+package com.palantir.atlasdb.rocksdb;
 
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -36,7 +36,7 @@ public class RocksDbAtlasDbFactory implements AtlasDbFactory {
         Preconditions.checkArgument(config instanceof RocksDbKeyValueServiceConfig,
                 "RocksDbAtlasDbFactory expects a configuration of type RocksDbKeyValueServiceConfig, found %s", config.getClass());
         RocksDbKeyValueServiceConfig rocksDbConfig = (RocksDbKeyValueServiceConfig) config;
-        return RocksDbKeyValueService.create(rocksDbConfig.getDataDir().getAbsolutePath());
+        return RocksDbKeyValueService.create(rocksDbConfig.dataDir().getAbsolutePath());
     }
 
     @Override

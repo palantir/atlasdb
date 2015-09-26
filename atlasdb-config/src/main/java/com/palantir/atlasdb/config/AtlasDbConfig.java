@@ -15,42 +15,24 @@
  */
 package com.palantir.atlasdb.config;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import org.immutables.value.Value;
+
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Optional;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
-public final class AtlasDbConfig {
+@JsonDeserialize(as = ImmutableAtlasDbConfig.class)
+@JsonSerialize(as = ImmutableAtlasDbConfig.class)
+@Value.Immutable
+public interface AtlasDbConfig {
 
-    private final KeyValueServiceConfig keyValueService;
-    private final Optional<LeaderConfig> leader;
-    private final ServerListConfig lock;
-    private final ServerListConfig timestamp;
-
-    public AtlasDbConfig(
-            @JsonProperty("keyValueService") KeyValueServiceConfig keyValueService,
-            @JsonProperty("leader") Optional<LeaderConfig> leader,
-            @JsonProperty("lock") ServerListConfig lock,
-            @JsonProperty("timestamp") ServerListConfig timestamp) {
-        this.keyValueService = keyValueService;
-        this.leader = leader;
-        this.lock = lock;
-        this.timestamp = timestamp;
-    }
-
-    public KeyValueServiceConfig getKeyValueService() {
-        return keyValueService;
-    }
-
-    public Optional<LeaderConfig> getLeader() {
-        return leader;
-    }
-
-    public ServerListConfig getLock() {
-        return lock;
-    }
-
-    public ServerListConfig getTimestamp() {
-        return timestamp;
-    }
-
+    KeyValueServiceConfig keyValueService();
+    
+    Optional<LeaderConfig> leader();
+    
+    ServerListConfig lock();
+    
+    ServerListConfig timestamp();
+    
 }

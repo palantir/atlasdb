@@ -1,1 +1,1 @@
-com.palantir.atlasdb.cassandra.spi.CassandraKeyValueServiceConfig
+com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig

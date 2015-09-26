@@ -82,11 +82,11 @@ public class Leaders {
             Environment env,
             LeaderConfig config) {
 
-        PaxosAcceptor ourAcceptor = PaxosAcceptorImpl.newAcceptor(config.getAcceptorLogDir().getPath());
-        PaxosLearner ourLearner = PaxosLearnerImpl.newLearner(config.getLearnerLogDir().getPath());
+        PaxosAcceptor ourAcceptor = PaxosAcceptorImpl.newAcceptor(config.acceptorLogDir().getPath());
+        PaxosLearner ourLearner = PaxosLearnerImpl.newLearner(config.learnerLogDir().getPath());
 
-        Set<String> remoteLeaderUris = Sets.newHashSet(config.getLeaders());
-        remoteLeaderUris.remove(config.getLocalServer());
+        Set<String> remoteLeaderUris = Sets.newHashSet(config.leaders());
+        remoteLeaderUris.remove(config.localServer());
 
         List<PaxosLearner> learners =
                 AtlasDbHttpClients.createProxies(sslSocketFactory, remoteLeaderUris, PaxosLearner.class);
@@ -105,7 +105,7 @@ public class Leaders {
                 ourLearner,
                 acceptors,
                 learners,
-                config.getQuorumSize(),
+                config.quorumSize(),
                 executor);
 
         PaxosLeaderElectionService leader = new PaxosLeaderElectionService(
@@ -115,9 +115,9 @@ public class Leaders {
                 acceptors,
                 learners,
                 executor,
-                config.getPingRateMs(),
-                config.getRandomWaitBeforeProposingLeadershipMs(),
-                config.getLeaderPingResponseWaitMs());
+                config.pingRateMs(),
+                config.randomWaitBeforeProposingLeadershipMs(),
+                config.leaderPingResponseWaitMs());
 
         env.register(ourAcceptor);
         env.register(ourLearner);

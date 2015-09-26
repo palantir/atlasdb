@@ -74,15 +74,15 @@ public class TransactionManagers {
                                             Optional<SSLSocketFactory> sslSocketFactory,
                                             Set<Schema> schemas,
                                             Environment env) {
-        AtlasDbFactory kvsFactory = getKeyValueServiceFactory(config.getKeyValueService().getType());
-        KeyValueService rawKvs = kvsFactory.createRawKeyValueService(config.getKeyValueService());
+        AtlasDbFactory kvsFactory = getKeyValueServiceFactory(config.keyValueService().type());
+        KeyValueService rawKvs = kvsFactory.createRawKeyValueService(config.keyValueService());
         
         TimestampService ts = createLockAndTimestampServices(config, sslSocketFactory, env, kvsFactory.createTimestampService(rawKvs));
         
         KeyValueService kvs = createTableMappingKv(rawKvs, ts);
         
-        RemoteLockService lock = initRemoteLockServices(sslSocketFactory, config.getLock().getServers());
-        TimestampService timestamp = initRemoteTimeServices(sslSocketFactory, config.getTimestamp().getServers());
+        RemoteLockService lock = initRemoteLockServices(sslSocketFactory, config.lock().servers());
+        TimestampService timestamp = initRemoteTimeServices(sslSocketFactory, config.timestamp().servers());
 
         SnapshotTransactionManager.createTables(kvs);
 
@@ -130,8 +130,8 @@ public class TransactionManagers {
     private static TimestampService createLockAndTimestampServices(AtlasDbConfig config,
             Optional<SSLSocketFactory> sslSocketFactory, Environment env, final TimestampService ts) {
         TimestampService localTs;
-        if (config.getLeader().isPresent()) {
-            localTs = Leaders.createLockAndTimestampServices(config.getLeader().get(), sslSocketFactory, ts, env);
+        if (config.leader().isPresent()) {
+            localTs = Leaders.createLockAndTimestampServices(config.leader().get(), sslSocketFactory, ts, env);
         } else {
             env.register(LockServiceImpl.create());
             env.register(ts);

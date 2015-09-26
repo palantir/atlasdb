@@ -1,1 +1,1 @@
-com.palantir.atlasdb.memory.spi.InMemoryAtlasDbFactory
+com.palantir.atlasdb.memory.InMemoryAtlasDbFactory

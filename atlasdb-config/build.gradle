@@ -1,3 +1,7 @@
+plugins {
+    id 'org.inferred.processors' version '1.1'
+}
+
 apply from: "../gradle/shared.gradle"
 
 dependencies {
@@ -11,6 +15,8 @@ dependencies {
         exclude module: 'jsr311-api'
     }
     compile "com.netflix.feign:feign-okhttp:8.6.1"
+
+    processor 'org.immutables:value:2.0.21'
 }
 
 configurations.matching({ it.name in ['compile', 'runtime'] }).all {

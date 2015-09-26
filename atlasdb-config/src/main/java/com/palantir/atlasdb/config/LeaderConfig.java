@@ -18,78 +18,55 @@ package com.palantir.atlasdb.config;
 import java.io.File;
 import java.util.Set;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.base.Optional;
+import org.immutables.value.Value;
+
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
 
-public final class LeaderConfig {
+@JsonDeserialize(as = ImmutableLeaderConfig.class)
+@JsonSerialize(as = ImmutableLeaderConfig.class)
+@Value.Immutable
+public abstract class LeaderConfig {
 
-    private final int quorumSize;
-    private final File learnerLogDir;
-    private final File acceptorLogDir;
-    private final String localServer;
-    private final Set<String> leaders;
-    private final long pingRateMs;
-    private final long randomWaitBeforeProposingLeadershipMs;
-    private final long leaderPingResponseWaitMs;
-
-    public LeaderConfig(
-            @JsonProperty("quorumSize") int quorumSize,
-            @JsonProperty("learnerLogDir") Optional<File> learnerLogDir,
-            @JsonProperty("acceptorLogDir") Optional<File> acceptorLogDir,
-            @JsonProperty("localServer") String localServer,
-            @JsonProperty("leaders") Set<String> leaders,
-            @JsonProperty("pingRateMs") Optional<Long> pingRateMs,
-            @JsonProperty("randomWaitBeforeProposingLeadershipMs") Optional<Long> randomWaitBeforeProposingLeadershipMs,
-            @JsonProperty("leaderPingResponseWaitMs") Optional<Long> leaderPingResponseWaitMs) {
-        Preconditions.checkArgument(leaders.contains(localServer),
-                "The localServer must included in the leader entries.");
-
-        this.quorumSize = quorumSize;
-        this.learnerLogDir = learnerLogDir.or(new File("var/data/paxos/learner"));
-        this.acceptorLogDir = acceptorLogDir.or(new File("var/data/paxos/acceptor"));
-        this.localServer = localServer;
-        this.leaders = leaders;
-        this.pingRateMs = pingRateMs.or(5000l);
-        this.randomWaitBeforeProposingLeadershipMs = randomWaitBeforeProposingLeadershipMs.or(1000l);
-        this.leaderPingResponseWaitMs = leaderPingResponseWaitMs.or(this.pingRateMs);
-
-        Preconditions.checkArgument(this.learnerLogDir.exists() || this.learnerLogDir.mkdirs(),
-                "Learner log directory does not exist and cannot be created.");
-        Preconditions.checkArgument(this.acceptorLogDir.exists() || this.acceptorLogDir.mkdirs(),
-                "Acceptor log directory does not exist and cannot be created.");
-    }
-
-    public int getQuorumSize() {
-        return quorumSize;
-    }
-
-    public File getLearnerLogDir() {
-        return learnerLogDir;
-    }
-
-    public File getAcceptorLogDir() {
-        return acceptorLogDir;
-    }
-
-    public String getLocalServer() {
-        return localServer;
-    }
-
-    public Set<String> getLeaders() {
-        return leaders;
+    public abstract int quorumSize();
+    
+    @Value.Default
+    public File learnerLogDir() {
+        return new File("var/data/paxos/learner");
     }
     
-    public long getPingRateMs() {
-        return pingRateMs;
+    @Value.Default
+    public File acceptorLogDir() {
+        return new File("var/data/paxos/acceptor");
     }
     
-    public long getRandomWaitBeforeProposingLeadershipMs() {
-        return randomWaitBeforeProposingLeadershipMs;
+    public abstract String localServer();
+    
+    public abstract Set<String> leaders();
+    
+    @Value.Default
+    public long pingRateMs() {
+        return 5000l;
     }
     
-    public long getLeaderPingResponseWaitMs() {
-        return leaderPingResponseWaitMs;
+    @Value.Default
+    public long randomWaitBeforeProposingLeadershipMs() {
+        return 1000l;
     }
     
+    @Value.Default
+    public long leaderPingResponseWaitMs() {
+        return 5000l;
+    }
+    
+    protected final void check() {
+        Preconditions.checkArgument(leaders().contains(localServer()),
+                "The localServer '%s' must included in the leader entries %s.", localServer(), leaders());
+        Preconditions.checkArgument(learnerLogDir().exists() || learnerLogDir().mkdirs(),
+                "Learner log directory '%s' does not exist and cannot be created.", learnerLogDir());
+        Preconditions.checkArgument(acceptorLogDir().exists() || acceptorLogDir().mkdirs(),
+                "Acceptor log directory '%s' does not exist and cannot be created.", acceptorLogDir());
+    }
+
 }

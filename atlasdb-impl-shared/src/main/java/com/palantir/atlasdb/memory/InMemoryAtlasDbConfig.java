@@ -13,18 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.memory.spi;
+package com.palantir.atlasdb.memory;
 
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
 @JsonTypeName(InMemoryAtlasDbConfig.TYPE)
-public class InMemoryAtlasDbConfig implements KeyValueServiceConfig {
+public final class InMemoryAtlasDbConfig implements KeyValueServiceConfig {
 
     public static final String TYPE = "memory";
     
     @Override
-    public String getType() {
+    public final String type() {
         return TYPE;
     }
 
