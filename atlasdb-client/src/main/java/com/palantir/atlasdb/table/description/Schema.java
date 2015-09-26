@@ -38,10 +38,8 @@ import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
 import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ExpirationStrategy;
 import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.schema.stream.StreamTables;
@@ -69,14 +67,35 @@ public class Schema {
     private final String packageName;
     private final Namespace namespace;
 
+    private final Multimap<String, Supplier<OnCleanupTask>> cleanupTasks = ArrayListMultimap.create();
+    private final Map<String, TableDefinition> tempTableDefinitions = Maps.newHashMap();
+    private final Map<String, TableDefinition> tableDefinitions = Maps.newHashMap();
+    private final Map<String, IndexDefinition> indexDefinitions = Maps.newHashMap();
+    private final List<StreamStoreRenderer> streamStoreRenderers = Lists.newArrayList();
+
+    // N.B., the following is a list multimap because we want to preserve order
+    // for code generation purposes.
+    private final ListMultimap<String, String> indexesByTable = ArrayListMultimap.create();
+
     public Schema() {
-        this(null, null, Namespace.EMPTY_NAMESPACE);
+        this(null, null, Namespace.DEFAULT_NAMESPACE);
     }
 
     public Schema(String name, String packageName, Namespace namespace) {
         this.name = name;
         this.packageName = packageName;
         this.namespace = namespace;
+    }
+
+    public Schema withNamespace(Namespace newNamespace) {
+        Schema ret = new Schema(name, packageName, newNamespace);
+        ret.cleanupTasks.putAll(cleanupTasks);
+        ret.tempTableDefinitions.putAll(tempTableDefinitions);
+        ret.tableDefinitions.putAll(tableDefinitions);
+        ret.indexDefinitions.putAll(indexDefinitions);
+        ret.streamStoreRenderers.addAll(streamStoreRenderers);
+        ret.indexesByTable.putAll(indexesByTable);
+        return ret;
     }
 
 
@@ -93,7 +112,7 @@ public class Schema {
                 !tableDefinitions.containsKey(tableName) && !indexDefinitions.containsKey(tableName),
                 "Table already defined: %s", tableName);
         Preconditions.checkArgument(
-                Schemas.validateTableName(tableName),
+                Schemas.isTableNameValid(tableName),
                 "Invalid table name " + tableName);
         tableDefinitions.put(tableName, definition);
     }
@@ -195,7 +214,7 @@ public class Schema {
                 tableDefinitions.containsKey(definition.getSourceTable()),
                 "Index source table undefined.");
         Preconditions.checkArgument(
-                Schemas.validateTableName(idxName),
+                Schemas.isTableNameValid(idxName),
                 "Invalid table name " + idxName);
         Preconditions.checkArgument(!tableDefinitions.get(definition.getSourceTable()).toTableMetadata().getColumns().hasDynamicColumns() || !definition.getIndexType().equals(IndexType.CELL_REFERENCING),
                 "Cell referencing indexes not implemented for tables with dynamic columns.");
@@ -270,60 +289,16 @@ public class Schema {
         }
     }
 
-    /**
-     * Creates tables/indexes for this schema.
-     *
-     * This operation is idempotent, so it can be called multiple times without
-     * effect. Behavior is undefined if the schema has changed between calls
-     * (e.g., it is not the responsibility of this method to perform schema
-     * upgrades).
-     */
-    public void createTablesAndIndexes(KeyValueService kvs) {
-        validate();
-
-        Map<String, TableDefinition> fullTableNamesToDefinitions = Maps.newHashMapWithExpectedSize(tableDefinitions.size());
-        for (Entry<String, TableDefinition> e : tableDefinitions.entrySet()) {
-            fullTableNamesToDefinitions.put(Schemas.getFullTableName(e.getKey(), namespace), e.getValue());
-        }
-        Map<String, IndexDefinition> fullIndexNamesToDefinitions = Maps.newHashMapWithExpectedSize(indexDefinitions.size());
-        for (Entry<String, IndexDefinition> e : indexDefinitions.entrySet()) {
-            fullIndexNamesToDefinitions.put(Schemas.getFullTableName(e.getKey(), namespace), e.getValue());
-        }
-        Schemas.createTables(kvs, fullTableNamesToDefinitions);
-        Schemas.createIndices(kvs, fullIndexNamesToDefinitions);
+    public Map<String, TableDefinition> getTableDefinitions() {
+        return tableDefinitions;
     }
 
-    public void createTable(KeyValueService kvs, String tableName) {
-        TableDefinition definition = tableDefinitions.get(tableName);
-        String fullTableName = Schemas.getFullTableName(tableName, namespace);
-        Schemas.createTable(kvs, fullTableName, definition);
+    public Map<String, IndexDefinition> getIndexDefinitions() {
+        return indexDefinitions;
     }
 
-    public void createIndex(KeyValueService kvs, String indexName) {
-        IndexDefinition definition = indexDefinitions.get(indexName);
-        String fullIndexName = Schemas.getFullTableName(indexName, namespace);
-        Schemas.createIndex(kvs, fullIndexName, definition);
-    }
-
-    /**
-     * Drops tables/indexes for this schema.
-     */
-    public void deleteTablesAndIndexes(KeyValueService kvs) {
-        validate();
-        Set<String> allTables = kvs.getAllTableNames();
-        for (String n : Iterables.concat(indexDefinitions.keySet(), tableDefinitions.keySet())) {
-            if (allTables.contains(n)) {
-                kvs.dropTable(n);
-            }
-        }
-    }
-
-    public void deleteTable(KeyValueService kvs, String tableName) {
-        kvs.dropTable(tableName);
-    }
-
-    public void deleteIndex(KeyValueService kvs, String indexName) {
-        kvs.dropTable(indexName);
+    public Namespace getNamespace() {
+        return namespace;
     }
 
     /**
@@ -335,7 +310,7 @@ public class Schema {
         Preconditions.checkNotNull(name, "schema name not set");
         Preconditions.checkNotNull(packageName, "package name not set");
 
-        TableRenderer tableRenderer = new TableRenderer(packageName, namespace);
+        TableRenderer tableRenderer = new TableRenderer(packageName);
         for (Entry<String, TableDefinition> entry : tableDefinitions.entrySet()) {
             String rawTableName = entry.getKey();
             TableDefinition table = entry.getValue();
@@ -385,6 +360,7 @@ public class Schema {
                 new TableFactoryRenderer(
                         name,
                         packageName,
+                        namespace,
                         tableDefinitions);
         emit(srcDir,
              tableFactoryRenderer.render(),
@@ -407,32 +383,19 @@ public class Schema {
         os.close();
     }
 
-    public void addCleanupTask(String tableName, OnCleanupTask task) {
-        String fullTableName = Schemas.getFullTableName(tableName, namespace);
-        cleanupTasks.put(fullTableName, Suppliers.ofInstance(task));
+    public void addCleanupTask(String rawTableName, OnCleanupTask task) {
+        cleanupTasks.put(rawTableName, Suppliers.ofInstance(task));
     }
 
-    public void addCleanupTask(String tableName, Supplier<OnCleanupTask> task) {
-        String fullTableName = Schemas.getFullTableName(tableName, namespace);
-        cleanupTasks.put(fullTableName, task);
+    public void addCleanupTask(String rawTableName, Supplier<OnCleanupTask> task) {
+        cleanupTasks.put(rawTableName, task);
     }
 
     public Multimap<String, OnCleanupTask> getCleanupTasksByTable() {
-        return Multimaps.transformValues(cleanupTasks, new Function<Supplier<OnCleanupTask>, OnCleanupTask>() {
-            @Override
-            public OnCleanupTask apply(Supplier<OnCleanupTask> task) {
-                return task.get();
-            }
-        });
+        Multimap<String, OnCleanupTask> ret = ArrayListMultimap.create();
+        for (Map.Entry<String, Supplier<OnCleanupTask>> e : cleanupTasks.entries()) {
+            ret.put(Schemas.getFullTableName(e.getKey(), namespace), e.getValue().get());
+        }
+        return ret;
     }
-
-    private final Multimap<String, Supplier<OnCleanupTask>> cleanupTasks = ArrayListMultimap.create();
-    private final Map<String, TableDefinition> tempTableDefinitions = Maps.newHashMap();
-    private final Map<String, TableDefinition> tableDefinitions = Maps.newHashMap();
-    private final Map<String, IndexDefinition> indexDefinitions = Maps.newHashMap();
-    private final List<StreamStoreRenderer> streamStoreRenderers = Lists.newArrayList();
-
-    // N.B., the following is a list multimap because we want to preserve order
-    // for code generation purposes.
-    private final ListMultimap<String, String> indexesByTable = ArrayListMultimap.create();
 }

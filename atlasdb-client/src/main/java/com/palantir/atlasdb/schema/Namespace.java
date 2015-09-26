@@ -21,18 +21,23 @@ import com.google.common.base.Objects;
 import com.google.common.base.Strings;
 
 public final class Namespace {
-    public static final Namespace EMPTY_NAMESPACE = new Namespace("");
+    static final Namespace EMPTY_NAMESPACE = new Namespace("");
+    public static final Namespace DEFAULT_NAMESPACE = new Namespace("default");
 
     private final String name;
 
     public static Namespace create(String name) {
         Validate.isTrue(!Strings.isNullOrEmpty(name));
-        Validate.isTrue(isNamespaceValid(name));
+        Validate.isTrue(isNamespaceValid(name), name);
         return new Namespace(name);
     }
 
     private Namespace(String name) {
         this.name = name;
+    }
+
+    public boolean isEmptyNamespace() {
+        return this == EMPTY_NAMESPACE;
     }
 
     public String getName() {
@@ -64,7 +69,7 @@ public final class Namespace {
     public static boolean isNamespaceValid(String namespace) {
         for (int i = 0; i < namespace.length() ; i++) {
             char c = namespace.charAt(i);
-            if (!Character.isLetterOrDigit(c) && c != '_' && c != '-') {
+            if (!Character.isLetterOrDigit(c)) {
                 return false;
             }
         }

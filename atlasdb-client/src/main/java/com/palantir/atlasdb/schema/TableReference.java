@@ -36,6 +36,10 @@ public class TableReference implements Serializable {
         return new TableReference(namespace, tablename);
     }
 
+    public static TableReference createWithEmptyNamespace(String tablename) {
+        return new TableReference(Namespace.EMPTY_NAMESPACE, tablename);
+    }
+
     public static boolean isFullyQualifiedName(String tableName) {
         return tableName.contains(".");
     }

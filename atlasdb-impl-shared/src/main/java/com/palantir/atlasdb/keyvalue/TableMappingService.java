@@ -18,16 +18,13 @@ package com.palantir.atlasdb.keyvalue;
 import java.util.Map;
 import java.util.Set;
 
-import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.schema.TableReference;
 
 
 public interface TableMappingService {
     public String addTable(TableReference tableRef);
     public void removeTable(TableReference tableRef);
-    public void updateTableMap();
     public String getShortTableName(TableReference tableRef);
     public <T> Map<String, T> mapToShortTableNames(Map<TableReference, T> tableMap);
     public Set<TableReference> mapToFullTableNames(Set<String> tableNames);
-    public boolean isInitializedNamespace(Namespace namespace);
 }

@@ -36,7 +36,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.schema.TableReference;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -95,7 +94,7 @@ public class TableRemappingKeyValueService extends ForwardingObject implements
     public void dropTable(TableReference tableRef) {
         delegate().dropTable(tableMapper.getShortTableName(tableRef));
         // Handles the edge case of deleting _namespace when clearing the kvs
-        if (tableRef.getNamespace().equals(Namespace.EMPTY_NAMESPACE)
+        if (tableRef.getNamespace().isEmptyNamespace()
                 && tableRef.getTablename().equals(AtlasDbConstants.NAMESPACE_TABLE)) {
             return;
         }

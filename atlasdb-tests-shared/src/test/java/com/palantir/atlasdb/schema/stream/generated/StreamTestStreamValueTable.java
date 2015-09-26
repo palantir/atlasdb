@@ -1,18 +1,3 @@
-/**
- * Copyright 2015 Palantir Technologies
- *
- * Licensed under the BSD-3 License (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://opensource.org/licenses/BSD-3-Clause
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package com.palantir.atlasdb.schema.stream.generated;
 
 import java.util.Arrays;
@@ -28,6 +13,8 @@ import java.util.SortedMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+
+
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -61,6 +48,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
+import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
@@ -101,27 +89,35 @@ public final class StreamTestStreamValueTable implements
                                     StreamTestStreamValueTable.StreamTestStreamValueRowResult> {
     private final Transaction t;
     private final List<StreamTestStreamValueTrigger> triggers;
-    private final static String tableName = "stream_test_stream_value";
+    private final static String rawTableName = "stream_test_stream_value";
+    private final String tableName;
+    private final Namespace namespace;
 
-    static StreamTestStreamValueTable of(Transaction t) {
-        return new StreamTestStreamValueTable(t, ImmutableList.<StreamTestStreamValueTrigger>of());
+    static StreamTestStreamValueTable of(Transaction t, Namespace namespace) {
+        return new StreamTestStreamValueTable(t, namespace, ImmutableList.<StreamTestStreamValueTrigger>of());
     }
 
-    static StreamTestStreamValueTable of(Transaction t, StreamTestStreamValueTrigger trigger, StreamTestStreamValueTrigger... triggers) {
-        return new StreamTestStreamValueTable(t, ImmutableList.<StreamTestStreamValueTrigger>builder().add(trigger).add(triggers).build());
+    static StreamTestStreamValueTable of(Transaction t, Namespace namespace, StreamTestStreamValueTrigger trigger, StreamTestStreamValueTrigger... triggers) {
+        return new StreamTestStreamValueTable(t, namespace, ImmutableList.<StreamTestStreamValueTrigger>builder().add(trigger).add(triggers).build());
     }
 
-    static StreamTestStreamValueTable of(Transaction t, List<StreamTestStreamValueTrigger> triggers) {
-        return new StreamTestStreamValueTable(t, triggers);
+    static StreamTestStreamValueTable of(Transaction t, Namespace namespace, List<StreamTestStreamValueTrigger> triggers) {
+        return new StreamTestStreamValueTable(t, namespace, triggers);
     }
 
-    private StreamTestStreamValueTable(Transaction t, List<StreamTestStreamValueTrigger> triggers) {
+    private StreamTestStreamValueTable(Transaction t, Namespace namespace, List<StreamTestStreamValueTrigger> triggers) {
         this.t = t;
+        this.tableName = namespace.getName() + "." + rawTableName;
         this.triggers = triggers;
+        this.namespace = namespace;
     }
 
-    public static String getTableName() {
+    public String getTableName() {
         return tableName;
+    }
+
+    public Namespace getNamespace() {
+        return namespace;
     }
 
     /**
@@ -638,6 +634,7 @@ public final class StreamTestStreamValueTable implements
      * {@link Multimap}
      * {@link Multimaps}
      * {@link NamedColumnValue}
+     * {@link Namespace}
      * {@link Objects}
      * {@link Optional}
      * {@link Persistable}
@@ -657,5 +654,5 @@ public final class StreamTestStreamValueTable implements
      * {@link TypedRowResult}
      * {@link UnsignedBytes}
      */
-    static String __CLASS_HASH = "vXw832eblMyOXNHWq7Y5DQ==";
+    static String __CLASS_HASH = "KgDjpYY/hhtb65xuM1XOYA==";
 }

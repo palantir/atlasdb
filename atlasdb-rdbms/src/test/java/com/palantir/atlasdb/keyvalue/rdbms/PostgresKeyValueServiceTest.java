@@ -46,6 +46,7 @@ public class PostgresKeyValueServiceTest extends AbstractAtlasDbKeyValueServiceT
             process = exec.start();
             dataSource = new PoolingDataSource();
             dataSource.setDatabaseName(config.storage().dbName());
+            dataSource.setPortNumber(config.net().port());
         } catch (IOException e) {
             throw Throwables.throwUncheckedException(e);
         }

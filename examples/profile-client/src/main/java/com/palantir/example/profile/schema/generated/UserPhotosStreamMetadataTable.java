@@ -48,6 +48,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
+import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
@@ -88,27 +89,35 @@ public final class UserPhotosStreamMetadataTable implements
                                     UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRowResult> {
     private final Transaction t;
     private final List<UserPhotosStreamMetadataTrigger> triggers;
-    private final static String tableName = "user_photos_stream_metadata";
+    private final static String rawTableName = "user_photos_stream_metadata";
+    private final String tableName;
+    private final Namespace namespace;
 
-    static UserPhotosStreamMetadataTable of(Transaction t) {
-        return new UserPhotosStreamMetadataTable(t, ImmutableList.<UserPhotosStreamMetadataTrigger>of());
+    static UserPhotosStreamMetadataTable of(Transaction t, Namespace namespace) {
+        return new UserPhotosStreamMetadataTable(t, namespace, ImmutableList.<UserPhotosStreamMetadataTrigger>of());
     }
 
-    static UserPhotosStreamMetadataTable of(Transaction t, UserPhotosStreamMetadataTrigger trigger, UserPhotosStreamMetadataTrigger... triggers) {
-        return new UserPhotosStreamMetadataTable(t, ImmutableList.<UserPhotosStreamMetadataTrigger>builder().add(trigger).add(triggers).build());
+    static UserPhotosStreamMetadataTable of(Transaction t, Namespace namespace, UserPhotosStreamMetadataTrigger trigger, UserPhotosStreamMetadataTrigger... triggers) {
+        return new UserPhotosStreamMetadataTable(t, namespace, ImmutableList.<UserPhotosStreamMetadataTrigger>builder().add(trigger).add(triggers).build());
     }
 
-    static UserPhotosStreamMetadataTable of(Transaction t, List<UserPhotosStreamMetadataTrigger> triggers) {
-        return new UserPhotosStreamMetadataTable(t, triggers);
+    static UserPhotosStreamMetadataTable of(Transaction t, Namespace namespace, List<UserPhotosStreamMetadataTrigger> triggers) {
+        return new UserPhotosStreamMetadataTable(t, namespace, triggers);
     }
 
-    private UserPhotosStreamMetadataTable(Transaction t, List<UserPhotosStreamMetadataTrigger> triggers) {
+    private UserPhotosStreamMetadataTable(Transaction t, Namespace namespace, List<UserPhotosStreamMetadataTrigger> triggers) {
         this.t = t;
+        this.tableName = namespace.getName() + "." + rawTableName;
         this.triggers = triggers;
+        this.namespace = namespace;
     }
 
-    public static String getTableName() {
+    public String getTableName() {
         return tableName;
+    }
+
+    public Namespace getNamespace() {
+        return namespace;
     }
 
     /**
@@ -637,6 +646,7 @@ public final class UserPhotosStreamMetadataTable implements
      * {@link Multimap}
      * {@link Multimaps}
      * {@link NamedColumnValue}
+     * {@link Namespace}
      * {@link Objects}
      * {@link Optional}
      * {@link Persistable}
@@ -656,5 +666,5 @@ public final class UserPhotosStreamMetadataTable implements
      * {@link TypedRowResult}
      * {@link UnsignedBytes}
      */
-    static String __CLASS_HASH = "MBZlbz/1eMLpFQxymW2+nA==";
+    static String __CLASS_HASH = "peWAEkC3GVWa3eZfEWqUOw==";
 }

@@ -34,7 +34,7 @@ public class IndexTestSchema implements AtlasSchema {
     private static Schema generateSchema() {
         Schema schema = new Schema("IndexTest",
                 IndexTest.class.getPackage().getName() + ".generated",
-                Namespace.EMPTY_NAMESPACE);
+                Namespace.DEFAULT_NAMESPACE);
 
         schema.addTableDefinition("data", new TableDefinition() {{
             rowName();
@@ -109,16 +109,16 @@ public class IndexTestSchema implements AtlasSchema {
     }
 
     public static void main(String[]  args) throws Exception {
-        INDEX_TEST_SCHEMA.renderTables(new File("test-src"));
+        INDEX_TEST_SCHEMA.renderTables(new File("src/test/java"));
     }
-    
+
     @Override
     public Schema getLatestSchema() {
         return INDEX_TEST_SCHEMA;
     }
-    
+
     @Override
     public Namespace getNamespace() {
-        return Namespace.EMPTY_NAMESPACE;
+        return Namespace.DEFAULT_NAMESPACE;
     }
 }

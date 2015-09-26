@@ -1,18 +1,3 @@
-/**
- * Copyright 2015 Palantir Technologies
- *
- * Licensed under the BSD-3 License (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://opensource.org/licenses/BSD-3-Clause
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package com.palantir.atlasdb.schema.generated;
 
 import java.util.Arrays;
@@ -29,18 +14,17 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.lang.ArrayUtils;
-import org.apache.commons.lang.builder.CompareToBuilder;
-import org.apache.commons.lang.builder.EqualsBuilder;
-import org.apache.commons.lang.builder.HashCodeBuilder;
-import org.apache.commons.lang.builder.ToStringBuilder;
+
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -64,6 +48,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
+import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
@@ -104,34 +89,42 @@ public final class SweepPriorityTable implements
                                     SweepPriorityTable.SweepPriorityRowResult> {
     private final Transaction t;
     private final List<SweepPriorityTrigger> triggers;
-    private final static String tableName = "sweep.priority";
+    private final static String rawTableName = "priority";
+    private final String tableName;
+    private final Namespace namespace;
 
-    static SweepPriorityTable of(Transaction t) {
-        return new SweepPriorityTable(t, ImmutableList.<SweepPriorityTrigger>of());
+    static SweepPriorityTable of(Transaction t, Namespace namespace) {
+        return new SweepPriorityTable(t, namespace, ImmutableList.<SweepPriorityTrigger>of());
     }
 
-    static SweepPriorityTable of(Transaction t, SweepPriorityTrigger trigger, SweepPriorityTrigger... triggers) {
-        return new SweepPriorityTable(t, ImmutableList.<SweepPriorityTrigger>builder().add(trigger).add(triggers).build());
+    static SweepPriorityTable of(Transaction t, Namespace namespace, SweepPriorityTrigger trigger, SweepPriorityTrigger... triggers) {
+        return new SweepPriorityTable(t, namespace, ImmutableList.<SweepPriorityTrigger>builder().add(trigger).add(triggers).build());
     }
 
-    static SweepPriorityTable of(Transaction t, List<SweepPriorityTrigger> triggers) {
-        return new SweepPriorityTable(t, triggers);
+    static SweepPriorityTable of(Transaction t, Namespace namespace, List<SweepPriorityTrigger> triggers) {
+        return new SweepPriorityTable(t, namespace, triggers);
     }
 
-    private SweepPriorityTable(Transaction t, List<SweepPriorityTrigger> triggers) {
+    private SweepPriorityTable(Transaction t, Namespace namespace, List<SweepPriorityTrigger> triggers) {
         this.t = t;
+        this.tableName = namespace.getName() + "." + rawTableName;
         this.triggers = triggers;
+        this.namespace = namespace;
     }
 
-    public static String getTableName() {
+    public String getTableName() {
         return tableName;
+    }
+
+    public Namespace getNamespace() {
+        return namespace;
     }
 
     /**
      * <pre>
      * SweepPriorityRow {
      *   {@literal String fullTableName};
-     * } 
+     * }
      * </pre>
      */
     public static final class SweepPriorityRow implements Persistable, Comparable<SweepPriorityRow> {
@@ -185,8 +178,8 @@ public final class SweepPriorityTable implements
 
         @Override
         public String toString() {
-            return new ToStringBuilder(this)
-                .append("fullTableName", fullTableName)
+            return MoreObjects.toStringHelper(this)
+                .add("fullTableName", fullTableName)
                 .toString();
         }
 
@@ -202,23 +195,19 @@ public final class SweepPriorityTable implements
                 return false;
             }
             SweepPriorityRow other = (SweepPriorityRow) obj;
-            return new EqualsBuilder()
-                .append(fullTableName, other.fullTableName)
-                .isEquals();
+            return Objects.equal(fullTableName, other.fullTableName);
         }
 
         @Override
         public int hashCode() {
-            return new HashCodeBuilder()
-                .append(fullTableName)
-                .toHashCode();
+            return Objects.hashCode(fullTableName);
         }
 
         @Override
         public int compareTo(SweepPriorityRow o) {
-            return new CompareToBuilder()
-                .append(this.fullTableName, o.fullTableName)
-                .toComparison();
+            return ComparisonChain.start()
+                .compare(this.fullTableName, o.fullTableName)
+                .result();
         }
     }
 
@@ -564,13 +553,13 @@ public final class SweepPriorityTable implements
 
         @Override
         public String toString() {
-            return new ToStringBuilder(this)
-                    .append("RowName", getRowName())
-                    .append("CellsDeleted", getCellsDeleted())
-                    .append("CellsExamined", getCellsExamined())
-                    .append("LastSweepTime", getLastSweepTime())
-                    .append("WriteCount", getWriteCount())
-                    .toString();
+            return MoreObjects.toStringHelper(this)
+                    .add("RowName", getRowName())
+                    .add("CellsDeleted", getCellsDeleted())
+                    .add("CellsExamined", getCellsExamined())
+                    .add("LastSweepTime", getLastSweepTime())
+                    .add("WriteCount", getWriteCount())
+                .toString();
         }
     }
 
@@ -940,10 +929,17 @@ public final class SweepPriorityTable implements
      * {@link AbortingVisitor}
      * {@link AbortingVisitors}
      * {@link ArrayListMultimap}
-     * {@link ArrayUtils}
      * {@link Arrays}
      * {@link AssertUtils}
      * {@link AsyncProxy}
+     * {@link AtlasDbConstraintCheckingMode}
+     * {@link AtlasDbDynamicMutableExpiringTable}
+     * {@link AtlasDbDynamicMutablePersistentTable}
+     * {@link AtlasDbMutableExpiringTable}
+     * {@link AtlasDbMutablePersistentTable}
+     * {@link AtlasDbNamedExpiringSet}
+     * {@link AtlasDbNamedMutableTable}
+     * {@link AtlasDbNamedPersistentSet}
      * {@link BatchingVisitable}
      * {@link BatchingVisitableView}
      * {@link BatchingVisitables}
@@ -956,7 +952,7 @@ public final class SweepPriorityTable implements
      * {@link ColumnSelection}
      * {@link ColumnValue}
      * {@link ColumnValues}
-     * {@link CompareToBuilder}
+     * {@link ComparisonChain}
      * {@link Compression}
      * {@link CompressionUtils}
      * {@link ConstraintCheckingTransaction}
@@ -964,10 +960,8 @@ public final class SweepPriorityTable implements
      * {@link EncodingUtils}
      * {@link Entry}
      * {@link EnumSet}
-     * {@link EqualsBuilder}
      * {@link ExecutorService}
      * {@link Function}
-     * {@link HashCodeBuilder}
      * {@link HashMultimap}
      * {@link HashSet}
      * {@link Hydrator}
@@ -984,17 +978,12 @@ public final class SweepPriorityTable implements
      * {@link Lists}
      * {@link Map}
      * {@link Maps}
-     * {@link AtlasDbConstraintCheckingMode}
-     * {@link AtlasDbDynamicMutableExpiringTable}
-     * {@link AtlasDbDynamicMutablePersistentTable}
-     * {@link AtlasDbMutableExpiringTable}
-     * {@link AtlasDbMutablePersistentTable}
-     * {@link AtlasDbNamedExpiringSet}
-     * {@link AtlasDbNamedMutableTable}
-     * {@link AtlasDbNamedPersistentSet}
+     * {@link MoreObjects}
      * {@link Multimap}
      * {@link Multimaps}
      * {@link NamedColumnValue}
+     * {@link Namespace}
+     * {@link Objects}
      * {@link Optional}
      * {@link Persistable}
      * {@link Persistables}
@@ -1009,10 +998,9 @@ public final class SweepPriorityTable implements
      * {@link Supplier}
      * {@link Throwables}
      * {@link TimeUnit}
-     * {@link ToStringBuilder}
      * {@link Transaction}
      * {@link TypedRowResult}
      * {@link UnsignedBytes}
      */
-    static String __CLASS_HASH = "3rBDwlfYCg4pTxJiuhQ5dw==";
+    static String __CLASS_HASH = "kWni99WlqpwuPYrbDhtjKQ==";
 }

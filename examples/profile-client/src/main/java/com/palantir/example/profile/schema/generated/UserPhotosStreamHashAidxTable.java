@@ -48,6 +48,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
+import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
@@ -86,27 +87,35 @@ public final class UserPhotosStreamHashAidxTable implements
                                                 UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxRowResult> {
     private final Transaction t;
     private final List<UserPhotosStreamHashAidxTrigger> triggers;
-    private final static String tableName = "user_photos_stream_hash_idx";
+    private final static String rawTableName = "user_photos_stream_hash_idx";
+    private final String tableName;
+    private final Namespace namespace;
 
-    static UserPhotosStreamHashAidxTable of(Transaction t) {
-        return new UserPhotosStreamHashAidxTable(t, ImmutableList.<UserPhotosStreamHashAidxTrigger>of());
+    static UserPhotosStreamHashAidxTable of(Transaction t, Namespace namespace) {
+        return new UserPhotosStreamHashAidxTable(t, namespace, ImmutableList.<UserPhotosStreamHashAidxTrigger>of());
     }
 
-    static UserPhotosStreamHashAidxTable of(Transaction t, UserPhotosStreamHashAidxTrigger trigger, UserPhotosStreamHashAidxTrigger... triggers) {
-        return new UserPhotosStreamHashAidxTable(t, ImmutableList.<UserPhotosStreamHashAidxTrigger>builder().add(trigger).add(triggers).build());
+    static UserPhotosStreamHashAidxTable of(Transaction t, Namespace namespace, UserPhotosStreamHashAidxTrigger trigger, UserPhotosStreamHashAidxTrigger... triggers) {
+        return new UserPhotosStreamHashAidxTable(t, namespace, ImmutableList.<UserPhotosStreamHashAidxTrigger>builder().add(trigger).add(triggers).build());
     }
 
-    static UserPhotosStreamHashAidxTable of(Transaction t, List<UserPhotosStreamHashAidxTrigger> triggers) {
-        return new UserPhotosStreamHashAidxTable(t, triggers);
+    static UserPhotosStreamHashAidxTable of(Transaction t, Namespace namespace, List<UserPhotosStreamHashAidxTrigger> triggers) {
+        return new UserPhotosStreamHashAidxTable(t, namespace, triggers);
     }
 
-    private UserPhotosStreamHashAidxTable(Transaction t, List<UserPhotosStreamHashAidxTrigger> triggers) {
+    private UserPhotosStreamHashAidxTable(Transaction t, Namespace namespace, List<UserPhotosStreamHashAidxTrigger> triggers) {
         this.t = t;
+        this.tableName = namespace.getName() + "." + rawTableName;
         this.triggers = triggers;
+        this.namespace = namespace;
     }
 
-    public static String getTableName() {
+    public String getTableName() {
         return tableName;
+    }
+
+    public Namespace getNamespace() {
+        return namespace;
     }
 
     /**
@@ -299,7 +308,7 @@ public final class UserPhotosStreamHashAidxTable implements
      * <pre>
      * Column name description {
      *   {@literal Long streamId};
-     * } 
+     * }
      * Column value description {
      *   type: Long;
      * }
@@ -648,6 +657,7 @@ public final class UserPhotosStreamHashAidxTable implements
      * {@link Multimap}
      * {@link Multimaps}
      * {@link NamedColumnValue}
+     * {@link Namespace}
      * {@link Objects}
      * {@link Optional}
      * {@link Persistable}
@@ -667,5 +677,5 @@ public final class UserPhotosStreamHashAidxTable implements
      * {@link TypedRowResult}
      * {@link UnsignedBytes}
      */
-    static String __CLASS_HASH = "7kiF7vqezbmoxOfNIwrJZw==";
+    static String __CLASS_HASH = "eqtQfOWSe1Xq6+TtweZMJA==";
 }

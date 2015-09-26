@@ -15,26 +15,16 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-import com.google.common.base.Supplier;
 import com.palantir.atlasdb.keyvalue.NamespacedKeyValueService;
 import com.palantir.atlasdb.keyvalue.TableMappingService;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.timestamp.TimestampService;
 
 /**
  * @author jweel
  */
 public class NamespacedKeyValueServices {
-    public static KeyValueService wrapWithNamespaceMappingKvs(KeyValueService keyValueService,
-                                                              final TimestampService timestampService) {
-        TableMappingService tableMap = KVTableMappingService.create(
-                keyValueService,
-                new Supplier<Long>() {
-                    @Override
-                    public Long get() {
-                        return timestampService.getFreshTimestamp();
-                    }
-                });
+    public static KeyValueService wrapWithStaticNamespaceMappingKvs(KeyValueService keyValueService) {
+        TableMappingService tableMap = StaticTableMappingService.create(keyValueService);
         NamespacedKeyValueService namespacedKeyValueService = TableRemappingKeyValueService.create(
                 keyValueService,
                 tableMap);

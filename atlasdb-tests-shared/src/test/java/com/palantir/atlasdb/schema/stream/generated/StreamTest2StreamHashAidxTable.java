@@ -1,18 +1,3 @@
-/**
- * Copyright 2015 Palantir Technologies
- *
- * Licensed under the BSD-3 License (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://opensource.org/licenses/BSD-3-Clause
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package com.palantir.atlasdb.schema.stream.generated;
 
 import java.util.Arrays;
@@ -28,6 +13,8 @@ import java.util.SortedMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+
+
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -61,6 +48,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
+import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
@@ -99,27 +87,35 @@ public final class StreamTest2StreamHashAidxTable implements
                                               StreamTest2StreamHashAidxTable.StreamTest2StreamHashAidxRowResult> {
     private final Transaction t;
     private final List<StreamTest2StreamHashAidxTrigger> triggers;
-    private final static String tableName = "stream_test_2_stream_hash_idx";
+    private final static String rawTableName = "stream_test_2_stream_hash_idx";
+    private final String tableName;
+    private final Namespace namespace;
 
-    static StreamTest2StreamHashAidxTable of(Transaction t) {
-        return new StreamTest2StreamHashAidxTable(t, ImmutableList.<StreamTest2StreamHashAidxTrigger>of());
+    static StreamTest2StreamHashAidxTable of(Transaction t, Namespace namespace) {
+        return new StreamTest2StreamHashAidxTable(t, namespace, ImmutableList.<StreamTest2StreamHashAidxTrigger>of());
     }
 
-    static StreamTest2StreamHashAidxTable of(Transaction t, StreamTest2StreamHashAidxTrigger trigger, StreamTest2StreamHashAidxTrigger... triggers) {
-        return new StreamTest2StreamHashAidxTable(t, ImmutableList.<StreamTest2StreamHashAidxTrigger>builder().add(trigger).add(triggers).build());
+    static StreamTest2StreamHashAidxTable of(Transaction t, Namespace namespace, StreamTest2StreamHashAidxTrigger trigger, StreamTest2StreamHashAidxTrigger... triggers) {
+        return new StreamTest2StreamHashAidxTable(t, namespace, ImmutableList.<StreamTest2StreamHashAidxTrigger>builder().add(trigger).add(triggers).build());
     }
 
-    static StreamTest2StreamHashAidxTable of(Transaction t, List<StreamTest2StreamHashAidxTrigger> triggers) {
-        return new StreamTest2StreamHashAidxTable(t, triggers);
+    static StreamTest2StreamHashAidxTable of(Transaction t, Namespace namespace, List<StreamTest2StreamHashAidxTrigger> triggers) {
+        return new StreamTest2StreamHashAidxTable(t, namespace, triggers);
     }
 
-    private StreamTest2StreamHashAidxTable(Transaction t, List<StreamTest2StreamHashAidxTrigger> triggers) {
+    private StreamTest2StreamHashAidxTable(Transaction t, Namespace namespace, List<StreamTest2StreamHashAidxTrigger> triggers) {
         this.t = t;
+        this.tableName = namespace.getName() + "." + rawTableName;
         this.triggers = triggers;
+        this.namespace = namespace;
     }
 
-    public static String getTableName() {
+    public String getTableName() {
         return tableName;
+    }
+
+    public Namespace getNamespace() {
+        return namespace;
     }
 
     /**
@@ -312,7 +308,7 @@ public final class StreamTest2StreamHashAidxTable implements
      * <pre>
      * Column name description {
      *   {@literal Long streamId};
-     * } 
+     * }
      * Column value description {
      *   type: Long;
      * }
@@ -650,6 +646,7 @@ public final class StreamTest2StreamHashAidxTable implements
      * {@link Multimap}
      * {@link Multimaps}
      * {@link NamedColumnValue}
+     * {@link Namespace}
      * {@link Objects}
      * {@link Optional}
      * {@link Persistable}
@@ -669,5 +666,5 @@ public final class StreamTest2StreamHashAidxTable implements
      * {@link TypedRowResult}
      * {@link UnsignedBytes}
      */
-    static String __CLASS_HASH = "EpySmhIwI3gR6nH+ZZZZEg==";
+    static String __CLASS_HASH = "qJ8DJWhd6jcJ2gF7wuUEoQ==";
 }

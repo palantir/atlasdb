@@ -109,11 +109,9 @@ import com.palantir.util.crypto.Sha256Hash;
 
 public class TableRenderer {
     private final String packageName;
-    private final Namespace namespace;
 
-    public TableRenderer(String packageName, Namespace namespace) {
+    public TableRenderer(String packageName) {
         this.packageName = Preconditions.checkNotNull(packageName);
-        this.namespace = Preconditions.checkNotNull(namespace);
     }
 
     public String getClassName(String rawTableName, TableDefinition table) {
@@ -132,6 +130,7 @@ public class TableRenderer {
         private final String raw_table_name;
         private final boolean isGeneric;
         private final boolean isNestedIndex;
+        private final String outerTable;
         private final String Table;
         private final String Row;
         private final String Column;
@@ -142,13 +141,17 @@ public class TableRenderer {
         public ClassRenderer(String rawTableName,
                              TableDefinition table,
                              SortedSet<IndexMetadata> indices) {
+            Preconditions.checkArgument(
+                    Schemas.isTableNameValid(rawTableName),
+                    "Invalid table name " + rawTableName);
             this.tableName = Renderers.getClassTableName(rawTableName, table);
             this.table = table.toTableMetadata();
             this.indices = indices;
             this.cellReferencingIndices = getCellReferencingIndices(indices);
-            this.raw_table_name = Schemas.getFullTableName(rawTableName, namespace);
+            this.raw_table_name = rawTableName;
             this.isGeneric = table.getGenericTableName() != null;
             this.isNestedIndex = false;
+            this.outerTable = null;
             this.Table = tableName + "Table";
             this.Row = tableName + "Row";
             this.Column = tableName + (isDynamic(this.table) ? "Column" : "NamedColumn");
@@ -157,15 +160,16 @@ public class TableRenderer {
             this.Trigger = tableName + "Trigger";
         }
 
-        public ClassRenderer(Renderer parent, IndexMetadata index) {
+        public ClassRenderer(Renderer parent, String outerTable, IndexMetadata index) {
             super(parent);
             this.tableName = Renderers.getIndexTableName(index);
             this.table = index.getTableMetadata();
             this.indices = ImmutableSortedSet.of();
             this.cellReferencingIndices = ImmutableList.of();
-            this.raw_table_name = Schemas.getFullTableName(index.getIndexName(), namespace);
+            this.raw_table_name = index.getIndexName();
             this.isGeneric = false;
             this.isNestedIndex = true;
+            this.outerTable = outerTable;
             this.Table = tableName + "Table";
             this.Row = tableName + "Row";
             this.Column = tableName + (isDynamic(this.table) ? "Column" : "NamedColumn");
@@ -226,6 +230,8 @@ public class TableRenderer {
                 _();
                 renderGetTableName();
                 _();
+                renderGetNamespace();
+                _();
                 new RowOrDynamicColumnRenderer(this, Row, table.getRowMetadata(), table.isRangeScanAllowed()).run();
                 _();
                 if (isDynamic(table)) {
@@ -257,7 +263,7 @@ public class TableRenderer {
                 renderFindConstraintFailures();
                 for (IndexMetadata index : indices) {
                     _();
-                    new ClassRenderer(this, index).run();
+                    new ClassRenderer(this, Table, index).run();
                 }
                 if (!isNestedIndex) {
                     _();
@@ -348,36 +354,63 @@ public class TableRenderer {
         private void fields() {
             _("private final Transaction t;");
             _("private final List<", Trigger, "> triggers;");
-            _("private final ", isGeneric ? "" : "static ", "String tableName", isGeneric ? ";" : " = \"" + raw_table_name + "\";");
+            if (!isGeneric) {
+                _("private final static String rawTableName = \"" + raw_table_name + "\";");
+            }
+            _("private final String tableName;");
+            _("private final Namespace namespace;");
         }
 
         private void staticFactories() {
-            _(isNestedIndex ? "public " : "", "static ", Table, " of(Transaction t", isGeneric ? ", String tableName" : "", ") {"); {
-                _("return new ", Table, "(t", isGeneric ? ", tableName" : "", ", ImmutableList.<", Trigger, ">of());");
-            } _("}");
-            _();
-            _(isNestedIndex ? "public " : "", "static ", Table, " of(Transaction t", isGeneric ? ", String tableName" : "", ", ", Trigger, " trigger, ", Trigger, "... triggers) {"); {
-                _("return new ", Table, "(t", isGeneric ? ", tableName" : "", ", ImmutableList.<", Trigger, ">builder().add(trigger).add(triggers).build());");
-            } _("}");
-            _();
-            _(isNestedIndex ? "public " : "", "static ", Table, " of(Transaction t", isGeneric ? ", String tableName" : "", ", List<", Trigger, "> triggers) {"); {
-                _("return new ", Table, "(t", isGeneric ? ", tableName" : "", ", triggers);");
-            } _("}");
+            if (isNestedIndex) {
+                _("public static ", Table, " of(", outerTable, " table", isGeneric ? ", String tableName" : "", ") {"); {
+                    _("return new ", Table, "(table.t, table.namespace", isGeneric ? ", tableName" : "", ", ImmutableList.<", Trigger, ">of());");
+                } _("}");
+                _();
+                _("public static ", Table, " of(", outerTable, " table", isGeneric ? ", String tableName" : "", ", ", Trigger, " trigger, ", Trigger, "... triggers) {"); {
+                    _("return new ", Table, "(table.t, table.namespace", isGeneric ? ", tableName" : "", ", ImmutableList.<", Trigger, ">builder().add(trigger).add(triggers).build());");
+                } _("}");
+                _();
+                _("public static ", Table, " of(", outerTable, " table", isGeneric ? ", String tableName" : "", ", List<", Trigger, "> triggers) {"); {
+                    _("return new ", Table, "(table.t, table.namespace", isGeneric ? ", tableName" : "", ", triggers);");
+                } _("}");
+            } else {
+                _("static ", Table, " of(Transaction t, Namespace namespace", isGeneric ? ", String tableName" : "", ") {"); {
+                    _("return new ", Table, "(t, namespace", isGeneric ? ", tableName" : "", ", ImmutableList.<", Trigger, ">of());");
+                } _("}");
+                _();
+                _("static ", Table, " of(Transaction t, Namespace namespace", isGeneric ? ", String tableName" : "", ", ", Trigger, " trigger, ", Trigger, "... triggers) {"); {
+                    _("return new ", Table, "(t, namespace", isGeneric ? ", tableName" : "", ", ImmutableList.<", Trigger, ">builder().add(trigger).add(triggers).build());");
+                } _("}");
+                _();
+                _("static ", Table, " of(Transaction t, Namespace namespace", isGeneric ? ", String tableName" : "", ", List<", Trigger, "> triggers) {"); {
+                    _("return new ", Table, "(t, namespace", isGeneric ? ", tableName" : "", ", triggers);");
+                } _("}");
+            }
         }
 
         private void constructors() {
-            _("private ", Table, "(Transaction t", isGeneric ? ", String tableName" : "", ", List<", Trigger, "> triggers) {"); {
+            _("private ", Table, "(Transaction t, Namespace namespace", isGeneric ? ", String tableName" : "", ", List<", Trigger, "> triggers) {"); {
                 _("this.t = t;");
                 if (isGeneric) {
-                    _("this.tableName = tableName;");
+                    _("this.tableName = namespace.getName() + \".\" + tableName;");
+                } else {
+                    _("this.tableName = namespace.getName() + \".\" + rawTableName;");
                 }
                 _("this.triggers = triggers;");
+                _("this.namespace = namespace;");
             } _("}");
         }
 
         private void renderGetTableName() {
-            _("public ", isGeneric ? "" : "static ", "String getTableName() {"); {
+            _("public String getTableName() {"); {
                 _("return tableName;");
+            } _("}");
+        }
+
+        private void renderGetNamespace() {
+            _("public Namespace getNamespace() {"); {
+                _("return namespace;");
             } _("}");
         }
 
@@ -463,7 +496,7 @@ public class TableRenderer {
                 }
                 _("{"); {
                     _(Row, " row = e.getKey();");
-                    _(indexName, "Table table = ", indexName, "Table.of(t);");
+                    _(indexName, "Table table = ", indexName, "Table.of(this);");
                     for (IndexComponent component : index.getRowComponents()) {
                         String varName = renderIndexComponent(component);
                         rowArgumentNames.add(varName);
@@ -717,7 +750,7 @@ public class TableRenderer {
                         } _("}");
                     } _("}");
                 } _("}");
-                _("t.delete(\"", Schemas.getFullTableName(index.getIndexName(), namespace), "\", indexCells.build());");
+                _("t.delete(namespace.getName() + \".", index.getIndexName(), "\", indexCells.build());");
             } _("}");
         }
 
@@ -792,7 +825,7 @@ public class TableRenderer {
                         _("}");
                     }
                 }  _("}");
-                _("t.delete(\"", Schemas.getFullTableName(index.getIndexName(), namespace), "\", indexCells.build());");
+                _("t.delete(namespace.getName() + \".", index.getIndexName(), "\", indexCells.build());");
             } _("}");
         }
 
@@ -1180,6 +1213,7 @@ public class TableRenderer {
         TypedRowResult.class,
         TimeUnit.class,
         CompressionUtils.class,
-        Compression.class
+        Compression.class,
+        Namespace.class,
     };
 }

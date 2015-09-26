@@ -47,9 +47,9 @@ import com.palantir.util.Pair;
 public class AtlasSqlUtils {
     private AtlasSqlUtils() { }
 
-    public static final String USER_TABLE_PREFIX = "atlasdb_usr_table_";
+    public static final String USER_TABLE_PREFIX = "atlasdb_";
     public static final String USR_TABLE(String tableName) {
-        return USER_TABLE_PREFIX + tableName;
+        return USER_TABLE_PREFIX + tableName.replaceFirst("\\.", "_");
     }
     public static final String USR_TABLE(String tableName, String alias) {
         return USR_TABLE(tableName) + " " + alias;

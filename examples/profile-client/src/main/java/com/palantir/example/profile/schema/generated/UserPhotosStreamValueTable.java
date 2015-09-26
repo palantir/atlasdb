@@ -48,6 +48,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
+import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
@@ -88,27 +89,35 @@ public final class UserPhotosStreamValueTable implements
                                     UserPhotosStreamValueTable.UserPhotosStreamValueRowResult> {
     private final Transaction t;
     private final List<UserPhotosStreamValueTrigger> triggers;
-    private final static String tableName = "user_photos_stream_value";
+    private final static String rawTableName = "user_photos_stream_value";
+    private final String tableName;
+    private final Namespace namespace;
 
-    static UserPhotosStreamValueTable of(Transaction t) {
-        return new UserPhotosStreamValueTable(t, ImmutableList.<UserPhotosStreamValueTrigger>of());
+    static UserPhotosStreamValueTable of(Transaction t, Namespace namespace) {
+        return new UserPhotosStreamValueTable(t, namespace, ImmutableList.<UserPhotosStreamValueTrigger>of());
     }
 
-    static UserPhotosStreamValueTable of(Transaction t, UserPhotosStreamValueTrigger trigger, UserPhotosStreamValueTrigger... triggers) {
-        return new UserPhotosStreamValueTable(t, ImmutableList.<UserPhotosStreamValueTrigger>builder().add(trigger).add(triggers).build());
+    static UserPhotosStreamValueTable of(Transaction t, Namespace namespace, UserPhotosStreamValueTrigger trigger, UserPhotosStreamValueTrigger... triggers) {
+        return new UserPhotosStreamValueTable(t, namespace, ImmutableList.<UserPhotosStreamValueTrigger>builder().add(trigger).add(triggers).build());
     }
 
-    static UserPhotosStreamValueTable of(Transaction t, List<UserPhotosStreamValueTrigger> triggers) {
-        return new UserPhotosStreamValueTable(t, triggers);
+    static UserPhotosStreamValueTable of(Transaction t, Namespace namespace, List<UserPhotosStreamValueTrigger> triggers) {
+        return new UserPhotosStreamValueTable(t, namespace, triggers);
     }
 
-    private UserPhotosStreamValueTable(Transaction t, List<UserPhotosStreamValueTrigger> triggers) {
+    private UserPhotosStreamValueTable(Transaction t, Namespace namespace, List<UserPhotosStreamValueTrigger> triggers) {
         this.t = t;
+        this.tableName = namespace.getName() + "." + rawTableName;
         this.triggers = triggers;
+        this.namespace = namespace;
     }
 
-    public static String getTableName() {
+    public String getTableName() {
         return tableName;
+    }
+
+    public Namespace getNamespace() {
+        return namespace;
     }
 
     /**
@@ -625,6 +634,7 @@ public final class UserPhotosStreamValueTable implements
      * {@link Multimap}
      * {@link Multimaps}
      * {@link NamedColumnValue}
+     * {@link Namespace}
      * {@link Objects}
      * {@link Optional}
      * {@link Persistable}
@@ -644,5 +654,5 @@ public final class UserPhotosStreamValueTable implements
      * {@link TypedRowResult}
      * {@link UnsignedBytes}
      */
-    static String __CLASS_HASH = "0zLSLurVo1KnOjAjm/xV9w==";
+    static String __CLASS_HASH = "Uddcz6qx75DYajUtDXmUJg==";
 }

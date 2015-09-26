@@ -1,18 +1,3 @@
-/**
- * Copyright 2015 Palantir Technologies
- *
- * Licensed under the BSD-3 License (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://opensource.org/licenses/BSD-3-Clause
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package com.palantir.atlasdb.schema.indexing.generated;
 
 import java.util.Arrays;
@@ -28,6 +13,8 @@ import java.util.SortedMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+
+
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -61,6 +48,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
+import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
@@ -101,27 +89,35 @@ public final class TwoColumnsTable implements
                                     TwoColumnsTable.TwoColumnsRowResult> {
     private final Transaction t;
     private final List<TwoColumnsTrigger> triggers;
-    private final static String tableName = "two_columns";
+    private final static String rawTableName = "two_columns";
+    private final String tableName;
+    private final Namespace namespace;
 
-    static TwoColumnsTable of(Transaction t) {
-        return new TwoColumnsTable(t, ImmutableList.<TwoColumnsTrigger>of());
+    static TwoColumnsTable of(Transaction t, Namespace namespace) {
+        return new TwoColumnsTable(t, namespace, ImmutableList.<TwoColumnsTrigger>of());
     }
 
-    static TwoColumnsTable of(Transaction t, TwoColumnsTrigger trigger, TwoColumnsTrigger... triggers) {
-        return new TwoColumnsTable(t, ImmutableList.<TwoColumnsTrigger>builder().add(trigger).add(triggers).build());
+    static TwoColumnsTable of(Transaction t, Namespace namespace, TwoColumnsTrigger trigger, TwoColumnsTrigger... triggers) {
+        return new TwoColumnsTable(t, namespace, ImmutableList.<TwoColumnsTrigger>builder().add(trigger).add(triggers).build());
     }
 
-    static TwoColumnsTable of(Transaction t, List<TwoColumnsTrigger> triggers) {
-        return new TwoColumnsTable(t, triggers);
+    static TwoColumnsTable of(Transaction t, Namespace namespace, List<TwoColumnsTrigger> triggers) {
+        return new TwoColumnsTable(t, namespace, triggers);
     }
 
-    private TwoColumnsTable(Transaction t, List<TwoColumnsTrigger> triggers) {
+    private TwoColumnsTable(Transaction t, Namespace namespace, List<TwoColumnsTrigger> triggers) {
         this.t = t;
+        this.tableName = namespace.getName() + "." + rawTableName;
         this.triggers = triggers;
+        this.namespace = namespace;
     }
 
-    public static String getTableName() {
+    public String getTableName() {
         return tableName;
+    }
+
+    public Namespace getNamespace() {
+        return namespace;
     }
 
     /**
@@ -520,7 +516,7 @@ public final class TwoColumnsTable implements
                 if (col.getValue() > 1)
                 {
                     TwoColumnsRow row = e.getKey();
-                    FooToIdCondIdxTable table = FooToIdCondIdxTable.of(t);
+                    FooToIdCondIdxTable table = FooToIdCondIdxTable.of(this);
                     long foo = col.getValue();
                     long id = row.getId();
                     FooToIdCondIdxTable.FooToIdCondIdxRow indexRow = FooToIdCondIdxTable.FooToIdCondIdxRow.of(foo);
@@ -534,7 +530,7 @@ public final class TwoColumnsTable implements
                 Foo col = (Foo) e.getValue();
                 {
                     TwoColumnsRow row = e.getKey();
-                    FooToIdIdxTable table = FooToIdIdxTable.of(t);
+                    FooToIdIdxTable table = FooToIdIdxTable.of(this);
                     long foo = col.getValue();
                     long id = row.getId();
                     FooToIdIdxTable.FooToIdIdxRow indexRow = FooToIdIdxTable.FooToIdIdxRow.of(foo);
@@ -574,7 +570,7 @@ public final class TwoColumnsTable implements
             FooToIdCondIdxTable.FooToIdCondIdxColumn indexCol = FooToIdCondIdxTable.FooToIdCondIdxColumn.of(row.persistToBytes(), col.persistColumnName(), id);
             indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
         }
-        t.delete("foo_to_id_cond_idx", indexCells.build());
+        t.delete(namespace.getName() + ".foo_to_id_cond_idx", indexCells.build());
     }
 
     private void deleteFooToIdIdxRaw(Map<Cell, byte[]> results) {
@@ -588,7 +584,7 @@ public final class TwoColumnsTable implements
             FooToIdIdxTable.FooToIdIdxColumn indexCol = FooToIdIdxTable.FooToIdIdxColumn.of(row.persistToBytes(), col.persistColumnName(), id);
             indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
         }
-        t.delete("foo_to_id_idx", indexCells.build());
+        t.delete(namespace.getName() + ".foo_to_id_idx", indexCells.build());
     }
 
     public void deleteBar(TwoColumnsRow row) {
@@ -761,7 +757,7 @@ public final class TwoColumnsTable implements
                 }
             }
         }
-        t.delete("foo_to_id_cond_idx", indexCells.build());
+        t.delete(namespace.getName() + ".foo_to_id_cond_idx", indexCells.build());
     }
 
     private void deleteFooToIdIdx(Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> result) {
@@ -778,7 +774,7 @@ public final class TwoColumnsTable implements
                 }
             }
         }
-        t.delete("foo_to_id_idx", indexCells.build());
+        t.delete(namespace.getName() + ".foo_to_id_idx", indexCells.build());
     }
 
     public BatchingVisitableView<TwoColumnsRowResult> getAllRowsUnordered() {
@@ -815,27 +811,35 @@ public final class TwoColumnsTable implements
                                                     FooToIdCondIdxTable.FooToIdCondIdxRowResult> {
         private final Transaction t;
         private final List<FooToIdCondIdxTrigger> triggers;
-        private final static String tableName = "foo_to_id_cond_idx";
+        private final static String rawTableName = "foo_to_id_cond_idx";
+        private final String tableName;
+        private final Namespace namespace;
 
-        public static FooToIdCondIdxTable of(Transaction t) {
-            return new FooToIdCondIdxTable(t, ImmutableList.<FooToIdCondIdxTrigger>of());
+        public static FooToIdCondIdxTable of(TwoColumnsTable table) {
+            return new FooToIdCondIdxTable(table.t, table.namespace, ImmutableList.<FooToIdCondIdxTrigger>of());
         }
 
-        public static FooToIdCondIdxTable of(Transaction t, FooToIdCondIdxTrigger trigger, FooToIdCondIdxTrigger... triggers) {
-            return new FooToIdCondIdxTable(t, ImmutableList.<FooToIdCondIdxTrigger>builder().add(trigger).add(triggers).build());
+        public static FooToIdCondIdxTable of(TwoColumnsTable table, FooToIdCondIdxTrigger trigger, FooToIdCondIdxTrigger... triggers) {
+            return new FooToIdCondIdxTable(table.t, table.namespace, ImmutableList.<FooToIdCondIdxTrigger>builder().add(trigger).add(triggers).build());
         }
 
-        public static FooToIdCondIdxTable of(Transaction t, List<FooToIdCondIdxTrigger> triggers) {
-            return new FooToIdCondIdxTable(t, triggers);
+        public static FooToIdCondIdxTable of(TwoColumnsTable table, List<FooToIdCondIdxTrigger> triggers) {
+            return new FooToIdCondIdxTable(table.t, table.namespace, triggers);
         }
 
-        private FooToIdCondIdxTable(Transaction t, List<FooToIdCondIdxTrigger> triggers) {
+        private FooToIdCondIdxTable(Transaction t, Namespace namespace, List<FooToIdCondIdxTrigger> triggers) {
             this.t = t;
+            this.tableName = namespace.getName() + "." + rawTableName;
             this.triggers = triggers;
+            this.namespace = namespace;
         }
 
-        public static String getTableName() {
+        public String getTableName() {
             return tableName;
+        }
+
+        public Namespace getNamespace() {
+            return namespace;
         }
 
         /**
@@ -1063,7 +1067,7 @@ public final class TwoColumnsTable implements
          *   {@literal byte[] rowName};
          *   {@literal byte[] columnName};
          *   {@literal Long id};
-         * } 
+         * }
          * Column value description {
          *   type: Long;
          * }
@@ -1363,27 +1367,35 @@ public final class TwoColumnsTable implements
                                                     FooToIdIdxTable.FooToIdIdxRowResult> {
         private final Transaction t;
         private final List<FooToIdIdxTrigger> triggers;
-        private final static String tableName = "foo_to_id_idx";
+        private final static String rawTableName = "foo_to_id_idx";
+        private final String tableName;
+        private final Namespace namespace;
 
-        public static FooToIdIdxTable of(Transaction t) {
-            return new FooToIdIdxTable(t, ImmutableList.<FooToIdIdxTrigger>of());
+        public static FooToIdIdxTable of(TwoColumnsTable table) {
+            return new FooToIdIdxTable(table.t, table.namespace, ImmutableList.<FooToIdIdxTrigger>of());
         }
 
-        public static FooToIdIdxTable of(Transaction t, FooToIdIdxTrigger trigger, FooToIdIdxTrigger... triggers) {
-            return new FooToIdIdxTable(t, ImmutableList.<FooToIdIdxTrigger>builder().add(trigger).add(triggers).build());
+        public static FooToIdIdxTable of(TwoColumnsTable table, FooToIdIdxTrigger trigger, FooToIdIdxTrigger... triggers) {
+            return new FooToIdIdxTable(table.t, table.namespace, ImmutableList.<FooToIdIdxTrigger>builder().add(trigger).add(triggers).build());
         }
 
-        public static FooToIdIdxTable of(Transaction t, List<FooToIdIdxTrigger> triggers) {
-            return new FooToIdIdxTable(t, triggers);
+        public static FooToIdIdxTable of(TwoColumnsTable table, List<FooToIdIdxTrigger> triggers) {
+            return new FooToIdIdxTable(table.t, table.namespace, triggers);
         }
 
-        private FooToIdIdxTable(Transaction t, List<FooToIdIdxTrigger> triggers) {
+        private FooToIdIdxTable(Transaction t, Namespace namespace, List<FooToIdIdxTrigger> triggers) {
             this.t = t;
+            this.tableName = namespace.getName() + "." + rawTableName;
             this.triggers = triggers;
+            this.namespace = namespace;
         }
 
-        public static String getTableName() {
+        public String getTableName() {
             return tableName;
+        }
+
+        public Namespace getNamespace() {
+            return namespace;
         }
 
         /**
@@ -1611,7 +1623,7 @@ public final class TwoColumnsTable implements
          *   {@literal byte[] rowName};
          *   {@literal byte[] columnName};
          *   {@literal Long id};
-         * } 
+         * }
          * Column value description {
          *   type: Long;
          * }
@@ -1962,6 +1974,7 @@ public final class TwoColumnsTable implements
      * {@link Multimap}
      * {@link Multimaps}
      * {@link NamedColumnValue}
+     * {@link Namespace}
      * {@link Objects}
      * {@link Optional}
      * {@link Persistable}
@@ -1981,5 +1994,5 @@ public final class TwoColumnsTable implements
      * {@link TypedRowResult}
      * {@link UnsignedBytes}
      */
-    static String __CLASS_HASH = "fovQ0XAHFwrSRk+gj7CpAQ==";
+    static String __CLASS_HASH = "V75SoD56v/6qNwKENY8Etg==";
 }

@@ -930,7 +930,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (!validConflictDetection(tableName)) {
             conflictDetectionManager.recompute();
             Preconditions.checkArgument(validConflictDetection(tableName),
-                    "Not a valid table for this transaction: " + tableName);
+                    "Not a valid table for this transaction.  Make sure this table name has a namespace: " + tableName);
         }
         Validate.isTrue(isTempTable(tableName) || getAllTempTables().isEmpty(),
                 "Temp tables may only be used by read only transactions.");

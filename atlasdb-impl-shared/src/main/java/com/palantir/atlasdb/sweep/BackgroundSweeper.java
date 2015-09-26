@@ -285,7 +285,7 @@ public class BackgroundSweeper implements Runnable {
 
             // Truncate instead of delete because the progress table contains only
             // a single row that has accumulated many overwrites.
-            kvs.truncateTable(SweepProgressTable.getTableName());
+            kvs.truncateTable(tableFactory.getSweepProgressTable(t).getTableName());
         }
     }
 

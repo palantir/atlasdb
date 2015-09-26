@@ -45,8 +45,7 @@ public enum UpgradeSchema implements AtlasSchema {
     private static Schema generateSchema() {
         Schema schema = new Schema("Upgrade",
                 UpgradeSchema.class.getPackage().getName() + ".generated",
-                // The upgrade namespace isn't actually used for table creation.
-                Namespace.EMPTY_NAMESPACE);
+                Namespace.create("upgrade"));
 
         schema.addTableDefinition("upgrade_metadata", new TableDefinition() {{
             rowName();
@@ -88,6 +87,6 @@ public enum UpgradeSchema implements AtlasSchema {
     }
 
     public static void main(String[] args) throws Exception {
-        SCHEMA.get().renderTables(new File("src"));
+        SCHEMA.get().renderTables(new File("src/main/java"));
     }
 }

@@ -22,7 +22,6 @@ import org.apache.commons.lang.mutable.MutableLong;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -34,8 +33,8 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.KVTableMappingService;
 import com.palantir.atlasdb.keyvalue.impl.NamespaceMappingKeyValueService;
+import com.palantir.atlasdb.keyvalue.impl.StaticTableMappingService;
 import com.palantir.atlasdb.keyvalue.impl.TableRemappingKeyValueService;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
@@ -73,18 +72,13 @@ public class TableMigratorTest extends AtlasDbTestCase {
             columns();
                 column("c", "c", ValueType.BLOB);
         }};
-        SimpleSchemaUpdater updater = SimpleSchemaUpdaterImpl.create(keyValueService, Namespace.EMPTY_NAMESPACE);
+        SimpleSchemaUpdater updater = SimpleSchemaUpdaterImpl.create(keyValueService, Namespace.DEFAULT_NAMESPACE);
         updater.addTable(tableName, definition);
         int maxValueSize = definition.getMaxValueSize();
         keyValueService.createTable(namespacedTableName, maxValueSize);
         keyValueService.putMetadataForTable(namespacedTableName, definition.toTableMetadata().persistToBytes());
 
-        TableMappingService tableMap = KVTableMappingService.create(keyValueService, new Supplier<Long>() {
-            @Override
-            public Long get() {
-                return timestampService.getFreshTimestamp();
-            }
-        });
+        TableMappingService tableMap = StaticTableMappingService.create(keyValueService);
         final String shortTableName = tableMap.getShortTableName(TableReference.create(Namespace.create("name-space"), tableName));
 
         final Cell theCell = Cell.create(PtBytes.toBytes("r1"), PtBytes.toBytes("c"));
@@ -95,7 +89,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
                 Map<Cell, byte[]> values = ImmutableMap.of(
                         theCell,
                         theValue);
-                t.put(tableName, values);
+                t.put("default." + tableName, values);
                 t.put(namespacedTableName, values);
                 return null;
             }
@@ -113,14 +107,14 @@ public class TableMigratorTest extends AtlasDbTestCase {
                 transactionService,
                 cdm2,
                 ssm2);
-        SimpleSchemaUpdater updater2 = SimpleSchemaUpdaterImpl.create(kvs2, Namespace.EMPTY_NAMESPACE);
+        SimpleSchemaUpdater updater2 = SimpleSchemaUpdaterImpl.create(kvs2, Namespace.DEFAULT_NAMESPACE);
         updater2.addTable(tableName, definition);
         kvs2.createTable(shortTableName, maxValueSize);
         kvs2.putMetadataForTable(shortTableName, definition.toTableMetadata().persistToBytes());
 
         GeneralTaskCheckpointer checkpointer = new GeneralTaskCheckpointer("checkpoint", kvs2, txManager2);
         // The namespaced table is migrated under the short name.
-        for (final String name : Lists.newArrayList(tableName, shortTableName)) {
+        for (final String name : Lists.newArrayList("default." + tableName, shortTableName)) {
             TransactionRangeMigrator rangeMigrator = new TransactionRangeMigratorBuilder().
                     srcTable(name).
                     readTxManager(txManager).

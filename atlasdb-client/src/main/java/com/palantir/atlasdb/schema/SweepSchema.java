@@ -99,6 +99,6 @@ public enum SweepSchema implements AtlasSchema {
     }
 
     public static void main(String[] args) throws Exception {
-        SCHEMA.get().renderTables(new File("src"));
+        SCHEMA.get().renderTables(new File("src/main/java"));
     }
 }

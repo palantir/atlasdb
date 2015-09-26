@@ -1,18 +1,3 @@
-/**
- * Copyright 2015 Palantir Technologies
- *
- * Licensed under the BSD-3 License (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://opensource.org/licenses/BSD-3-Clause
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package com.palantir.atlasdb.schema.indexing.generated;
 
 import java.util.Arrays;
@@ -28,6 +13,8 @@ import java.util.SortedMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+
+
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -61,6 +48,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
+import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
@@ -101,27 +89,35 @@ public final class DataTable implements
                                     DataTable.DataRowResult> {
     private final Transaction t;
     private final List<DataTrigger> triggers;
-    private final static String tableName = "data";
+    private final static String rawTableName = "data";
+    private final String tableName;
+    private final Namespace namespace;
 
-    static DataTable of(Transaction t) {
-        return new DataTable(t, ImmutableList.<DataTrigger>of());
+    static DataTable of(Transaction t, Namespace namespace) {
+        return new DataTable(t, namespace, ImmutableList.<DataTrigger>of());
     }
 
-    static DataTable of(Transaction t, DataTrigger trigger, DataTrigger... triggers) {
-        return new DataTable(t, ImmutableList.<DataTrigger>builder().add(trigger).add(triggers).build());
+    static DataTable of(Transaction t, Namespace namespace, DataTrigger trigger, DataTrigger... triggers) {
+        return new DataTable(t, namespace, ImmutableList.<DataTrigger>builder().add(trigger).add(triggers).build());
     }
 
-    static DataTable of(Transaction t, List<DataTrigger> triggers) {
-        return new DataTable(t, triggers);
+    static DataTable of(Transaction t, Namespace namespace, List<DataTrigger> triggers) {
+        return new DataTable(t, namespace, triggers);
     }
 
-    private DataTable(Transaction t, List<DataTrigger> triggers) {
+    private DataTable(Transaction t, Namespace namespace, List<DataTrigger> triggers) {
         this.t = t;
+        this.tableName = namespace.getName() + "." + rawTableName;
         this.triggers = triggers;
+        this.namespace = namespace;
     }
 
-    public static String getTableName() {
+    public String getTableName() {
         return tableName;
+    }
+
+    public Namespace getNamespace() {
+        return namespace;
     }
 
     /**
@@ -412,7 +408,7 @@ public final class DataTable implements
                 Value col = (Value) e.getValue();
                 {
                     DataRow row = e.getKey();
-                    Index1IdxTable table = Index1IdxTable.of(t);
+                    Index1IdxTable table = Index1IdxTable.of(this);
                     long value = col.getValue();
                     long id = row.getId();
                     Index1IdxTable.Index1IdxRow indexRow = Index1IdxTable.Index1IdxRow.of(value);
@@ -426,7 +422,7 @@ public final class DataTable implements
                 Value col = (Value) e.getValue();
                 {
                     DataRow row = e.getKey();
-                    Index2IdxTable table = Index2IdxTable.of(t);
+                    Index2IdxTable table = Index2IdxTable.of(this);
                     long value = col.getValue();
                     long id = row.getId();
                     Index2IdxTable.Index2IdxRow indexRow = Index2IdxTable.Index2IdxRow.of(value, id);
@@ -440,7 +436,7 @@ public final class DataTable implements
                 Value col = (Value) e.getValue();
                 {
                     DataRow row = e.getKey();
-                    Index3IdxTable table = Index3IdxTable.of(t);
+                    Index3IdxTable table = Index3IdxTable.of(this);
                     Iterable<Long> valueIterable = ImmutableList.of(col.getValue());
                     for (long value : valueIterable) {
                         Index3IdxTable.Index3IdxRow indexRow = Index3IdxTable.Index3IdxRow.of(value);
@@ -455,7 +451,7 @@ public final class DataTable implements
                 Value col = (Value) e.getValue();
                 {
                     DataRow row = e.getKey();
-                    Index4IdxTable table = Index4IdxTable.of(t);
+                    Index4IdxTable table = Index4IdxTable.of(this);
                     Iterable<Long> value1Iterable = ImmutableList.of(col.getValue());
                     Iterable<Long> value2Iterable = ImmutableList.of(col.getValue());
                     for (long value1 : value1Iterable) {
@@ -501,7 +497,7 @@ public final class DataTable implements
             Index1IdxTable.Index1IdxColumn indexCol = Index1IdxTable.Index1IdxColumn.of(row.persistToBytes(), col.persistColumnName(), id);
             indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
         }
-        t.delete("index1_idx", indexCells.build());
+        t.delete(namespace.getName() + ".index1_idx", indexCells.build());
     }
 
     private void deleteIndex2IdxRaw(Map<Cell, byte[]> results) {
@@ -515,7 +511,7 @@ public final class DataTable implements
             Index2IdxTable.Index2IdxColumn indexCol = Index2IdxTable.Index2IdxColumn.of(row.persistToBytes(), col.persistColumnName());
             indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
         }
-        t.delete("index2_idx", indexCells.build());
+        t.delete(namespace.getName() + ".index2_idx", indexCells.build());
     }
 
     private void deleteIndex3IdxRaw(Map<Cell, byte[]> results) {
@@ -530,7 +526,7 @@ public final class DataTable implements
                 indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
             }
         }
-        t.delete("index3_idx", indexCells.build());
+        t.delete(namespace.getName() + ".index3_idx", indexCells.build());
     }
 
     private void deleteIndex4IdxRaw(Map<Cell, byte[]> results) {
@@ -548,7 +544,7 @@ public final class DataTable implements
                 }
             }
         }
-        t.delete("index4_idx", indexCells.build());
+        t.delete(namespace.getName() + ".index4_idx", indexCells.build());
     }
 
     @Override
@@ -711,7 +707,7 @@ public final class DataTable implements
                 }
             }
         }
-        t.delete("index1_idx", indexCells.build());
+        t.delete(namespace.getName() + ".index1_idx", indexCells.build());
     }
 
     private void deleteIndex2Idx(Multimap<DataRow, DataNamedColumnValue<?>> result) {
@@ -728,7 +724,7 @@ public final class DataTable implements
                 }
             }
         }
-        t.delete("index2_idx", indexCells.build());
+        t.delete(namespace.getName() + ".index2_idx", indexCells.build());
     }
 
     private void deleteIndex3Idx(Multimap<DataRow, DataNamedColumnValue<?>> result) {
@@ -746,7 +742,7 @@ public final class DataTable implements
                 }
             }
         }
-        t.delete("index3_idx", indexCells.build());
+        t.delete(namespace.getName() + ".index3_idx", indexCells.build());
     }
 
     private void deleteIndex4Idx(Multimap<DataRow, DataNamedColumnValue<?>> result) {
@@ -767,7 +763,7 @@ public final class DataTable implements
                 }
             }
         }
-        t.delete("index4_idx", indexCells.build());
+        t.delete(namespace.getName() + ".index4_idx", indexCells.build());
     }
 
     public BatchingVisitableView<DataRowResult> getAllRowsUnordered() {
@@ -804,27 +800,35 @@ public final class DataTable implements
                                                     Index1IdxTable.Index1IdxRowResult> {
         private final Transaction t;
         private final List<Index1IdxTrigger> triggers;
-        private final static String tableName = "index1_idx";
+        private final static String rawTableName = "index1_idx";
+        private final String tableName;
+        private final Namespace namespace;
 
-        public static Index1IdxTable of(Transaction t) {
-            return new Index1IdxTable(t, ImmutableList.<Index1IdxTrigger>of());
+        public static Index1IdxTable of(DataTable table) {
+            return new Index1IdxTable(table.t, table.namespace, ImmutableList.<Index1IdxTrigger>of());
         }
 
-        public static Index1IdxTable of(Transaction t, Index1IdxTrigger trigger, Index1IdxTrigger... triggers) {
-            return new Index1IdxTable(t, ImmutableList.<Index1IdxTrigger>builder().add(trigger).add(triggers).build());
+        public static Index1IdxTable of(DataTable table, Index1IdxTrigger trigger, Index1IdxTrigger... triggers) {
+            return new Index1IdxTable(table.t, table.namespace, ImmutableList.<Index1IdxTrigger>builder().add(trigger).add(triggers).build());
         }
 
-        public static Index1IdxTable of(Transaction t, List<Index1IdxTrigger> triggers) {
-            return new Index1IdxTable(t, triggers);
+        public static Index1IdxTable of(DataTable table, List<Index1IdxTrigger> triggers) {
+            return new Index1IdxTable(table.t, table.namespace, triggers);
         }
 
-        private Index1IdxTable(Transaction t, List<Index1IdxTrigger> triggers) {
+        private Index1IdxTable(Transaction t, Namespace namespace, List<Index1IdxTrigger> triggers) {
             this.t = t;
+            this.tableName = namespace.getName() + "." + rawTableName;
             this.triggers = triggers;
+            this.namespace = namespace;
         }
 
-        public static String getTableName() {
+        public String getTableName() {
             return tableName;
+        }
+
+        public Namespace getNamespace() {
+            return namespace;
         }
 
         /**
@@ -1052,7 +1056,7 @@ public final class DataTable implements
          *   {@literal byte[] rowName};
          *   {@literal byte[] columnName};
          *   {@literal Long id};
-         * } 
+         * }
          * Column value description {
          *   type: Long;
          * }
@@ -1386,27 +1390,35 @@ public final class DataTable implements
                                                     Index2IdxTable.Index2IdxRowResult> {
         private final Transaction t;
         private final List<Index2IdxTrigger> triggers;
-        private final static String tableName = "index2_idx";
+        private final static String rawTableName = "index2_idx";
+        private final String tableName;
+        private final Namespace namespace;
 
-        public static Index2IdxTable of(Transaction t) {
-            return new Index2IdxTable(t, ImmutableList.<Index2IdxTrigger>of());
+        public static Index2IdxTable of(DataTable table) {
+            return new Index2IdxTable(table.t, table.namespace, ImmutableList.<Index2IdxTrigger>of());
         }
 
-        public static Index2IdxTable of(Transaction t, Index2IdxTrigger trigger, Index2IdxTrigger... triggers) {
-            return new Index2IdxTable(t, ImmutableList.<Index2IdxTrigger>builder().add(trigger).add(triggers).build());
+        public static Index2IdxTable of(DataTable table, Index2IdxTrigger trigger, Index2IdxTrigger... triggers) {
+            return new Index2IdxTable(table.t, table.namespace, ImmutableList.<Index2IdxTrigger>builder().add(trigger).add(triggers).build());
         }
 
-        public static Index2IdxTable of(Transaction t, List<Index2IdxTrigger> triggers) {
-            return new Index2IdxTable(t, triggers);
+        public static Index2IdxTable of(DataTable table, List<Index2IdxTrigger> triggers) {
+            return new Index2IdxTable(table.t, table.namespace, triggers);
         }
 
-        private Index2IdxTable(Transaction t, List<Index2IdxTrigger> triggers) {
+        private Index2IdxTable(Transaction t, Namespace namespace, List<Index2IdxTrigger> triggers) {
             this.t = t;
+            this.tableName = namespace.getName() + "." + rawTableName;
             this.triggers = triggers;
+            this.namespace = namespace;
         }
 
-        public static String getTableName() {
+        public String getTableName() {
             return tableName;
+        }
+
+        public Namespace getNamespace() {
+            return namespace;
         }
 
         /**
@@ -1634,7 +1646,7 @@ public final class DataTable implements
          * Column name description {
          *   {@literal byte[] rowName};
          *   {@literal byte[] columnName};
-         * } 
+         * }
          * Column value description {
          *   type: Long;
          * }
@@ -1968,27 +1980,35 @@ public final class DataTable implements
                                                     Index3IdxTable.Index3IdxRowResult> {
         private final Transaction t;
         private final List<Index3IdxTrigger> triggers;
-        private final static String tableName = "index3_idx";
+        private final static String rawTableName = "index3_idx";
+        private final String tableName;
+        private final Namespace namespace;
 
-        public static Index3IdxTable of(Transaction t) {
-            return new Index3IdxTable(t, ImmutableList.<Index3IdxTrigger>of());
+        public static Index3IdxTable of(DataTable table) {
+            return new Index3IdxTable(table.t, table.namespace, ImmutableList.<Index3IdxTrigger>of());
         }
 
-        public static Index3IdxTable of(Transaction t, Index3IdxTrigger trigger, Index3IdxTrigger... triggers) {
-            return new Index3IdxTable(t, ImmutableList.<Index3IdxTrigger>builder().add(trigger).add(triggers).build());
+        public static Index3IdxTable of(DataTable table, Index3IdxTrigger trigger, Index3IdxTrigger... triggers) {
+            return new Index3IdxTable(table.t, table.namespace, ImmutableList.<Index3IdxTrigger>builder().add(trigger).add(triggers).build());
         }
 
-        public static Index3IdxTable of(Transaction t, List<Index3IdxTrigger> triggers) {
-            return new Index3IdxTable(t, triggers);
+        public static Index3IdxTable of(DataTable table, List<Index3IdxTrigger> triggers) {
+            return new Index3IdxTable(table.t, table.namespace, triggers);
         }
 
-        private Index3IdxTable(Transaction t, List<Index3IdxTrigger> triggers) {
+        private Index3IdxTable(Transaction t, Namespace namespace, List<Index3IdxTrigger> triggers) {
             this.t = t;
+            this.tableName = namespace.getName() + "." + rawTableName;
             this.triggers = triggers;
+            this.namespace = namespace;
         }
 
-        public static String getTableName() {
+        public String getTableName() {
             return tableName;
+        }
+
+        public Namespace getNamespace() {
+            return namespace;
         }
 
         /**
@@ -2194,7 +2214,7 @@ public final class DataTable implements
          * Column name description {
          *   {@literal byte[] rowName};
          *   {@literal byte[] columnName};
-         * } 
+         * }
          * Column value description {
          *   type: Long;
          * }
@@ -2528,27 +2548,35 @@ public final class DataTable implements
                                                     Index4IdxTable.Index4IdxRowResult> {
         private final Transaction t;
         private final List<Index4IdxTrigger> triggers;
-        private final static String tableName = "index4_idx";
+        private final static String rawTableName = "index4_idx";
+        private final String tableName;
+        private final Namespace namespace;
 
-        public static Index4IdxTable of(Transaction t) {
-            return new Index4IdxTable(t, ImmutableList.<Index4IdxTrigger>of());
+        public static Index4IdxTable of(DataTable table) {
+            return new Index4IdxTable(table.t, table.namespace, ImmutableList.<Index4IdxTrigger>of());
         }
 
-        public static Index4IdxTable of(Transaction t, Index4IdxTrigger trigger, Index4IdxTrigger... triggers) {
-            return new Index4IdxTable(t, ImmutableList.<Index4IdxTrigger>builder().add(trigger).add(triggers).build());
+        public static Index4IdxTable of(DataTable table, Index4IdxTrigger trigger, Index4IdxTrigger... triggers) {
+            return new Index4IdxTable(table.t, table.namespace, ImmutableList.<Index4IdxTrigger>builder().add(trigger).add(triggers).build());
         }
 
-        public static Index4IdxTable of(Transaction t, List<Index4IdxTrigger> triggers) {
-            return new Index4IdxTable(t, triggers);
+        public static Index4IdxTable of(DataTable table, List<Index4IdxTrigger> triggers) {
+            return new Index4IdxTable(table.t, table.namespace, triggers);
         }
 
-        private Index4IdxTable(Transaction t, List<Index4IdxTrigger> triggers) {
+        private Index4IdxTable(Transaction t, Namespace namespace, List<Index4IdxTrigger> triggers) {
             this.t = t;
+            this.tableName = namespace.getName() + "." + rawTableName;
             this.triggers = triggers;
+            this.namespace = namespace;
         }
 
-        public static String getTableName() {
+        public String getTableName() {
             return tableName;
+        }
+
+        public Namespace getNamespace() {
+            return namespace;
         }
 
         /**
@@ -2776,7 +2804,7 @@ public final class DataTable implements
          * Column name description {
          *   {@literal byte[] rowName};
          *   {@literal byte[] columnName};
-         * } 
+         * }
          * Column value description {
          *   type: Long;
          * }
@@ -3161,6 +3189,7 @@ public final class DataTable implements
      * {@link Multimap}
      * {@link Multimaps}
      * {@link NamedColumnValue}
+     * {@link Namespace}
      * {@link Objects}
      * {@link Optional}
      * {@link Persistable}
@@ -3180,5 +3209,5 @@ public final class DataTable implements
      * {@link TypedRowResult}
      * {@link UnsignedBytes}
      */
-    static String __CLASS_HASH = "kzGVqbvhp1jdShDdG3QNNQ==";
+    static String __CLASS_HASH = "qXmzgiuI0wnOl1DurXtS3A==";
 }

@@ -50,7 +50,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 
 public abstract class AbstractAtlasDbKeyValueServiceTest {
-    static final String TEST_TABLE = "pt_kvs_test";
+    static final String TEST_TABLE = "ns.pt_kvs_test";
 
     private static final byte[] row0 = "row0".getBytes();
     private static final byte[] row1 = "row1".getBytes();
@@ -116,7 +116,6 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
                 ColumnSelection.create(ImmutableList.of(cell1.getColumnName(), cell3.getColumnName())),
                 1);
         assertEquals(ImmutableSet.of(cell1, cell3), rows3.keySet());
-
         Map<Cell, Value> rows4 = keyValueService.getRows(
                 TEST_TABLE,
                 ImmutableSet.of(cell1.getRowName()),

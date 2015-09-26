@@ -20,19 +20,23 @@ import java.util.Map.Entry;
 import java.util.SortedMap;
 
 import com.google.common.collect.Maps;
+import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.table.description.TableDefinition;
 
 public class TableFactoryRenderer {
     private final String schemaName;
     private final String packageName;
+    private final String defaultNamespace;
     private final SortedMap<String, TableDefinition> definitions;
 
     public TableFactoryRenderer(String schemaName,
                                 String packageName,
+                                Namespace defaultNamespace,
                                 Map<String, TableDefinition> definitions) {
         this.schemaName = schemaName;
         this.packageName = packageName;
         this.definitions = Maps.newTreeMap();
+        this.defaultNamespace = defaultNamespace.getName();
         for (Entry<String, TableDefinition> entry : definitions.entrySet()) {
             this.definitions.put(Renderers.getClassTableName(entry.getKey(), entry.getValue()), entry.getValue());
         }
@@ -55,7 +59,9 @@ public class TableFactoryRenderer {
                 packageAndImports();
                 _();
                 _("public class ", TableFactory, " {"); {
+                    _("private final static Namespace defaultNamespace = Namespace.create(\"" + defaultNamespace + "\");");
                     _("private final List<Function<? super Transaction, SharedTriggers>> sharedTriggers;");
+                    _("private final Namespace namespace;");
                     _();
                     constructors();
                     _();
@@ -77,21 +83,31 @@ public class TableFactoryRenderer {
                 _("import com.google.common.base.Function;");
                 _("import com.google.common.collect.ImmutableList;");
                 _("import com.google.common.collect.Multimap;");
+                _("import com.palantir.atlasdb.schema.Namespace;");
                 _("import com.palantir.atlasdb.table.generation.Triggers;");
                 _("import com.palantir.atlasdb.transaction.api.Transaction;");
             }
 
             private void constructors() {
-                _("public static ", TableFactory, " of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {"); {
-                    _("return new ", TableFactory, "(sharedTriggers);");
+                _("public static ", TableFactory, " of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers, Namespace namespace) {"); {
+                    _("return new ", TableFactory, "(sharedTriggers, namespace);");
                 } _("}");
                 _();
-                _("private ", TableFactory, "(List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {"); {
+                _("public static ", TableFactory, " of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {"); {
+                    _("return new ", TableFactory, "(sharedTriggers, defaultNamespace);");
+                } _("}");
+                _();
+                _("private ", TableFactory, "(List<Function<? super Transaction, SharedTriggers>> sharedTriggers, Namespace namespace) {"); {
                     _("this.sharedTriggers = sharedTriggers;");
+                    _("this.namespace = namespace;");
+                } _("}");
+                _();
+                _("public static ", TableFactory, " of(Namespace namespace) {"); {
+                    _("return of(ImmutableList.<Function<? super Transaction, SharedTriggers>>of(), namespace);");
                 } _("}");
                 _();
                 _("public static ", TableFactory, " of() {"); {
-                    _("return of(ImmutableList.<Function<? super Transaction, SharedTriggers>>of());");
+                    _("return of(ImmutableList.<Function<? super Transaction, SharedTriggers>>of(), defaultNamespace);");
                 } _("}");
             }
 
@@ -100,11 +116,11 @@ public class TableFactoryRenderer {
                 String Trigger = Table + "." + name + "Trigger";
                 if (table.getGenericTableName() != null) {
                     _("public ", Table, " get", Table, "(Transaction t, String name, ", Trigger, "... triggers) {"); {
-                        _("return ", Table, ".of(t, name, Triggers.getAllTriggers(t, sharedTriggers, triggers));");
+                        _("return ", Table, ".of(t, name, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));");
                     } _("}");
                 } else {
                     _("public ", Table, " get", Table, "(Transaction t, ", Trigger, "... triggers) {"); {
-                        _("return ", Table, ".of(t, Triggers.getAllTriggers(t, sharedTriggers, triggers));");
+                        _("return ", Table, ".of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));");
                     } _("}");
                 }
             }

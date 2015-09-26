@@ -124,8 +124,9 @@ public class ProfileStore {
     }
 
     public Set<Long> getUsersWithBirthday(long birthEpochDays) {
-        UserBirthdaysIdxTable table = UserBirthdaysIdxTable.of(t);
-        List<UserBirthdaysIdxColumnValue> columns = table.getRowColumns(UserBirthdaysIdxRow.of(birthEpochDays));
+        UserProfileTable table = tables.getUserProfileTable(t);
+        UserBirthdaysIdxTable idx = UserBirthdaysIdxTable.of(table);
+        List<UserBirthdaysIdxColumnValue> columns = idx.getRowColumns(UserBirthdaysIdxRow.of(birthEpochDays));
 
         return IterableView.of(columns)
 		        .transform(UserBirthdaysIdxColumnValue.getColumnNameFun())

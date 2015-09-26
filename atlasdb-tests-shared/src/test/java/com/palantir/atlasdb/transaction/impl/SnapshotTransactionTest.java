@@ -130,11 +130,11 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             return delegate;
         }
     }
-    static final String TABLE = "table";
-    static final String TABLE1 = "table1";
-    static final String TABLE2 = "table2";
+    static final String TABLE = "default.table";
+    static final String TABLE1 = "default.table1";
+    static final String TABLE2 = "default.table2";
 
-    static final String TABLE_SWEPT_THOROUGH = "table2";
+    static final String TABLE_SWEPT_THOROUGH = "default.table2";
 
     @Override
     @Before

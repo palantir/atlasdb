@@ -33,6 +33,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.ptobject.EncodingUtils.EncodingType;
 import com.palantir.atlasdb.table.description.Schema;
+import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
@@ -47,6 +48,7 @@ import com.palantir.atlasdb.transaction.api.TransactionTask;
 public class GeneralTaskCheckpointer extends AbstractTaskCheckpointer {
     private static final String SHORT_COLUMN_NAME = "s";
 
+    private final String checkpointTableRaw;
     private final String checkpointTable;
     private final KeyValueService kvs;
 
@@ -54,7 +56,8 @@ public class GeneralTaskCheckpointer extends AbstractTaskCheckpointer {
                                    KeyValueService kvs,
                                    TransactionManager txManager) {
         super(txManager);
-        this.checkpointTable = checkpointTable;
+        this.checkpointTableRaw = checkpointTable;
+        this.checkpointTable = "default." + checkpointTable;
         this.kvs = kvs;
     }
 
@@ -75,7 +78,7 @@ public class GeneralTaskCheckpointer extends AbstractTaskCheckpointer {
     @Override
     public void createCheckpoints(final String extraId,
                                   final Map<Long, byte[]> startById) {
-        getSchema().createTable(kvs, checkpointTable);
+        Schemas.createTable(getSchema(), kvs, checkpointTableRaw);
 
         txManager.runTaskWithRetry(new TransactionTask<Map<Long, byte[]>, RuntimeException>() {
             @Override
@@ -106,7 +109,7 @@ public class GeneralTaskCheckpointer extends AbstractTaskCheckpointer {
 
     @Override
     public void deleteCheckpoints() {
-        getSchema().deleteTable(kvs, checkpointTable);
+        Schemas.deleteTable(kvs, checkpointTable);
     }
 
     private Cell getCell(String extraId, long rangeId) {
@@ -127,7 +130,7 @@ public class GeneralTaskCheckpointer extends AbstractTaskCheckpointer {
 
     private Schema getSchema() {
         Schema schema = new Schema();
-        schema.addTableDefinition(checkpointTable, new TableDefinition() {{
+        schema.addTableDefinition(checkpointTableRaw, new TableDefinition() {{
             rowName();
                 rowComponent("table_name", ValueType.VAR_STRING);
                 rowComponent("range_id",   ValueType.VAR_LONG);
