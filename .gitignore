@@ -18,3 +18,5 @@ build/
 .gradle
 bin/
 userdict.txt
+generated_src/
+.factorypath

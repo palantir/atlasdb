@@ -13,19 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.timestamp.server.config;
+package com.palantir.atlasdb.spi;
 
-import java.util.List;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
+import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
+/**
+ * Marker interface for various AtlasDb KeyValueService config objects.
+ */
+@JsonTypeInfo(use = Id.NAME, include = As.PROPERTY, property = "type", visible = false)
+public interface KeyValueServiceConfig {
 
-import com.google.common.collect.ImmutableList;
+    String type();
 
-public class ClientConfiguration {
-	@NotNull
-	@Valid
-	public List<String> servers = ImmutableList.of("http://localhost:3828");
-
-	public boolean embedded = false;
 }

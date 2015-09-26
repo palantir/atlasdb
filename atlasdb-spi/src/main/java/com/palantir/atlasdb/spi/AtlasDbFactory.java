@@ -17,15 +17,15 @@ package com.palantir.atlasdb.spi;
 
 import java.io.IOException;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.timestamp.TimestampService;
 
-public interface AtlasDbFactory<KVS extends KeyValueService> {
+public interface AtlasDbFactory {
 
     String getType();
 
-    KVS createRawKeyValueService(JsonNode config) throws IOException;
+    KeyValueService createRawKeyValueService(KeyValueServiceConfig config);
 
-    TimestampService createTimestampService(KVS rawKvs);
+    TimestampService createTimestampService(KeyValueService rawKvs);
+    
 }

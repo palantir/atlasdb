@@ -26,7 +26,7 @@ import org.junit.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Supplier;
-import com.palantir.atlasdb.client.TextDelegateDecoder;
+import com.palantir.atlasdb.http.TextDelegateDecoder;
 import com.palantir.atlasdb.server.InboxPopulatingContainerRequestFilter;
 import com.palantir.atlasdb.server.OutboxShippingInterceptor;
 import com.palantir.common.supplier.PopulateServiceContextProxy;

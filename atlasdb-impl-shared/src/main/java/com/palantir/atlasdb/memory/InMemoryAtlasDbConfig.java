@@ -13,20 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.cassandra.spi;
+package com.palantir.atlasdb.memory;
 
-import java.util.List;
+import com.fasterxml.jackson.annotation.JsonTypeName;
+import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
-public class CassandraKeyValueConfiguration {
-    public List<String> servers = null;
-    public int port = 9160;
-    public int poolSize = 20;
-    public String keyspace = "atlasdb";
-    public boolean isSsl = false;
-    public int replicationFactor = 3;
-    public int mutationBatchCount = 5000;
-    public int mutationBatchSizeBytes = 4 * 1024 * 1024;
-    public int fetchBatchCount = 5000;
-    public boolean safetyDisabled = false;
-    public boolean autoRefreshNodes = true;
+@JsonTypeName(InMemoryAtlasDbConfig.TYPE)
+public final class InMemoryAtlasDbConfig implements KeyValueServiceConfig {
+
+    public static final String TYPE = "memory";
+    
+    @Override
+    public final String type() {
+        return TYPE;
+    }
+
 }
