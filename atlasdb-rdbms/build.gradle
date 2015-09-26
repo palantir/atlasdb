@@ -1,14 +1,13 @@
-apply from: "../gradle/shared.gradle"
-
-// disable tests if building on Travis (Travis CI kills test processes due to load)
-[test, check].each { it.onlyIf { !System.getenv().containsKey('CI') } }
+apply from: '../gradle/shared.gradle'
 
 dependencies {
-  compile(project(":atlasdb-client"))
-  compile 'org.jdbi:jdbi:2.59'
-  compile 'postgresql:postgresql:9.0-801.jdbc4'
+    compile project(':atlasdb-client')
 
-  testCompile 'ru.yandex.qatools.embed:postgresql-embedded:1.3'
-  testCompile project(path: ":atlasdb-tests-shared", configuration: 'test')
+    compile 'org.jdbi:jdbi:2.59'
+    compile 'postgresql:postgresql:9.0-801.jdbc4'
+
+    testCompile project(path: ':atlasdb-tests-shared', configuration: 'test')
+
+    testCompile 'ru.yandex.qatools.embed:postgresql-embedded:1.3'
 }
 

@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.rdbms;
 import java.io.IOException;
 
 import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.postgresql.jdbc2.optional.PoolingDataSource;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -33,36 +34,35 @@ public class PostgresKeyValueServiceTest extends AbstractAtlasDbKeyValueServiceT
 
     private static final String DB_NAME = "test";
 
-    private final static PostgresStarter<PostgresExecutable, PostgresProcess> runtime;
-    private final static PostgresConfig config;
-    private final static PostgresExecutable exec;
-    private final static PostgresProcess process;
-    private final static PoolingDataSource dataSource;
-    static {
+    private static PostgresProcess process;
+    private static KeyValueService kvs;
+
+    @BeforeClass
+    public static void setup() {
+        PoolingDataSource dataSource;
         try {
-            runtime = PostgresStarter.getDefaultInstance();
-            config = PostgresConfig.defaultWithDbName(DB_NAME);
-            exec = runtime.prepare(config);
+            PostgresStarter<PostgresExecutable, PostgresProcess> runtime = PostgresStarter.getDefaultInstance();
+            PostgresConfig config = PostgresConfig.defaultWithDbName(DB_NAME);
+            PostgresExecutable exec = runtime.prepare(config);
             process = exec.start();
+            if (!process.isProcessRunning()) {
+                // on Macs, at least, the first run fails to start, but the second run reliably succeeds
+                process = exec.start();
+            }
             dataSource = new PoolingDataSource();
             dataSource.setDatabaseName(config.storage().dbName());
             dataSource.setPortNumber(config.net().port());
         } catch (IOException e) {
             throw Throwables.throwUncheckedException(e);
         }
-    }
 
-    private final KeyValueService kvs = newEmbeddedInstance();
+        kvs = new PostgresKeyValueService(dataSource);
+        kvs.initializeFromFreshInstance();
+    }
 
     @AfterClass
     public static void shutdownEmbeddedPostgres() {
         process.stop();
-    }
-
-    public static PostgresKeyValueService newEmbeddedInstance() {
-        PostgresKeyValueService kvs = new PostgresKeyValueService(dataSource);
-        kvs.initializeFromFreshInstance();
-        return kvs;
     }
 
     @Override
