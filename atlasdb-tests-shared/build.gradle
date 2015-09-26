@@ -1,14 +1,14 @@
 apply from: "../gradle/shared.gradle"
 
-configurations.create('test').extendsFrom(configurations.testRuntime)
-
 dependencies {
     compile project(":atlasdb-impl-shared")
+
+    compile(group: 'junit', name: 'junit', version: libVersions.junit) {
+        exclude group: 'org.hamcrest'
+    }
 
     compile group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.5', configuration: 'default'
     compile group: "org.jmock", name: "jmock", version: "2.5.1", configuration: "default"
 
     runtime group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.5', configuration: 'default'
-
-    test sourceSets.test.output
 }

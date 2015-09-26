@@ -5,7 +5,7 @@ apply from: "../gradle/shared.gradle"
 
 dependencies {
   compile(project(":atlasdb-cassandra"))
-  compile project(path: ":atlasdb-tests-shared", configuration: 'test')
+  compile project(":atlasdb-tests-shared")
   compile 'org.apache.cassandra:cassandra-all:2.1.5'
   compile 'com.palantir.shaded.com.datastax.cassandra:datastax-cassandra-driver-core:0.2.0'
 }
