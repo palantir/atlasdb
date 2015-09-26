@@ -42,3 +42,23 @@ license {
     exclude '**/generated/*.java'
 }
 
+ext {
+    schemas = []
+}
+
+task generateSchemas {
+    description = 'Re-generate code from AtlasDB schemas.'
+    dependsOn classes, testClasses
+}
+
+afterEvaluate {
+    schemas.each { schema ->
+        generateSchemas << {
+            logger.info "Processing schemas for ${schema}"
+            javaexec {
+                main schema
+                classpath sourceSets.test.runtimeClasspath
+            }
+        }
+    }
+}
