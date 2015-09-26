@@ -65,7 +65,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
     @Test
     public void testMigrationToDifferentKvs() {
         final String tableName = "table";
-        final String namespacedTableName = "name-space." + tableName;
+        final String namespacedTableName = "namespace." + tableName;
         TableDefinition definition = new TableDefinition() {{
                 rowName();
                 rowComponent("r", ValueType.BLOB);
@@ -79,7 +79,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
         keyValueService.putMetadataForTable(namespacedTableName, definition.toTableMetadata().persistToBytes());
 
         TableMappingService tableMap = StaticTableMappingService.create(keyValueService);
-        final String shortTableName = tableMap.getShortTableName(TableReference.create(Namespace.create("name-space"), tableName));
+        final String shortTableName = tableMap.getShortTableName(TableReference.create(Namespace.create("namespace"), tableName));
 
         final Cell theCell = Cell.create(PtBytes.toBytes("r1"), PtBytes.toBytes("c"));
         final byte[] theValue = PtBytes.toBytes("v1");

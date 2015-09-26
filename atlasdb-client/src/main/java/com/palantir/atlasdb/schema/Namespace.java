@@ -28,7 +28,7 @@ public final class Namespace {
 
     public static Namespace create(String name) {
         Validate.isTrue(!Strings.isNullOrEmpty(name));
-        Validate.isTrue(isNamespaceValid(name), name);
+        Validate.isTrue(isNamespaceValid(name), "'%s' contains invalid characters, only letters or numbers allowed.", name);
         return new Namespace(name);
     }
 
