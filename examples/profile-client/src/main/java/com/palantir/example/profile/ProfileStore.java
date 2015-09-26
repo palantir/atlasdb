@@ -129,9 +129,9 @@ public class ProfileStore {
         List<UserBirthdaysIdxColumnValue> columns = idx.getRowColumns(UserBirthdaysIdxRow.of(birthEpochDays));
 
         return IterableView.of(columns)
-		        .transform(UserBirthdaysIdxColumnValue.getColumnNameFun())
-		        .transform(UserBirthdaysIdxColumn.getIdFun())
-		        .immutableSetCopy();
+                .transform(UserBirthdaysIdxColumnValue.getColumnNameFun())
+                .transform(UserBirthdaysIdxColumn.getIdFun())
+                .immutableSetCopy();
     }
 
 }

@@ -25,66 +25,66 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
 final class SimpleTransactionService implements TransactionService {
-	private final KeyValueService keyValueService;
+    private final KeyValueService keyValueService;
 
-	public SimpleTransactionService(KeyValueService keyValueService) {
-		this.keyValueService = keyValueService;
-	}
+    public SimpleTransactionService(KeyValueService keyValueService) {
+        this.keyValueService = keyValueService;
+    }
 
-	// The maximum key-value store timestamp (exclusive) at which data is stored
-	// in transaction table.
-	// All entries in transaction table are stored with timestamp 0
-	private static final long MAX_TIMESTAMP = 1L;
+    // The maximum key-value store timestamp (exclusive) at which data is stored
+    // in transaction table.
+    // All entries in transaction table are stored with timestamp 0
+    private static final long MAX_TIMESTAMP = 1L;
 
-	@Override
-	public Long get(long startTimestamp) {
-		Cell cell = getTransactionCell(startTimestamp);
-		Map<Cell, Value> returnMap = keyValueService.get(
-				TransactionConstants.TRANSACTION_TABLE,
-				ImmutableMap.of(cell, MAX_TIMESTAMP));
-		if (returnMap.containsKey(cell)) {
-			return TransactionConstants.getTimestampForValue(returnMap
-					.get(cell).getContents());
-		} else {
-			return null;
-		}
-	}
+    @Override
+    public Long get(long startTimestamp) {
+        Cell cell = getTransactionCell(startTimestamp);
+        Map<Cell, Value> returnMap = keyValueService.get(
+                TransactionConstants.TRANSACTION_TABLE,
+                ImmutableMap.of(cell, MAX_TIMESTAMP));
+        if (returnMap.containsKey(cell)) {
+            return TransactionConstants.getTimestampForValue(returnMap
+                    .get(cell).getContents());
+        } else {
+            return null;
+        }
+    }
 
-	@Override
-	public Map<Long, Long> get(Iterable<Long> startTimestamps) {
-		Map<Cell, Long> startTsMap = Maps.newHashMap();
-		for (Long startTimestamp : startTimestamps) {
-			Cell k = getTransactionCell(startTimestamp);
-			startTsMap.put(k, MAX_TIMESTAMP);
-		}
+    @Override
+    public Map<Long, Long> get(Iterable<Long> startTimestamps) {
+        Map<Cell, Long> startTsMap = Maps.newHashMap();
+        for (Long startTimestamp : startTimestamps) {
+            Cell k = getTransactionCell(startTimestamp);
+            startTsMap.put(k, MAX_TIMESTAMP);
+        }
 
-		Map<Cell, Value> rawResults = keyValueService.get(
-				TransactionConstants.TRANSACTION_TABLE, startTsMap);
-		Map<Long, Long> result = Maps.newHashMapWithExpectedSize(rawResults
-				.size());
-		for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
-			long startTs = TransactionConstants.getTimestampForValue(e.getKey()
-					.getRowName());
-			long commitTs = TransactionConstants.getTimestampForValue(e
-					.getValue().getContents());
-			result.put(startTs, commitTs);
-		}
+        Map<Cell, Value> rawResults = keyValueService.get(
+                TransactionConstants.TRANSACTION_TABLE, startTsMap);
+        Map<Long, Long> result = Maps.newHashMapWithExpectedSize(rawResults
+                .size());
+        for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
+            long startTs = TransactionConstants.getTimestampForValue(e.getKey()
+                    .getRowName());
+            long commitTs = TransactionConstants.getTimestampForValue(e
+                    .getValue().getContents());
+            result.put(startTs, commitTs);
+        }
 
-		return result;
-	}
+        return result;
+    }
 
-	@Override
-	public void putUnlessExists(long startTimestamp, long commitTimestamp) {
-		Cell key = getTransactionCell(startTimestamp);
-		byte[] value = TransactionConstants
-				.getValueForTimestamp(commitTimestamp);
-		keyValueService.putUnlessExists(TransactionConstants.TRANSACTION_TABLE,
-				ImmutableMap.of(key, value));
-	}
+    @Override
+    public void putUnlessExists(long startTimestamp, long commitTimestamp) {
+        Cell key = getTransactionCell(startTimestamp);
+        byte[] value = TransactionConstants
+                .getValueForTimestamp(commitTimestamp);
+        keyValueService.putUnlessExists(TransactionConstants.TRANSACTION_TABLE,
+                ImmutableMap.of(key, value));
+    }
 
-	private Cell getTransactionCell(long startTimestamp) {
-		return Cell.create(
-				TransactionConstants.getValueForTimestamp(startTimestamp),
-				TransactionConstants.COMMIT_TS_COLUMN);
-	}
+    private Cell getTransactionCell(long startTimestamp) {
+        return Cell.create(
+                TransactionConstants.getValueForTimestamp(startTimestamp),
+                TransactionConstants.COMMIT_TS_COLUMN);
+    }
 }

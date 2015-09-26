@@ -504,7 +504,7 @@ import com.palantir.util.Pair;
 
     @Override
     public boolean unlock(LockRefreshToken token) {
-    	return unlockSimple(SimpleHeldLocksToken.fromLockRefreshToken(token));
+        return unlockSimple(SimpleHeldLocksToken.fromLockRefreshToken(token));
     }
 
     @Override
