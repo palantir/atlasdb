@@ -2,6 +2,11 @@ apply from: "../gradle/shared.gradle"
 
 configurations.create('test').extendsFrom(configurations.testRuntime)
 
+schemas = [
+    'com.palantir.atlasdb.schema.indexing.IndexTestSchema',
+    'com.palantir.atlasdb.schema.stream.StreamTestSchema'
+]
+
 dependencies {
     compile project(":atlasdb-impl-shared")
 
