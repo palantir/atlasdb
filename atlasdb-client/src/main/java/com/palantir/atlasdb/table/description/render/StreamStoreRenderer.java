@@ -176,7 +176,6 @@ public class StreamStoreRenderer {
                         touchMetadataWhileMarkingUsedForConflicts();
                     }
                     line();
-                    importRenderer.renderImportJavaDoc();
                     line("static final int dummy = 0;");
                 } line("}");
             }
