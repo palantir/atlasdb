@@ -4,10 +4,10 @@ apply from: "../gradle/shared.gradle"
 [test, check].each { it.onlyIf { !System.getenv().containsKey('CI') } }
 
 dependencies {
-  compile(project(":atlasdb-cassandra"))
-  compile project(":atlasdb-tests-shared")
-  compile 'org.apache.cassandra:cassandra-all:2.1.5'
-  compile 'com.palantir.shaded.com.datastax.cassandra:datastax-cassandra-driver-core:0.2.0'
+  testCompile(project(":atlasdb-cassandra"))
+  testCompile project(":atlasdb-tests-shared")
+  testCompile 'org.apache.cassandra:cassandra-all:2.1.5'
+  testCompile 'com.palantir.shaded.com.datastax.cassandra:datastax-cassandra-driver-core:0.2.0'
 }
 
 jacoco {
