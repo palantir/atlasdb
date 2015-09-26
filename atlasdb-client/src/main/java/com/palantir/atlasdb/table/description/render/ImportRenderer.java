@@ -45,27 +45,10 @@ public class ImportRenderer extends Renderer {
         }
     }
 
-    void renderImportJavaDoc() {
-        line("/**");
-        line(" * This exists to avoid unused import warnings");
-        for (String className : importsSortedBySimpleName()) {
-            line(" * {@link ", className, "}", "");
-        }
-        line(" */");
-    }
-
     private SortedSet<String> importsSortedByFullName() {
         ImmutableSortedSet.Builder<String> sortedImports = ImmutableSortedSet.naturalOrder();
         for (Class<?> clazz : imports) {
             sortedImports.add(clazz.getCanonicalName());
-        }
-        return sortedImports.build();
-    }
-
-    private SortedSet<String> importsSortedBySimpleName() {
-        ImmutableSortedSet.Builder<String> sortedImports = ImmutableSortedSet.naturalOrder();
-        for (Class<?> clazz : imports) {
-            sortedImports.add(clazz.getSimpleName());
         }
         return sortedImports.build();
     }
