@@ -10,7 +10,7 @@ apply plugin: 'com.github.johnrengelman.shadow'
 group = 'com.palantir.shaded.com.datastax.cassandra'
 
 dependencies {
-    compile(group: 'com.datastax.cassandra', name: 'cassandra-driver-core', version: '2.1.5', configuration: 'default') {
+    compile(group: 'com.datastax.cassandra', name: 'cassandra-driver-core', version: '2.1.5') {
         exclude(module:"snappy-java")
         exclude(group:'org.slf4j')
     }

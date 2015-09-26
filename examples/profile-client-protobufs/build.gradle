@@ -4,8 +4,7 @@ group = 'com.palantir.atlasdb.examples'
 dependencies {
   compile(group: "com.google.protobuf",
           name: "protobuf-java",
-          version: "2.6.0",
-          configuration: "default")
+          version: "2.6.0")
   {
     transitive = false
   }

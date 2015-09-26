@@ -1,7 +1,5 @@
 apply from: "../gradle/shared.gradle"
 
-configurations.create('test').extendsFrom(configurations.testRuntime)
-
 schemas = [
     'com.palantir.atlasdb.schema.indexing.IndexTestSchema',
     'com.palantir.atlasdb.schema.stream.StreamTestSchema'
@@ -10,10 +8,11 @@ schemas = [
 dependencies {
     compile project(":atlasdb-impl-shared")
 
-    compile group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.5', configuration: 'default'
-    compile group: "org.jmock", name: "jmock", version: "2.5.1", configuration: "default"
+    compile(group: 'junit', name: 'junit', version: libVersions.junit) {
+        exclude group: 'org.hamcrest'
+    }
 
-    runtime group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.5', configuration: 'default'
+    compile group: "org.jmock", name: "jmock", version: "2.5.1"
 
-    test sourceSets.test.output
+    testRuntime group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.5'
 }
