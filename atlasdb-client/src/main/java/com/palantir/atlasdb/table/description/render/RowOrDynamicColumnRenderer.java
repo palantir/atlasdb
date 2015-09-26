@@ -44,29 +44,29 @@ class RowOrDynamicColumnRenderer extends Renderer {
     @Override
     protected void run() {
         javaDoc();
-        _("public static final class ", Name, " implements Persistable, Comparable<", Name, "> {"); {
+        line("public static final class ", Name, " implements Persistable, Comparable<", Name, "> {"); {
             fields();
-            _();
+            line();
             staticFactory();
-            _();
+            line();
             constructor();
-            _();
+            line();
             for (NameComponentDescription comp : desc.getRowParts()) {
                 getVarName(comp);
-                _();
+                line();
             }
             for (NameComponentDescription comp : desc.getRowParts()) {
                 getVarNameFun(comp);
-                _();
+                line();
             }
             if (desc.getRowParts().size() == 1) {
                 fromVarNameFun();
-                _();
+                line();
             }
             persistToBytes();
-            _();
+            line();
             bytesHydrator();
-            _();
+            line();
             if (rangeScanAllowed) {
                 int firstSortedIndex = desc.getRowParts().size() - 1;
                 for ( ; firstSortedIndex > 0; firstSortedIndex--) {
@@ -76,203 +76,203 @@ class RowOrDynamicColumnRenderer extends Renderer {
                 }
                 for (int i = 1; i <= desc.getRowParts().size() - 1; i++) {
                     createPrefixRange(i, firstSortedIndex < i);
-                    _();
+                    line();
                     prefix(i, firstSortedIndex < i);
-                    _();
+                    line();
                 }
             }
             renderToString();
-            _();
+            line();
             renderEquals();
-            _();
+            line();
             renderHashCode();
-            _();
+            line();
             renderCompareTo();
-        } _("}");
+        } line("}");
     }
 
     private void javaDoc() {
-        _("/**");
-        _(" * <pre>");
-        _(" * ", Name, " {", "");
+        line("/**");
+        line(" * <pre>");
+        line(" * ", Name, " {", "");
         for (NameComponentDescription comp : desc.getRowParts()) {
             boolean descending = comp.getOrder() == ValueByteOrder.DESCENDING;
-            _(" *   {@literal ", descending ? "@Descending " : "",  TypeName(comp), " ", varName(comp), "};");
+            line(" *   {@literal ", descending ? "@Descending " : "",  TypeName(comp), " ", varName(comp), "};");
         }
-        _(" * }", "");
-        _(" * </pre>");
-        _(" */");
+        line(" * }", "");
+        line(" * </pre>");
+        line(" */");
     }
 
     private void fields() {
         for (NameComponentDescription comp : desc.getRowParts()) {
-            _("private final ", typeName(comp), " ", varName(comp), ";");
+            line("private final ", typeName(comp), " ", varName(comp), ";");
         }
     }
 
     private void staticFactory() {
-        _("public static ", Name, " of"); renderParameterList(); __(" {"); {
-            _("return new ", Name); renderArgumentList(); __(";");
-        } _("}");
+        line("public static ", Name, " of"); renderParameterList(); lineEnd(" {"); {
+            line("return new ", Name); renderArgumentList(); lineEnd(";");
+        } line("}");
     }
 
     private void constructor() {
-        _("private ", Name); renderParameterList(); __(" {"); {
+        line("private ", Name); renderParameterList(); lineEnd(" {"); {
             for (NameComponentDescription comp : desc.getRowParts()) {
-                _("this.", varName(comp), " = ", varName(comp), ";");
+                line("this.", varName(comp), " = ", varName(comp), ";");
             }
-        } _("}");
+        } line("}");
     }
 
     private void getVarName(NameComponentDescription comp) {
-        _("public ", typeName(comp), " get", VarName(comp), "() {"); {
-            _("return ", varName(comp), ";");
-        } _("}");
+        line("public ", typeName(comp), " get", VarName(comp), "() {"); {
+            line("return ", varName(comp), ";");
+        } line("}");
     }
 
     private void getVarNameFun(NameComponentDescription comp) {
-        _("public static Function<", Name, ", ", TypeName(comp), "> get", VarName(comp), "Fun() {"); {
-            _("return new Function<", Name, ", ", TypeName(comp), ">() {"); {
-                _("@Override");
-                _("public ", TypeName(comp), " apply(", Name, " row) {"); {
-                    _("return row.", varName(comp), ";");
-                } _("}");
-            } _("};");
-        } _("}");
+        line("public static Function<", Name, ", ", TypeName(comp), "> get", VarName(comp), "Fun() {"); {
+            line("return new Function<", Name, ", ", TypeName(comp), ">() {"); {
+                line("@Override");
+                line("public ", TypeName(comp), " apply(", Name, " row) {"); {
+                    line("return row.", varName(comp), ";");
+                } line("}");
+            } line("};");
+        } line("}");
     }
 
     private void fromVarNameFun() {
         NameComponentDescription comp = Iterables.getOnlyElement(desc.getRowParts());
-        _("public static Function<", TypeName(comp), ", ", Name, "> from", VarName(comp), "Fun() {"); {
-            _("return new Function<", TypeName(comp), ", ", Name, ">() {"); {
-                _("@Override");
-                _("public ", Name, " apply(", TypeName(comp), " row) {"); {
-                    _("return new ", Name, "(row);");
-                } _("}");
-            } _("};");
-        } _("}");
+        line("public static Function<", TypeName(comp), ", ", Name, "> from", VarName(comp), "Fun() {"); {
+            line("return new Function<", TypeName(comp), ", ", Name, ">() {"); {
+                line("@Override");
+                line("public ", Name, " apply(", TypeName(comp), " row) {"); {
+                    line("return new ", Name, "(row);");
+                } line("}");
+            } line("};");
+        } line("}");
     }
 
     private void persistToBytes() {
-        _("@Override");
-        _("public byte[] persistToBytes() {"); {
+        line("@Override");
+        line("public byte[] persistToBytes() {"); {
             List<String> vars = Lists.newArrayList();
             for (NameComponentDescription comp : desc.getRowParts()) {
                 String var = varName(comp) + "Bytes";
                 vars.add(var);
-                _("byte[] ", var, " = ", comp.getType().getPersistCode(varName(comp)), ";");
+                line("byte[] ", var, " = ", comp.getType().getPersistCode(varName(comp)), ";");
                 if (comp.getOrder() == ValueByteOrder.DESCENDING) {
-                    _("EncodingUtils.flipAllBitsInPlace(", var, ");");
+                    line("EncodingUtils.flipAllBitsInPlace(", var, ");");
                 }
             }
-            _("return EncodingUtils.add(", Joiner.on(", ").join(vars), ");");
-        } _("}");
+            line("return EncodingUtils.add(", Joiner.on(", ").join(vars), ");");
+        } line("}");
     }
 
     private void bytesHydrator() {
-        _("public static final Hydrator<", Name, "> BYTES_HYDRATOR = new Hydrator<", Name, ">() {"); {
-            _("@Override");
-            _("public ", Name, " hydrateFromBytes(byte[] __input) {"); {
-                _("int __index = 0;");
+        line("public static final Hydrator<", Name, "> BYTES_HYDRATOR = new Hydrator<", Name, ">() {"); {
+            line("@Override");
+            line("public ", Name, " hydrateFromBytes(byte[] __input) {"); {
+                line("int __index = 0;");
                 List<String> vars = Lists.newArrayList();
                 for (NameComponentDescription comp : desc.getRowParts()) {
                     String var = varName(comp);
                     vars.add(var);
                     if (comp.getOrder() == ValueByteOrder.ASCENDING) {
-                        _(TypeName(comp), " ", var, " = ", comp.getType().getHydrateCode("__input", "__index"), ";");
+                        line(TypeName(comp), " ", var, " = ", comp.getType().getHydrateCode("__input", "__index"), ";");
                     } else {
-                        _(TypeName(comp), " ", var, " = ", comp.getType().getFlippedHydrateCode("__input", "__index"), ";");
+                        line(TypeName(comp), " ", var, " = ", comp.getType().getFlippedHydrateCode("__input", "__index"), ";");
                     }
-                    _("__index += ", comp.getType().getHydrateSizeCode(var), ";");
+                    line("__index += ", comp.getType().getHydrateSizeCode(var), ";");
                 }
-                _("return of(", Joiner.on(", ").join(vars), ");");
-            } _("}");
-        } _("};");
+                line("return of(", Joiner.on(", ").join(vars), ");");
+            } line("}");
+        } line("};");
     }
 
     private void createPrefixRange(int i, boolean isSorted) {
-        _("public static RangeRequest.Builder createPrefixRange", isSorted ? "" : "Unsorted"); renderParameterList(i); __(" {"); {
+        line("public static RangeRequest.Builder createPrefixRange", isSorted ? "" : "Unsorted"); renderParameterList(i); lineEnd(" {"); {
             List<String> vars = Lists.newArrayList();
             for (NameComponentDescription comp : desc.getRowParts().subList(0, i)) {
                 String var = varName(comp) + "Bytes";
                 vars.add(var);
-                _("byte[] ", var, " = ", comp.getType().getPersistCode(varName(comp)), ";");
+                line("byte[] ", var, " = ", comp.getType().getPersistCode(varName(comp)), ";");
                 if (comp.getOrder() == ValueByteOrder.DESCENDING) {
-                    _("EncodingUtils.flipAllBitsInPlace(", var, ");");
+                    line("EncodingUtils.flipAllBitsInPlace(", var, ");");
                 }
             }
-            _("return RangeRequest.builder().prefixRange(EncodingUtils.add(", Joiner.on(", ").join(vars), "));");
-        } _("}");
+            line("return RangeRequest.builder().prefixRange(EncodingUtils.add(", Joiner.on(", ").join(vars), "));");
+        } line("}");
     }
 
     private void prefix(int i, boolean isSorted) {
-        _("public static Prefix prefix", isSorted ? "" : "Unsorted"); renderParameterList(i); __(" {"); {
+        line("public static Prefix prefix", isSorted ? "" : "Unsorted"); renderParameterList(i); lineEnd(" {"); {
             List<String> vars = Lists.newArrayList();
             for (NameComponentDescription comp : desc.getRowParts().subList(0, i)) {
                 String var = varName(comp) + "Bytes";
                 vars.add(var);
-                _("byte[] ", var, " = ", comp.getType().getPersistCode(varName(comp)), ";");
+                line("byte[] ", var, " = ", comp.getType().getPersistCode(varName(comp)), ";");
                 if (comp.getOrder() == ValueByteOrder.DESCENDING) {
-                    _("EncodingUtils.flipAllBitsInPlace(", var, ");");
+                    line("EncodingUtils.flipAllBitsInPlace(", var, ");");
                 }
             }
-            _("return new Prefix(EncodingUtils.add(", Joiner.on(", ").join(vars), "));");
-        } _("}");
+            line("return new Prefix(EncodingUtils.add(", Joiner.on(", ").join(vars), "));");
+        } line("}");
     }
 
     private void renderToString() {
-        _("@Override");
-        _("public String toString() {"); {
-            _("return MoreObjects.toStringHelper(this)");
+        line("@Override");
+        line("public String toString() {"); {
+            line("return MoreObjects.toStringHelper(this)");
             for (NameComponentDescription comp : desc.getRowParts()) {
-                _("    .add(\"", varName(comp), "\", ", varName(comp), ")");
+                line("    .add(\"", varName(comp), "\", ", varName(comp), ")");
             }
-            _("    .toString();");
-        } _("}");
+            line("    .toString();");
+        } line("}");
     }
 
     private void renderEquals() {
-        _("@Override");
-        _("public boolean equals(Object obj) {"); {
-            _("if (this == obj) {"); {
-                _("return true;");
-            } _("}");
-            _("if (obj == null) {"); {
-                _("return false;");
-            } _("}");
-            _("if (getClass() != obj.getClass()) {"); {
-                _("return false;");
-            } _("}");
-            _(Name, " other = (", Name, ") obj;");
-            _("return");
+        line("@Override");
+        line("public boolean equals(Object obj) {"); {
+            line("if (this == obj) {"); {
+                line("return true;");
+            } line("}");
+            line("if (obj == null) {"); {
+                line("return false;");
+            } line("}");
+            line("if (getClass() != obj.getClass()) {"); {
+                line("return false;");
+            } line("}");
+            line(Name, " other = (", Name, ") obj;");
+            line("return");
             for (NameComponentDescription comp : desc.getRowParts()) {
-                __(" Objects.equal(", varName(comp), ", other.", varName(comp), ") &&");
+                lineEnd(" Objects.equal(", varName(comp), ", other.", varName(comp), ") &&");
             }
             replace(" &&", ";");
-        } _("}");
+        } line("}");
     }
 
     private void renderHashCode() {
-        _("@Override");
-        _("public int hashCode() {"); {
-            _("return Objects.hashCode(");
+        line("@Override");
+        line("public int hashCode() {"); {
+            line("return Objects.hashCode(");
             for (NameComponentDescription comp : desc.getRowParts()) {
-                __(varName(comp), ", ");
+                lineEnd(varName(comp), ", ");
             }
             replace(", ", ");");
-        } _("}");
+        } line("}");
     }
 
     private void renderCompareTo() {
-        _("@Override");
-        _("public int compareTo(", Name, " o) {"); {
-            _("return ComparisonChain.start()");
+        line("@Override");
+        line("public int compareTo(", Name, " o) {"); {
+            line("return ComparisonChain.start()");
             for (NameComponentDescription comp : desc.getRowParts()) {
                 String comparator = TypeName(comp).equals("byte[]") ? ", UnsignedBytes.lexicographicalComparator()" : "";
-                _("    .compare(this.", varName(comp), ", o.", varName(comp), comparator, ")");
+                line("    .compare(this.", varName(comp), ", o.", varName(comp), comparator, ")");
             }
-            _("    .result();");
-        } _("}");
+            line("    .result();");
+        } line("}");
     }
 
     private void renderParameterList() {
@@ -280,9 +280,9 @@ class RowOrDynamicColumnRenderer extends Renderer {
     }
 
     private void renderParameterList(int i) {
-        __("(");
+        lineEnd("(");
         for (NameComponentDescription comp : desc.getRowParts().subList(0, i)) {
-            __(typeName(comp), " ", varName(comp), ", ");
+            lineEnd(typeName(comp), " ", varName(comp), ", ");
         }
         replace(", ", ")");
     }
@@ -292,9 +292,9 @@ class RowOrDynamicColumnRenderer extends Renderer {
     }
 
     private void renderArgumentList(int i) {
-        __("(");
+        lineEnd("(");
         for (NameComponentDescription comp : desc.getRowParts().subList(0, i)) {
-            __(varName(comp), ", ");
+            lineEnd(varName(comp), ", ");
         }
         replace(", ", ")");
     }

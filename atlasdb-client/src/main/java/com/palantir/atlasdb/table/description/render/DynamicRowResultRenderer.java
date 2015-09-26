@@ -36,80 +36,80 @@ class DynamicRowResultRenderer extends Renderer {
 
     @Override
     protected void run() {
-        _("public static final class ", RowResult, " implements TypedRowResult {"); {
+        line("public static final class ", RowResult, " implements TypedRowResult {"); {
             fields();
-            _();
+            line();
             staticFactories();
-            _();
+            line();
             constructors();
-            _();
+            line();
             getRowName();
-            _();
+            line();
             getColumnValues();
-            _();
+            line();
             getRowNameFun();
-            _();
+            line();
             getColumnValuesFun();
-        } _("}");
+        } line("}");
     }
 
     private void fields() {
-        _("private final ", Row, " rowName;");
-        _("private final ImmutableSet<", ColumnValue, "> columnValues;");
+        line("private final ", Row, " rowName;");
+        line("private final ImmutableSet<", ColumnValue, "> columnValues;");
     }
 
     private void staticFactories() {
-        _("public static ", RowResult, " of(RowResult<byte[]> rowResult) {"); {
-            _(Row, " rowName = ", Row, ".BYTES_HYDRATOR.hydrateFromBytes(rowResult.getRowName());");
-            _("Set<", ColumnValue, "> columnValues = Sets.newHashSetWithExpectedSize(rowResult.getColumns().size());");
-            _("for (Entry<byte[], byte[]> e : rowResult.getColumns().entrySet()) {"); {
-                _(Column, " col = ", Column, ".BYTES_HYDRATOR.hydrateFromBytes(e.getKey());");
-                _(Value, " value = ", ColumnValue, ".hydrateValue(e.getValue());");
-                _("columnValues.add(", ColumnValue, ".of(col, value));");
-            } _("}");
-            _("return new ", RowResult, "(rowName, ImmutableSet.copyOf(columnValues));");
-        } _("}");
+        line("public static ", RowResult, " of(RowResult<byte[]> rowResult) {"); {
+            line(Row, " rowName = ", Row, ".BYTES_HYDRATOR.hydrateFromBytes(rowResult.getRowName());");
+            line("Set<", ColumnValue, "> columnValues = Sets.newHashSetWithExpectedSize(rowResult.getColumns().size());");
+            line("for (Entry<byte[], byte[]> e : rowResult.getColumns().entrySet()) {"); {
+                line(Column, " col = ", Column, ".BYTES_HYDRATOR.hydrateFromBytes(e.getKey());");
+                line(Value, " value = ", ColumnValue, ".hydrateValue(e.getValue());");
+                line("columnValues.add(", ColumnValue, ".of(col, value));");
+            } line("}");
+            line("return new ", RowResult, "(rowName, ImmutableSet.copyOf(columnValues));");
+        } line("}");
     }
 
     private void constructors() {
-        _("private ", RowResult, "(", Row, " rowName, ImmutableSet<", ColumnValue, "> columnValues) {"); {
-            _("this.rowName = rowName;");
-            _("this.columnValues = columnValues;");
-        } _("}");
+        line("private ", RowResult, "(", Row, " rowName, ImmutableSet<", ColumnValue, "> columnValues) {"); {
+            line("this.rowName = rowName;");
+            line("this.columnValues = columnValues;");
+        } line("}");
     }
 
     private void getRowName() {
-        _("@Override");
-        _("public ", Row, " getRowName() {"); {
-            _("return rowName;");
-        } _("}");
+        line("@Override");
+        line("public ", Row, " getRowName() {"); {
+            line("return rowName;");
+        } line("}");
     }
 
     private void getColumnValues() {
-        _("public Set<", ColumnValue, "> getColumnValues() {"); {
-            _("return columnValues;");
-        } _("}");
+        line("public Set<", ColumnValue, "> getColumnValues() {"); {
+            line("return columnValues;");
+        } line("}");
     }
 
     private void getRowNameFun() {
-        _("public static Function<", RowResult, ", ", Row, "> getRowNameFun() {"); {
-            _("return new Function<", RowResult, ", ", Row, ">() {"); {
-                _("@Override");
-                _("public ", Row, " apply(", RowResult, " rowResult) {"); {
-                    _("return rowResult.rowName;");
-                } _("}");
-            } _("};");
-        } _("}");
+        line("public static Function<", RowResult, ", ", Row, "> getRowNameFun() {"); {
+            line("return new Function<", RowResult, ", ", Row, ">() {"); {
+                line("@Override");
+                line("public ", Row, " apply(", RowResult, " rowResult) {"); {
+                    line("return rowResult.rowName;");
+                } line("}");
+            } line("};");
+        } line("}");
     }
 
     private void getColumnValuesFun() {
-        _("public static Function<", RowResult, ", ImmutableSet<", ColumnValue, ">> getColumnValuesFun() {"); {
-            _("return new Function<", RowResult, ", ImmutableSet<", ColumnValue, ">>() {"); {
-                _("@Override");
-                _("public ImmutableSet<", ColumnValue, "> apply(", RowResult, " rowResult) {"); {
-                    _("return rowResult.columnValues;");
-                } _("}");
-            } _("};");
-        } _("}");
+        line("public static Function<", RowResult, ", ImmutableSet<", ColumnValue, ">> getColumnValuesFun() {"); {
+            line("return new Function<", RowResult, ", ImmutableSet<", ColumnValue, ">>() {"); {
+                line("@Override");
+                line("public ImmutableSet<", ColumnValue, "> apply(", RowResult, " rowResult) {"); {
+                    line("return rowResult.columnValues;");
+                } line("}");
+            } line("};");
+        } line("}");
     }
 }
