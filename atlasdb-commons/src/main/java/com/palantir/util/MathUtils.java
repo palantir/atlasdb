@@ -172,9 +172,9 @@ public class MathUtils {
      * Normalizes an angle onto <code>[0, 2 pi)</code>.
      */
     public static double norm(double t) {
-//		while ( t < 0 ) t += _2_PI;
-//		while ( t >= _2_PI ) t -= _2_PI;
-//		return t;
+//        while ( t < 0 ) t += _2_PI;
+//        while ( t >= _2_PI ) t -= _2_PI;
+//        return t;
         return mod( t, _2_PI );
     }
 

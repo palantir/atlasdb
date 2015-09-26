@@ -40,11 +40,11 @@ import com.palantir.util.Pair;
 
 @Ignore
 public final class RocksDbKeyValuePerfTest {
-	private static final Random RAND = new Random();
-	private static final int KEY_SIZE = 16;
-	private static final int VALUE_SIZE = 100;
-	private static final int BATCH_SIZE = 1000;
-	private final ExecutorService executor = PTExecutors.newCachedThreadPool();
+    private static final Random RAND = new Random();
+    private static final int KEY_SIZE = 16;
+    private static final int VALUE_SIZE = 100;
+    private static final int BATCH_SIZE = 1000;
+    private final ExecutorService executor = PTExecutors.newCachedThreadPool();
 
     private RocksDbKeyValueService db = null;
 
@@ -60,34 +60,34 @@ public final class RocksDbKeyValuePerfTest {
 
     @After
     public void tearDown() throws IOException {
-		if (db != null) {
-			db.close();
-		}
+        if (db != null) {
+            db.close();
+        }
     }
 
-	@Test
-	public void testWritePerf() throws ExecutionException, InterruptedException {
-		final long startTime = System.currentTimeMillis();
-		final Future<Pair<Long, Set<byte[]>>>
-			f1 = submitWriteJob(0, BATCH_SIZE / 4),
-			f2 = submitWriteJob(BATCH_SIZE / 4, BATCH_SIZE / 2),
-			f3 = submitWriteJob(BATCH_SIZE / 2, 3 * BATCH_SIZE / 4),
-			f4 = submitWriteJob(3 * BATCH_SIZE / 4, BATCH_SIZE);
-		final long rawBytes = f1.get().lhSide
-							  + f2.get().lhSide
-							  + f3.get().lhSide
-							  + f4.get().lhSide;
-		final long elapsedTime = System.currentTimeMillis() - startTime;
-		final double elapsedSeconds = elapsedTime / 1000.0;
-		final double megs = rawBytes / (1024.0 * 1024.0);
-		System.out.println("MB = " + megs);
-		System.out.println("MB/s = " + (megs/elapsedSeconds));
-	}
+    @Test
+    public void testWritePerf() throws ExecutionException, InterruptedException {
+        final long startTime = System.currentTimeMillis();
+        final Future<Pair<Long, Set<byte[]>>>
+            f1 = submitWriteJob(0, BATCH_SIZE / 4),
+            f2 = submitWriteJob(BATCH_SIZE / 4, BATCH_SIZE / 2),
+            f3 = submitWriteJob(BATCH_SIZE / 2, 3 * BATCH_SIZE / 4),
+            f4 = submitWriteJob(3 * BATCH_SIZE / 4, BATCH_SIZE);
+        final long rawBytes = f1.get().lhSide
+                              + f2.get().lhSide
+                              + f3.get().lhSide
+                              + f4.get().lhSide;
+        final long elapsedTime = System.currentTimeMillis() - startTime;
+        final double elapsedSeconds = elapsedTime / 1000.0;
+        final double megs = rawBytes / (1024.0 * 1024.0);
+        System.out.println("MB = " + megs);
+        System.out.println("MB/s = " + (megs/elapsedSeconds));
+    }
 
     private Pair<Long, Set<byte[]>> doSomeWrites(int batchStart, int batchEnd) {
-		assert batchStart >= 0;
-		assert batchEnd >= 0;
-		assert batchStart <= batchEnd;
+        assert batchStart >= 0;
+        assert batchEnd >= 0;
+        assert batchStart <= batchEnd;
         final Set<byte[]> ret = Sets.newTreeSet(UnsignedBytes.lexicographicalComparator());
         long rawBytes = 0;
         for (int i = batchStart; i != batchEnd; ++i) {
@@ -113,13 +113,13 @@ public final class RocksDbKeyValuePerfTest {
         });
     }
 
-	private static byte[] getRandomBytes(int numBytes) {
-		final byte[] ret = new byte[numBytes];
-		RAND.nextBytes(ret);
-		return ret;
-	}
+    private static byte[] getRandomBytes(int numBytes) {
+        final byte[] ret = new byte[numBytes];
+        RAND.nextBytes(ret);
+        return ret;
+    }
 
-	private static File getDatabasePath() {
-		return new File("./testdb");
-	}
+    private static File getDatabasePath() {
+        return new File("./testdb");
+    }
 }

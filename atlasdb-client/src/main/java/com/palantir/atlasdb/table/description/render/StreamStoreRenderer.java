@@ -437,10 +437,10 @@ public class StreamStoreRenderer {
             private void markStreamsAsUsed() {
                 _("@Override");
                 _("protected void markStreamAsUsedInternal(Transaction t, long streamId, byte[] reference) {"); {
-                	_(StreamIdxTable, " index = tables.get", StreamIdxTable, "(t);");
-                	_(StreamIdxColumn, " col = ", StreamIdxColumn, ".of(reference);");
-                	_(StreamIdxColumnValue, " value = ", StreamIdxColumnValue, ".of(col, 0L);");
-                	_("index.put(", StreamIdxRow, ".of(streamId), value);");
+                    _(StreamIdxTable, " index = tables.get", StreamIdxTable, "(t);");
+                    _(StreamIdxColumn, " col = ", StreamIdxColumn, ".of(reference);");
+                    _(StreamIdxColumnValue, " value = ", StreamIdxColumnValue, ".of(col, 0L);");
+                    _("index.put(", StreamIdxRow, ".of(streamId), value);");
                 } _("}");
             }
 

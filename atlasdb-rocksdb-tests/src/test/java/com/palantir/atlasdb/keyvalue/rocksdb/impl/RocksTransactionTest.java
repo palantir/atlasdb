@@ -19,7 +19,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
 
 public class RocksTransactionTest extends AbstractTransactionTest {
-	private RocksDbKeyValueService db = null;
+    private RocksDbKeyValueService db = null;
 
     @Override
     public void setUp() throws Exception {
@@ -32,22 +32,22 @@ public class RocksTransactionTest extends AbstractTransactionTest {
         super.setUp();
     }
 
-	@Override
-	protected KeyValueService getKeyValueService() {
-	    return db;
-	}
+    @Override
+    protected KeyValueService getKeyValueService() {
+        return db;
+    }
 
-	@Override
-	protected boolean supportsReverse() {
-	    return false;
-	}
+    @Override
+    protected boolean supportsReverse() {
+        return false;
+    }
 
     @Override
     public void tearDown() {
         super.tearDown();
-		if (db != null) {
-			db.close();
-			db = null;
-		}
+        if (db != null) {
+            db.close();
+            db = null;
+        }
     }
 }

@@ -128,14 +128,14 @@ public class SoftCache<K, V> implements NonDistributedCache<K, V> {
 
     @Deprecated
     public void  stopCleanupThread() {
-//		This operation does nothing
-//		Do not call it anymore
+//        This operation does nothing
+//        Do not call it anymore
     }
 
     @Deprecated
     public void startCleanupThread() {
-//		This operation does nothing
-//		Do not call it anymore
+//        This operation does nothing
+//        Do not call it anymore
     }
 
     private synchronized void removeReference(Reference<? extends V> ref){

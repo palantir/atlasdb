@@ -32,14 +32,14 @@ import com.palantir.annotations.PublicApi;
  *
  * A method is Interruptible if:
  * 1. Interrupting the calling thread cannot possibly cause inconsistent state during the run of that method
- * 		(won't break anything).
+ *         (won't break anything).
  * 2. The method does not swallow InterruptedExceptions or the interrupted bit on its calling thread.
- * 		It either rethrows the InterruptedException or resets the interrupted bit on its calling thread (in which
- * 		case it may also throw some other exception).
+ *         It either rethrows the InterruptedException or resets the interrupted bit on its calling thread (in which
+ *         case it may also throw some other exception).
  * 3. The method explicitly or implicitly checks the interrupted bit before/during expensive processing.  This will
- * 		usually be implicit (any time you use java.concurrent classes to block, or anything else that legitimately throws an
- * 		InterruptedException, will be somehow checking that bit).  However, a very expensive process that does not block
- * 		might need to check this bit explicitly.  See {@link Thread#interrupted()}.
+ *         usually be implicit (any time you use java.concurrent classes to block, or anything else that legitimately throws an
+ *         InterruptedException, will be somehow checking that bit).  However, a very expensive process that does not block
+ *         might need to check this bit explicitly.  See {@link Thread#interrupted()}.
  *
  * By definition, any @CancelableServerCall is interruptible.  We use this Interruptible annotation for cancelable
  * calls that are not necessarily server calls.
