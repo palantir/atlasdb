@@ -88,7 +88,7 @@ public class KVTableMappingService extends AbstractTableMappingService {
 
     @Override
     public String addTable(TableReference tableRef) {
-        if (tableRef.getNamespace() == Namespace.EMPTY_NAMESPACE) {
+        if (tableRef.getNamespace().isEmptyNamespace()) {
             return tableRef.getTablename();
         }
         if (tableMap.get().containsKey(tableRef)) {
@@ -132,19 +132,4 @@ public class KVTableMappingService extends AbstractTableMappingService {
         return ret;
     }
 
-    @Override
-    public boolean isInitializedNamespace(Namespace namespace) {
-        for (TableReference ref : tableMap.get().keySet()) {
-            if (ref.getNamespace().equals(namespace)) {
-                return true;
-            }
-        }
-        updateTableMap();
-        for (TableReference ref : tableMap.get().keySet()) {
-            if (ref.getNamespace().equals(namespace)) {
-                return true;
-            }
-        }
-        return false;
-    }
 }

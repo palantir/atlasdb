@@ -75,6 +75,7 @@ enum ColumnValueFormat {
     PROTO = 1;
     PERSISTABLE = 2;
     VALUE_TYPE = 3;
+    PERSISTER = 4;
 }
 
 enum ValueByteOrder {

@@ -1,21 +1,24 @@
 apply from: "../gradle/shared.gradle"
 
-// TODO fix tests in this project
-[test, check].each { it.onlyIf { !System.getenv().containsKey('CI') } }
+schemas = [
+    'com.palantir.atlasdb.schema.indexing.IndexTestSchema',
+    'com.palantir.atlasdb.schema.stream.StreamTestSchema'
+]
 
-configurations.create('test').extendsFrom(configurations.testRuntime)
 dependencies {
   compile(project(":atlasdb-impl-shared"))
-  compile(group: "org.jmock",
-              name: "jmock",
-              version: "2.5.1",
-              configuration: "default")
   compile 'com.netflix.feign:feign-jackson:8.6.1'
   compile('com.netflix.feign:feign-jaxrs:8.6.1') {
       exclude module: 'jsr311-api'
   }
   testCompile "io.dropwizard:dropwizard-testing:" + libVersions.dropwizard
   testCompile(project(":atlasdb-config"))
-  test sourceSets.test.output
 
+    compile(group: 'junit', name: 'junit', version: libVersions.junit) {
+        exclude group: 'org.hamcrest'
+    }
+
+    compile group: "org.jmock", name: "jmock", version: "2.5.1"
+
+    testRuntime group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.5'
 }

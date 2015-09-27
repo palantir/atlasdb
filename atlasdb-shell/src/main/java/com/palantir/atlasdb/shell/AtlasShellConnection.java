@@ -161,7 +161,7 @@ public static AtlasShellConnection createAtlasShellConnection(final AtlasContext
         return new AtlasShellTransactionAdapter(new ReadOnlyTransaction(
                 keyValueService,
                 TransactionServices
-						.createTransactionService(keyValueService),
+                        .createTransactionService(keyValueService),
                 Long.MAX_VALUE,
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,

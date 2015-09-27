@@ -74,7 +74,7 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
     @Override
     public void createTable(String tableName, int maxValueSizeInBytes) {
         Validate.isTrue(
-                !tableName.startsWith("_")
+                (!tableName.startsWith("_") && tableName.contains("."))
                 || AtlasDbConstants.hiddenTables.contains(tableName)
                 || tableName.startsWith(AtlasDbConstants.TEMP_TABLE_PREFIX)
                 || tableName.startsWith(AtlasDbConstants.NAMESPACE_PREFIX),

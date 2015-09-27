@@ -42,11 +42,23 @@ license {
     exclude '**/generated/*.java'
 }
 
-configurations.matching({ it.name in ['compile', 'runtime'] }).all {
-    resolutionStrategy {
-        force 'com.fasterxml.jackson.core:jackson-databind:' + libVersions.jackson
-        force 'com.fasterxml.jackson.core:jackson-core:' + libVersions.jackson
-        force 'com.fasterxml.jackson.datatype:jackson-datatype-guava:' + libVersions.jackson
-        force 'com.google.guava:guava:' + libVersions.guava
+ext {
+    schemas = []
+}
+
+task generateSchemas {
+    description = 'Re-generate code from AtlasDB schemas.'
+    dependsOn classes, testClasses
+}
+
+afterEvaluate {
+    schemas.each { schema ->
+        generateSchemas << {
+            logger.info "Processing schemas for ${schema}"
+            javaexec {
+                main schema
+                classpath sourceSets.test.runtimeClasspath
+            }
+        }
     }
 }

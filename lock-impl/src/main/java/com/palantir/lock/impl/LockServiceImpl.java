@@ -227,8 +227,8 @@ import com.palantir.util.Pair;
 
     /** Creates a new lock server instance with the given options. */
     public static LockServiceImpl create(LockServerOptions options) {
-        if (log.isInfoEnabled()) {
-            log.info("Creating LockService with options=" + options);
+        if (log.isTraceEnabled()) {
+            log.trace("Creating LockService with options=" + options);
         }
         LockServiceImpl lockService = new LockServiceImpl(options);
         JMXUtils.registerMBeanCatchAndLogExceptions(lockService,
@@ -361,8 +361,8 @@ import com.palantir.util.Pair;
                     request.getLockGroupBehavior(), locks, failedLocks);
 
             if (request.getBlockingMode() == BlockingMode.BLOCK_INDEFINITELY_THEN_RELEASE) {
-                if (log.isInfoEnabled()) {
-                    log.info(".lock(" + client + ", " + request + ") returns null");
+                if (log.isTraceEnabled()) {
+                    log.trace(".lock(" + client + ", " + request + ") returns null");
                 }
                 if (requestLogger.isDebugEnabled()) {
                     requestLogger.debug(String.format("Timed out requesting %s for requesting thread %s after %d ms",
@@ -373,8 +373,8 @@ import com.palantir.util.Pair;
 
             if (locks.isEmpty() || ((request.getLockGroupBehavior() == LOCK_ALL_OR_NONE)
                     && (locks.size() < request.getLockDescriptors().size()))) {
-                if (log.isInfoEnabled()) {
-                    log.info(".lock(" + client + ", " + request + ") returns null");
+                if (log.isTraceEnabled()) {
+                    log.trace(".lock(" + client + ", " + request + ") returns null");
                 }
                 if (requestLogger.isDebugEnabled()) {
                     requestLogger.debug(String.format("Failed to acquire all locks for %s for requesting thread %s after %d ms",
@@ -408,8 +408,8 @@ import com.palantir.util.Pair;
             HeldLocksToken token = createHeldLocksToken(client, LockCollections.of(lockDescriptorMap.build()), LockCollections.of(locks),
                     request.getLockTimeout(), request.getVersionId());
             locks.clear();
-            if (log.isInfoEnabled()) {
-                log.info(".lock(" + client + ", " + request + ") returns " + token);
+            if (log.isTraceEnabled()) {
+                log.trace(".lock(" + client + ", " + request + ") returns " + token);
             }
             if (Thread.interrupted()) {
                 throw new InterruptedException("Interrupted while locking.");
@@ -461,10 +461,10 @@ import com.palantir.util.Pair;
                 long startTime = System.currentTimeMillis();
                 @Nullable LockClient currentHolder = tryLock(lock.get(client, entry.getValue()),
                         blockingMode, deadline);
-                if (log.isInfoEnabled()) {
+                if (log.isDebugEnabled()) {
                     long duration = System.currentTimeMillis() - startTime;
                     if (duration > 100) {
-                        log.info(String.format("Blocked for %d ms to acquire lock %s %s.",
+                        log.debug(String.format("Blocked for %d ms to acquire lock %s %s.",
                                 duration,
                                 entry.getKey().getLockId(),
                                 currentHolder == null ? "successfully" : "unsuccessfully"));
@@ -504,7 +504,7 @@ import com.palantir.util.Pair;
 
     @Override
     public boolean unlock(LockRefreshToken token) {
-    	return unlockSimple(SimpleHeldLocksToken.fromLockRefreshToken(token));
+        return unlockSimple(SimpleHeldLocksToken.fromLockRefreshToken(token));
     }
 
     @Override
@@ -513,8 +513,8 @@ import com.palantir.util.Pair;
         debugLock.readLock().lock();
         try {
             boolean success = unlockInternal(token, heldLocksTokenMap);
-            if (log.isInfoEnabled()) {
-                log.info(".unlock(" + token + ") returns " + success);
+            if (log.isTraceEnabled()) {
+                log.trace(".unlock(" + token + ") returns " + success);
             }
             return success;
         } finally {
@@ -544,8 +544,8 @@ import com.palantir.util.Pair;
         try {
             @Nullable HeldLocks<HeldLocksToken> heldLocks = heldLocksTokenMap.remove(token);
             if (heldLocks == null) {
-                if (log.isInfoEnabled()) {
-                    log.info(".unlockAndFreeze(" + token + ") returns false");
+                if (log.isTraceEnabled()) {
+                    log.trace(".unlockAndFreeze(" + token + ") returns false");
                 }
                 return false;
             }
@@ -574,8 +574,8 @@ import com.palantir.util.Pair;
             if (heldLocks.realToken.getVersionId() != null) {
                 versionIdMap.remove(client, heldLocks.realToken.getVersionId());
             }
-            if (log.isInfoEnabled()) {
-                log.info(".unlockAndFreeze(" + token + ") returns true");
+            if (log.isTraceEnabled()) {
+                log.trace(".unlockAndFreeze(" + token + ") returns true");
             }
             return true;
         } finally {
@@ -628,8 +628,8 @@ import com.palantir.util.Pair;
             }
         }
         ImmutableSet<HeldLocksToken> tokenSet = tokens.build();
-        if (log.isInfoEnabled()) {
-            log.info(".getTokens(" + client + ") returns "
+        if (log.isTraceEnabled()) {
+            log.trace(".getTokens(" + client + ") returns "
                     + Iterables.transform(tokenSet, TOKEN_TO_ID));
         }
         return tokenSet;
@@ -648,8 +648,8 @@ import com.palantir.util.Pair;
                 }
             }
             Set<HeldLocksToken> refreshedTokenSet = refreshedTokens.build();
-            if (log.isInfoEnabled()) {
-                log.info(".refreshTokens(" + Iterables.transform(tokens, TOKEN_TO_ID) + ") returns "
+            if (log.isTraceEnabled()) {
+                log.trace(".refreshTokens(" + Iterables.transform(tokens, TOKEN_TO_ID) + ") returns "
                         + Iterables.transform(refreshedTokenSet, TOKEN_TO_ID));
             }
             return refreshedTokenSet;
@@ -704,8 +704,8 @@ import com.palantir.util.Pair;
         Preconditions.checkNotNull(grant);
         @Nullable HeldLocks<HeldLocksGrant> heldLocks = heldLocksGrantMap.get(grant);
         if (heldLocks == null) {
-            if (log.isInfoEnabled()) {
-                log.info(".refreshGrant(" + grant.getGrantId().toString(Character.MAX_RADIX)
+            if (log.isTraceEnabled()) {
+                log.trace(".refreshGrant(" + grant.getGrantId().toString(Character.MAX_RADIX)
                         + ") returns null");
             }
             return null;
@@ -716,15 +716,15 @@ import com.palantir.util.Pair;
                 heldLocks.realToken.refresh(expirationDateMs), heldLocks.locks));
         heldLocks = heldLocksGrantMap.get(grant);
         if (heldLocks == null) {
-            if (log.isInfoEnabled()) {
-                log.info(".refreshGrant(" + grant.getGrantId().toString(Character.MAX_RADIX)
+            if (log.isTraceEnabled()) {
+                log.trace(".refreshGrant(" + grant.getGrantId().toString(Character.MAX_RADIX)
                         + ") returns null");
             }
             return null;
         }
         HeldLocksGrant refreshedGrant = heldLocks.realToken;
-        if (log.isInfoEnabled()) {
-            log.info(".refreshGrant(" + grant.getGrantId().toString(Character.MAX_RADIX)
+        if (log.isTraceEnabled()) {
+            log.trace(".refreshGrant(" + grant.getGrantId().toString(Character.MAX_RADIX)
                     + ") returns " + refreshedGrant.getGrantId().toString(Character.MAX_RADIX));
         }
         return refreshedGrant;
@@ -742,13 +742,13 @@ import com.palantir.util.Pair;
         try {
             @Nullable HeldLocks<HeldLocksToken> heldLocks = heldLocksTokenMap.remove(token);
             if (heldLocks == null) {
-                log.error("Cannot convert to grant; invalid token: " + token);
+                log.warn("Cannot convert to grant; invalid token: " + token);
                 throw new IllegalArgumentException("token is invalid: " + token);
             }
             if (isFrozen(heldLocks.locks.getKeys())) {
                 heldLocksTokenMap.put(token, heldLocks);
                 lockTokenReaperQueue.add(token);
-                log.error("Cannot convert to grant because token is frozen: " + token);
+                log.warn("Cannot convert to grant because token is frozen: " + token);
                 throw new IllegalArgumentException("token is frozen: " + token);
             }
             try {
@@ -757,15 +757,15 @@ import com.palantir.util.Pair;
             } catch (IllegalMonitorStateException e) {
                 heldLocksTokenMap.put(token, heldLocks);
                 lockTokenReaperQueue.add(token);
-                log.error("Failure converting " + token + " to grant", e);
+                log.warn("Failure converting " + token + " to grant", e);
                 throw e;
             }
             lockClientMultimap.remove(heldLocks.realToken.getClient(), token);
             HeldLocksGrant grant = createHeldLocksGrant(heldLocks.realToken.getLocks(),
                     heldLocks.locks, heldLocks.realToken.getLockTimeout(),
                     heldLocks.realToken.getVersionId());
-            if (log.isInfoEnabled()) {
-                log.info(".convertToGrant(" + token + ") returns " + grant);
+            if (log.isTraceEnabled()) {
+                log.trace(".convertToGrant(" + token + ") returns " + grant);
             }
             return grant;
         } finally {
@@ -782,15 +782,15 @@ import com.palantir.util.Pair;
         try {
             @Nullable HeldLocks<HeldLocksGrant> heldLocks = heldLocksGrantMap.remove(grant);
             if (heldLocks == null) {
-                log.error("Tried to use invalid grant: " + grant);
+                log.warn("Tried to use invalid grant: " + grant);
                 throw new IllegalArgumentException("grant is invalid: " + grant);
             }
             HeldLocksGrant realGrant = heldLocks.realToken;
             changeOwner(heldLocks.locks, INTERNAL_LOCK_GRANT_CLIENT, client);
             HeldLocksToken token = createHeldLocksToken(client, realGrant.getLocks(),
                     heldLocks.locks, realGrant.getLockTimeout(), realGrant.getVersionId());
-            if (log.isInfoEnabled()) {
-                log.info(".useGrant(" + client + ", " + grant + ") returns " + token);
+            if (log.isTraceEnabled()) {
+                log.trace(".useGrant(" + client + ", " + grant + ") returns " + token);
             }
             return token;
         } finally {
@@ -811,15 +811,15 @@ import com.palantir.util.Pair;
                 String message = "Lock client " + client + " tried to use a lock grant that doesn't" +
                         " correspond to any held locks (grantId: " + grantId.toString(Character.MAX_RADIX) +
                         "); it's likely that this lock grant has expired due to timeout";
-                log.error(message);
+                log.warn(message);
                 throw new IllegalArgumentException(message);
             }
             HeldLocksGrant realGrant = heldLocks.realToken;
             changeOwner(heldLocks.locks, INTERNAL_LOCK_GRANT_CLIENT, client);
             HeldLocksToken token = createHeldLocksToken(client, realGrant.getLocks(),
                     heldLocks.locks, realGrant.getLockTimeout(), realGrant.getVersionId());
-            if (log.isInfoEnabled()) {
-                log.info(".useGrant(" + client + ", " + grantId.toString(Character.MAX_RADIX)
+            if (log.isTraceEnabled()) {
+                log.trace(".useGrant(" + client + ", " + grantId.toString(Character.MAX_RADIX)
                         + ") returns " + token);
             }
             return token;
@@ -887,8 +887,8 @@ import com.palantir.util.Pair;
                 versionId = versionsForClient.iterator().next();
             }
         }
-        if (log.isInfoEnabled()) {
-            log.info(".getMinLockedInVersionId() returns " + versionId);
+        if (log.isTraceEnabled()) {
+            log.trace(".getMinLockedInVersionId() returns " + versionId);
         }
         return versionId;
     }
@@ -960,8 +960,8 @@ import com.palantir.util.Pair;
                 return randomBitCount;
             }
         };
-        if (log.isInfoEnabled()) {
-            log.info(".getLockServerOptions() returns " + options);
+        if (log.isTraceEnabled()) {
+            log.trace(".getLockServerOptions() returns " + options);
         }
         return options;
     }

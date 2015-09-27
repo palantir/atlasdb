@@ -18,7 +18,11 @@ package com.palantir.atlasdb.cleaner;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.base.Supplier;
+import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 
 /**
@@ -29,13 +33,15 @@ import com.palantir.common.concurrent.PTExecutors;
  * @author jweel
  */
 public class AsyncPuncher implements Puncher {
+    private static final Logger log = LoggerFactory.getLogger(AsyncPuncher.class);
     public static AsyncPuncher create(Puncher delegate, long interval) {
         AsyncPuncher asyncPuncher = new AsyncPuncher(delegate, interval);
         asyncPuncher.start();
         return asyncPuncher;
     }
 
-    private final ScheduledExecutorService service = PTExecutors.newSingleThreadScheduledExecutor();
+    private final ScheduledExecutorService service = PTExecutors.newSingleThreadScheduledExecutor(
+            new NamedThreadFactory("puncher", true /* daemon */));
 
     private final Puncher delegate;
     private final long interval;
@@ -72,6 +78,18 @@ public class AsyncPuncher implements Puncher {
     @Override
     public void shutdown() {
         delegate.shutdown();
-        service.shutdown();
+        service.shutdownNow();
+        boolean shutdown = false;
+        try {
+            shutdown = service.awaitTermination(5, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            log.error("Interrupted while shutting down the puncher. This shouldn't happen.");
+            Thread.currentThread().interrupt();
+        }
+        if (!shutdown) {
+            log.error("Failed to shutdown puncher in a timely manner. The puncher may attempt " +
+                    "to access a key value service after the key value service closes. This shouldn't " +
+                    "cause any problems, but may result in some scary looking error messages.");
+        }
     }
 }

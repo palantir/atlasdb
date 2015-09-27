@@ -31,27 +31,27 @@ public class NamedColumnRenderer extends Renderer {
 
     @Override
     protected void run() {
-        _("public enum ", NamedColumn, " {"); {
+        line("public enum ", NamedColumn, " {"); {
             for (NamedColumnDescription col : cols) {
-                _(Renderers.UPPER_CASE(col.getLongName()), " {"); {
-                    _("@Override");
-                    _("public byte[] getShortName() {"); {
-                        _("return PtBytes.toCachedBytes(\"", col.getShortName(), "\");");
-                    } _("}");
-                } _("},");
+                line(Renderers.UPPER_CASE(col.getLongName()), " {"); {
+                    line("@Override");
+                    line("public byte[] getShortName() {"); {
+                        line("return PtBytes.toCachedBytes(\"", col.getShortName(), "\");");
+                    } line("}");
+                } line("},");
             }
             replace(",", ";");
-            _();
-            _("public abstract byte[] getShortName();");
-            _();
-            _("public static Function<", NamedColumn, ", byte[]> toShortName() {"); {
-                _("return new Function<", NamedColumn, ", byte[]>() {"); {
-                    _("@Override");
-                    _("public byte[] apply(", NamedColumn, " namedColumn) {"); {
-                        _("return namedColumn.getShortName();");
-                    } _("}");
-                } _("};");
-            } _("}");
-        } _("}");
+            line();
+            line("public abstract byte[] getShortName();");
+            line();
+            line("public static Function<", NamedColumn, ", byte[]> toShortName() {"); {
+                line("return new Function<", NamedColumn, ", byte[]>() {"); {
+                    line("@Override");
+                    line("public byte[] apply(", NamedColumn, " namedColumn) {"); {
+                        line("return namedColumn.getShortName();");
+                    } line("}");
+                } line("};");
+            } line("}");
+        } line("}");
     }
 }

@@ -45,11 +45,11 @@ public abstract class Renderer {
         return s.toString();
     }
 
-    protected void _() {
+    protected void line() {
         s.append("\n");
     }
 
-    protected void _(String... strings) {
+    protected void line(String... strings) {
         if (s.length() != 0) {
             s.append("\n");
         }
@@ -59,10 +59,10 @@ public abstract class Renderer {
         for (int i = 0; i < indent.get(); i++) {
             s.append("    ");
         }
-        __(strings);
+        lineEnd(strings);
     }
 
-    protected void __(String... strings) {
+    protected void lineEnd(String... strings) {
         for (String string : strings) {
             s.append(string);
         }
@@ -79,7 +79,7 @@ public abstract class Renderer {
 
     protected void replace(String suffix, String replacement) {
         strip(suffix);
-        __(replacement);
+        lineEnd(replacement);
     }
 
     protected byte[] getHash() {

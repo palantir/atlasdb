@@ -15,40 +15,19 @@
  */
 package com.palantir.atlasdb.server;
 
-import java.util.List;
-import java.util.concurrent.ExecutorService;
+import javax.net.ssl.SSLSocketFactory;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Supplier;
-import com.palantir.atlasdb.client.TextDelegateDecoder;
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.impl.AtlasDbServiceImpl;
 import com.palantir.atlasdb.impl.TableMetadataCache;
 import com.palantir.atlasdb.jackson.AtlasJacksonModule;
-import com.palantir.atlasdb.spi.AtlasDbServerStateProvider;
-import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.leader.PaxosLeaderElectionService;
-import com.palantir.leader.PingableLeader;
-import com.palantir.leader.proxy.AwaitingLeadershipProxy;
-import com.palantir.lock.RemoteLockService;
-import com.palantir.lock.impl.LockServiceImpl;
-import com.palantir.paxos.PaxosAcceptor;
-import com.palantir.paxos.PaxosAcceptorImpl;
-import com.palantir.paxos.PaxosLearner;
-import com.palantir.paxos.PaxosLearnerImpl;
-import com.palantir.paxos.PaxosProposer;
-import com.palantir.paxos.PaxosProposerImpl;
-import com.palantir.timestamp.TimestampService;
-import com.palantir.timestamp.server.config.AtlasDbServerConfiguration;
-import com.palantir.timestamp.server.config.AtlasDbServerState;
+import com.palantir.atlasdb.table.description.Schema;
+import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 
-import feign.Feign;
-import feign.jackson.JacksonDecoder;
-import feign.jackson.JacksonEncoder;
-import feign.jaxrs.JAXRSContract;
 import io.dropwizard.Application;
 import io.dropwizard.setup.Environment;
-import jersey.repackaged.com.google.common.collect.Lists;
 
 public class AtlasDbServer extends Application<AtlasDbServerConfiguration> {
 
@@ -56,78 +35,19 @@ public class AtlasDbServer extends Application<AtlasDbServerConfiguration> {
         new AtlasDbServer().run(args);
     }
 
-    private final ExecutorService executor = PTExecutors.newCachedThreadPool();
-
-    private static <T> List<T> getRemoteServices(List<String> uris, Class<T> iFace) {
-    	ObjectMapper mapper = new ObjectMapper();
-        List<T> ret = Lists.newArrayList();
-        for (String uri : uris) {
-            T service = Feign.builder()
-                    .decoder(new TextDelegateDecoder(new JacksonDecoder(mapper)))
-                    .encoder(new JacksonEncoder(mapper))
-                    .contract(new JAXRSContract())
-                    .target(iFace, uri);
-            ret.add(service);
-        }
-        return ret;
-    }
-
     @Override
-    public void run(AtlasDbServerConfiguration configuration, Environment environment) throws Exception {
-    	PaxosAcceptor ourAcceptor = PaxosAcceptorImpl.newAcceptor(configuration.leader.acceptorLogDir);
-    	PaxosLearner ourLearner = PaxosLearnerImpl.newLearner(configuration.leader.learnerLogDir);
-        environment.jersey().register(ourAcceptor);
-        environment.jersey().register(ourLearner);
-
-        int localIndex = configuration.leader.leaders.indexOf(configuration.leader.localServer);
-        Preconditions.checkArgument(localIndex != -1, "localServer must be in the list of leaders");
-
-        List<PaxosLearner> learners = getRemoteServices(configuration.leader.leaders, PaxosLearner.class);
-        learners.set(localIndex, ourLearner);
-        List<PaxosAcceptor> acceptors = getRemoteServices(configuration.leader.leaders, PaxosAcceptor.class);
-        acceptors.set(localIndex, ourAcceptor);
-        if (configuration.leader.promote) {
-            // Promote is a special case where we vote for ourselves twice.
-            acceptors.add(ourAcceptor);
-        }
-
-        List<PingableLeader> otherLeaders = getRemoteServices(configuration.leader.leaders, PingableLeader.class);
-        otherLeaders.remove(localIndex);
-
-        PaxosProposer proposer = PaxosProposerImpl.newProposer(
-        		ourLearner,
-        		acceptors,
-        		learners,
-        		configuration.leader.quorumSize,
-        		executor);
-        PaxosLeaderElectionService leader = new PaxosLeaderElectionService(
-                proposer,
-                ourLearner,
-                otherLeaders,
-                acceptors,
-                learners,
-                executor,
-                5000,
-                1000,
-                5000);
-        environment.jersey().register(leader);
-        environment.jersey().register(new NotCurrentLeaderExceptionMapper());
-
-        environment.jersey().register(createLockService(leader));
-
-        AtlasDbServerState factory = new AtlasDbServerStateProvider().create(configuration);
-        environment.jersey().register(AwaitingLeadershipProxy.newProxyInstance(TimestampService.class, factory.getTimestampSupplier(), leader));
-        TableMetadataCache cache = new TableMetadataCache(factory.getKeyValueService());
-        environment.jersey().register(new AtlasDbServiceImpl(factory.getKeyValueService(), factory.getTransactionManager(), cache));
+    public void run(AtlasDbServerConfiguration config, final Environment environment) throws Exception {
+        SerializableTransactionManager tm = TransactionManagers.create(config.getConfig(), Optional.<SSLSocketFactory>absent(), ImmutableSet.<Schema>of(), 
+                new com.palantir.atlasdb.factory.TransactionManagers.Environment() {
+                    public void register(Object resource) {
+                        environment.jersey().register(resource);
+                    }
+                });
+        
+        TableMetadataCache cache = new TableMetadataCache(tm.getKeyValueService());
+        
+        environment.jersey().register(new AtlasDbServiceImpl(tm.getKeyValueService(), tm, cache));
         environment.getObjectMapper().registerModule(new AtlasJacksonModule(cache).createModule());
     }
 
-    private RemoteLockService createLockService(PaxosLeaderElectionService leader) {
-        return AwaitingLeadershipProxy.newProxyInstance(RemoteLockService.class, new Supplier<RemoteLockService>() {
-            @Override
-            public RemoteLockService get() {
-                return LockServiceImpl.create();
-            }
-        }, leader);
-    }
 }

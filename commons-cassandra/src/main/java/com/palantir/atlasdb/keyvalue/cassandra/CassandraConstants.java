@@ -69,8 +69,8 @@ public class CassandraConstants {
     static final int CLIENT_MAX_THRIFT_FRAME_SIZE_BYTES = Integer.MAX_VALUE;
 
     // update CKVS.isMatchingCf if you update this method
-    static CfDef getStandardCfDef(String keyspace, String tableName) {
-        CfDef cf = new CfDef(keyspace, tableName);
+    static CfDef getStandardCfDef(String keyspace, String internalTableName) {
+        CfDef cf = new CfDef(keyspace, internalTableName);
         cf.setComparator_type("CompositeType(BytesType,LongType)");
         cf.setCompaction_strategy("LeveledCompactionStrategy");
         cf.setCompaction_strategy_options(ImmutableMap.of("sstable_size_in_mb", CassandraConstants.SSTABLE_SIZE_IN_MB));

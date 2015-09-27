@@ -19,7 +19,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.AbstractAtlasDbKeyValueServiceTest;
 
 public class RocksDbKeyValueSharedTest extends AbstractAtlasDbKeyValueServiceTest {
-	private RocksDbKeyValueService db = null;
+    private RocksDbKeyValueService db = null;
 
     @Override
     public void setUp() throws Exception {
@@ -41,12 +41,13 @@ public class RocksDbKeyValueSharedTest extends AbstractAtlasDbKeyValueServiceTes
 	protected KeyValueService getKeyValueService() {
 	    return db;
 	}
+
     @Override
     public void tearDown() throws Exception {
         super.tearDown();
-		if (db != null) {
-			db.close();
-			db = null;
-		}
+        if (db != null) {
+            db.close();
+            db = null;
+        }
     }
 }

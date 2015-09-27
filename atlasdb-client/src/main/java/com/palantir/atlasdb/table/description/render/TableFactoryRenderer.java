@@ -20,19 +20,23 @@ import java.util.Map.Entry;
 import java.util.SortedMap;
 
 import com.google.common.collect.Maps;
+import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.table.description.TableDefinition;
 
 public class TableFactoryRenderer {
     private final String schemaName;
     private final String packageName;
+    private final String defaultNamespace;
     private final SortedMap<String, TableDefinition> definitions;
 
     public TableFactoryRenderer(String schemaName,
                                 String packageName,
+                                Namespace defaultNamespace,
                                 Map<String, TableDefinition> definitions) {
         this.schemaName = schemaName;
         this.packageName = packageName;
         this.definitions = Maps.newTreeMap();
+        this.defaultNamespace = defaultNamespace.getName();
         for (Entry<String, TableDefinition> entry : definitions.entrySet()) {
             this.definitions.put(Renderers.getClassTableName(entry.getKey(), entry.getValue()), entry.getValue());
         }
@@ -53,88 +57,100 @@ public class TableFactoryRenderer {
             @Override
             protected void run() {
                 packageAndImports();
-                _();
-                _("public class ", TableFactory, " {"); {
-                    _("private final List<Function<? super Transaction, SharedTriggers>> sharedTriggers;");
-                    _();
+                line();
+                line("public class ", TableFactory, " {"); {
+                    line("private final static Namespace defaultNamespace = Namespace.create(\"" + defaultNamespace + "\");");
+                    line("private final List<Function<? super Transaction, SharedTriggers>> sharedTriggers;");
+                    line("private final Namespace namespace;");
+                    line();
                     constructors();
-                    _();
+                    line();
                     for (Entry<String, TableDefinition> entry : definitions.entrySet()) {
                         getTable(entry.getKey(), entry.getValue());
-                        _();
+                        line();
                     }
                     sharedTriggers();
-                    _();
+                    line();
                     nullSharedTriggers();
-                } _("}");
+                } line("}");
             }
 
             private void packageAndImports() {
-                _("package ", packageName, ";");
-                _();
-                _("import java.util.List;");
-                _();
-                _("import com.google.common.base.Function;");
-                _("import com.google.common.collect.ImmutableList;");
-                _("import com.google.common.collect.Multimap;");
-                _("import com.palantir.atlasdb.table.generation.Triggers;");
-                _("import com.palantir.atlasdb.transaction.api.Transaction;");
+                line("package ", packageName, ";");
+                line();
+                line("import java.util.List;");
+                line();
+                line("import com.google.common.base.Function;");
+                line("import com.google.common.collect.ImmutableList;");
+                line("import com.google.common.collect.Multimap;");
+                line("import com.palantir.atlasdb.schema.Namespace;");
+                line("import com.palantir.atlasdb.table.generation.Triggers;");
+                line("import com.palantir.atlasdb.transaction.api.Transaction;");
             }
 
             private void constructors() {
-                _("public static ", TableFactory, " of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {"); {
-                    _("return new ", TableFactory, "(sharedTriggers);");
-                } _("}");
-                _();
-                _("private ", TableFactory, "(List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {"); {
-                    _("this.sharedTriggers = sharedTriggers;");
-                } _("}");
-                _();
-                _("public static ", TableFactory, " of() {"); {
-                    _("return of(ImmutableList.<Function<? super Transaction, SharedTriggers>>of());");
-                } _("}");
+                line("public static ", TableFactory, " of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers, Namespace namespace) {"); {
+                    line("return new ", TableFactory, "(sharedTriggers, namespace);");
+                } line("}");
+                line();
+                line("public static ", TableFactory, " of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {"); {
+                    line("return new ", TableFactory, "(sharedTriggers, defaultNamespace);");
+                } line("}");
+                line();
+                line("private ", TableFactory, "(List<Function<? super Transaction, SharedTriggers>> sharedTriggers, Namespace namespace) {"); {
+                    line("this.sharedTriggers = sharedTriggers;");
+                    line("this.namespace = namespace;");
+                } line("}");
+                line();
+                line("public static ", TableFactory, " of(Namespace namespace) {"); {
+                    line("return of(ImmutableList.<Function<? super Transaction, SharedTriggers>>of(), namespace);");
+                } line("}");
+                line();
+                line("public static ", TableFactory, " of() {"); {
+                    line("return of(ImmutableList.<Function<? super Transaction, SharedTriggers>>of(), defaultNamespace);");
+                } line("}");
             }
 
             private void getTable(String name, TableDefinition table) {
                 String Table = name + "Table";
                 String Trigger = Table + "." + name + "Trigger";
                 if (table.getGenericTableName() != null) {
-                    _("public ", Table, " get", Table, "(Transaction t, String name, ", Trigger, "... triggers) {"); {
-                        _("return ", Table, ".of(t, name, Triggers.getAllTriggers(t, sharedTriggers, triggers));");
-                    } _("}");
+                    line("public ", Table, " get", Table, "(Transaction t, String name, ", Trigger, "... triggers) {"); {
+                        line("return ", Table, ".of(t, name, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));");
+                    } line("}");
                 } else {
-                    _("public ", Table, " get", Table, "(Transaction t, ", Trigger, "... triggers) {"); {
-                        _("return ", Table, ".of(t, Triggers.getAllTriggers(t, sharedTriggers, triggers));");
-                    } _("}");
+                    line("public ", Table, " get", Table, "(Transaction t, ", Trigger, "... triggers) {"); {
+                        line("return ", Table, ".of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));");
+                    } line("}");
                 }
             }
 
             private void sharedTriggers() {
-                _("public interface SharedTriggers extends");
+                line("public interface SharedTriggers extends");
                 for (String name : definitions.keySet()) {
-                    _("        ", name, "Table.", name, "Trigger,");
+                    line("        ", name, "Table.", name, "Trigger,");
                 }
                 replace(",", " {"); {
-                    _("/* empty */");
-                } _("}");
+                    line("/* empty */");
+                } line("}");
             }
 
             private void nullSharedTriggers() {
-                _("public abstract static class NullSharedTriggers implements SharedTriggers {"); {
+                line("public abstract static class NullSharedTriggers implements SharedTriggers {"); {
                     for (Entry<String, TableDefinition> entry : definitions.entrySet()) {
                         String name = entry.getKey();
                         TableDefinition table = entry.getValue();
                         String Table = name + "Table";
                         String Row = Table + "." + name + "Row";
                         String ColumnValue = Table + "." + name + (table.toTableMetadata().getColumns().hasDynamicColumns() ? "ColumnValue" : "NamedColumnValue<?>");
-                        _("@Override");
-                        _("public void put", name, "(Multimap<", Row, ", ? extends ", ColumnValue, "> newRows) {"); {
-                            _("// do nothing");
-                        } _("}");
-                        _();
+                        line("@Override");
+                        line("public void put", name, "(Multimap<", Row, ", ? extends ", ColumnValue, "> newRows) {"); {
+                            line("// do nothing");
+                        } line("}");
+                        line();
                     }
                     strip("\n");
-                } _("}");
+                } line("}");
             }
         }.render();
     }

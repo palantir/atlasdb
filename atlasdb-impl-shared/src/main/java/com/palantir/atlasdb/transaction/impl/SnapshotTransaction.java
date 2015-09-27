@@ -812,7 +812,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             log.warn("A single get had a lot of bytes: " + bytes + " for table " + tableName + ". "
                     + "The first cell was " + rawResults.keySet().iterator().next() + ". "
                     + "The number of cells was " + rawResults.keySet().size() + ". This can potentially cause " +
-                    		"out-of-memory errors.",
+                            "out-of-memory errors.",
                     new RuntimeException("This exception and stack trace are provided for debugging purposes."));
         } else if (bytes > TransactionConstants.WARN_LEVEL_FOR_QUEUED_BYTES) {
             log.warn("A single get had quite a few bytes: " + bytes,
@@ -930,7 +930,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (!validConflictDetection(tableName)) {
             conflictDetectionManager.recompute();
             Preconditions.checkArgument(validConflictDetection(tableName),
-                    "Not a valid table for this transaction: " + tableName);
+                    "Not a valid table for this transaction.  Make sure this table name has a namespace: " + tableName);
         }
         Validate.isTrue(isTempTable(tableName) || getAllTempTables().isEmpty(),
                 "Temp tables may only be used by read only transactions.");
@@ -984,7 +984,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 if (newVal >= TransactionConstants.ERROR_LEVEL_FOR_QUEUED_BYTES
                         && newVal - toAdd < TransactionConstants.ERROR_LEVEL_FOR_QUEUED_BYTES) {
                     log.warn("A single transaction has put too many bytes: " + newVal + ". This can potentially cause" +
-                    		"out-of-memory errors.",
+                            "out-of-memory errors.",
                             new RuntimeException("This exception and stack trace are provided for debugging purposes."));
                 }
             }

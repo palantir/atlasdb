@@ -1,8 +1,0 @@
-repositories {
-    mavenCentral()
-}
-
-dependencies {
-    compile 'org.eclipse.jgit:org.eclipse.jgit:3.7.0.201502260915-r'
-}
-

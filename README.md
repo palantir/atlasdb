@@ -24,9 +24,5 @@ representation that gets stored in the K/V store that can be used by other
 tools to inspect the values.  Schema tables can be rendered to Java classes to
 easily access tables and keep indexes up to date given the schema.
 
-# Shell
-Since everything is now stored efficiently as encoded byte arrays, inspecting
-the data becomes hard.  AtlasDB Shell is a ruby command line that can inspect the
-schema for each table and display the values in a readable way.  It can even
-parse the stored protobufs values because the proto description for each column
-is stored in the schema metadata.
+# Wiki
+Make sure to check out the wiki for more details: [https://github.com/palantir/atlasdb/wiki](https://github.com/palantir/atlasdb/wiki)

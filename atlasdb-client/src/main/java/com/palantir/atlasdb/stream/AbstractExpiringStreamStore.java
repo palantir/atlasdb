@@ -114,18 +114,18 @@ public abstract class AbstractExpiringStreamStore<ID> extends AbstractGenericStr
         long blockNumber = 0;
 
         while (true) {
-        	int length = ByteStreams.read(stream, bytesToStore, 0, BLOCK_SIZE_IN_BYTES);
+            int length = ByteStreams.read(stream, bytesToStore, 0, BLOCK_SIZE_IN_BYTES);
             // Store only relevant data if it only filled a partial block
-        	if (length == 0) {
-        		break;
-        	}
+            if (length == 0) {
+                break;
+            }
             if (length < BLOCK_SIZE_IN_BYTES) {
-            	// This is the last block.
-            	storeBlock(id, blockNumber, PtBytes.head(bytesToStore, length), duration, durationUnit);
-            	break;
+                // This is the last block.
+                storeBlock(id, blockNumber, PtBytes.head(bytesToStore, length), duration, durationUnit);
+                break;
             } else {
-            	// Store a full block.
-            	storeBlock(id, blockNumber, bytesToStore, duration, durationUnit);
+                // Store a full block.
+                storeBlock(id, blockNumber, bytesToStore, duration, durationUnit);
             }
             blockNumber++;
         }

@@ -16,7 +16,12 @@
 package com.palantir.example.profile.schema;
 
 import java.io.File;
+import java.util.List;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.collect.Lists;
+import com.palantir.atlasdb.persister.JsonNodePersister;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.atlasdb.schema.AtlasSchema;
 import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.table.description.IndexDefinition;
@@ -34,13 +39,15 @@ public class ProfileSchema implements AtlasSchema {
     private static Schema generateSchema() {
         Schema schema = new Schema("Profile",
                 ProfileSchema.class.getPackage().getName() + ".generated",
-                Namespace.EMPTY_NAMESPACE);
+                Namespace.DEFAULT_NAMESPACE);
 
         schema.addTableDefinition("user_profile", new TableDefinition() {{
             rowName();
                 rowComponent("id", ValueType.FIXED_LONG);
             columns();
                 column("metadata", "m", ProfilePersistence.UserProfile.class);
+                column("create", "c", CreationData.Persister.class);
+                column("json", "j", JsonNodePersister.class);
                 column("photo_stream_id", "p", ValueType.FIXED_LONG);
         }});
 
@@ -53,9 +60,36 @@ public class ProfileSchema implements AtlasSchema {
             rangeScanAllowed();
         }});
 
+        schema.addIndexDefinition("created", new IndexDefinition(IndexType.CELL_REFERENCING) {{
+            onTable("user_profile");
+            rowName();
+                componentFromColumn("time", ValueType.VAR_LONG, "create", "_value.getTimeCreated()");
+            dynamicColumns();
+                componentFromRow("id", ValueType.FIXED_LONG);
+            rangeScanAllowed();
+        }});
+
+        schema.addIndexDefinition("cookies", new IndexDefinition(IndexType.CELL_REFERENCING) {{
+            onTable("user_profile");
+            rowName();
+                componentFromIterableColumn("cookie", ValueType.STRING, ValueByteOrder.ASCENDING, "json", "com.palantir.example.profile.schema.ProfileSchema.getCookies(_value)");
+            dynamicColumns();
+                componentFromRow("id", ValueType.FIXED_LONG);
+            rangeScanAllowed();
+        }});
+
         schema.addStreamStoreDefinition("user_photos", "user_photos", ValueType.VAR_LONG, 2 * 1024 * 1024);
 
         return schema;
+    }
+
+    public static Iterable<String> getCookies(JsonNode node) {
+        JsonNode cookies = node.get("cookies");
+        List<String> ret = Lists.newArrayList();
+        for (JsonNode cookie : cookies) {
+            ret.add(cookie.asText());
+        }
+        return ret;
     }
 
     public static Schema getSchema() {
@@ -73,6 +107,6 @@ public class ProfileSchema implements AtlasSchema {
 
     @Override
     public Namespace getNamespace() {
-        return Namespace.EMPTY_NAMESPACE;
+        return Namespace.DEFAULT_NAMESPACE;
     }
 }

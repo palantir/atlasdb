@@ -1,18 +1,3 @@
-/**
- * Copyright 2015 Palantir Technologies
- *
- * Licensed under the BSD-3 License (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://opensource.org/licenses/BSD-3-Clause
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package com.palantir.example.profile.schema.generated;
 
 import java.util.Arrays;
@@ -28,6 +13,8 @@ import java.util.SortedMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+
+
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -61,6 +48,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
+import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
@@ -99,27 +87,35 @@ public final class UserPhotosStreamIdxTable implements
                                                 UserPhotosStreamIdxTable.UserPhotosStreamIdxRowResult> {
     private final Transaction t;
     private final List<UserPhotosStreamIdxTrigger> triggers;
-    private final static String tableName = "user_photos_stream_idx";
+    private final static String rawTableName = "user_photos_stream_idx";
+    private final String tableName;
+    private final Namespace namespace;
 
-    static UserPhotosStreamIdxTable of(Transaction t) {
-        return new UserPhotosStreamIdxTable(t, ImmutableList.<UserPhotosStreamIdxTrigger>of());
+    static UserPhotosStreamIdxTable of(Transaction t, Namespace namespace) {
+        return new UserPhotosStreamIdxTable(t, namespace, ImmutableList.<UserPhotosStreamIdxTrigger>of());
     }
 
-    static UserPhotosStreamIdxTable of(Transaction t, UserPhotosStreamIdxTrigger trigger, UserPhotosStreamIdxTrigger... triggers) {
-        return new UserPhotosStreamIdxTable(t, ImmutableList.<UserPhotosStreamIdxTrigger>builder().add(trigger).add(triggers).build());
+    static UserPhotosStreamIdxTable of(Transaction t, Namespace namespace, UserPhotosStreamIdxTrigger trigger, UserPhotosStreamIdxTrigger... triggers) {
+        return new UserPhotosStreamIdxTable(t, namespace, ImmutableList.<UserPhotosStreamIdxTrigger>builder().add(trigger).add(triggers).build());
     }
 
-    static UserPhotosStreamIdxTable of(Transaction t, List<UserPhotosStreamIdxTrigger> triggers) {
-        return new UserPhotosStreamIdxTable(t, triggers);
+    static UserPhotosStreamIdxTable of(Transaction t, Namespace namespace, List<UserPhotosStreamIdxTrigger> triggers) {
+        return new UserPhotosStreamIdxTable(t, namespace, triggers);
     }
 
-    private UserPhotosStreamIdxTable(Transaction t, List<UserPhotosStreamIdxTrigger> triggers) {
+    private UserPhotosStreamIdxTable(Transaction t, Namespace namespace, List<UserPhotosStreamIdxTrigger> triggers) {
         this.t = t;
+        this.tableName = namespace.getName() + "." + rawTableName;
         this.triggers = triggers;
+        this.namespace = namespace;
     }
 
-    public static String getTableName() {
+    public String getTableName() {
         return tableName;
+    }
+
+    public Namespace getNamespace() {
+        return namespace;
     }
 
     /**
@@ -312,7 +308,7 @@ public final class UserPhotosStreamIdxTable implements
      * <pre>
      * Column name description {
      *   {@literal byte[] reference};
-     * } 
+     * }
      * Column value description {
      *   type: Long;
      * }
@@ -603,82 +599,5 @@ public final class UserPhotosStreamIdxTable implements
         return ImmutableList.of();
     }
 
-    /**
-     * This exists to avoid unused import warnings
-     * {@link AbortingVisitor}
-     * {@link AbortingVisitors}
-     * {@link ArrayListMultimap}
-     * {@link Arrays}
-     * {@link AssertUtils}
-     * {@link AsyncProxy}
-     * {@link AtlasDbConstraintCheckingMode}
-     * {@link AtlasDbDynamicMutableExpiringTable}
-     * {@link AtlasDbDynamicMutablePersistentTable}
-     * {@link AtlasDbMutableExpiringTable}
-     * {@link AtlasDbMutablePersistentTable}
-     * {@link AtlasDbNamedExpiringSet}
-     * {@link AtlasDbNamedMutableTable}
-     * {@link AtlasDbNamedPersistentSet}
-     * {@link BatchingVisitable}
-     * {@link BatchingVisitableView}
-     * {@link BatchingVisitables}
-     * {@link Bytes}
-     * {@link Callable}
-     * {@link Cell}
-     * {@link Cells}
-     * {@link Collection}
-     * {@link Collections2}
-     * {@link ColumnSelection}
-     * {@link ColumnValue}
-     * {@link ColumnValues}
-     * {@link ComparisonChain}
-     * {@link Compression}
-     * {@link CompressionUtils}
-     * {@link ConstraintCheckingTransaction}
-     * {@link Descending}
-     * {@link EncodingUtils}
-     * {@link Entry}
-     * {@link EnumSet}
-     * {@link ExecutorService}
-     * {@link Function}
-     * {@link HashMultimap}
-     * {@link HashSet}
-     * {@link Hydrator}
-     * {@link ImmutableList}
-     * {@link ImmutableMap}
-     * {@link ImmutableMultimap}
-     * {@link ImmutableSet}
-     * {@link InvalidProtocolBufferException}
-     * {@link IterableView}
-     * {@link Iterables}
-     * {@link Iterator}
-     * {@link Joiner}
-     * {@link List}
-     * {@link Lists}
-     * {@link Map}
-     * {@link Maps}
-     * {@link MoreObjects}
-     * {@link Multimap}
-     * {@link Multimaps}
-     * {@link NamedColumnValue}
-     * {@link Objects}
-     * {@link Optional}
-     * {@link Persistable}
-     * {@link Persistables}
-     * {@link Prefix}
-     * {@link PtBytes}
-     * {@link RangeRequest}
-     * {@link RowResult}
-     * {@link Set}
-     * {@link Sets}
-     * {@link Sha256Hash}
-     * {@link SortedMap}
-     * {@link Supplier}
-     * {@link Throwables}
-     * {@link TimeUnit}
-     * {@link Transaction}
-     * {@link TypedRowResult}
-     * {@link UnsignedBytes}
-     */
-    static String __CLASS_HASH = "7rAxdKVw4tNsNCfgZ1LHBg==";
+    static String __CLASS_HASH = "8VCBI9VxzXpH2WfitU3ffA==";
 }

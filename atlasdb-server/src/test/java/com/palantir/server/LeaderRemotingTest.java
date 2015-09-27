@@ -22,7 +22,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.palantir.atlasdb.client.TextDelegateDecoder;
+import com.palantir.atlasdb.http.TextDelegateDecoder;
 import com.palantir.leader.PingableLeader;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorImpl;

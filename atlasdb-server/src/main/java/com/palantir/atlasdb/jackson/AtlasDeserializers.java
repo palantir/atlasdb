@@ -213,6 +213,7 @@ public class AtlasDeserializers {
         byte[] bytes;
         switch (description.getFormat()) {
         case PERSISTABLE:
+        case PERSISTER:
             bytes = node.asToken().asByteArray();
             break;
         case PROTO:

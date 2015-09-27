@@ -36,130 +36,136 @@ public class NamedColumnValueRenderer extends Renderer {
     @Override
     protected void run() {
         javaDoc();
-        _("public static final class ", Name, " implements ", tableName, "NamedColumnValue<", TypeName(col), "> {"); {
+        line("public static final class ", Name, " implements ", tableName, "NamedColumnValue<", TypeName(col), "> {"); {
             fields();
-            _();
+            line();
             staticFactories();
-            _();
+            line();
             constructors();
-            _();
+            line();
             getColumnName();
-            _();
+            line();
             getShortColumnName();
-            _();
+            line();
             getValue();
-            _();
+            line();
             persistValue();
-            _();
+            line();
             persistColumnName();
-            _();
+            line();
             bytesHydrator();
-        } _("}");
+        } line("}");
     }
 
     private void javaDoc() {
-        _("/**");
-        _(" * <pre>");
-        _(" * Column value description {", "");
-        _(" *   type: ", TypeName(col), ";");
+        line("/**");
+        line(" * <pre>");
+        line(" * Column value description {", "");
+        line(" *   type: ", TypeName(col), ";");
         if (col.getValue().getProtoDescriptor() != null) {
             String protoDescription = col.getValue().getProtoDescriptor().toProto().toString();
             for (String line : protoDescription.split("\n")) {
-                _(" *   ", line, "");
+                line(" *   ", line, "");
             }
         }
-        _(" * }", "");
-        _(" * </pre>");
-        _(" */");
+        line(" * }", "");
+        line(" * </pre>");
+        line(" */");
     }
 
     private void fields() {
-        _("private final ", TypeName(col), " value;");
+        line("private final ", TypeName(col), " value;");
     }
 
     private void staticFactories() {
-        _("public static ", Name, " of(", TypeName(col), " value) {"); {
-            _("return new ", Name, "(value);");
-        } _("}");
+        line("public static ", Name, " of(", TypeName(col), " value) {"); {
+            line("return new ", Name, "(value);");
+        } line("}");
     }
 
     private void constructors() {
-        _("private ", Name, "(", TypeName(col), " value) {"); {
-            _("this.value = value;");
-        } _("}");
+        line("private ", Name, "(", TypeName(col), " value) {"); {
+            line("this.value = value;");
+        } line("}");
     }
 
     private void getColumnName() {
-        _("@Override");
-        _("public String getColumnName() {"); {
-            _("return ", long_name(col), ";");
-        } _("}");
+        line("@Override");
+        line("public String getColumnName() {"); {
+            line("return ", long_name(col), ";");
+        } line("}");
     }
 
     private void getShortColumnName() {
-        _("@Override");
-        _("public String getShortColumnName() {"); {
-            _("return ", short_name(col), ";");
-        } _("}");
+        line("@Override");
+        line("public String getShortColumnName() {"); {
+            line("return ", short_name(col), ";");
+        } line("}");
     }
 
     private void getValue() {
-        _("@Override");
-        _("public ", TypeName(col), " getValue() {"); {
-            _("return value;");
-        } _("}");
+        line("@Override");
+        line("public ", TypeName(col), " getValue() {"); {
+            line("return value;");
+        } line("}");
     }
 
     private void persistValue() {
-        _("@Override");
-        _("public byte[] persistValue() {"); {
+        line("@Override");
+        line("public byte[] persistValue() {"); {
             switch (col.getValue().getFormat()) {
             case PERSISTABLE:
-                _("byte[] bytes = value.persistToBytes();");
+                line("byte[] bytes = value.persistToBytes();");
                 break;
             case PROTO:
-                _("byte[] bytes = value.toByteArray();");
+                line("byte[] bytes = value.toByteArray();");
+                break;
+            case PERSISTER:
+                line("byte[] bytes = ", col.getValue().getPersistCode("value"), ";");
                 break;
             case VALUE_TYPE:
-                _("byte[] bytes = ", col.getValue().getValueType().getPersistCode("value"), ";");
+                line("byte[] bytes = ", col.getValue().getValueType().getPersistCode("value"), ";");
                 break;
             default:
                 throw new UnsupportedOperationException("Unsupported value type: " + col.getValue().getFormat());
             }
-            _("return CompressionUtils.compress(bytes, Compression.", col.getValue().getCompression().name(), ");");
-        } _("}");
+            line("return CompressionUtils.compress(bytes, Compression.", col.getValue().getCompression().name(), ");");
+        } line("}");
     }
 
     private void persistColumnName() {
-        _("@Override");
-        _("public byte[] persistColumnName() {"); {
-            _("return PtBytes.toCachedBytes(", short_name(col), ");");
-        } _("}");
+        line("@Override");
+        line("public byte[] persistColumnName() {"); {
+            line("return PtBytes.toCachedBytes(", short_name(col), ");");
+        } line("}");
     }
 
     private void bytesHydrator() {
-        _("public static final Hydrator<", Name, "> BYTES_HYDRATOR = new Hydrator<", Name, ">() {"); {
-            _("@Override");
-            _("public ", Name, " hydrateFromBytes(byte[] bytes) {"); {
-                _("bytes = CompressionUtils.decompress(bytes, Compression.", col.getValue().getCompression().name(), ");");
+        line("public static final Hydrator<", Name, "> BYTES_HYDRATOR = new Hydrator<", Name, ">() {"); {
+            line("@Override");
+            line("public ", Name, " hydrateFromBytes(byte[] bytes) {"); {
+                line("bytes = CompressionUtils.decompress(bytes, Compression.", col.getValue().getCompression().name(), ");");
                 switch (col.getValue().getFormat()) {
                 case PERSISTABLE:
-                    _("return of(", TypeName(col), ".BYTES_HYDRATOR.hydrateFromBytes(bytes));");
+                    line("return of(", TypeName(col), ".BYTES_HYDRATOR.hydrateFromBytes(bytes));");
                     break;
                 case PROTO:
-                    _("try {"); {
-                        _("return of(", TypeName(col), ".parseFrom(bytes));");
-                    } _("} catch (InvalidProtocolBufferException e) {"); {
-                        _("throw Throwables.throwUncheckedException(e);");
-                    } _("}");
+                    line("try {"); {
+                        line("return of(", TypeName(col), ".parseFrom(bytes));");
+                    } line("} catch (InvalidProtocolBufferException e) {"); {
+                        line("throw Throwables.throwUncheckedException(e);");
+                    } line("}");
+                    break;
+                case PERSISTER:
+                    line("return of(", col.getValue().getHydrateCode("bytes"), ");");
                     break;
                 case VALUE_TYPE:
-                    _("return of(", col.getValue().getValueType().getHydrateCode("bytes", "0"), ");");
+                    line("return of(", col.getValue().getValueType().getHydrateCode("bytes", "0"), ");");
                     break;
                 default:
                     throw new UnsupportedOperationException("Unsupported value type: " + col.getValue().getFormat());
                 }
-            } _("}");
-        } _("};");
+            } line("}");
+        } line("};");
     }
 }

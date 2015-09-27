@@ -175,12 +175,12 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                             "SELECT " + Columns.ROW_COLUMN_TIMESTAMP_CONTENT_AS("t") + " " +
                             "FROM " + USR_TABLE(tableName, "t") + " " +
                             "LEFT JOIN " + USR_TABLE(tableName, "t2") + " " +
-                    		"ON " + Columns.ROW("t").eq(Columns.ROW("t2"))
-                    		        .and(Columns.COLUMN("t")).eq(Columns.COLUMN("t2"))
-                    		        .and(Columns.TIMESTAMP("t")).lt(Columns.TIMESTAMP("t2"))
-                    		        .and(Columns.TIMESTAMP("t2")) + "<" + timestamp + " " +
+                            "ON " + Columns.ROW("t").eq(Columns.ROW("t2"))
+                                    .and(Columns.COLUMN("t")).eq(Columns.COLUMN("t2"))
+                                    .and(Columns.TIMESTAMP("t")).lt(Columns.TIMESTAMP("t2"))
+                                    .and(Columns.TIMESTAMP("t2")) + "<" + timestamp + " " +
                             "WHERE " + Columns.ROW("t") + " IN (" + makeSlots("row", rows.size()) + ") " +
-            				"    AND " + Columns.TIMESTAMP("t2") + " IS NULL" +
+                            "    AND " + Columns.TIMESTAMP("t2") + " IS NULL" +
                             // This is a LEFT JOIN -> the below condition cannot be in ON clause
                             "    AND " + Columns.TIMESTAMP("t") + " < " + timestamp)
                             .map(CellValueMapper.instance());
@@ -193,17 +193,17 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                     final Query<Pair<Cell, Value>> query = handle.createQuery(
                             "SELECT " + Columns.ROW_COLUMN_TIMESTAMP_CONTENT_AS("t") + " " +
                             "FROM " + USR_TABLE(tableName, "t") + " " +
-                    		"LEFT JOIN " + USR_TABLE(tableName, "t2") + " " +
-                    		"ON " + Columns.ROW("t").eq(Columns.ROW("t2"))
-                    		        .and(Columns.COLUMN("t").eq(Columns.COLUMN("t2")))
-                    		        .and(Columns.TIMESTAMP("t")).lt(Columns.TIMESTAMP("t2"))
-                    		        .and(Columns.TIMESTAMP("t2")) + "<" + timestamp + " " +
-                    		"WHERE " + Columns.ROW("t") + " IN (" + makeSlots("row", rows.size()) + ") " +
-            				"    AND " + Columns.COLUMN("t") + " IN (" + makeSlots("column", columns.size()) + ") " +
-                    		"    AND " + Columns.TIMESTAMP("t2") + " IS NULL " +
+                            "LEFT JOIN " + USR_TABLE(tableName, "t2") + " " +
+                            "ON " + Columns.ROW("t").eq(Columns.ROW("t2"))
+                                    .and(Columns.COLUMN("t").eq(Columns.COLUMN("t2")))
+                                    .and(Columns.TIMESTAMP("t")).lt(Columns.TIMESTAMP("t2"))
+                                    .and(Columns.TIMESTAMP("t2")) + "<" + timestamp + " " +
+                            "WHERE " + Columns.ROW("t") + " IN (" + makeSlots("row", rows.size()) + ") " +
+                            "    AND " + Columns.COLUMN("t") + " IN (" + makeSlots("column", columns.size()) + ") " +
+                            "    AND " + Columns.TIMESTAMP("t2") + " IS NULL " +
                             // This is a LEFT JOIN -> the below condition cannot be in ON clause
                             "    AND " + Columns.TIMESTAMP("t") + " < " + timestamp)
-                    		.map(CellValueMapper.instance());
+                            .map(CellValueMapper.instance());
 
                     AtlasSqlUtils.bindAll(query, rows);
                     AtlasSqlUtils.bindAll(query, columns, rows.size());
@@ -828,8 +828,8 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                 handle.execute("DROP TABLE IF EXISTS " + USR_TABLE(tableName));
                 handle.execute(
                         "DELETE FROM " + MetaTable.META_TABLE_NAME + " " +
-                		"WHERE " + MetaTable.Columns.TABLE_NAME + " = ?",
-                		tableName);
+                        "WHERE " + MetaTable.Columns.TABLE_NAME + " = ?",
+                        tableName);
                 return null;
             }
         });
@@ -877,9 +877,9 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
             public List<String> withHandle(Handle handle) throws Exception {
                 return handle.createQuery(
                         "SELECT " + MetaTable.Columns.TABLE_NAME + " " +
-                		"FROM " + MetaTable.META_TABLE_NAME)
-                		.map(StringMapper.FIRST)
-                		.list();
+                        "FROM " + MetaTable.META_TABLE_NAME)
+                        .map(StringMapper.FIRST)
+                        .list();
             }
         }));
     }
@@ -893,10 +893,10 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                 return conn.createQuery(
                         "SELECT " + MetaTable.Columns.METADATA + " " +
                         "FROM " + MetaTable.META_TABLE_NAME + " " +
-                		"WHERE " + MetaTable.Columns.TABLE_NAME + " = :tableName")
-                		.bind("tableName", tableName)
-                		.map(ByteArrayMapper.FIRST)
-                		.first();
+                        "WHERE " + MetaTable.Columns.TABLE_NAME + " = :tableName")
+                        .bind("tableName", tableName)
+                        .map(ByteArrayMapper.FIRST)
+                        .first();
             }
         });
         return Preconditions.checkNotNull(ret);

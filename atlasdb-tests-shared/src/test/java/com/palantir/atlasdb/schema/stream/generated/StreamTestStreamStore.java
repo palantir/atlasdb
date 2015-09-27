@@ -1,18 +1,3 @@
-/**
- * Copyright 2015 Palantir Technologies
- *
- * Licensed under the BSD-3 License (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://opensource.org/licenses/BSD-3-Clause
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package com.palantir.atlasdb.schema.stream.generated;
 
 import java.io.BufferedInputStream;
@@ -300,64 +285,5 @@ public final class StreamTestStreamStore extends AbstractPersistentStreamStore {
         }
     }
 
-    /**
-     * This exists to avoid unused import warnings
-     * {@link AbstractExpiringStreamStore}
-     * {@link AbstractPersistentStreamStore}
-     * {@link ArrayListMultimap}
-     * {@link Arrays}
-     * {@link AssertUtils}
-     * {@link BufferedInputStream}
-     * {@link Builder}
-     * {@link ByteArrayIOStream}
-     * {@link ByteArrayInputStream}
-     * {@link ByteString}
-     * {@link Cell}
-     * {@link CheckForNull}
-     * {@link Collection}
-     * {@link Collections2}
-     * {@link ConcatenatedInputStream}
-     * {@link CountingInputStream}
-     * {@link DeleteOnCloseFileInputStream}
-     * {@link DigestInputStream}
-     * {@link Entry}
-     * {@link ExpiringStreamStore}
-     * {@link File}
-     * {@link FileNotFoundException}
-     * {@link FileOutputStream}
-     * {@link FileUtils}
-     * {@link HashMultimap}
-     * {@link IOException}
-     * {@link ImmutableMap}
-     * {@link ImmutableSet}
-     * {@link InputStream}
-     * {@link Ints}
-     * {@link List}
-     * {@link Lists}
-     * {@link Logger}
-     * {@link LoggerFactory}
-     * {@link Map}
-     * {@link Maps}
-     * {@link MessageDigest}
-     * {@link Multimap}
-     * {@link Multimaps}
-     * {@link OutputStream}
-     * {@link PersistentStreamStore}
-     * {@link Preconditions}
-     * {@link Set}
-     * {@link SetView}
-     * {@link Sets}
-     * {@link Sha256Hash}
-     * {@link Status}
-     * {@link StreamCleanedException}
-     * {@link StreamMetadata}
-     * {@link Throwables}
-     * {@link TimeUnit}
-     * {@link Transaction}
-     * {@link TransactionFailedRetriableException}
-     * {@link TransactionManager}
-     * {@link TransactionTask}
-     * {@link TxTask}
-     */
     static final int dummy = 0;
 }

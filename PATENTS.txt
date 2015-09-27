@@ -17,7 +17,7 @@ management and policies of an Entity, whether by contract or otherwise.
 including any modifications or additions to the AtlasDB software submitted for
 inclusion in the software.
 
-"You" means each Enity that is a recipient of the Software.
+"You" means each Entity that is a recipient of the Software.
 
 2. Grant of Patent License. Palantir hereby grants to You a perpetual,
 worldwide, non-exclusive, no-charge, royalty-free, irrevocable (except as

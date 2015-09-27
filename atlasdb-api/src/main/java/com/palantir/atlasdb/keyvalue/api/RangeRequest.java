@@ -254,7 +254,7 @@ import com.palantir.util.Pair;
      * instance.
      * <p>
      * By default, the range covers all rows and columns. To restrict the rows or columns,
-     * call 	 * the methods on the <code>RangeRequest</code> class.
+     * call      * the methods on the <code>RangeRequest</code> class.
      */
     @NotThreadSafe public static final class Builder {
         private byte[] startInclusive = EMPTY_BYTE_ARRAY;

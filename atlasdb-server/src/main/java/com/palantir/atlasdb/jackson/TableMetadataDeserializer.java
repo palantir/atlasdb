@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.google.common.collect.Lists;
+import com.palantir.atlasdb.persist.api.Persister;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
@@ -91,8 +92,18 @@ public class TableMetadataDeserializer extends StdDeserializer<TableMetadata> {
     private ColumnValueDescription deserializeValue(JsonNode node) {
         Format format = Format.valueOf(node.get("format").asText());
         switch (format) {
-        case PERSISTABLE:
+        case PERSISTER:
             String className = node.get("type").asText();
+            try {
+                @SuppressWarnings({ "unchecked" })
+                Class<? extends Persister<?>> asSubclass = (Class<? extends Persister<?>>) Class.forName(className).asSubclass(Persister.class);
+                return ColumnValueDescription.forPersister(asSubclass);
+            } catch (Exception e) {
+                // Also wrong, but what else can you do?
+                return ColumnValueDescription.forType(ValueType.BLOB);
+            }
+        case PERSISTABLE:
+            className = node.get("type").asText();
             try {
                 return ColumnValueDescription.forPersistable(Class.forName(className).asSubclass(Persistable.class));
             } catch (Exception e) {

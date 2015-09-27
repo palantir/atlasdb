@@ -1,18 +1,3 @@
-/**
- * Copyright 2015 Palantir Technologies
- *
- * Licensed under the BSD-3 License (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://opensource.org/licenses/BSD-3-Clause
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package com.palantir.atlasdb.schema.stream.generated;
 
 import java.util.Arrays;
@@ -28,6 +13,8 @@ import java.util.SortedMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+
+
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -61,6 +48,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
+import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
@@ -101,27 +89,35 @@ public final class StreamTest2StreamValueTable implements
                                     StreamTest2StreamValueTable.StreamTest2StreamValueRowResult> {
     private final Transaction t;
     private final List<StreamTest2StreamValueTrigger> triggers;
-    private final static String tableName = "stream_test_2_stream_value";
+    private final static String rawTableName = "stream_test_2_stream_value";
+    private final String tableName;
+    private final Namespace namespace;
 
-    static StreamTest2StreamValueTable of(Transaction t) {
-        return new StreamTest2StreamValueTable(t, ImmutableList.<StreamTest2StreamValueTrigger>of());
+    static StreamTest2StreamValueTable of(Transaction t, Namespace namespace) {
+        return new StreamTest2StreamValueTable(t, namespace, ImmutableList.<StreamTest2StreamValueTrigger>of());
     }
 
-    static StreamTest2StreamValueTable of(Transaction t, StreamTest2StreamValueTrigger trigger, StreamTest2StreamValueTrigger... triggers) {
-        return new StreamTest2StreamValueTable(t, ImmutableList.<StreamTest2StreamValueTrigger>builder().add(trigger).add(triggers).build());
+    static StreamTest2StreamValueTable of(Transaction t, Namespace namespace, StreamTest2StreamValueTrigger trigger, StreamTest2StreamValueTrigger... triggers) {
+        return new StreamTest2StreamValueTable(t, namespace, ImmutableList.<StreamTest2StreamValueTrigger>builder().add(trigger).add(triggers).build());
     }
 
-    static StreamTest2StreamValueTable of(Transaction t, List<StreamTest2StreamValueTrigger> triggers) {
-        return new StreamTest2StreamValueTable(t, triggers);
+    static StreamTest2StreamValueTable of(Transaction t, Namespace namespace, List<StreamTest2StreamValueTrigger> triggers) {
+        return new StreamTest2StreamValueTable(t, namespace, triggers);
     }
 
-    private StreamTest2StreamValueTable(Transaction t, List<StreamTest2StreamValueTrigger> triggers) {
+    private StreamTest2StreamValueTable(Transaction t, Namespace namespace, List<StreamTest2StreamValueTrigger> triggers) {
         this.t = t;
+        this.tableName = namespace.getName() + "." + rawTableName;
         this.triggers = triggers;
+        this.namespace = namespace;
     }
 
-    public static String getTableName() {
+    public String getTableName() {
         return tableName;
+    }
+
+    public Namespace getNamespace() {
+        return namespace;
     }
 
     /**
@@ -580,82 +576,5 @@ public final class StreamTest2StreamValueTable implements
         return ImmutableList.of();
     }
 
-    /**
-     * This exists to avoid unused import warnings
-     * {@link AbortingVisitor}
-     * {@link AbortingVisitors}
-     * {@link ArrayListMultimap}
-     * {@link Arrays}
-     * {@link AssertUtils}
-     * {@link AsyncProxy}
-     * {@link AtlasDbConstraintCheckingMode}
-     * {@link AtlasDbDynamicMutableExpiringTable}
-     * {@link AtlasDbDynamicMutablePersistentTable}
-     * {@link AtlasDbMutableExpiringTable}
-     * {@link AtlasDbMutablePersistentTable}
-     * {@link AtlasDbNamedExpiringSet}
-     * {@link AtlasDbNamedMutableTable}
-     * {@link AtlasDbNamedPersistentSet}
-     * {@link BatchingVisitable}
-     * {@link BatchingVisitableView}
-     * {@link BatchingVisitables}
-     * {@link Bytes}
-     * {@link Callable}
-     * {@link Cell}
-     * {@link Cells}
-     * {@link Collection}
-     * {@link Collections2}
-     * {@link ColumnSelection}
-     * {@link ColumnValue}
-     * {@link ColumnValues}
-     * {@link ComparisonChain}
-     * {@link Compression}
-     * {@link CompressionUtils}
-     * {@link ConstraintCheckingTransaction}
-     * {@link Descending}
-     * {@link EncodingUtils}
-     * {@link Entry}
-     * {@link EnumSet}
-     * {@link ExecutorService}
-     * {@link Function}
-     * {@link HashMultimap}
-     * {@link HashSet}
-     * {@link Hydrator}
-     * {@link ImmutableList}
-     * {@link ImmutableMap}
-     * {@link ImmutableMultimap}
-     * {@link ImmutableSet}
-     * {@link InvalidProtocolBufferException}
-     * {@link IterableView}
-     * {@link Iterables}
-     * {@link Iterator}
-     * {@link Joiner}
-     * {@link List}
-     * {@link Lists}
-     * {@link Map}
-     * {@link Maps}
-     * {@link MoreObjects}
-     * {@link Multimap}
-     * {@link Multimaps}
-     * {@link NamedColumnValue}
-     * {@link Objects}
-     * {@link Optional}
-     * {@link Persistable}
-     * {@link Persistables}
-     * {@link Prefix}
-     * {@link PtBytes}
-     * {@link RangeRequest}
-     * {@link RowResult}
-     * {@link Set}
-     * {@link Sets}
-     * {@link Sha256Hash}
-     * {@link SortedMap}
-     * {@link Supplier}
-     * {@link Throwables}
-     * {@link TimeUnit}
-     * {@link Transaction}
-     * {@link TypedRowResult}
-     * {@link UnsignedBytes}
-     */
-    static String __CLASS_HASH = "ULoKB/K+oKCRY1ZU9K42aA==";
+    static String __CLASS_HASH = "QiYJ8t9f3leQsaUu1yP5QA==";
 }
