@@ -75,10 +75,10 @@ Which will enable the following config object:
 #     mutationBatchCount: (optional, default 5000)
 #     mutationBatchSizeBytes: (optional, default 4*1024*1024)
 #     fetchBatchCount:    (optional, default 5000)
-#  lock:             (configuration of the lock client)
+#  lock:             (configuration of the lock client; omit for embedded mode)
 #    servers:        a list of available lock servers
 #      - [uri]       e.g. https://localhost:8101/api/
-#  timestamp:        (configuration of the timestamp client)
+#  timestamp:        (configuration of the timestamp client; omit for embedded mode)
 #    servers:        a list of available lock servers
 #      - [uri]       e.g. https://localhost:8101/api/
 #  leader:           (optional) leader configuration allows running lock-stamp
@@ -107,12 +107,6 @@ Which will enable the following config object:
 #   keyValueService:
 #     type: rocksdb
 #     dataDir: var/data/rocksdb
-#   lock:
-#     servers:
-#       - https://localhost:8101/api/
-#   timestamp:
-#     servers:
-#       - https://localhost:8101/api/
 #
 # Example: a default configuration for running a single process Jobs Service
 # backed by a single node Cassandra instance and using the embedded
@@ -125,21 +119,5 @@ Which will enable the following config object:
 #     port: 9160
 #     ssl: false
 #     replicationFactor: 1
-#   lock:
-#     servers:
-#       - https://localhost:8101/api/
-#   timestamp:
-#     servers:
-#       - https://localhost:8101/api/
 #
-atlas:
-  keyValueService:
-    type: rocksdb
-    dataDir: var/data/rocksdb
-  lock:
-    servers:
-      - https://localhost:8101/api/
-  timestamp:
-    servers:
-      - https://localhost:8101/api/
 ```

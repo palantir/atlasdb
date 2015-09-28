@@ -13,9 +13,3 @@ atlasdb:
   keyValueService:
     type: rocksdb
     dataDir: var/data/rocksdb
-  lock:
-    servers:
-      - http://localhost:3828
-  timestamp:
-    servers:
-      - http://localhost:3828
