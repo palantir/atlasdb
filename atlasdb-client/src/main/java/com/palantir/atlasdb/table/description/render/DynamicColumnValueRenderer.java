@@ -164,7 +164,7 @@ public class DynamicColumnValueRenderer extends Renderer {
                 } line("}");
                 break;
             case PERSISTER:
-                line("return of(", val.getHydrateCode("bytes"), ");");
+                line("return ", val.getHydrateCode("bytes"), ";");
                 break;
             case VALUE_TYPE:
                 line("return ", val.getValueType().getHydrateCode("bytes", "0"), ";");
