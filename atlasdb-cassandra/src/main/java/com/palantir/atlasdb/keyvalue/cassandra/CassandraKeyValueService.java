@@ -1207,7 +1207,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     @Override
     public void putUnlessExists(final String tableName, final Map<Cell, byte[]> values)
             throws KeyAlreadyExistsException {
-        Validate.isTrue(AtlasDbConstants.ATOMIC_TABLES.contains(tableName));
         try {
             clientPool.runWithPooledResource(new FunctionCheckedException<Client, Void, Exception>() {
                 @Override
