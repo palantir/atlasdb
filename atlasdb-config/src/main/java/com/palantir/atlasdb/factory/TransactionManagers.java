@@ -21,7 +21,6 @@ import java.util.Set;
 import javax.net.ssl.SSLSocketFactory;
 
 import com.google.common.base.Optional;
-import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -30,12 +29,8 @@ import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
-import com.palantir.atlasdb.keyvalue.TableMappingService;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.KVTableMappingService;
-import com.palantir.atlasdb.keyvalue.impl.NamespaceMappingKeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.TableRemappingKeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.ValidatingQueryRewritingKeyValueService;
+import com.palantir.atlasdb.keyvalue.impl.NamespacedKeyValueServices;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.Schemas;
@@ -55,7 +50,7 @@ import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timestamp.TimestampService;
 
 public class TransactionManagers {
-    
+
     private static final ServiceLoader<AtlasDbFactory> loader = ServiceLoader.load(AtlasDbFactory.class);
 
     /**
@@ -65,9 +60,9 @@ public class TransactionManagers {
     public static TransactionManager create(AtlasDbConfig config, Optional<SSLSocketFactory> sslSocketFactory, Schema schema, Environment env) {
         return create(config, sslSocketFactory, ImmutableSet.of(schema), env);
     }
-    
+
     /**
-     * Create a {@link SerializableTransactionManager} with provided configuration, {@link SSLSocketFactory}, a set of 
+     * Create a {@link SerializableTransactionManager} with provided configuration, {@link SSLSocketFactory}, a set of
      * {@link Schema}s, and an environment in which to register HTTP server endpoints.
      */
     public static SerializableTransactionManager create(AtlasDbConfig config,
@@ -75,12 +70,11 @@ public class TransactionManagers {
                                             Set<Schema> schemas,
                                             Environment env) {
         AtlasDbFactory kvsFactory = getKeyValueServiceFactory(config.keyValueService().type());
-        KeyValueService rawKvs = kvsFactory.createRawKeyValueService(config.keyValueService());
-        
-        TimestampService ts = createLockAndTimestampServices(config, sslSocketFactory, env, kvsFactory.createTimestampService(rawKvs));
-        
-        KeyValueService kvs = createTableMappingKv(rawKvs, ts);
-        
+        KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(
+                kvsFactory.createRawKeyValueService(config.keyValueService()));
+
+        createLockAndTimestampServices(config, sslSocketFactory, env, kvsFactory.createTimestampService(kvs));
+
         RemoteLockService lock = initRemoteLockServices(sslSocketFactory, config.lock().servers());
         TimestampService timestamp = initRemoteTimeServices(sslSocketFactory, config.timestamp().servers());
 
@@ -117,7 +111,7 @@ public class TransactionManagers {
 
         return transactionManager;
     }
-    
+
     private static AtlasDbFactory getKeyValueServiceFactory(String type) {
         for (AtlasDbFactory factory : loader) {
             if (factory.getType().equalsIgnoreCase(type)) {
@@ -126,7 +120,7 @@ public class TransactionManagers {
         }
         throw new IllegalStateException("No atlas provider for KeyValueService type " + type + " is on your classpath.");
     }
-    
+
     private static TimestampService createLockAndTimestampServices(AtlasDbConfig config,
             Optional<SSLSocketFactory> sslSocketFactory, Environment env, final TimestampService ts) {
         TimestampService localTs;
@@ -140,22 +134,6 @@ public class TransactionManagers {
         return localTs;
     }
 
-    private static KeyValueService createTableMappingKv(KeyValueService kv, final TimestampService ts) {
-        TableMappingService mapper = getMapper(ts, kv);
-        kv = NamespaceMappingKeyValueService.create(TableRemappingKeyValueService.create(kv, mapper));
-        kv = ValidatingQueryRewritingKeyValueService.create(kv);
-        return kv;
-    }
-
-    private static TableMappingService getMapper(final TimestampService ts, KeyValueService kv) {
-        return KVTableMappingService.create(kv, new Supplier<Long>() {
-            @Override
-            public Long get() {
-                return ts.getFreshTimestamp();
-            }
-        });
-    }
-    
     private static RemoteLockService initRemoteLockServices(
             Optional<SSLSocketFactory> sslSocketFactory, Set<String> uris) {
         return AtlasDbHttpClients.createProxyWithFailover(sslSocketFactory, uris, RemoteLockService.class);
