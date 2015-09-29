@@ -1,0 +1,104 @@
+package ${tableDefinition.packageName};
+
+import java.io.IOException;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+
+import org.immutables.value.Value;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Charsets;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.transaction.api.Transaction;
+
+#macro( keysDeclaration )
+#foreach($key in $tableDefinition.columnDefinitions.keys) String $key #if( $velocityHasNext ), #end #end
+#end
+
+#macro( keysUsage )
+#foreach($key in $tableDefinition.columnDefinitions.keys) $key #if( $velocityHasNext ), #end #end
+#end
+
+public class ${tableDefinition.generatedClassName} {
+
+    private static final String TABLE_NAME = "${tableDefinition.tableName}";
+
+#foreach($columnDefinition in $tableDefinition.columnDefinitions.columns)
+    private static final byte[] ${columnDefinition.columnName.toUpperCase()}_COLUMN = "${columnDefinition.columnShortName}".getBytes(Charsets.UTF_8);
+#end
+
+    private final Transaction txn;
+    private final ObjectMapper objectMapper;
+
+    public ${tableDefinition.generatedClassName}(Transaction txn) {
+        this.txn = txn;
+        this.objectMapper = new ObjectMapper(); // TODO: make configurable
+    }
+
+#foreach($columnDefinition in $tableDefinition.columnDefinitions.columns)
+    public void put${display.capitalize(${columnDefinition.columnName})}(#keysDeclaration(), ${columnDefinition.columnTypeQualifiedName} columnValue) {
+        put${display.capitalize(${columnDefinition.columnName})}s(ImmutableMap.of(Key.of(#keysUsage()), columnValue));
+    }
+
+    public void put${display.capitalize(${columnDefinition.columnName})}s(Map<Key, ${columnDefinition.columnTypeQualifiedName}> valuesByKey) {
+        ImmutableMap.Builder<Cell, byte[]> builder = ImmutableMap.builder();
+        for (Entry<Key, ${columnDefinition.columnTypeQualifiedName}> entry : valuesByKey.entrySet()) {
+            byte[] column = ${columnDefinition.columnName.toUpperCase()}_COLUMN;
+            builder.put(Cell.create(entry.getKey().key(), column), toByteArray(entry.getValue()));
+        }
+        txn.put(TABLE_NAME, builder.build());
+    }
+
+#end
+
+    private <T> byte[] toByteArray(T val) {
+        try {
+            return objectMapper.writeValueAsBytes(val);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private <T> T toValue(byte[] arr, Class<T> type) {
+        try {
+            return objectMapper.readValue(arr, type);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Value.Immutable
+    public abstract static class Key {
+#foreach($key in $tableDefinition.columnDefinitions.keys)
+        abstract String get${display.capitalize(${key})}();
+#end
+
+        public static Key of(#keysDeclaration()) {
+            return ImmutableKey.builder()
+#foreach($key in $tableDefinition.columnDefinitions.keys)
+                .${key}(${key})
+#end
+                .build();
+        }
+
+        // TODO: fix this up
+        final byte[] key() {
+            byte[] key = new byte[40 * ${tableDefinition.columnDefinitions.keys.size()}];
+#foreach($key in $tableDefinition.columnDefinitions.keys)
+            System.arraycopy(get${display.capitalize(${key})}().getBytes(Charsets.UTF_8), 0, key, (${velocityCount} - 1) * 40, 40);
+#end
+            return key;
+        }
+    }
+
+    @Value.Immutable
+    public interface Row {
+#foreach($columnDefinition in $tableDefinition.columnDefinitions.columns)
+        ${columnDefinition.columnTypeQualifiedName} get${display.capitalize(${columnDefinition.columnName})}();
+#end
+    }
+}

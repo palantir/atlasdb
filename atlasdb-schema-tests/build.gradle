@@ -1,0 +1,18 @@
+
+  plugins {
+    id "org.inferred.processors" version "1.1"
+  }
+
+apply from: "../gradle/shared.gradle"
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+libsDirName = file('build/artifacts')
+dependencies {
+    processor(project(":atlasdb-schema"))
+}
+
+configurations.matching({ it.name in ['compile', 'runtime'] }).all {
+    resolutionStrategy {
+    }
+}

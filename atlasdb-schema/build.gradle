@@ -1,0 +1,33 @@
+
+  plugins {
+    id "org.inferred.processors" version "1.1"
+  }
+
+apply from: "../gradle/shared.gradle"
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+libsDirName = file('build/artifacts')
+dependencies {
+    compile(project(":atlasdb-client"))
+    compile(group: "org.apache.velocity",
+		name: "velocity",
+        version: "1.6.2")
+    compile(group: "org.apache.velocity",
+    	name: "velocity-tools",
+    	version: "2.0")
+    testCompile(group: "com.google.testing.compile",
+	name: "compile-testing",
+	version: "0.6")
+    processor "org.immutables:value:2.0.21"
+    compile 'org.immutables:value:2.0.21'
+}
+
+configurations.matching({ it.name in ['compile', 'runtime'] }).all {
+    resolutionStrategy {
+        force 'commons-lang:commons-lang:2.6'
+	force 'commons-collections:commons-collections:3.2.1'
+        force 'commons-logging:commons-logging:1.1'
+        force 'commons-digester:commons-digester:1.8'
+    }
+}
