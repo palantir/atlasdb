@@ -318,7 +318,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                         for (byte[] r : batch) {
                             rowNames.add(ByteBuffer.wrap(r));
                         }
-                        ColumnParent colFam = new ColumnParent(tableName);
+                        ColumnParent colFam = new ColumnParent(internalTableName(tableName));
                         Map<ByteBuffer, List<ColumnOrSuperColumn>> results = multigetInternal(client, tableName, rowNames, colFam, pred, readConsistency);
                         Map<Cell, Value> ret = Maps.newHashMap();
                         new ValueExtractor(ret).extractResults(results, startTs, ColumnSelection.all());
