@@ -22,7 +22,7 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 #foreach($key in $tableDefinition.columnDefinitions.keys)${key}#if( $velocityHasNext ), #end#end
 #end
 
-public class ${tableDefinition.generatedClassName} {
+public class ${tableDefinition.generatedClassName} implements ${tableDefinition.originalClassName} {
 
     private static final String TABLE_NAME = "${tableDefinition.tableName}";
 
