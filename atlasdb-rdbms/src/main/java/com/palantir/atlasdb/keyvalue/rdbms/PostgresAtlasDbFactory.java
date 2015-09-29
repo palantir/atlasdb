@@ -18,15 +18,22 @@ package com.palantir.atlasdb.keyvalue.rdbms;
 import java.io.IOException;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
+import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampService;
 
-public class PostgresAtlasDbFactory implements AtlasDbFactory<PostgresKeyValueService> {
+public class PostgresAtlasDbFactory implements AtlasDbFactory {
 
     @Override
     public String getType() {
         return "postgres";
+    }
+
+    @Override
+    public KeyValueService createRawKeyValueService(KeyValueServiceConfig config) {
+        return PostgresKeyValueService.create((PostgresKeyValueConfiguration) config);
     }
 
     @Override

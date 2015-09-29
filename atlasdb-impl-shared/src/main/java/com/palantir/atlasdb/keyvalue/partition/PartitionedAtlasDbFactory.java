@@ -15,20 +15,21 @@
  */
 package com.palantir.atlasdb.keyvalue.partition;
 
-import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Lists;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
 import com.palantir.atlasdb.keyvalue.remoting.RemotingPartitionMapService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
+import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.TimestampService;
 
-public class PartitionedAtlasDbFactory implements AtlasDbFactory<PartitionedKeyValueService> {
+public class PartitionedAtlasDbFactory implements AtlasDbFactory {
 
     @Override
     public String getType() {
@@ -36,14 +37,12 @@ public class PartitionedAtlasDbFactory implements AtlasDbFactory<PartitionedKeyV
     }
 
     @Override
-    public PartitionedKeyValueService createRawKeyValueService(JsonNode config)
-            throws IOException {
-        return PartitionedKeyValueService.create(createConfig(config.get("partitionedConfig")));
+    public PartitionedKeyValueService createRawKeyValueService(KeyValueServiceConfig config) {
+        return PartitionedKeyValueService.create((PartitionedKeyValueConfiguration) config);
     }
 
     @Override
-    public TimestampService createTimestampService(
-            PartitionedKeyValueService rawKvs) {
+    public TimestampService createTimestampService(KeyValueService rawKvs) {
         return PersistentTimestampService.create(PartitionedBoundStore.create(rawKvs));
     }
 

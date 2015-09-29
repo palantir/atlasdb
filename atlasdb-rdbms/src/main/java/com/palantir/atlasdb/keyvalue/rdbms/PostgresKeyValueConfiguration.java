@@ -19,9 +19,10 @@ import javax.annotation.Nonnull;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.common.annotation.Immutable;
 
-@Immutable public final class PostgresKeyValueConfiguration {
+@Immutable public final class PostgresKeyValueConfiguration implements KeyValueServiceConfig {
 
     @Nonnull public final String host;
     @Nonnull public final int port;

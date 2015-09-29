@@ -22,6 +22,7 @@ import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.map.InMemoryPartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
+import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
 /**
  * This class is to provide configuration for PartitionedKeyValueService.
@@ -30,7 +31,7 @@ import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
  * @author htarasiuk
  *
  */
-public class PartitionedKeyValueConfiguration {
+public class PartitionedKeyValueConfiguration implements KeyValueServiceConfig {
 
     public final QuorumParameters quorumParameters;
     public final ImmutableList<PartitionMapService> partitionMapProviders;
