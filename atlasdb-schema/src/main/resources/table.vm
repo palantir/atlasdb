@@ -74,6 +74,19 @@ public class ${tableDefinition.generatedClassName} {
         return results.build();
     }
 
+    public void delete${display.capitalize(${columnDefinition.columnName})}(#keysDeclaration()) {
+        Key key = Key.of(#keysUsage());
+        delete${display.capitalize(${columnDefinition.columnName})}s(ImmutableSet.of(key));
+    }
+
+    public void delete${display.capitalize(${columnDefinition.columnName})}s(Iterable<Key> keys) {
+        ImmutableSet.Builder<Cell> cells = ImmutableSet.builder();
+        for (Key key : keys) {
+            cells.add(Cell.create(key.key(), ${columnDefinition.columnName.toUpperCase()}_COLUMN));
+        }
+        txn.delete(TABLE_NAME, cells.build());
+    }
+
 #end
 
     private <T> byte[] toByteArray(T val) {
