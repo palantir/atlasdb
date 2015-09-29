@@ -29,3 +29,5 @@ version = gitVersion()
 task clean(type: Delete) {
     delete buildDir
 }
+
+apply from: 'idea.gradle'
