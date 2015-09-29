@@ -150,7 +150,7 @@ public class TableRenderer {
             this.table = table.toTableMetadata();
             this.indices = indices;
             this.cellReferencingIndices = getCellReferencingIndices(indices);
-            this.raw_table_name = Schemas.getFullTableName(rawTableName, namespace);
+            this.raw_table_name = rawTableName;
             this.isGeneric = table.getGenericTableName() != null;
             this.isNestedIndex = false;
             this.outerTable = null;
@@ -168,7 +168,7 @@ public class TableRenderer {
             this.table = index.getTableMetadata();
             this.indices = ImmutableSortedSet.of();
             this.cellReferencingIndices = ImmutableList.of();
-            this.raw_table_name = Schemas.getFullTableName(index.getIndexName(), namespace);
+            this.raw_table_name = index.getIndexName();
             this.isGeneric = false;
             this.isNestedIndex = true;
             this.outerTable = outerTable;
