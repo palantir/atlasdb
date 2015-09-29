@@ -16,11 +16,10 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
 #macro( keysDeclaration )
-#foreach($key in $tableDefinition.columnDefinitions.keys) String $key #if( $velocityHasNext ), #end #end
+#foreach($key in $tableDefinition.columnDefinitions.keys)String ${key}#if( $velocityHasNext ), #end#end
 #end
-
 #macro( keysUsage )
-#foreach($key in $tableDefinition.columnDefinitions.keys) $key #if( $velocityHasNext ), #end #end
+#foreach($key in $tableDefinition.columnDefinitions.keys)${key}#if( $velocityHasNext ), #end#end
 #end
 
 public class ${tableDefinition.generatedClassName} {
