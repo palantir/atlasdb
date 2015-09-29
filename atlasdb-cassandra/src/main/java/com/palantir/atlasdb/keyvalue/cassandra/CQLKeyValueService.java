@@ -123,6 +123,16 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 public class CQLKeyValueService extends AbstractKeyValueService {
     private static final Logger log = LoggerFactory.getLogger(CQLKeyValueService.class);
 
+    private static final Function<Entry<Cell, byte[]>, Long> ENTRY_SIZING_FUNCTION = new Function<Entry<Cell, byte[]>, Long>() {
+        @Override
+        public Long apply(Entry<Cell, byte[]> entry) {
+            long totalSize = 0;
+            totalSize += entry.getValue().length;
+            totalSize += Cells.getApproxSizeOfCell(entry.getKey());
+            return totalSize;
+        }
+    };
+
     private Cluster cluster, longRunningQueryCluster;
     private Session session, longRunningQuerySession;
 
@@ -193,6 +203,10 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                 log.error(String.format("Couldn't lookup host %s", host), e);
             }
         }
+
+        String keyspace = config.keyspace();
+        int poolSize = config.poolSize();
+        int poolTimeoutMillis = config.cqlPoolTimeoutMillis();
 
         Cluster.Builder clusterBuilder = Cluster.builder();
         clusterBuilder.addContactPoints(addresses);
@@ -701,7 +715,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
 
     @Override
     protected int getMultiPutBatchCount() {
-        return CassandraConstants.PUT_BATCH_SIZE;
+        return config.mutationBatchCount();
     }
 
     @Override
@@ -712,18 +726,8 @@ public class CQLKeyValueService extends AbstractKeyValueService {
             // We sort here because some key value stores are more efficient if you store adjacent keys together.
             NavigableMap<Cell, byte[]> sortedMap = ImmutableSortedMap.copyOf(e.getValue());
 
-
             Iterable<List<Entry<Cell, byte[]>>> partitions = partitionByCountAndBytes(sortedMap.entrySet(),
-                    getMultiPutBatchCount(), getMultiPutBatchSizeBytes(), table, new Function<Entry<Cell, byte[]>, Long>(){
-
-                @Override
-                public Long apply(Entry<Cell, byte[]> entry) {
-                    long totalSize = 0;
-                    totalSize += entry.getValue().length;
-                    totalSize += Cells.getApproxSizeOfCell(entry.getKey());
-                    return totalSize;
-                }});
-
+                    getMultiPutBatchCount(), getMultiPutBatchSizeBytes(), table, ENTRY_SIZING_FUNCTION);
 
             for (final List<Entry<Cell, byte[]>> p : partitions) {
                 List<Entry<Cell, Value>> partition = Lists.transform(p, new Function<Entry<Cell, byte[]>, Entry<Cell, Value>>() {

@@ -209,11 +209,11 @@ public abstract class AbstractKeyValueService implements KeyValueService {
                         Entry<Cell, V> firstEntry = pi.next();
                         runningSize += sizingFunction.apply(firstEntry);
                         entries.add(firstEntry);
-                        String message = "Encountered an entry of approximate size " + sizingFunction.apply(firstEntry) +
-                                " bytes, larger than maximum size of " + maximumBytesPerPartition +
-                                " defined per entire batch, while doing a write to " + tablename +
-                                ". Attempting to batch anyways.";
-                        if (runningSize > maximumBytesPerPartition) {
+                        if (runningSize > maximumBytesPerPartition && log.isWarnEnabled()) {
+                            String message = "Encountered an entry of approximate size " + sizingFunction.apply(firstEntry) +
+                                    " bytes, larger than maximum size of " + maximumBytesPerPartition +
+                                    " defined per entire batch, while doing a write to " + tablename +
+                                    ". Attempting to batch anyways.";
                             if (AtlasDbConstants.TABLES_KNOWN_TO_BE_POORLY_DESIGNED.contains(tablename)) {
                                 log.warn(message);
                             } else {

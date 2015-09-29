@@ -125,6 +125,13 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     private static final Logger log = LoggerFactory.getLogger(CassandraKeyValueService.class);
 
+    private static final Function<Entry<Cell, Value>, Long> ENTRY_SIZING_FUNCTION = new Function<Entry<Cell, Value>, Long>() {
+        @Override
+        public Long apply(Entry<Cell, Value> input) {
+            return input.getValue().getContents().length + 4L + Cells.getApproxSizeOfCell(input.getKey());
+        }
+    };
+
     private final CassandraKeyValueServiceConfig config;
     private final CassandraClientPoolingManager cassandraClientPoolingManager;
     private final CassandraJMXCompactionManager compactionManager;
@@ -483,7 +490,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     @Override
     protected int getMultiPutBatchCount() {
-        return CassandraConstants.PUT_BATCH_SIZE;
+        return config.mutationBatchCount();
     }
 
     private void putInternal(final String tableName,
@@ -494,21 +501,14 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     protected void putInternal(final String tableName,
                              final Iterable<Map.Entry<Cell, Value>> values,
                              final int ttl) throws Exception {
-        final int mutationBatchCount = config.mutationBatchCount();
-        final long mutationBatchSizeBytes = config.mutationBatchSizeBytes();
         clientPool.runWithPooledResource(new FunctionCheckedException<Client, Void, Exception>() {
             @Override
             public Void apply(Client client) throws Exception {
-                Function<Entry<Cell, Value>, Long> sizingFunction = new Function<Entry<Cell, Value>, Long>() {
-                    @Override
-                    public Long apply(Entry<Cell, Value> input) {
-                        return input.getValue().getContents().length + 4L + Cells.getApproxSizeOfCell(input.getKey());
-                    }
-                };
-
+                int mutationBatchCount = config.mutationBatchCount();
+                int mutationBatchSizeBytes = config.mutationBatchSizeBytes();
                 for (List<Entry<Cell, Value>> partition : partitionByCountAndBytes(values, mutationBatchCount,
-                        mutationBatchSizeBytes, tableName, sizingFunction)) {
-                    Map<ByteBuffer, Map<String, List<Mutation>>> map = Maps.newHashMap();
+                        mutationBatchSizeBytes, tableName, ENTRY_SIZING_FUNCTION)) {
+                    Map<ByteBuffer,Map<String,List<Mutation>>> map = Maps.newHashMap();
                     for (Map.Entry<Cell, Value> e : partition) {
                         Cell cell = e.getKey();
                         Column col = createColumn(cell, e.getValue(), ttl);
