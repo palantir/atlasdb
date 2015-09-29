@@ -16,18 +16,24 @@
 package com.palantir.atlasdb.schema.example;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.SortedMap;
 
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Charsets;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
 public final class DatasetsTable {
@@ -86,12 +92,27 @@ public final class DatasetsTable {
     }
 
     public void putRow(String branchId, String datasetId, Row row) {
-
+//    	txn.getRows(tableName, rows, columnSelection)
     }
 
-    public Row getRow(String branchId, String datasetId) {
+    public Optional<Row> getRow(String branchId, String datasetId) {
         return null;
     }
+//    
+//    public Row getRows(Iterable<Key> keys) {
+//        ImmutableSet.Builder<byte[]> rows = ImmutableSet.builder();
+//        for(Key key : keys) {
+//            rows.add(key.key());
+//        }
+//        
+//        SortedMap<byte[], RowResult<byte[]>> results = txn.getRows(TABLE_NAME, rows.build(), ColumnSelection.all());
+//        
+//        List<Row> rowResults = Lists.newArrayList();
+//        for (RowResult<byte[]> row : results.values()) {
+//        	row.getCells();
+//
+//        }
+//    }
 
     @Value.Immutable
     public abstract static class Key {
@@ -123,10 +144,21 @@ public final class DatasetsTable {
         }
     }
 
-    @Value.Immutable
-    public interface Row {
-        Dataset dataset();
-        Transaction latestTransaction();
+    public class Row {
+		private RowResult<byte[]> row;
+    	
+    	public Row(RowResult<byte[]> row) {
+    		this.row = row;
+    	}
+    	
+        Dataset dataset() {
+        	byte[] bytes = row.getColumns().get(DATASET_COLUMN);
+        	return toValue(bytes, Dataset.class);
+        }
+        
+        public boolean hasDataset() {
+        	return row.getColumns().containsKey(DATASET_COLUMN);
+        }
     }
 
     private <T> byte[] toByteArray(T val) {
