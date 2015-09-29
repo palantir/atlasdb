@@ -53,6 +53,27 @@ public class ${tableDefinition.generatedClassName} {
         txn.put(TABLE_NAME, builder.build());
     }
 
+    public ${columnDefinition.columnTypeQualifiedName} get${display.capitalize(${columnDefinition.columnName})}(#keysDeclaration()) {
+        Key key = Key.of(#keysUsage());
+        return get${display.capitalize(${columnDefinition.columnName})}s(ImmutableSet.of(key)).get(key);
+    }
+
+    public Map<Key, ${columnDefinition.columnTypeQualifiedName}> get${display.capitalize(${columnDefinition.columnName})}s(Set<Key> keys) {
+        ImmutableSet.Builder<Cell> cells = ImmutableSet.builder();
+        for (Key key : keys) {
+            cells.add(Cell.create(key.key(), ${columnDefinition.columnName.toUpperCase()}_COLUMN));
+        }
+
+        Map<Cell, byte[]> vals = txn.get(TABLE_NAME, cells.build());
+
+        ImmutableMap.Builder<Key, ${columnDefinition.columnTypeQualifiedName}> results = ImmutableMap.builder();
+        for (Entry<Cell, byte[]> entry : vals.entrySet()) {
+            results.put(Key.from(entry.getKey().getRowName()), toValue(entry.getValue(), ${columnDefinition.columnTypeQualifiedName}.class));
+        }
+
+        return results.build();
+    }
+
 #end
 
     private <T> byte[] toByteArray(T val) {
@@ -83,6 +104,15 @@ public class ${tableDefinition.generatedClassName} {
                 .${key}(${key})
 #end
                 .build();
+        }
+
+        public static final Key from(byte[] arr) {
+            Preconditions.checkArgument(arr.length == 40 * ${tableDefinition.columnDefinitions.keys.size()}, "length must = ${40 * tableDefinition.columnDefinitions.keys.size()}");
+            return ImmutableKey.builder()
+#foreach($key in $tableDefinition.columnDefinitions.keys)
+                    .${key}(new String(arr, (${velocityCount} - 1) * 40, 40))
+#end
+                    .build();
         }
 
         // TODO: fix this up
