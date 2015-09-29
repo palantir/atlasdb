@@ -118,20 +118,23 @@ public class ${tableDefinition.generatedClassName} {
                 .build();
         }
 
+#set( $totalBytes = 40 * ${tableDefinition.columnDefinitions.keys.size()} )
         public static final Key from(byte[] arr) {
-            Preconditions.checkArgument(arr.length == 40 * ${tableDefinition.columnDefinitions.keys.size()}, "length must = ${40 * tableDefinition.columnDefinitions.keys.size()}");
+            Preconditions.checkArgument(arr.length == ${totalBytes}, "length must = ${totalBytes}");
             return ImmutableKey.builder()
 #foreach($key in $tableDefinition.columnDefinitions.keys)
-                    .${key}(new String(arr, (${velocityCount} - 1) * 40, 40))
+                    #set( $startByteIndex = ($velocityCount - 1) * 40 )
+                    .${key}(new String(arr, $startByteIndex, 40))
 #end
                     .build();
         }
 
         // TODO: fix this up
         final byte[] key() {
-            byte[] key = new byte[40 * ${tableDefinition.columnDefinitions.keys.size()}];
+            byte[] key = new byte[$totalBytes];
 #foreach($key in $tableDefinition.columnDefinitions.keys)
-            System.arraycopy(get${display.capitalize(${key})}().getBytes(Charsets.UTF_8), 0, key, (${velocityCount} - 1) * 40, 40);
+            #set( $startByteIndex = ($velocityCount - 1) * 40 )
+            System.arraycopy(get${display.capitalize(${key})}().getBytes(Charsets.UTF_8), 0, key, $startByteIndex, 40);
 #end
             return key;
         }
