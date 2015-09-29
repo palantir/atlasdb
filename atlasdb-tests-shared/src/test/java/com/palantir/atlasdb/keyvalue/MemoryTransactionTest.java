@@ -26,15 +26,9 @@ import com.palantir.common.concurrent.PTExecutors;
 
 public class MemoryTransactionTest extends AbstractTransactionTest {
 
-    static ExecutorService executor;
-    @BeforeClass
-    public static void setupExecutor() {
-        executor = PTExecutors.newFixedThreadPool(16, PTExecutors.newNamedThreadFactory(true));
-    }
-
     @Override
     protected KeyValueService getKeyValueService() {
-        return new InMemoryKeyValueService(false, executor);
+        return new InMemoryKeyValueService(false, PTExecutors.newSingleThreadExecutor(PTExecutors.newNamedThreadFactory(true)));
     }
 
 }
