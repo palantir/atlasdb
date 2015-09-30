@@ -1,3 +1,7 @@
+plugins {
+    id 'org.inferred.processors' version '1.1'
+}
+
 apply from: '../gradle/shared.gradle'
 
 dependencies {
@@ -9,5 +13,7 @@ dependencies {
     testCompile project(':atlasdb-tests-shared')
 
     testCompile 'ru.yandex.qatools.embed:postgresql-embedded:1.3'
+
+    processor 'org.immutables:value:2.0.21'
 }
 

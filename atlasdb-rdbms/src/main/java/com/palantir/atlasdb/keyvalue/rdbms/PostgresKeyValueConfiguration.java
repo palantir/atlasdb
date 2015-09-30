@@ -15,34 +15,28 @@
  */
 package com.palantir.atlasdb.keyvalue.rdbms;
 
-import javax.annotation.Nonnull;
+import org.immutables.value.Value;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonTypeName;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
-import com.palantir.common.annotation.Immutable;
 
-@Immutable public final class PostgresKeyValueConfiguration implements KeyValueServiceConfig {
+@JsonDeserialize(as = ImmutablePostgresKeyValueConfiguration.class)
+@JsonSerialize(as = ImmutablePostgresKeyValueConfiguration.class)
+@JsonTypeName(PostgresKeyValueConfiguration.TYPE)
+@Value.Immutable
+public abstract class PostgresKeyValueConfiguration implements KeyValueServiceConfig {
+    public static final String TYPE = "postgresdb";
 
-    @Nonnull public final String host;
-    @Nonnull public final int port;
-    @Nonnull public final String db;
-    @Nonnull public final String user;
-    @Nonnull public final String password;
-
-    @JsonCreator
-    public PostgresKeyValueConfiguration(
-            @JsonProperty("host") String host,
-            @JsonProperty("port") int port,
-            @JsonProperty("db") String db,
-            @JsonProperty("user") String user,
-            @JsonProperty("password") String password) {
-
-        this.host = host;
-        this.port = port;
-        this.db = db;
-        this.user = user;
-        this.password = password;
+    @Override
+    public final String type() {
+        return TYPE;
     }
 
+    public abstract String getHost();
+    public abstract int getPort();
+    public abstract String getDb();
+    public abstract String getUser();
+    public abstract String getPassword();
 }
