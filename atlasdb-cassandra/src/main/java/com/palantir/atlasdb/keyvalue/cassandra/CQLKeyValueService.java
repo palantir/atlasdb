@@ -844,26 +844,22 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     public void truncateTables(final Set<String> tablesToTruncate) {
         String truncateQuery = "TRUNCATE %s"; // full table name (ks.cf)
 
-        for (List<String> batchOfRawTableNames : Iterables.partition(tablesToTruncate, 250)) {
-            BatchStatement batch = new BatchStatement(BatchStatement.Type.UNLOGGED);
+        for (String tableName : tablesToTruncate) {
+            PreparedStatement createStatement = getPreparedStatement(String.format(truncateQuery, getFullTableName(tableName)));
+            createStatement.setConsistencyLevel(ConsistencyLevel.ALL);
+            BoundStatement boundStatement = createStatement.bind();
 
-            for (String tableName : batchOfRawTableNames) {
-                PreparedStatement createStatement = getPreparedStatement(String.format(truncateQuery, getFullTableName(tableName)));
-                createStatement.setConsistencyLevel(ConsistencyLevel.ALL);
-                BoundStatement boundStatement = createStatement.bind();
-
-                if (shouldTraceQuery(tableName)) {
-                    batch.enableTracing();
-                }
-                batch.add(boundStatement);
-                try {
-                    ResultSet resultSet = session.execute(batch);
-                    logTracedQuery(truncateQuery, resultSet);
-                } catch (com.datastax.driver.core.exceptions.UnavailableException e) {
-                    throw new InsufficientConsistencyException("Truncating tables requires all Cassandra nodes to be up and available.", e);
-                }
+            if (shouldTraceQuery(tableName)) {
+                boundStatement.enableTracing();
+            }
+            try {
+                ResultSet resultSet = session.execute(boundStatement);
+                logTracedQuery(truncateQuery, resultSet);
+            } catch (com.datastax.driver.core.exceptions.UnavailableException e) {
+                throw new InsufficientConsistencyException("Truncating tables requires all Cassandra nodes to be up and available.", e);
             }
         }
+
         waitForSchemaVersionsToCoalesce("truncateTables(" + tablesToTruncate.size() + " tables)");
     }
 
@@ -1069,35 +1065,33 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     public void dropTables(final Set<String> tablesToDrop) {
         String dropQuery = "DROP TABLE IF EXISTS %s"; // full table name (ks.cf)
 
-        for (List<String> batchOfRawTableNames : Iterables.partition(tablesToDrop, 250)) {
-            BatchStatement batch = new BatchStatement(BatchStatement.Type.UNLOGGED);
-
-            for (String tableName : batchOfRawTableNames) {
+            for (String tableName : tablesToDrop) {
                 PreparedStatement createStatement = getPreparedStatement(String.format(dropQuery, getFullTableName(tableName)));
                 createStatement.setConsistencyLevel(ConsistencyLevel.ALL);
                 BoundStatement boundStatement = createStatement.bind();
 
                 if (shouldTraceQuery(tableName)) {
-                    batch.enableTracing();
+                    boundStatement.enableTracing();
                 }
-                batch.add(boundStatement);
+
                 try {
-                    ResultSet resultSet = session.execute(batch);
+                    ResultSet resultSet = session.execute(boundStatement);
                     logTracedQuery(dropQuery, resultSet);
-                    put(CassandraConstants.METADATA_TABLE, Maps.toMap(
-                            Lists.transform(batchOfRawTableNames, new Function<String, Cell>() {
-                                @Override
-                                public Cell apply(String tableName) {
-                                    return getMetadataCell(tableName);
-                                }}),
-                            Functions.constant(PtBytes.EMPTY_BYTE_ARRAY)),
-                            System.currentTimeMillis());
                 } catch (com.datastax.driver.core.exceptions.UnavailableException e) {
                     throw new InsufficientConsistencyException("Dropping tables requires all Cassandra nodes to be up and available.", e);
                 }
             }
-        }
+
         waitForSchemaVersionsToCoalesce("dropTables(" + tablesToDrop.size() + " tables)");
+
+        put(CassandraConstants.METADATA_TABLE, Maps.toMap(
+                Lists.transform(Lists.newArrayList(tablesToDrop), new Function<String, Cell>() {
+                    @Override
+                    public Cell apply(String tableName) {
+                        return getMetadataCell(tableName);
+                    }}),
+                Functions.constant(PtBytes.EMPTY_BYTE_ARRAY)),
+                System.currentTimeMillis());
     }
 
 
@@ -1122,24 +1116,19 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                 + TS_COL + " ASC) "
                 + "AND compaction = {'sstable_size_in_mb': '80', 'class': 'org.apache.cassandra.db.compaction.LeveledCompactionStrategy'}";
 
-        for (List<String> batchOfRawTableNames : Iterables.partition(tableNamesToMaxValueSizeInBytes.keySet(), 250)) {
-            BatchStatement batch = new BatchStatement(BatchStatement.Type.UNLOGGED);
+        for (String tableName : tableNamesToMaxValueSizeInBytes.keySet()) {
+            PreparedStatement createStatement = getPreparedStatement(String.format(createQuery, getFullTableName(tableName)));
+            createStatement.setConsistencyLevel(ConsistencyLevel.ALL);
+            BoundStatement boundStatement = createStatement.bind();
 
-            for (String tableName : batchOfRawTableNames) {
-                PreparedStatement createStatement = getPreparedStatement(String.format(createQuery, getFullTableName(tableName)));
-                createStatement.setConsistencyLevel(ConsistencyLevel.ALL);
-                BoundStatement boundStatement = createStatement.bind();
-
-                if (shouldTraceQuery(tableName)) {
-                    batch.enableTracing();
-                }
-                batch.add(boundStatement);
-                try {
-                    ResultSet resultSet = session.execute(batch);
-                    logTracedQuery(createQuery, resultSet);
-                } catch (com.datastax.driver.core.exceptions.UnavailableException e) {
-                    throw new InsufficientConsistencyException("Creating tables requires all Cassandra nodes to be up and available.", e);
-                }
+            if (shouldTraceQuery(tableName)) {
+                boundStatement.enableTracing();
+            }
+            try {
+                ResultSet resultSet = session.execute(boundStatement);
+                logTracedQuery(createQuery, resultSet);
+            } catch (com.datastax.driver.core.exceptions.UnavailableException e) {
+                throw new InsufficientConsistencyException("Creating tables requires all Cassandra nodes to be up and available.", e);
             }
         }
         waitForSchemaVersionsToCoalesce("createTables(" + tableNamesToMaxValueSizeInBytes.size() + " tables)");
