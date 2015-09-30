@@ -1110,7 +1110,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     public void createTables(final Map<String, Integer> tableNamesToMaxValueSizeInBytes) {
         String createQuery = "CREATE TABLE IF NOT EXISTS %s ( " // full table name (ks.cf)
                 + ROW_NAME + " blob, "
-                + COL_NAME_COL + "blob, "
+                + COL_NAME_COL + " blob, "
                 + TS_COL + " bigint, "
                 + VALUE_COL + " blob, "
                 + "PRIMARY KEY ("
