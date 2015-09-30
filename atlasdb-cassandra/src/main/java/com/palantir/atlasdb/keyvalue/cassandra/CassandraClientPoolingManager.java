@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
@@ -27,7 +28,11 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ImmutableSet;
+import com.google.common.net.HostAndPort;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
@@ -38,35 +43,24 @@ public class CassandraClientPoolingManager {
 
     private final ManyClientPoolingContainer containerPoolToUpdate;
     private final PoolingContainer<Client> clientPool;
-    private final int port;
-    private final boolean isSsl;
-    private final int poolSize;
-    private final String keyspace;
-    private boolean safetyDisabled;
-    private boolean autoRefreshNodes;
-
-    private final ScheduledExecutorService hostRefreshExecutor = PTExecutors.newScheduledThreadPool(1);
+    CassandraKeyValueServiceConfig config;
+    private final ScheduledExecutorService hostModificationExecutor = PTExecutors.newScheduledThreadPool(
+            1,
+            new ThreadFactoryBuilder().setDaemon(true).setNameFormat("HostModificationThreadPool-%d").build());
 
     public CassandraClientPoolingManager(ManyClientPoolingContainer containerPoolToUpdate,
                                          PoolingContainer<Client> clientPool,
-                                         int port,
-                                         boolean isSsl,
-                                         int poolSize,
-                                         String keyspace,
-                                         boolean safetyDisabled,
-                                         boolean autoRefreshNodes) {
+                                         CassandraKeyValueServiceConfig config) {
         this.containerPoolToUpdate = containerPoolToUpdate;
         this.clientPool = clientPool;
-        this.port = port;
-        this.isSsl = isSsl;
-        this.poolSize = poolSize;
-        this.keyspace = keyspace;
-        this.safetyDisabled = safetyDisabled;
-        this.autoRefreshNodes = autoRefreshNodes;
+        this.config = config;
     }
 
+    /**
+     * refresh hosts using the live nodes in the ring
+     */
     public void submitHostRefreshTask() {
-        hostRefreshExecutor.scheduleWithFixedDelay(new Runnable() {
+        hostModificationExecutor.scheduleWithFixedDelay(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -84,29 +78,35 @@ public class CassandraClientPoolingManager {
         clientPool.runWithPooledResource(new FunctionCheckedException<Cassandra.Client, Void, TException>() {
             @Override
             public Void apply(Client client) throws TException {
-                setHostsToCurrentHostNames(getCurrentHostNamesFromServer(client));
+                setHostsToCurrentHostNames(getCurrentHostsFromServer(client));
                 return null;
             }
 
         });
     }
 
-    public void setHostsToCurrentHostNames(Set<String> currentHosts) {
-        containerPoolToUpdate.setNewHosts(currentHosts, port, poolSize, keyspace, isSsl, safetyDisabled);
+    public void setHostsToCurrentHostNames(Set<IpAndPort> hosts) {
+        containerPoolToUpdate.setNewHosts(ImmutableCassandraKeyValueServiceConfig.copyOf(config).withServers(hosts));
     }
 
-    public Set<String> getCurrentHostNamesFromServer(Client c) throws TException {
+    public Set<IpAndPort> getCurrentHostsFromServer(Client c) throws TException {
         Map<String, String> tokenMap;
         try {
             tokenMap = c.describe_token_map();
         } catch (InvalidRequestException e) {
             throw Throwables.throwUncheckedException(e);
         }
-        return ImmutableSet.copyOf(tokenMap.values());
+
+        Set<IpAndPort> currentHosts = new HashSet<IpAndPort>();
+        for (String host : tokenMap.values()) {
+            currentHosts.add(IpAndPort.from(HostAndPort.fromString(host).withDefaultPort(AtlasDbConstants.DEFAULT_CASSANDRA_PORT)));
+        }
+
+        return currentHosts;
     }
 
     public boolean hostsAutoRefresh() {
-        return autoRefreshNodes;
+        return config.autoRefreshNodes();
     }
 
 }

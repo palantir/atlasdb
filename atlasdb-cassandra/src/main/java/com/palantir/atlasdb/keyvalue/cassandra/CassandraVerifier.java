@@ -50,12 +50,14 @@ public class CassandraVerifier {
     // consistent ring across all of it's nodes.  One node will think it owns more than the others
     // think it does and they will not send writes to it, but it will respond to requests
     // acting like it does.
-    protected static void sanityCheckRingConsistency(Set<String> currentHosts, int port, String keyspace, boolean isSsl, boolean safetyDisabled) {
+    protected static void sanityCheckRingConsistency(Set<IpAndPort> currentHosts, String keyspace, boolean isSsl, boolean safetyDisabled, int socketTimeoutMillis, int socketQueryTimeoutMillis) {
         Multimap<Set<TokenRange>, String> tokenRangesToHost = HashMultimap.create();
-        for (String host : currentHosts) {
+        for (IpAndPort addr : currentHosts) {
+            String host = addr.getHost();
+            int port = addr.getPort();
             Cassandra.Client client = null;
             try {
-                client = CassandraClientPoolingContainer.getClientInternal(host, port, isSsl);
+                client = CassandraClientPoolingContainer.getClientInternal(host, port, isSsl, socketTimeoutMillis, socketQueryTimeoutMillis);
                 try {
                     client.describe_keyspace(keyspace);
                 } catch (NotFoundException e) {
@@ -151,14 +153,13 @@ public class CassandraVerifier {
      */
     private static void ensureTestKeyspaceExists(Cassandra.Client client) {
         try {
-            KsDef testKs = null;
             try {
-                testKs = client.describe_keyspace(CassandraConstants.SIMPLE_RF_TEST_KEYSPACE);
+                client.describe_keyspace(CassandraConstants.SIMPLE_RF_TEST_KEYSPACE);
                 return;
             } catch (NotFoundException e) {
                 // need to create key space
             }
-            testKs = new KsDef(CassandraConstants.SIMPLE_RF_TEST_KEYSPACE, CassandraConstants.SIMPLE_STRATEGY, ImmutableList.<CfDef>of());
+            KsDef testKs = new KsDef(CassandraConstants.SIMPLE_RF_TEST_KEYSPACE, CassandraConstants.SIMPLE_STRATEGY, ImmutableList.<CfDef>of());
             testKs.setStrategy_options(ImmutableMap.of(CassandraConstants.REPLICATION_FACTOR_OPTION, "1"));
             client.system_add_keyspace(testKs);
         } catch (Exception e) {

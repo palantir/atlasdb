@@ -38,8 +38,8 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     @JsonIgnore
     public static final CassandraKeyValueServiceConfig DEFAULT = new CassandraKeyValueServiceConfig() {
         @Override
-        public Set<IpAndPort> servers() {
-            return ImmutableSet.of(IpAndPort.from(HostAndPort.fromHost("localhost").withDefaultPort(9160)));
+        public Set<String> servers() {
+            return ImmutableSet.of("localhost");
         }
 
         @Override
@@ -60,7 +60,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
 
     public static final String TYPE = "cassandra";
 
-    public abstract Set<IpAndPort> servers();
+    public abstract Set<String> servers();
     
     public abstract int port();
     

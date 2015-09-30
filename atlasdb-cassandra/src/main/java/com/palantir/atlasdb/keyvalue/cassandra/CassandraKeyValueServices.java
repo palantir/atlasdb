@@ -15,12 +15,12 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -29,6 +29,7 @@ import javax.net.ssl.SSLSocketFactory;
 
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.CfDef;
+import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.InvalidRequestException;
 import org.apache.cassandra.thrift.KeySlice;
@@ -40,12 +41,14 @@ import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.primitives.Longs;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.Value;
@@ -55,6 +58,7 @@ import com.palantir.util.Pair;
 import com.palantir.util.Visitor;
 
 public class CassandraKeyValueServices {
+    private static final Logger log = LoggerFactory.getLogger(CassandraKeyValueService.class); // did this on purpose
 
     private static long INITIAL_SLEEP_TIME = 100;
     private static long MAX_SLEEP_TIME = 5000;
@@ -76,9 +80,9 @@ public class CassandraKeyValueServices {
         } while (System.currentTimeMillis() < start + CassandraConstants.SECONDS_WAIT_FOR_VERSIONS*1000);
         StringBuilder sb = new StringBuilder();
         sb.append(String.format("Cassandra cluster cannot come to agreement on schema versions, after attempting to modify table %s.", tableName));
-        for (String schemaVersion: versions.keySet()) {
-            sb.append(String.format("\nAt schema version %s:", schemaVersion));
-            for (String node: versions.get(schemaVersion)) {
+        for ( Entry<String, List<String>> version : versions.entrySet()) {
+            sb.append(String.format("\nAt schema version %s:", version.getKey()));
+            for (String node: version.getValue()) {
                 sb.append(String.format("\n\tNode: %s", node));
             }
         }
@@ -89,51 +93,93 @@ public class CassandraKeyValueServices {
         throw new IllegalStateException(sb.toString());
     }
 
-    static byte[] makeComposite(byte[] colName, long ts) {
-        ByteArrayOutputStream bos = new ByteArrayOutputStream(6 /* misc */ + 8 /* timestamp */+ colName.length);
-
-        bos.write((byte) ((colName.length >> 8) & 0xFF));
-        bos.write((byte) (colName.length & 0xFF));
-        bos.write(colName, 0, colName.length);
-        bos.write((byte) 0);
-
-        bos.write((byte) 0);
-        bos.write((byte) (8 & 0xFF));
-        bos.write(Longs.toByteArray((~ts)), 0, 8);
-        bos.write((byte) 0);
-
-        return bos.toByteArray();
+    /**
+     * This is a request from pbrown / FDEs; basically it's a pain to do DB surgery to get out of failed patch upgrades, the majority of which requires schema mutations; they would find it preferable to stop before starting the actual patch upgrade / setting APPLYING state.
+     */
+    static void failQuickInInitializationIfClusterAlreadyInInconsistentState(Cassandra.Client client, boolean safetyDisabled) {
+        if (safetyDisabled) {
+            log.error("Skipped checking the cassandra cluster during initialization, because safety checks are disabled. Please re-enable safety checks when you are outside of your unusual migration period.");
+            return;
+        }
+        String errorMessage = "While checking the cassandra cluster during initialization, we noticed schema versions could not settle. Failing quickly to avoid getting into harder to fix states (i.e. partially applied patch upgrades, etc). " +
+                "This state is in rare cases the correct one to be in; for instance schema versions will be incapable of settling in a cluster of heterogenous Cassandra 1.2/2.0 nodes. If that is the case, disable safety checks in your Cassandra KVS preferences.";
+        try {
+            waitForSchemaVersions(client, "(none, just an initialization check)");
+        } catch (TException e) {
+            throw new RuntimeException(errorMessage, e);
+        } catch (IllegalStateException e) {
+            log.error(errorMessage);
+            throw e;
+        }
     }
 
-    static Pair<byte[], Long> decompose(byte[] composite) {
-        ByteArrayInputStream bais = new ByteArrayInputStream(composite);
-        int len = (bais.read() & 0xff) << 8;
-        len |= bais.read() & 0xff;
+    static ByteBuffer makeCompositeBuffer(byte[] colName, long ts) {
+        assert colName.length <= 1 << 16 : "Cannot use column names larger than 64KiB, was " + colName.length;
+
+        ByteBuffer buffer = ByteBuffer.allocate(6 /* misc */ + 8 /* timestamp */ + colName.length).order(ByteOrder.BIG_ENDIAN);
+
+        buffer.put((byte) ((colName.length >> 8) & 0xFF));
+        buffer.put((byte) (colName.length & 0xFF));
+        buffer.put(colName);
+        buffer.put((byte) 0);
+
+        buffer.put((byte) 0);
+        buffer.put((byte) (8 & 0xFF));
+        buffer.putLong(~ts);
+        buffer.put((byte) 0);
+
+        buffer.flip();
+
+        return buffer;
+    }
+
+    static Pair<byte[], Long> decompose(ByteBuffer composite) {
+        composite = composite.slice().order(ByteOrder.BIG_ENDIAN);
+
+        short len = composite.getShort();
         byte[] colName = new byte[len];
-        bais.read(colName, 0, len);
-        int shouldBeZero = bais.read();
+        composite.get(colName);
+
+        short shouldBeZero = composite.getShort();
         Validate.isTrue(shouldBeZero == 0);
 
-        shouldBeZero = bais.read();
-        Validate.isTrue(shouldBeZero == 0);
-
-        int shouldBe8 = bais.read();
+        byte shouldBe8 = composite.get();
         Validate.isTrue(shouldBe8 == 8);
-        byte[] longBytes = new byte[8];
-        bais.read(longBytes, 0, 8);
-        long ts = Longs.fromByteArray(longBytes);
+        long ts = composite.getLong();
+
         return Pair.create(colName, (~ts));
     }
 
+    /**
+     * Convenience method to get the name buffer for the specified column and
+     * decompose it into the name and timestamp.
+     */
+    static Pair<byte[], Long> decomposeName(Column column) {
+        ByteBuffer nameBuffer;
+        if (column.isSetName()) {
+            nameBuffer = column.bufferForName();
+        } else {
+            // the column buffer has not yet been set/cached
+            // so we must fallback on the slowpath and force
+            // the transform to bytes and wrap ourselves
+            nameBuffer = ByteBuffer.wrap(column.getName());
+        }
+        return decompose(nameBuffer);
+    }
 
-    public static byte[] getBytesFromByteBuffer(ByteBuffer rowName) {
-        byte[] row = new byte[rowName.limit() - rowName.position()];
-        System.arraycopy(rowName.array(), rowName.position(), row, 0, row.length);
-        return row;
+    public static byte[] getBytesFromByteBuffer(ByteBuffer buffer) {
+        // Be careful *NOT* to perform anything that will modify the buffer's position or limit
+        byte[] bytes = new byte[buffer.limit() - buffer.position()];
+        if (buffer.hasArray()) {
+            System.arraycopy(buffer.array(), buffer.position(), bytes, 0, bytes.length);
+        } else {
+            buffer.duplicate().get(bytes, buffer.position(), bytes.length);
+        }
+        return bytes;
     }
 
     static Map<ByteBuffer, List<ColumnOrSuperColumn>> getColsByKey(List<KeySlice> firstPage) {
-        Map<ByteBuffer, List<ColumnOrSuperColumn>> ret = Maps.newHashMap();
+        Map<ByteBuffer, List<ColumnOrSuperColumn>> ret = Maps.newHashMapWithExpectedSize(firstPage.size());
         for (KeySlice e : firstPage) {
             ret.put(ByteBuffer.wrap(e.getKey()), e.getColumns());
         }
@@ -145,14 +191,17 @@ public class CassandraKeyValueServices {
         return new UUID(uuid.getLong(uuid.position()), uuid.getLong(uuid.position() + 8)).toString();
     }
 
-    static Cassandra.Client getClientInternal(String host, int port, boolean isSsl) throws TTransportException {
+    static Cassandra.Client getClientInternal(IpAndPort addr, boolean isSsl) throws TTransportException {
+        String host = addr.getHost();
+        int port = addr.getPort();
         TSocket tSocket = new TSocket(host, port, CassandraConstants.CONNECTION_TIMEOUT_MILLIS);
         tSocket.open();
-        tSocket.setTimeout(CassandraConstants.SOCKET_TIMEOUT_MILLIS);
+        tSocket.setTimeout(CassandraKeyValueServiceConfig.DEFAULT.socketTimeoutMillis());
         if (isSsl) {
             boolean success = false;
             try {
                 SSLSocketFactory factory = (SSLSocketFactory) SSLSocketFactory.getDefault();
+                @SuppressWarnings("resource") // caller uses and closes
                 SSLSocket socket = (SSLSocket) factory.createSocket(tSocket.getSocket(), host, port, true);
                 tSocket = new TSocket(socket);
                 success = true;
@@ -223,11 +272,11 @@ public class CassandraKeyValueServices {
     }
 
     static private void extractTimestampResults(@Output Multimap<Cell, Long> ret,
-                                                Map<ByteBuffer, List<ColumnOrSuperColumn>> results) {
-        for (ByteBuffer rowName : results.keySet()) {
-            byte[] row = CassandraKeyValueServices.getBytesFromByteBuffer(rowName);
-            for (ColumnOrSuperColumn c : results.get(rowName)) {
-                Pair<byte[], Long> pair = CassandraKeyValueServices.decompose(c.column.getName());
+            Map<ByteBuffer, List<ColumnOrSuperColumn>> results) {
+        for (Entry<ByteBuffer, List<ColumnOrSuperColumn>> result : results.entrySet()) {
+            byte[] row = CassandraKeyValueServices.getBytesFromByteBuffer(result.getKey());
+            for (ColumnOrSuperColumn col : result.getValue()) {
+                Pair<byte[], Long> pair = CassandraKeyValueServices.decomposeName(col.column);
                 ret.put(Cell.create(row, pair.lhSide), pair.rhSide);
             }
         }
@@ -242,13 +291,38 @@ public class CassandraKeyValueServices {
     // because unfortunately .equals takes into account if fields with defaults are populated or not
     // also because compression_options after serialization / deserialization comes back as blank for the ones we set 4K chunk on... ?!
     public static final boolean isMatchingCf(CfDef clientSide, CfDef clusterSide) {
-        if (!clientSide.compaction_strategy_options.equals(clusterSide.compaction_strategy_options))
+        String tableName = clientSide.name;
+        if (!clientSide.compaction_strategy_options.equals(clusterSide.compaction_strategy_options)) {
+            log.debug("Found client/server disagreement on compaction strategy options for {}. (client = ({}), server = ({}))",
+                    tableName,
+                    clientSide.compaction_strategy_options,
+                    clusterSide.compaction_strategy_options);
             return false;
-        if (clientSide.gc_grace_seconds != clusterSide.gc_grace_seconds)
+        }
+        if (clientSide.gc_grace_seconds != clusterSide.gc_grace_seconds) {
+            log.debug("Found client/server disagreement on gc_grace_seconds for {}. (client = ({}), server = ({}))",
+                    tableName,
+                    clientSide.gc_grace_seconds,
+                    clusterSide.gc_grace_seconds);
             return false;
-        if (clientSide.bloom_filter_fp_chance != clusterSide.bloom_filter_fp_chance)
+        }
+        if (clientSide.bloom_filter_fp_chance != clusterSide.bloom_filter_fp_chance) {
+            log.debug("Found client/server disagreement on bloom filter false positive chance for {}. (client = ({}), server = ({}))",
+                    tableName,
+                    clientSide.bloom_filter_fp_chance,
+                    clusterSide.bloom_filter_fp_chance);
             return false;
+        }
+        if (!(clientSide.compression_options.get(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY).equals(
+                clusterSide.compression_options.get(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY)))) {
+            log.debug("Found client/server disagreement on compression chunk length for {}. (client = ({}), server = ({}))",
+                    tableName,
+                    clientSide.compression_options.get(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY),
+                    clusterSide.compression_options.get(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY));
+            return false;
+        }
 
         return true;
     }
+
 }
