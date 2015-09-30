@@ -53,7 +53,7 @@ import com.google.common.collect.Maps;
     /** The default amount of time that it takes a lock (lease) to expire. */
     public static final TimeDuration DEFAULT_LOCK_TIMEOUT = SimpleTimeDuration.of(120, TimeUnit.SECONDS);
 
-    private static volatile String dispatchName = "";
+    private static volatile String localServerName = "";
 
     private final SortedLockCollection<LockDescriptor> lockMap;
     private final TimeDuration lockTimeout;
@@ -184,12 +184,12 @@ import com.google.common.collect.Maps;
         return hashCode;
     }
 
-    public static void setDispatchName(String dispatchServerName) {
-        if (dispatchServerName == null || dispatchServerName.trim().isEmpty()) {
-            dispatchName = "";
+    public static void setLocalServerName(String serverName) {
+        if (serverName == null || serverName.trim().isEmpty()) {
+            localServerName = "";
             return;
         }
-        dispatchName = dispatchServerName;
+        localServerName = serverName;
     }
 
     @Override public String toString() {
@@ -359,16 +359,16 @@ import com.google.common.collect.Maps;
             if (versionId != null && blockingMode == BlockingMode.BLOCK_INDEFINITELY_THEN_RELEASE) {
                 throw new IllegalStateException();
             }
-            String dispatchServerName = "";
-            if ( !dispatchName.isEmpty()) {
-                dispatchServerName = " (on dispatch server " + dispatchName + ")";
+            String serverName = "";
+            if ( !localServerName.isEmpty()) {
+                serverName = " (on server " + localServerName + ")";
             }
             LockRequest request = new LockRequest(lockMap,
                     MoreObjects.firstNonNull(lockTimeout, DEFAULT_LOCK_TIMEOUT),
                     MoreObjects.firstNonNull(lockGroupBehavior, LockGroupBehavior.LOCK_ALL_OR_NONE),
                     MoreObjects.firstNonNull(blockingMode, BlockingMode.BLOCK_INDEFINITELY),
                     blockingDuration, versionId,
-                    MoreObjects.firstNonNull(creatingThreadName, Thread.currentThread().getName()) + dispatchServerName);
+                    MoreObjects.firstNonNull(creatingThreadName, Thread.currentThread().getName()) + serverName);
             lockMap = null;
             return request;
         }
