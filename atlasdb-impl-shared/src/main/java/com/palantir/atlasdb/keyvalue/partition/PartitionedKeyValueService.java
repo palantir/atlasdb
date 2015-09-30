@@ -546,6 +546,13 @@ public class PartitionedKeyValueService implements KeyValueService {
     }
 
     @Override
+    public void dropTables(Set<String> tableNames) throws InsufficientConsistencyException {
+        for (KeyValueService kvs : partitionMap.getDelegates()) {
+            kvs.dropTables(tableNames);
+        }
+    }
+
+    @Override
     @Idempotent
     public void createTable(String tableName, int maxValueSizeInBytes)
             throws InsufficientConsistencyException {
