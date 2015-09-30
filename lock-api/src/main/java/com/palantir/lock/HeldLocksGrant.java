@@ -149,7 +149,7 @@ import com.google.common.base.Preconditions;
     }
 
     public String toString(long currentTimeMillis) {
-        return MoreObjects.toStringHelper(this)
+        return MoreObjects.toStringHelper(getClass().getSimpleName())
                 .add("grantId", grantId.toString(Character.MAX_RADIX))
                 .add("createdAt", SimpleTimeDuration.of(creationDateMs, TimeUnit.MILLISECONDS))
                 .add("expiresIn", SimpleTimeDuration.of(expirationDateMs - currentTimeMillis,

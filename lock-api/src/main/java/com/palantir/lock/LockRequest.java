@@ -193,7 +193,7 @@ import com.google.common.collect.Maps;
     }
 
     @Override public String toString() {
-        return MoreObjects.toStringHelper(this)
+        return MoreObjects.toStringHelper(getClass().getSimpleName())
                 .add("lockCount", lockMap.size())
                 .add("firstLock", lockMap.entries().iterator().next())
                 .add("lockTimeout", lockTimeout)
@@ -342,8 +342,7 @@ import com.google.common.collect.Maps;
             return this;
         }
 
-        // only visible to SerializationProxy
-        private Builder withCreatingThreadName(String creatingThreadName) {
+        public Builder withCreatingThreadName(String creatingThreadName) {
             this.creatingThreadName = creatingThreadName;
             return this;
         }
@@ -374,7 +373,7 @@ import com.google.common.collect.Maps;
         }
 
         @Override public String toString() {
-            return MoreObjects.toStringHelper(this)
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
                     .add("lockTimeout", lockTimeout)
                     .add("lockGroupBehavior", lockGroupBehavior)
                     .add("blockingMode", blockingMode)

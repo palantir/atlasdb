@@ -19,8 +19,12 @@ import java.io.Serializable;
 import java.util.Arrays;
 import java.util.concurrent.locks.ReadWriteLock;
 
+import javax.annotation.concurrent.Immutable;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.base.Charsets;
 import com.google.common.primitives.UnsignedBytes;
 
 /**
@@ -28,18 +32,20 @@ import com.google.common.primitives.UnsignedBytes;
  *
  * @author jtamer
  */
-@JsonDeserialize(as=ByteArrayLockDescriptor.class)
-public abstract class LockDescriptor implements Comparable<LockDescriptor>, Serializable {
+@Immutable
+public class LockDescriptor implements Comparable<LockDescriptor>, Serializable {
     private static final long serialVersionUID = 1L;
-    protected final byte[] bytes;
+    private final byte[] bytes;
 
-    protected LockDescriptor(byte[] bytes) {
+    @JsonCreator
+    LockDescriptor(@JsonProperty("bytes") byte[] bytes) {
         this.bytes = bytes;
     }
 
-    /** Returns the ID of the read-write lock identified by this descriptor. */
     @JsonIgnore
-    public abstract String getLockId();
+    public String getLockIdAsString() {
+        return new String(bytes, Charsets.UTF_8);
+    }
 
     @Override
     public int compareTo(LockDescriptor o) {
@@ -48,7 +54,7 @@ public abstract class LockDescriptor implements Comparable<LockDescriptor>, Seri
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " [" + getLockId() +"]";
+        return getClass().getSimpleName() + " [" + getLockIdAsString() +"]";
     }
 
     public byte[] getBytes() {
