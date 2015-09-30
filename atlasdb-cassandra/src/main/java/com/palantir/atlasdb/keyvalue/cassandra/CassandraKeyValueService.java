@@ -247,12 +247,12 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     tablesToUpgrade.put(tableName, clusterSideMetadata);
                 }
             } else if (!tableName.equals(CassandraConstants.METADATA_TABLE)) { // only expected case
-                // Possible to get here from a race condition with another dispatch starting up and performing schema upgrades concurrent with us doing this check
-                throw new RuntimeException(new UpgradeFailedException("Found a table " + tableName + " that did not have persisted AtlasDB metadata. If you recently did a Palantir update, try waiting until schema upgrades are completed on all backend CLIs/dispatches etc and restarting this service. If this error re-occurs on subsequent attempted startups, please contact Palantir support."));
+                // Possible to get here from a race condition with another server starting up and performing schema upgrades concurrent with us doing this check
+                throw new RuntimeException(new UpgradeFailedException("Found a table " + tableName + " that did not have persisted AtlasDB metadata. If you recently did a Palantir update, try waiting until schema upgrades are completed on all backend servers and restarting this service."));
             }
         }
 
-        // we are racing another dispatch to do these same operations here, but they are idempotent / safe
+        // we are racing another server to do these same operations here, but they are idempotent / safe
         putMetadataForTables(tablesToUpgrade);
     }
 
@@ -1077,7 +1077,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     private void trySchemaMutationLock() throws InterruptedException, TimeoutException {
         if (!schemaMutationLock.tryLock(CassandraConstants.SECONDS_TO_WAIT_FOR_SCHEMA_MUTATION_LOCK, TimeUnit.SECONDS)) {
-            throw new TimeoutException("AtlasDB was unable to get a lock on Cassandra system schema mutations for your cluster. Likely cause: Dispatch(es) performing heavy schema mutations in parallel, or extremely heavy Cassandra cluster load.");
+            throw new TimeoutException("AtlasDB was unable to get a lock on Cassandra system schema mutations for your cluster. Likely cause: performing heavy schema mutations in parallel, or extremely heavy Cassandra cluster load.");
         }
     }
 
