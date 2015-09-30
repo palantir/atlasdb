@@ -29,6 +29,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.table.description.RowNamePartitioner;
@@ -154,7 +155,8 @@ public class TableMigrator {
      */
     private List<byte[]> getRangeBoundaries() {
         Set<byte[]> rangeBoundaries = Sets.newHashSet();
-        rangeBoundaries.add(new byte[0]);
+        // Must use PtBytes.EMPTY_BYTE_ARRAY to avoid duplicate when adding from UniformRowNamePartitioner
+        rangeBoundaries.add(PtBytes.EMPTY_BYTE_ARRAY);
 
         if (partitioners.isEmpty()) {
             rangeBoundaries.addAll(new UniformRowNamePartitioner(ValueType.FIXED_LONG).getPartitions(partitions));
@@ -168,7 +170,7 @@ public class TableMigrator {
         }
 
         List<byte[]> sortedBoundaries = Ordering.from(UnsignedBytes.lexicographicalComparator()).sortedCopy(rangeBoundaries);
-        sortedBoundaries.add(new byte[0]);
+        sortedBoundaries.add(PtBytes.EMPTY_BYTE_ARRAY);
         return sortedBoundaries;
     }
 

@@ -15,14 +15,10 @@
  */
 package com.palantir.atlasdb.schema;
 
-import java.io.Serializable;
-
 import com.google.common.base.Preconditions;
 
 
-public class TableReference implements Serializable {
-    private static final long serialVersionUID = 1L;
-
+public class TableReference {
     private final Namespace namespace;
     private final String tablename;
 
