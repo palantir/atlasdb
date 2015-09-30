@@ -141,7 +141,7 @@ import com.google.common.base.Preconditions;
     }
 
     public String toString(long currentTimeMillis) {
-        return MoreObjects.toStringHelper(this)
+        return MoreObjects.toStringHelper(getClass().getSimpleName())
                 .add("tokenId", tokenId.toString(Character.MAX_RADIX))
                 .add("client", client)
                 .add("createdAt", SimpleTimeDuration.of(creationDateMs, TimeUnit.MILLISECONDS))
