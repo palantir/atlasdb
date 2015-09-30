@@ -51,7 +51,7 @@ public class StreamTables {
                 value(ValueType.VAR_LONG);
             conflictHandler(ConflictHandler.IGNORE_ALL);
             maxValueSize(1);
-            dbCompressionRequested();
+            explicitCompressionRequested();
             expirationStrategy(expirationStrategy);
         }};
     }
@@ -68,7 +68,7 @@ public class StreamTables {
                 value(ValueType.VAR_LONG);
             conflictHandler(ConflictHandler.IGNORE_ALL);
             maxValueSize(1);
-            dbCompressionRequested();
+            explicitCompressionRequested();
             negativeLookups();
             expirationStrategy(expirationStrategy);
         }};
@@ -128,7 +128,7 @@ public class StreamTables {
                 column("metadata", "md",        StreamPersistence.StreamMetadata.class);
             maxValueSize(64);
             conflictHandler(ConflictHandler.RETRY_ON_VALUE_CHANGED);
-            dbCompressionRequested();
+            explicitCompressionRequested();
             negativeLookups();
             expirationStrategy(expirationStrategy);
         }};

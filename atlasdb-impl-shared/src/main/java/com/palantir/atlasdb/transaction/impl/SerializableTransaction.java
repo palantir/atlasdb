@@ -30,8 +30,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
-import javax.annotation.Nullable;
-
 import org.apache.commons.lang.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -348,7 +346,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                         // We want to filter out all our reads to just the set that matches our column selection.
                         orignalReads = Maps.filterKeys(orignalReads, new Predicate<Cell>() {
                             @Override
-                            public boolean apply(@Nullable Cell input) {
+                            public boolean apply(Cell input) {
                                 return cols.contains(input.getColumnName());
                             }
                         });
@@ -427,7 +425,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                     range = range.getBuilder().endRowExclusive(RangeRequests.getNextStartRow(range.isReverse(), rangeEnd)).build();
                 }
 
-                final ConcurrentNavigableMap<Cell, byte[]> writes = writesByTable.get(e);
+                final ConcurrentNavigableMap<Cell, byte[]> writes = writesByTable.get(table);
                 BatchingVisitableView<RowResult<byte[]>> bv = BatchingVisitableView.of(ro.getRange(table, range));
                 NavigableMap<Cell, ByteBuffer> readsInRange = Maps.transformValues(getReadsInRange(table, e, range),
                         new Function<byte[], ByteBuffer>() {
@@ -469,7 +467,7 @@ public class SerializableTransaction extends SnapshotTransaction {
         if (range.getEndExclusive().length != 0) {
             reads = reads.headMap(Cells.createSmallestCellForRow(range.getEndExclusive()), false);
         }
-        ConcurrentNavigableMap<Cell, byte[]> writes = writesByTable.get(e);
+        ConcurrentNavigableMap<Cell, byte[]> writes = writesByTable.get(table);
         if (writes != null) {
             reads = Maps.filterKeys(reads, Predicates.not(Predicates.in(writes.keySet())));
         }
@@ -491,7 +489,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                 Collections.<LockRefreshToken>emptyList(),
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 transactionReadTimeoutMillis,
-                readSentinelBehavior,
+                getReadSentinelBehavior(),
                 allowHiddenTableAccess) {
             @Override
             protected Map<Long, Long> getCommitTimestamps(String tableName,

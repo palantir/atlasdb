@@ -96,7 +96,7 @@ public class NameComponentDescription {
         builder.setOrder(getOrder());
         builder.setHasUniformPartitioner(uniformPartitioner != null);
         if (explicitPartitioner != null) {
-            builder.addAllExplicitParitions(explicitPartitioner.values);
+            builder.addAllExplicitPartitions(explicitPartitioner.values);
         }
         return builder;
     }
@@ -108,8 +108,8 @@ public class NameComponentDescription {
             u = message.getHasUniformPartitioner() ? new UniformRowNamePartitioner(type) : null;
         }
         ExplicitRowNamePartitioner e = null;
-        if (message.getExplicitParitionsCount() > 0) {
-            new ExplicitRowNamePartitioner(type, message.getExplicitParitionsList());
+        if (message.getExplicitPartitionsCount() > 0) {
+            e = new ExplicitRowNamePartitioner(type, message.getExplicitPartitionsList());
         }
         return new NameComponentDescription(message.getComponentName(), type, message.getOrder(), u, e);
     }

@@ -20,8 +20,6 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -118,14 +116,14 @@ public class SchemaUpdaterImpl implements SchemaUpdater {
     public void changeRowName(String srcTable,
                               String destTable,
                               final Function<byte[], byte[]> rowNameTransform) {
-        String fullSrcTable = Schemas.getFullTableName(srcTable, namespace);
-        String fullDestTable = Schemas.getFullTableName(destTable, namespace);
+        String fullSrcTable = getFullTableName(srcTable);
+        String fullDestTable = getFullTableName(destTable);
         Preconditions.checkArgument(kvs.getAllTableNames().contains(fullSrcTable), "src table " + fullSrcTable + " does not exist");
         Preconditions.checkArgument(!fullSrcTable.equals(fullDestTable), "src and dest tables may not be equal");
 
         Function<RowResult<byte[]>, Map<Cell, byte[]>> rowTransformer = new Function<RowResult<byte[]>, Map<Cell,byte[]>>() {
             @Override
-            public Map<Cell, byte[]> apply(@Nullable RowResult<byte[]> input) {
+            public Map<Cell, byte[]> apply(RowResult<byte[]> input) {
                 RowResult<byte[]> newRow = RowResult.create(rowNameTransform.apply(input.getRowName()), input.getColumns());
                 return Maps2.fromEntries(newRow.getCells());
             }
@@ -142,8 +140,8 @@ public class SchemaUpdaterImpl implements SchemaUpdater {
                           String destTable,
                           Function<RowResult<byte[]>, Map<Cell, byte[]>> rowTransformer,
                           ColumnSelection columnSelection) {
-        String fullSrcTable = Schemas.getFullTableName(srcTable, namespace);
-        String fullDestTable = Schemas.getFullTableName(destTable, namespace);
+        String fullSrcTable = getFullTableName(srcTable);
+        String fullDestTable = getFullTableName(destTable);
         Preconditions.checkState(!ranCopyTable.getAndSet(true), "Cannot copy two tables in the same upgrade task");
 
         byte[] metadata = kvs.getMetadataForTable(fullSrcTable);
@@ -204,5 +202,12 @@ public class SchemaUpdaterImpl implements SchemaUpdater {
     @Override
     public void resetIndexMetadata(AtlasSchema schema, String indexName) {
         delegate.resetIndexMetadata(schema, indexName);
+    }
+
+    private String getFullTableName(String tableName) {
+        if (tableName.startsWith(namespace.getName() + '.')) {
+            return tableName;
+        }
+        return Schemas.getFullTableName(tableName, namespace);
     }
 }

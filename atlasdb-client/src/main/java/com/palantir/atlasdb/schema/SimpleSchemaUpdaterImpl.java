@@ -59,25 +59,25 @@ public class SimpleSchemaUpdaterImpl implements SimpleSchemaUpdater {
 
     @Override
     public void updateTableMetadata(String tableName, TableDefinition definition) {
-        String fullTableName = Schemas.getFullTableName(tableName, namespace);
+        String fullTableName = getFullTableName(tableName);
         Schemas.createTable(kvs, fullTableName, definition);
     }
 
     @Override
     public void updateIndexMetadata(String indexName, IndexDefinition definition) {
-        String trueIndexName = Schemas.getFullTableName(Schemas.appendIndexSuffix(indexName, definition), namespace);
+        String trueIndexName = getFullTableName(Schemas.appendIndexSuffix(indexName, definition));
         Schemas.createIndex(kvs, trueIndexName, definition);
     }
 
     private void deleteTableMetadata(String tableName) {
-        String fullTableName = Schemas.getFullTableName(tableName, namespace);
+        String fullTableName = getFullTableName(tableName);
         kvs.dropTable(fullTableName);
     }
 
     private void deleteIndexMetadata(final String indexName) {
         Set<String> tableNames = kvs.getAllTableNames();
         for(IndexType type : IndexType.values()) {
-            String trueIndexName = Schemas.getFullTableName(indexName + type.getIndexSuffix(), namespace);
+            String trueIndexName = getFullTableName(indexName + type.getIndexSuffix());
             // This should only happen once - enforced by Schema.validateIndex()
             if (tableNames.contains(trueIndexName)) {
                 kvs.dropTable(trueIndexName);
@@ -88,7 +88,7 @@ public class SimpleSchemaUpdaterImpl implements SimpleSchemaUpdater {
 
     @Override
     public boolean tableExists(String tableName) {
-        String fullTableName = Schemas.getFullTableName(tableName, namespace);
+        String fullTableName = getFullTableName(tableName);
         return kvs.getAllTableNames().contains(fullTableName);
     }
 
@@ -106,5 +106,12 @@ public class SimpleSchemaUpdaterImpl implements SimpleSchemaUpdater {
     @Override
     public void resetIndexMetadata(AtlasSchema schema, String indexName) {
         Schemas.createIndex(schema.getLatestSchema(), kvs, indexName);
+    }
+
+    private String getFullTableName(String tableName) {
+        if (tableName.startsWith(namespace.getName() + '.')) {
+            return tableName;
+        }
+        return Schemas.getFullTableName(tableName, namespace);
     }
 }

@@ -19,6 +19,7 @@ import java.util.List;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.palantir.atlasdb.encoding.PtBytes;
 
 public class UniformRowNamePartitioner implements RowNamePartitioner {
     final ValueType valueType;
@@ -84,7 +85,11 @@ public class UniformRowNamePartitioner implements RowNamePartitioner {
         for (int i = 0 ; i < numberRanges ; i++) {
             long val = increment * i;
             if (isVarLong()) {
-                ret.add(valueType.convertFromJava(val));
+                if (val == 0L) {
+                    ret.add(PtBytes.EMPTY_BYTE_ARRAY);
+                } else {
+                    ret.add(valueType.convertFromJava(val));
+                }
             } else if (isNullable()) {
                 if (val == 0L) {
                     ret.add(valueType.convertFromJava(null));

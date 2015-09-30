@@ -42,7 +42,8 @@
 /instance/org.eclipse.jdt.ui/org.eclipse.jdt.ui.typefilter.enabled=org.apache.hadoop.thirdparty.*;\
 org.elasticsearch.common.*;\
 com.bookkeeper_jarjar.*;\
-*shaded*;
+*shaded*;\
+com.impossibl.postgres.utils.guava.*;
 
 #
 # Set up the appropriate JREs, and set the correct default VM arguments.
@@ -529,3 +530,7 @@ file_export_version=3.0
 # for each run configuration by going to run configurations->classpath->[user entry]->edit
 #
 /instance/org.eclipse.jdt.launching/org.eclipse.jdt.launching.only_include_exported_classpath_entries=true
+
+# Ignore .gitkeep files (show up as "duplicate resource" warnings because they often have the same contents / go to the same place)
+/instance/org.eclipse.jdt.core/org.eclipse.jdt.core.builder.resourceCopyExclusionFilter=*.launch,.gitkeep
+

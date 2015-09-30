@@ -60,8 +60,24 @@ import com.palantir.lock.LockRequest;
 public class TableTasks {
     private static final Logger log = LoggerFactory.getLogger(TableTasks.class);
 
+    public static class CopyStats {
+        private final AtomicLong rowsCopied;
+        private final AtomicLong cellsCopied;
+
+        public CopyStats(AtomicLong rowsCopied,
+                         AtomicLong cellsCopied) {
+            this.rowsCopied = rowsCopied;
+            this.cellsCopied = cellsCopied;
+        }
+    }
+
+    private static class PartialCopyStats {
+        private long rowsCopied = 0;
+        private long cellsCopied = 0;
+    }
+
     private static interface CopyTask {
-        long call(RangeRequest request, MutableRange range) throws InterruptedException;
+        PartialCopyStats call(RangeRequest request, MutableRange range) throws InterruptedException;
     }
 
     public static void copy(final TransactionManager txManager,
@@ -70,13 +86,13 @@ public class TableTasks {
                             final String dstTable,
                             int batchSize,
                             int threadCount,
-                            @Output AtomicLong counter) throws InterruptedException {
-        copyExternal(exec, srcTable, dstTable, batchSize, threadCount, counter, new CopyTask() {
+                            @Output CopyStats stats) throws InterruptedException {
+        copyExternal(exec, srcTable, dstTable, batchSize, threadCount, stats, new CopyTask() {
             @Override
-            public long call(final RangeRequest request, final MutableRange range) {
-                return txManager.runTaskWithRetry(new RuntimeTransactionTask<Long>() {
+            public PartialCopyStats call(final RangeRequest request, final MutableRange range) {
+                return txManager.runTaskWithRetry(new RuntimeTransactionTask<PartialCopyStats>() {
                     @Override
-                    public Long execute(final Transaction t) {
+                    public PartialCopyStats execute(final Transaction t) {
                         return copyInternal(t, srcTable, dstTable, request, range);
                     }
                 });
@@ -91,14 +107,14 @@ public class TableTasks {
                             final String dstTable,
                             int batchSize,
                             int threadCount,
-                            @Output AtomicLong counter) throws InterruptedException {
-        copyExternal(exec, srcTable, dstTable, batchSize, threadCount, counter, new CopyTask() {
+                            @Output CopyStats stats) throws InterruptedException {
+        copyExternal(exec, srcTable, dstTable, batchSize, threadCount, stats, new CopyTask() {
             @Override
-            public long call(final RangeRequest request, final MutableRange range) throws InterruptedException {
+            public PartialCopyStats call(final RangeRequest request, final MutableRange range) throws InterruptedException {
                 return txManager.runTaskWithLocksWithRetry(lockTokens, Suppliers.<LockRequest>ofInstance(null),
-                        new LockAwareTransactionTask<Long, RuntimeException>() {
+                        new LockAwareTransactionTask<PartialCopyStats, RuntimeException>() {
                     @Override
-                    public Long execute(Transaction t, Iterable<LockRefreshToken> heldLocks) {
+                    public PartialCopyStats execute(Transaction t, Iterable<LockRefreshToken> heldLocks) {
                         return copyInternal(t, srcTable, dstTable, request, range);
                     }
                 });
@@ -111,7 +127,7 @@ public class TableTasks {
                                     final String dstTable,
                                     int batchSize,
                                     int threadCount,
-                                    final AtomicLong counter,
+                                    final CopyStats stats,
                                     final CopyTask task) throws InterruptedException {
         BlockingWorkerPool pool = new BlockingWorkerPool(exec, threadCount);
         for (final MutableRange range : getRanges(threadCount, batchSize)) {
@@ -122,10 +138,12 @@ public class TableTasks {
                         final RangeRequest request = range.getRangeRequest();
                         try {
                             long startTime = System.currentTimeMillis();
-                            long numCopied = task.call(request, range);
-                            counter.addAndGet(numCopied);
-                            log.info("Copied {} rows from {} to {} in {} ms.",
-                                    numCopied,
+                            PartialCopyStats partialStats = task.call(request, range);
+                            stats.rowsCopied.addAndGet(partialStats.rowsCopied);
+                            stats.cellsCopied.addAndGet(partialStats.cellsCopied);
+                            log.info("Copied {} rows, {} cells from {} to {} in {} ms.",
+                                    partialStats.rowsCopied,
+                                    partialStats.cellsCopied,
                                     srcTable,
                                     dstTable,
                                     System.currentTimeMillis() - startTime);
@@ -139,12 +157,12 @@ public class TableTasks {
         pool.waitForSubmittedTasks();
     }
 
-    private static long copyInternal(final Transaction t,
-                                     final String srcTable,
-                                     final String dstTable,
-                                     RangeRequest request,
-                                     final MutableRange range) {
-        final AtomicLong numCopied = new AtomicLong();
+    private static PartialCopyStats copyInternal(final Transaction t,
+                                                 final String srcTable,
+                                                 final String dstTable,
+                                                 RangeRequest request,
+                                                 final MutableRange range) {
+        final PartialCopyStats stats = new PartialCopyStats();
         boolean isEmpty = t.getRange(srcTable, request).batchAccept(range.getBatchSize(),
                 new AbortingVisitor<List<RowResult<byte[]>>, RuntimeException>() {
             @Override
@@ -162,14 +180,15 @@ public class TableTasks {
                     range.setStartRow(RangeRequests.nextLexicographicName(lastRow));
                 }
                 t.put(dstTable, entries);
-                numCopied.set(entries.size());
+                stats.rowsCopied = batch.size();
+                stats.cellsCopied = entries.size();
                 return false;
             }
         });
         if (isEmpty) {
             range.setStartRow(null);
         }
-        return numCopied.get();
+        return stats;
     }
 
     public static long estimateSize(Transaction t,
@@ -198,14 +217,35 @@ public class TableTasks {
     }
 
     public static class DiffStats {
-        private final AtomicLong itemsOnlyInSource;
-        private final AtomicLong itemsInCommon;
+        private final AtomicLong rowsOnlyInSource;
+        private final AtomicLong rowsPartiallyInCommon;
+        private final AtomicLong rowsCompletelyInCommon;
+        private final AtomicLong cellsOnlyInSource;
+        private final AtomicLong cellsInCommon;
 
-        public DiffStats(AtomicLong itemsOnlyInSource,
-                         AtomicLong itemsInCommon) {
-            this.itemsOnlyInSource = itemsOnlyInSource;
-            this.itemsInCommon = itemsInCommon;
+        public DiffStats(AtomicLong rowsOnlyInSource,
+                         AtomicLong rowsPartiallyInCommon,
+                         AtomicLong rowsCompletelyInCommon,
+                         AtomicLong cellsOnlyInSource,
+                         AtomicLong cellsInCommon) {
+            this.rowsOnlyInSource = rowsOnlyInSource;
+            this.rowsPartiallyInCommon = rowsPartiallyInCommon;
+            this.rowsCompletelyInCommon = rowsCompletelyInCommon;
+            this.cellsOnlyInSource = cellsOnlyInSource;
+            this.cellsInCommon = cellsInCommon;
         }
+    }
+
+    public static class PartialDiffStats {
+        private long rowsOnlyInSource;
+        private long rowsPartiallyInCommon;
+        private long rowsCompletelyInCommon;
+        private long cellsOnlyInSource;
+        private long cellsInCommon;
+    }
+
+    private static interface DiffTask {
+        PartialDiffStats call(RangeRequest request, MutableRange range, DiffStrategy strategy) throws InterruptedException;
     }
 
     public static interface DiffVisitor {
@@ -218,15 +258,15 @@ public class TableTasks {
                             final String minusTable,
                             int batchSize,
                             int threadCount,
-                            @Output DiffStats counter,
+                            @Output DiffStats stats,
                             final DiffVisitor visitor) throws InterruptedException {
-        diffExternal(txManager, exec, plusTable, minusTable, batchSize, threadCount, counter, new DiffTask() {
+        diffExternal(txManager, exec, plusTable, minusTable, batchSize, threadCount, stats, new DiffTask() {
             @Override
-            public DiffStats call(final RangeRequest request, final MutableRange range, final DiffStrategy strategy)
+            public PartialDiffStats call(final RangeRequest request, final MutableRange range, final DiffStrategy strategy)
                     throws InterruptedException {
-                return txManager.runTaskWithRetry(new RuntimeTransactionTask<DiffStats>() {
+                return txManager.runTaskWithRetry(new RuntimeTransactionTask<PartialDiffStats>() {
                     @Override
-                    public DiffStats execute(final Transaction t) {
+                    public PartialDiffStats execute(final Transaction t) {
                         return diffInternal(t, plusTable, minusTable, request, range, strategy, visitor);
                     }
                 });
@@ -241,25 +281,26 @@ public class TableTasks {
                             final String minusTable,
                             final int batchSize,
                             int threadCount,
-                            @Output DiffStats counter,
+                            @Output DiffStats stats,
                             final DiffVisitor visitor) throws InterruptedException {
-        diffExternal(txManager, exec, plusTable, minusTable, batchSize, threadCount, counter, new DiffTask() {
+        diffExternal(txManager, exec, plusTable, minusTable, batchSize, threadCount, stats, new DiffTask() {
             @Override
-            public DiffStats call(final RangeRequest request, final MutableRange range, final DiffStrategy strategy)
+            public PartialDiffStats call(final RangeRequest request, final MutableRange range, final DiffStrategy strategy)
                     throws InterruptedException {
                 return txManager.runTaskWithLocksWithRetry(lockTokens, Suppliers.<LockRequest>ofInstance(null),
-                        new LockAwareTransactionTask<DiffStats, RuntimeException>() {
+                        new LockAwareTransactionTask<PartialDiffStats, RuntimeException>() {
                     @Override
-                    public DiffStats execute(Transaction t, Iterable<LockRefreshToken> heldLocks) {
+                    public PartialDiffStats execute(Transaction t, Iterable<LockRefreshToken> heldLocks) {
                         return diffInternal(t, plusTable, minusTable, request, range, strategy, visitor);
+                    }
+
+                    @Override
+                    public String toString() {
+                        return "diff(" + request + ',' + strategy + ')';
                     }
                 });
             }
         });
-    }
-
-    private static interface DiffTask {
-        DiffStats call(RangeRequest request, MutableRange range, DiffStrategy strategy) throws InterruptedException;
     }
 
     private static void diffExternal(final TransactionManager txManager,
@@ -268,7 +309,7 @@ public class TableTasks {
                                      final String minusTable,
                                      final int batchSize,
                                      int threadCount,
-                                     final DiffStats counter,
+                                     final DiffStats stats,
                                      final DiffTask task) throws InterruptedException {
         final DiffStrategy strategy = getDiffStrategy(txManager, plusTable, minusTable, batchSize);
         BlockingWorkerPool pool = new BlockingWorkerPool(exec, threadCount);
@@ -280,15 +321,29 @@ public class TableTasks {
                         final RangeRequest request = range.getRangeRequest();
                         try {
                             long startTime = System.currentTimeMillis();
-                            DiffStats partialStats = task.call(request, range, strategy);
-                            counter.itemsInCommon.addAndGet(partialStats.itemsInCommon.get());
-                            counter.itemsOnlyInSource.addAndGet(partialStats.itemsOnlyInSource.get());
-                            log.info("Processed diff of {} rows only in source and {} rows in common between {} and {} in {} ms.",
-                                    partialStats.itemsInCommon,
-                                    partialStats.itemsOnlyInSource,
-                                    plusTable,
-                                    minusTable,
-                                    System.currentTimeMillis() - startTime);
+                            PartialDiffStats partialStats = task.call(request, range, strategy);
+                            stats.rowsOnlyInSource.addAndGet(partialStats.rowsOnlyInSource);
+                            stats.rowsPartiallyInCommon.addAndGet(partialStats.rowsPartiallyInCommon);
+                            stats.rowsCompletelyInCommon.addAndGet(partialStats.rowsCompletelyInCommon);
+                            stats.cellsOnlyInSource.addAndGet(partialStats.cellsOnlyInSource);
+                            stats.cellsInCommon.addAndGet(partialStats.cellsInCommon);
+                            if (log.isInfoEnabled()) {
+                                log.info("Processed diff of " +
+                                        "{} rows only in source " +
+                                        "{} rows partially in common " +
+                                        "{} rows completely in common " +
+                                        "{} cells only in source " +
+                                        "{} cells in common " +
+                                        "between {} and {} in {} ms.",
+                                        partialStats.rowsOnlyInSource,
+                                        partialStats.rowsPartiallyInCommon,
+                                        partialStats.rowsCompletelyInCommon,
+                                        partialStats.cellsOnlyInSource,
+                                        partialStats.cellsInCommon,
+                                        plusTable,
+                                        minusTable,
+                                        System.currentTimeMillis() - startTime);
+                            }
                         } catch (InterruptedException e) {
                             throw Throwables.rewrapAndThrowUncheckedException(e);
                         }
@@ -315,20 +370,23 @@ public class TableTasks {
         return strategy;
     }
 
-    private static DiffStats diffInternal(final Transaction t,
-                                          String plusTable,
-                                          final String minusTable,
-                                          final RangeRequest request,
-                                          final MutableRange range,
-                                          final DiffStrategy strategy,
-                                          final DiffVisitor visitor) {
-        final DiffStats partialStats = new DiffStats(new AtomicLong(), new AtomicLong());
+    private static PartialDiffStats diffInternal(final Transaction t,
+                                                 String plusTable,
+                                                 final String minusTable,
+                                                 final RangeRequest request,
+                                                 final MutableRange range,
+                                                 final DiffStrategy strategy,
+                                                 final DiffVisitor visitor) {
+        final PartialDiffStats partialStats = new PartialDiffStats();
         boolean isEmpty = t.getRange(plusTable, request).batchAccept(range.getBatchSize(),
                 new AbortingVisitor<List<RowResult<byte[]>>, RuntimeException>() {
             @Override
             public boolean visit(List<RowResult<byte[]>> batch) {
-                partialStats.itemsInCommon.set(0);
-                partialStats.itemsOnlyInSource.set(0);
+                partialStats.rowsOnlyInSource = 0;
+                partialStats.rowsPartiallyInCommon = 0;
+                partialStats.rowsCompletelyInCommon = 0;
+                partialStats.cellsOnlyInSource = 0;
+                partialStats.cellsInCommon = 0;
                 byte[] lastRow = batch.get(batch.size() - 1).getRowName();
                 if (batch.size() < batch.size()) {
                     range.setStartRow(null);
@@ -384,41 +442,70 @@ public class TableTasks {
 
     private static Iterator<Cell> diffInternal(final Iterable<Cell> plus,
                                                final Iterable<Cell> minus,
-                                               final DiffStats partialStats) {
+                                               final PartialDiffStats partialStats) {
         return new AbstractIterator<Cell>() {
             private final Iterator<Cell> plusIter = plus.iterator();
             private final Iterator<Cell> minusIter = minus.iterator();
-            private Cell currPlus = null;
-            private Cell currMinus = null;
+            private byte[] currKey;
+            private boolean keyOnlyInSource;
+            private boolean keyInCommon;
+            private Cell currPlus;
+            private Cell currMinus;
             @Override
             protected Cell computeNext() {
                 currPlus = null;
                 while (true) {
                     if (currPlus == null) {
                         if (!plusIter.hasNext()) {
+                            recordStats();
                             return endOfData();
                         }
                         currPlus = plusIter.next();
                     }
+                    if (!matches(currPlus, currKey)) {
+                        recordStats();
+                        keyOnlyInSource = false;
+                        keyInCommon = false;
+                    }
+                    currKey = currPlus.getRowName();
                     if (currMinus == null) {
                         if (!minusIter.hasNext()) {
-                            partialStats.itemsOnlyInSource.incrementAndGet();
-                            return currPlus;
+                            return onlyInSource();
                         }
                         currMinus = minusIter.next();
                     }
                     int comparison = currPlus.compareTo(currMinus);
                     if (comparison < 0) {
-                        partialStats.itemsOnlyInSource.incrementAndGet();
-                        return currPlus;
+                        return onlyInSource();
                     } else if (comparison > 0) {
                         currMinus = null;
                     } else {
-                        partialStats.itemsInCommon.incrementAndGet();
+                        keyInCommon = true;
+                        partialStats.cellsInCommon++;
                         currPlus = null;
                         currMinus = null;
                     }
                 }
+            }
+
+            private Cell onlyInSource() {
+                keyOnlyInSource = true;
+                partialStats.cellsOnlyInSource++;
+                return currPlus;
+            }
+
+            private void recordStats() {
+                if (!keyOnlyInSource) {
+                    partialStats.rowsCompletelyInCommon++;
+                } else if (keyInCommon) {
+                    partialStats.rowsPartiallyInCommon++;
+                } else {
+                    partialStats.rowsOnlyInSource++;
+                }
+            }
+
+            private boolean matches(Cell cell, byte[] key) {
+                return key == null || UnsignedBytes.lexicographicalComparator().compare(cell.getRowName(), key) == 0;
             }
         };
     }

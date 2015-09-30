@@ -253,8 +253,12 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             }
         }
 
-        // we are racing another server to do these same operations here, but they are idempotent / safe
-        putMetadataForTables(tablesToUpgrade);
+        // we are racing another dispatch to do these same operations here, but they are idempotent / safe
+        if (!tablesToUpgrade.isEmpty()) {
+            putMetadataForTables(tablesToUpgrade);
+        } else {
+            CassandraKeyValueServices.failQuickInInitializationIfClusterAlreadyInInconsistentState(client, safetyDisabled);
+        }
     }
 
     private void lowerConsistencyWhenSafe(Client client, KsDef ks, int desiredRf) {

@@ -44,9 +44,9 @@ public final class Schemas {
         Map<String, Integer> fullIndexNameToMaxValueSize = Maps.newHashMapWithExpectedSize(fullIndexNameToDefinition.size());
         Map<String, byte[]> fullIndexNameToMetadata = Maps.newHashMapWithExpectedSize(fullIndexNameToDefinition.size());
 
-        for (String indexName : fullIndexNameToDefinition.keySet()) {
-            fullIndexNameToMaxValueSize.put(indexName, fullIndexNameToDefinition.get(indexName).getMaxValueSize());
-            fullIndexNameToMetadata.put(indexName, fullIndexNameToDefinition.get(indexName).toIndexMetadata(indexName).getTableMetadata().persistToBytes());
+        for (Entry<String, IndexDefinition> indexEntry : fullIndexNameToDefinition.entrySet()) {
+            fullIndexNameToMaxValueSize.put(indexEntry.getKey(), indexEntry.getValue().getMaxValueSize());
+            fullIndexNameToMetadata.put(indexEntry.getKey(), indexEntry.getValue().toIndexMetadata(indexEntry.getKey()).getTableMetadata().persistToBytes());
         }
 
         kvs.createTables(fullIndexNameToMaxValueSize);
@@ -61,9 +61,9 @@ public final class Schemas {
         Map<String, Integer> fullTableNameToMaxValueSize = Maps.newHashMapWithExpectedSize(fullTableNameToDefinition.size());
         Map<String, byte[]> fullTableNameToMetadata = Maps.newHashMapWithExpectedSize(fullTableNameToDefinition.size());
 
-        for (String tableName : fullTableNameToDefinition.keySet()) {
-            fullTableNameToMaxValueSize.put(tableName, fullTableNameToDefinition.get(tableName).getMaxValueSize());
-            fullTableNameToMetadata.put(tableName, fullTableNameToDefinition.get(tableName).toTableMetadata().persistToBytes());
+        for (Entry<String, TableDefinition> tableEntry : fullTableNameToDefinition.entrySet()) {
+            fullTableNameToMaxValueSize.put(tableEntry.getKey(), tableEntry.getValue().getMaxValueSize());
+            fullTableNameToMetadata.put(tableEntry.getKey(), tableEntry.getValue().toTableMetadata().persistToBytes());
         }
 
         kvs.createTables(fullTableNameToMaxValueSize);
@@ -71,7 +71,7 @@ public final class Schemas {
     }
 
     public static String getFullTableName(String tableName, Namespace namespace) {
-        isTableNameValid(tableName);
+        Preconditions.checkArgument(isTableNameValid(tableName), "%s is not a valid table name", tableName);
         String namespaceName = namespace.getName();
         // Hacks for schemas that were created before namespaces were created.
         if (namespace.isEmptyNamespace() || namespaceName.equals("met")) {
