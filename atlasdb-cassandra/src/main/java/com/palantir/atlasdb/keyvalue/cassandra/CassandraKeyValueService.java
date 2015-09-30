@@ -170,17 +170,18 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         // we already did our init in our factory method
     }
 
-    protected void initializeFromFreshInstance(List<IpAndPort> addrList, int replicationFactor) {
+    protected void initializeFromFreshInstance(List<String> addrList, int replicationFactor) {
         Map<String, Throwable> errorsByHost = Maps.newHashMap();
 
+        int port = config.port();
         String keyspace = config.keyspace();
         boolean safetyDisabled = config.safetyDisabled();
         int socketTimeoutMillis = config.socketTimeoutMillis();
         int socketQueryTimeoutMillis = config.socketQueryTimeoutMillis();
-        for (IpAndPort addr : addrList) {
+        for (String addr : addrList) {
             Cassandra.Client client = null;
             try {
-                client = CassandraKeyValueServices.getClientInternal(addr, config.ssl());
+                client = CassandraKeyValueServices.getClientInternal(addr, port, config.ssl());
                 String partitioner = client.describe_partitioner();
                 if (safetyDisabled) {
                     Validate.isTrue(CassandraConstants.PARTITIONER.equals(partitioner)
@@ -194,7 +195,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     // need to create key space
                 }
 
-                Set<IpAndPort> currentHosts = cassandraClientPoolingManager.getCurrentHostsFromServer(client);
+                Set<String> currentHosts = cassandraClientPoolingManager.getCurrentHostsFromServer(client);
                 cassandraClientPoolingManager.setHostsToCurrentHostNames(currentHosts);
                 if (ks != null) { // ks already exists
                     CassandraVerifier.checkAndSetReplicationFactor(client, ks, false, replicationFactor, safetyDisabled);
@@ -204,7 +205,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     client.system_update_keyspace(ks);
                     client.set_keyspace(keyspace);
                     createTableInternal(client, CassandraConstants.METADATA_TABLE);
-                    CassandraVerifier.sanityCheckRingConsistency(currentHosts, keyspace, config.ssl(), safetyDisabled, socketTimeoutMillis, socketQueryTimeoutMillis);
+                    CassandraVerifier.sanityCheckRingConsistency(currentHosts, port, keyspace, config.ssl(), safetyDisabled, socketTimeoutMillis, socketQueryTimeoutMillis);
 
                     upgradeFromOlderInternalSchema(client);
                     return;
@@ -217,7 +218,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 client.system_add_keyspace(ks);
                 client.set_keyspace(keyspace);
                 createTableInternal(client, CassandraConstants.METADATA_TABLE);
-                CassandraVerifier.sanityCheckRingConsistency(currentHosts, keyspace, config.ssl(), safetyDisabled, socketTimeoutMillis, socketQueryTimeoutMillis);
+                CassandraVerifier.sanityCheckRingConsistency(currentHosts, port, keyspace, config.ssl(), safetyDisabled, socketTimeoutMillis, socketQueryTimeoutMillis);
                 CassandraKeyValueServices.failQuickInInitializationIfClusterAlreadyInInconsistentState(client, safetyDisabled);
                 return;
             } catch (TException e) {

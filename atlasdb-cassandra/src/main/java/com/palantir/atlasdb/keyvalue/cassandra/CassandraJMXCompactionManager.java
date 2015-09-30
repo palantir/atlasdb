@@ -64,19 +64,19 @@ public final class CassandraJMXCompactionManager {
     private void initCompactionClients(CassandraKeyValueServiceConfig config){
         Preconditions.checkNotNull(config);
 
-        Set<IpAndPort> hosts = config.servers();
+        Set<String> hosts = config.servers();
         Preconditions.checkState(!hosts.isEmpty(), "address list should not be empty");
         String jmxUsername = config.jmxUsername();
         String jmxPassword = config.jmxPassword();
         int jmxPort = config.jmxPort();
         boolean isJmxSslEnabled = config.jmxSsl();
 
-        for (IpAndPort host : hosts) {
+        for (String host : hosts) {
             CassandraJMXCompaction client = null;
             if (isJmxSslEnabled) {
-                client = new CassandraJMXCompaction.Builder(host.getHost(), jmxPort).username(jmxUsername).password(jmxPassword).build();
+                client = new CassandraJMXCompaction.Builder(host, jmxPort).username(jmxUsername).password(jmxPassword).build();
             } else {
-                client = new CassandraJMXCompaction.Builder(host.getHost(), jmxPort).build();
+                client = new CassandraJMXCompaction.Builder(host, jmxPort).build();
             }
             if (client != null) {
                 compactionClients.add(client);

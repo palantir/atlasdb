@@ -28,7 +28,7 @@ public class CQLKeyValueServiceSerializableTransactionTest extends
     @Override
     protected KeyValueService getKeyValueService() {
         return CQLKeyValueService.create(ImmutableCassandraKeyValueServiceConfig.builder()
-                .addServers(IpAndPort.from(HostAndPort.fromHost("localhost").withDefaultPort(9160)))
+                .addServers("localhost")
                 .port(9160)
                 .poolSize(20)
                 .keyspace("atlasdb")
@@ -37,7 +37,7 @@ public class CQLKeyValueServiceSerializableTransactionTest extends
                 .mutationBatchCount(10000)
                 .mutationBatchSizeBytes(10000000)
                 .fetchBatchCount(1000)
-                .safetyDisabled(false)
+                .safetyDisabled(true)
                 .autoRefreshNodes(false)
                 .build());
     }

@@ -85,11 +85,11 @@ public class CassandraClientPoolingManager {
         });
     }
 
-    public void setHostsToCurrentHostNames(Set<IpAndPort> hosts) {
+    public void setHostsToCurrentHostNames(Set<String> hosts) {
         containerPoolToUpdate.setNewHosts(ImmutableCassandraKeyValueServiceConfig.copyOf(config).withServers(hosts));
     }
 
-    public Set<IpAndPort> getCurrentHostsFromServer(Client c) throws TException {
+    public Set<String> getCurrentHostsFromServer(Client c) throws TException {
         Map<String, String> tokenMap;
         try {
             tokenMap = c.describe_token_map();
@@ -97,9 +97,9 @@ public class CassandraClientPoolingManager {
             throw Throwables.throwUncheckedException(e);
         }
 
-        Set<IpAndPort> currentHosts = new HashSet<IpAndPort>();
+        Set<String> currentHosts = new HashSet<String>();
         for (String host : tokenMap.values()) {
-            currentHosts.add(IpAndPort.from(HostAndPort.fromString(host).withDefaultPort(AtlasDbConstants.DEFAULT_CASSANDRA_PORT)));
+            currentHosts.add(host);
         }
 
         return currentHosts;

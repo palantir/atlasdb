@@ -17,12 +17,10 @@ package com.palantir.atlasdb.shell;
 
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
-import com.google.common.net.HostAndPort;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
-import com.palantir.atlasdb.keyvalue.cassandra.IpAndPort;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -79,7 +77,7 @@ public class DefaultAtlasShellContextFactory implements AtlasShellContextFactory
     @Override
     public AtlasContext withReadOnlyTransactionManagerCassandra(String host, String port, String keyspace) {
         CassandraKeyValueService kv = CassandraKeyValueService.create(ImmutableCassandraKeyValueServiceConfig.builder()
-                .addServers(IpAndPort.from(HostAndPort.fromHost(host).withDefaultPort(Integer.parseInt(port))))
+                .addServers(host)
                 .port(Integer.parseInt(port))
                 .poolSize(20)
                 .keyspace(keyspace)

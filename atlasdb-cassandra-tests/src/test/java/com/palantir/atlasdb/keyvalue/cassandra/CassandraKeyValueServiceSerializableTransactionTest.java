@@ -26,7 +26,7 @@ public class CassandraKeyValueServiceSerializableTransactionTest extends
     @Override
     protected KeyValueService getKeyValueService() {
         return CassandraKeyValueService.create(ImmutableCassandraKeyValueServiceConfig.builder()
-                .addServers(IpAndPort.from(HostAndPort.fromHost("localhost").withDefaultPort(9160)))
+                .addServers("localhost")
                 .port(9160)
                 .poolSize(20)
                 .keyspace("atlasdb")

@@ -32,7 +32,7 @@ public class CassandraTimestampTest {
     @Before
     public void setUp() {
         kv = CassandraKeyValueService.create(ImmutableCassandraKeyValueServiceConfig.builder()
-                .addServers(IpAndPort.from(HostAndPort.fromHost("localhost").withDefaultPort(9160)))
+                .addServers("localhost")
                 .port(9160)
                 .poolSize(20)
                 .keyspace("atlasdb")
@@ -41,7 +41,7 @@ public class CassandraTimestampTest {
                 .mutationBatchCount(10000)
                 .mutationBatchSizeBytes(10000000)
                 .fetchBatchCount(1000)
-                .safetyDisabled(false)
+                .safetyDisabled(true)
                 .autoRefreshNodes(false)
                 .build());
         kv.initializeFromFreshInstance();

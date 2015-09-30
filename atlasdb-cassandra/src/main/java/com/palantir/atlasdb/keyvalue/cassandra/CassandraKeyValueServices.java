@@ -191,9 +191,7 @@ public class CassandraKeyValueServices {
         return new UUID(uuid.getLong(uuid.position()), uuid.getLong(uuid.position() + 8)).toString();
     }
 
-    static Cassandra.Client getClientInternal(IpAndPort addr, boolean isSsl) throws TTransportException {
-        String host = addr.getHost();
-        int port = addr.getPort();
+    static Cassandra.Client getClientInternal(String host, int port, boolean isSsl) throws TTransportException {
         TSocket tSocket = new TSocket(host, port, CassandraConstants.CONNECTION_TIMEOUT_MILLIS);
         tSocket.open();
         tSocket.setTimeout(CassandraKeyValueServiceConfig.DEFAULT.socketTimeoutMillis());

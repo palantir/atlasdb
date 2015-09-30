@@ -150,7 +150,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         Preconditions.checkState(!config.servers().isEmpty(), "hosts cannot be empty");
         final CQLKeyValueService ret = new CQLKeyValueService(config);
         try {
-            ret.initializeFromFreshInstance(ImmutableList.copyOf(config.servers()), config.replicationFactor());
+            ret.initializeFromFreshInstance(ImmutableList.copyOf(config.servers()), config.port(), config.replicationFactor());
             ret.getPoolingManager().submitHostRefreshTask();
         } catch (Throwable t) {
             throw Throwables.throwUncheckedException(t);
@@ -173,14 +173,13 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         return cassandraClientPoolingManager;
     }
 
-    private void initializeConnectionPoolWithNewAPI(Set<IpAndPort> hosts) {
+    private void initializeConnectionPoolWithNewAPI(Set<String> hosts) {
         Set<InetAddress> addresses = Sets.newHashSetWithExpectedSize(hosts.size());
-        for (IpAndPort host : hosts) {
-            String ip = host.getHost();
+        for (String host : hosts) {
             try {
-                addresses.add(InetAddress.getByName(ip));
+                addresses.add(InetAddress.getByName(host));
             } catch (UnknownHostException e) {
-                log.error(String.format("Couldn't lookup host %s", ip), e);
+                log.error(String.format("Couldn't lookup host %s", host), e);
             }
         }
 
@@ -285,19 +284,19 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         super.close();
     }
 
-    private void initializeFromFreshInstance(List<IpAndPort> hosts, int replicationFactor) {
+    private void initializeFromFreshInstance(List<String> hosts, int port, int replicationFactor) {
         Map<String, Throwable> errorsByHost = Maps.newHashMap();
         initializeConnectionPoolWithNewAPI(ImmutableSet.copyOf(hosts));
         String keyspace = config.keyspace();
         boolean isSsl = config.ssl();
         boolean safetyDisabled = config.safetyDisabled();
-        for (IpAndPort host : hosts) {
+        for (String host : hosts) {
             Client client = null;
             try {
                 int socketTimeoutMillis = config.socketTimeoutMillis();
                 int socketQueryTimeoutMillis = config.socketQueryTimeoutMillis();
 
-                client = CassandraKeyValueServices.getClientInternal(host, isSsl);
+                client = CassandraKeyValueServices.getClientInternal(host, port, isSsl);
                 String partitioner = client.describe_partitioner();
                 if (!safetyDisabled) {
                     Validate.isTrue(
@@ -311,7 +310,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                     // need to create key space
                 }
 
-                Set<IpAndPort> currentHosts = cassandraClientPoolingManager.getCurrentHostsFromServer(client);
+                Set<String> currentHosts = cassandraClientPoolingManager.getCurrentHostsFromServer(client);
                 cassandraClientPoolingManager.setHostsToCurrentHostNames(currentHosts);
                 if (ks != null) {
                     CassandraVerifier.checkAndSetReplicationFactor(
@@ -328,6 +327,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                     client.set_keyspace(keyspace);
                     CassandraVerifier.sanityCheckRingConsistency(
                             currentHosts,
+                            port,
                             keyspace,
                             isSsl,
                             safetyDisabled,
@@ -352,6 +352,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                 client.set_keyspace(keyspace);
                 CassandraVerifier.sanityCheckRingConsistency(
                         currentHosts,
+                        port,
                         keyspace,
                         isSsl,
                         safetyDisabled,

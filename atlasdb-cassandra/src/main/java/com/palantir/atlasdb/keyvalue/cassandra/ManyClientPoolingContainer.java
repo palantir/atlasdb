@@ -38,7 +38,7 @@ public class ManyClientPoolingContainer extends ForwardingPoolingContainer<Clien
     private static final Logger log = LoggerFactory.getLogger(ManyClientPoolingContainer.class);
     volatile ImmutableList<PoolingContainer<Client>> containers = ImmutableList.of();
     @GuardedBy("this")
-    final Map<IpAndPort, PoolingContainer<Client>> containerMap = Maps.newHashMap();
+    final Map<String, PoolingContainer<Client>> containerMap = Maps.newHashMap();
     @GuardedBy("this")
     boolean isShutdown = false;
     boolean safetyDisabled = false;
@@ -52,14 +52,15 @@ public class ManyClientPoolingContainer extends ForwardingPoolingContainer<Clien
 
     public synchronized void setNewHosts(CassandraKeyValueServiceConfig config) {
         String keyspace = config.keyspace();
+        int port = config.port();
         int poolSize = config.poolSize();
         boolean isSsl = config.ssl();
         int socketTimeoutMillis = config.socketTimeoutMillis();
         int socketQueryTimeoutMillis = config.socketQueryTimeoutMillis();
 
-        Set<IpAndPort> toRemove = Sets.difference(containerMap.keySet(), config.servers()).immutableCopy();
-        Set<IpAndPort> toAdd = Sets.difference(config.servers(), containerMap.keySet()).immutableCopy();
-        for (IpAndPort host : toRemove) {
+        Set<String> toRemove = Sets.difference(containerMap.keySet(), config.servers()).immutableCopy();
+        Set<String> toAdd = Sets.difference(config.servers(), containerMap.keySet()).immutableCopy();
+        for (String host : toRemove) {
             PoolingContainer<Client> pool = containerMap.remove(host);
             Preconditions.checkNotNull(pool);
             log.warn("Shutting down client pool for {}", host);
@@ -69,6 +70,7 @@ public class ManyClientPoolingContainer extends ForwardingPoolingContainer<Clien
         if (!toAdd.isEmpty()) {
             CassandraVerifier.sanityCheckRingConsistency(
                     Sets.union(containerMap.keySet(), toAdd),
+                    port,
                     keyspace,
                     isSsl,
                     safetyDisabled,
@@ -76,20 +78,20 @@ public class ManyClientPoolingContainer extends ForwardingPoolingContainer<Clien
                     socketQueryTimeoutMillis);
         }
 
-        for (IpAndPort host : toAdd) {
+        for (String host : toAdd) {
             if (isShutdown) {
                 log.warn("client Pool is shutdown, cannot add hosts:{}", toAdd);
                 break;
             }
-            PoolingContainer<Client> newPool = createPool(host, keyspace, poolSize, isSsl, socketTimeoutMillis, socketQueryTimeoutMillis);
+            PoolingContainer<Client> newPool = createPool(host, port, keyspace, poolSize, isSsl, socketTimeoutMillis, socketQueryTimeoutMillis);
             containerMap.put(host, newPool);
             log.info("Created pool {} for host {}", newPool, host);
         }
         containers = ImmutableList.copyOf(containerMap.values());
     }
 
-    private PoolingContainer<Client> createPool(IpAndPort host, String keyspace, int poolSize, boolean isSsl, int socketTimeoutMillis, int socketQueryTimeoutMillis) {
-        return new CassandraClientPoolingContainer.Builder(host.getHost(), host.getPort())
+    private PoolingContainer<Client> createPool(String host, int port, String keyspace, int poolSize, boolean isSsl, int socketTimeoutMillis, int socketQueryTimeoutMillis) {
+        return new CassandraClientPoolingContainer.Builder(host, port)
             .poolSize(poolSize)
             .keyspace(keyspace)
             .isSsl(isSsl)
@@ -98,7 +100,7 @@ public class ManyClientPoolingContainer extends ForwardingPoolingContainer<Clien
             .build();
     }
 
-    public synchronized List<IpAndPort> getCurrentHosts() {
+    public synchronized List<String> getCurrentHosts() {
         return ImmutableList.copyOf(containerMap.keySet());
     }
 

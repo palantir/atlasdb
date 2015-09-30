@@ -50,11 +50,9 @@ public class CassandraVerifier {
     // consistent ring across all of it's nodes.  One node will think it owns more than the others
     // think it does and they will not send writes to it, but it will respond to requests
     // acting like it does.
-    protected static void sanityCheckRingConsistency(Set<IpAndPort> currentHosts, String keyspace, boolean isSsl, boolean safetyDisabled, int socketTimeoutMillis, int socketQueryTimeoutMillis) {
+    protected static void sanityCheckRingConsistency(Set<String> currentHosts, int port, String keyspace, boolean isSsl, boolean safetyDisabled, int socketTimeoutMillis, int socketQueryTimeoutMillis) {
         Multimap<Set<TokenRange>, String> tokenRangesToHost = HashMultimap.create();
-        for (IpAndPort addr : currentHosts) {
-            String host = addr.getHost();
-            int port = addr.getPort();
+        for (String host : currentHosts) {
             Cassandra.Client client = null;
             try {
                 client = CassandraClientPoolingContainer.getClientInternal(host, port, isSsl, socketTimeoutMillis, socketQueryTimeoutMillis);
