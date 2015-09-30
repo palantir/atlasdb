@@ -15,7 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import com.google.common.collect.ImmutableSet;
+import com.google.common.net.HostAndPort;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
 
@@ -23,19 +24,19 @@ public class CQLKeyValueServiceTransactionTest extends AbstractTransactionTest {
 
     @Override
     protected KeyValueService getKeyValueService() {
-        return CQLKeyValueService.create(
-                ImmutableSet.of("localhost"),
-                9160,
-                20,
-                1000,
-                "atlasdb",
-                false,
-                1,
-                1000,
-                10000000,
-                1000,
-                true,
-                false);
+        return CQLKeyValueService.create(ImmutableCassandraKeyValueServiceConfig.builder()
+                .addServers("localhost")
+                .port(9160)
+                .poolSize(20)
+                .keyspace("atlasdb")
+                .ssl(false)
+                .replicationFactor(1)
+                .mutationBatchCount(10000)
+                .mutationBatchSizeBytes(10000000)
+                .fetchBatchCount(1000)
+                .safetyDisabled(true)
+                .autoRefreshNodes(false)
+                .build());
     }
 
     @Override

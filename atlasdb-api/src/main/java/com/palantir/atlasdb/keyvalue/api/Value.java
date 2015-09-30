@@ -120,7 +120,7 @@ public class Value implements Serializable {
     @Override
     public String toString() {
         byte[] prefix = Arrays.copyOf(contents, Math.min(10, contents.length));
-        return "Value [contents=" + new String(BaseEncoding.base16().lowerCase().encode(prefix)) +
+        return "Value [contents=" + new String(PtBytes.encodeHexString(prefix)) +
                 ", contentsLength=" + contents.length +
                 ", timestamp=" + timestamp + "]";
     }

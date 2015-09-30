@@ -34,17 +34,7 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
     }
     
     private static CassandraKeyValueService createKv(CassandraKeyValueServiceConfig config) {
-        return CassandraKeyValueService.create(config.servers(),
-                config.port(),
-                config.poolSize(),
-                config.keyspace(),
-                config.ssl(),
-                config.replicationFactor(),
-                config.mutationBatchCount(),
-                config.mutationBatchSizeBytes(),
-                config.fetchBatchCount(),
-                config.safetyDisabled(),
-                config.autoRefreshNodes());
+        return CassandraKeyValueService.create(config);
     }
 
     @Override
