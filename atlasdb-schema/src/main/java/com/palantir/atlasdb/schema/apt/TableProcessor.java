@@ -46,6 +46,9 @@ import org.apache.velocity.tools.generic.DisplayTool;
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
+import com.palantir.atlasdb.schema.annotations.FixedLength;
+import com.palantir.atlasdb.schema.annotations.Keys;
 import com.palantir.atlasdb.schema.annotations.Table;
 import com.palantir.atlasdb.schema.apt.ColumnAndKeyBuilder.ColumnsAndKeys;
 
@@ -127,8 +130,11 @@ public class TableProcessor extends AbstractProcessor {
 	}
 	
 	private ColumnsAndKeys getColumnDefinitions(Element element) throws ProcessingException {
+		Keys keys = element.getAnnotation(Keys.class);
+		FixedLength[] fixedLengthKeys = keys != null ? keys.value() : new FixedLength[] {};
+		
 		List<? extends Element> allElements = element.getEnclosedElements(); 
-		ColumnAndKeyBuilder builder = new ColumnAndKeyBuilder();
+		ColumnAndKeyBuilder builder = new ColumnAndKeyBuilder(fixedLengthKeys);
 		
 		for(Element e : allElements) {
 			if(e.getKind() != ElementKind.METHOD) {
@@ -139,7 +145,21 @@ public class TableProcessor extends AbstractProcessor {
 		}
 		
 		try {
-			return builder.build();
+			ColumnsAndKeys columnsAndKeys = builder.build();
+			
+			// check for unused keys
+			Set<String> keyIdentifiers = Sets.newHashSet();
+			for(KeyDefinition kd : columnsAndKeys.getKeys()) {
+				keyIdentifiers.add(kd.getName());
+			}
+			
+			for(FixedLength fl : fixedLengthKeys) {
+				if(!keyIdentifiers.contains(fl.key())) {
+					throw new ProcessingException(element, "have a @FixedLength annotation for %s but it does not exist", fl.key());
+				}
+			}
+			
+			return columnsAndKeys;
 		} catch(IllegalStateException e) {
 			throw new ProcessingException(element, "must define at least one column, columns must have keys");
 		}

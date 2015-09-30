@@ -13,8 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.schema.annotations;
+package com.palantir.atlasdb.schema.test;
 
-public @interface Fixed {
-	int length() default -1;
+import com.palantir.atlasdb.schema.annotations.Column;
+import com.palantir.atlasdb.schema.annotations.FixedLength;
+import com.palantir.atlasdb.schema.annotations.Keys;
+import com.palantir.atlasdb.schema.annotations.Table;
+
+@Table(name = "test")
+@Keys({@FixedLength(key = "key1", length = 10)})
+interface BasicTableWithFixedLength {
+	
+	@Column
+	String getTestStringColumn(String key1, String key2);
+	
+	@Column(shortName = "i")
+	Integer getTestIntegerColumn(String key1, String key2);
 }

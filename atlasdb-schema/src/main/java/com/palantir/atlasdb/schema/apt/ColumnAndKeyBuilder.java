@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.schema.apt;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -32,18 +33,25 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Ascii;
 import com.google.common.base.CaseFormat;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.schema.annotations.Column;
-import com.palantir.atlasdb.schema.annotations.Fixed;
+import com.palantir.atlasdb.schema.annotations.FixedLength;
 
 
 public class ColumnAndKeyBuilder {
 	
+	private final Map<String, FixedLength> fixedLengthColumns;
+	private final List<ColumnDefinition> columns;
+	private final Set<String> columnShortNames;
 	private List<KeyDefinition> keys;
-	private List<ColumnDefinition> columns;
-	private Set<String> columnShortNames;
 	
-	public ColumnAndKeyBuilder() {
+	public ColumnAndKeyBuilder(FixedLength[] fixedLengthColumns) {
+		this.fixedLengthColumns = Maps.newHashMap();
+		for(FixedLength fl : fixedLengthColumns) {
+			this.fixedLengthColumns.put(fl.key(), fl);
+		}
+		
 		this.columns = Lists.newArrayList();
 		this.columnShortNames = Sets.newHashSet();
 	}
@@ -113,7 +121,7 @@ public class ColumnAndKeyBuilder {
 		}
 	}
 	
-	private static List<KeyDefinition> getKeyDefinitions(ExecutableElement element) throws ProcessingException {
+	private List<KeyDefinition> getKeyDefinitions(ExecutableElement element) throws ProcessingException {
 		List<KeyDefinition> keys = Lists.newArrayList();
 		for(VariableElement variableElement : element.getParameters()) {
 			String variableName = variableElement.getSimpleName().toString();
@@ -139,9 +147,8 @@ public class ColumnAndKeyBuilder {
 				.name(variableName)
 				.keyTypeFullyQualified(keyTypeQualifiedName);
 			
-			Fixed fixed = variableElement.getAnnotation(Fixed.class);
-			if(fixed != null) {
-				builder.isFixed(true).length(fixed.length());
+			if(fixedLengthColumns.containsKey(variableType)) {
+				builder.isFixed(true).length(fixedLengthColumns.get(variableType).length());
 			} else {
 				builder.isFixed(false).length(-1);
 			}

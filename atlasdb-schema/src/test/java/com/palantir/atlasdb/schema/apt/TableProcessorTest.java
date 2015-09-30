@@ -42,7 +42,7 @@ public class TableProcessorTest {
 		JavaFileObject fileObject = JavaFileObjects.forResource("com/palantir/atlasdb/schema/test/NoColumns.java");
 		assert_().about(javaSource())
 		    .that(fileObject)
-		    .processedWith(new TableProcessor())
+		    .processedWith(new org.immutables.value.internal.$processor$.$Processor(), new TableProcessor())
 		    .failsToCompile()
 		    .withErrorContaining("must define at least one column");
 	}
@@ -52,7 +52,7 @@ public class TableProcessorTest {
 		JavaFileObject fileObject = JavaFileObjects.forResource("com/palantir/atlasdb/schema/test/InconsistentKeyUsage.java");
 		assert_().about(javaSource())
 		    .that(fileObject)
-		    .processedWith(new TableProcessor())
+		    .processedWith(new org.immutables.value.internal.$processor$.$Processor(), new TableProcessor())
 		    .failsToCompile()
 		    .withErrorContaining("arguments to @Column getters must be consistently named and ordered");
 	}
@@ -66,13 +66,22 @@ public class TableProcessorTest {
 		    .compilesWithoutError();
 	}
 	
-	public void weProduceGeneratedOutput() {
-		JavaFileObject fileObject = JavaFileObjects.forResource("com/palantir/atlasdb/schema/test/BasicTable.java");
+	@Test
+	public void weProduceGeneratedOutputForABasicTableWithFixedLengthKeys() {
+		JavaFileObject fileObject = JavaFileObjects.forResource("com/palantir/atlasdb/schema/test/BasicTableWithFixedLength.java");
 		assert_().about(javaSource())
 		    .that(fileObject)
-		    .processedWith(new TableProcessor())
-		    .compilesWithoutError()
-		    .and()
-		    .generatesFiles(JavaFileObjects.forResource("com/palantir/atlasdb/schema/test/BasicTableImplementation.java"));
+		    .processedWith(new org.immutables.value.internal.$processor$.$Processor(), new TableProcessor())
+		    .compilesWithoutError();
+	}
+	
+	@Test
+	public void weErrorForABasicTableWithIncorrectFixedLengthKeys() {
+		JavaFileObject fileObject = JavaFileObjects.forResource("com/palantir/atlasdb/schema/test/BasicTableWithNonExistingFixedLength.java");
+		assert_().about(javaSource())
+		    .that(fileObject)
+		    .processedWith(new org.immutables.value.internal.$processor$.$Processor(), new TableProcessor())
+		    .failsToCompile()
+		    .withErrorContaining("have a @FixedLength annotation for key3 but it does not exist"); 
 	}
 }
