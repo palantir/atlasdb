@@ -24,11 +24,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
@@ -37,6 +40,10 @@ import com.palantir.common.annotation.Idempotent;
 
 public abstract class AbstractTransaction implements Transaction {
     final static int TEMP_TABLE_IN_MEMORY_BYTES_LIMIT = 2 * 1024 * 1024; // 2MB
+
+    protected static final ImmutableSortedMap<byte[], RowResult<byte[]>> EMPTY_SORTED_ROWS =
+            ImmutableSortedMap.<byte[], RowResult<byte[]>> orderedBy(
+                    UnsignedBytes.lexicographicalComparator()).build();
 
     private final Set<String> tempTables = Sets.newSetFromMap(Maps.<String, Boolean> newConcurrentMap());
     private final AtomicInteger tempTableCounter = new AtomicInteger();
@@ -82,9 +89,7 @@ public abstract class AbstractTransaction implements Transaction {
     }
 
     protected void dropTempTables() {
-        for (String tempTable : tempTables) {
-            getKeyValueService().dropTable(tempTable);
-        }
+        getKeyValueService().dropTables(tempTables);
     }
 
     private AtomicLong getTempSize(String tableName) {

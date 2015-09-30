@@ -293,11 +293,11 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
                 "get_calls",
                 "put_calls");
 
-        for (String tableName : sortedStats.keySet()) {
-            TableStats s = sortedStats.get(tableName);
+        for (Entry<String, TableStats> statsEntry : sortedStats.entrySet()) {
+            TableStats s = statsEntry.getValue();
             writer.printf(
                     rowFmt,
-                    tableName,
+                    statsEntry.getKey(),
                     s.getTotalGetMillis(),
                     s.getTotalPutMillis(),
                     s.getTotalGetBytes(),
