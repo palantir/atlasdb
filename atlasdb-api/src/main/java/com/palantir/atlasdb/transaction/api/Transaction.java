@@ -151,6 +151,12 @@ public interface Transaction {
     long getTimestamp();
 
     /**
+     * Determines what the transaction should do if it reads a sentinel timestamp which
+     * indicates it may be performing an inconsistent read.
+     */
+    TransactionReadSentinelBehavior getReadSentinelBehavior();
+
+    /**
      * Informs the transaction that a particular table has been written to.
      */
     void useTable(String tableName, ConstraintCheckable table);
