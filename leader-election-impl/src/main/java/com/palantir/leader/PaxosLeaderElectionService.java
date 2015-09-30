@@ -443,7 +443,8 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                 },
                 proposer.getQuorumSize(),
                 executor,
-                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT_IN_SECONDS);
+                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT_IN_SECONDS,
+                true);
         if (PaxosQuorumChecker.hasQuorum(responses, proposer.getQuorumSize())) {
             // If we have a quorum we are good to go
             return StillLeadingStatus.LEADING;

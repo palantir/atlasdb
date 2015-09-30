@@ -120,7 +120,10 @@ public final class AwaitingLeadershipProxy extends AbstractInvocationHandler {
                     }
                 }
             }
+
+            // Do not modify, hide, or remove this line without considering impact on correctness.
             delegateRef.set(delegate);
+
             if (isClosed) {
                 clearDelegate();
             } else {
