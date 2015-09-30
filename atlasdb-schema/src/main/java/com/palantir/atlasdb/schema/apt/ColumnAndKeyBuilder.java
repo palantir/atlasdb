@@ -34,6 +34,7 @@ import com.google.common.base.CaseFormat;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.schema.annotations.Column;
+import com.palantir.atlasdb.schema.annotations.Fixed;
 
 
 public class ColumnAndKeyBuilder {
@@ -134,11 +135,18 @@ public class ColumnAndKeyBuilder {
 				throw new ProcessingException(variableElement, "for now, only String or Long (variable-length encoded) keys are supported");
 			}
 			
-			ImmutableKeyDefinition key = ImmutableKeyDefinition.builder()
+			ImmutableKeyDefinition.Builder builder = ImmutableKeyDefinition.builder()
 				.name(variableName)
-				.keyTypeFullyQualified(keyTypeQualifiedName)
-				.build();
-			keys.add(key);
+				.keyTypeFullyQualified(keyTypeQualifiedName);
+			
+			Fixed fixed = variableElement.getAnnotation(Fixed.class);
+			if(fixed != null) {
+				builder.isFixed(true).length(fixed.length());
+			} else {
+				builder.isFixed(false).length(-1);
+			}
+
+			keys.add(builder.build());
 		}
 		return keys;
 	}

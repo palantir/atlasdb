@@ -13,21 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.schema.tests;
+package com.palantir.atlasdb.schema.annotations;
 
-import com.palantir.atlasdb.schema.annotations.Column;
-import com.palantir.atlasdb.schema.annotations.Fixed;
-import com.palantir.atlasdb.schema.annotations.Table;
-
-@Table(name = "my_test_table")
-public interface TestTable {
-
-	@Column
-	String getGraphName(Long blahId, @Fixed(length = 10) String fixedThing, String nodeId);
-	
-	@Column
-	Integer getNodeName(Long blahId, @Fixed(length = 10) String fixedThing, String nodeId);
-	
-	@Column(shortName="x")
-	String getGeneralNodeName(Long blahId, @Fixed(length = 10) String fixedThing, String nodeId);
+public @interface Fixed {
+	int length() default -1;
 }

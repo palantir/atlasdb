@@ -21,4 +21,7 @@ import org.immutables.value.Value;
 public interface KeyDefinition {
 	String getName();
 	String getKeyTypeFullyQualified();
+	
+	boolean isFixed();
+	int getLength();
 }

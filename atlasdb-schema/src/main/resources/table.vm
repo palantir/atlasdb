@@ -29,22 +29,7 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 #macro( keysUsage )
 #foreach($key in $tableDefinition.keyDefinitions)${key.name}#if( $velocityHasNext ), #end#end
 #end
-#macro( keyEncode $key )
-#if( $key.keyTypeFullyQualified == "java.lang.Long" )
-byte[] ${key.name}Bytes = EncodingUtils.encodeVarLong(get${display.capitalize(${key.name})}());
-#elseif( $key.keyTypeFullyQualified == "java.lang.String" )
-byte[] ${key.name}Bytes = EncodingUtils.encodeVarString(get${display.capitalize(${key.name})}());
-#end
-#end
-#macro( keyDecode $key)
-#if( $key.keyTypeFullyQualified == "java.lang.Long" )
-${key.keyTypeFullyQualified} ${key.name} = EncodingUtils.decodeVarLong(bytes, index);
-index += EncodingUtils.sizeOfVarLong(${key.name});
-#elseif( $key.keyTypeFullyQualified == "java.lang.String" )
-${key.keyTypeFullyQualified} ${key.name} = EncodingUtils.decodeVarString(bytes, index);
-index += EncodingUtils.sizeOfVarString(${key.name});
-#end
-#end
+#parse( "key-encoding-decoding-macros.vm" )
 
 public class ${tableDefinition.generatedClassName} implements ${tableDefinition.originalClassName} {
 

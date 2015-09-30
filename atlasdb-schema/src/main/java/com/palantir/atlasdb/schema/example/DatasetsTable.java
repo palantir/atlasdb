@@ -28,6 +28,7 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
@@ -137,6 +138,8 @@ public final class DatasetsTable {
         	index += EncodingUtils.sizeOfVarString(branchId);
         	String datasetId = EncodingUtils.decodeVarString(arr, index);
 			index += EncodingUtils.sizeOfVarString(branchId);
+			
+			int size = PtBytes.SIZEOF_LONG;
 			return of(branchId, datasetId);
         }
     }
