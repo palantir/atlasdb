@@ -112,13 +112,31 @@ public class ColumnAndKeyBuilder {
 		}
 	}
 	
-	private static List<KeyDefinition> getKeyDefinitions(ExecutableElement element) {
+	private static List<KeyDefinition> getKeyDefinitions(ExecutableElement element) throws ProcessingException {
 		List<KeyDefinition> keys = Lists.newArrayList();
 		for(VariableElement variableElement : element.getParameters()) {
 			String variableName = variableElement.getSimpleName().toString();
+			
+			TypeMirror variableType = variableElement.asType();
+			if(!(variableType instanceof DeclaredType)) {
+				throw new ProcessingException(variableElement, "for now, keys must be non-primitives");
+			}
+			
+			DeclaredType declaredType = (DeclaredType) variableType;
+			TypeElement typeElement = (TypeElement) declaredType.asElement();
+			String keyTypeQualifiedName = typeElement.getQualifiedName().toString();
+			
+			switch(keyTypeQualifiedName) {
+			case "java.lang.String":
+			case "java.lang.Long":
+				break;
+			default:
+				throw new ProcessingException(variableElement, "for now, only String or Long (variable-length encoded) keys are supported");
+			}
+			
 			ImmutableKeyDefinition key = ImmutableKeyDefinition.builder()
 				.name(variableName)
-				.keyTypeFullyQualified("java.lang.String") // TODO
+				.keyTypeFullyQualified(keyTypeQualifiedName)
 				.build();
 			keys.add(key);
 		}

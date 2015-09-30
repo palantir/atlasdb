@@ -19,6 +19,7 @@ import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
 ## Useful macros for defining/calling functions with all keys
@@ -27,6 +28,22 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 #end
 #macro( keysUsage )
 #foreach($key in $tableDefinition.keyDefinitions)${key.name}#if( $velocityHasNext ), #end#end
+#end
+#macro( keyEncode $key )
+#if( $key.keyTypeFullyQualified == "java.lang.Long" )
+byte[] ${key.name}Bytes = EncodingUtils.encodeVarLong(get${display.capitalize(${key.name})}());
+#elseif( $key.keyTypeFullyQualified == "java.lang.String" )
+byte[] ${key.name}Bytes = EncodingUtils.encodeVarString(get${display.capitalize(${key.name})}());
+#end
+#end
+#macro( keyDecode $key)
+#if( $key.keyTypeFullyQualified == "java.lang.Long" )
+${key.keyTypeFullyQualified} ${key.name} = EncodingUtils.decodeVarLong(bytes, index);
+index += EncodingUtils.sizeOfVarLong(${key.name});
+#elseif( $key.keyTypeFullyQualified == "java.lang.String" )
+${key.keyTypeFullyQualified} ${key.name} = EncodingUtils.decodeVarString(bytes, index);
+index += EncodingUtils.sizeOfVarString(${key.name});
+#end
 #end
 
 public class ${tableDefinition.generatedClassName} implements ${tableDefinition.originalClassName} {
@@ -147,7 +164,7 @@ public class ${tableDefinition.generatedClassName} implements ${tableDefinition.
     @Value.Immutable
     public abstract static class Key {
 #foreach($key in $tableDefinition.keyDefinitions)
-        abstract String get${display.capitalize(${key.name})}();
+        abstract ${key.keyTypeFullyQualified} get${display.capitalize(${key.name})}();
 #end
 
         public static Key of(#keysDeclaration()) {
@@ -159,24 +176,19 @@ public class ${tableDefinition.generatedClassName} implements ${tableDefinition.
         }
 
 #set( $totalBytes = 40 * ${tableDefinition.keyDefinitions.size()} )
-        public static final Key from(byte[] arr) {
-            Preconditions.checkArgument(arr.length == ${totalBytes}, "length must = ${totalBytes}");
-            return ImmutableKey.builder()
+        public static final Key from(byte[] bytes) {
+            int index = 0;
 #foreach($key in $tableDefinition.keyDefinitions)
-                    #set( $startByteIndex = ($velocityCount - 1) * 40 )
-                    .${key.name}(new String(arr, $startByteIndex, 40))
+            #keyDecode( $key )
 #end
-                    .build();
+            return of(#foreach($key in $tableDefinition.keyDefinitions)${key.name}#if($velocityHasNext), #end#end);
         }
 
-        // TODO: fix this up
         final byte[] key() {
-            byte[] key = new byte[$totalBytes];
 #foreach($key in $tableDefinition.keyDefinitions)
-            #set( $startByteIndex = ($velocityCount - 1) * 40 )
-            System.arraycopy(get${display.capitalize(${key.name})}().getBytes(Charsets.UTF_8), 0, key, $startByteIndex, 40);
+            #keyEncode( $key )
 #end
-            return key;
+            return EncodingUtils.add(#foreach($key in $tableDefinition.keyDefinitions)${key.name}Bytes#if($velocityHasNext), #end#end);
         }
     }
 

@@ -16,11 +16,9 @@
 package com.palantir.atlasdb.schema.example;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.SortedMap;
 
 import org.immutables.value.Value;
 
@@ -30,10 +28,9 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
 public final class DatasetsTable {
@@ -123,10 +120,9 @@ public final class DatasetsTable {
         public abstract String datasetId();
 
         final byte[] key() {
-            byte[] key = new byte[80];
-            System.arraycopy(branchId().getBytes(Charsets.UTF_8), 0, key, 0, 40);
-            System.arraycopy(datasetId().getBytes(Charsets.UTF_8), 0, key, 40, 40);
-            return key;
+        	byte[] branchIdBytes = EncodingUtils.encodeVarString(branchId());
+        	byte[] datasetIdBytes = EncodingUtils.encodeVarString(datasetId());
+        	return EncodingUtils.add(branchIdBytes, datasetIdBytes);
         }
 
         public static final Key of(String branchId, String datasetId) {
@@ -136,11 +132,12 @@ public final class DatasetsTable {
         }
 
         public static final Key from(byte[] arr) {
-            Preconditions.checkArgument(arr.length == 80, "length must = 80");
-            return ImmutableKey.builder()
-                    .branchId(new String(arr, 0, 40))
-                    .datasetId(new String(arr, 40, 40))
-                    .build();
+        	int index = 0;
+        	String branchId = EncodingUtils.decodeVarString(arr, index);
+        	index += EncodingUtils.sizeOfVarString(branchId);
+        	String datasetId = EncodingUtils.decodeVarString(arr, index);
+			index += EncodingUtils.sizeOfVarString(branchId);
+			return of(branchId, datasetId);
         }
     }
 

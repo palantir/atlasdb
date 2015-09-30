@@ -22,11 +22,11 @@ import com.palantir.atlasdb.schema.annotations.Table;
 public interface TestTable {
 
 	@Column
-	String getGraphName(String graphId, String nodeId);
+	String getGraphName(Long graphId, String nodeId);
 	
 	@Column
-	String getNodeName(String graphId, String nodeId);
+	Integer getNodeName(Long graphId, String nodeId);
 	
-	@Column(shortName = "fish")
-	String getGeneralNodeName(String graphId, String nodeId);
+	@Column(shortName="x")
+	String getGeneralNodeName(Long graphId, String nodeId);
 }
