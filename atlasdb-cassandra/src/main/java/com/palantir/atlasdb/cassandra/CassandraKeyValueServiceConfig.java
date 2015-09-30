@@ -54,6 +54,36 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
         public int replicationFactor() {
             return 1;
         }
+
+        @Override
+        public String keystore() {
+            return "./security/Server_Keystore";
+        }
+
+        @Override
+        public String keystorePassword() {
+            return "atlasserver";
+        }
+
+        @Override
+        public String truststore() {
+            return "./security/Client_Truststore";
+        }
+
+        @Override
+        public String truststorePassword() {
+            return "atlasclient";
+        }
+
+        @Override
+        public String jmxUsername() {
+            return "admin";
+        }
+
+        @Override
+        public String jmxPassword() {
+            return "atlasdb";
+        }
     };
 
     public static final String TYPE = "cassandra";
@@ -151,39 +181,21 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
         return 7199;
     }
 
-    @Value.Default
-    public String keystore() {
-        return "./security/Server_Keystore";
-    }
+    public abstract String keystore();
 
-    @Value.Default
-    public String keystorePassword() {
-        return "atlasserver";
-    }
+    public abstract String keystorePassword();
 
-    @Value.Default
-    public String truststore() {
-        return "./security/Client_Truststore";
-    }
+    public abstract String truststore();
 
-    @Value.Default
-    public String truststorePassword() {
-        return "atlasclient";
-    }
+    public abstract String truststorePassword();
+
+    public abstract String jmxUsername();
+
+    public abstract String jmxPassword();
 
     @Value.Default
     public long jmxCompactionTimeoutSeconds() {
         return 30 * 60;
-    }
-
-    @Value.Default
-    public String jmxUsername() {
-        return "admin";
-    }
-
-    @Value.Default
-    public String jmxPassword() {
-        return "atlasdb";
     }
 
     @Override
