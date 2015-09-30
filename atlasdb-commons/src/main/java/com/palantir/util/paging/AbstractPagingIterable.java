@@ -19,7 +19,6 @@ import java.util.Iterator;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.AbstractIterator;
-import com.palantir.annotations.PgPublicApi;
 import com.palantir.common.base.Throwables;
 
 /**
@@ -31,7 +30,6 @@ import com.palantir.common.base.Throwables;
  *
  * @author carrino
  */
-@PgPublicApi
 public abstract class AbstractPagingIterable<T, P extends BasicResultsPage<T>> implements Iterable<T> {
     @Override
     public PagingIterator<T, P> iterator() {

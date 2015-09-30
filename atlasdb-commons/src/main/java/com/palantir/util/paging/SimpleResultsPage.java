@@ -22,7 +22,6 @@ import javax.annotation.concurrent.Immutable;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.palantir.annotations.PgPublicApi;
 
 /**
  *
@@ -31,7 +30,6 @@ import com.palantir.annotations.PgPublicApi;
  *  @param <T> the type of item being paged
  */
 @Immutable
-@PgPublicApi
 public class SimpleResultsPage<T> implements BasicResultsPage<T>, Serializable {
     private static final long serialVersionUID = 2L;
 

@@ -21,8 +21,6 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import com.palantir.annotations.PrivateApi;
-
 /**
  * Prefer this to {@link javax.annotation.concurrent.Immutable} because it has runtime retention
  * @author carrino
@@ -30,7 +28,6 @@ import com.palantir.annotations.PrivateApi;
 @Documented
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-@PrivateApi
 public @interface Immutable {
 // marker annotation
 }

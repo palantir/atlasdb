@@ -15,14 +15,11 @@
  */
 package com.palantir.common.exception;
 
-import com.palantir.annotations.PublicApi;
-
 /**
  * Base class of all unchecked exceptions in the Palantir platform.
  *
  * @author palantir
  */
-@PublicApi
 public class PalantirRuntimeException extends RuntimeException {
 
     private static final long serialVersionUID = 1L;

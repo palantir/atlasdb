@@ -21,14 +21,11 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import com.palantir.annotations.PublicApi;
-
 
 @Documented
 @Retention(RetentionPolicy.CLASS)
 @Target({ElementType.FIELD, ElementType.LOCAL_VARIABLE, ElementType.PARAMETER,
     ElementType.METHOD})
-@PublicApi
 public @interface Exclusive {
     // marker annotation
 }

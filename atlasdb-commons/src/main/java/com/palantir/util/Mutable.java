@@ -17,9 +17,6 @@ package com.palantir.util;
 
 import java.io.Serializable;
 
-import com.palantir.annotations.LastSupportedRelease;
-import com.palantir.annotations.PublicApi;
-
 /**
  * Simple generic class to use in situations where something needs to be final to be passed into a closure.
  * This should be preferred over using an array of size 1 to pass an object around.  The reference
@@ -30,43 +27,12 @@ import com.palantir.annotations.PublicApi;
  *
  * @param <T> the type of the value being enclosed
  */
-@PublicApi
 public class Mutable<T> implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private volatile T value;
 
-    /**
-     * @deprecated Use Mutables.newMutable() instead.
-     */
-    @Deprecated
-    @LastSupportedRelease(release="3.5")
-    public static<T> Mutable<T> create() {
-        return new Mutable<T>();
-    }
-
-    /**
-     * Constructs and returns an empty
-     * <code>Mutable</code>. Use {@link #set(Object)}
-     * to add the enclosed object.
-     *
-     * @deprecated Use Mutables.newMutable() instead.
-     */
-    @Deprecated
-    @LastSupportedRelease(release="3.5")
-    public Mutable() {
-        this(null);
-    }
-
-    /**
-     * Constructs and returns a new <code>Mutable</code>
-     * containing the given <code>val</code>.
-     *
-     * @deprecated Use Mutables.newMutable(value) instead.
-     */
-    @Deprecated
-    @LastSupportedRelease(release="3.5")
-    public Mutable(T val) {
+    Mutable(T val) {
         value = val;
     }
 

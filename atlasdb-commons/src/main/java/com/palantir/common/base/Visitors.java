@@ -15,7 +15,6 @@
  */
 package com.palantir.common.base;
 
-import com.palantir.annotations.PrivateApi;
 import com.palantir.util.Visitor;
 
 /**
@@ -23,7 +22,6 @@ import com.palantir.util.Visitor;
  * @author dcohen
  *
  */
-@PrivateApi
 public class Visitors {
 
     /**

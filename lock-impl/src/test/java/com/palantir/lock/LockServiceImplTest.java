@@ -42,6 +42,7 @@ import com.palantir.common.proxy.SerializingProxy;
 import com.palantir.common.proxy.SimulatingServerProxy;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.util.Mutable;
+import com.palantir.util.Mutables;
 
 /**
  * Tests for the Lock Server.
@@ -791,8 +792,8 @@ public final class LockServiceImplTest {
         }
 
         List<Future<?>> futures = Lists.newArrayList();
-        final Mutable<Integer> numSuccess = new Mutable<Integer>(0);
-        final Mutable<Integer> numFailure = new Mutable<Integer>(0);
+        final Mutable<Integer> numSuccess = Mutables.newMutable(0);
+        final Mutable<Integer> numFailure = Mutables.newMutable(0);
         for (int i = 0; i < numThreads; ++i) {
             final int clientID = i;
             InterruptibleFuture<?> future = new InterruptibleFuture<Void>() {

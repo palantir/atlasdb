@@ -55,7 +55,6 @@ public class AtlasDbConstants {
     public static final int DEFAULT_SCRUBBER_THREAD_COUNT = 8;
     public static final int DEFAULT_SWEEPER_BATCH_SIZE = 1000;
 
-    // These become overridden by Dispatch system properties
     public static final long DEFAULT_TRANSACTION_READ_TIMEOUT_MILLIS = 86400000L;
     public static final long DEFAULT_BACKGROUND_SCRUB_FREQUENCY_MILLIS = 3600000L;
 
