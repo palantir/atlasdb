@@ -26,15 +26,15 @@ import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
  * Each AtlasDbTable should implement this interface.
  */
 public interface AtlasDbImmutableTable<ROW, COLUMN_VALUE, ROW_RESULT> extends ConstraintCheckable {
-    public List<COLUMN_VALUE> getRowColumns(ROW row);
-    public List<COLUMN_VALUE> getRowColumns(ROW row,
-                                            ColumnSelection columnSelection);
-    public Multimap<ROW, COLUMN_VALUE> getRowsMultimap(Iterable<ROW> rows);
-    public Multimap<ROW, COLUMN_VALUE> getRowsMultimap(Iterable<ROW> rows,
-                                                       ColumnSelection columnSelection);
-    public Multimap<ROW, COLUMN_VALUE> getAsyncRowsMultimap(Iterable<ROW> rows,
-                                                            ExecutorService exec);
-    public Multimap<ROW, COLUMN_VALUE> getAsyncRowsMultimap(Iterable<ROW> rows,
-                                                            ColumnSelection columnSelection,
-                                                            ExecutorService exec);
+    List<COLUMN_VALUE> getRowColumns(ROW row);
+    List<COLUMN_VALUE> getRowColumns(ROW row,
+                                     ColumnSelection columnSelection);
+    Multimap<ROW, COLUMN_VALUE> getRowsMultimap(Iterable<ROW> rows);
+    Multimap<ROW, COLUMN_VALUE> getRowsMultimap(Iterable<ROW> rows,
+                                                ColumnSelection columnSelection);
+    Multimap<ROW, COLUMN_VALUE> getAsyncRowsMultimap(Iterable<ROW> rows,
+                                                     ExecutorService exec);
+    Multimap<ROW, COLUMN_VALUE> getAsyncRowsMultimap(Iterable<ROW> rows,
+                                                     ColumnSelection columnSelection,
+                                                     ExecutorService exec);
 }

@@ -22,5 +22,6 @@ import com.google.common.collect.Multimap;
  */
 public interface AtlasDbMutablePersistentTable<ROW, COLUMN_VALUE, ROW_RESULT> extends
             AtlasDbImmutableTable<ROW, COLUMN_VALUE, ROW_RESULT> {
-    public void put(Multimap<ROW, ? extends COLUMN_VALUE> rows);
+    void put(Multimap<ROW, ? extends COLUMN_VALUE> rows);
+    void putUnlessExists(Multimap<ROW, ? extends COLUMN_VALUE> rows);
 }

@@ -23,7 +23,9 @@ import com.google.common.collect.Multimap;
 public interface AtlasDbDynamicMutablePersistentTable<ROW, COLUMN, COLUMN_VALUE, ROW_RESULT> extends
             AtlasDbDynamicMutableTable<ROW, COLUMN, COLUMN_VALUE, ROW_RESULT>,
             AtlasDbMutablePersistentTable<ROW, COLUMN_VALUE, ROW_RESULT> {
-    public void put(ROW row, Iterable<COLUMN_VALUE> values);
-    public void put(ROW row, COLUMN_VALUE... values);
-    public void touch(Multimap<ROW, COLUMN> cellsToTouch);
+    void put(ROW row, Iterable<COLUMN_VALUE> values);
+    void put(ROW row, COLUMN_VALUE... values);
+    void putUnlessExists(ROW row, Iterable<COLUMN_VALUE> values);
+    void putUnlessExists(ROW row, COLUMN_VALUE... values);
+    void touch(Multimap<ROW, COLUMN> cellsToTouch);
 }

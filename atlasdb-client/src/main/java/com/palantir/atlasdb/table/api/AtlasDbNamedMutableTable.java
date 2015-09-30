@@ -21,6 +21,6 @@ package com.palantir.atlasdb.table.api;
  */
 public interface AtlasDbNamedMutableTable<ROW, COLUMN_VALUE, ROW_RESULT> extends
         AtlasDbNamedImmutableTable<ROW, COLUMN_VALUE, ROW_RESULT> {
-    public void delete(ROW rows);
-    public void delete(Iterable<ROW> rows);
+    void delete(ROW rows);
+    void delete(Iterable<ROW> rows);
 }

@@ -24,5 +24,6 @@ import com.google.common.collect.Multimap;
  */
 public interface AtlasDbMutableExpiringTable<ROW, COLUMN_VALUE, ROW_RESULT> extends
             AtlasDbImmutableTable<ROW, COLUMN_VALUE, ROW_RESULT> {
-    public void put(Multimap<ROW, ? extends COLUMN_VALUE> rows, long duration, TimeUnit durationTimeUnit);
+    void put(Multimap<ROW, ? extends COLUMN_VALUE> rows, long duration, TimeUnit durationTimeUnit);
+    void putUnlessExists(Multimap<ROW, ? extends COLUMN_VALUE> rows, long duration, TimeUnit durationTimeUnit);
 }

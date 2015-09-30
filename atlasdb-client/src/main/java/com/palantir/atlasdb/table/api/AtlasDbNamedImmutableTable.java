@@ -26,10 +26,10 @@ import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
  */
 public interface AtlasDbNamedImmutableTable<ROW, COLUMN_VALUE, ROW_RESULT> extends
             AtlasDbImmutableTable<ROW, COLUMN_VALUE, ROW_RESULT> {
-    public Optional<ROW_RESULT> getRow(ROW row);
-    public Optional<ROW_RESULT> getRow(ROW row, ColumnSelection columnSelection);
-    public List<ROW_RESULT> getRows(Iterable<ROW> rows);
-    public List<ROW_RESULT> getRows(Iterable<ROW> rows, ColumnSelection columnSelection);
-    public List<ROW_RESULT> getAsyncRows(Iterable<ROW> rows, ExecutorService exec);
-    public List<ROW_RESULT> getAsyncRows(Iterable<ROW> rows, ColumnSelection columnSelection, ExecutorService exec);
+    Optional<ROW_RESULT> getRow(ROW row);
+    Optional<ROW_RESULT> getRow(ROW row, ColumnSelection columnSelection);
+    List<ROW_RESULT> getRows(Iterable<ROW> rows);
+    List<ROW_RESULT> getRows(Iterable<ROW> rows, ColumnSelection columnSelection);
+    List<ROW_RESULT> getAsyncRows(Iterable<ROW> rows, ExecutorService exec);
+    List<ROW_RESULT> getAsyncRows(Iterable<ROW> rows, ColumnSelection columnSelection, ExecutorService exec);
 }
