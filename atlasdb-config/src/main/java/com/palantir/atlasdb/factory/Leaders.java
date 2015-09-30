@@ -23,7 +23,6 @@ import java.util.concurrent.Executors;
 import javax.net.ssl.SSLSocketFactory;
 
 import com.google.common.base.Optional;
-import com.google.common.base.Supplier;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.factory.TransactionManagers.Environment;
@@ -32,52 +31,20 @@ import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.leader.PingableLeader;
-import com.palantir.leader.proxy.AwaitingLeadershipProxy;
-import com.palantir.lock.RemoteLockService;
-import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorImpl;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerImpl;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosProposerImpl;
-import com.palantir.timestamp.TimestampService;
 
 public class Leaders {
 
     /**
-     * Creates a LeaderElectionService using the supplied configuration, registers appropriate endpoints
-     * for that service, then uses that service to create and registers leader-aware instances of RemoteLockService 
-     * and TimestampService.
+     * Creates a LeaderElectionService using the supplied configuration and
+     * registers appropriate endpoints for that service.
      */
-    public static TimestampService createLockAndTimestampServices(
-            LeaderConfig config,
-            Optional<SSLSocketFactory> sslSocketFactory,
-            final TimestampService timestampService,
-            Environment env) {
-        LeaderElectionService leader = Leaders.create(sslSocketFactory, env, config);
-        
-        Supplier<RemoteLockService> lock = new Supplier<RemoteLockService>() {
-            @Override
-            public RemoteLockService get() {
-                return LockServiceImpl.create();
-            }
-        };
-        
-        Supplier<TimestampService> timestamp = new Supplier<TimestampService>() {
-            @Override
-            public TimestampService get() {
-                return timestampService;
-            }
-        };
-        
-        env.register(AwaitingLeadershipProxy.newProxyInstance(RemoteLockService.class, lock, leader));
-        TimestampService localTs = AwaitingLeadershipProxy.newProxyInstance(TimestampService.class, timestamp, leader);
-        env.register(localTs);
-        return localTs;
-    }
-    
-    private static LeaderElectionService create(
+    public static LeaderElectionService create(
             Optional<SSLSocketFactory> sslSocketFactory,
             Environment env,
             LeaderConfig config) {
@@ -127,5 +94,5 @@ public class Leaders {
 
         return leader;
     }
-    
+
 }

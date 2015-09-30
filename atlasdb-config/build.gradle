@@ -15,6 +15,7 @@ dependencies {
         exclude module: 'jsr311-api'
     }
     compile "com.netflix.feign:feign-okhttp:8.6.1"
+    compile 'javax.validation:validation-api:1.1.0.Final'
 
     processor 'org.immutables:value:2.0.21'
 }

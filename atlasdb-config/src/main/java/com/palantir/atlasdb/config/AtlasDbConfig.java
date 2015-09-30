@@ -28,11 +28,11 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 public interface AtlasDbConfig {
 
     KeyValueServiceConfig keyValueService();
-    
+
     Optional<LeaderConfig> leader();
-    
-    ServerListConfig lock();
-    
-    ServerListConfig timestamp();
-    
+
+    Optional<ServerListConfig> lock();
+
+    Optional<ServerListConfig> timestamp();
+
 }
