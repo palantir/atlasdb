@@ -153,7 +153,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     }
 
     private static byte[] getColumnName() {
-        return CassandraKeyValueServices.makeComposite(PtBytes.toBytes(ROW_AND_COLUMN_NAME), CASSANDRA_TIMESTAMP);
+        return CassandraKeyValueServices.makeCompositeBuffer(PtBytes.toBytes(ROW_AND_COLUMN_NAME), CASSANDRA_TIMESTAMP).array();
     }
 
     private static ByteBuffer getRowName() {
