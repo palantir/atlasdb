@@ -1,3 +1,5 @@
+apply plugin: 'org.inferred.processors'
+
 apply from: "../gradle/shared.gradle"
 
 // disable tests if building on Travis (Travis CI kills test processes due to load)

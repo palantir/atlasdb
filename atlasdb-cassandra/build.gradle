@@ -1,14 +1,26 @@
-plugins {
-    id 'org.inferred.processors' version '1.1'
-}
+apply plugin: 'org.inferred.processors'
 
 apply from: "../gradle/shared.gradle"
 
 dependencies {
   compile project(":atlasdb-client")
   compile project(":atlasdb-spi")
-  compile project(":commons-cassandra")
   compile project(':timestamp-impl')
-  
+  compile(group: 'com.datastax.cassandra', name: 'cassandra-driver-core', version: '2.1.5')
+  compile('org.apache.cassandra:cassandra-all:2.1.5')
+
   processor 'org.immutables:value:2.0.21'
+}
+
+configurations.matching({ it.name in ['compile', 'runtime'] }).all {
+  resolutionStrategy {
+    force 'com.google.guava:guava:18.0'
+    force 'com.googlecode.json-simple:json-simple:1.1.1'
+    force 'org.apache.thrift:libthrift:0.9.2'
+    force 'org.slf4j:slf4j-api:1.7.6'
+    force 'org.xerial.snappy:snappy-java:1.1.0.1'
+    force 'org.yaml:snakeyaml:1.12'
+    force 'junit:junit:4.10'
+    force 'commons-codec:commons-codec:1.6'
+  }
 }
