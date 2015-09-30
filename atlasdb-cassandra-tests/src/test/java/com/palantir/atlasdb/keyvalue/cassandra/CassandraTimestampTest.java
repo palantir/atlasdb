@@ -19,7 +19,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableSet;
+import com.google.common.net.HostAndPort;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
 
@@ -30,17 +31,19 @@ public class CassandraTimestampTest {
 
     @Before
     public void setUp() {
-        kv = CassandraKeyValueService.create(
-                ImmutableSet.of("localhost"),
-                9160,
-                20,
-                "atlasdb", false,
-                1,
-                10000,
-                10000000,
-                1000,
-                true,
-                false);
+        kv = CassandraKeyValueService.create(ImmutableCassandraKeyValueServiceConfig.builder()
+                .addServers(IpAndPort.from(HostAndPort.fromHost("localhost").withDefaultPort(9160)))
+                .port(9160)
+                .poolSize(20)
+                .keyspace("atlasdb")
+                .ssl(false)
+                .replicationFactor(1)
+                .mutationBatchCount(10000)
+                .mutationBatchSizeBytes(10000000)
+                .fetchBatchCount(1000)
+                .safetyDisabled(false)
+                .autoRefreshNodes(false)
+                .build());
         kv.initializeFromFreshInstance();
         kv.dropTable(TIMESTAMP_TABLE);
     }
