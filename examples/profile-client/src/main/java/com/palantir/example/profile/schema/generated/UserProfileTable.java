@@ -178,7 +178,7 @@ public final class UserProfileTable implements
 
         @Override
         public String toString() {
-            return MoreObjects.toStringHelper(this)
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
                 .add("id", id)
                 .toString();
         }
@@ -264,6 +264,13 @@ public final class UserProfileTable implements
                 return of(new com.palantir.example.profile.schema.CreationData.Persister().hydrateFromBytes(com.palantir.atlasdb.compress.CompressionUtils.decompress(bytes, com.palantir.atlasdb.table.description.ColumnValueDescription.Compression.NONE)));
             }
         };
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("Value", this.value)
+                .toString();
+        }
     }
 
     /**
@@ -317,6 +324,13 @@ public final class UserProfileTable implements
                 return of(new com.palantir.atlasdb.persister.JsonNodePersister().hydrateFromBytes(com.palantir.atlasdb.compress.CompressionUtils.decompress(bytes, com.palantir.atlasdb.table.description.ColumnValueDescription.Compression.NONE)));
             }
         };
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("Value", this.value)
+                .toString();
+        }
     }
 
     /**
@@ -387,6 +401,13 @@ public final class UserProfileTable implements
                 }
             }
         };
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("Value", this.value)
+                .toString();
+        }
     }
 
     /**
@@ -440,6 +461,13 @@ public final class UserProfileTable implements
                 return of(Long.MIN_VALUE ^ PtBytes.toLong(bytes, 0));
             }
         };
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("Value", this.value)
+                .toString();
+        }
     }
 
     public interface UserProfileTrigger {
@@ -570,12 +598,12 @@ public final class UserProfileTable implements
 
         @Override
         public String toString() {
-            return MoreObjects.toStringHelper(this)
-                    .add("RowName", getRowName())
-                    .add("Create", getCreate())
-                    .add("Json", getJson())
-                    .add("Metadata", getMetadata())
-                    .add("PhotoStreamId", getPhotoStreamId())
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("RowName", getRowName())
+                .add("Create", getCreate())
+                .add("Json", getJson())
+                .add("Metadata", getMetadata())
+                .add("PhotoStreamId", getPhotoStreamId())
                 .toString();
         }
     }
@@ -702,6 +730,18 @@ public final class UserProfileTable implements
         put(Multimaps.forMap(toPut));
     }
 
+    public void putMetadataUnlessExists(UserProfileRow row, com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile value) {
+        putUnlessExists(ImmutableMultimap.of(row, Metadata.of(value)));
+    }
+
+    public void putMetadataUnlessExists(Map<UserProfileRow, com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile> map) {
+        Map<UserProfileRow, UserProfileNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
+        for (Entry<UserProfileRow, com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile> e : map.entrySet()) {
+            toPut.put(e.getKey(), Metadata.of(e.getValue()));
+        }
+        putUnlessExists(Multimaps.forMap(toPut));
+    }
+
     public void putCreate(UserProfileRow row, com.palantir.example.profile.schema.CreationData value) {
         put(ImmutableMultimap.of(row, Create.of(value)));
     }
@@ -712,6 +752,18 @@ public final class UserProfileTable implements
             toPut.put(e.getKey(), Create.of(e.getValue()));
         }
         put(Multimaps.forMap(toPut));
+    }
+
+    public void putCreateUnlessExists(UserProfileRow row, com.palantir.example.profile.schema.CreationData value) {
+        putUnlessExists(ImmutableMultimap.of(row, Create.of(value)));
+    }
+
+    public void putCreateUnlessExists(Map<UserProfileRow, com.palantir.example.profile.schema.CreationData> map) {
+        Map<UserProfileRow, UserProfileNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
+        for (Entry<UserProfileRow, com.palantir.example.profile.schema.CreationData> e : map.entrySet()) {
+            toPut.put(e.getKey(), Create.of(e.getValue()));
+        }
+        putUnlessExists(Multimaps.forMap(toPut));
     }
 
     public void putJson(UserProfileRow row, com.fasterxml.jackson.databind.JsonNode value) {
@@ -726,6 +778,18 @@ public final class UserProfileTable implements
         put(Multimaps.forMap(toPut));
     }
 
+    public void putJsonUnlessExists(UserProfileRow row, com.fasterxml.jackson.databind.JsonNode value) {
+        putUnlessExists(ImmutableMultimap.of(row, Json.of(value)));
+    }
+
+    public void putJsonUnlessExists(Map<UserProfileRow, com.fasterxml.jackson.databind.JsonNode> map) {
+        Map<UserProfileRow, UserProfileNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
+        for (Entry<UserProfileRow, com.fasterxml.jackson.databind.JsonNode> e : map.entrySet()) {
+            toPut.put(e.getKey(), Json.of(e.getValue()));
+        }
+        putUnlessExists(Multimaps.forMap(toPut));
+    }
+
     public void putPhotoStreamId(UserProfileRow row, Long value) {
         put(ImmutableMultimap.of(row, PhotoStreamId.of(value)));
     }
@@ -736,6 +800,18 @@ public final class UserProfileTable implements
             toPut.put(e.getKey(), PhotoStreamId.of(e.getValue()));
         }
         put(Multimaps.forMap(toPut));
+    }
+
+    public void putPhotoStreamIdUnlessExists(UserProfileRow row, Long value) {
+        putUnlessExists(ImmutableMultimap.of(row, PhotoStreamId.of(value)));
+    }
+
+    public void putPhotoStreamIdUnlessExists(Map<UserProfileRow, Long> map) {
+        Map<UserProfileRow, UserProfileNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
+        for (Entry<UserProfileRow, Long> e : map.entrySet()) {
+            toPut.put(e.getKey(), PhotoStreamId.of(e.getValue()));
+        }
+        putUnlessExists(Multimaps.forMap(toPut));
     }
 
     @Override
@@ -797,6 +873,18 @@ public final class UserProfileTable implements
         }
     }
 
+    @Override
+    public void putUnlessExists(Multimap<UserProfileRow, ? extends UserProfileNamedColumnValue<?>> rows) {
+        Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
+        Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> toPut = HashMultimap.create();
+        for (Entry<UserProfileRow, ? extends UserProfileNamedColumnValue<?>> entry : rows.entries()) {
+            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
+                toPut.put(entry.getKey(), entry.getValue());
+            }
+        }
+        put(toPut);
+    }
+
     public void deleteMetadata(UserProfileRow row) {
         deleteMetadata(ImmutableSet.of(row));
     }
@@ -810,7 +898,7 @@ public final class UserProfileTable implements
     }
 
     private void deleteUserBirthdaysIdxRaw(Map<Cell, byte[]> results) {
-        ImmutableSet.Builder<Cell> indexCells = ImmutableSet.builder();
+        Set<Cell> indexCells = Sets.newHashSetWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> result : results.entrySet()) {
             Metadata col = (Metadata) shortNameToHydrator.get("m").hydrateFromBytes(result.getValue());
             UserProfileRow row = UserProfileRow.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getRowName());
@@ -820,7 +908,7 @@ public final class UserProfileTable implements
             UserBirthdaysIdxTable.UserBirthdaysIdxColumn indexCol = UserBirthdaysIdxTable.UserBirthdaysIdxColumn.of(row.persistToBytes(), col.persistColumnName(), id);
             indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
         }
-        t.delete(namespace.getName() + ".user_birthdays_idx", indexCells.build());
+        t.delete("default.user_birthdays_idx", indexCells);
     }
 
     public void deleteCreate(UserProfileRow row) {
@@ -836,7 +924,7 @@ public final class UserProfileTable implements
     }
 
     private void deleteCreatedIdxRaw(Map<Cell, byte[]> results) {
-        ImmutableSet.Builder<Cell> indexCells = ImmutableSet.builder();
+        Set<Cell> indexCells = Sets.newHashSetWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> result : results.entrySet()) {
             Create col = (Create) shortNameToHydrator.get("c").hydrateFromBytes(result.getValue());
             UserProfileRow row = UserProfileRow.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getRowName());
@@ -846,7 +934,7 @@ public final class UserProfileTable implements
             CreatedIdxTable.CreatedIdxColumn indexCol = CreatedIdxTable.CreatedIdxColumn.of(row.persistToBytes(), col.persistColumnName(), id);
             indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
         }
-        t.delete(namespace.getName() + ".created_idx", indexCells.build());
+        t.delete("default.created_idx", indexCells);
     }
 
     public void deleteJson(UserProfileRow row) {
@@ -862,7 +950,7 @@ public final class UserProfileTable implements
     }
 
     private void deleteCookiesIdxRaw(Map<Cell, byte[]> results) {
-        ImmutableSet.Builder<Cell> indexCells = ImmutableSet.builder();
+        Set<Cell> indexCells = Sets.newHashSetWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> result : results.entrySet()) {
             Json col = (Json) shortNameToHydrator.get("j").hydrateFromBytes(result.getValue());
             UserProfileRow row = UserProfileRow.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getRowName());
@@ -874,7 +962,7 @@ public final class UserProfileTable implements
                 indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
             }
         }
-        t.delete(namespace.getName() + ".cookies_idx", indexCells.build());
+        t.delete("default.cookies_idx", indexCells);
     }
 
     public void deletePhotoStreamId(UserProfileRow row) {
@@ -899,12 +987,12 @@ public final class UserProfileTable implements
         deleteCreatedIdx(result);
         deleteUserBirthdaysIdx(result);
         List<byte[]> rowBytes = Persistables.persistAll(rows);
-        ImmutableSet.Builder<Cell> cells = ImmutableSet.builder();
+        Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size() * 4);
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("c")));
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("j")));
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("m")));
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("p")));
-        t.delete(tableName, cells.build());
+        t.delete(tableName, cells);
     }
 
     @Override
@@ -1051,7 +1139,7 @@ public final class UserProfileTable implements
                 }
             }
         }
-        t.delete(namespace.getName() + ".cookies_idx", indexCells.build());
+        t.delete("default.cookies_idx", indexCells.build());
     }
 
     private void deleteCreatedIdx(Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> result) {
@@ -1068,7 +1156,7 @@ public final class UserProfileTable implements
                 }
             }
         }
-        t.delete(namespace.getName() + ".created_idx", indexCells.build());
+        t.delete("default.created_idx", indexCells.build());
     }
 
     private void deleteUserBirthdaysIdx(Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> result) {
@@ -1085,7 +1173,7 @@ public final class UserProfileTable implements
                 }
             }
         }
-        t.delete(namespace.getName() + ".user_birthdays_idx", indexCells.build());
+        t.delete("default.user_birthdays_idx", indexCells.build());
     }
 
     public BatchingVisitableView<UserProfileRowResult> getAllRowsUnordered() {
@@ -1211,7 +1299,7 @@ public final class UserProfileTable implements
 
             @Override
             public String toString() {
-                return MoreObjects.toStringHelper(this)
+                return MoreObjects.toStringHelper(getClass().getSimpleName())
                     .add("cookie", cookie)
                     .toString();
             }
@@ -1331,7 +1419,7 @@ public final class UserProfileTable implements
 
             @Override
             public String toString() {
-                return MoreObjects.toStringHelper(this)
+                return MoreObjects.toStringHelper(getClass().getSimpleName())
                     .add("rowName", rowName)
                     .add("columnName", columnName)
                     .add("id", id)
@@ -1350,7 +1438,7 @@ public final class UserProfileTable implements
                     return false;
                 }
                 CookiesIdxColumn other = (CookiesIdxColumn) obj;
-                return Objects.equal(rowName, other.rowName) && Objects.equal(columnName, other.columnName) && Objects.equal(id, other.id);
+                return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName) && Objects.equal(id, other.id);
             }
 
             @Override
@@ -1439,6 +1527,14 @@ public final class UserProfileTable implements
                     }
                 };
             }
+
+            @Override
+            public String toString() {
+                return MoreObjects.toStringHelper(getClass().getSimpleName())
+                    .add("ColumnName", this.columnName)
+                    .add("Value", this.value)
+                    .toString();
+            }
         }
 
         public static final class CookiesIdxRowResult implements TypedRowResult {
@@ -1487,6 +1583,14 @@ public final class UserProfileTable implements
                     }
                 };
             }
+
+            @Override
+            public String toString() {
+                return MoreObjects.toStringHelper(getClass().getSimpleName())
+                    .add("RowName", getRowName())
+                    .add("ColumnValues", getColumnValues())
+                    .toString();
+            }
         }
 
         @Override
@@ -1526,6 +1630,29 @@ public final class UserProfileTable implements
             for (CookiesIdxTrigger trigger : triggers) {
                 trigger.putCookiesIdx(values);
             }
+        }
+
+        @Override
+        public void putUnlessExists(CookiesIdxRow rowName, Iterable<CookiesIdxColumnValue> values) {
+            putUnlessExists(ImmutableMultimap.<CookiesIdxRow, CookiesIdxColumnValue>builder().putAll(rowName, values).build());
+        }
+
+        @Override
+        public void putUnlessExists(CookiesIdxRow rowName, CookiesIdxColumnValue... values) {
+            putUnlessExists(ImmutableMultimap.<CookiesIdxRow, CookiesIdxColumnValue>builder().putAll(rowName, values).build());
+        }
+
+        @Override
+        public void putUnlessExists(Multimap<CookiesIdxRow, ? extends CookiesIdxColumnValue> rows) {
+            Multimap<CookiesIdxRow, CookiesIdxColumn> toGet = Multimaps.transformValues(rows, CookiesIdxColumnValue.getColumnNameFun());
+            Multimap<CookiesIdxRow, CookiesIdxColumnValue> existing = get(toGet);
+            Multimap<CookiesIdxRow, CookiesIdxColumnValue> toPut = HashMultimap.create();
+            for (Entry<CookiesIdxRow, ? extends CookiesIdxColumnValue> entry : rows.entries()) {
+                if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
+                    toPut.put(entry.getKey(), entry.getValue());
+                }
+            }
+            put(toPut);
         }
 
         @Override
@@ -1656,7 +1783,7 @@ public final class UserProfileTable implements
 
         public IterableView<BatchingVisitable<CookiesIdxRowResult>> getRanges(Iterable<RangeRequest> ranges) {
             Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableName, ranges);
-            return IterableView.of(Iterables.transform(rangeResults,
+            return IterableView.of(rangeResults).transform(
                     new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<CookiesIdxRowResult>>() {
                 @Override
                 public BatchingVisitable<CookiesIdxRowResult> apply(BatchingVisitable<RowResult<byte[]>> visitable) {
@@ -1667,7 +1794,7 @@ public final class UserProfileTable implements
                         }
                     });
                 }
-            }));
+            });
         }
 
         public void deleteRange(RangeRequest range) {
@@ -1801,7 +1928,7 @@ public final class UserProfileTable implements
 
             @Override
             public String toString() {
-                return MoreObjects.toStringHelper(this)
+                return MoreObjects.toStringHelper(getClass().getSimpleName())
                     .add("time", time)
                     .toString();
             }
@@ -1921,7 +2048,7 @@ public final class UserProfileTable implements
 
             @Override
             public String toString() {
-                return MoreObjects.toStringHelper(this)
+                return MoreObjects.toStringHelper(getClass().getSimpleName())
                     .add("rowName", rowName)
                     .add("columnName", columnName)
                     .add("id", id)
@@ -1940,7 +2067,7 @@ public final class UserProfileTable implements
                     return false;
                 }
                 CreatedIdxColumn other = (CreatedIdxColumn) obj;
-                return Objects.equal(rowName, other.rowName) && Objects.equal(columnName, other.columnName) && Objects.equal(id, other.id);
+                return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName) && Objects.equal(id, other.id);
             }
 
             @Override
@@ -2029,6 +2156,14 @@ public final class UserProfileTable implements
                     }
                 };
             }
+
+            @Override
+            public String toString() {
+                return MoreObjects.toStringHelper(getClass().getSimpleName())
+                    .add("ColumnName", this.columnName)
+                    .add("Value", this.value)
+                    .toString();
+            }
         }
 
         public static final class CreatedIdxRowResult implements TypedRowResult {
@@ -2077,6 +2212,14 @@ public final class UserProfileTable implements
                     }
                 };
             }
+
+            @Override
+            public String toString() {
+                return MoreObjects.toStringHelper(getClass().getSimpleName())
+                    .add("RowName", getRowName())
+                    .add("ColumnValues", getColumnValues())
+                    .toString();
+            }
         }
 
         @Override
@@ -2116,6 +2259,29 @@ public final class UserProfileTable implements
             for (CreatedIdxTrigger trigger : triggers) {
                 trigger.putCreatedIdx(values);
             }
+        }
+
+        @Override
+        public void putUnlessExists(CreatedIdxRow rowName, Iterable<CreatedIdxColumnValue> values) {
+            putUnlessExists(ImmutableMultimap.<CreatedIdxRow, CreatedIdxColumnValue>builder().putAll(rowName, values).build());
+        }
+
+        @Override
+        public void putUnlessExists(CreatedIdxRow rowName, CreatedIdxColumnValue... values) {
+            putUnlessExists(ImmutableMultimap.<CreatedIdxRow, CreatedIdxColumnValue>builder().putAll(rowName, values).build());
+        }
+
+        @Override
+        public void putUnlessExists(Multimap<CreatedIdxRow, ? extends CreatedIdxColumnValue> rows) {
+            Multimap<CreatedIdxRow, CreatedIdxColumn> toGet = Multimaps.transformValues(rows, CreatedIdxColumnValue.getColumnNameFun());
+            Multimap<CreatedIdxRow, CreatedIdxColumnValue> existing = get(toGet);
+            Multimap<CreatedIdxRow, CreatedIdxColumnValue> toPut = HashMultimap.create();
+            for (Entry<CreatedIdxRow, ? extends CreatedIdxColumnValue> entry : rows.entries()) {
+                if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
+                    toPut.put(entry.getKey(), entry.getValue());
+                }
+            }
+            put(toPut);
         }
 
         @Override
@@ -2246,7 +2412,7 @@ public final class UserProfileTable implements
 
         public IterableView<BatchingVisitable<CreatedIdxRowResult>> getRanges(Iterable<RangeRequest> ranges) {
             Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableName, ranges);
-            return IterableView.of(Iterables.transform(rangeResults,
+            return IterableView.of(rangeResults).transform(
                     new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<CreatedIdxRowResult>>() {
                 @Override
                 public BatchingVisitable<CreatedIdxRowResult> apply(BatchingVisitable<RowResult<byte[]>> visitable) {
@@ -2257,7 +2423,7 @@ public final class UserProfileTable implements
                         }
                     });
                 }
-            }));
+            });
         }
 
         public void deleteRange(RangeRequest range) {
@@ -2391,7 +2557,7 @@ public final class UserProfileTable implements
 
             @Override
             public String toString() {
-                return MoreObjects.toStringHelper(this)
+                return MoreObjects.toStringHelper(getClass().getSimpleName())
                     .add("birthday", birthday)
                     .toString();
             }
@@ -2511,7 +2677,7 @@ public final class UserProfileTable implements
 
             @Override
             public String toString() {
-                return MoreObjects.toStringHelper(this)
+                return MoreObjects.toStringHelper(getClass().getSimpleName())
                     .add("rowName", rowName)
                     .add("columnName", columnName)
                     .add("id", id)
@@ -2530,7 +2696,7 @@ public final class UserProfileTable implements
                     return false;
                 }
                 UserBirthdaysIdxColumn other = (UserBirthdaysIdxColumn) obj;
-                return Objects.equal(rowName, other.rowName) && Objects.equal(columnName, other.columnName) && Objects.equal(id, other.id);
+                return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName) && Objects.equal(id, other.id);
             }
 
             @Override
@@ -2619,6 +2785,14 @@ public final class UserProfileTable implements
                     }
                 };
             }
+
+            @Override
+            public String toString() {
+                return MoreObjects.toStringHelper(getClass().getSimpleName())
+                    .add("ColumnName", this.columnName)
+                    .add("Value", this.value)
+                    .toString();
+            }
         }
 
         public static final class UserBirthdaysIdxRowResult implements TypedRowResult {
@@ -2667,6 +2841,14 @@ public final class UserProfileTable implements
                     }
                 };
             }
+
+            @Override
+            public String toString() {
+                return MoreObjects.toStringHelper(getClass().getSimpleName())
+                    .add("RowName", getRowName())
+                    .add("ColumnValues", getColumnValues())
+                    .toString();
+            }
         }
 
         @Override
@@ -2706,6 +2888,29 @@ public final class UserProfileTable implements
             for (UserBirthdaysIdxTrigger trigger : triggers) {
                 trigger.putUserBirthdaysIdx(values);
             }
+        }
+
+        @Override
+        public void putUnlessExists(UserBirthdaysIdxRow rowName, Iterable<UserBirthdaysIdxColumnValue> values) {
+            putUnlessExists(ImmutableMultimap.<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue>builder().putAll(rowName, values).build());
+        }
+
+        @Override
+        public void putUnlessExists(UserBirthdaysIdxRow rowName, UserBirthdaysIdxColumnValue... values) {
+            putUnlessExists(ImmutableMultimap.<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue>builder().putAll(rowName, values).build());
+        }
+
+        @Override
+        public void putUnlessExists(Multimap<UserBirthdaysIdxRow, ? extends UserBirthdaysIdxColumnValue> rows) {
+            Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumn> toGet = Multimaps.transformValues(rows, UserBirthdaysIdxColumnValue.getColumnNameFun());
+            Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> existing = get(toGet);
+            Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> toPut = HashMultimap.create();
+            for (Entry<UserBirthdaysIdxRow, ? extends UserBirthdaysIdxColumnValue> entry : rows.entries()) {
+                if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
+                    toPut.put(entry.getKey(), entry.getValue());
+                }
+            }
+            put(toPut);
         }
 
         @Override
@@ -2836,7 +3041,7 @@ public final class UserProfileTable implements
 
         public IterableView<BatchingVisitable<UserBirthdaysIdxRowResult>> getRanges(Iterable<RangeRequest> ranges) {
             Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableName, ranges);
-            return IterableView.of(Iterables.transform(rangeResults,
+            return IterableView.of(rangeResults).transform(
                     new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<UserBirthdaysIdxRowResult>>() {
                 @Override
                 public BatchingVisitable<UserBirthdaysIdxRowResult> apply(BatchingVisitable<RowResult<byte[]>> visitable) {
@@ -2847,7 +3052,7 @@ public final class UserProfileTable implements
                         }
                     });
                 }
-            }));
+            });
         }
 
         public void deleteRange(RangeRequest range) {
@@ -2885,5 +3090,5 @@ public final class UserProfileTable implements
     }
 
 
-    static String __CLASS_HASH = "IU8QmqU0kUOTmHWVdN0lIw==";
+    static String __CLASS_HASH = "sEC6/UzxLgVG3xSPImRzNQ==";
 }

@@ -178,7 +178,7 @@ public final class TwoColumnsTable implements
 
         @Override
         public String toString() {
-            return MoreObjects.toStringHelper(this)
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
                 .add("id", id)
                 .toString();
         }
@@ -264,6 +264,13 @@ public final class TwoColumnsTable implements
                 return of(Long.MIN_VALUE ^ PtBytes.toLong(bytes, 0));
             }
         };
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("Value", this.value)
+                .toString();
+        }
     }
 
     /**
@@ -317,6 +324,13 @@ public final class TwoColumnsTable implements
                 return of(Long.MIN_VALUE ^ PtBytes.toLong(bytes, 0));
             }
         };
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("Value", this.value)
+                .toString();
+        }
     }
 
     public interface TwoColumnsTrigger {
@@ -403,10 +417,10 @@ public final class TwoColumnsTable implements
 
         @Override
         public String toString() {
-            return MoreObjects.toStringHelper(this)
-                    .add("RowName", getRowName())
-                    .add("Bar", getBar())
-                    .add("Foo", getFoo())
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("RowName", getRowName())
+                .add("Bar", getBar())
+                .add("Foo", getFoo())
                 .toString();
         }
     }
@@ -491,6 +505,18 @@ public final class TwoColumnsTable implements
         put(Multimaps.forMap(toPut));
     }
 
+    public void putFooUnlessExists(TwoColumnsRow row, Long value) {
+        putUnlessExists(ImmutableMultimap.of(row, Foo.of(value)));
+    }
+
+    public void putFooUnlessExists(Map<TwoColumnsRow, Long> map) {
+        Map<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
+        for (Entry<TwoColumnsRow, Long> e : map.entrySet()) {
+            toPut.put(e.getKey(), Foo.of(e.getValue()));
+        }
+        putUnlessExists(Multimaps.forMap(toPut));
+    }
+
     public void putBar(TwoColumnsRow row, Long value) {
         put(ImmutableMultimap.of(row, Bar.of(value)));
     }
@@ -501,6 +527,18 @@ public final class TwoColumnsTable implements
             toPut.put(e.getKey(), Bar.of(e.getValue()));
         }
         put(Multimaps.forMap(toPut));
+    }
+
+    public void putBarUnlessExists(TwoColumnsRow row, Long value) {
+        putUnlessExists(ImmutableMultimap.of(row, Bar.of(value)));
+    }
+
+    public void putBarUnlessExists(Map<TwoColumnsRow, Long> map) {
+        Map<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
+        for (Entry<TwoColumnsRow, Long> e : map.entrySet()) {
+            toPut.put(e.getKey(), Bar.of(e.getValue()));
+        }
+        putUnlessExists(Multimaps.forMap(toPut));
     }
 
     @Override
@@ -546,6 +584,18 @@ public final class TwoColumnsTable implements
         }
     }
 
+    @Override
+    public void putUnlessExists(Multimap<TwoColumnsRow, ? extends TwoColumnsNamedColumnValue<?>> rows) {
+        Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
+        Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> toPut = HashMultimap.create();
+        for (Entry<TwoColumnsRow, ? extends TwoColumnsNamedColumnValue<?>> entry : rows.entries()) {
+            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
+                toPut.put(entry.getKey(), entry.getValue());
+            }
+        }
+        put(toPut);
+    }
+
     public void deleteFoo(TwoColumnsRow row) {
         deleteFoo(ImmutableSet.of(row));
     }
@@ -560,7 +610,7 @@ public final class TwoColumnsTable implements
     }
 
     private void deleteFooToIdCondIdxRaw(Map<Cell, byte[]> results) {
-        ImmutableSet.Builder<Cell> indexCells = ImmutableSet.builder();
+        Set<Cell> indexCells = Sets.newHashSetWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> result : results.entrySet()) {
             Foo col = (Foo) shortNameToHydrator.get("f").hydrateFromBytes(result.getValue());
             TwoColumnsRow row = TwoColumnsRow.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getRowName());
@@ -570,11 +620,11 @@ public final class TwoColumnsTable implements
             FooToIdCondIdxTable.FooToIdCondIdxColumn indexCol = FooToIdCondIdxTable.FooToIdCondIdxColumn.of(row.persistToBytes(), col.persistColumnName(), id);
             indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
         }
-        t.delete(namespace.getName() + ".foo_to_id_cond_idx", indexCells.build());
+        t.delete("default.foo_to_id_cond_idx", indexCells);
     }
 
     private void deleteFooToIdIdxRaw(Map<Cell, byte[]> results) {
-        ImmutableSet.Builder<Cell> indexCells = ImmutableSet.builder();
+        Set<Cell> indexCells = Sets.newHashSetWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> result : results.entrySet()) {
             Foo col = (Foo) shortNameToHydrator.get("f").hydrateFromBytes(result.getValue());
             TwoColumnsRow row = TwoColumnsRow.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getRowName());
@@ -584,7 +634,7 @@ public final class TwoColumnsTable implements
             FooToIdIdxTable.FooToIdIdxColumn indexCol = FooToIdIdxTable.FooToIdIdxColumn.of(row.persistToBytes(), col.persistColumnName(), id);
             indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
         }
-        t.delete(namespace.getName() + ".foo_to_id_idx", indexCells.build());
+        t.delete("default.foo_to_id_idx", indexCells);
     }
 
     public void deleteBar(TwoColumnsRow row) {
@@ -608,10 +658,10 @@ public final class TwoColumnsTable implements
         deleteFooToIdCondIdx(result);
         deleteFooToIdIdx(result);
         List<byte[]> rowBytes = Persistables.persistAll(rows);
-        ImmutableSet.Builder<Cell> cells = ImmutableSet.builder();
+        Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size() * 2);
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("b")));
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("f")));
-        t.delete(tableName, cells.build());
+        t.delete(tableName, cells);
     }
 
     @Override
@@ -757,7 +807,7 @@ public final class TwoColumnsTable implements
                 }
             }
         }
-        t.delete(namespace.getName() + ".foo_to_id_cond_idx", indexCells.build());
+        t.delete("default.foo_to_id_cond_idx", indexCells.build());
     }
 
     private void deleteFooToIdIdx(Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> result) {
@@ -774,7 +824,7 @@ public final class TwoColumnsTable implements
                 }
             }
         }
-        t.delete(namespace.getName() + ".foo_to_id_idx", indexCells.build());
+        t.delete("default.foo_to_id_idx", indexCells.build());
     }
 
     public BatchingVisitableView<TwoColumnsRowResult> getAllRowsUnordered() {
@@ -900,7 +950,7 @@ public final class TwoColumnsTable implements
 
             @Override
             public String toString() {
-                return MoreObjects.toStringHelper(this)
+                return MoreObjects.toStringHelper(getClass().getSimpleName())
                     .add("foo", foo)
                     .toString();
             }
@@ -1020,7 +1070,7 @@ public final class TwoColumnsTable implements
 
             @Override
             public String toString() {
-                return MoreObjects.toStringHelper(this)
+                return MoreObjects.toStringHelper(getClass().getSimpleName())
                     .add("rowName", rowName)
                     .add("columnName", columnName)
                     .add("id", id)
@@ -1039,7 +1089,7 @@ public final class TwoColumnsTable implements
                     return false;
                 }
                 FooToIdCondIdxColumn other = (FooToIdCondIdxColumn) obj;
-                return Objects.equal(rowName, other.rowName) && Objects.equal(columnName, other.columnName) && Objects.equal(id, other.id);
+                return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName) && Objects.equal(id, other.id);
             }
 
             @Override
@@ -1128,6 +1178,14 @@ public final class TwoColumnsTable implements
                     }
                 };
             }
+
+            @Override
+            public String toString() {
+                return MoreObjects.toStringHelper(getClass().getSimpleName())
+                    .add("ColumnName", this.columnName)
+                    .add("Value", this.value)
+                    .toString();
+            }
         }
 
         public static final class FooToIdCondIdxRowResult implements TypedRowResult {
@@ -1176,6 +1234,14 @@ public final class TwoColumnsTable implements
                     }
                 };
             }
+
+            @Override
+            public String toString() {
+                return MoreObjects.toStringHelper(getClass().getSimpleName())
+                    .add("RowName", getRowName())
+                    .add("ColumnValues", getColumnValues())
+                    .toString();
+            }
         }
 
         @Override
@@ -1215,6 +1281,29 @@ public final class TwoColumnsTable implements
             for (FooToIdCondIdxTrigger trigger : triggers) {
                 trigger.putFooToIdCondIdx(values);
             }
+        }
+
+        @Override
+        public void putUnlessExists(FooToIdCondIdxRow rowName, Iterable<FooToIdCondIdxColumnValue> values) {
+            putUnlessExists(ImmutableMultimap.<FooToIdCondIdxRow, FooToIdCondIdxColumnValue>builder().putAll(rowName, values).build());
+        }
+
+        @Override
+        public void putUnlessExists(FooToIdCondIdxRow rowName, FooToIdCondIdxColumnValue... values) {
+            putUnlessExists(ImmutableMultimap.<FooToIdCondIdxRow, FooToIdCondIdxColumnValue>builder().putAll(rowName, values).build());
+        }
+
+        @Override
+        public void putUnlessExists(Multimap<FooToIdCondIdxRow, ? extends FooToIdCondIdxColumnValue> rows) {
+            Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumn> toGet = Multimaps.transformValues(rows, FooToIdCondIdxColumnValue.getColumnNameFun());
+            Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue> existing = get(toGet);
+            Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue> toPut = HashMultimap.create();
+            for (Entry<FooToIdCondIdxRow, ? extends FooToIdCondIdxColumnValue> entry : rows.entries()) {
+                if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
+                    toPut.put(entry.getKey(), entry.getValue());
+                }
+            }
+            put(toPut);
         }
 
         @Override
@@ -1456,7 +1545,7 @@ public final class TwoColumnsTable implements
 
             @Override
             public String toString() {
-                return MoreObjects.toStringHelper(this)
+                return MoreObjects.toStringHelper(getClass().getSimpleName())
                     .add("foo", foo)
                     .toString();
             }
@@ -1576,7 +1665,7 @@ public final class TwoColumnsTable implements
 
             @Override
             public String toString() {
-                return MoreObjects.toStringHelper(this)
+                return MoreObjects.toStringHelper(getClass().getSimpleName())
                     .add("rowName", rowName)
                     .add("columnName", columnName)
                     .add("id", id)
@@ -1595,7 +1684,7 @@ public final class TwoColumnsTable implements
                     return false;
                 }
                 FooToIdIdxColumn other = (FooToIdIdxColumn) obj;
-                return Objects.equal(rowName, other.rowName) && Objects.equal(columnName, other.columnName) && Objects.equal(id, other.id);
+                return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName) && Objects.equal(id, other.id);
             }
 
             @Override
@@ -1684,6 +1773,14 @@ public final class TwoColumnsTable implements
                     }
                 };
             }
+
+            @Override
+            public String toString() {
+                return MoreObjects.toStringHelper(getClass().getSimpleName())
+                    .add("ColumnName", this.columnName)
+                    .add("Value", this.value)
+                    .toString();
+            }
         }
 
         public static final class FooToIdIdxRowResult implements TypedRowResult {
@@ -1732,6 +1829,14 @@ public final class TwoColumnsTable implements
                     }
                 };
             }
+
+            @Override
+            public String toString() {
+                return MoreObjects.toStringHelper(getClass().getSimpleName())
+                    .add("RowName", getRowName())
+                    .add("ColumnValues", getColumnValues())
+                    .toString();
+            }
         }
 
         @Override
@@ -1771,6 +1876,29 @@ public final class TwoColumnsTable implements
             for (FooToIdIdxTrigger trigger : triggers) {
                 trigger.putFooToIdIdx(values);
             }
+        }
+
+        @Override
+        public void putUnlessExists(FooToIdIdxRow rowName, Iterable<FooToIdIdxColumnValue> values) {
+            putUnlessExists(ImmutableMultimap.<FooToIdIdxRow, FooToIdIdxColumnValue>builder().putAll(rowName, values).build());
+        }
+
+        @Override
+        public void putUnlessExists(FooToIdIdxRow rowName, FooToIdIdxColumnValue... values) {
+            putUnlessExists(ImmutableMultimap.<FooToIdIdxRow, FooToIdIdxColumnValue>builder().putAll(rowName, values).build());
+        }
+
+        @Override
+        public void putUnlessExists(Multimap<FooToIdIdxRow, ? extends FooToIdIdxColumnValue> rows) {
+            Multimap<FooToIdIdxRow, FooToIdIdxColumn> toGet = Multimaps.transformValues(rows, FooToIdIdxColumnValue.getColumnNameFun());
+            Multimap<FooToIdIdxRow, FooToIdIdxColumnValue> existing = get(toGet);
+            Multimap<FooToIdIdxRow, FooToIdIdxColumnValue> toPut = HashMultimap.create();
+            for (Entry<FooToIdIdxRow, ? extends FooToIdIdxColumnValue> entry : rows.entries()) {
+                if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
+                    toPut.put(entry.getKey(), entry.getValue());
+                }
+            }
+            put(toPut);
         }
 
         @Override
@@ -1916,5 +2044,5 @@ public final class TwoColumnsTable implements
     }
 
 
-    static String __CLASS_HASH = "tjTJBY2J8i8U43J6qAxSHA==";
+    static String __CLASS_HASH = "kMLWwWC3cSKEaC03d7jn8g==";
 }

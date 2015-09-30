@@ -188,7 +188,7 @@ public final class StreamTestStreamValueTable implements
 
         @Override
         public String toString() {
-            return MoreObjects.toStringHelper(this)
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
                 .add("id", id)
                 .add("blockId", blockId)
                 .toString();
@@ -276,6 +276,13 @@ public final class StreamTestStreamValueTable implements
                 return of(EncodingUtils.getBytesFromOffsetToEnd(bytes, 0));
             }
         };
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("Value", this.value)
+                .toString();
+        }
     }
 
     public interface StreamTestStreamValueTrigger {
@@ -340,9 +347,9 @@ public final class StreamTestStreamValueTable implements
 
         @Override
         public String toString() {
-            return MoreObjects.toStringHelper(this)
-                    .add("RowName", getRowName())
-                    .add("Value", getValue())
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("RowName", getRowName())
+                .add("Value", getValue())
                 .toString();
         }
     }
@@ -406,6 +413,18 @@ public final class StreamTestStreamValueTable implements
         put(Multimaps.forMap(toPut));
     }
 
+    public void putValueUnlessExists(StreamTestStreamValueRow row, byte[] value) {
+        putUnlessExists(ImmutableMultimap.of(row, Value.of(value)));
+    }
+
+    public void putValueUnlessExists(Map<StreamTestStreamValueRow, byte[]> map) {
+        Map<StreamTestStreamValueRow, StreamTestStreamValueNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
+        for (Entry<StreamTestStreamValueRow, byte[]> e : map.entrySet()) {
+            toPut.put(e.getKey(), Value.of(e.getValue()));
+        }
+        putUnlessExists(Multimaps.forMap(toPut));
+    }
+
     @Override
     public void put(Multimap<StreamTestStreamValueRow, ? extends StreamTestStreamValueNamedColumnValue<?>> rows) {
         t.useTable(tableName, this);
@@ -413,6 +432,18 @@ public final class StreamTestStreamValueTable implements
         for (StreamTestStreamValueTrigger trigger : triggers) {
             trigger.putStreamTestStreamValue(rows);
         }
+    }
+
+    @Override
+    public void putUnlessExists(Multimap<StreamTestStreamValueRow, ? extends StreamTestStreamValueNamedColumnValue<?>> rows) {
+        Multimap<StreamTestStreamValueRow, StreamTestStreamValueNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
+        Multimap<StreamTestStreamValueRow, StreamTestStreamValueNamedColumnValue<?>> toPut = HashMultimap.create();
+        for (Entry<StreamTestStreamValueRow, ? extends StreamTestStreamValueNamedColumnValue<?>> entry : rows.entries()) {
+            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
+                toPut.put(entry.getKey(), entry.getValue());
+            }
+        }
+        put(toPut);
     }
 
     public void deleteValue(StreamTestStreamValueRow row) {
@@ -433,9 +464,9 @@ public final class StreamTestStreamValueTable implements
     @Override
     public void delete(Iterable<StreamTestStreamValueRow> rows) {
         List<byte[]> rowBytes = Persistables.persistAll(rows);
-        ImmutableSet.Builder<Cell> cells = ImmutableSet.builder();
+        Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("v")));
-        t.delete(tableName, cells.build());
+        t.delete(tableName, cells);
     }
 
     @Override
@@ -576,5 +607,5 @@ public final class StreamTestStreamValueTable implements
         return ImmutableList.of();
     }
 
-    static String __CLASS_HASH = "UMFwV3hNEjXmdXjW2aFqxw==";
+    static String __CLASS_HASH = "O6Gqoqzbkbu03BQAR6rQtg==";
 }

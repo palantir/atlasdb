@@ -188,7 +188,7 @@ public final class StreamTest2StreamValueTable implements
 
         @Override
         public String toString() {
-            return MoreObjects.toStringHelper(this)
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
                 .add("id", id)
                 .add("blockId", blockId)
                 .toString();
@@ -276,6 +276,13 @@ public final class StreamTest2StreamValueTable implements
                 return of(EncodingUtils.getBytesFromOffsetToEnd(bytes, 0));
             }
         };
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("Value", this.value)
+                .toString();
+        }
     }
 
     public interface StreamTest2StreamValueTrigger {
@@ -340,9 +347,9 @@ public final class StreamTest2StreamValueTable implements
 
         @Override
         public String toString() {
-            return MoreObjects.toStringHelper(this)
-                    .add("RowName", getRowName())
-                    .add("Value", getValue())
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("RowName", getRowName())
+                .add("Value", getValue())
                 .toString();
         }
     }
@@ -406,6 +413,18 @@ public final class StreamTest2StreamValueTable implements
         put(Multimaps.forMap(toPut), duration, unit);
     }
 
+    public void putValueUnlessExists(StreamTest2StreamValueRow row, byte[] value, long duration, TimeUnit unit) {
+        putUnlessExists(ImmutableMultimap.of(row, Value.of(value)), duration, unit);
+    }
+
+    public void putValueUnlessExists(Map<StreamTest2StreamValueRow, byte[]> map, long duration, TimeUnit unit) {
+        Map<StreamTest2StreamValueRow, StreamTest2StreamValueNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
+        for (Entry<StreamTest2StreamValueRow, byte[]> e : map.entrySet()) {
+            toPut.put(e.getKey(), Value.of(e.getValue()));
+        }
+        putUnlessExists(Multimaps.forMap(toPut), duration, unit);
+    }
+
     @Override
     public void put(Multimap<StreamTest2StreamValueRow, ? extends StreamTest2StreamValueNamedColumnValue<?>> rows, long duration, TimeUnit unit) {
         t.useTable(tableName, this);
@@ -413,6 +432,18 @@ public final class StreamTest2StreamValueTable implements
         for (StreamTest2StreamValueTrigger trigger : triggers) {
             trigger.putStreamTest2StreamValue(rows);
         }
+    }
+
+    @Override
+    public void putUnlessExists(Multimap<StreamTest2StreamValueRow, ? extends StreamTest2StreamValueNamedColumnValue<?>> rows, long duration, TimeUnit unit) {
+        Multimap<StreamTest2StreamValueRow, StreamTest2StreamValueNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
+        Multimap<StreamTest2StreamValueRow, StreamTest2StreamValueNamedColumnValue<?>> toPut = HashMultimap.create();
+        for (Entry<StreamTest2StreamValueRow, ? extends StreamTest2StreamValueNamedColumnValue<?>> entry : rows.entries()) {
+            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
+                toPut.put(entry.getKey(), entry.getValue());
+            }
+        }
+        put(toPut, duration, unit);
     }
 
     public void deleteValue(StreamTest2StreamValueRow row) {
@@ -433,9 +464,9 @@ public final class StreamTest2StreamValueTable implements
     @Override
     public void delete(Iterable<StreamTest2StreamValueRow> rows) {
         List<byte[]> rowBytes = Persistables.persistAll(rows);
-        ImmutableSet.Builder<Cell> cells = ImmutableSet.builder();
+        Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("v")));
-        t.delete(tableName, cells.build());
+        t.delete(tableName, cells);
     }
 
     @Override
@@ -576,5 +607,5 @@ public final class StreamTest2StreamValueTable implements
         return ImmutableList.of();
     }
 
-    static String __CLASS_HASH = "QiYJ8t9f3leQsaUu1yP5QA==";
+    static String __CLASS_HASH = "Pk68Ul1AOtPwEWK2UUMRfQ==";
 }
