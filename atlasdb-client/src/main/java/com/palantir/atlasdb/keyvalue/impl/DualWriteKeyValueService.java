@@ -148,6 +148,14 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
+    public void dropTables(Set<String> tableNames) {
+        for (String tableName : tableNames) {
+            delegate1.dropTable(tableName);
+            delegate2.dropTable(tableName);
+        }
+    }
+
+    @Override
     public void createTable(String tableName, int maxValueSizeInBytes) {
         delegate1.createTable(tableName, maxValueSizeInBytes);
         delegate2.createTable(tableName, maxValueSizeInBytes);

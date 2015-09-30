@@ -22,8 +22,8 @@ import com.google.common.collect.Multimap;
  */
 public interface AtlasDbDynamicMutableTable<ROW, COLUMN, COLUMN_VALUE, ROW_RESULT> extends
             AtlasDbDynamicImmutableTable<ROW, COLUMN, COLUMN_VALUE, ROW_RESULT> {
-    public void delete(Multimap<ROW,COLUMN> values);
-    public void delete(ROW row, COLUMN column);
+    void delete(Multimap<ROW,COLUMN> values);
+    void delete(ROW row, COLUMN column);
 
     /**
      * This method needs to load the row so it knows what to delete.
@@ -34,5 +34,5 @@ public interface AtlasDbDynamicMutableTable<ROW, COLUMN, COLUMN_VALUE, ROW_RESUL
      * locking or have readers and writers touch the same cell to materialize the
      * conflict.
      */
-    public void delete(Iterable<ROW> rows);
+    void delete(Iterable<ROW> rows);
 }

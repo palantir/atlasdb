@@ -176,7 +176,7 @@ public final class StreamTest2StreamHashAidxTable implements
 
         @Override
         public String toString() {
-            return MoreObjects.toStringHelper(this)
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
                 .add("hash", hash)
                 .toString();
         }
@@ -267,7 +267,7 @@ public final class StreamTest2StreamHashAidxTable implements
 
         @Override
         public String toString() {
-            return MoreObjects.toStringHelper(this)
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
                 .add("streamId", streamId)
                 .toString();
         }
@@ -369,6 +369,14 @@ public final class StreamTest2StreamHashAidxTable implements
                 }
             };
         }
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("ColumnName", this.columnName)
+                .add("Value", this.value)
+                .toString();
+        }
     }
 
     public static final class StreamTest2StreamHashAidxRowResult implements TypedRowResult {
@@ -417,6 +425,14 @@ public final class StreamTest2StreamHashAidxTable implements
                 }
             };
         }
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("RowName", getRowName())
+                .add("ColumnValues", getColumnValues())
+                .toString();
+        }
     }
 
     @Override
@@ -456,6 +472,29 @@ public final class StreamTest2StreamHashAidxTable implements
         for (StreamTest2StreamHashAidxTrigger trigger : triggers) {
             trigger.putStreamTest2StreamHashAidx(values);
         }
+    }
+
+    @Override
+    public void putUnlessExists(StreamTest2StreamHashAidxRow rowName, Iterable<StreamTest2StreamHashAidxColumnValue> values, long duration, TimeUnit unit) {
+        putUnlessExists(ImmutableMultimap.<StreamTest2StreamHashAidxRow, StreamTest2StreamHashAidxColumnValue>builder().putAll(rowName, values).build(), duration, unit);
+    }
+
+    @Override
+    public void putUnlessExists(long duration, TimeUnit unit, StreamTest2StreamHashAidxRow rowName, StreamTest2StreamHashAidxColumnValue... values) {
+        putUnlessExists(ImmutableMultimap.<StreamTest2StreamHashAidxRow, StreamTest2StreamHashAidxColumnValue>builder().putAll(rowName, values).build(), duration, unit);
+    }
+
+    @Override
+    public void putUnlessExists(Multimap<StreamTest2StreamHashAidxRow, ? extends StreamTest2StreamHashAidxColumnValue> rows, long duration, TimeUnit unit) {
+        Multimap<StreamTest2StreamHashAidxRow, StreamTest2StreamHashAidxColumn> toGet = Multimaps.transformValues(rows, StreamTest2StreamHashAidxColumnValue.getColumnNameFun());
+        Multimap<StreamTest2StreamHashAidxRow, StreamTest2StreamHashAidxColumnValue> existing = get(toGet);
+        Multimap<StreamTest2StreamHashAidxRow, StreamTest2StreamHashAidxColumnValue> toPut = HashMultimap.create();
+        for (Entry<StreamTest2StreamHashAidxRow, ? extends StreamTest2StreamHashAidxColumnValue> entry : rows.entries()) {
+            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
+                toPut.put(entry.getKey(), entry.getValue());
+            }
+        }
+        put(toPut, duration, unit);
     }
 
     public static ColumnSelection getColumnSelection(Collection<StreamTest2StreamHashAidxColumn> cols) {
@@ -588,5 +627,5 @@ public final class StreamTest2StreamHashAidxTable implements
         return ImmutableList.of();
     }
 
-    static String __CLASS_HASH = "WQLVdEi5Fdi08w/sj+s1gA==";
+    static String __CLASS_HASH = "TWJuNkp19uaH4fYzDedqUg==";
 }

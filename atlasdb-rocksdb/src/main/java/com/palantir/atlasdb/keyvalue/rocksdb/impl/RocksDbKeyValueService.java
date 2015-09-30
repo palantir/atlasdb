@@ -437,6 +437,13 @@ public class RocksDbKeyValueService implements KeyValueService {
     }
 
     @Override
+    public void dropTables(Set<String> tableNames) throws InsufficientConsistencyException {
+        for (String tableName : tableNames) {
+            dropTable(tableName);
+        }
+    }
+
+    @Override
     public void createTable(String tableName, int maxValueSizeInBytes) {
         createTables(ImmutableMap.of(tableName, maxValueSizeInBytes));
     }
