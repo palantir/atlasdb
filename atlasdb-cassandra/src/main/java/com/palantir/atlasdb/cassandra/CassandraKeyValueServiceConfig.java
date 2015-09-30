@@ -24,6 +24,7 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
 @JsonDeserialize(as = ImmutableCassandraKeyValueServiceConfig.class)
