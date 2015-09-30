@@ -17,8 +17,6 @@ package com.palantir.util.paging;
 
 import java.io.Serializable;
 
-import com.palantir.annotations.PgPublicApi;
-
 /**
  *
  * @author manthony
@@ -26,7 +24,6 @@ import com.palantir.annotations.PgPublicApi;
  * @param <T>
  * @param <TOKEN>
  */
-@PgPublicApi
 public class SimpleTokenBackedResultsPage<T, TOKEN> extends SimpleResultsPage<T> implements
         TokenBackedBasicResultsPage<T, TOKEN>, Serializable {
     private static final long serialVersionUID = 1L;

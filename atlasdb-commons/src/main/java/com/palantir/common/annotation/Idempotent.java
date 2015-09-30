@@ -21,8 +21,6 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import com.palantir.annotations.PublicApi;
-
 
 /**
  * This annotation should be used to annotate functions that when called twice will return the same value.
@@ -37,7 +35,6 @@ import com.palantir.annotations.PublicApi;
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
-@PublicApi
 public @interface Idempotent {
     // marker annotation
 }

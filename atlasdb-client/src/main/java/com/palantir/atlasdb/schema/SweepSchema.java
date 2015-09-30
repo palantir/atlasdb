@@ -19,14 +19,11 @@ import java.io.File;
 
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
-import com.palantir.annotations.PtMain;
-import com.palantir.annotations.PtMainType;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
-@PtMain(type=PtMainType.DEV)
 public enum SweepSchema implements AtlasSchema {
     INSTANCE;
 

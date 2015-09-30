@@ -21,8 +21,6 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import com.palantir.annotations.PublicApi;
-
 
 /**
  * This annotation indicates that a parameter to a method can be modified by that method call.
@@ -32,7 +30,6 @@ import com.palantir.annotations.PublicApi;
 @Documented
 @Retention(RetentionPolicy.SOURCE)
 @Target(ElementType.PARAMETER)
-@PublicApi
 public @interface Modified {
     // marker annotation
 }

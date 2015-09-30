@@ -7,7 +7,7 @@ dependencies {
   testCompile(project(":atlasdb-cassandra"))
   testCompile project(":atlasdb-tests-shared")
   testCompile 'org.apache.cassandra:cassandra-all:2.1.5'
-  testCompile project(path: ':datastax-cassandra-driver-core', configuration: 'shadow')
+  testCompile 'com.palantir.shaded.com.datastax.cassandra:datastax-cassandra-driver-core:0.3.1'
 }
 
 jacoco {

@@ -32,7 +32,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.palantir.annotations.PgPublicApi;
 
 
 /**
@@ -54,7 +53,6 @@ import com.palantir.annotations.PgPublicApi;
  *
  * @author carrino
  */
-@PgPublicApi
 public class MutuallyExclusiveSetLock<T> {
     final private boolean fair;
     final private Comparator<? super T> comparator;

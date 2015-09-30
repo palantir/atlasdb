@@ -21,10 +21,6 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import com.palantir.annotations.PublicApi;
-
-
-
 /**
  * This is used to mark function parameters that are used for output. It is for documentation.
  *
@@ -33,7 +29,6 @@ import com.palantir.annotations.PublicApi;
 @Documented
 @Target(ElementType.PARAMETER)
 @Retention(RetentionPolicy.CLASS)
-@PublicApi
 public @interface Output {
     //marker
 }

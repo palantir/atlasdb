@@ -13,11 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- @PgPrivateApi @ParametersAreNonnullByDefault package com.palantir.lock;
+ @ParametersAreNonnullByDefault package com.palantir.lock;
 
 
 import javax.annotation.ParametersAreNonnullByDefault;
-
-import com.palantir.annotations.PgPrivateApi;
 
 
