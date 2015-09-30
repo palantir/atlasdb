@@ -103,14 +103,34 @@ public class ColumnAndKeyBuilder {
 	}
 	
 	public ColumnsAndKeys build() {
-		if(columns.isEmpty() || keys == null || keys.isEmpty()) {
-			throw new IllegalStateException();
-		}
+		validateKeysAndColumnsNonEmpty();	
+		validateNoUnusedFixedLengthDeclarations();	
 		
 		return ImmutableColumnsAndKeys.builder()
 				.addAllColumnDefinitions(columns)
 				.addAllKeys(keys)
 				.build();
+	}
+
+	private void validateNoUnusedFixedLengthDeclarations() {
+		// check for unused keys
+		Set<String> keyIdentifiers = Sets.newHashSet();
+		for(KeyDefinition kd : keys) {
+			keyIdentifiers.add(kd.getName());
+		}
+		
+		for(FixedLength fl : fixedLengthColumns.values()) {
+			if(!keyIdentifiers.contains(fl.key())) {
+				throw new IllegalStateException("have a @FixedLength annotation for " + fl.key() + " but it does not exist");
+			}
+		}
+	}
+
+	private void validateKeysAndColumnsNonEmpty() {
+		// check for columns or keys being empty
+		if(columns.isEmpty() || keys == null || keys.isEmpty()) {
+			throw new IllegalStateException("must define at least one column, columns must have keys");
+		}
 	}
 	
 	private void ensureKeysAreConsistent(ExecutableElement element) throws ProcessingException {

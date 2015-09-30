@@ -145,23 +145,9 @@ public class TableProcessor extends AbstractProcessor {
 		}
 		
 		try {
-			ColumnsAndKeys columnsAndKeys = builder.build();
-			
-			// check for unused keys
-			Set<String> keyIdentifiers = Sets.newHashSet();
-			for(KeyDefinition kd : columnsAndKeys.getKeys()) {
-				keyIdentifiers.add(kd.getName());
-			}
-			
-			for(FixedLength fl : fixedLengthKeys) {
-				if(!keyIdentifiers.contains(fl.key())) {
-					throw new ProcessingException(element, "have a @FixedLength annotation for %s but it does not exist", fl.key());
-				}
-			}
-			
-			return columnsAndKeys;
+			return builder.build();
 		} catch(IllegalStateException e) {
-			throw new ProcessingException(element, "must define at least one column, columns must have keys");
+			throw new ProcessingException(element, e.getMessage());
 		}
 	}
 	
