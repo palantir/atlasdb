@@ -15,13 +15,13 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
-import java.util.Arrays;
-
 import javax.annotation.Nullable;
 
 import com.google.common.base.Optional;
+import com.palantir.atlasdb.encoding.PtBytes;
 
 public class SweepResults {
+    public static final SweepResults EMPTY_SWEEP = new SweepResults(null, 0, 0);
     private final @Nullable byte[] nextStartRow;
     private final long cellsExamined;
     private final long cellsSwept;
@@ -46,7 +46,8 @@ public class SweepResults {
 
     @Override
     public String toString() {
-        return "SweepResults [nextStartRow=" + Arrays.toString(nextStartRow) + ", cellsExamined="
-                + cellsExamined + ", cellsSwept=" + cellsSwept + "]";
+        return "SweepResults [nextStartRow=" + PtBytes.encodeHexString(nextStartRow)
+                + ", cellsExamined=" + cellsExamined
+                + ", cellsSwept=" + cellsSwept + "]";
     }
 }
