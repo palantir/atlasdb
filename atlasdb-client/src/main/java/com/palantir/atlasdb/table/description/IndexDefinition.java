@@ -22,7 +22,9 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
+import com.palantir.atlasdb.table.description.render.Renderers;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
 /**
@@ -148,8 +150,20 @@ public class IndexDefinition extends AbstractDefinition {
         return rangeScanAllowed;
     }
 
-    public boolean isDbCompressionRequested(){
-        return true; //Compress indexes by default
+    public boolean isExplicitCompressionRequested(){
+        return explicitCompressionRequested;
+    }
+
+    public void explicitCompressionRequested() {
+        explicitCompressionRequested = true;
+    }
+
+    public int getExplicitCompressionBlockSizeKB() {
+        return explicitCompressionBlockSizeKB;
+    }
+
+    public void explicitCompressionBlockSizeKB(int blockSizeKB) {
+        explicitCompressionBlockSizeKB = blockSizeKB;
     }
 
     public void negativeLookups() {
@@ -166,11 +180,11 @@ public class IndexDefinition extends AbstractDefinition {
     }
 
     public void javaTableName(String name) {
+        String suffix = Renderers.camelCase(indexType.getIndexSuffix());
         Preconditions.checkArgument(
-                !name.endsWith("Aidx"),
-                "Java index name cannot end with 'Aidx'.");
-        name = name + "Aidx";
-        this.javaIndexTableName = name;
+                !name.endsWith(suffix),
+                "Java index name cannot end with '%s'", suffix);
+        this.javaIndexTableName = name + suffix;
     }
 
     public String getJavaTableName() {
@@ -198,6 +212,8 @@ public class IndexDefinition extends AbstractDefinition {
     private boolean negativeLookups = false;
     private IndexCondition indexCondition = null;
     private final IndexType indexType;
+    private boolean explicitCompressionRequested = true;
+    private int explicitCompressionBlockSizeKB = 0;
 
     public enum IndexType {
         ADDITIVE("_aidx"),
@@ -222,6 +238,9 @@ public class IndexDefinition extends AbstractDefinition {
     public IndexMetadata toIndexMetadata(String indexTableName) {
         Preconditions.checkState(indexTableName != null, "No index table name specified.");
         Preconditions.checkState(!rowComponents.isEmpty(), "No row components specified.");
+        if (explicitCompressionRequested && explicitCompressionBlockSizeKB == 0) {
+            explicitCompressionBlockSizeKB = AtlasDbConstants.DEFAULT_INDEX_COMPRESSION_BLOCK_SIZE_KB;
+        }
 
         if (colComponents.isEmpty()) {
             return IndexMetadata.createIndex(
@@ -232,8 +251,8 @@ public class IndexDefinition extends AbstractDefinition {
                     partitionStrategy,
                     conflictHandler,
                     rangeScanAllowed,
-                    isDbCompressionRequested(),
-                    hasNegativeLookups(),
+                    explicitCompressionBlockSizeKB,
+                    negativeLookups,
                     indexCondition,
                     indexType,
                     sweepStrategy,
@@ -248,8 +267,8 @@ public class IndexDefinition extends AbstractDefinition {
                     partitionStrategy,
                     conflictHandler,
                     rangeScanAllowed,
-                    isDbCompressionRequested(),
-                    hasNegativeLookups(),
+                    explicitCompressionBlockSizeKB,
+                    negativeLookups,
                     indexCondition,
                     indexType,
                     sweepStrategy,

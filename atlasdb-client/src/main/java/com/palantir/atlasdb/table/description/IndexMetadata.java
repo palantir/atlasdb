@@ -39,9 +39,9 @@ public class IndexMetadata {
     final ImmutableList<IndexComponent> colComponents;
     @Nullable final String columnNameToGetData;
     final CachePriority cachePriority;
-    final PartitionStrategy paritionStrategy;
+    final PartitionStrategy partitionStrategy;
     boolean rangeScanAllowed;
-    boolean dbCompressionRequested;
+    int explicitCompressionBlockSizeKB;
     boolean negativeLookups;
     final ConflictHandler conflictHandler;
     final IndexCondition indexCondition;
@@ -53,10 +53,10 @@ public class IndexMetadata {
                                                     String javaName,
                                                     Iterable<IndexComponent> rowComponents,
                                                     CachePriority cachePriority,
-                                                    PartitionStrategy paritionStrategy,
+                                                    PartitionStrategy partitionStrategy,
                                                     ConflictHandler conflictHandler,
                                                     boolean rangeScanAllowed,
-                                                    boolean dbCompressionRequested,
+                                                    int explicitCompressionBlockSizeKB,
                                                     boolean negativeLookups,
                                                     IndexCondition indexCondition,
                                                     IndexType indexType,
@@ -71,10 +71,10 @@ public class IndexMetadata {
                 colComponents,
                 getColNameToAccessFrom(rowComponents, colComponents, indexCondition),
                 cachePriority,
-                paritionStrategy,
+                partitionStrategy,
                 conflictHandler,
                 rangeScanAllowed,
-                dbCompressionRequested,
+                explicitCompressionBlockSizeKB,
                 negativeLookups,
                 indexCondition,
                 indexType,
@@ -87,10 +87,10 @@ public class IndexMetadata {
                                                            Iterable<IndexComponent> rowComponents,
                                                            Iterable<IndexComponent> colComponents,
                                                            CachePriority cachePriority,
-                                                           PartitionStrategy paritionStrategy,
+                                                           PartitionStrategy partitionStrategy,
                                                            ConflictHandler conflictHandler,
                                                            boolean rangeScanAllowed,
-                                                           boolean dbCompressionRequested,
+                                                           int explicitCompressionBlockSizeKB,
                                                            boolean negativeLookups,
                                                            IndexCondition indexCondition,
                                                            IndexType indexType,
@@ -105,10 +105,10 @@ public class IndexMetadata {
                 colComponents,
                 getColNameToAccessFrom(rowComponents, colComponents, indexCondition),
                 cachePriority,
-                paritionStrategy,
+                partitionStrategy,
                 conflictHandler,
                 rangeScanAllowed,
-                dbCompressionRequested,
+                explicitCompressionBlockSizeKB,
                 negativeLookups,
                 indexCondition,
                 indexType,
@@ -125,7 +125,7 @@ public class IndexMetadata {
                           PartitionStrategy partitionStrategy,
                           ConflictHandler conflictHandler,
                           boolean rangeScanAllowed,
-                          boolean dbCompressionRequested,
+                          int explicitCompressionBlockSizeKB,
                           boolean negativeLookups,
                           IndexCondition indexCondition,
                           IndexType indexType,
@@ -137,10 +137,10 @@ public class IndexMetadata {
         this.colComponents = ImmutableList.copyOf(colComponents);
         this.columnNameToGetData = colNameToAccessFrom;
         this.cachePriority = cachePriority;
-        this.paritionStrategy = partitionStrategy;
+        this.partitionStrategy = partitionStrategy;
         this.conflictHandler = conflictHandler;
         this.rangeScanAllowed = rangeScanAllowed;
-        this.dbCompressionRequested = dbCompressionRequested;
+        this.explicitCompressionBlockSizeKB = explicitCompressionBlockSizeKB;
         this.negativeLookups = negativeLookups;
         this.indexCondition = indexCondition;
         this.indexType = indexType;
@@ -210,9 +210,9 @@ public class IndexMetadata {
                 column,
                 conflictHandler,
                 cachePriority,
-                paritionStrategy,
+                partitionStrategy,
                 rangeScanAllowed,
-                dbCompressionRequested,
+                explicitCompressionBlockSizeKB,
                 negativeLookups,
                 sweepStrategy,
                 expirationStrategy);

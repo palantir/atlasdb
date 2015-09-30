@@ -635,29 +635,22 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         boolean rangeScanAllowed = false;
         boolean negativeLookups = false;
         double falsePositiveChance = CassandraConstants.DEFAULT_LEVELED_COMPACTION_BLOOM_FILTER_FP_CHANCE;
+        int explicitCompressionBlockSizeKB = 0;
 
         if (rawMetadata != null && rawMetadata.length != 0) {
             TableMetadata tableMetadata = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(rawMetadata);
-            dbCompressionRequested = tableMetadata.isDbCompressionRequested();
-            rangeScanAllowed = tableMetadata.isRangeScanAllowed();
             negativeLookups = tableMetadata.hasNegativeLookups();
+            explicitCompressionBlockSizeKB = tableMetadata.getExplicitCompressionBlockSizeKB();
         }
 
-        if (dbCompressionRequested) {
-            compressionOptions.put("sstable_compression", CassandraConstants.DEFAULT_COMPRESSION_TYPE);
-            if (tableName.endsWith(AtlasDbConstants.INDEX_SUFFIX)) {
-                compressionOptions.put("chunk_length_kb", Integer.toString(CassandraConstants.INDEX_COMPRESSION_KB));
-                if (rangeScanAllowed) {
-                    compressionOptions.put("chunk_length_kb", Integer.toString(CassandraConstants.TABLE_COMPRESSION_KB));
-                }
-            } else { //normal table
-                compressionOptions.put("chunk_length_kb", Integer.toString(CassandraConstants.TABLE_COMPRESSION_KB));
-            }
+        if (explicitCompressionBlockSizeKB != 0) {
+            compressionOptions.put(CassandraConstants.CFDEF_COMPRESSION_TYPE_KEY, CassandraConstants.DEFAULT_COMPRESSION_TYPE);
+            compressionOptions.put(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY, Integer.toString(explicitCompressionBlockSizeKB));
         } else {
             // We don't really need compression here nor anticipate it will garner us any gains
             // (which is why we're doing such a small chunk size), but this is how we can get "free" CRC checking.
-            compressionOptions.put("sstable_compression", CassandraConstants.DEFAULT_COMPRESSION_TYPE);
-            compressionOptions.put("chunk_length_kb", Integer.toString(CassandraConstants.INDEX_COMPRESSION_KB));
+            compressionOptions.put(CassandraConstants.CFDEF_COMPRESSION_TYPE_KEY, CassandraConstants.DEFAULT_COMPRESSION_TYPE);
+            compressionOptions.put(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY, Integer.toString(AtlasDbConstants.MINIMUM_COMPRESSION_BLOCK_SIZE_KB));
         }
 
         if (negativeLookups) {

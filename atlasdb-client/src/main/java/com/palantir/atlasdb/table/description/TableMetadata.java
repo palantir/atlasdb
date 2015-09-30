@@ -37,7 +37,7 @@ public class TableMetadata implements Persistable {
     final CachePriority cachePriority;
     final PartitionStrategy partitionStrategy;
     final boolean rangeScanAllowed;
-    final boolean dbCompressionRequested;
+    final int explicitCompressionBlockSizeKB;
     final boolean negativeLookups;
     final SweepStrategy sweepStrategy;
     final ExpirationStrategy expirationStrategy;
@@ -59,7 +59,7 @@ public class TableMetadata implements Persistable {
                 CachePriority.WARM,
                 PartitionStrategy.ORDERED,
                 false,
-                false,
+                0,
                 false,
                 SweepStrategy.CONSERVATIVE,
                 ExpirationStrategy.NEVER);
@@ -71,7 +71,7 @@ public class TableMetadata implements Persistable {
                          CachePriority cachePriority,
                          PartitionStrategy partitionStrategy,
                          boolean rangeScanAllowed,
-                         boolean dbCompressionRequested,
+                         int explicitCompressionBlockSizeKB,
                          boolean negativeLookups,
                          SweepStrategy sweepStrategy,
                          ExpirationStrategy expirationStrategy) {
@@ -86,7 +86,7 @@ public class TableMetadata implements Persistable {
         this.cachePriority = cachePriority;
         this.partitionStrategy = partitionStrategy;
         this.rangeScanAllowed = rangeScanAllowed;
-        this.dbCompressionRequested = dbCompressionRequested;
+        this.explicitCompressionBlockSizeKB = explicitCompressionBlockSizeKB;
         this.negativeLookups = negativeLookups;
         this.sweepStrategy = sweepStrategy;
         this.expirationStrategy = expirationStrategy;
@@ -120,8 +120,8 @@ public class TableMetadata implements Persistable {
         return rangeScanAllowed;
     }
 
-    public boolean isDbCompressionRequested() {
-        return dbCompressionRequested;
+    public int getExplicitCompressionBlockSizeKB() {
+        return explicitCompressionBlockSizeKB;
     }
 
     public boolean hasNegativeLookups() {
@@ -161,7 +161,6 @@ public class TableMetadata implements Persistable {
         builder.setCachePriority(cachePriority);
         builder.setPartitionStrategy(partitionStrategy);
         builder.setRangeScanAllowed(rangeScanAllowed);
-        builder.setDbCompressionRequested(dbCompressionRequested);
         builder.setNegativeLookups(negativeLookups);
         builder.setSweepStrategy(sweepStrategy);
         // expiration strategy doesn't need to be persisted.
@@ -181,9 +180,9 @@ public class TableMetadata implements Persistable {
         if (message.hasRangeScanAllowed()) {
             rangeScanAllowed = message.getRangeScanAllowed();
         }
-        boolean dbCompressionRequested = false;
-        if (message.hasDbCompressionRequested()) {
-            dbCompressionRequested = message.getDbCompressionRequested();
+        int explicitCompressionBlockSizeKB = 0;
+        if (message.hasExplicitCompressionBlockSizeKiloBytes()) {
+            explicitCompressionBlockSizeKB = message.getExplicitCompressionBlockSizeKiloBytes();
         }
         boolean negativeLookups = false;
         if (message.hasNegativeLookups()) {
@@ -200,7 +199,7 @@ public class TableMetadata implements Persistable {
                 cachePriority,
                 partitionStrategy,
                 rangeScanAllowed,
-                dbCompressionRequested,
+                explicitCompressionBlockSizeKB,
                 negativeLookups,
                 sweepStrategy,
                 ExpirationStrategy.NEVER);
@@ -215,7 +214,7 @@ public class TableMetadata implements Persistable {
                 + ", partitionStrategy=" + partitionStrategy
                 + ", rowMetadata =" + rowMetadata
                 + ", rangeScanAllowed =" + rangeScanAllowed
-                + ", dbCompressionRequested =" + dbCompressionRequested
+                + ", explicitCompressionBlockSizeKB =" + explicitCompressionBlockSizeKB
                 + ", negativeLookups = " + negativeLookups
                 + ", sweepStrategy = " + sweepStrategy
                 + "]";
@@ -228,12 +227,11 @@ public class TableMetadata implements Persistable {
         result = prime * result + ((cachePriority == null) ? 0 : cachePriority.hashCode());
         result = prime * result + ((columns == null) ? 0 : columns.hashCode());
         result = prime * result + ((conflictHandler == null) ? 0 : conflictHandler.hashCode());
-        result = prime * result + (dbCompressionRequested ? 1231 : 1237);
         result = prime * result + ((partitionStrategy == null) ? 0 : partitionStrategy.hashCode());
         result = prime * result + (rangeScanAllowed ? 1231 : 1237);
         result = prime * result + ((rowMetadata == null) ? 0 : rowMetadata.hashCode());
         result = prime * result + (rangeScanAllowed? 0 : 1);
-        result = prime * result + (dbCompressionRequested? 0 : 1);
+        result = prime * result + (explicitCompressionBlockSizeKB);
         result = prime * result + (negativeLookups? 0 : 1);
         result = prime * result + (sweepStrategy.hashCode());
         return result;
@@ -264,9 +262,6 @@ public class TableMetadata implements Persistable {
         if (conflictHandler != other.conflictHandler) {
             return false;
         }
-        if (dbCompressionRequested != other.dbCompressionRequested) {
-            return false;
-        }
         if (partitionStrategy != other.partitionStrategy) {
             return false;
         }
@@ -283,7 +278,7 @@ public class TableMetadata implements Persistable {
         if (rangeScanAllowed != other.rangeScanAllowed) {
             return false;
         }
-        if (dbCompressionRequested != other.dbCompressionRequested) {
+        if (explicitCompressionBlockSizeKB != other.explicitCompressionBlockSizeKB) {
             return false;
         }
         if (negativeLookups != other.negativeLookups) {
