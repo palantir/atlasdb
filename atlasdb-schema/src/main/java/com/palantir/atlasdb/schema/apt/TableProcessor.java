@@ -47,6 +47,7 @@ import org.apache.velocity.tools.generic.DisplayTool;
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.schema.annotations.Table;
+import com.palantir.atlasdb.schema.apt.ColumnAndKeyBuilder.ColumnsAndKeys;
 
 public class TableProcessor extends AbstractProcessor {
 
@@ -106,15 +107,16 @@ public class TableProcessor extends AbstractProcessor {
 		Table table = typeElement.getAnnotation(Table.class);
 		String tableName = table.name();
 		
-		// now crawl for columns
-		ColumnDefinitions columnDefinitions = getColumnDefinitions(typeElement);
+		// now process all of the columns
+		ColumnAndKeyBuilder.ColumnsAndKeys columnsAndKeys = getColumnDefinitions(typeElement);
 		
 		AtlasTableDefinition atlasTableDefinition = ImmutableAtlasTableDefinition.builder()
 				.originalClassName(originalClassName)
 				.packageName(packageName)
 				.generatedClassName(generatedClassName)
 				.tableName(tableName)
-				.columnDefinitions(columnDefinitions)
+				.addAllColumnDefinitions(columnsAndKeys.getColumnDefinitions())
+				.addAllKeyDefinitions(columnsAndKeys.getKeys())
 				.build();
 				
 		try {
@@ -124,23 +126,23 @@ public class TableProcessor extends AbstractProcessor {
 		}
 	}
 	
-	private ColumnDefinitions getColumnDefinitions(Element element) throws ProcessingException {
+	private ColumnsAndKeys getColumnDefinitions(Element element) throws ProcessingException {
 		List<? extends Element> allElements = element.getEnclosedElements(); 
-		ColumnDefinitions columnDefinitions = new ColumnDefinitions();
+		ColumnAndKeyBuilder builder = new ColumnAndKeyBuilder();
 		
 		for(Element e : allElements) {
 			if(e.getKind() != ElementKind.METHOD) {
 				continue;
 			}
 			
-			columnDefinitions.addColumn((ExecutableElement) e);
+			builder.addColumn((ExecutableElement) e);
 		}
 		
-		if(columnDefinitions.getColumns().isEmpty()) {
-			throw new ProcessingException(element, "must define at least one column");
+		try {
+			return builder.build();
+		} catch(IllegalStateException e) {
+			throw new ProcessingException(element, "must define at least one column, columns must have keys");
 		}
-		
-		return columnDefinitions;
 	}
 	
 	private void writeTableSource(AtlasTableDefinition tableDefinition) throws ResourceNotFoundException, ParseErrorException, Exception {

@@ -23,17 +23,17 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 
 ## Useful macros for defining/calling functions with all keys
 #macro( keysDeclaration )
-#foreach($key in $tableDefinition.columnDefinitions.keys)String ${key}#if( $velocityHasNext ), #end#end
+#foreach($key in $tableDefinition.keyDefinitions)${key.keyTypeFullyQualified} ${key.name}#if( $velocityHasNext ), #end#end
 #end
 #macro( keysUsage )
-#foreach($key in $tableDefinition.columnDefinitions.keys)${key}#if( $velocityHasNext ), #end#end
+#foreach($key in $tableDefinition.keyDefinitions)${key.name}#if( $velocityHasNext ), #end#end
 #end
 
 public class ${tableDefinition.generatedClassName} implements ${tableDefinition.originalClassName} {
 
     private static final String TABLE_NAME = "${tableDefinition.tableName}";
 
-#foreach($columnDefinition in $tableDefinition.columnDefinitions.columns)
+#foreach($columnDefinition in $tableDefinition.columnDefinitions)
     private static final byte[] ${columnDefinition.columnName.toUpperCase()}_COLUMN = "${columnDefinition.columnShortName}".getBytes(Charsets.UTF_8);
 #end
 
@@ -46,7 +46,7 @@ public class ${tableDefinition.generatedClassName} implements ${tableDefinition.
     }
 
 ## define get/put/delete for each of the columns
-#foreach($columnDefinition in $tableDefinition.columnDefinitions.columns)
+#foreach($columnDefinition in $tableDefinition.columnDefinitions)
     public void put${display.capitalize(${columnDefinition.columnName})}(#keysDeclaration(), ${columnDefinition.columnTypeQualifiedName} columnValue) {
         put${display.capitalize(${columnDefinition.columnName})}s(ImmutableMap.of(Key.of(#keysUsage()), columnValue));
     }
@@ -146,25 +146,25 @@ public class ${tableDefinition.generatedClassName} implements ${tableDefinition.
 
     @Value.Immutable
     public abstract static class Key {
-#foreach($key in $tableDefinition.columnDefinitions.keys)
-        abstract String get${display.capitalize(${key})}();
+#foreach($key in $tableDefinition.keyDefinitions)
+        abstract String get${display.capitalize(${key.name})}();
 #end
 
         public static Key of(#keysDeclaration()) {
             return ImmutableKey.builder()
-#foreach($key in $tableDefinition.columnDefinitions.keys)
-                .${key}(${key})
+#foreach($key in $tableDefinition.keyDefinitions)
+                .${key.name}(${key.name})
 #end
                 .build();
         }
 
-#set( $totalBytes = 40 * ${tableDefinition.columnDefinitions.keys.size()} )
+#set( $totalBytes = 40 * ${tableDefinition.keyDefinitions.size()} )
         public static final Key from(byte[] arr) {
             Preconditions.checkArgument(arr.length == ${totalBytes}, "length must = ${totalBytes}");
             return ImmutableKey.builder()
-#foreach($key in $tableDefinition.columnDefinitions.keys)
+#foreach($key in $tableDefinition.keyDefinitions)
                     #set( $startByteIndex = ($velocityCount - 1) * 40 )
-                    .${key}(new String(arr, $startByteIndex, 40))
+                    .${key.name}(new String(arr, $startByteIndex, 40))
 #end
                     .build();
         }
@@ -172,9 +172,9 @@ public class ${tableDefinition.generatedClassName} implements ${tableDefinition.
         // TODO: fix this up
         final byte[] key() {
             byte[] key = new byte[$totalBytes];
-#foreach($key in $tableDefinition.columnDefinitions.keys)
+#foreach($key in $tableDefinition.keyDefinitions)
             #set( $startByteIndex = ($velocityCount - 1) * 40 )
-            System.arraycopy(get${display.capitalize(${key})}().getBytes(Charsets.UTF_8), 0, key, $startByteIndex, 40);
+            System.arraycopy(get${display.capitalize(${key.name})}().getBytes(Charsets.UTF_8), 0, key, $startByteIndex, 40);
 #end
             return key;
         }
@@ -187,7 +187,7 @@ public class ${tableDefinition.generatedClassName} implements ${tableDefinition.
             this.row = row;
         }
 
-#foreach($columnDefinition in $tableDefinition.columnDefinitions.columns)
+#foreach($columnDefinition in $tableDefinition.columnDefinitions)
         public ${columnDefinition.columnTypeQualifiedName} ${columnDefinition.columnName}() {
             byte[] bytes = row.getColumns().get(${columnDefinition.columnName.toUpperCase()}_COLUMN);
             return toValue(bytes, ${columnDefinition.columnTypeQualifiedName}.class);

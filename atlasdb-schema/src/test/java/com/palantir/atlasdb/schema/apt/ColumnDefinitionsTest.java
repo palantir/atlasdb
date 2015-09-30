@@ -21,7 +21,7 @@ import org.junit.Test;
 public class ColumnDefinitionsTest {
 	@Test
 	public void canExtractColumnNameFromGetterName() {
-		String columnNameFromMethodName = ColumnDefinitions.getColumnNameFromMethodName("getTestColumn");
+		String columnNameFromMethodName = ColumnAndKeyBuilder.getColumnNameFromMethodName("getTestColumn");
 		Assert.assertEquals("testColumn", columnNameFromMethodName);
 	}
 }

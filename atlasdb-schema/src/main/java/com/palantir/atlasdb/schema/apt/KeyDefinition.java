@@ -15,16 +15,10 @@
  */
 package com.palantir.atlasdb.schema.apt;
 
-import java.util.List;
-
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface AtlasTableDefinition {
-	String getOriginalClassName();
-	String getPackageName();
-	String getGeneratedClassName();
-	String getTableName();
-	List<ColumnDefinition> getColumnDefinitions();
-	List<KeyDefinition> getKeyDefinitions();
+public interface KeyDefinition {
+	String getName();
+	String getKeyTypeFullyQualified();
 }

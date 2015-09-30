@@ -26,6 +26,9 @@ import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 
+import org.immutables.value.Value;
+
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Ascii;
 import com.google.common.base.CaseFormat;
 import com.google.common.collect.Lists;
@@ -33,25 +36,17 @@ import com.google.common.collect.Sets;
 import com.palantir.atlasdb.schema.annotations.Column;
 
 
-public class ColumnDefinitions {
+public class ColumnAndKeyBuilder {
 	
-	private List<String> keys;
+	private List<KeyDefinition> keys;
 	private List<ColumnDefinition> columns;
 	private Set<String> columnShortNames;
 	
-	public ColumnDefinitions() {
+	public ColumnAndKeyBuilder() {
 		this.columns = Lists.newArrayList();
 		this.columnShortNames = Sets.newHashSet();
 	}
-	
-	public List<ColumnDefinition> getColumns() {
-		return columns;
-	}
-	
-	public List<String> getKeys() {
-		return keys;
-	}
-	
+
 	public void addColumn(ExecutableElement methodElement) throws ProcessingException {
 		Column columnAnnotation = methodElement.getAnnotation(Column.class);
 		if(columnAnnotation == null) {
@@ -62,12 +57,6 @@ public class ColumnDefinitions {
 		String columnName = getColumnNameFromMethod(methodElement);
 		String shortName = columnAnnotation.shortName().length() > 0 ?
 				columnAnnotation.shortName() : columnName.substring(0,1);
-			
-		List<String> keys = Lists.newArrayList();
-		for(VariableElement variableElement : methodElement.getParameters()) {
-			String variableName = variableElement.getSimpleName().toString();
-			keys.add(variableName);
-		}
 		
 		TypeMirror returnType = methodElement.getReturnType();
 		if(returnType.getKind() == TypeKind.VOID) {
@@ -81,11 +70,11 @@ public class ColumnDefinitions {
 		TypeElement typeElement = (TypeElement) declaredType.asElement();
 		String columnTypeQualifiedName = typeElement.getQualifiedName().toString();
 		
-		// ensure keys are consistent
+		// add keys or ensure keys are consistent
 		if(this.keys == null) {
-			this.keys = keys;
-		} else if(!Objects.equals(this.keys, keys)) {
-			throw new ProcessingException(methodElement, "arguments to @Column getters must be consistently named and ordered");
+			this.keys = getKeyDefinitions(methodElement);
+		} else {
+			ensureKeysAreConsistent(methodElement);
 		}
 		
 		// ensure short name does not clash
@@ -103,6 +92,38 @@ public class ColumnDefinitions {
 		
 		columns.add(cd);
 	}
+	
+	public ColumnsAndKeys build() {
+		if(columns.isEmpty() || keys == null || keys.isEmpty()) {
+			throw new IllegalStateException();
+		}
+		
+		return ImmutableColumnsAndKeys.builder()
+				.addAllColumnDefinitions(columns)
+				.addAllKeys(keys)
+				.build();
+	}
+	
+	private void ensureKeysAreConsistent(ExecutableElement element) throws ProcessingException {
+		// the keys must match
+		List<KeyDefinition> keysForElement = getKeyDefinitions(element);
+		if(!Objects.equals(this.keys, keysForElement)) {
+			throw new ProcessingException(element, "arguments to @Column getters must be consistently named and ordered");
+		}
+	}
+	
+	private static List<KeyDefinition> getKeyDefinitions(ExecutableElement element) {
+		List<KeyDefinition> keys = Lists.newArrayList();
+		for(VariableElement variableElement : element.getParameters()) {
+			String variableName = variableElement.getSimpleName().toString();
+			ImmutableKeyDefinition key = ImmutableKeyDefinition.builder()
+				.name(variableName)
+				.keyTypeFullyQualified("java.lang.String") // TODO
+				.build();
+			keys.add(key);
+		}
+		return keys;
+	}
 
 	private static String getColumnNameFromMethod(ExecutableElement element) throws ProcessingException {
 		String methodName = element.getSimpleName().toString();
@@ -113,7 +134,8 @@ public class ColumnDefinitions {
 		}
 	}
 
-	public static String getColumnNameFromMethodName(String methodName) {
+	@VisibleForTesting
+	protected static String getColumnNameFromMethodName(String methodName) {
 		// this is how immutables does it
 		final String prefix = "get";
 		boolean prefixMatches = methodName.startsWith(prefix) && Ascii.isUpperCase(methodName.charAt(prefix.length()));
@@ -124,5 +146,11 @@ public class ColumnDefinitions {
 		} else {
 			throw new IllegalArgumentException();
 		}
+	}
+	
+	@Value.Immutable
+	static interface ColumnsAndKeys {
+		List<ColumnDefinition> getColumnDefinitions();
+		List<KeyDefinition> getKeys();
 	}
 }
