@@ -76,4 +76,45 @@ public class PaxosProposalId implements Comparable<PaxosProposalId>, Serializabl
     public String getProposerUUID() {
         return proposerUUID;
     }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + (int) (number ^ (number >>> 32));
+        result = prime * result
+                + ((proposerUUID == null) ? 0 : proposerUUID.hashCode());
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        PaxosProposalId other = (PaxosProposalId) obj;
+        if (number != other.number) {
+            return false;
+        }
+        if (proposerUUID == null) {
+            if (other.proposerUUID != null) {
+                return false;
+            }
+        } else if (!proposerUUID.equals(other.proposerUUID)) {
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    public String toString() {
+        return "PaxosProposalId [number=" + number + ", proposerUUID="
+                + proposerUUID + "]";
+    }
 }
