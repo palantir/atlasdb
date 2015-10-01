@@ -850,8 +850,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     @Override
     public void dropTable(final String tableName) {
+        boolean locked = false;
         try {
             trySchemaMutationLock();
+            locked = true;
             clientPool.runWithPooledResource(new FunctionCheckedException<Client, Void, Exception>() {
                 @Override
                 public Void apply(Client client) throws Exception {
@@ -873,7 +875,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         } finally {
-            schemaMutationLock.unlock();
+            if (locked) {
+                schemaMutationLock.unlock();
+            }
         }
     }
 
@@ -900,8 +904,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
      */
     @Override
     public void dropTables(final Set<String> tablesToDrop) {
+        boolean locked = false;
         try {
             trySchemaMutationLock();
+            locked = true;
             clientPool.runWithPooledResource(new FunctionCheckedException<Client, Void, Exception>() {
                 @Override
                 public Void apply(Client client) throws Exception {
@@ -932,15 +938,19 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         } finally {
-            schemaMutationLock.unlock();
+            if (locked) {
+                schemaMutationLock.unlock();
+            }
         }
     }
 
     @Override
     public void createTable(final String tableName, final int maxValueSizeInBytes) {
         CassandraVerifier.sanityCheckTableName(tableName);
+        boolean locked = false;
         try {
             trySchemaMutationLock();
+            locked = true;
             clientPool.runWithPooledResource(new FunctionCheckedException<Client, Void, Exception>() {
                 @Override
                 public Void apply(Client client) throws Exception {
@@ -953,7 +963,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         } finally {
-            schemaMutationLock.unlock();
+            if (locked) {
+                schemaMutationLock.unlock();
+            }
         }
     }
 
@@ -980,8 +992,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
      */
     @Override
     public void createTables(final Map<String, Integer> tableNamesToMaxValueSizeInBytes) {
+        boolean locked = false;
         try {
             trySchemaMutationLock();
+            locked = true;
             clientPool.runWithPooledResource(new FunctionCheckedException<Client, Void, Exception>() {
                 @Override
                 public Void apply(Client client) throws Exception {
@@ -1012,7 +1026,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         } finally {
-            schemaMutationLock.unlock();
+            if (locked) {
+                schemaMutationLock.unlock();
+            }
         }
     }
 
@@ -1119,8 +1135,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         }
 
         if (!newMetadata.isEmpty()) {
+            boolean locked = false;
             try {
                 trySchemaMutationLock();
+                locked = true;
                 clientPool.runWithPooledResource(new FunctionCheckedException<Client, Void, Exception>() {
                     @Override
                     public Void apply(Client client) throws Exception {
@@ -1137,7 +1155,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             } catch (Exception e) {
                 throw Throwables.throwUncheckedException(e);
             } finally {
-                schemaMutationLock.unlock();
+                if (locked) {
+                    schemaMutationLock.unlock();
+                }
             }
         }
     }
@@ -1255,8 +1275,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         Preconditions.checkArgument(gcGraceSeconds >= 0, "gcGraceSeconds:[%s] should not be negative", gcGraceSeconds);
         Preconditions.checkArgument(tombstone_threshold_ratio >= 0.0f && tombstone_threshold_ratio <= 1.0f, "tombstone_threshold_ratio:[%s] should be between [0.0, 1.0]", tombstone_threshold_ratio);
 
+        boolean locked = false;
         try {
             trySchemaMutationLock();
+            locked = true;
             clientPool.runWithPooledResource(new FunctionCheckedException<Client, Void, Exception>() {
                 @Override
                 public Void apply(Client client) throws NotFoundException, InvalidRequestException, TException {
@@ -1278,7 +1300,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         } catch (Exception e) {
             log.error("Exception encountered while setting {}.{} gc_grace_seconds to {}", keyspace, tableName, gcGraceSeconds, e);
         } finally {
-            schemaMutationLock.unlock();
+            if (locked) {
+                schemaMutationLock.unlock();
+            }
         }
     }
 }
