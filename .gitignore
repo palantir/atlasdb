@@ -9,6 +9,9 @@ Thumbs.db
 *.prefs
 *.class
 *.profile
+*.iml
+*.ipr
+*.iws
 fix-ivy.py
 .classpath
 .ecbuild
