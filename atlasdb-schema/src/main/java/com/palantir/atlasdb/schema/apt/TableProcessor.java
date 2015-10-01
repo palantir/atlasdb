@@ -15,12 +15,11 @@
  */
 package com.palantir.atlasdb.schema.apt;
 
-import java.io.IOException;
+import java.io.StringWriter;
 import java.io.Writer;
 import java.net.URL;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
@@ -43,17 +42,13 @@ import javax.tools.JavaFileObject;
 import org.apache.velocity.Template;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.VelocityEngine;
-import org.apache.velocity.exception.ParseErrorException;
-import org.apache.velocity.exception.ResourceNotFoundException;
 import org.apache.velocity.tools.generic.DisplayTool;
+import org.jboss.forge.roaster.Roaster;
 
 import com.google.common.base.CaseFormat;
-import com.google.common.base.Charsets;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
 import com.palantir.atlasdb.schema.annotations.FixedLength;
 import com.palantir.atlasdb.schema.annotations.Keys;
 import com.palantir.atlasdb.schema.annotations.Table;
@@ -124,7 +119,7 @@ public class TableProcessor extends AbstractProcessor {
 			
 			SchemaDefinition schemaDefinition = schemaBuilder.build();
 			try {
-				writeSchemaSource(schemaDefinition);		
+				writeSchemaSource(schemaDefinition);
 			} catch(Exception e) {
 				error(null, "could not write output source: " + e.getMessage());
 			}
@@ -201,7 +196,7 @@ public class TableProcessor extends AbstractProcessor {
 				.createSourceFile(schemaDefinition.getPackageName() + "." + schemaDefinition.getGeneratedClassName());
 		messager.printMessage(Diagnostic.Kind.NOTE, "creating source file: " + jfo.toUri());
 
-		try(Writer writer = jfo.openWriter()) {
+		try(Writer writer = jfo.openWriter()) {			
 			writeSchemaSource(schemaDefinition, writer);			
 		}
 	}
@@ -214,7 +209,12 @@ public class TableProcessor extends AbstractProcessor {
 		tableContext.put("tableDefinition", tableDefinition);
 		tableContext.put("display", new DisplayTool());
 		
-		tableTemplate.merge(tableContext, writer);
+		StringWriter stringWriter = new StringWriter();
+		tableTemplate.merge(tableContext, stringWriter);
+		
+		String codeAsString = stringWriter.toString();
+		String formatted = Roaster.format(codeAsString);	
+		writer.write(formatted);
 	}
 	
 	private static void writeSchemaSource(SchemaDefinition schemaDefinition, Writer writer) throws Exception {
@@ -225,7 +225,12 @@ public class TableProcessor extends AbstractProcessor {
 		tableContext.put("schemaDefinition", schemaDefinition);
 		tableContext.put("display", new DisplayTool());
 		
-		schemaTemplate.merge(tableContext, writer);
+		StringWriter stringWriter = new StringWriter();
+		schemaTemplate.merge(tableContext, stringWriter);
+		
+		String codeAsString = stringWriter.toString();
+		String formatted = Roaster.format(codeAsString);	
+		writer.write(formatted); 
 	}
 	
 	private static VelocityEngine makeAndInitializeVelocityEngine() throws Exception {

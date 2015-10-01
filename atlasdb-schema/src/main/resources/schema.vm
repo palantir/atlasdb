@@ -23,9 +23,9 @@ public class ${display.capitalize(${schemaDefinition.schemaName})}Schema impleme
         Schema schema = new Schema("${display.capitalize(${schemaDefinition.schemaName})}",
                 "${schemaDefinition.packageName}",
                 Namespace.DEFAULT_NAMESPACE);
-#foreach( $tableDefinition in $schemaDefinition.tableDefinitions )
-#parse("table-definition.vm")
-#end
+        #foreach( $tableDefinition in $schemaDefinition.tableDefinitions )
+            #parse("table-definition.vm")
+        #end
         return schema;
     }
 

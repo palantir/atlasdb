@@ -1,36 +1,37 @@
 #macro( keyEncode $key )
-#if( $key.keyTypeFullyQualified == "java.lang.Long" )
-#if( $key.fixed )
-byte[] ${key.name}Bytes = EncodingUtils.encodeLittleEndian(get${display.capitalize(${key.name})}());
-#else
-byte[] ${key.name}Bytes = EncodingUtils.encodeVarLong(get${display.capitalize(${key.name})}());
+	#if( $key.keyTypeFullyQualified == "java.lang.Long" )
+		#if( $key.fixed )
+			byte[] ${key.name}Bytes = EncodingUtils.encodeLittleEndian(get${display.capitalize(${key.name})}());
+		#else
+			byte[] ${key.name}Bytes = EncodingUtils.encodeVarLong(get${display.capitalize(${key.name})}());
+		#end
+	#elseif( $key.keyTypeFullyQualified == "java.lang.String" )
+		#if( $key.fixed )
+			byte[] ${key.name}Bytes = new byte[${key.length}];
+			System.arraycopy(get${display.capitalize(${key.name})}().getBytes(Charsets.UTF_8), 0, ${key.name}Bytes, 0, ${key.length});
+		#else
+			byte[] ${key.name}Bytes = EncodingUtils.encodeVarString(get${display.capitalize(${key.name})}());
+		#end
+	#end
 #end
-#elseif( $key.keyTypeFullyQualified == "java.lang.String" )
-#if( $key.fixed )
-byte[] ${key.name}Bytes = new byte[${key.length}];
-System.arraycopy(get${display.capitalize(${key.name})}().getBytes(Charsets.UTF_8), 0, ${key.name}Bytes, 0, ${key.length});
-#else
-byte[] ${key.name}Bytes = EncodingUtils.encodeVarString(get${display.capitalize(${key.name})}());
-#end
-#end
-#end
+
 #macro( keyDecode $key)
-// key: ${key}
-#if( $key.keyTypeFullyQualified == "java.lang.Long" )
-#if( $key.fixed )
-${key.keyTypeFullyQualified} ${key.name} = EncodingUtils.decodeLittleEndian(bytes, index);
-index += PtBytes.SIZEOF_LONG;
-#else
-${key.keyTypeFullyQualified} ${key.name} = EncodingUtils.decodeVarLong(bytes, index);
-index += EncodingUtils.sizeOfVarLong(${key.name});
-#end
-#elseif( $key.keyTypeFullyQualified == "java.lang.String" )
-#if( $key.fixed )
-${key.keyTypeFullyQualified} ${key.name} = new String(bytes, index, ${key.length}, Charsets.UTF_8);
-index += ${key.length};
-#else
-${key.keyTypeFullyQualified} ${key.name} = EncodingUtils.decodeVarString(bytes, index);
-index += EncodingUtils.sizeOfVarString(${key.name});
-#end
-#end
+	// key: ${key}
+	#if( $key.keyTypeFullyQualified == "java.lang.Long" )
+		#if( $key.fixed )
+			${key.keyTypeFullyQualified} ${key.name} = EncodingUtils.decodeLittleEndian(bytes, index);
+			index += PtBytes.SIZEOF_LONG;
+		#else
+			${key.keyTypeFullyQualified} ${key.name} = EncodingUtils.decodeVarLong(bytes, index);
+			index += EncodingUtils.sizeOfVarLong(${key.name});
+		#end
+	#elseif( $key.keyTypeFullyQualified == "java.lang.String" )
+		#if( $key.fixed )
+			${key.keyTypeFullyQualified} ${key.name} = new String(bytes, index, ${key.length}, Charsets.UTF_8);
+			index += ${key.length};
+		#else
+			${key.keyTypeFullyQualified} ${key.name} = EncodingUtils.decodeVarString(bytes, index);
+			index += EncodingUtils.sizeOfVarString(${key.name});
+		#end
+	#end
 #end

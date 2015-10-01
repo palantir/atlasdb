@@ -25,6 +25,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.primitives.Longs;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
 public class UserProfileTableImpl implements UserProfileTable {
@@ -41,6 +42,7 @@ public class UserProfileTableImpl implements UserProfileTable {
 	
 	public UserProfileTableImpl(Transaction t) {
 		this.t = t;
+		ValueType string = ValueType.STRING;
 	}
 	
 	private byte[] getKey(long userId) {

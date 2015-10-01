@@ -24,10 +24,10 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 
 ## Useful macros for defining/calling functions with all keys
 #macro( keysDeclaration )
-#foreach($key in $tableDefinition.keyDefinitions)${key.keyTypeFullyQualified} ${key.name}#if( $velocityHasNext ), #end#end
+    #foreach($key in $tableDefinition.keyDefinitions)${key.keyTypeFullyQualified} ${key.name}#if( $velocityHasNext ), #end#end
 #end
 #macro( keysUsage )
-#foreach($key in $tableDefinition.keyDefinitions)${key.name}#if( $velocityHasNext ), #end#end
+    #foreach($key in $tableDefinition.keyDefinitions)${key.name}#if( $velocityHasNext ), #end#end
 #end
 #parse( "key-encoding-decoding-macros.vm" )
 
@@ -48,7 +48,7 @@ public class ${tableDefinition.generatedClassName} implements ${tableDefinition.
     }
 
 ## define get/put/delete for each of the columns
-#foreach($columnDefinition in $tableDefinition.columnDefinitions)
+    #foreach($columnDefinition in $tableDefinition.columnDefinitions)
     public void put${display.capitalize(${columnDefinition.columnName})}(#keysDeclaration(), ${columnDefinition.columnTypeQualifiedName} columnValue) {
         put${display.capitalize(${columnDefinition.columnName})}s(ImmutableMap.of(Key.of(#keysUsage()), columnValue));
     }
@@ -96,7 +96,7 @@ public class ${tableDefinition.generatedClassName} implements ${tableDefinition.
         txn.delete(TABLE_NAME, cells.build());
     }
 
-#end
+    #end
     public Optional<Row> getRow(#keysDeclaration()) {
         return getRow(#keysUsage(), ColumnSelection.all());
     }
@@ -149,31 +149,31 @@ public class ${tableDefinition.generatedClassName} implements ${tableDefinition.
     @Value.Immutable
     @Value.Style(typeImmutable = "${tableDefinition.originalClassName}*")
     public abstract static class Key {
-#foreach($key in $tableDefinition.keyDefinitions)
+        #foreach($key in $tableDefinition.keyDefinitions)
         abstract ${key.keyTypeFullyQualified} get${display.capitalize(${key.name})}();
-#end
+        #end
 
         public static Key of(#keysDeclaration()) {
             return ${tableDefinition.originalClassName}Key.builder()
-#foreach($key in $tableDefinition.keyDefinitions)
+                #foreach($key in $tableDefinition.keyDefinitions)
                 .${key.name}(${key.name})
-#end
+                #end
                 .build();
         }
 
 #set( $totalBytes = 40 * ${tableDefinition.keyDefinitions.size()} )
         public static final Key from(byte[] bytes) {
             int index = 0;
-#foreach($key in $tableDefinition.keyDefinitions)
-            #keyDecode( $key )
-#end
+            #foreach($key in $tableDefinition.keyDefinitions)
+                #keyDecode( $key )
+            #end
             return of(#foreach($key in $tableDefinition.keyDefinitions)${key.name}#if($velocityHasNext), #end#end);
         }
 
         final byte[] key() {
-#foreach($key in $tableDefinition.keyDefinitions)
-            #keyEncode( $key )
-#end
+            #foreach($key in $tableDefinition.keyDefinitions)
+                        #keyEncode( $key )
+            #end
             return EncodingUtils.add(#foreach($key in $tableDefinition.keyDefinitions)${key.name}Bytes#if($velocityHasNext), #end#end);
         }
     }
@@ -185,7 +185,7 @@ public class ${tableDefinition.generatedClassName} implements ${tableDefinition.
             this.row = row;
         }
 
-#foreach($columnDefinition in $tableDefinition.columnDefinitions)
+        #foreach($columnDefinition in $tableDefinition.columnDefinitions)
         public ${columnDefinition.columnTypeQualifiedName} ${columnDefinition.columnName}() {
             byte[] bytes = row.getColumns().get(${columnDefinition.columnName.toUpperCase()}_COLUMN);
             return toValue(bytes, ${columnDefinition.columnTypeQualifiedName}.class);
@@ -195,6 +195,6 @@ public class ${tableDefinition.generatedClassName} implements ${tableDefinition.
             return row.getColumns().containsKey(${columnDefinition.columnName.toUpperCase()}_COLUMN);
         }
 
-#end
+        #end
     }
 }
