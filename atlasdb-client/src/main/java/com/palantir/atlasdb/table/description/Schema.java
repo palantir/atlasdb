@@ -22,14 +22,12 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import org.apache.commons.lang.Validate;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSortedSet;
@@ -39,9 +37,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
-import com.google.common.collect.Sets;
 import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ExpirationStrategy;
 import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.schema.stream.StreamTables;
@@ -89,26 +85,6 @@ public class Schema {
         this.namespace = namespace;
     }
 
-    public Schema withNamespace(Namespace newNamespace) {
-        Schema ret = new Schema(name, packageName, newNamespace);
-        ret.cleanupTasks.putAll(cleanupTasks);
-        ret.tempTableDefinitions.putAll(tempTableDefinitions);
-        ret.tableDefinitions.putAll(tableDefinitions);
-        ret.indexDefinitions.putAll(indexDefinitions);
-        ret.streamStoreRenderers.addAll(streamStoreRenderers);
-        ret.indexesByTable.putAll(indexesByTable);
-        return ret;
-    }
-
-
-    public void addTempTableDefinition(String genericTableName, TableDefinition definition) {
-        Preconditions.checkArgument(
-                !tempTableDefinitions.containsKey(genericTableName),
-                "Temp table already defined.");
-        definition.genericTableName(genericTableName);
-        tempTableDefinitions.put(genericTableName, definition);
-    }
-
     public void addTableDefinition(String tableName, TableDefinition definition) {
         Preconditions.checkArgument(
                 !tableDefinitions.containsKey(tableName) && !indexDefinitions.containsKey(tableName),
@@ -117,16 +93,6 @@ public class Schema {
                 Schemas.isTableNameValid(tableName),
                 "Invalid table name " + tableName);
         tableDefinitions.put(tableName, definition);
-    }
-
-    public void addDefinitionsForTables(Iterable<String> tableNames, TableDefinition definition) {
-        for (String t : tableNames) {
-            addTableDefinition(t, definition);
-        }
-    }
-
-    public void removeTableDefinition(String tableName) {
-        tableDefinitions.remove(tableName);
     }
 
     public TableDefinition getTableDefinition(String tableName) {
@@ -142,10 +108,6 @@ public class Schema {
             ret.put(e.getKey(), e.getValue().toIndexMetadata(e.getKey()).getTableMetadata());
         }
         return ret;
-    }
-
-    public Set<String> getAllIndexes() {
-        return indexDefinitions.keySet();
     }
 
     public void addIndexDefinition(String idxName, IndexDefinition definition) {
@@ -188,7 +150,8 @@ public class Schema {
                 } catch (Exception e) {
                     throw Throwables.rewrapAndThrowUncheckedException(e);
                 }
-            }});
+            }
+        });
         addCleanupTask(shortName + "_stream_idx", new Supplier<OnCleanupTask>() {
             @Override
             public OnCleanupTask get() {
@@ -198,7 +161,8 @@ public class Schema {
                 } catch (Exception e) {
                     throw Throwables.rewrapAndThrowUncheckedException(e);
                 }
-            }});
+            }
+        });
         streamStoreRenderers.add(renderer);
     }
 
@@ -222,24 +186,8 @@ public class Schema {
                 "Cell referencing indexes not implemented for tables with dynamic columns.");
     }
 
-    public void addDefinitionsForAdditiveIndexes(Iterable<String> indexNames, IndexDefinition definition) {
-        for (String i : indexNames) {
-            addIndexDefinition(i, definition);
-        }
-    }
-
     public IndexDefinition getIndex(String indexName) {
         return indexDefinitions.get(indexName);
-    }
-
-    public IndexDefinition getIndexForShortName(String indexName) {
-        for (IndexType type : IndexType.values()) {
-            String trueIndexName = indexName + type.getIndexSuffix();
-            if (indexDefinitions.containsKey(trueIndexName)) {
-                return getIndex(trueIndexName);
-            }
-        }
-        return null;
     }
 
     /**
@@ -301,35 +249,6 @@ public class Schema {
 
     public Namespace getNamespace() {
         return namespace;
-    }
-
-    public void createIndex(KeyValueService kvs, String indexName) {
-        IndexDefinition definition = indexDefinitions.get(indexName);
-        String fullIndexName = Schemas.getFullTableName(indexName, namespace);
-        Schemas.createIndex(kvs, fullIndexName, definition);
-    }
-
-    /**
-     * Drops tables/indexes for this schema.
-     */
-    public void deleteTablesAndIndexes(KeyValueService kvs) {
-        validate();
-        Set<String> allTables = kvs.getAllTableNames();
-        Set<String> tablesToDrop = Sets.newHashSet();
-        for (String n : Iterables.concat(indexDefinitions.keySet(), tableDefinitions.keySet())) {
-            if (allTables.contains(n)) {
-                tablesToDrop.add(n);
-            }
-        }
-        kvs.dropTables(tablesToDrop);
-    }
-
-    public void deleteTable(KeyValueService kvs, String tableName) {
-        kvs.dropTable(tableName);
-    }
-
-    public void deleteIndex(KeyValueService kvs, String indexName) {
-        kvs.dropTable(indexName);
     }
 
     /**
@@ -417,10 +336,6 @@ public class Schema {
                 os.close();
             }
         }
-    }
-
-    public void addCleanupTask(String rawTableName, OnCleanupTask task) {
-        cleanupTasks.put(rawTableName, Suppliers.ofInstance(task));
     }
 
     public void addCleanupTask(String rawTableName, Supplier<OnCleanupTask> task) {
