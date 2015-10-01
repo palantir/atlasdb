@@ -17,4 +17,5 @@ package com.palantir.atlasdb.schema.annotations;
 
 public @interface Table {
 	String name();
+	String schemaName();
 }

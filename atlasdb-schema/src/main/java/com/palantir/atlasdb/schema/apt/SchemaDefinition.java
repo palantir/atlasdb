@@ -13,22 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.schema.test;
+package com.palantir.atlasdb.schema.apt;
 
-import com.palantir.atlasdb.schema.annotations.Column;
-import com.palantir.atlasdb.schema.annotations.FixedLength;
-import com.palantir.atlasdb.schema.annotations.Keys;
-import com.palantir.atlasdb.schema.annotations.Table;
+import java.util.List;
 
-@Table(name = "test", schemaName = "test")
-@Keys({
-	@FixedLength(key = "key3", length = 10)
-})
-interface BasicTableWithNonExistingFixedLength {
-	
-	@Column
-	String getTestStringColumn(String key1, String key2);
-	
-	@Column(shortName = "i")
-	Integer getTestIntegerColumn(String key1, String key2);
+import org.immutables.value.Value;
+
+@Value.Immutable
+public interface SchemaDefinition {
+	String getPackageName();
+	String getGeneratedClassName();
+	String getSchemaName();
+	List<AtlasTableDefinition> getTableDefinitions();
 }

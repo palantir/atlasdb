@@ -20,7 +20,7 @@ import com.palantir.atlasdb.schema.annotations.FixedLength;
 import com.palantir.atlasdb.schema.annotations.Keys;
 import com.palantir.atlasdb.schema.annotations.Table;
 
-@Table(name = "my_test_table")
+@Table(name = "test", schemaName = "test")
 @Keys({
 	@FixedLength(length = 10, key = "newFixedThing")
 })

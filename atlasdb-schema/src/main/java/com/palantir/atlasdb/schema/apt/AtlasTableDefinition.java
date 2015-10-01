@@ -25,6 +25,7 @@ public interface AtlasTableDefinition {
 	String getPackageName();
 	String getGeneratedClassName();
 	String getTableName();
+	String getSchemaName();
 	List<ColumnDefinition> getColumnDefinitions();
 	List<KeyDefinition> getKeyDefinitions();
 }

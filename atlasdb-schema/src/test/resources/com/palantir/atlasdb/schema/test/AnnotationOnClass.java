@@ -17,7 +17,7 @@ package com.palantir.atlasdb.schema.test;
 
 import com.palantir.atlasdb.schema.annotations.Table;
 
-@Table(name = "test")
+@Table(name = "test", schemaName = "test")
 class AnnotationOnClass {
 	
 }

@@ -13,22 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.schema.test;
+package com.palantir.atlasdb.schema.tests;
 
 import com.palantir.atlasdb.schema.annotations.Column;
-import com.palantir.atlasdb.schema.annotations.FixedLength;
-import com.palantir.atlasdb.schema.annotations.Keys;
 import com.palantir.atlasdb.schema.annotations.Table;
 
-@Table(name = "test", schemaName = "test")
-@Keys({
-	@FixedLength(key = "key3", length = 10)
-})
-interface BasicTableWithNonExistingFixedLength {
-	
+@Table(name = "other_test", schemaName = "test")
+public interface OtherTestTable {
+
 	@Column
-	String getTestStringColumn(String key1, String key2);
-	
-	@Column(shortName = "i")
-	Integer getTestIntegerColumn(String key1, String key2);
+	String getThingy(Long thingId);
 }

@@ -15,9 +15,12 @@
  */
 package com.palantir.atlasdb.schema.apt;
 
+import java.io.IOException;
 import java.io.Writer;
 import java.net.URL;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
@@ -44,8 +47,12 @@ import org.apache.velocity.exception.ParseErrorException;
 import org.apache.velocity.exception.ResourceNotFoundException;
 import org.apache.velocity.tools.generic.DisplayTool;
 
+import com.google.common.base.CaseFormat;
 import com.google.common.base.Charsets;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.schema.annotations.FixedLength;
 import com.palantir.atlasdb.schema.annotations.Keys;
@@ -81,6 +88,8 @@ public class TableProcessor extends AbstractProcessor {
 
 	@Override
 	public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
+		Multimap<String, AtlasTableDefinition> tablesBySchema = ArrayListMultimap.create();
+		
 		try {
 			for (Element annotatedElement : roundEnv.getElementsAnnotatedWith(Table.class)) {
 				if (annotatedElement.getKind() != ElementKind.INTERFACE) {
@@ -88,16 +97,43 @@ public class TableProcessor extends AbstractProcessor {
 							Table.class.getSimpleName());
 				}
 				
-				processTable((TypeElement) annotatedElement);
+				AtlasTableDefinition tableDefinition = processTable((TypeElement) annotatedElement);
+				tablesBySchema.put(tableDefinition.getSchemaName(), tableDefinition);
 			}
 		} catch (ProcessingException e) {
 			error(e.getElement(), e.getMessage());
+		}
+		
+		for(String schemaName : tablesBySchema.keySet()) {
+			Collection<AtlasTableDefinition> tables = tablesBySchema.get(schemaName);
+			
+			ImmutableSchemaDefinition.Builder schemaBuilder = ImmutableSchemaDefinition.builder();
+			schemaBuilder.schemaName(schemaName);
+			
+			for(AtlasTableDefinition tableDefinition : tables) {
+				try {
+					writeTableSource(tableDefinition);
+					schemaBuilder.addTableDefinitions(tableDefinition);
+				} catch (Exception e) {
+					error(null, "could not write output source: " + e.getMessage());
+				}
+			}
+			schemaBuilder.packageName(tables.iterator().next().getPackageName()); // just grab first package name
+			String className = CaseFormat.LOWER_UNDERSCORE.to(CaseFormat.UPPER_CAMEL, schemaName + "_schema");
+			schemaBuilder.generatedClassName(className);
+			
+			SchemaDefinition schemaDefinition = schemaBuilder.build();
+			try {
+				writeSchemaSource(schemaDefinition);		
+			} catch(Exception e) {
+				error(null, "could not write output source: " + e.getMessage());
+			}
 		}
 
 		return true;
 	}
 	
-	private void processTable(TypeElement typeElement) throws ProcessingException {
+	private AtlasTableDefinition processTable(TypeElement typeElement) throws ProcessingException {
 		
 		String originalClassName = typeElement.getSimpleName().toString();
 		PackageElement packageElement = elementUtils.getPackageOf(typeElement);
@@ -109,24 +145,23 @@ public class TableProcessor extends AbstractProcessor {
 		
 		Table table = typeElement.getAnnotation(Table.class);
 		String tableName = table.name();
+		String schemaName = table.schemaName();
+		if(!schemaName.matches("^[a-z][a-z_]*$")) {
+			throw new ProcessingException(typeElement, "schema name '" + schemaName + "' is not in underscore_case");
+		}
 		
 		// now process all of the columns
 		ColumnAndKeyBuilder.ColumnsAndKeys columnsAndKeys = getColumnDefinitions(typeElement);
 		
-		AtlasTableDefinition atlasTableDefinition = ImmutableAtlasTableDefinition.builder()
+		return ImmutableAtlasTableDefinition.builder()
 				.originalClassName(originalClassName)
 				.packageName(packageName)
 				.generatedClassName(generatedClassName)
 				.tableName(tableName)
+				.schemaName(schemaName)
 				.addAllColumnDefinitions(columnsAndKeys.getColumnDefinitions())
 				.addAllKeyDefinitions(columnsAndKeys.getKeys())
 				.build();
-				
-		try {
-			writeTableSource(atlasTableDefinition);
-		} catch (Exception e) {
-			throw new ProcessingException(typeElement, "could not write output source: %s %s", e, e.getMessage());
-		}
 	}
 	
 	private ColumnsAndKeys getColumnDefinitions(Element element) throws ProcessingException {
@@ -151,26 +186,57 @@ public class TableProcessor extends AbstractProcessor {
 		}
 	}
 	
-	private void writeTableSource(AtlasTableDefinition tableDefinition) throws ResourceNotFoundException, ParseErrorException, Exception {
-		Properties props = new Properties();
-		URL url = this.getClass().getClassLoader().getResource("velocity.properties");
-		props.load(url.openStream());
-
-		VelocityEngine ve = new VelocityEngine(props);
-		ve.init();
-		Template vt = ve.getTemplate("table.vm");
-
-		VelocityContext vc = new VelocityContext();
-		vc.put("tableDefinition", tableDefinition);
-		vc.put("display", new DisplayTool());
-
+	private void writeTableSource(AtlasTableDefinition tableDefinition) throws Exception {
 		JavaFileObject jfo = processingEnv.getFiler()
 				.createSourceFile(tableDefinition.getPackageName() + "." + tableDefinition.getGeneratedClassName());
 		messager.printMessage(Diagnostic.Kind.NOTE, "creating source file: " + jfo.toUri());
 
 		try(Writer writer = jfo.openWriter()) {
-			vt.merge(vc, writer);
+			writeTableSource(tableDefinition, writer);			
 		}
+	}
+	
+	private void writeSchemaSource(SchemaDefinition schemaDefinition) throws Exception {
+		JavaFileObject jfo = processingEnv.getFiler()
+				.createSourceFile(schemaDefinition.getPackageName() + "." + schemaDefinition.getGeneratedClassName());
+		messager.printMessage(Diagnostic.Kind.NOTE, "creating source file: " + jfo.toUri());
+
+		try(Writer writer = jfo.openWriter()) {
+			writeSchemaSource(schemaDefinition, writer);			
+		}
+	}
+	
+	private static void writeTableSource(AtlasTableDefinition tableDefinition, Writer writer) throws Exception {
+		VelocityEngine ve = makeAndInitializeVelocityEngine();
+		Template tableTemplate = ve.getTemplate("table.vm");
+
+		VelocityContext tableContext = new VelocityContext();
+		tableContext.put("tableDefinition", tableDefinition);
+		tableContext.put("display", new DisplayTool());
+		
+		tableTemplate.merge(tableContext, writer);
+	}
+	
+	private static void writeSchemaSource(SchemaDefinition schemaDefinition, Writer writer) throws Exception {
+		VelocityEngine ve = makeAndInitializeVelocityEngine();
+		Template schemaTemplate = ve.getTemplate("schema.vm");
+
+		VelocityContext tableContext = new VelocityContext();
+		tableContext.put("schemaDefinition", schemaDefinition);
+		tableContext.put("display", new DisplayTool());
+		
+		schemaTemplate.merge(tableContext, writer);
+	}
+	
+	private static VelocityEngine makeAndInitializeVelocityEngine() throws Exception {
+		Properties props = new Properties();
+		URL url = TableProcessor.class.getClassLoader().getResource("velocity.properties");
+		props.load(url.openStream());
+
+		VelocityEngine ve = new VelocityEngine(props);
+		ve.init();
+		
+		return ve;
 	}
 
 	private void error(Element e, String msg) {
