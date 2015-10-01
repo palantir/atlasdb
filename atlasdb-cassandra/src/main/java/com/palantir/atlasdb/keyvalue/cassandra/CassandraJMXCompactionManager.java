@@ -23,8 +23,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import javax.net.ssl.SSLSocketFactory;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
