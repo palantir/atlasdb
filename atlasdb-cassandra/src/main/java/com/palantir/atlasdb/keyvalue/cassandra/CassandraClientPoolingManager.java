@@ -28,9 +28,7 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.common.base.FunctionCheckedException;
@@ -43,7 +41,7 @@ public class CassandraClientPoolingManager {
 
     private final ManyClientPoolingContainer containerPoolToUpdate;
     private final PoolingContainer<Client> clientPool;
-    CassandraKeyValueServiceConfig config;
+    private final CassandraKeyValueServiceConfig config;
     private final ScheduledExecutorService hostModificationExecutor = PTExecutors.newScheduledThreadPool(
             1,
             new ThreadFactoryBuilder().setDaemon(true).setNameFormat("HostModificationThreadPool-%d").build());

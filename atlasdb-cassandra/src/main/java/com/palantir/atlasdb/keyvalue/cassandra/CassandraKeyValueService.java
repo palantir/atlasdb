@@ -109,7 +109,6 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 /**
  *
- * each dispatch service can have one or many C* KVS.
  * For each C* KVS, it maintains a list of active nodes, and the client connections attached to each node
  *
  * n1->c1, c2, c3
@@ -124,7 +123,6 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 public class CassandraKeyValueService extends AbstractKeyValueService {
 
     private static final Logger log = LoggerFactory.getLogger(CassandraKeyValueService.class);
-    private static final String CHRONICLE_SERVICE_NAME = "atlas-cassandra";
 
     private final CassandraKeyValueServiceConfig config;
     private final CassandraClientPoolingManager cassandraClientPoolingManager;
@@ -141,7 +139,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     private static final long TRANSACTION_TS = 0L;
 
     public static CassandraKeyValueService create(CassandraKeyValueServiceConfig config) {
-        Preconditions.checkArgument(!config.servers().isEmpty(), "hosts set was empty");
         final CassandraKeyValueService ret = new CassandraKeyValueService(config);
         try {
             ret.initializeFromFreshInstance(ret.containerPoolToUpdate.getCurrentHosts(), config.replicationFactor());
@@ -254,7 +251,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             }
         }
 
-        // we are racing another dispatch to do these same operations here, but they are idempotent / safe
+        // we are racing another service to do these same operations here, but they are idempotent / safe
         if (!tablesToUpgrade.isEmpty()) {
             putMetadataForTables(tablesToUpgrade);
         } else {
@@ -299,7 +296,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         int fetchBatchCount = config.fetchBatchCount();
         try {
             int rowCount = 0;
-            final Map<Cell, Value> result = Maps.newHashMap();
+            ImmutableMap.Builder<Cell, Value> result = ImmutableMap.<Cell, Value>builder();
             for (final List<byte[]> batch : Iterables.partition(rows, fetchBatchCount)) {
                 rowCount += batch.size();
                 result.putAll(clientPool.runWithPooledResource(new FunctionCheckedException<Client, Map<Cell, Value>, Exception>() {
@@ -333,7 +330,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                         + rowCount + " rows; this may indicate overly-large batching on a higher level.\n"
                         + CassandraKeyValueServices.getFilteredStackTrace("com.palantir"));
             }
-            return ImmutableMap.copyOf(result);
+            return result.build();
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
@@ -398,7 +395,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                             final long startTs,
                             final ThreadSafeResultVisitor v,
                             final ConsistencyLevel consistency) throws Exception {
-        final ColumnParent colFam = new ColumnParent(tableName);
+        final ColumnParent colFam = new ColumnParent(internalTableName(tableName));
         final Multimap<byte[], Cell> cellsByCol = TreeMultimap.create(UnsignedBytes.lexicographicalComparator(), Ordering.natural());
         for (Cell cell : cells) {
             cellsByCol.put(cell.getColumnName(), cell);
@@ -1108,7 +1105,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
         Map<Cell, Long> requestForLatestDbSideMetadata = Maps.transformValues(metadataRequestedForUpdate, Functions.constant(Long.MAX_VALUE));
 
-        // technically we're racing other dispatches from here on, during an update period,
+        // technically we're racing other services from here on, during an update period,
         // but the penalty for not caring is just some superfluous schema mutations and a few dead rows in the metadata table.
         Map<Cell, Value> persistedMetadata = get(CassandraConstants.METADATA_TABLE, requestForLatestDbSideMetadata);
         final Map<Cell, byte[]> newMetadata = Maps.newHashMap();
