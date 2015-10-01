@@ -127,7 +127,7 @@ import com.google.common.collect.ImmutableSortedMap;
     }
 
     @Override public String toString() {
-        return MoreObjects.toStringHelper(this)
+        return MoreObjects.toStringHelper(getClass().getSimpleName())
                 .add("token", token)
                 .add("lockHolders", lockHolders)
                 .toString();

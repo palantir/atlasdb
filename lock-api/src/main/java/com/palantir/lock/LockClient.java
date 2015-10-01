@@ -65,7 +65,8 @@ import com.google.common.base.Strings;
         return new LockClient(clientId);
     }
 
-    private LockClient(@Nullable String clientId) {
+    // XXX ONLY use this for deserialization!
+    public LockClient(@Nullable String clientId) {
         this.clientId = clientId;
     }
 
@@ -80,7 +81,7 @@ import com.google.common.base.Strings;
     }
 
     @Override public String toString() {
-        return MoreObjects.toStringHelper(this)
+        return MoreObjects.toStringHelper(getClass().getSimpleName())
                 .addValue(isAnonymous() ? "anonymous" : ("\"" + clientId + "\""))
                 .toString();
     }

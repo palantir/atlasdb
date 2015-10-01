@@ -227,7 +227,7 @@ class LockServerSync extends AbstractQueuedSynchronizer {
 
     @Override
     public synchronized String toString() {
-        return MoreObjects.toStringHelper(this)
+        return MoreObjects.toStringHelper(getClass().getSimpleName())
                 .add("hashCode", hashCode())
                 .add("writeLockCount", getState())
                 .add("writeClient", writeLockHolder == 0 ? null : clients.fromIndex(writeLockHolder))
