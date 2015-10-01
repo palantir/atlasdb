@@ -57,7 +57,7 @@ public class TableSplittingKeyValueService implements KeyValueService {
                                                        Map<String, KeyValueService> delegateByTable,
                                                        Map<String, KeyValueService> delegateByNamespace) {
         // See comment in get all table names for why we do this.
-        Map<KeyValueService, Void> map = new IdentityHashMap<KeyValueService, Void>();
+        Map<KeyValueService, Void> map = new IdentityHashMap<KeyValueService, Void>(delegates.size());
         for (KeyValueService delegate : delegates) {
             map.put(delegate, null);
         }
@@ -90,9 +90,11 @@ public class TableSplittingKeyValueService implements KeyValueService {
     @Override
     public void createTables(Map<String, Integer> tableNamesToMaxValueSizeInBytes) {
         Map<KeyValueService, Map<String, Integer>> splitTableNamesToMaxValueSize = Maps.newHashMap();
-        for (String tableName : tableNamesToMaxValueSizeInBytes.keySet()) {
+        for (Entry<String, Integer> tableEntry : tableNamesToMaxValueSizeInBytes.entrySet()) {
+            String tableName = tableEntry.getKey();
+            int maxValueSizeInBytes = tableEntry.getValue();
+
             KeyValueService delegate = getDelegate(tableName);
-            int maxValueSizeInBytes = tableNamesToMaxValueSizeInBytes.get(tableName);
             if (splitTableNamesToMaxValueSize.containsKey(delegate)) {
                 splitTableNamesToMaxValueSize.get(delegate).put(tableName, maxValueSizeInBytes);
             } else {
@@ -114,6 +116,24 @@ public class TableSplittingKeyValueService implements KeyValueService {
     @Override
     public void dropTable(String tableName) {
         getDelegate(tableName).dropTable(tableName);
+    }
+
+    @Override
+    public void dropTables(Set<String> tableNames) {
+        Map<KeyValueService, Set<String>> tablesByKVS = Maps.newHashMap();
+        for (String tableName : tableNames) {
+            KeyValueService delegate = getDelegate(tableName);
+            if (tablesByKVS.containsKey(delegate)) {
+                tablesByKVS.get(delegate).add(tableName);
+            } else {
+                Set<String> tablesBelongingToThisDelegate = Sets.newHashSet(tableName);
+                tablesByKVS.put(delegate, tablesBelongingToThisDelegate);
+            }
+        }
+
+        for (Entry<KeyValueService, Set<String>> kvsEntry : tablesByKVS.entrySet()) {
+            kvsEntry.getKey().dropTables(kvsEntry.getValue());
+        }
     }
 
     @Override
@@ -257,9 +277,11 @@ public class TableSplittingKeyValueService implements KeyValueService {
     @Override
     public void putMetadataForTables(Map<String, byte[]> tableNameToMetadata) {
         Map<KeyValueService, Map<String, byte[]>> splitTableNameToMetadata = Maps.newHashMap();
-        for (String tableName : tableNameToMetadata.keySet()) {
+        for (Entry<String, byte[]> tableEntry : tableNameToMetadata.entrySet()) {
+            String tableName = tableEntry.getKey();
+            byte[] metadata = tableEntry.getValue();
+
             KeyValueService delegate = getDelegate(tableName);
-            byte[] metadata = tableNameToMetadata.get(tableName);
             if (splitTableNameToMetadata.containsKey(delegate)) {
                 splitTableNameToMetadata.get(delegate).put(tableName, metadata);
             } else {

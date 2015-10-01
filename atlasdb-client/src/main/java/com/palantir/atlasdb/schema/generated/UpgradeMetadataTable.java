@@ -178,7 +178,7 @@ public final class UpgradeMetadataTable implements
 
         @Override
         public String toString() {
-            return MoreObjects.toStringHelper(this)
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
                 .add("namespace", namespace)
                 .toString();
         }
@@ -287,6 +287,13 @@ public final class UpgradeMetadataTable implements
                 }
             }
         };
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("Value", this.value)
+                .toString();
+        }
     }
 
     /**
@@ -352,6 +359,13 @@ public final class UpgradeMetadataTable implements
                 }
             }
         };
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("Value", this.value)
+                .toString();
+        }
     }
 
     /**
@@ -417,6 +431,13 @@ public final class UpgradeMetadataTable implements
                 }
             }
         };
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("Value", this.value)
+                .toString();
+        }
     }
 
     /**
@@ -470,6 +491,13 @@ public final class UpgradeMetadataTable implements
                 return of(EncodingUtils.decodeUnsignedVarLong(bytes, 0));
             }
         };
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("Value", this.value)
+                .toString();
+        }
     }
 
     public interface UpgradeMetadataTrigger {
@@ -600,12 +628,12 @@ public final class UpgradeMetadataTable implements
 
         @Override
         public String toString() {
-            return MoreObjects.toStringHelper(this)
-                    .add("RowName", getRowName())
-                    .add("CurrentVersion", getCurrentVersion())
-                    .add("FinishedTasks", getFinishedTasks())
-                    .add("RunningTasks", getRunningTasks())
-                    .add("Status", getStatus())
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("RowName", getRowName())
+                .add("CurrentVersion", getCurrentVersion())
+                .add("FinishedTasks", getFinishedTasks())
+                .add("RunningTasks", getRunningTasks())
+                .add("Status", getStatus())
                 .toString();
         }
     }
@@ -732,6 +760,18 @@ public final class UpgradeMetadataTable implements
         put(Multimaps.forMap(toPut));
     }
 
+    public void putStatusUnlessExists(UpgradeMetadataRow row, Long value) {
+        putUnlessExists(ImmutableMultimap.of(row, Status.of(value)));
+    }
+
+    public void putStatusUnlessExists(Map<UpgradeMetadataRow, Long> map) {
+        Map<UpgradeMetadataRow, UpgradeMetadataNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
+        for (Entry<UpgradeMetadataRow, Long> e : map.entrySet()) {
+            toPut.put(e.getKey(), Status.of(e.getValue()));
+        }
+        putUnlessExists(Multimaps.forMap(toPut));
+    }
+
     public void putCurrentVersion(UpgradeMetadataRow row, com.palantir.atlasdb.protos.generated.UpgradePersistence.SchemaVersion value) {
         put(ImmutableMultimap.of(row, CurrentVersion.of(value)));
     }
@@ -742,6 +782,18 @@ public final class UpgradeMetadataTable implements
             toPut.put(e.getKey(), CurrentVersion.of(e.getValue()));
         }
         put(Multimaps.forMap(toPut));
+    }
+
+    public void putCurrentVersionUnlessExists(UpgradeMetadataRow row, com.palantir.atlasdb.protos.generated.UpgradePersistence.SchemaVersion value) {
+        putUnlessExists(ImmutableMultimap.of(row, CurrentVersion.of(value)));
+    }
+
+    public void putCurrentVersionUnlessExists(Map<UpgradeMetadataRow, com.palantir.atlasdb.protos.generated.UpgradePersistence.SchemaVersion> map) {
+        Map<UpgradeMetadataRow, UpgradeMetadataNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
+        for (Entry<UpgradeMetadataRow, com.palantir.atlasdb.protos.generated.UpgradePersistence.SchemaVersion> e : map.entrySet()) {
+            toPut.put(e.getKey(), CurrentVersion.of(e.getValue()));
+        }
+        putUnlessExists(Multimaps.forMap(toPut));
     }
 
     public void putRunningTasks(UpgradeMetadataRow row, com.palantir.atlasdb.protos.generated.UpgradePersistence.SchemaVersions value) {
@@ -756,6 +808,18 @@ public final class UpgradeMetadataTable implements
         put(Multimaps.forMap(toPut));
     }
 
+    public void putRunningTasksUnlessExists(UpgradeMetadataRow row, com.palantir.atlasdb.protos.generated.UpgradePersistence.SchemaVersions value) {
+        putUnlessExists(ImmutableMultimap.of(row, RunningTasks.of(value)));
+    }
+
+    public void putRunningTasksUnlessExists(Map<UpgradeMetadataRow, com.palantir.atlasdb.protos.generated.UpgradePersistence.SchemaVersions> map) {
+        Map<UpgradeMetadataRow, UpgradeMetadataNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
+        for (Entry<UpgradeMetadataRow, com.palantir.atlasdb.protos.generated.UpgradePersistence.SchemaVersions> e : map.entrySet()) {
+            toPut.put(e.getKey(), RunningTasks.of(e.getValue()));
+        }
+        putUnlessExists(Multimaps.forMap(toPut));
+    }
+
     public void putFinishedTasks(UpgradeMetadataRow row, com.palantir.atlasdb.protos.generated.UpgradePersistence.SchemaVersions value) {
         put(ImmutableMultimap.of(row, FinishedTasks.of(value)));
     }
@@ -768,6 +832,18 @@ public final class UpgradeMetadataTable implements
         put(Multimaps.forMap(toPut));
     }
 
+    public void putFinishedTasksUnlessExists(UpgradeMetadataRow row, com.palantir.atlasdb.protos.generated.UpgradePersistence.SchemaVersions value) {
+        putUnlessExists(ImmutableMultimap.of(row, FinishedTasks.of(value)));
+    }
+
+    public void putFinishedTasksUnlessExists(Map<UpgradeMetadataRow, com.palantir.atlasdb.protos.generated.UpgradePersistence.SchemaVersions> map) {
+        Map<UpgradeMetadataRow, UpgradeMetadataNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
+        for (Entry<UpgradeMetadataRow, com.palantir.atlasdb.protos.generated.UpgradePersistence.SchemaVersions> e : map.entrySet()) {
+            toPut.put(e.getKey(), FinishedTasks.of(e.getValue()));
+        }
+        putUnlessExists(Multimaps.forMap(toPut));
+    }
+
     @Override
     public void put(Multimap<UpgradeMetadataRow, ? extends UpgradeMetadataNamedColumnValue<?>> rows) {
         t.useTable(tableName, this);
@@ -775,6 +851,18 @@ public final class UpgradeMetadataTable implements
         for (UpgradeMetadataTrigger trigger : triggers) {
             trigger.putUpgradeMetadata(rows);
         }
+    }
+
+    @Override
+    public void putUnlessExists(Multimap<UpgradeMetadataRow, ? extends UpgradeMetadataNamedColumnValue<?>> rows) {
+        Multimap<UpgradeMetadataRow, UpgradeMetadataNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
+        Multimap<UpgradeMetadataRow, UpgradeMetadataNamedColumnValue<?>> toPut = HashMultimap.create();
+        for (Entry<UpgradeMetadataRow, ? extends UpgradeMetadataNamedColumnValue<?>> entry : rows.entries()) {
+            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
+                toPut.put(entry.getKey(), entry.getValue());
+            }
+        }
+        put(toPut);
     }
 
     public void deleteStatus(UpgradeMetadataRow row) {
@@ -825,12 +913,12 @@ public final class UpgradeMetadataTable implements
     @Override
     public void delete(Iterable<UpgradeMetadataRow> rows) {
         List<byte[]> rowBytes = Persistables.persistAll(rows);
-        ImmutableSet.Builder<Cell> cells = ImmutableSet.builder();
+        Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size() * 4);
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("c")));
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("f")));
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("r")));
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("s")));
-        t.delete(tableName, cells.build());
+        t.delete(tableName, cells);
     }
 
     @Override
@@ -971,5 +1059,5 @@ public final class UpgradeMetadataTable implements
         return ImmutableList.of();
     }
 
-    static String __CLASS_HASH = "4Z0LHpEj+sx5FsvjBJ7fgQ==";
+    static String __CLASS_HASH = "LpWO30b9kH5IhcrqzJ9auQ==";
 }

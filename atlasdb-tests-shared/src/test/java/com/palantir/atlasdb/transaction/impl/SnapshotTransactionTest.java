@@ -668,7 +668,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 CachePriority.WARM,
                 PartitionStrategy.ORDERED,
                 false,
-                false,
+                0,
                 false,
                 sweepStrategy,
                 ExpirationStrategy.NEVER);

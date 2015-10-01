@@ -82,6 +82,11 @@ public abstract class ForwardingKeyValueService extends ForwardingObject impleme
     }
 
     @Override
+    public void dropTables(Set<String> tableNames) {
+        delegate().dropTables(tableNames);
+    }
+
+    @Override
     public Map<Cell, Value> get(String tableName, Map<Cell, Long> timestampByCell) {
         return delegate().get(tableName, timestampByCell);
     }

@@ -20,6 +20,8 @@ import java.util.concurrent.TimeUnit;
 public interface AtlasDbDynamicMutableExpiringTable<ROW, COLUMN, COLUMN_VALUE, ROW_RESULT> extends
             AtlasDbDynamicMutableTable<ROW, COLUMN, COLUMN_VALUE, ROW_RESULT>,
             AtlasDbMutableExpiringTable<ROW, COLUMN_VALUE, ROW_RESULT> {
-    public void put(ROW row, Iterable<COLUMN_VALUE> values, long duration, TimeUnit durationUnit);
-    public void put(long duration, TimeUnit durationUnit, ROW row, COLUMN_VALUE... values);
+    void put(ROW row, Iterable<COLUMN_VALUE> values, long duration, TimeUnit durationUnit);
+    void put(long duration, TimeUnit durationUnit, ROW row, COLUMN_VALUE... values);
+    void putUnlessExists(ROW row, Iterable<COLUMN_VALUE> values, long duration, TimeUnit durationUnit);
+    void putUnlessExists(long duration, TimeUnit durationUnit, ROW row, COLUMN_VALUE... values);
 }

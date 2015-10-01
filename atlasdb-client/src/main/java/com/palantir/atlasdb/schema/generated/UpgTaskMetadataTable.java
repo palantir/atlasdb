@@ -334,7 +334,7 @@ public final class UpgTaskMetadataTable implements
 
         @Override
         public String toString() {
-            return MoreObjects.toStringHelper(this)
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
                 .add("namespace", namespace)
                 .add("version", version)
                 .add("hotfixVersion", hotfixVersion)
@@ -430,6 +430,13 @@ public final class UpgTaskMetadataTable implements
                 return of(EncodingUtils.getBytesFromOffsetToEnd(bytes, 0));
             }
         };
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("Value", this.value)
+                .toString();
+        }
     }
 
     public interface UpgTaskMetadataTrigger {
@@ -494,9 +501,9 @@ public final class UpgTaskMetadataTable implements
 
         @Override
         public String toString() {
-            return MoreObjects.toStringHelper(this)
-                    .add("RowName", getRowName())
-                    .add("Start", getStart())
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("RowName", getRowName())
+                .add("Start", getStart())
                 .toString();
         }
     }
@@ -560,6 +567,18 @@ public final class UpgTaskMetadataTable implements
         put(Multimaps.forMap(toPut));
     }
 
+    public void putStartUnlessExists(UpgTaskMetadataRow row, byte[] value) {
+        putUnlessExists(ImmutableMultimap.of(row, Start.of(value)));
+    }
+
+    public void putStartUnlessExists(Map<UpgTaskMetadataRow, byte[]> map) {
+        Map<UpgTaskMetadataRow, UpgTaskMetadataNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
+        for (Entry<UpgTaskMetadataRow, byte[]> e : map.entrySet()) {
+            toPut.put(e.getKey(), Start.of(e.getValue()));
+        }
+        putUnlessExists(Multimaps.forMap(toPut));
+    }
+
     @Override
     public void put(Multimap<UpgTaskMetadataRow, ? extends UpgTaskMetadataNamedColumnValue<?>> rows) {
         t.useTable(tableName, this);
@@ -567,6 +586,18 @@ public final class UpgTaskMetadataTable implements
         for (UpgTaskMetadataTrigger trigger : triggers) {
             trigger.putUpgTaskMetadata(rows);
         }
+    }
+
+    @Override
+    public void putUnlessExists(Multimap<UpgTaskMetadataRow, ? extends UpgTaskMetadataNamedColumnValue<?>> rows) {
+        Multimap<UpgTaskMetadataRow, UpgTaskMetadataNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
+        Multimap<UpgTaskMetadataRow, UpgTaskMetadataNamedColumnValue<?>> toPut = HashMultimap.create();
+        for (Entry<UpgTaskMetadataRow, ? extends UpgTaskMetadataNamedColumnValue<?>> entry : rows.entries()) {
+            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
+                toPut.put(entry.getKey(), entry.getValue());
+            }
+        }
+        put(toPut);
     }
 
     public void deleteStart(UpgTaskMetadataRow row) {
@@ -587,9 +618,9 @@ public final class UpgTaskMetadataTable implements
     @Override
     public void delete(Iterable<UpgTaskMetadataRow> rows) {
         List<byte[]> rowBytes = Persistables.persistAll(rows);
-        ImmutableSet.Builder<Cell> cells = ImmutableSet.builder();
+        Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("s")));
-        t.delete(tableName, cells.build());
+        t.delete(tableName, cells);
     }
 
     @Override
@@ -717,7 +748,7 @@ public final class UpgTaskMetadataTable implements
 
     public IterableView<BatchingVisitable<UpgTaskMetadataRowResult>> getRanges(Iterable<RangeRequest> ranges) {
         Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableName, ranges);
-        return IterableView.of(Iterables.transform(rangeResults,
+        return IterableView.of(rangeResults).transform(
                 new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<UpgTaskMetadataRowResult>>() {
             @Override
             public BatchingVisitable<UpgTaskMetadataRowResult> apply(BatchingVisitable<RowResult<byte[]>> visitable) {
@@ -728,7 +759,7 @@ public final class UpgTaskMetadataTable implements
                     }
                 });
             }
-        }));
+        });
     }
 
     public void deleteRange(RangeRequest range) {
@@ -760,5 +791,5 @@ public final class UpgTaskMetadataTable implements
         return ImmutableList.of();
     }
 
-    static String __CLASS_HASH = "MLTbT85nEm/1juG6zES+XQ==";
+    static String __CLASS_HASH = "oRyDIlHgjaReJ+rMdhgadw==";
 }

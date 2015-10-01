@@ -1,1 +1,1 @@
-atlas-client-protobufs is a project containing only generated code.
+atlasdb-client-protobufs is a project containing only generated code.

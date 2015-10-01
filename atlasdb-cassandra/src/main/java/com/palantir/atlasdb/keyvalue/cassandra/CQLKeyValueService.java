@@ -1173,15 +1173,13 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     }
 
     private void setSettingsForTable(String tableName, byte[] rawMetadata) {
-        boolean dbCompressionRequested = false;
-        boolean rangeScanAllowed = false;
+        int explicitCompressionBlockSizeKB = 0;
         boolean negativeLookups = false;
         double falsePositiveChance = CassandraConstants.DEFAULT_LEVELED_COMPACTION_BLOOM_FILTER_FP_CHANCE;
 
         if (rawMetadata != null && rawMetadata.length != 0) {
             TableMetadata tableMetadata = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(rawMetadata);
-            dbCompressionRequested = tableMetadata.isDbCompressionRequested();
-            rangeScanAllowed = tableMetadata.isRangeScanAllowed();
+            explicitCompressionBlockSizeKB = tableMetadata.getExplicitCompressionBlockSizeKB();
             negativeLookups = tableMetadata.hasNegativeLookups();
         }
         if (negativeLookups) {
@@ -1192,10 +1190,10 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         sb.append("ALTER TABLE " + getFullTableName(tableName) + " WITH "
                 + "bloom_filter_fp_chance = " + falsePositiveChance + " ");
         long chunkLength = CassandraConstants.INDEX_COMPRESSION_KB;
-        if (dbCompressionRequested
-                && (!tableName.endsWith(AtlasDbConstants.INDEX_SUFFIX) || rangeScanAllowed)) {
-            chunkLength = CassandraConstants.TABLE_COMPRESSION_KB;
+        if (explicitCompressionBlockSizeKB != 0) {
+            chunkLength = explicitCompressionBlockSizeKB;
         }
+
         sb.append("AND caching = '{\"keys\":\"ALL\", \"rows_per_partition\":\"ALL\"}' ");
         sb.append("AND compaction = {'sstable_size_in_mb': '80', 'class': 'org.apache.cassandra.db.compaction.LeveledCompactionStrategy'} ");
         sb.append("AND compression = {'chunk_length_kb': '" + chunkLength + "', "

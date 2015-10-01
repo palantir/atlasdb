@@ -3,14 +3,18 @@
 SUB_DIR="${SUB_DIR:-src}"
 
 for SOURCE_DIR in "$@"; do
-    SOURCE_NAME=$(basename $SOURCE_DIR)
-    if [ "$SOURCE_NAME" = $(echo $SOURCE_NAME | tr '[:upper:]' '[:lower:]') ]; then
-	TARGET_NAME=${SOURCE_NAME}-protobufs
-    else
-	TARGET_NAME=${SOURCE_NAME}Protobufs
+    if [[ ! -d "$SOURCE_DIR" ]]; then
+        printf "All arguments must be directories. $SOURCE_DIR is not.\n"
+        exit 1
     fi
-    mkdir -p $SOURCE_DIR/../$TARGET_NAME
-    TARGET_DIR=$(cd $SOURCE_DIR/../$TARGET_NAME; pwd -P)
+    SOURCE_NAME=$(basename "$SOURCE_DIR")
+    if [ "$SOURCE_NAME" = $(echo $SOURCE_NAME | tr '[:upper:]' '[:lower:]') ]; then
+	TARGET_NAME="${SOURCE_NAME}-protobufs"
+    else
+	TARGET_NAME="${SOURCE_NAME}Protobufs"
+    fi
+    mkdir -p "$SOURCE_DIR/../$TARGET_NAME"
+    TARGET_DIR=$(cd "$SOURCE_DIR/../$TARGET_NAME"; pwd -P)
 
     [ -n "$PROTOC" ] || PROTOC=protoc
     CORRECT_VERSION="libprotoc 2.6.0"
@@ -42,5 +46,7 @@ In ${SOURCE_DIR}/ivy.xml, make sure you have something like:
  <dependency rev="\${version.product}" org="palantir" name="${TARGET_NAME}"/>
 Make sure to
    git add -f $TARGET_DIR/default_compile_settings.prefs
+
+You will probably need to run metabuild after running this CLI.
 EOF
 done

@@ -188,7 +188,7 @@ public final class UserPhotosStreamValueTable implements
 
         @Override
         public String toString() {
-            return MoreObjects.toStringHelper(this)
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
                 .add("id", id)
                 .add("blockId", blockId)
                 .toString();
@@ -276,6 +276,13 @@ public final class UserPhotosStreamValueTable implements
                 return of(EncodingUtils.getBytesFromOffsetToEnd(bytes, 0));
             }
         };
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("Value", this.value)
+                .toString();
+        }
     }
 
     public interface UserPhotosStreamValueTrigger {
@@ -340,9 +347,9 @@ public final class UserPhotosStreamValueTable implements
 
         @Override
         public String toString() {
-            return MoreObjects.toStringHelper(this)
-                    .add("RowName", getRowName())
-                    .add("Value", getValue())
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("RowName", getRowName())
+                .add("Value", getValue())
                 .toString();
         }
     }
@@ -406,6 +413,18 @@ public final class UserPhotosStreamValueTable implements
         put(Multimaps.forMap(toPut));
     }
 
+    public void putValueUnlessExists(UserPhotosStreamValueRow row, byte[] value) {
+        putUnlessExists(ImmutableMultimap.of(row, Value.of(value)));
+    }
+
+    public void putValueUnlessExists(Map<UserPhotosStreamValueRow, byte[]> map) {
+        Map<UserPhotosStreamValueRow, UserPhotosStreamValueNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
+        for (Entry<UserPhotosStreamValueRow, byte[]> e : map.entrySet()) {
+            toPut.put(e.getKey(), Value.of(e.getValue()));
+        }
+        putUnlessExists(Multimaps.forMap(toPut));
+    }
+
     @Override
     public void put(Multimap<UserPhotosStreamValueRow, ? extends UserPhotosStreamValueNamedColumnValue<?>> rows) {
         t.useTable(tableName, this);
@@ -413,6 +432,18 @@ public final class UserPhotosStreamValueTable implements
         for (UserPhotosStreamValueTrigger trigger : triggers) {
             trigger.putUserPhotosStreamValue(rows);
         }
+    }
+
+    @Override
+    public void putUnlessExists(Multimap<UserPhotosStreamValueRow, ? extends UserPhotosStreamValueNamedColumnValue<?>> rows) {
+        Multimap<UserPhotosStreamValueRow, UserPhotosStreamValueNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
+        Multimap<UserPhotosStreamValueRow, UserPhotosStreamValueNamedColumnValue<?>> toPut = HashMultimap.create();
+        for (Entry<UserPhotosStreamValueRow, ? extends UserPhotosStreamValueNamedColumnValue<?>> entry : rows.entries()) {
+            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
+                toPut.put(entry.getKey(), entry.getValue());
+            }
+        }
+        put(toPut);
     }
 
     public void deleteValue(UserPhotosStreamValueRow row) {
@@ -433,9 +464,9 @@ public final class UserPhotosStreamValueTable implements
     @Override
     public void delete(Iterable<UserPhotosStreamValueRow> rows) {
         List<byte[]> rowBytes = Persistables.persistAll(rows);
-        ImmutableSet.Builder<Cell> cells = ImmutableSet.builder();
+        Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("v")));
-        t.delete(tableName, cells.build());
+        t.delete(tableName, cells);
     }
 
     @Override
@@ -576,5 +607,5 @@ public final class UserPhotosStreamValueTable implements
         return ImmutableList.of();
     }
 
-    static String __CLASS_HASH = "SWLcoG9VWK5wzhoLFDkBjQ==";
+    static String __CLASS_HASH = "gg5sLq8r9HzlW4HkOJ2YyQ==";
 }

@@ -104,6 +104,9 @@ public interface NamespacedKeyValueService {
     void dropTable(TableReference tableRef);
 
     @Idempotent
+    void dropTables(Set<TableReference> tableRef);
+
+    @Idempotent
     void createTable(TableReference tableRef, int maxValueSizeInBytes);
 
     @Idempotent

@@ -63,6 +63,8 @@ public class DynamicColumnValueRenderer extends Renderer {
             getColumnNameFun();
             line();
             getValueFun();
+            line();
+            renderToString();
         } line("}");
     }
 
@@ -194,6 +196,16 @@ public class DynamicColumnValueRenderer extends Renderer {
                     line("return columnValue.getValue();");
                 } line("}");
             } line("};");
+        } line("}");
+    }
+
+    private void renderToString() {
+        line("@Override");
+        line("public String toString() {"); {
+            line("return MoreObjects.toStringHelper(getClass().getSimpleName())");
+            line("    .add(\"ColumnName\", this.columnName)");
+            line("    .add(\"Value\", this.value)");
+            line("    .toString();");
         } line("}");
     }
 }

@@ -68,6 +68,9 @@ public class CassandraConstants {
     // so I'm okay with just bypassing the check for reads and having this check only in one place, server side.
     static final int CLIENT_MAX_THRIFT_FRAME_SIZE_BYTES = Integer.MAX_VALUE;
 
+    static final String CFDEF_COMPRESSION_TYPE_KEY = "sstable_compression";
+    static final String CFDEF_COMPRESSION_CHUNK_LENGTH_KEY = "chunk_length_kb";
+
     // update CKVS.isMatchingCf if you update this method
     static CfDef getStandardCfDef(String keyspace, String internalTableName) {
         CfDef cf = new CfDef(keyspace, internalTableName);

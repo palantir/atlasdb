@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.impl;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -43,9 +44,9 @@ public class ProfilingKeyValueService implements KeyValueService {
 
     private static <T> long byteSize(Map<Cell, T> values) {
         long sizeInBytes = 0;
-        for (Cell cell : values.keySet()) {
-            sizeInBytes += Cells.getApproxSizeOfCell(cell);
-            T value = values.get(cell);
+        for (Entry<Cell, T> valueEntry : values.entrySet()) {
+            sizeInBytes += Cells.getApproxSizeOfCell(valueEntry.getKey());
+            T value = valueEntry.getValue();
             if (value instanceof byte[]) {
                 sizeInBytes += ((byte[]) value).length;
             } else if (value instanceof Long) {
@@ -68,19 +69,22 @@ public class ProfilingKeyValueService implements KeyValueService {
     }
 
     private static void logCellsAndSize(String method, String tableName, int numCells, long sizeInBytes, Stopwatch stopwatch) {
-        log.trace(String.format("Call to KVS.%s on table %s for %d cells of overall size %d bytes took %d ms.", method, tableName, numCells, sizeInBytes, stopwatch.elapsed(TimeUnit.MILLISECONDS)));
+        log.trace("Call to KVS.{} on table {} for {} cells of overall size {} bytes took {} ms.",
+                method, tableName, numCells, sizeInBytes, stopwatch.elapsed(TimeUnit.MILLISECONDS));
     }
 
     private static void logTime(String method, Stopwatch stopwatch) {
-        log.trace(String.format("Call to KVS.%s took %d ms.", method, stopwatch.elapsed(TimeUnit.MILLISECONDS)));
+        log.trace("Call to KVS.{} took {} ms.", method, stopwatch.elapsed(TimeUnit.MILLISECONDS));
     }
 
     private static void logTimeAndTable(String method, String tableName, Stopwatch stopwatch) {
-        log.trace(String.format("Call to KVS.%s on table %s took %d ms.", method, tableName, stopwatch.elapsed(TimeUnit.MILLISECONDS)));
+        log.trace("Call to KVS.{} on table {} took {} ms.",
+                method, tableName, stopwatch.elapsed(TimeUnit.MILLISECONDS));
     }
 
     private static void logTimeAndTableCount(String method, int tableCount, Stopwatch stopwatch) {
-        log.trace(String.format("Call to KVS.%s for %d tables took %d ms.", method, tableCount, stopwatch.elapsed(TimeUnit.MILLISECONDS)));
+        log.trace("Call to KVS.{} for {} tables took {} ms.",
+                method, tableCount, stopwatch.elapsed(TimeUnit.MILLISECONDS));
     }
 
     private final KeyValueService delegate;
@@ -94,7 +98,8 @@ public class ProfilingKeyValueService implements KeyValueService {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
             delegate.addGarbageCollectionSentinelValues(tableName, cells);
-            log.trace(String.format("Call to KVS.addGarbageCollectionSentinelValues on table %s over %d cells took %d ms.", tableName, cells.size(), stopwatch.elapsed(TimeUnit.MILLISECONDS)));
+            log.trace("Call to KVS.addGarbageCollectionSentinelValues on table {} over {} cells took {} ms.",
+                    tableName, cells.size(), stopwatch.elapsed(TimeUnit.MILLISECONDS));
         } else {
             delegate.addGarbageCollectionSentinelValues(tableName, cells);
         }
@@ -145,15 +150,27 @@ public class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
+    public void dropTables(Set<String> tableNames) {
+        if (log.isTraceEnabled()) {
+            Stopwatch stopwatch = Stopwatch.createStarted();
+            delegate.dropTables(tableNames);
+            logTimeAndTableCount("dropTable", tableNames.size(), stopwatch);
+        } else {
+            delegate.dropTables(tableNames);
+        }
+    }
+
+    @Override
     public Map<Cell, Value> get(String tableName, Map<Cell, Long> timestampByCell) {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
             long sizeInBytes = 0;
             Map<Cell, Value> result = delegate.get(tableName, timestampByCell);
-            for (Cell cell : result.keySet()) {
-                sizeInBytes += Cells.getApproxSizeOfCell(cell) + result.get(cell).getContents().length + 4L;
+            for (Entry<Cell, Value> entry : result.entrySet()) {
+                sizeInBytes += Cells.getApproxSizeOfCell(entry.getKey()) + entry.getValue().getContents().length + 4L;
             }
-            log.trace(String.format("Call to KVS.get on table %s, requesting %d cells took %d ms and returned %d bytes.", tableName, timestampByCell.size(), stopwatch.elapsed(TimeUnit.MILLISECONDS), sizeInBytes));
+            log.trace("Call to KVS.get on table {}, requesting {} cells took {} ms and returned {} bytes.",
+                    tableName, timestampByCell.size(), stopwatch.elapsed(TimeUnit.MILLISECONDS), sizeInBytes);
             return result;
         } else {
             return delegate.get(tableName, timestampByCell);
@@ -279,16 +296,15 @@ public class ProfilingKeyValueService implements KeyValueService {
             Stopwatch stopwatch = Stopwatch.createStarted();
             long sizeInBytes = 0;
             Map<Cell, Value> result = delegate.getRows(tableName, rows, columnSelection, timestamp);
-            for (Cell cell : result.keySet()) {
-                sizeInBytes += Cells.getApproxSizeOfCell(cell) + result.get(cell).getContents().length;
+            for (Entry<Cell, Value> entry : result.entrySet()) {
+                sizeInBytes += Cells.getApproxSizeOfCell(entry.getKey()) + entry.getValue().getContents().length;
             }
-            log.trace(String.format(
-                    "Call to KVS.getRows on table %s requesting %s columns from %d rows took %d ms and returned %d bytes.",
+            log.trace("Call to KVS.getRows on table {} requesting {} columns from {} rows took {} ms and returned {} bytes.",
                     tableName,
                     columnSelection.allColumnsSelected() ? "all" : Iterables.size(columnSelection.getSelectedColumns()),
                     Iterables.size(rows),
                     stopwatch.elapsed(TimeUnit.MILLISECONDS),
-                    sizeInBytes));
+                    sizeInBytes);
             return result;
         } else {
             return delegate.getRows(tableName, rows, columnSelection, timestamp);
@@ -313,12 +329,12 @@ public class ProfilingKeyValueService implements KeyValueService {
             delegate.multiPut(valuesByTable, timestamp);
             int totalCells = 0;
             long totalBytes = 0;
-            for (String table : valuesByTable.keySet()) {
-                Map<Cell, byte[]> values = valuesByTable.get(table);
+            for (Map<Cell, byte[]> values : valuesByTable.values()) {
                 totalCells += values.size();
                 totalBytes += byteSize(values);
             }
-            log.trace(String.format("Call to KVS.multiPut on %d tables putting %d total cells of %d total bytes took %d ms.", valuesByTable.keySet().size(), totalCells, totalBytes, stopwatch.elapsed(TimeUnit.MILLISECONDS)));
+            log.trace("Call to KVS.multiPut on {} tables putting {} total cells of {} total bytes took {} ms.",
+                    valuesByTable.keySet().size(), totalCells, totalBytes, stopwatch.elapsed(TimeUnit.MILLISECONDS));
         } else {
             delegate.multiPut(valuesByTable, timestamp);
         }
