@@ -50,6 +50,8 @@ class DynamicRowResultRenderer extends Renderer {
             getRowNameFun();
             line();
             getColumnValuesFun();
+            line();
+            renderToString();
         } line("}");
     }
 
@@ -110,6 +112,16 @@ class DynamicRowResultRenderer extends Renderer {
                     line("return rowResult.columnValues;");
                 } line("}");
             } line("};");
+        } line("}");
+    }
+
+    private void renderToString() {
+        line("@Override");
+        line("public String toString() {"); {
+            line("return MoreObjects.toStringHelper(getClass().getSimpleName())");
+            line("    .add(\"RowName\", getRowName())");
+            line("    .add(\"ColumnValues\", getColumnValues())");
+            line("    .toString();");
         } line("}");
     }
 }

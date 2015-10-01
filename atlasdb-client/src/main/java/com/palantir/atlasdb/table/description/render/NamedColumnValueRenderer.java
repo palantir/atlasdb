@@ -54,6 +54,8 @@ public class NamedColumnValueRenderer extends Renderer {
             persistColumnName();
             line();
             bytesHydrator();
+            line();
+            renderToString();
         } line("}");
     }
 
@@ -167,5 +169,14 @@ public class NamedColumnValueRenderer extends Renderer {
                 }
             } line("}");
         } line("};");
+    }
+
+    private void renderToString() {
+        line("@Override");
+        line("public String toString() {"); {
+            line("return MoreObjects.toStringHelper(getClass().getSimpleName())");
+            line("    .add(\"Value\", this.value)");
+            line("    .toString();");
+        } line("}");
     }
 }

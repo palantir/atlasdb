@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.io.IOException;
+import java.net.SocketException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.concurrent.atomic.AtomicLong;
@@ -37,6 +38,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.MoreObjects;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.pooling.AbstractPoolingContainer;
 
@@ -55,25 +57,29 @@ import com.palantir.common.pooling.AbstractPoolingContainer;
 public class CassandraClientPoolingContainer extends AbstractPoolingContainer<Client> {
     private static final Logger log = LoggerFactory.getLogger(CassandraClientPoolingContainer.class);
 
-    final String host;
-    final String keyspace;
-    final int port;
-    final boolean isSsl;
-    final AtomicLong count = new AtomicLong();
+    private final String host;
+    private final String keyspace;
+    private final int port;
+    private final boolean isSsl;
+    private final int socketTimeoutMillis;
+    private final int socketQueryTimeoutMillis;
+    private final AtomicLong count = new AtomicLong();
 
-    public CassandraClientPoolingContainer(String host, int port, int poolSize, String keyspace, boolean isSsl) {
-        super(poolSize);
-        this.host = host;
-        this.port = port;
-        this.isSsl = isSsl;
-        this.keyspace = keyspace;
+    private CassandraClientPoolingContainer(Builder builder){
+        super(builder.poolSize);
+        this.host = builder.host;
+        this.port = builder.port;
+        this.isSsl = builder.isSsl;
+        this.keyspace = builder.keyspace;
+        this.socketTimeoutMillis = builder.socketTimeoutMillis;
+        this.socketQueryTimeoutMillis = builder.socketQueryTimeoutMillis;
     }
 
     @Override
     @Nonnull
     protected Client createNewPooledResource() {
         try {
-            return getClient(host, port, keyspace, isSsl);
+            return getClient(host, port, keyspace, isSsl, socketTimeoutMillis, socketQueryTimeoutMillis);
         } catch (Exception e) {
             throw new ClientCreationFailedException("Failed to construct client for host: " + host, e);
         }
@@ -151,6 +157,52 @@ public class CassandraClientPoolingContainer extends AbstractPoolingContainer<Cl
         super.cleanupForDiscard(discardedResource);
     }
 
+    public static class Builder{
+        private final String host;
+        private final int port;
+
+        // default values are provided
+        private int poolSize = CassandraKeyValueServiceConfig.DEFAULT.poolSize();
+        private String keyspace = CassandraKeyValueServiceConfig.DEFAULT.keyspace();
+        private boolean isSsl = CassandraKeyValueServiceConfig.DEFAULT.ssl();
+        private int socketTimeoutMillis = CassandraKeyValueServiceConfig.DEFAULT.socketTimeoutMillis();
+        private int socketQueryTimeoutMillis = CassandraKeyValueServiceConfig.DEFAULT.socketQueryTimeoutMillis();
+
+        public Builder(String host, int port) {
+            this.host = host;
+            this.port = port;
+        }
+
+        public Builder poolSize(int val){
+            poolSize = val;
+            return this;
+        }
+
+        public Builder keyspace(String val){
+            keyspace = val;
+            return this;
+        }
+
+        public Builder isSsl(boolean val){
+            isSsl = val;
+            return this;
+        }
+
+        public Builder socketTimeout(int val){
+            socketTimeoutMillis = val;
+            return this;
+        }
+
+        public Builder socketQueryTimeout(int val){
+            socketQueryTimeoutMillis = val;
+            return this;
+        }
+
+        public CassandraClientPoolingContainer build(){
+            return new CassandraClientPoolingContainer(this);
+        }
+    }
+
     static class ClientCreationFailedException extends RuntimeException {
         private static final long serialVersionUID = 1L;
 
@@ -164,8 +216,8 @@ public class CassandraClientPoolingContainer extends AbstractPoolingContainer<Cl
         }
     }
 
-    private static Cassandra.Client getClient(String host, int port, String keyspace, boolean isSsl) throws Exception {
-        Client ret = getClientInternal(host, port, isSsl);
+    private static Cassandra.Client getClient(String host, int port, String keyspace, boolean isSsl, int socketTimeoutMillis, int socketQueryTimeoutMillis) throws Exception {
+        Client ret = getClientInternal(host, port, isSsl, socketTimeoutMillis, socketQueryTimeoutMillis);
         try {
             ret.set_keyspace(keyspace);
             log.info("Created new client for {}:{}/{} {}", host, port, keyspace, (isSsl ? "over SSL" : ""));
@@ -176,10 +228,16 @@ public class CassandraClientPoolingContainer extends AbstractPoolingContainer<Cl
         }
     }
 
-    static Cassandra.Client getClientInternal(String host, int port, boolean isSsl) throws TTransportException {
-        TSocket tSocket = new TSocket(host, port, CassandraConstants.CONNECTION_TIMEOUT_MILLIS);
+    static Cassandra.Client getClientInternal(String host, int port, boolean isSsl, int socketTimeoutMillis, int socketQueryTimeoutMillis) throws TTransportException {
+        TSocket tSocket = new TSocket(host, port, socketTimeoutMillis);
         tSocket.open();
-        tSocket.setTimeout(CassandraConstants.SOCKET_TIMEOUT_MILLIS);
+        try {
+            tSocket.getSocket().setKeepAlive(true);
+            tSocket.getSocket().setSoTimeout(socketQueryTimeoutMillis);
+       } catch (SocketException e1) {
+            log.error("Couldn't set socket keep alive for " + host);
+        }
+
         if (isSsl) {
             boolean success = false;
             try {
@@ -207,6 +265,8 @@ public class CassandraClientPoolingContainer extends AbstractPoolingContainer<Cl
                 .add("port", this.port)
                 .add("keyspace", this.keyspace)
                 .add("isSsl", this.isSsl)
+                .add("socketTimeoutMillis", this.socketTimeoutMillis)
+                .add("socketQueryTimeoutMillis", this.socketQueryTimeoutMillis)
                 .toString();
     }
 }

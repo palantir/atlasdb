@@ -97,7 +97,7 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
                 Files.touch(new File(path, getFilenameFromSeq(PaxosAcceptor.NO_LOG_ENTRY)));
             }
         } catch (IOException e) {
-            throw Throwables.throwUncheckedException(e);
+            throw new RuntimeException("IO problem related to the path " + new File(path).getAbsolutePath(), e);
         }
     }
 

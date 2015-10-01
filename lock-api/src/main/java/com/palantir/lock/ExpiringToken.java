@@ -61,7 +61,7 @@ public interface ExpiringToken {
     static final Comparator<ExpiringToken> COMPARATOR = new Comparator<ExpiringToken>() {
         @Override
         public int compare(ExpiringToken o1, ExpiringToken o2) {
-            return new Long(o1.getExpirationDateMs()).compareTo(o2.getExpirationDateMs());
+            return Long.valueOf(o1.getExpirationDateMs()).compareTo(o2.getExpirationDateMs());
         }
     };
 }

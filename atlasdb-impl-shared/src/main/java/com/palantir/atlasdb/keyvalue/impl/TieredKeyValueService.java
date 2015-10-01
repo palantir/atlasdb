@@ -510,18 +510,48 @@ public class TieredKeyValueService implements KeyValueService {
 
     @Override
     public void dropTable(final String tableName) {
-        if (isNotTiered(tableName)) {
-            primary.dropTable(tableName);
-            return;
-        }
-        Future<?> primaryFuture = executor.submit(new Runnable() {
-            @Override
-            public void run() {
-                primary.dropTable(tableName);
+        dropTables(ImmutableSet.of(tableName));
+    }
+
+    @Override
+    public void dropTables(Set<String> tableNames) {
+        Map<KeyValueService, Set<String>> tableNamesPerDelegate = Maps.newHashMapWithExpectedSize(2);
+        for (String tableName : tableNames) {
+            Set<String> splitTableNames;
+
+            // always place in primary
+            if (tableNamesPerDelegate.containsKey(primary)) {
+                splitTableNames = tableNamesPerDelegate.get(primary);
+            } else {
+                splitTableNames = Sets.newHashSet();
             }
-        });
-        secondary.dropTable(tableName);
-        Futures.getUnchecked(primaryFuture);
+            splitTableNames.add(tableName);
+            tableNamesPerDelegate.put(primary, splitTableNames);
+
+            if (!isNotTiered(tableName)) { // if tiered also place in secondary
+                if (tableNamesPerDelegate.containsKey(secondary)) {
+                    splitTableNames = tableNamesPerDelegate.get(secondary);
+                } else {
+                    splitTableNames = Sets.newHashSet();
+                }
+                splitTableNames.add(tableName);
+                tableNamesPerDelegate.put(secondary, splitTableNames);
+            }
+        }
+
+        List<Future<?>> futures = Lists.newArrayListWithExpectedSize(2);
+        for (final Entry<KeyValueService, Set<String>> tableNamesPerKVS : tableNamesPerDelegate.entrySet()) {
+            futures.add(executor.submit(new Runnable() {
+                @Override
+                public void run() {
+                    tableNamesPerKVS.getKey().dropTables(tableNamesPerKVS.getValue());
+                }
+            }));
+        }
+
+        for (Future<?> future : futures) {
+            Futures.getUnchecked(future);
+        }
     }
 
     @Override
@@ -537,8 +567,9 @@ public class TieredKeyValueService implements KeyValueService {
     @Override
     public void createTables(Map<String, Integer> tableNamesToMaxValueSizeInBytes) {
         Map<KeyValueService, Map<String, Integer>> delegateToTablenameMaxValueSize = Maps.newHashMapWithExpectedSize(2);
-        for (String tableName : tableNamesToMaxValueSizeInBytes.keySet()) {
-            int maxValueSize = tableNamesToMaxValueSizeInBytes.get(tableName);
+        for (Entry<String, Integer> tableEntry : tableNamesToMaxValueSizeInBytes.entrySet()) {
+            String tableName = tableEntry.getKey();
+            int maxValueSize = tableEntry.getValue();
             Map<String, Integer> splitTableToValueSize = ImmutableMap.of();
 
             // always place in primary
@@ -594,8 +625,9 @@ public class TieredKeyValueService implements KeyValueService {
     @Override
     public void putMetadataForTables(Map<String, byte[]> tableNameToMetadata) {
         Map<KeyValueService, Map<String, byte[]>> delegateToTablenameToMetadata = Maps.newHashMapWithExpectedSize(2);
-        for (String tablename : tableNameToMetadata.keySet()) {
-            byte[] metadata = tableNameToMetadata.get(tablename);
+        for (Entry<String, byte[]> tableEntry : tableNameToMetadata.entrySet()) {
+            String tableName = tableEntry.getKey();
+            byte[] metadata = tableEntry.getValue();
             Map<String, byte[]> splitTableToMetadata = ImmutableMap.of();
 
             // always place in primary
@@ -604,16 +636,16 @@ public class TieredKeyValueService implements KeyValueService {
             } else {
                 splitTableToMetadata = Maps.newHashMap();
             }
-            splitTableToMetadata.put(tablename, metadata);
+            splitTableToMetadata.put(tableName, metadata);
             delegateToTablenameToMetadata.put(primary, splitTableToMetadata);
 
-            if (!isNotTiered(tablename)) {
+            if (!isNotTiered(tableName)) {
                 if (delegateToTablenameToMetadata.containsKey(secondary)) {
                     splitTableToMetadata = delegateToTablenameToMetadata.get(secondary);
                 } else {
                     splitTableToMetadata = Maps.newHashMap();
                 }
-                splitTableToMetadata.put(tablename, metadata);
+                splitTableToMetadata.put(tableName, metadata);
                 delegateToTablenameToMetadata.put(secondary, splitTableToMetadata);
             }
         }

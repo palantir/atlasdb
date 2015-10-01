@@ -176,7 +176,7 @@ public final class UserPhotosStreamIdxTable implements
 
         @Override
         public String toString() {
-            return MoreObjects.toStringHelper(this)
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
                 .add("id", id)
                 .toString();
         }
@@ -267,7 +267,7 @@ public final class UserPhotosStreamIdxTable implements
 
         @Override
         public String toString() {
-            return MoreObjects.toStringHelper(this)
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
                 .add("reference", reference)
                 .toString();
         }
@@ -284,7 +284,7 @@ public final class UserPhotosStreamIdxTable implements
                 return false;
             }
             UserPhotosStreamIdxColumn other = (UserPhotosStreamIdxColumn) obj;
-            return Objects.equal(reference, other.reference);
+            return Arrays.equals(reference, other.reference);
         }
 
         @Override
@@ -369,6 +369,14 @@ public final class UserPhotosStreamIdxTable implements
                 }
             };
         }
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("ColumnName", this.columnName)
+                .add("Value", this.value)
+                .toString();
+        }
     }
 
     public static final class UserPhotosStreamIdxRowResult implements TypedRowResult {
@@ -417,6 +425,14 @@ public final class UserPhotosStreamIdxTable implements
                 }
             };
         }
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("RowName", getRowName())
+                .add("ColumnValues", getColumnValues())
+                .toString();
+        }
     }
 
     @Override
@@ -456,6 +472,29 @@ public final class UserPhotosStreamIdxTable implements
         for (UserPhotosStreamIdxTrigger trigger : triggers) {
             trigger.putUserPhotosStreamIdx(values);
         }
+    }
+
+    @Override
+    public void putUnlessExists(UserPhotosStreamIdxRow rowName, Iterable<UserPhotosStreamIdxColumnValue> values) {
+        putUnlessExists(ImmutableMultimap.<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue>builder().putAll(rowName, values).build());
+    }
+
+    @Override
+    public void putUnlessExists(UserPhotosStreamIdxRow rowName, UserPhotosStreamIdxColumnValue... values) {
+        putUnlessExists(ImmutableMultimap.<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue>builder().putAll(rowName, values).build());
+    }
+
+    @Override
+    public void putUnlessExists(Multimap<UserPhotosStreamIdxRow, ? extends UserPhotosStreamIdxColumnValue> rows) {
+        Multimap<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumn> toGet = Multimaps.transformValues(rows, UserPhotosStreamIdxColumnValue.getColumnNameFun());
+        Multimap<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue> existing = get(toGet);
+        Multimap<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue> toPut = HashMultimap.create();
+        for (Entry<UserPhotosStreamIdxRow, ? extends UserPhotosStreamIdxColumnValue> entry : rows.entries()) {
+            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
+                toPut.put(entry.getKey(), entry.getValue());
+            }
+        }
+        put(toPut);
     }
 
     @Override
@@ -599,5 +638,5 @@ public final class UserPhotosStreamIdxTable implements
         return ImmutableList.of();
     }
 
-    static String __CLASS_HASH = "8VCBI9VxzXpH2WfitU3ffA==";
+    static String __CLASS_HASH = "dsSxmLixkLYzQk/QvMaHwA==";
 }

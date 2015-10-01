@@ -28,6 +28,7 @@ import com.google.common.collect.Lists;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
+import com.palantir.atlasdb.table.description.ValueType;
 
 class RowOrDynamicColumnRenderer extends Renderer {
     private final String Name;
@@ -223,7 +224,7 @@ class RowOrDynamicColumnRenderer extends Renderer {
     private void renderToString() {
         line("@Override");
         line("public String toString() {"); {
-            line("return MoreObjects.toStringHelper(this)");
+            line("return MoreObjects.toStringHelper(getClass().getSimpleName())");
             for (NameComponentDescription comp : desc.getRowParts()) {
                 line("    .add(\"", varName(comp), "\", ", varName(comp), ")");
             }
@@ -246,7 +247,11 @@ class RowOrDynamicColumnRenderer extends Renderer {
             line(Name, " other = (", Name, ") obj;");
             line("return");
             for (NameComponentDescription comp : desc.getRowParts()) {
-                lineEnd(" Objects.equal(", varName(comp), ", other.", varName(comp), ") &&");
+                if (comp.getType() == ValueType.BLOB || comp.getType() == ValueType.SIZED_BLOB) {
+                    lineEnd(" Arrays.equals(", varName(comp), ", other.", varName(comp), ") &&");
+                } else {
+                    lineEnd(" Objects.equal(", varName(comp), ", other.", varName(comp), ") &&");
+                }
             }
             replace(" &&", ";");
         } line("}");

@@ -16,6 +16,8 @@
 package com.palantir.atlasdb.encoding;
 
 import com.google.common.base.Charsets;
+import com.google.common.base.Function;
+import com.google.common.base.MoreObjects;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Ordering;
@@ -115,6 +117,26 @@ public final class PtBytes {
             return "";
         }
         return new String(b, off, len, Charsets.UTF_8);
+    }
+
+    public static String encodeHexString(byte[] name) {
+        if (name == null) {
+            return "";
+        }
+        return BaseEncoding.base16().lowerCase().encode(name);
+    }
+
+    public static final Function<byte[], String> BYTES_TO_HEX_STRING = new Function<byte[], String>() {
+        @Override
+        public String apply(byte[] input) {
+            return encodeHexString(input);
+        }
+    };
+
+    public static void addIfNotEmpty(MoreObjects.ToStringHelper helper, String name, byte[] bytes) {
+        if (bytes != null && bytes.length > 0) {
+            helper.add(name, encodeHexString(bytes));
+        }
     }
 
     public static String encodeBase64String(byte[] data) {

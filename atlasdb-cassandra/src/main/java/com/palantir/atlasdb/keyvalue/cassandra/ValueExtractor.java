@@ -44,9 +44,11 @@ class ValueExtractor extends ResultsExtractor<Map<Cell, Value>, Value> {
                                       byte[] col,
                                       byte[] val,
                                       long ts) {
-        Cell cell = Cell.create(row, col);
-        if (!collector.containsKey(cell) && ts < startTs && selection.contains(cell.getColumnName())) {
-            collector.put(cell, Value.create(val, ts));
+        if (ts < startTs && selection.contains(col)) {
+            Cell cell = Cell.create(row, col);
+            if (!collector.containsKey(cell)) {
+                collector.put(cell, Value.create(val, ts));
+            }
         }
     }
 

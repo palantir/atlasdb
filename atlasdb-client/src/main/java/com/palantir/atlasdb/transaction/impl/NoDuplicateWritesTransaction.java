@@ -18,6 +18,7 @@ package com.palantir.atlasdb.transaction.impl;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
@@ -82,15 +83,15 @@ public class NoDuplicateWritesTransaction extends ForwardingTransaction {
             } catch (ExecutionException e) {
                 throw new RuntimeException(e.getCause());
             }
-            for (Cell cell : values.keySet()) {
-                byte[] newValue = values.get(cell);
-                byte[] oldValue = table.get(cell);
+            for (Entry<Cell, byte[]> value : values.entrySet()) {
+                byte[] newValue = value.getValue();
+                byte[] oldValue = table.get(value.getKey());
                 if (oldValue != null && !Arrays.equals(oldValue, newValue)) {
                     AssertUtils.assertAndLog(false, "table: " + tableName
-                            + " cell was writen to twice: " + cell
+                            + " cell was writen to twice: " + value.getKey()
                             + " old value: " + BaseEncoding.base16().lowerCase().encode(oldValue)
                             + " new value: " + BaseEncoding.base16().lowerCase().encode(newValue));
-                        break;
+                    break;
                 }
             }
         }

@@ -19,10 +19,12 @@ import java.util.Set;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
 @JsonDeserialize(as = ImmutableCassandraKeyValueServiceConfig.class)
@@ -30,7 +32,60 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 @JsonTypeName(CassandraKeyValueServiceConfig.TYPE)
 @Value.Immutable
 public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceConfig {
-    
+
+    @JsonIgnore
+    public static final CassandraKeyValueServiceConfig DEFAULT = new CassandraKeyValueServiceConfig() {
+        @Override
+        public Set<String> servers() {
+            return ImmutableSet.of("localhost");
+        }
+
+        @Override
+        public int port() {
+            return 9160;
+        }
+
+        @Override
+        public boolean ssl() {
+            return false;
+        }
+
+        @Override
+        public int replicationFactor() {
+            return 1;
+        }
+
+        @Override
+        public String keystore() {
+            return "./security/Server_Keystore";
+        }
+
+        @Override
+        public String keystorePassword() {
+            return "atlasserver";
+        }
+
+        @Override
+        public String truststore() {
+            return "./security/Client_Truststore";
+        }
+
+        @Override
+        public String truststorePassword() {
+            return "atlasclient";
+        }
+
+        @Override
+        public String jmxUsername() {
+            return "admin";
+        }
+
+        @Override
+        public String jmxPassword() {
+            return "atlasdb";
+        }
+    };
+
     public static final String TYPE = "cassandra";
 
     public abstract Set<String> servers();
@@ -76,6 +131,73 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
         return true;
     }
 
+    /**
+     * This is how long we will wait when we first open a socket to the cassandra server.
+     * This should be long enough to enough to handle cross data center latency, but short enough
+     * that it will fail out quickly if it is clear we can't reach that server.
+     */
+    @Value.Default
+    public int socketTimeoutMillis() {
+        return 2000;
+    }
+
+    /**
+     * Socket timeout is a java side concept.  This the maximum time we will block on a network
+     * read without the server sending us any bytes.  After this time a {@link SocketTimeoutException}
+     * will be thrown.  All cassandra reads time out at less than this value so we shouldn't see
+     * it very much (10s by default).
+     */
+    @Value.Default
+    public int socketQueryTimeoutMillis() {
+        return 62000;
+    }
+
+    @Value.Default
+    public int cqlPoolTimeoutMillis() {
+        return 5000;
+    }
+
+    public int rangesConcurrency() {
+        return 64;
+    }
+
+    @Value.Default
+    public boolean jmx() {
+        return false;
+    }
+
+    @Value.Default
+    public boolean jmxSsl() {
+        return false;
+    }
+
+    @Value.Default
+    public long jmxRmiTimeoutMillis() {
+        return 20000;
+    }
+
+    @Value.Default
+    public int jmxPort() {
+        return 7199;
+    }
+
+    public abstract String keystore();
+
+    public abstract String keystorePassword();
+
+    public abstract String truststore();
+
+    public abstract String truststorePassword();
+
+    public abstract String jmxUsername();
+
+    public abstract String jmxPassword();
+
+    @Value.Default
+    public long jmxCompactionTimeoutSeconds() {
+        return 30 * 60;
+    }
+
     @Override
     public final String type() {
         return TYPE;
@@ -85,5 +207,4 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     protected final void check() {
         Preconditions.checkState(!servers().isEmpty(), "'servers' must have at least one entry");
     }
-
 }

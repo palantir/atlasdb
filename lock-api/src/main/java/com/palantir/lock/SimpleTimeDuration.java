@@ -144,7 +144,7 @@ import com.google.common.base.Preconditions;
     }
 
     @Override public String toString() {
-        return MoreObjects.toStringHelper(this)
+        return MoreObjects.toStringHelper(getClass().getSimpleName())
                 .addValue(time + " " + unit.toString().toLowerCase()).toString();
     }
 

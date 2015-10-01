@@ -90,6 +90,15 @@ public class NamespaceMappingKeyValueService extends ForwardingObject implements
     }
 
     @Override
+    public void dropTables(Set<String> tableNames) {
+        Set<TableReference> tableReferences = Sets.newHashSet();
+        for (String tableName : tableNames) {
+            tableReferences.add(getTableReference(tableName));
+        }
+        delegate().dropTables(tableReferences);
+    }
+
+    @Override
     public Map<Cell, Value> get(String tableName, Map<Cell, Long> timestampByCell) {
         return delegate().get(getTableReference(tableName), timestampByCell);
     }
@@ -226,8 +235,8 @@ public class NamespaceMappingKeyValueService extends ForwardingObject implements
     @Override
     public void createTables(Map<String, Integer> tableNamesToMaxValueSizeInBytes) {
         Map<TableReference, Integer> tableReferencesToMaxValueSizeInBytes = Maps.newHashMapWithExpectedSize(tableNamesToMaxValueSizeInBytes.size());
-        for (String tableName : tableNamesToMaxValueSizeInBytes.keySet()) {
-            tableReferencesToMaxValueSizeInBytes.put(getTableReference(tableName), tableNamesToMaxValueSizeInBytes.get(tableName));
+        for (Entry<String, Integer> tableToMaxValue : tableNamesToMaxValueSizeInBytes.entrySet()) {
+            tableReferencesToMaxValueSizeInBytes.put(getTableReference(tableToMaxValue.getKey()), tableToMaxValue.getValue());
         }
         delegate().createTables(tableReferencesToMaxValueSizeInBytes);
     }
@@ -235,8 +244,8 @@ public class NamespaceMappingKeyValueService extends ForwardingObject implements
     @Override
     public void putMetadataForTables(Map<String, byte[]> tableNameToMetadata) {
         Map<TableReference, byte[]> tableReferencesToMetadata = Maps.newHashMapWithExpectedSize(tableNameToMetadata.size());
-        for (String tableName : tableNameToMetadata.keySet()) {
-            tableReferencesToMetadata.put(getTableReference(tableName), tableNameToMetadata.get(tableName));
+        for (Entry<String, byte[]> tableToMetadataEntry : tableNameToMetadata.entrySet()) {
+            tableReferencesToMetadata.put(getTableReference(tableToMetadataEntry.getKey()), tableToMetadataEntry.getValue());
         }
         delegate().putMetadataForTables(tableReferencesToMetadata);
     }

@@ -24,11 +24,16 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.MoreObjects.ToStringHelper;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicates;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.annotation.Immutable;
 import com.palantir.common.persist.Persistable;
@@ -44,13 +49,13 @@ import com.palantir.util.Pair;
  */
 @Immutable public final class RangeRequest implements Serializable {
     private static final long serialVersionUID = 1L;
-    private static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
 
     private final byte[] startInclusive;
     private final byte[] endExclusive;
     private final ImmutableSortedSet<byte[]> columns;
     private final Integer batchHint;
     private final boolean reverse;
+    private transient int hashCode = 0;
 
     /**
      * Returns a {@link Builder} instance, a helper class
@@ -168,23 +173,35 @@ import com.palantir.util.Pair;
 
     @Override
     public String toString() {
-        return "RangeRequest [startInclusive=" + Arrays.toString(startInclusive)
-                + ", endExclusive=" + Arrays.toString(endExclusive)
-                + ", batchHint=" + batchHint
-                + ", reverse=" + reverse
-                + "]";
+        ToStringHelper helper = MoreObjects.toStringHelper(getClass()).omitNullValues();
+        PtBytes.addIfNotEmpty(helper, "startInclusive", startInclusive);
+        PtBytes.addIfNotEmpty(helper, "endExclusive", endExclusive);
+        if (columns != null && !columns.isEmpty()) {
+            helper.add("columns", FluentIterable.from(columns).filter(Predicates.notNull()).transform(PtBytes.BYTES_TO_HEX_STRING));
+        }
+        helper.add("batchHint", batchHint);
+        helper.add("reverse", reverse);
+        return helper.toString();
     }
 
     @Override
     public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + ((batchHint == null) ? 0 : batchHint.hashCode());
-        result = prime * result + ((columns == null) ? 0 : columns.hashCode());
-        result = prime * result + Arrays.hashCode(endExclusive);
-        result = prime * result + (reverse ? 1231 : 1237);
-        result = prime * result + Arrays.hashCode(startInclusive);
-        return result;
+        /*
+         * Lazily compute and store hashcode since instances are frequently
+         * accessed via hash collections, but computation can be expensive, and
+         * allow for benign data races.
+         */
+        if (hashCode == 0) {
+            final int prime = 31;
+            int result = 1;
+            result = prime * result + ((batchHint == null) ? 0 : batchHint.hashCode());
+            result = prime * result + ((columns == null) ? 0 : columns.hashCode());
+            result = prime * result + Arrays.hashCode(endExclusive);
+            result = prime * result + (reverse ? 1231 : 1237);
+            result = prime * result + Arrays.hashCode(startInclusive);
+            hashCode = result;
+        }
+        return hashCode;
     }
 
     @Override
@@ -251,8 +268,8 @@ import com.palantir.util.Pair;
      * call      * the methods on the <code>RangeRequest</code> class.
      */
     @NotThreadSafe public static final class Builder {
-        private byte[] startInclusive = EMPTY_BYTE_ARRAY;
-        private byte[] endExclusive = EMPTY_BYTE_ARRAY;
+        private byte[] startInclusive = PtBytes.EMPTY_BYTE_ARRAY;
+        private byte[] endExclusive = PtBytes.EMPTY_BYTE_ARRAY;
         private Set<byte[]> columns = Sets.newTreeSet(UnsignedBytes.lexicographicalComparator());
         private Integer batchHint = null;
         private final boolean reverse;

@@ -20,12 +20,16 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.ConcurrentMap;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
@@ -37,9 +41,14 @@ import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
 public class CachingTransaction extends ForwardingTransaction {
+
+    private static final Logger log = LoggerFactory.getLogger(CachingTransaction.class);
+
     final Transaction delegate;
 
-    private final LoadingCache<String, ConcurrentMap<Cell, byte[]>> columnTableCache = CacheBuilder.newBuilder().softValues().build(new CacheLoader<String, ConcurrentMap<Cell, byte[]>>() {
+    private final LoadingCache<String, ConcurrentMap<Cell, byte[]>> columnTableCache = CacheBuilder.newBuilder()
+            .softValues()
+            .build(new CacheLoader<String, ConcurrentMap<Cell, byte[]>>() {
         @Override
         public ConcurrentMap<Cell, byte[]> load(String key) throws Exception {
             return Maps.newConcurrentMap();
@@ -58,6 +67,11 @@ public class CachingTransaction extends ForwardingTransaction {
     @Override
     public SortedMap<byte[], RowResult<byte[]>> getRows(String tableName, Iterable<byte[]> rows,
                                                         ColumnSelection columnSelection) {
+        if (Iterables.isEmpty(rows)) {
+            log.info("Attempted getRows on '{}' table and {} with empty rows argument", tableName, columnSelection);
+            return AbstractTransaction.EMPTY_SORTED_ROWS;
+        }
+
         ConcurrentMap<Cell, byte[]> colCache = getColCacheForTable(tableName);
         if (columnSelection.allColumnsSelected()) {
             SortedMap<byte[], RowResult<byte[]>> loaded = super.getRows(tableName, rows, columnSelection);
@@ -118,6 +132,11 @@ public class CachingTransaction extends ForwardingTransaction {
 
     @Override
     public Map<Cell, byte[]> get(String tableName, Set<Cell> cells) {
+        if (cells.isEmpty()) {
+            log.info("Attempted get on '{}' table with empty cells argument", tableName);
+            return ImmutableMap.of();
+        }
+
         ConcurrentMap<Cell, byte[]> cache = getColCacheForTable(tableName);
         Set<Cell> toLoad = Sets.newHashSet();
         Map<Cell, byte[]> cacheHit = Maps.newHashMap();
@@ -141,11 +160,20 @@ public class CachingTransaction extends ForwardingTransaction {
 
     @Override
     final public void delete(String tableName, Set<Cell> cells) {
+        if (cells.isEmpty()) {
+            log.info("Attempted delete on '{}' table with empty cells", tableName);
+            return;
+        }
         put(tableName, Cells.constantValueMap(cells, PtBytes.EMPTY_BYTE_ARRAY));
     }
 
     @Override
     public void put(String tableName, Map<Cell, byte[]> values) {
+        if (values.isEmpty()) {
+            log.info("Attempted put on '{}' table with empty cells", tableName);
+            return;
+        }
+
         super.put(tableName, values);
         Map<Cell, byte[]> colCache = getColCacheForTable(tableName);
         for (Map.Entry<Cell, byte[]> e : values.entrySet()) {

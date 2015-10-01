@@ -60,7 +60,7 @@ public class LockServerLock implements ClientAwareReadWriteLock {
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
+        return MoreObjects.toStringHelper(getClass().getSimpleName())
                 .add("descriptor", descriptor)
                 .add("sync", sync)
                 .toString();
@@ -141,7 +141,7 @@ public class LockServerLock implements ClientAwareReadWriteLock {
 
         @Override
         public String toString() {
-            return MoreObjects.toStringHelper(this)
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
                     .add("mode", getMode())
                     .add("client", sync.getClient(clientIndex))
                     .add("sync", sync)
@@ -218,7 +218,7 @@ public class LockServerLock implements ClientAwareReadWriteLock {
 
         @Override
         public String toString() {
-            return MoreObjects.toStringHelper(this)
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
                     .add("mode", getMode())
                     .add("client", sync.getClient(clientIndex))
                     .add("sync", sync)

@@ -20,3 +20,17 @@ message PaxosProposalId {
     required int64 number = 1;
     optional string proposerUUID = 2;
 }
+
+message ExceptionProto {
+    required string type = 1;
+    required string message = 2;
+    repeated StackTraceElementProto stack_trace = 3;
+    optional ExceptionProto cause = 4;
+}
+
+message StackTraceElementProto {
+    required string declaring_class = 1;
+    required string method_name = 2;
+    optional string file_name = 3;
+    optional sint32 line_number = 4;
+}

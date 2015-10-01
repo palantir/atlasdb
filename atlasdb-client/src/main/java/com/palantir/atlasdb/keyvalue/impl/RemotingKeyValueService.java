@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.impl;
 
 import java.io.Serializable;
+import java.util.NoSuchElementException;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
@@ -136,7 +137,7 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
             if (position < page.size()) {
                 return page.get(position++);
             } else {
-                throw new IllegalStateException();
+                throw new NoSuchElementException();
             }
         }
 

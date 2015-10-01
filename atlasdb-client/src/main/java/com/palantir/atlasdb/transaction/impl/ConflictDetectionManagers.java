@@ -19,12 +19,12 @@ import java.util.Map;
 import java.util.Set;
 
 import com.google.common.base.Function;
+import com.google.common.base.Functions;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
@@ -58,7 +58,7 @@ public class ConflictDetectionManagers {
             @Override
             public Map<String, ConflictHandler> get() {
                 Set<String> tables = kvs.getAllTableNames();
-                return Cells.constantValueMap(tables, ConflictHandler.IGNORE_ALL);
+                return Maps.asMap(tables, Functions.constant(ConflictHandler.IGNORE_ALL));
             }
         });
     }

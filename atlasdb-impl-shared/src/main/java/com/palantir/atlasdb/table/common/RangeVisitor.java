@@ -121,13 +121,19 @@ public class RangeVisitor {
             try {
                 long startTime = System.currentTimeMillis();
                 long numVisited = txManager.runTaskWithLocksWithRetry(lockTokens,
-                        Suppliers.<LockRequest>ofInstance(null),
+                        Suppliers.<LockRequest> ofInstance(null),
                         new LockAwareTransactionTask<Long, RuntimeException>() {
-                    @Override
-                    public Long execute(Transaction t, Iterable<LockRefreshToken> heldLocks) {
-                        return visitInternal(t, visitor, request, range);
-                    }
-                });
+                            @Override
+                            public Long execute(Transaction t,
+                                                Iterable<LockRefreshToken> heldLocks) {
+                                return visitInternal(t, visitor, request, range);
+                            }
+
+                            @Override
+                            public String toString() {
+                                return "visitRange(" + request + ")";
+                            }
+                        });
                 counter.addAndGet(numVisited);
                 log.info("Visited {} rows from {} in {} ms.",
                         numVisited,

@@ -39,7 +39,9 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ExpirationStrategy;
 import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.schema.stream.StreamTables;
@@ -250,9 +252,9 @@ public class Schema {
             d.getConstraintMetadata();
         }
 
-        for (String indexName : indexDefinitions.keySet()) {
-            IndexDefinition d = indexDefinitions.get(indexName);
-            d.toIndexMetadata(indexName).getTableMetadata();
+        for (Entry<String, IndexDefinition> indexEntry : indexDefinitions.entrySet()) {
+            IndexDefinition d = indexEntry.getValue();
+            d.toIndexMetadata(indexEntry.getKey()).getTableMetadata();
         }
 
         for (Entry<String, String> e : indexesByTable.entries()) {
@@ -301,6 +303,35 @@ public class Schema {
         return namespace;
     }
 
+    public void createIndex(KeyValueService kvs, String indexName) {
+        IndexDefinition definition = indexDefinitions.get(indexName);
+        String fullIndexName = Schemas.getFullTableName(indexName, namespace);
+        Schemas.createIndex(kvs, fullIndexName, definition);
+    }
+
+    /**
+     * Drops tables/indexes for this schema.
+     */
+    public void deleteTablesAndIndexes(KeyValueService kvs) {
+        validate();
+        Set<String> allTables = kvs.getAllTableNames();
+        Set<String> tablesToDrop = Sets.newHashSet();
+        for (String n : Iterables.concat(indexDefinitions.keySet(), tableDefinitions.keySet())) {
+            if (allTables.contains(n)) {
+                tablesToDrop.add(n);
+            }
+        }
+        kvs.dropTables(tablesToDrop);
+    }
+
+    public void deleteTable(KeyValueService kvs, String tableName) {
+        kvs.dropTable(tableName);
+    }
+
+    public void deleteIndex(KeyValueService kvs, String indexName) {
+        kvs.dropTable(indexName);
+    }
+
     /**
      * Performs code generation.
      *
@@ -310,7 +341,7 @@ public class Schema {
         Preconditions.checkNotNull(name, "schema name not set");
         Preconditions.checkNotNull(packageName, "package name not set");
 
-        TableRenderer tableRenderer = new TableRenderer(packageName);
+        TableRenderer tableRenderer = new TableRenderer(packageName, namespace);
         for (Entry<String, TableDefinition> entry : tableDefinitions.entrySet()) {
             String rawTableName = entry.getKey();
             TableDefinition table = entry.getValue();
@@ -377,10 +408,15 @@ public class Schema {
         outputDir.mkdirs();
         outputFile = outputFile.getAbsoluteFile();
         outputFile.createNewFile();
-
-        FileWriter os = new FileWriter(outputFile);
-        os.write(code);
-        os.close();
+        FileWriter os = null;
+        try {
+            os = new FileWriter(outputFile);
+            os.write(code);
+        } finally {
+            if (os != null) {
+                os.close();
+            }
+        }
     }
 
     public void addCleanupTask(String rawTableName, OnCleanupTask task) {

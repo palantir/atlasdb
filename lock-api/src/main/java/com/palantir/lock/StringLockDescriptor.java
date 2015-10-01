@@ -15,14 +15,9 @@
  */
 package com.palantir.lock;
 
-import java.io.InvalidObjectException;
-import java.io.ObjectInputStream;
-import java.io.Serializable;
 import java.util.concurrent.locks.ReadWriteLock;
 
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.Immutable;
-
+import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 
@@ -32,46 +27,15 @@ import com.google.common.base.Strings;
  *
  * @author jtamer
  */
-@Immutable
-public final class StringLockDescriptor extends LockDescriptor {
-    private static final long serialVersionUID = 5L;
+public class StringLockDescriptor {
+
+    private StringLockDescriptor() {
+        // cannot instantiate
+    }
 
     /** Returns a {@code LockDescriptor} instance for the given lock ID. */
     public static LockDescriptor of(String lockId) {
         Preconditions.checkArgument(!Strings.isNullOrEmpty(lockId));
-        return new StringLockDescriptor(lockId.getBytes());
-    }
-
-    private StringLockDescriptor(byte[] bytes) {
-        super(bytes);
-    }
-
-    @Override
-    public String getLockId() {
-        return new String(bytes);
-    }
-
-    private void readObject(@SuppressWarnings("unused") ObjectInputStream in)
-            throws InvalidObjectException {
-        throw new InvalidObjectException("proxy required");
-    }
-
-    private Object writeReplace() {
-        return new SerializationProxy(this);
-    }
-
-    private static class SerializationProxy implements Serializable {
-        private static final long serialVersionUID = 6L;
-
-        @Nullable
-        private final byte[] bytes;
-
-        SerializationProxy(StringLockDescriptor lockDescriptor) {
-            bytes = lockDescriptor.bytes;
-        }
-
-        Object readResolve() {
-            return new StringLockDescriptor(bytes);
-        }
+        return new LockDescriptor(lockId.getBytes(Charsets.UTF_8));
     }
 }

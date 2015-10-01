@@ -363,7 +363,7 @@ public final class LockServiceImplTest {
 
         server.unlock(resp2.getToken());
 
-        future.get(10, TimeUnit.MILLISECONDS);
+        future.get(10, TimeUnit.SECONDS);
 
         server.unlock(resp1.getToken());
 
@@ -700,11 +700,7 @@ public final class LockServiceImplTest {
 
         lockMap = Maps.newTreeMap();
         for (int i = 0; i < numLocks; ++i) {
-            if (i % 2 == 0) {
                 lockMap.put(StringLockDescriptor.of("lock " + i), LockMode.READ);
-            } else {
-                lockMap.put(StringLockDescriptor.of("lock " + i), LockMode.READ);
-            }
         }
         requestAllLocks = LockRequest.builder(lockMap).doNotBlock().build();
         HeldLocksToken token = server.lock(client, requestAllLocks).getToken();
@@ -726,11 +722,7 @@ public final class LockServiceImplTest {
         LockClient client2 = LockClient.of("another client");
         lockMap = Maps.newTreeMap();
         for (int i = 0; i < numLocks; ++i) {
-            if (i % 2 == 0) {
                 lockMap.put(StringLockDescriptor.of("lock " + i), LockMode.WRITE);
-            } else {
-                lockMap.put(StringLockDescriptor.of("lock " + i), LockMode.WRITE);
-            }
         }
         requestAllLocks = LockRequest.builder(lockMap).doNotBlock().build();
         token = server.lock(client2, requestAllLocks).getToken();
@@ -840,7 +832,7 @@ public final class LockServiceImplTest {
                             numFailure.set(numFailure.get() + 1);
                         } else {
                             numSuccess.set(numSuccess.get() + 1);
-                            Assert.assertEquals(clientID, token.getClient());
+                            Assert.assertEquals(Integer.toString(clientID), token.getClient().getClientId());
                             Assert.assertEquals(request.getLockDescriptors(), token.getLocks());
                             try {
                                 Thread.sleep(50);
@@ -996,7 +988,7 @@ public final class LockServiceImplTest {
             /* Expected: empty string */
         }
         lock = StringLockDescriptor.of(longString);
-        Assert.assertEquals(longString, lock.getLockId());
+        Assert.assertEquals(longString, lock.getLockIdAsString());
 
         LockRequest request = LockRequest.builder(ImmutableSortedMap.of(lock, LockMode.READ)).build();
         HeldLocksToken token = server.lock(client, request).getToken();
@@ -1102,8 +1094,8 @@ public final class LockServiceImplTest {
     @Test public void testIdentity() {
         Assert.assertEquals("a client", client.getClientId());
         Assert.assertNull(LockClient.ANONYMOUS.getClientId());
-        Assert.assertEquals("lock1", lock1.getLockId());
-        Assert.assertEquals("lock2", lock2.getLockId());
+        Assert.assertEquals("lock1", lock1.getLockIdAsString());
+        Assert.assertEquals("lock2", lock2.getLockIdAsString());
     }
 
     @Test

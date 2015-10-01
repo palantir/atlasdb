@@ -178,7 +178,7 @@ public final class SweepProgressTable implements
 
         @Override
         public String toString() {
-            return MoreObjects.toStringHelper(this)
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
                 .add("dummy", dummy)
                 .toString();
         }
@@ -264,6 +264,13 @@ public final class SweepProgressTable implements
                 return of(EncodingUtils.decodeUnsignedVarLong(bytes, 0));
             }
         };
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("Value", this.value)
+                .toString();
+        }
     }
 
     /**
@@ -317,6 +324,13 @@ public final class SweepProgressTable implements
                 return of(EncodingUtils.decodeUnsignedVarLong(bytes, 0));
             }
         };
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("Value", this.value)
+                .toString();
+        }
     }
 
     /**
@@ -370,6 +384,13 @@ public final class SweepProgressTable implements
                 return of(PtBytes.toString(bytes, 0, bytes.length-0));
             }
         };
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("Value", this.value)
+                .toString();
+        }
     }
 
     /**
@@ -423,6 +444,13 @@ public final class SweepProgressTable implements
                 return of(EncodingUtils.getBytesFromOffsetToEnd(bytes, 0));
             }
         };
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("Value", this.value)
+                .toString();
+        }
     }
 
     public interface SweepProgressTrigger {
@@ -553,12 +581,12 @@ public final class SweepProgressTable implements
 
         @Override
         public String toString() {
-            return MoreObjects.toStringHelper(this)
-                    .add("RowName", getRowName())
-                    .add("CellsDeleted", getCellsDeleted())
-                    .add("CellsExamined", getCellsExamined())
-                    .add("FullTableName", getFullTableName())
-                    .add("StartRow", getStartRow())
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("RowName", getRowName())
+                .add("CellsDeleted", getCellsDeleted())
+                .add("CellsExamined", getCellsExamined())
+                .add("FullTableName", getFullTableName())
+                .add("StartRow", getStartRow())
                 .toString();
         }
     }
@@ -685,6 +713,18 @@ public final class SweepProgressTable implements
         put(Multimaps.forMap(toPut));
     }
 
+    public void putFullTableNameUnlessExists(SweepProgressRow row, String value) {
+        putUnlessExists(ImmutableMultimap.of(row, FullTableName.of(value)));
+    }
+
+    public void putFullTableNameUnlessExists(Map<SweepProgressRow, String> map) {
+        Map<SweepProgressRow, SweepProgressNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
+        for (Entry<SweepProgressRow, String> e : map.entrySet()) {
+            toPut.put(e.getKey(), FullTableName.of(e.getValue()));
+        }
+        putUnlessExists(Multimaps.forMap(toPut));
+    }
+
     public void putStartRow(SweepProgressRow row, byte[] value) {
         put(ImmutableMultimap.of(row, StartRow.of(value)));
     }
@@ -695,6 +735,18 @@ public final class SweepProgressTable implements
             toPut.put(e.getKey(), StartRow.of(e.getValue()));
         }
         put(Multimaps.forMap(toPut));
+    }
+
+    public void putStartRowUnlessExists(SweepProgressRow row, byte[] value) {
+        putUnlessExists(ImmutableMultimap.of(row, StartRow.of(value)));
+    }
+
+    public void putStartRowUnlessExists(Map<SweepProgressRow, byte[]> map) {
+        Map<SweepProgressRow, SweepProgressNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
+        for (Entry<SweepProgressRow, byte[]> e : map.entrySet()) {
+            toPut.put(e.getKey(), StartRow.of(e.getValue()));
+        }
+        putUnlessExists(Multimaps.forMap(toPut));
     }
 
     public void putCellsDeleted(SweepProgressRow row, Long value) {
@@ -709,6 +761,18 @@ public final class SweepProgressTable implements
         put(Multimaps.forMap(toPut));
     }
 
+    public void putCellsDeletedUnlessExists(SweepProgressRow row, Long value) {
+        putUnlessExists(ImmutableMultimap.of(row, CellsDeleted.of(value)));
+    }
+
+    public void putCellsDeletedUnlessExists(Map<SweepProgressRow, Long> map) {
+        Map<SweepProgressRow, SweepProgressNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
+        for (Entry<SweepProgressRow, Long> e : map.entrySet()) {
+            toPut.put(e.getKey(), CellsDeleted.of(e.getValue()));
+        }
+        putUnlessExists(Multimaps.forMap(toPut));
+    }
+
     public void putCellsExamined(SweepProgressRow row, Long value) {
         put(ImmutableMultimap.of(row, CellsExamined.of(value)));
     }
@@ -721,6 +785,18 @@ public final class SweepProgressTable implements
         put(Multimaps.forMap(toPut));
     }
 
+    public void putCellsExaminedUnlessExists(SweepProgressRow row, Long value) {
+        putUnlessExists(ImmutableMultimap.of(row, CellsExamined.of(value)));
+    }
+
+    public void putCellsExaminedUnlessExists(Map<SweepProgressRow, Long> map) {
+        Map<SweepProgressRow, SweepProgressNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
+        for (Entry<SweepProgressRow, Long> e : map.entrySet()) {
+            toPut.put(e.getKey(), CellsExamined.of(e.getValue()));
+        }
+        putUnlessExists(Multimaps.forMap(toPut));
+    }
+
     @Override
     public void put(Multimap<SweepProgressRow, ? extends SweepProgressNamedColumnValue<?>> rows) {
         t.useTable(tableName, this);
@@ -728,6 +804,18 @@ public final class SweepProgressTable implements
         for (SweepProgressTrigger trigger : triggers) {
             trigger.putSweepProgress(rows);
         }
+    }
+
+    @Override
+    public void putUnlessExists(Multimap<SweepProgressRow, ? extends SweepProgressNamedColumnValue<?>> rows) {
+        Multimap<SweepProgressRow, SweepProgressNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
+        Multimap<SweepProgressRow, SweepProgressNamedColumnValue<?>> toPut = HashMultimap.create();
+        for (Entry<SweepProgressRow, ? extends SweepProgressNamedColumnValue<?>> entry : rows.entries()) {
+            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
+                toPut.put(entry.getKey(), entry.getValue());
+            }
+        }
+        put(toPut);
     }
 
     public void deleteFullTableName(SweepProgressRow row) {
@@ -778,12 +866,12 @@ public final class SweepProgressTable implements
     @Override
     public void delete(Iterable<SweepProgressRow> rows) {
         List<byte[]> rowBytes = Persistables.persistAll(rows);
-        ImmutableSet.Builder<Cell> cells = ImmutableSet.builder();
+        Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size() * 4);
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("d")));
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("e")));
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("n")));
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("s")));
-        t.delete(tableName, cells.build());
+        t.delete(tableName, cells);
     }
 
     @Override
@@ -924,5 +1012,5 @@ public final class SweepProgressTable implements
         return ImmutableList.of();
     }
 
-    static String __CLASS_HASH = "39K//FEWj10SmHf2eOgYtw==";
+    static String __CLASS_HASH = "l2w+15AbTF4UGWo+c8hxUw==";
 }

@@ -32,6 +32,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.palantir.util.Pair;
 
 public final class PaxosQuorumChecker {
 
@@ -56,6 +57,15 @@ public final class PaxosQuorumChecker {
                                                                                                   int quorumSize,
                                                                                                   Executor executor,
                                                                                                   long remoteRequestTimeoutInSec) {
+        return collectQuorumResponses(remotes, request, quorumSize, executor, remoteRequestTimeoutInSec, false);
+    }
+
+    public static <SERVICE, RESPONSE extends PaxosResponse> List<RESPONSE> collectQuorumResponses(ImmutableList<SERVICE> remotes,
+                                                                                                  final Function<SERVICE, RESPONSE> request,
+                                                                                                  int quorumSize,
+                                                                                                  Executor executor,
+                                                                                                  long remoteRequestTimeoutInSec,
+                                                                                                  boolean onlyLogOnQuorumFailure) {
         CompletionService<RESPONSE> responseCompletionService = new ExecutorCompletionService<RESPONSE>(executor);
 
         // kick off all the requests
@@ -69,6 +79,7 @@ public final class PaxosQuorumChecker {
             }));
         }
 
+        List<Pair<String, Throwable>> toLog = Lists.newArrayList();
         boolean interrupted = false;
         List<RESPONSE> receivedResponses = new ArrayList<RESPONSE>();
         int acksRecieved = 0;
@@ -108,7 +119,12 @@ public final class PaxosQuorumChecker {
                     break;
                 } catch (ExecutionException e) {
                     nacksRecieved++;
-                    log.info("error requesting paxos message", e.getCause());
+                    String msg = "error requesting paxos message";
+                    if (onlyLogOnQuorumFailure) {
+                        toLog.add(Pair.create(msg, e.getCause()));
+                    } else {
+                        log.warn(msg, e.getCause());
+                    }
                 }
             }
 
@@ -135,6 +151,12 @@ public final class PaxosQuorumChecker {
             // reset interrupted flag
             if (interrupted) {
                 Thread.currentThread().interrupt();
+            }
+
+            if (onlyLogOnQuorumFailure && acksRecieved < quorumSize) {
+                for (Pair<String, Throwable> p : toLog) {
+                    log.warn(p.lhSide, p.rhSide);
+                }
             }
         }
 

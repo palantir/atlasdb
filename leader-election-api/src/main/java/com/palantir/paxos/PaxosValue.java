@@ -16,6 +16,7 @@
 package com.palantir.paxos;
 
 import java.io.Serializable;
+import java.util.Arrays;
 
 import javax.annotation.Nullable;
 
@@ -105,5 +106,50 @@ public class PaxosValue implements Persistable, Versionable, Serializable {
     @JsonIgnore
     public long getVersion() {
         return 0;
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + Arrays.hashCode(data);
+        result = prime * result
+                + ((leaderUUID == null) ? 0 : leaderUUID.hashCode());
+        result = prime * result + (int) (seq ^ (seq >>> 32));
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        PaxosValue other = (PaxosValue) obj;
+        if (!Arrays.equals(data, other.data)) {
+            return false;
+        }
+        if (leaderUUID == null) {
+            if (other.leaderUUID != null) {
+                return false;
+            }
+        } else if (!leaderUUID.equals(other.leaderUUID)) {
+            return false;
+        }
+        if (seq != other.seq) {
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    public String toString() {
+        return "PaxosValue [data=" + Arrays.toString(data) + ", leaderUUID="
+                + leaderUUID + ", seq=" + seq + "]";
     }
 }

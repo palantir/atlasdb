@@ -1,0 +1,184 @@
+apply plugin: 'java'
+apply plugin: 'idea'
+
+/*
+ * This file is supposed to be included at the bottom of every build.gradle.
+ */
+
+assert sourceCompatibility == targetCompatibility
+
+/*
+ * Compile with ECJ, not javac
+ */
+task exec(type: JavaExec)
+project.tasks.withType(JavaCompile) {
+    doFirst {
+        // Run ecj instead of javac
+        options.fork executable: tasks.exec.executable, jvmArgs: ["-jar", project.rootDir.absolutePath + "/ecj/ecj.jar"]
+
+        // Options correspond to compile.rb in buildlib. The important ones, anyway.
+        options.define(compilerArgs: [
+                "-${sourceCompatibility}",
+                '-g',
+                '-warn:none',
+                '-enableJavadoc',
+                '-encoding', 'utf-8',
+                '-log', "${rootDir}/ecj/ecj-${project.name}-${name}.log",
+        ])
+
+        // Gradle sometimes puts non-existent directories on the classpath, which ECJ prints out noisy warnings about
+        classpath = classpath.filter { it.exists() }
+    }
+}
+
+def vmParameters = "-ea -Xmx4g -XX:MaxPermSize=512m"
+
+/**
+ * This wrapper around groovy's Node class provides just what we need to make all the XML manipulations look nice and uniform.
+ */
+class Xml {
+    Node node
+
+    static Xml from(XmlProvider provider) {
+        new Xml(node: provider.asNode())
+    }
+
+    Xml get(Map<String, String> attr = [:], tag) {
+        new Xml(node: node[tag].find { attr - it.attributes() == [:] } ?: node.appendNode(tag, attr))
+    }
+
+    void set(Map<String, String> attr) {
+        node.attributes().putAll(attr)
+    }
+}
+
+idea.workspace {
+    iws.withXml { XmlProvider provider ->
+        Xml.from(provider)
+                .get('component', name: 'CompilerWorkspaceConfiguration')
+                .get('option', name: 'MAKE_PROJECT_ON_SAVE')
+                .set(value: 'true')
+        Xml.from(provider)
+                .get('component', name: 'CompilerWorkspaceConfiguration')
+                .get('option', name: 'PARALLEL_COMPILATION')
+                .set(value: 'true')
+        Xml.from(provider)
+                .get('component', name: 'CompilerWorkspaceConfiguration')
+                .get('option', name: 'COMPILER_PROCESS_HEAP_SIZE')
+                .set(value: '1000')
+        Xml.from(provider)
+                .get('component', name: 'PropertiesComponent')
+                .get('property', name: 'show.inlinked.gradle.project.popup')
+                .set(value: 'false')
+        Xml.from(provider)
+                .get('component', name: 'RunManager')
+                .get('configuration', default: 'true', type: 'Application')
+                .get('option', name: 'VM_PARAMETERS')
+                .set(value: vmParameters)
+        Xml.from(provider)
+                .get('component', name: 'RunManager')
+                .get('configuration', default: 'true', type: 'JUnit')
+                .get('option', name: 'VM_PARAMETERS')
+                .set(value: vmParameters)
+    }
+}
+
+idea.project {
+    outputFile = new File(projectDir, 'atlasdb.ipr')
+    ipr.withXml { XmlProvider provider ->
+        Xml.from(provider)
+                .get('component', name: 'CompilerConfiguration')
+                .get('option', name: 'DEFAULT_COMPILER')
+                .set(value: 'Eclipse')
+        Xml.from(provider)
+                .get('component', name: 'ProjectRootManager')
+                .set('project-jdk-name': sourceCompatibility.toString())
+        Xml.from(provider)
+                .get('component', name: 'FrameworkDetectionExcludesConfiguration')
+                .get('type')
+                .set(id: 'IvyIDEA')
+        Xml.from(provider)
+                .get('component', name: 'VcsDirectoryMappings')
+                .get('mapping')
+                .set(directory: '$PROJECT_DIR$')
+        Xml.from(provider)
+                .get('component', name: 'VcsDirectoryMappings')
+                .get('mapping')
+                .set(vcs: 'Git')
+        Xml.from(provider)
+                .get('component', name: 'ProjectCodeStyleSettingsManager')
+                .get('option', name: 'USE_PER_PROJECT_SETTINGS')
+                .set('value': 'true')
+        def importsTable = Xml.from(provider)
+                .get('component', name: 'ProjectCodeStyleSettingsManager')
+                .get('option', name: 'PER_PROJECT_SETTINGS').get('value')
+                .get('option', name: 'IMPORT_LAYOUT_TABLE').get('value')
+        importsTable.node.children().clear()
+        ['true', 'false'].each { static1 ->
+            ['java', 'javax', 'org', 'com', ''].each { name ->
+                importsTable.node.appendNode('package', [name: name, withSubpackages: 'true', static: static1])
+                importsTable.node.appendNode('emptyLine')
+            }
+        }
+        Xml.from(provider)
+                .get('component', name: 'ProjectCodeStyleSettingsManager')
+                .get('option', name: 'PER_PROJECT_SETTINGS').get('value')
+                .get('option', name: 'RIGHT_MARGIN')
+                .set(value: '140')
+        def checkStyleTable = Xml.from(provider)
+                .get('component', name: 'ProjectCodeStyleSettingsManager')
+                .get('option', name: 'PER_PROJECT_SETTINGS').get('value')
+                .get('codeStyleSettings', language: 'JAVA').get('value')
+        checkStyleTable.get('option', name: 'RIGHT_MARGIN').set(value: '140')
+        checkStyleTable.get('option', name: 'ALIGN_MULTILINE_CHAINED_METHODS').set(value: 'true')
+        checkStyleTable.get('option', name: 'ALIGN_MULTILINE_PARAMETERS_IN_CALLS').set(value: 'true')
+        checkStyleTable.get('option', name: 'ALIGN_MULTILINE_BINARY_OPERATION').set(value: 'true')
+        checkStyleTable.get('option', name: 'ALIGN_MULTILINE_ASSIGNMENT').set(value: 'true')
+        checkStyleTable.get('option', name: 'ALIGN_MULTILINE_TERNARY_OPERATION').set(value: 'true')
+        checkStyleTable.get('option', name: 'ALIGN_MULTILINE_THROWS_LIST').set(value: 'true')
+        checkStyleTable.get('option', name: 'ALIGN_MULTILINE_EXTENDS_LIST').set(value: 'true')
+        checkStyleTable.get('option', name: 'ALIGN_MULTILINE_PARENTHESIZED_EXPRESSION').set(value: 'true')
+        checkStyleTable.get('option', name: 'ALIGN_MULTILINE_ARRAY_INITIALIZER_EXPRESSION').set(value: 'true')
+        checkStyleTable.get('option', name: 'CALL_PARAMETERS_WRAP').set(value: '5')
+        checkStyleTable.get('option', name: 'PREFER_PARAMETERS_WRAP').set(value: 'true')
+        checkStyleTable.get('option', name: 'METHOD_PARAMETERS_WRAP').set(value: '5')
+        checkStyleTable.get('option', name: 'RESOURCE_LIST_WRAP').set(value: '5')
+        checkStyleTable.get('option', name: 'EXTENDS_LIST_WRAP').set(value: '1')
+        checkStyleTable.get('option', name: 'THROWS_LIST_WRAP').set(value: '1')
+        checkStyleTable.get('option', name: 'EXTENDS_KEYWORD_WRAP').set(value: '1')
+        checkStyleTable.get('option', name: 'METHOD_CALL_CHAIN_WRAP').set(value: '5')
+        checkStyleTable.get('option', name: 'BINARY_OPERATION_WRAP').set(value: '1')
+        checkStyleTable.get('option', name: 'BINARY_OPERATION_SIGN_ON_NEXT_LINE').set(value: 'true')
+        checkStyleTable.get('option', name: 'TERNARY_OPERATION_WRAP').set(value: '5')
+        checkStyleTable.get('option', name: 'FOR_STATEMENT_WRAP').set(value: '5')
+        checkStyleTable.get('option', name: 'ARRAY_INITIALIZER_WRAP').set(value: '5')
+        checkStyleTable.get('option', name: 'ASSIGNMENT_WRAP').set(value: '1')
+        checkStyleTable.get('option', name: 'PLACE_ASSIGNMENT_SIGN_ON_NEXT_LINE').set(value: 'true')
+        checkStyleTable.get('option', name: 'ASSERT_STATEMENT_WRAP').set(value: '1')
+        checkStyleTable.get('option', name: 'IF_BRACE_FORCE').set(value: '3')
+        checkStyleTable.get('option', name: 'DOWHILE_BRACE_FORCE').set(value: '3')
+        checkStyleTable.get('option', name: 'WHILE_BRACE_FORCE').set(value: '3')
+        checkStyleTable.get('option', name: 'FOR_BRACE_FORCE').set(value: '3')
+        checkStyleTable.get('option', name: 'ENUM_CONSTANTS_WRAP').set(value: '5')
+        checkStyleTable.get('option', name: 'WRAP_ON_TYPING').set(value: '1')
+    }
+}
+
+idea.module {
+    inheritOutputDirs = false
+    outputDir = file('ecbuild')
+    iml.withXml { provider ->
+        Xml.from(provider)
+                .get('component', name: 'NewModuleRootManager')
+                .set(LANGUAGE_LEVEL: "JDK_${sourceCompatibility.toString().replace('.', '_')}")
+        Xml.from(provider)
+                .get('component', name: 'NewModuleRootManager')
+                .node.content*.sourceFolder*.@isTestSource = 'false'
+        Xml.from(provider)
+                .get('component', name: 'NewModuleRootManager')
+                .node.orderEntry*.@exported = ''
+        Xml.from(provider)
+                .get('component', name: 'NewModuleRootManager')
+                .node.orderEntry*.@scope = 'COMPILE'
+    }
+}
