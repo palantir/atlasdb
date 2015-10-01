@@ -22,16 +22,16 @@ import com.palantir.atlasdb.schema.annotations.Table;
 
 @Table(name = "my_test_table")
 @Keys({
-	@FixedLength(length = 10, key = "fixedThing")
+	@FixedLength(length = 10, key = "newFixedThing")
 })
 public interface TestTable {
 
 	@Column
-	String getGraphName(Long blahId, String fixedThing, String nodeId);
+	String getGraphName(Long blahId, String newFixedThing, String nodeId);
 	
 	@Column
-	Integer getNodeName(Long blahId, String fixedThing, String nodeId);
+	Integer getNodeName(Long blahId, String newFixedThing, String nodeId);
 	
 	@Column(shortName="x")
-	String getGeneralNodeName(Long blahId, String fixedThing, String nodeId);
+	String getGeneralNodeName(Long blahId, String newFixedThing, String nodeId);
 }

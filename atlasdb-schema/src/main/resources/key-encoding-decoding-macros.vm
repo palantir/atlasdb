@@ -15,6 +15,7 @@ byte[] ${key.name}Bytes = EncodingUtils.encodeVarString(get${display.capitalize(
 #end
 #end
 #macro( keyDecode $key)
+// key: ${key}
 #if( $key.keyTypeFullyQualified == "java.lang.Long" )
 #if( $key.fixed )
 ${key.keyTypeFullyQualified} ${key.name} = EncodingUtils.decodeLittleEndian(bytes, index);
@@ -24,7 +25,7 @@ ${key.keyTypeFullyQualified} ${key.name} = EncodingUtils.decodeVarLong(bytes, in
 index += EncodingUtils.sizeOfVarLong(${key.name});
 #end
 #elseif( $key.keyTypeFullyQualified == "java.lang.String" )
-#if( $key.fixed)
+#if( $key.fixed )
 ${key.keyTypeFullyQualified} ${key.name} = new String(bytes, index, ${key.length}, Charsets.UTF_8);
 index += ${key.length};
 #else

@@ -41,15 +41,15 @@ import com.palantir.atlasdb.schema.annotations.FixedLength;
 
 public class ColumnAndKeyBuilder {
 	
-	private final Map<String, FixedLength> fixedLengthColumns;
+	private final Map<String, FixedLength> fixedLengthKeys;
 	private final List<ColumnDefinition> columns;
 	private final Set<String> columnShortNames;
 	private List<KeyDefinition> keys;
 	
 	public ColumnAndKeyBuilder(FixedLength[] fixedLengthColumns) {
-		this.fixedLengthColumns = Maps.newHashMap();
+		this.fixedLengthKeys = Maps.newHashMap();
 		for(FixedLength fl : fixedLengthColumns) {
-			this.fixedLengthColumns.put(fl.key(), fl);
+			this.fixedLengthKeys.put(fl.key(), fl);
 		}
 		
 		this.columns = Lists.newArrayList();
@@ -80,26 +80,44 @@ public class ColumnAndKeyBuilder {
 		String columnTypeQualifiedName = typeElement.getQualifiedName().toString();
 		
 		// add keys or ensure keys are consistent
-		if(this.keys == null) {
-			this.keys = getKeyDefinitions(methodElement);
+		List<KeyDefinition> keyDefinitions = getKeyDefinitions(methodElement);
+		
+		try {
+			addColumn(keyDefinitions, columnName, shortName, columnTypeQualifiedName);
+		} catch(IllegalArgumentException e) {
+			throw new ProcessingException(methodElement, e.getMessage());
+		}
+	}
+
+	public void addColumn(List<KeyDefinition> keys, String columnName, String columnShortName, String columnTypeQualifiedName) {
+		// ensure short name does not clash
+		if(columnShortNames.contains(columnShortName)) {
+			throw new IllegalArgumentException("column short names must be unique - can specify via @Column(shortName = \"x\")");
 		} else {
-			ensureKeysAreConsistent(methodElement);
+			columnShortNames.add(columnShortName);
 		}
 		
-		// ensure short name does not clash
-		if(columnShortNames.contains(shortName)) {
-			throw new ProcessingException(methodElement, "column short names must be unique - can specify via @Column(shortName = \"x\")");
+		// ensure keys match
+		if(this.keys == null) {
+			this.keys = keys;
 		} else {
-			columnShortNames.add(shortName);
+			ensureKeysAreConsistent(this.keys, keys);
 		}
 		
 		ColumnDefinition cd = ImmutableColumnDefinition.builder()
 				.columnName(columnName)
-				.columnShortName(shortName)
+				.columnShortName(columnShortName)
 				.columnTypeQualifiedName(columnTypeQualifiedName)
 				.build();
 		
 		columns.add(cd);
+	}
+	
+	
+	private void ensureKeysAreConsistent(List<KeyDefinition> keys, List<KeyDefinition> otherKeys) {
+		if(!Objects.equals(keys, otherKeys)) {
+			throw new IllegalArgumentException("arguments to @Column getters must be consistently named and ordered");
+		}
 	}
 	
 	public ColumnsAndKeys build() {
@@ -119,7 +137,7 @@ public class ColumnAndKeyBuilder {
 			keyIdentifiers.add(kd.getName());
 		}
 		
-		for(FixedLength fl : fixedLengthColumns.values()) {
+		for(FixedLength fl : fixedLengthKeys.values()) {
 			if(!keyIdentifiers.contains(fl.key())) {
 				throw new IllegalStateException("have a @FixedLength annotation for " + fl.key() + " but it does not exist");
 			}
@@ -130,14 +148,6 @@ public class ColumnAndKeyBuilder {
 		// check for columns or keys being empty
 		if(columns.isEmpty() || keys == null || keys.isEmpty()) {
 			throw new IllegalStateException("must define at least one column, columns must have keys");
-		}
-	}
-	
-	private void ensureKeysAreConsistent(ExecutableElement element) throws ProcessingException {
-		// the keys must match
-		List<KeyDefinition> keysForElement = getKeyDefinitions(element);
-		if(!Objects.equals(this.keys, keysForElement)) {
-			throw new ProcessingException(element, "arguments to @Column getters must be consistently named and ordered");
 		}
 	}
 	
@@ -160,22 +170,28 @@ public class ColumnAndKeyBuilder {
 			case "java.lang.Long":
 				break;
 			default:
-				throw new ProcessingException(variableElement, "for now, only String or Long (variable-length encoded) keys are supported");
+				throw new ProcessingException(variableElement, "for now, only String or Long keys are supported");
 			}
 			
-			ImmutableKeyDefinition.Builder builder = ImmutableKeyDefinition.builder()
-				.name(variableName)
-				.keyTypeFullyQualified(keyTypeQualifiedName);
-			
-			if(fixedLengthColumns.containsKey(variableType)) {
-				builder.isFixed(true).length(fixedLengthColumns.get(variableType).length());
-			} else {
-				builder.isFixed(false).length(-1);
-			}
-
-			keys.add(builder.build());
+			KeyDefinition kd = makeKey(variableName, keyTypeQualifiedName);
+			keys.add(kd);
 		}
 		return keys;
+	}
+	
+	@VisibleForTesting
+	KeyDefinition makeKey(String keyName, String keyTypeQualifiedName) {
+		ImmutableKeyDefinition.Builder builder = ImmutableKeyDefinition.builder()
+				.name(keyName)
+				.keyTypeFullyQualified(keyTypeQualifiedName);
+			
+		if(fixedLengthKeys.containsKey(keyName)) {
+			builder.isFixed(true).length(fixedLengthKeys.get(keyName).length());
+		} else {
+			builder.isFixed(false).length(-1);
+		}
+		
+		return builder.build();		
 	}
 
 	private static String getColumnNameFromMethod(ExecutableElement element) throws ProcessingException {
