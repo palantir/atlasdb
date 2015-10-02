@@ -15,10 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue;
 
-import java.util.concurrent.ExecutorService;
-
-import org.junit.BeforeClass;
-
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest;

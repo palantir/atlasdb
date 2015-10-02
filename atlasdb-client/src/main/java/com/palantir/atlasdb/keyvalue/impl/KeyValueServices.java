@@ -18,12 +18,8 @@ package com.palantir.atlasdb.keyvalue.impl;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +28,6 @@ import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -44,6 +39,7 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.concurrent.BlockingWorkerPool;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
@@ -109,29 +105,24 @@ public class KeyValueServices {
             final KeyValueService kv,
             final String tableName,
             Iterable<RangeRequest> rangeRequests,
-            final long timestamp) {
+            final long timestamp,
+            int maxConcurrentRequests) {
         final Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ret = Maps.newConcurrentMap();
-        final List<Future<Void>> futures = Lists.newArrayList();
-        for (final RangeRequest request : rangeRequests) {
-            Future<Void> f = executor.submit(new Callable<Void>() {
-                @Override
-                public Void call() throws Exception {
-                    getFirstBatchForRangeUsingGetRange(kv, tableName, request, timestamp, ret);
-                    return null;
-                }
-            });
-            futures.add(f);
-        }
-        for (Future<Void> f : futures) {
-            try {
-                f.get();
-            } catch (InterruptedException e) {
-                throw Throwables.throwUncheckedException(e);
-            } catch (ExecutionException e) {
-                throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
+        BlockingWorkerPool pool = new BlockingWorkerPool(executor, maxConcurrentRequests);
+        try {
+            for (final RangeRequest request : rangeRequests) {
+                pool.submitTask(new Runnable() {
+                    @Override
+                    public void run() {
+                        getFirstBatchForRangeUsingGetRange(kv, tableName, request, timestamp, ret);
+                    }
+                });
             }
+            pool.waitForSubmittedTasks();
+            return ret;
+        } catch (InterruptedException e) {
+            throw Throwables.rewrapAndThrowUncheckedException(e);
         }
-        return ret;
     }
 
     public static Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRangesUsingGetRange(
