@@ -6,8 +6,9 @@ dependencies {
   compile project(":atlasdb-client")
   compile project(":atlasdb-spi")
   compile project(':timestamp-impl')
-  compile(group: 'com.datastax.cassandra', name: 'cassandra-driver-core', version: '2.1.5')
-  compile('org.apache.cassandra:cassandra-all:2.1.5')
+
+  compile 'org.apache.cassandra:cassandra-all:2.1.7'
+  compile 'com.datastax.cassandra:cassandra-driver-core:2.1.7'
 
   processor 'org.immutables:value:2.0.21'
 }
