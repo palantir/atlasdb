@@ -127,18 +127,18 @@ public class Schema {
      * into memory.
      */
     public void addStreamStoreDefinition(final String longName, String shortName, ValueType streamIdType, int inMemoryThreshold) {
-        addStreamStoreDefinition(longName, shortName, streamIdType, inMemoryThreshold, ExpirationStrategy.NEVER);
+        addStreamStoreDefinition(longName, shortName, streamIdType, inMemoryThreshold, ExpirationStrategy.NEVER, false);
     }
 
-    public void addStreamStoreDefinition(final String longName, String shortName, ValueType streamIdType, int inMemoryThreshold, ExpirationStrategy expirationStrategy) {
+    public void addStreamStoreDefinition(final String longName, String shortName, ValueType streamIdType, int inMemoryThreshold, ExpirationStrategy expirationStrategy, boolean hashFirstRowComponent) {
         if (expirationStrategy == ExpirationStrategy.NEVER) {
             Preconditions.checkArgument(streamIdType == ValueType.VAR_LONG, "ValueType must be VAR_LONG for persistent streams.");
         }
         final StreamStoreRenderer renderer = new StreamStoreRenderer(Renderers.CamelCase(longName), streamIdType, packageName, name, inMemoryThreshold, expirationStrategy);
-        addTableDefinition(shortName + "_stream_metadata", StreamTables.getStreamMetadataDefinition(longName, streamIdType, expirationStrategy));
-        addTableDefinition(shortName + "_stream_value", StreamTables.getStreamValueDefinition(longName, streamIdType, expirationStrategy));
-        addTableDefinition(shortName + "_stream_hash_idx", StreamTables.getStreamHashIdxDefinition(longName, streamIdType, expirationStrategy));
-        addTableDefinition(shortName + "_stream_idx", StreamTables.getStreamIdxDefinition(longName, streamIdType, expirationStrategy));
+        addTableDefinition(shortName + "_stream_metadata", StreamTables.getStreamMetadataDefinition(longName, streamIdType, expirationStrategy, hashFirstRowComponent));
+        addTableDefinition(shortName + "_stream_value", StreamTables.getStreamValueDefinition(longName, streamIdType, expirationStrategy, hashFirstRowComponent));
+        addTableDefinition(shortName + "_stream_hash_aidx", StreamTables.getStreamHashIdxDefinition(longName, streamIdType, expirationStrategy));
+        addTableDefinition(shortName + "_stream_idx", StreamTables.getStreamIdxDefinition(longName, streamIdType, expirationStrategy, hashFirstRowComponent));
 
         // We use reflection and wrap these in suppliers because these classes are generated classes that might not always exist.
         addCleanupTask(shortName + "_stream_metadata", new Supplier<OnCleanupTask>() {

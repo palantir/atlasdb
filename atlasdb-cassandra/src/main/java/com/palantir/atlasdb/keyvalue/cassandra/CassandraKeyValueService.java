@@ -51,6 +51,7 @@ import org.apache.cassandra.thrift.SlicePredicate;
 import org.apache.cassandra.thrift.SliceRange;
 import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.cassandra.thrift.UnavailableException;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.Validate;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
@@ -67,6 +68,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -124,6 +126,13 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     private static final Logger log = LoggerFactory.getLogger(CassandraKeyValueService.class);
 
+    private static final Function<Entry<Cell, Value>, Long> ENTRY_SIZING_FUNCTION = new Function<Entry<Cell, Value>, Long>() {
+        @Override
+        public Long apply(Entry<Cell, Value> input) {
+            return input.getValue().getContents().length + 4L + Cells.getApproxSizeOfCell(input.getKey());
+        }
+    };
+
     private final CassandraKeyValueServiceConfig config;
     private final CassandraClientPoolingManager cassandraClientPoolingManager;
     private final CassandraJMXCompactionManager compactionManager;
@@ -137,6 +146,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     private final ConsistencyLevel deleteConsistency = ConsistencyLevel.ALL;
 
     private static final long TRANSACTION_TS = 0L;
+    private static final int OVERSIZE_ROW_CUTOFF = 1000;
 
     public static CassandraKeyValueService create(CassandraKeyValueServiceConfig config) {
         final CassandraKeyValueService ret = new CassandraKeyValueService(config);
@@ -172,13 +182,14 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
         int port = config.port();
         String keyspace = config.keyspace();
+        boolean ssl = config.ssl();
         boolean safetyDisabled = config.safetyDisabled();
         int socketTimeoutMillis = config.socketTimeoutMillis();
         int socketQueryTimeoutMillis = config.socketQueryTimeoutMillis();
         for (String addr : addrList) {
             Cassandra.Client client = null;
             try {
-                client = CassandraKeyValueServices.getClientInternal(addr, port, config.ssl());
+                client = CassandraClientPoolingContainer.getClientInternal(addr, port, ssl, socketTimeoutMillis, socketQueryTimeoutMillis);
                 String partitioner = client.describe_partitioner();
                 if (safetyDisabled) {
                     Validate.isTrue(CassandraConstants.PARTITIONER.equals(partitioner)
@@ -200,6 +211,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     // Can't call system_update_keyspace to update replication factor if CfDefs are set
                     ks.setCf_defs(ImmutableList.<CfDef>of());
                     client.system_update_keyspace(ks);
+                    CassandraKeyValueServices.waitForSchemaVersions(client, "(updating the existing keyspace)");
                     client.set_keyspace(keyspace);
                     createTableInternal(client, CassandraConstants.METADATA_TABLE);
                     CassandraVerifier.sanityCheckRingConsistency(currentHosts, port, keyspace, config.ssl(), safetyDisabled, socketTimeoutMillis, socketQueryTimeoutMillis);
@@ -213,6 +225,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 lowerConsistencyWhenSafe(client, ks, replicationFactor);
                 ks.setDurable_writes(true);
                 client.system_add_keyspace(ks);
+                CassandraKeyValueServices.waitForSchemaVersions(client, "(adding the initial empty keyspace)");
                 client.set_keyspace(keyspace);
                 createTableInternal(client, CassandraConstants.METADATA_TABLE);
                 CassandraVerifier.sanityCheckRingConsistency(currentHosts, port, keyspace, config.ssl(), safetyDisabled, socketTimeoutMillis, socketQueryTimeoutMillis);
@@ -479,7 +492,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     @Override
     protected int getMultiPutBatchCount() {
-        return CassandraConstants.PUT_BATCH_SIZE;
+        return config.mutationBatchCount();
     }
 
     private void putInternal(final String tableName,
@@ -490,21 +503,14 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     protected void putInternal(final String tableName,
                              final Iterable<Map.Entry<Cell, Value>> values,
                              final int ttl) throws Exception {
-        final int mutationBatchCount = config.mutationBatchCount();
-        final long mutationBatchSizeBytes = config.mutationBatchSizeBytes();
         clientPool.runWithPooledResource(new FunctionCheckedException<Client, Void, Exception>() {
             @Override
             public Void apply(Client client) throws Exception {
-                Function<Entry<Cell, Value>, Long> sizingFunction = new Function<Entry<Cell, Value>, Long>() {
-                    @Override
-                    public Long apply(Entry<Cell, Value> input) {
-                        return input.getValue().getContents().length + 4L + Cells.getApproxSizeOfCell(input.getKey());
-                    }
-                };
-
+                int mutationBatchCount = config.mutationBatchCount();
+                int mutationBatchSizeBytes = config.mutationBatchSizeBytes();
                 for (List<Entry<Cell, Value>> partition : partitionByCountAndBytes(values, mutationBatchCount,
-                        mutationBatchSizeBytes, tableName, sizingFunction)) {
-                    Map<ByteBuffer, Map<String, List<Mutation>>> map = Maps.newHashMap();
+                        mutationBatchSizeBytes, tableName, ENTRY_SIZING_FUNCTION)) {
+                    Map<ByteBuffer,Map<String,List<Mutation>>> map = Maps.newHashMap();
                     for (Map.Entry<Cell, Value> e : partition) {
                         Cell cell = e.getKey();
                         Column col = createColumn(cell, e.getValue(), ttl);
@@ -608,41 +614,52 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     @Override
     public void truncateTable(final String tableName) {
+        truncateTables(ImmutableSet.of(tableName));
+    }
+
+    @Override
+    public void truncateTables(final Set<String> tableNames) {
         try {
+            trySchemaMutationLock();
             clientPool.runWithPooledResource(new FunctionCheckedException<Client, Void, Exception>() {
                 @Override
                 public Void apply(Client client) throws Exception {
                     KsDef ks = client.describe_keyspace(config.keyspace());
 
-                    for (CfDef cf : ks.getCf_defs()) {
-                        if (cf.getName().equalsIgnoreCase(internalTableName(tableName))) {
-                            if (shouldTraceQuery(tableName)) {
-                                ByteBuffer recv_trace = client.trace_next_query();
-                                Stopwatch stopwatch = Stopwatch.createStarted();
-                                client.truncate(internalTableName(tableName));
-                                long duration = stopwatch.elapsed(TimeUnit.MILLISECONDS);
-                                if (duration > getMinimumDurationToTraceMillis()) {
-                                    log.error("Traced a call to " + tableName + " that took " + duration + " ms."
-                                            + " It will appear in system_traces with UUID=" + CassandraKeyValueServices.convertCassandraByteBufferUUIDtoString(recv_trace));
+                    for (String tableName : tableNames) {
+                        for (CfDef cf : ks.getCf_defs()) {
+                            if (cf.getName().equalsIgnoreCase(internalTableName(tableName))) {
+                                if (shouldTraceQuery(tableName)) {
+                                    ByteBuffer recv_trace = client.trace_next_query();
+                                    Stopwatch stopwatch = Stopwatch.createStarted();
+                                    client.truncate(internalTableName(tableName));
+                                    long duration = stopwatch.elapsed(TimeUnit.MILLISECONDS);
+                                    if (duration > getMinimumDurationToTraceMillis()) {
+                                        log.error("Traced a call to " + tableName + " that took " + duration + " ms."
+                                                + " It will appear in system_traces with UUID=" + CassandraKeyValueServices.convertCassandraByteBufferUUIDtoString(recv_trace));
+                                    }
+                                } else {
+                                    client.truncate(internalTableName(tableName));
                                 }
-                            } else {
-                                client.truncate(internalTableName(tableName));
                             }
-                            return null;
                         }
                     }
-                    throw new IllegalArgumentException("Attempted to truncate a table that we could not locate in the active schema.");
+
+                    CassandraKeyValueServices.waitForSchemaVersions(client, "(" + tableNames.size() + " tables in a call to truncateTables)");
+                    return null;
                 }
 
                 @Override
                 public String toString() {
-                    return "truncate(" + "tableName" + ")";
+                    return "truncateTables(" + tableNames.size() + " tables)";
                 }
             });
         } catch (UnavailableException e) {
-            throw new InsufficientConsistencyException("Truncate requires all Cassandra nodes to be up and available.", e);
+            throw new PalantirRuntimeException("Creating tables requires all Cassandra nodes to be up and available.");
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
+        } finally {
+            schemaMutationLock.unlock();
         }
     }
 
@@ -814,18 +831,33 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                                     keyRange.setEnd_key(RangeRequests.previousLexicographicName(endExclusive));
                                 }
 
-                                List<KeySlice> firstPage;
+                                final List<KeySlice> nonOversizeSlices = Lists.newArrayList();
+                                final List<KeySlice> oversizeRows = Lists.newArrayList();
+                                final SlicePredicate pred = new SlicePredicate().setSlice_range(new SliceRange(ByteBuffer.wrap(new byte[0]), ByteBuffer.wrap(new byte[0]), false, OVERSIZE_ROW_CUTOFF));
                                 try {
                                     if (shouldTraceQuery(tableName)) {
                                         ByteBuffer recv_trace = client.trace_next_query();
                                         Stopwatch stopwatch = Stopwatch.createStarted();
-                                        firstPage = client.get_range_slices(colFam, pred, keyRange, consistency);
+                                        for (KeySlice row : client.get_range_slices(colFam, pred, keyRange, consistency)) {
+                                            if (row.columns.size() == OVERSIZE_ROW_CUTOFF) {
+                                                oversizeRows.add(row);
+                                            } else {
+                                                nonOversizeSlices.add(row);
+                                            }
+                                        }
                                         long duration = stopwatch.elapsed(TimeUnit.MILLISECONDS);
                                         if (duration > getMinimumDurationToTraceMillis()) {
-                                            log.error("Traced a call to " + tableName + " that took " + duration + " ms. It will appear in system_traces with UUID=" + CassandraKeyValueServices.convertCassandraByteBufferUUIDtoString(recv_trace));
+                                            log.error("Traced a call to " + tableName + " that took " + duration + " ms."
+                                                    + " It will appear in system_traces with UUID=" + CassandraKeyValueServices.convertCassandraByteBufferUUIDtoString(recv_trace));
                                         }
                                     } else {
-                                        firstPage = client.get_range_slices(colFam, pred, keyRange, consistency);
+                                        for (KeySlice row : client.get_range_slices(colFam, pred, keyRange, consistency)) {
+                                            if (row.columns.size() == OVERSIZE_ROW_CUTOFF) {
+                                                oversizeRows.add(row);
+                                            } else {
+                                                nonOversizeSlices.add(row);
+                                            }
+                                        }
                                     }
                                 } catch (UnavailableException e) {
                                     if (consistency.equals(ConsistencyLevel.ALL)) {
@@ -835,8 +867,29 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                                     }
                                 }
 
-                                Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey = CassandraKeyValueServices.getColsByKey(firstPage);
-                                return resultsExtractor.get().getPageFromRangeResults(colsByKey, timestamp, selection, endExclusive);
+                                ResultsExtractor<T, U> extractor = resultsExtractor.get();
+                                for (KeySlice oversize : oversizeRows) {
+                                    KeyRange singleRow = new KeyRange(1).setStart_key(oversize.key.array()).setEnd_key(oversize.key.array());
+                                    KeySlice current = oversize;
+                                    while (true) {
+                                        Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey = CassandraKeyValueServices.getColsByKey(ImmutableList.of(current));
+                                        extractor.extractResults(colsByKey, timestamp, selection);
+                                        if (current.columns.size() < OVERSIZE_ROW_CUTOFF) {
+                                            break;
+                                        }
+                                        // current.columns must be ordered.
+                                        ByteBuffer lastColumn = current.columns.get(current.columns.size()).column.name;
+                                        SlicePredicate updatedPred = new SlicePredicate().setSlice_range(new SliceRange(ByteBuffer.wrap(ArrayUtils.add(lastColumn.array(), (byte) 0)), ByteBuffer.wrap(new byte[0]), false, OVERSIZE_ROW_CUTOFF));
+                                        List<KeySlice> result = client.get_range_slices(colFam, updatedPred, singleRow, consistency);
+                                        if (result.isEmpty()) {
+                                            break;
+                                        }
+                                        current = result.iterator().next();
+                                    }
+                                }
+
+                                Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey = CassandraKeyValueServices.getColsByKey(nonOversizeSlices);
+                                return extractor.getPageFromRangeResults(colsByKey, timestamp, selection, endExclusive);
                             }
 
                             @Override
@@ -1192,7 +1245,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     @Override
     public void putUnlessExists(final String tableName, final Map<Cell, byte[]> values)
             throws KeyAlreadyExistsException {
-        Validate.isTrue(AtlasDbConstants.ATOMIC_TABLES.contains(tableName));
         try {
             clientPool.runWithPooledResource(new FunctionCheckedException<Client, Void, Exception>() {
                 @Override
@@ -1223,7 +1275,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
-
     }
 
     private void trySchemaMutationLock() throws InterruptedException, TimeoutException {

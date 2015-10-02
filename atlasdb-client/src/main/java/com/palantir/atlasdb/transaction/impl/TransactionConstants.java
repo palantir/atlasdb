@@ -51,7 +51,7 @@ public class TransactionConstants {
     }
 
     public static final TableMetadata TRANSACTION_TABLE_METADATA = new TableMetadata(
-        new NameMetadataDescription(ImmutableList.of(new NameComponentDescription("write_ts", ValueType.VAR_LONG))),
+        NameMetadataDescription.create(ImmutableList.of(new NameComponentDescription("write_ts", ValueType.VAR_LONG))),
         new ColumnMetadataDescription(ImmutableList.of(
             new NamedColumnDescription(COMMIT_TS_COLUMN_STRING, "commit_ts", ColumnValueDescription.forType(ValueType.VAR_LONG)))),
         ConflictHandler.IGNORE_ALL);

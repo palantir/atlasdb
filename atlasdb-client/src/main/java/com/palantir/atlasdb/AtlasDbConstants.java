@@ -36,6 +36,8 @@ public class AtlasDbConstants {
 
     public static final long NULL_HORIZON_DATA_EVENT_ID = -1L;
 
+    public static final long TRANSACTION_TS = 0L;
+
     public static final String RELATIONAL_TABLE_PREFIX = "pt_met_";
     public static final String TEMP_TABLE_PREFIX = "_t";
     public static final String INDEX_SUFFIX = "idx";

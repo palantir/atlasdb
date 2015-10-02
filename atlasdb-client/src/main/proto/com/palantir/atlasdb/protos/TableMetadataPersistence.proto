@@ -15,6 +15,7 @@ message TableMetadata {
 
 message NameMetadataDescription {
     repeated NameComponentDescription nameParts = 1;
+    optional bool hasFirstComponentHash = 2;
 }
 
 message NameComponentDescription {

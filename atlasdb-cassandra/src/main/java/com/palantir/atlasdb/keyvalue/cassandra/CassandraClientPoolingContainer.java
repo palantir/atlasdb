@@ -228,7 +228,7 @@ public class CassandraClientPoolingContainer extends AbstractPoolingContainer<Cl
         }
     }
 
-    static Cassandra.Client getClientInternal(String host, int port, boolean isSsl, int socketTimeoutMillis, int socketQueryTimeoutMillis) throws TTransportException {
+    public static Cassandra.Client getClientInternal(String host, int port, boolean isSsl, int socketTimeoutMillis, int socketQueryTimeoutMillis) throws TTransportException {
         TSocket tSocket = new TSocket(host, port, socketTimeoutMillis);
         tSocket.open();
         try {

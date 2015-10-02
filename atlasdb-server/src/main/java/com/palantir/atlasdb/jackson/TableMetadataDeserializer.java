@@ -17,6 +17,7 @@ package com.palantir.atlasdb.jackson;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.List;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -60,14 +61,14 @@ public class TableMetadataDeserializer extends StdDeserializer<TableMetadata> {
     }
 
     private NameMetadataDescription deserializeRowish(JsonNode node) {
-        Collection<NameComponentDescription> rowComponents = Lists.newArrayList();
+        List<NameComponentDescription> rowComponents = Lists.newArrayList();
         for (JsonNode rowNode : node.get("row")) {
             String name = rowNode.get("name").asText();
             ValueType type = ValueType.valueOf(rowNode.get("type").asText());
             ValueByteOrder order = ValueByteOrder.valueOf(rowNode.get("order").asText());
             rowComponents.add(new NameComponentDescription(name, type, order));
         }
-        NameMetadataDescription row = new NameMetadataDescription(rowComponents);
+        NameMetadataDescription row = NameMetadataDescription.create(rowComponents);
         return row;
     }
 

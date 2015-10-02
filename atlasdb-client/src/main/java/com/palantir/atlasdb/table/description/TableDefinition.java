@@ -94,6 +94,21 @@ public class TableDefinition extends AbstractDefinition {
         fixedColumnLongNames.add(columnName);
     }
 
+    /**
+     * Prefix the row with a hash of the first row component
+     * <p>
+     * This helps to ensure that rows are evenly distributed. In particular, using strings as the first row component
+     * will only cover the entire range of byte arrays because they're encode with UTF_8. In addition, using any
+     * variable-length {@link ValueType} as the first row component type will not work because they are prefixed by the
+     * length of the component. Finally, we can't use BLOB if there are multiple components because it must go at the
+     * end of the row
+     */
+    public void hashFirstRowComponent() {
+        Preconditions.checkState(state == State.DEFINING_ROW_NAME);
+        Preconditions.checkState(rowNameComponents.isEmpty(), "hashRowComponent must be the first row component");
+        hashFirstRowComponent = true;
+    }
+
     public void rowComponent(String componentName, ValueType valueType) {
         rowComponent(componentName, valueType, ValueByteOrder.ASCENDING);
     }
@@ -245,6 +260,7 @@ public class TableDefinition extends AbstractDefinition {
     private int maxValueSize = Integer.MAX_VALUE;
     private String genericTableName = null;
     private String javaTableName = null;
+    private boolean hashFirstRowComponent = false;
     private List<NameComponentDescription> rowNameComponents = Lists.newArrayList();
     private List<NamedColumnDescription> fixedColumns = Lists.newArrayList();
     private List<NameComponentDescription> dynamicColumnNameComponents = Lists.newArrayList();
@@ -260,6 +276,7 @@ public class TableDefinition extends AbstractDefinition {
 
     public TableMetadata toTableMetadata() {
         Preconditions.checkState(!rowNameComponents.isEmpty(), "No row name components defined.");
+
         if (explicitCompressionRequested && explicitCompressionBlockSizeKB == 0) {
             if (rangeScanAllowed) {
                 explicitCompressionBlockSizeKB = AtlasDbConstants.DEFAULT_TABLE_WITH_RANGESCANS_COMPRESSION_BLOCK_SIZE_KB;
@@ -269,7 +286,7 @@ public class TableDefinition extends AbstractDefinition {
         }
 
         return new TableMetadata(
-                new NameMetadataDescription(rowNameComponents),
+                NameMetadataDescription.create(rowNameComponents, hashFirstRowComponent),
                 getColumnMetadataDescription(),
                 conflictHandler,
                 cachePriority,
@@ -292,7 +309,7 @@ public class TableDefinition extends AbstractDefinition {
                     !dynamicColumnNameComponents.isEmpty() && dynamicColumnValue != null,
                     "Columns not properly defined.");
             return new ColumnMetadataDescription(
-                    new DynamicColumnDescription(new NameMetadataDescription(dynamicColumnNameComponents),
+                    new DynamicColumnDescription(NameMetadataDescription.create(dynamicColumnNameComponents),
                     dynamicColumnValue));
         }
     }

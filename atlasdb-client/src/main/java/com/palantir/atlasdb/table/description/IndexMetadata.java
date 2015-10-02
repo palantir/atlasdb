@@ -206,7 +206,7 @@ public class IndexMetadata {
             throw new IllegalArgumentException("Unknown index type " + indexType);
         }
         return new TableMetadata(
-                new NameMetadataDescription(rowDescList),
+                NameMetadataDescription.create(rowDescList),
                 column,
                 conflictHandler,
                 cachePriority,
@@ -269,7 +269,7 @@ public class IndexMetadata {
     }
 
     private static ColumnMetadataDescription getDynamicAdditiveIndexColumn(List<NameComponentDescription> components) {
-        NameMetadataDescription columnDescription = new NameMetadataDescription(components);
+        NameMetadataDescription columnDescription = NameMetadataDescription.create(components);
         ColumnValueDescription columnValue = ColumnValueDescription.forType(ValueType.VAR_LONG);
         DynamicColumnDescription dynamicColumn = new DynamicColumnDescription(columnDescription, columnValue);
         return new ColumnMetadataDescription(dynamicColumn);
@@ -281,7 +281,7 @@ public class IndexMetadata {
                 .add(new NameComponentDescription("column_name", ValueType.SIZED_BLOB))
                 .addAll(components)
                 .build();
-        NameMetadataDescription columnDescription = new NameMetadataDescription(components);
+        NameMetadataDescription columnDescription = NameMetadataDescription.create(components);
         ColumnValueDescription columnValue = ColumnValueDescription.forType(ValueType.VAR_LONG);
         DynamicColumnDescription dynamicColumn = new DynamicColumnDescription(columnDescription, columnValue);
         return new ColumnMetadataDescription(dynamicColumn);

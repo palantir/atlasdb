@@ -31,7 +31,7 @@ public final class Schemas {
     public static String appendIndexSuffix(String indexName, IndexDefinition definition) {
         Preconditions.checkArgument(
                 !indexName.endsWith(INDEX_SUFFIX),
-                "Index name cannot end with '" + INDEX_SUFFIX + "'.");
+                "Index name cannot end with '" + INDEX_SUFFIX + "': " + indexName);
         indexName = indexName + definition.getIndexType().getIndexSuffix();
         return indexName;
     }
