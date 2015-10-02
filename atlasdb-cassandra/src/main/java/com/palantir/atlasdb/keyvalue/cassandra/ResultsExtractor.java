@@ -40,7 +40,6 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 abstract class ResultsExtractor<T, U> {
     private static final Logger log = LoggerFactory.getLogger(ResultsExtractor.class);
     protected final T collector;
-    byte[] maxRow = null;
 
     public ResultsExtractor(T collector) {
         this.collector = collector;
@@ -49,11 +48,12 @@ abstract class ResultsExtractor<T, U> {
     public final byte[] extractResults(Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey,
                                        long startTs,
                                        ColumnSelection selection) {
-            /*
-             * Iterate over the entries and avoid direct lookup by ByteBuffer key as ByteBuffer are
-             * mutable and we need to ensure that the buffer is not consumed if we were to do a lookup
-             * as we'd be unable to.
-             */
+        /*
+         * Iterate over the entries and avoid direct lookup by ByteBuffer key as ByteBuffer are
+         * mutable and we need to ensure that the buffer is not consumed if we were to do a lookup
+         * as we'd be unable to.
+         */
+        byte[] maxRow = null;
         for (Entry<ByteBuffer, List<ColumnOrSuperColumn>> entry : colsByKey.entrySet()) {
             byte[] row = CassandraKeyValueServices.getBytesFromByteBuffer(entry.getKey());
             if (maxRow == null) {
