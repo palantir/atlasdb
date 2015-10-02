@@ -6,10 +6,11 @@ apply from: "../gradle/shared.gradle"
 [test, check].each { it.onlyIf { !System.getenv().containsKey('CI') } }
 
 dependencies {
-  testCompile(project(":atlasdb-cassandra"))
+  testCompile project(":atlasdb-cassandra")
   testCompile project(":atlasdb-tests-shared")
-  testCompile 'org.apache.cassandra:cassandra-all:2.1.5'
-  testCompile 'com.palantir.shaded.com.datastax.cassandra:datastax-cassandra-driver-core:0.3.1'
+
+  testCompile 'org.apache.cassandra:cassandra-all:2.1.7'
+  testCompile 'com.datastax.cassandra:cassandra-driver-core:2.1.7'
 }
 
 jacoco {
@@ -36,19 +37,3 @@ jacocoTestReport {
     }
 }
 
-// Add a classifier to properly pick up the datastax dependency
-publishing {
-    publications {
-        local(MavenPublication) {
-            pom.withXml {
-                def node = asNode();
-                node.depthFirst().each { n ->
-                    if (n instanceof Node && n.text() == "datastax-cassandra-driver-core") {
-                        n.parent().appendNode('classifier', 'all')
-                        return;
-                    }
-                }
-            }
-        }
-    }
-}
