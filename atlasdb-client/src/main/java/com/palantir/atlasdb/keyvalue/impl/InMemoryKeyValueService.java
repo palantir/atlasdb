@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
@@ -64,43 +65,22 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 public class InMemoryKeyValueService extends AbstractKeyValueService {
     private final ConcurrentMap<String, Table> tables = Maps.newConcurrentMap();
     private final ConcurrentMap<String, byte[]> tableMetadata = Maps.newConcurrentMap();
-    private final boolean shutdownExecutor;
     private volatile boolean createTablesAutomatically;
 
     public InMemoryKeyValueService(boolean createTablesAutomatically) {
-        this(
-                createTablesAutomatically,
-                PTExecutors.newFixedThreadPool(16, PTExecutors.newNamedThreadFactory(true)),
-                true);
+        this(createTablesAutomatically,
+                PTExecutors.newFixedThreadPool(16, PTExecutors.newNamedThreadFactory(true)));
     }
 
-    public InMemoryKeyValueService(boolean createTablesAutomatically, ExecutorService executor) {
-        this(createTablesAutomatically, executor, false);
-    }
-
-    private InMemoryKeyValueService(boolean createTablesAutomatically,
-                                    ExecutorService executor,
-                                    boolean shutdownExecutor) {
+    public InMemoryKeyValueService(boolean createTablesAutomatically,
+                                   ExecutorService executor) {
         super(executor);
-        this.createTablesAutomatically = createTablesAutomatically;
-        this.shutdownExecutor = shutdownExecutor;
-    }
-
-    public void setCreateTablesAutomatically(boolean createTablesAutomatically) {
         this.createTablesAutomatically = createTablesAutomatically;
     }
 
     @Override
     public void initializeFromFreshInstance() {
         // All initialization is done in the constructor and initializers above
-    }
-
-    @Override
-    public void close() {
-        super.close();
-        if (shutdownExecutor) {
-            executor.shutdown();
-        }
     }
 
     @Override
@@ -498,6 +478,35 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
                 return comparison;
             }
             return Longs.compare(ts, o.ts);
+        }
+
+
+        @Override
+        public int hashCode() {
+            final int prime = 31;
+            int result = 1;
+            result = prime * result + Arrays.hashCode(col);
+            result = prime * result + Arrays.hashCode(row);
+            result = prime * result + (int) (ts ^ (ts >>> 32));
+            return result;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj)
+                return true;
+            if (obj == null)
+                return false;
+            if (getClass() != obj.getClass())
+                return false;
+            Key other = (Key) obj;
+            if (!Arrays.equals(col, other.col))
+                return false;
+            if (!Arrays.equals(row, other.row))
+                return false;
+            if (ts != other.ts)
+                return false;
+            return true;
         }
 
         @Override

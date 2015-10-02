@@ -16,7 +16,6 @@
 package com.palantir.atlasdb;
 
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
 
 import org.junit.After;
 import org.junit.AfterClass;

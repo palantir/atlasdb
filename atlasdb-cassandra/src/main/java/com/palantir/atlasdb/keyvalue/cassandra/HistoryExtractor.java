@@ -47,9 +47,8 @@ class HistoryExtractor extends ResultsExtractor<SetMultimap<Cell, Value>, Set<Va
                                       byte[] col,
                                       byte[] val,
                                       long ts) {
-        Cell cell = Cell.create(row, col);
-        if (ts < startTs && selection.contains(cell.getColumnName())) {
-            collector.put(cell, Value.create(val, ts));
+        if (ts < startTs && selection.contains(col)) {
+            collector.put(Cell.create(row, col), Value.create(val, ts));
         }
     }
 

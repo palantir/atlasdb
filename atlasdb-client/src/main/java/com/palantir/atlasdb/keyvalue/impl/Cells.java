@@ -31,7 +31,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
+import com.google.common.base.Functions;
 import com.google.common.collect.AbstractIterator;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import com.google.common.collect.PeekingIterator;
@@ -46,7 +51,6 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException.CellConflict;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.annotation.Output;
-import com.palantir.common.collect.IterableView;
 
 public class Cells {
     private static final Logger log = LoggerFactory.getLogger(Cells.class);
@@ -72,8 +76,11 @@ public class Cells {
     }
 
     public static SortedSet<byte[]> getRows(Iterable<Cell> cells) {
-        return IterableView.of(cells).transform(getRowFunction())
-                           .copyInto(Sets.newTreeSet(UnsignedBytes.lexicographicalComparator()));
+        if (Iterables.isEmpty(cells)) {
+            return ImmutableSortedSet.orderedBy(UnsignedBytes.lexicographicalComparator()).build();
+        }
+        return FluentIterable.from(cells).transform(getRowFunction())
+                .toSortedSet(UnsignedBytes.lexicographicalComparator());
     }
 
     static final byte[] SMALLEST_NAME = new byte[] { 0 };
@@ -142,15 +149,16 @@ public class Cells {
                     return endOfData();
                 }
                 row = it.peek().getKey().getRowName();
-                map = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
+                ImmutableSortedMap.Builder<byte[], T> mapBuilder = ImmutableSortedMap.orderedBy(UnsignedBytes.lexicographicalComparator());
                 while (it.hasNext()) {
                     Entry<Cell, T> peek = it.peek();
                     if (!Arrays.equals(peek.getKey().getRowName(), row)) {
                         break;
                     }
-                    map.put(peek.getKey().getColumnName(), peek.getValue());
+                    mapBuilder.put(peek.getKey().getColumnName(), peek.getValue());
                     it.next();
                 }
+                map = mapBuilder.build();
                 return Maps.immutableEntry(row, map);
             }
         };
@@ -169,13 +177,8 @@ public class Cells {
         return ret;
     }
 
-    // TODO: move to commons Maps2
     public static <K, V> Map<K, V> constantValueMap(Set<K> keys, V v) {
-        Map<K, V> ret = Maps.newHashMapWithExpectedSize(keys.size());
-        for (K k : keys) {
-            ret.put(k, v);
-        }
-        return ret;
+        return Maps.asMap(keys, Functions.constant(v));
     }
 
     public static long getApproxSizeOfCell(Cell cell) {
