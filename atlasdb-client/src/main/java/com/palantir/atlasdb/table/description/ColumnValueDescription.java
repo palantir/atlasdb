@@ -31,8 +31,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.google.protobuf.DescriptorProtos.FileDescriptorProto;
 import com.google.protobuf.Descriptors.Descriptor;
+import com.google.protobuf.Descriptors.DescriptorValidationException;
 import com.google.protobuf.Descriptors.FileDescriptor;
 import com.google.protobuf.GeneratedMessage;
+import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Message;
 import com.googlecode.protobuf.format.JsonFormat;
 import com.googlecode.protobuf.format.JsonFormat.ParseException;
@@ -40,6 +42,7 @@ import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.persist.api.Persister;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription.Builder;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto;
 import com.palantir.atlasdb.table.generation.ColumnValues;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.persist.Persistable;
@@ -303,12 +306,6 @@ public class ColumnValueDescription {
     }
 
     @SuppressWarnings("unchecked")
-    public Message hydrateProto(ClassLoader classLoader, byte[] value) {
-        Preconditions.checkState(format == Format.PROTO, "Column value is not a protocol buffer.");
-        return ColumnValues.parseProtoBuf((Class<? extends GeneratedMessage>)getImportClass(classLoader), CompressionUtils.decompress(value, compression));
-    }
-
-    @SuppressWarnings("unchecked")
     public Persistable hydratePersistable(ClassLoader classLoader, byte[] value) {
         Preconditions.checkState(format == Format.PERSISTABLE, "Column value is not a Persistable.");
         return ColumnValues.parsePersistable((Class<? extends Persistable>)getImportClass(classLoader), CompressionUtils.decompress(value, compression));
@@ -320,6 +317,11 @@ public class ColumnValueDescription {
         return persister.hydrateFromBytes(CompressionUtils.decompress(value, compression));
     }
 
+    @SuppressWarnings("unchecked")
+    public Message hydrateProto(ClassLoader classLoader, byte[] value) {
+        Preconditions.checkState(format == Format.PROTO, "Column value is not a protocol buffer.");
+        return ColumnValues.parseProtoBuf((Class<? extends GeneratedMessage>) getImportClass(classLoader), CompressionUtils.decompress(value, compression));
+    }
 
     public TableMetadataPersistence.ColumnValueDescription.Builder persistToProto() {
         Builder builder = TableMetadataPersistence.ColumnValueDescription.newBuilder();
@@ -333,17 +335,22 @@ public class ColumnValueDescription {
         }
         builder.setFormat(format.persistToProto());
         if (protoDescriptor != null) {
-            builder.setProtoFileDescriptor(protoDescriptor.getFile().toProto().toByteString());
             builder.setProtoMessageName(protoDescriptor.getName());
+            builder.setProtoFileDescriptorTree(persistFileDescriptorTree(protoDescriptor.getFile()));
             if (protoDescriptor.getContainingType() != null) {
                 log.error("proto descriptors should be top level types: " + protoDescriptor.getName());
             }
-            if (!protoDescriptor.getFile().getDependencies().isEmpty()) {
-                log.error("We don't currently support protos that have import dependencies:"
-                        + protoDescriptor.getFile().getName());
-            }
         }
         return builder;
+    }
+
+    private static FileDescriptorTreeProto persistFileDescriptorTree(FileDescriptor file) {
+        FileDescriptorTreeProto.Builder builder = FileDescriptorTreeProto.newBuilder();
+        builder.setProtoFileDescriptor(file.toProto().toByteString());
+        for (FileDescriptor dependency : file.getDependencies()) {
+            builder.addDependencies(persistFileDescriptorTree(dependency));
+        }
+        return builder.build();
     }
 
     public static ColumnValueDescription hydrateFromProto(TableMetadataPersistence.ColumnValueDescription message) {
@@ -354,6 +361,35 @@ public class ColumnValueDescription {
         }
 
         Validate.isTrue(type == ValueType.BLOB);
+        if (message.hasFormat()) {
+            try {
+                Format format = Format.hydrateFromProto(message.getFormat());
+                Descriptor protoDescriptor = null;
+                if (message.hasProtoFileDescriptorTree()) {
+                    FileDescriptor fileDescriptor = hydrateFileDescriptorTree(message.getProtoFileDescriptorTree());
+                    protoDescriptor = fileDescriptor.findMessageTypeByName(message.getProtoMessageName());
+                } else if (message.hasProtoFileDescriptor()) {
+                        FileDescriptorProto fileProto = FileDescriptorProto.parseFrom(message.getProtoFileDescriptor());
+                        FileDescriptor fileDescriptor = FileDescriptor.buildFrom(fileProto, new FileDescriptor[0]);
+                        protoDescriptor = fileDescriptor.findMessageTypeByName(message.getProtoMessageName());
+                }
+                return new ColumnValueDescription(
+                        format,
+                        message.getClassName(),
+                        message.getCanonicalClassName(),
+                        compression,
+                        protoDescriptor);
+            } catch (Exception e) {
+                log.error("Failed to parse FileDescriptorProto.", e);
+            }
+        }
+
+        /*
+         * All the code in the rest of this method is to support old protos that don't have a format field.
+         * Format and canonicalClassName were added at the same time.
+         *
+         * Once we upgrade all the old protos (after 3.6.0), we can remove the below code.
+         */
 
         Format format = Format.hydrateFromProto(message.getFormat());
         Descriptor protoDescriptor = null;
@@ -372,6 +408,16 @@ public class ColumnValueDescription {
                 message.getCanonicalClassName(),
                 compression,
                 protoDescriptor);
+    }
+
+    private static FileDescriptor hydrateFileDescriptorTree(FileDescriptorTreeProto proto)
+            throws DescriptorValidationException, InvalidProtocolBufferException {
+        FileDescriptor[] dependencies = new FileDescriptor[proto.getDependenciesCount()];
+        for (int i = 0; i < proto.getDependenciesCount(); i++) {
+            dependencies[i] = hydrateFileDescriptorTree(proto.getDependencies(i));
+        }
+        FileDescriptorProto fileProto = FileDescriptorProto.parseFrom(proto.getProtoFileDescriptor());
+        return FileDescriptor.buildFrom(fileProto, dependencies);
     }
 
     @Override

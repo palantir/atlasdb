@@ -30,6 +30,11 @@ public class LockAwareTransactionTasks {
             public T execute(Transaction t, Iterable<LockRefreshToken> heldLocks) throws E {
                 return task.execute(t);
             }
+
+            @Override
+            public String toString() {
+                return task.toString();
+            }
         };
     }
 

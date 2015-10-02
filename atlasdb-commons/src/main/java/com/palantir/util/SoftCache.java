@@ -17,6 +17,7 @@ package com.palantir.util;
 
 import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -26,7 +27,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.WeakHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -462,15 +463,12 @@ public class SoftCache<K, V> implements NonDistributedCache<K, V> {
      * @deprecated this is deprecated, because it is done automatically from now on, so it will be made private soon
      */
     @Deprecated
-    public synchronized static void registerForCleanup(SoftCache<?, ?> cache) {
-        cachesForCleanup.put(cache, null);
+    private static void registerForCleanup(SoftCache<?, ?> cache) {
+        cacheQueue.add(new WeakReference<SoftCache<?, ?>>(cache));
     }
 
-    private static final WeakHashMap<SoftCache<?, ?>, Void> cachesForCleanup = new WeakHashMap<SoftCache<?, ?>, Void>();
-
-    private synchronized static Collection<SoftCache<?, ?>> getCachesForCleanup() {
-        return new ArrayList<SoftCache<?, ?>>(cachesForCleanup.keySet());
-    }
+    private static final ConcurrentLinkedQueue<WeakReference<SoftCache<?, ?>>> cacheQueue =
+            new ConcurrentLinkedQueue<WeakReference<SoftCache<?, ?>>>();
 
     static {
         startStaticCleanupThread();
@@ -485,10 +483,12 @@ public class SoftCache<K, V> implements NonDistributedCache<K, V> {
             @Override
             public void run() {
                 try {
-                    for (SoftCache<?, ?> c : getCachesForCleanup()) {
-                        // Weak maps can produce null if the key is no longer in memory.
+                    for (WeakReference<SoftCache<?, ?>> cr : cacheQueue) {
+                        SoftCache<?, ?> c = cr.get();
                         if (c != null) {
                             c.cleanup();
+                        } else {
+                            cacheQueue.remove(cr);
                         }
                     }
                 } catch (Throwable e) {

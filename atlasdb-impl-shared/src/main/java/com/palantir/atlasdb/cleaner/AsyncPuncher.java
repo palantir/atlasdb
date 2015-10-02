@@ -17,6 +17,7 @@ package com.palantir.atlasdb.cleaner;
 
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +35,8 @@ import com.palantir.common.concurrent.PTExecutors;
  */
 public class AsyncPuncher implements Puncher {
     private static final Logger log = LoggerFactory.getLogger(AsyncPuncher.class);
+    private static final long INVALID_TIMESTAMP = -1L;
+
     public static AsyncPuncher create(Puncher delegate, long interval) {
         AsyncPuncher asyncPuncher = new AsyncPuncher(delegate, interval);
         asyncPuncher.start();
@@ -45,21 +48,20 @@ public class AsyncPuncher implements Puncher {
 
     private final Puncher delegate;
     private final long interval;
+    private final AtomicLong lastTimestamp = new AtomicLong(INVALID_TIMESTAMP);
 
     private AsyncPuncher(Puncher delegate, long interval) {
         this.delegate = delegate;
         this.interval = interval;
     }
 
-    private volatile Long lastTimestamp = null;
-
     private void start() {
         service.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
-                if (lastTimestamp != null) {
-                    delegate.punch(lastTimestamp);
-                    lastTimestamp = null;
+                long timestamp = lastTimestamp.getAndSet(INVALID_TIMESTAMP);
+                if (timestamp != INVALID_TIMESTAMP) {
+                    delegate.punch(timestamp);
                 }
             }
         }, 0, interval, TimeUnit.MILLISECONDS);
@@ -67,7 +69,7 @@ public class AsyncPuncher implements Puncher {
 
     @Override
     public void punch(long timestamp) {
-        lastTimestamp = timestamp;
+        lastTimestamp.set(timestamp);
     }
 
     @Override
