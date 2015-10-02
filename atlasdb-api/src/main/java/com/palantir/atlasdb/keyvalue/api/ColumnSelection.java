@@ -16,21 +16,27 @@
 package com.palantir.atlasdb.keyvalue.api;
 
 import java.io.Serializable;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.Set;
+import java.util.SortedSet;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.primitives.UnsignedBytes;
+import com.palantir.atlasdb.encoding.PtBytes;
 
 public class ColumnSelection implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    private final Set<byte[]> selectedColumns;
     private static final ColumnSelection allColumnsSelected = new ColumnSelection(null);
 
-    private ColumnSelection(Set<byte[]> selectedColumns) {
+    private final SortedSet<byte[]> selectedColumns;
+    private transient int hashCode = 0;
+
+    private ColumnSelection(SortedSet<byte[]> selectedColumns) {
         this.selectedColumns = selectedColumns;
     }
 
@@ -61,7 +67,7 @@ public class ColumnSelection implements Serializable {
         return selectedColumns == null;
     }
 
-    public Iterable<byte[]> getSelectedColumns() {
+    public Collection<byte[]> getSelectedColumns() {
         assert selectedColumns != null;
         return Collections.unmodifiableCollection(selectedColumns);
     }
@@ -75,10 +81,18 @@ public class ColumnSelection implements Serializable {
 
     @Override
     public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + ((selectedColumns == null) ? 0 : selectedColumns.hashCode());
-        return result;
+        /*
+         * Lazily compute and store hashcode since instances are frequently
+         * accessed via hash collections, but computation can be expensive, and
+         * allow for benign data races.
+         */
+        if (hashCode == 0) {
+            final int prime = 31;
+            int result = 1;
+            result = prime * result + ((selectedColumns == null) ? 0 : selectedColumns.hashCode());
+            hashCode = result;
+        }
+        return hashCode;
     }
 
     @Override
@@ -101,6 +115,15 @@ public class ColumnSelection implements Serializable {
             return false;
         }
         return true;
+    }
+
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(getClass())
+                .add("selectedColumns", (allColumnsSelected())
+                        ? "all"
+                        : Collections2.transform(selectedColumns, PtBytes.BYTES_TO_HEX_STRING))
+                .toString();
     }
 
 }

@@ -23,10 +23,11 @@ import javax.annotation.Nonnull;
 
 import com.google.common.base.Defaults;
 import com.google.common.base.Function;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
-import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.Bytes;
 import com.google.common.primitives.UnsignedBytes;
+import com.palantir.atlasdb.encoding.PtBytes;
 
 /**
  * Represents a cell in the key-value store.
@@ -68,6 +69,7 @@ public final class Cell implements Serializable, Comparable<Cell> {
     private final byte[] rowName;
     private final byte[] columnName;
     private final long ttlDurationMillis;
+    private transient int hashCode = 0;
 
     private Cell(byte[] rowName, byte[] columnName) {
         this(rowName, columnName, INVALID_TTL);
@@ -135,16 +137,23 @@ public final class Cell implements Serializable, Comparable<Cell> {
 
     @Override
     public int hashCode() {
-        return Arrays.hashCode(rowName) ^ Arrays.hashCode(columnName);
+        /*
+         * Lazily compute and store hashcode since instances are frequently
+         * accessed via hash collections, but computation can be expensive, and
+         * allow for benign data races.
+         */
+        if (hashCode == 0) {
+            hashCode = Arrays.hashCode(rowName) ^ Arrays.hashCode(columnName);
+        }
+        return hashCode;
     }
 
     @Override
     public String toString() {
-        return "Cell [rowName=" + getNameFromBytes(rowName) + ", columnName=" +
-                getNameFromBytes(columnName) + "]";
-    }
-
-    public static String getNameFromBytes(byte[] name) {
-        return BaseEncoding.base16().lowerCase().encode(name);
+        return MoreObjects.toStringHelper(getClass())
+                .add("rowName", PtBytes.encodeHexString(rowName))
+                .add("columnName", PtBytes.encodeHexString(columnName))
+                .addValue(((ttlDurationMillis == INVALID_TTL) ? "no TTL" : "ttlDurationMillis=" + ttlDurationMillis))
+                .toString();
     }
 }
