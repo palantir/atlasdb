@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.rdbms;
 
-import java.io.IOException;
-
-import com.fasterxml.jackson.databind.JsonNode;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
@@ -28,7 +25,7 @@ public class PostgresAtlasDbFactory implements AtlasDbFactory {
 
     @Override
     public String getType() {
-        return "postgres";
+        return PostgresKeyValueConfiguration.TYPE;
     }
 
     @Override
@@ -37,25 +34,8 @@ public class PostgresAtlasDbFactory implements AtlasDbFactory {
     }
 
     @Override
-    public PostgresKeyValueService createRawKeyValueService(JsonNode config)
-            throws IOException {
-        return PostgresKeyValueService.create(createConfig(config.get("postgresConfig")));
-    }
-
-    @Override
-    public TimestampService createTimestampService(
-            PostgresKeyValueService rawKvs) {
+    public TimestampService createTimestampService(KeyValueService rawKvs) {
         return new InMemoryTimestampService();
-    }
-
-    private PostgresKeyValueConfiguration createConfig(JsonNode node) {
-        String host = node.get("host").asText();
-        int port = node.get("port").asInt();
-        String db = node.get("db").asText();
-        String user = node.get("user").asText();
-        String password = node.get("password").asText();
-
-        return new PostgresKeyValueConfiguration(host, port, db, user, password);
     }
 
 }

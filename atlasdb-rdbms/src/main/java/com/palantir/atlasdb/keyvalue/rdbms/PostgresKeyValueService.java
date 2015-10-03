@@ -117,11 +117,11 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
 
     public static PostgresKeyValueService create(PostgresKeyValueConfiguration config) {
         PoolingDataSource ds = new PoolingDataSource();
-        ds.setServerName(config.host);
-        ds.setPortNumber(config.port);
-        ds.setDatabaseName(config.db);
-        ds.setUser(config.user);
-        ds.setPassword(config.password);
+        ds.setServerName(config.getHost());
+        ds.setPortNumber(config.getPort());
+        ds.setDatabaseName(config.getDb());
+        ds.setUser(config.getUser());
+        ds.setPassword(config.getPassword());
         return new PostgresKeyValueService(ds);
     }
 

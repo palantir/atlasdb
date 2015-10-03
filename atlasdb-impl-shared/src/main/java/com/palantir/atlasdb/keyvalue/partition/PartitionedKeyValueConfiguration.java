@@ -15,12 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.partition;
 
-import java.util.List;
-
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
-import com.palantir.atlasdb.keyvalue.partition.map.InMemoryPartitionMapService;
-import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
@@ -31,27 +27,18 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
  * @author htarasiuk
  *
  */
-public class PartitionedKeyValueConfiguration implements KeyValueServiceConfig {
+@JsonTypeName(PartitionedKeyValueService.TYPE)
+@Value.Immutable
+public abstract class PartitionedKeyValueConfiguration implements KeyValueServiceConfig {
+    public static final String TYPE = "partitioned";
 
-    public final QuorumParameters quorumParameters;
-    public final ImmutableList<PartitionMapService> partitionMapProviders;
-    public final int partitionMapProvidersReadFactor;
-
-    private PartitionedKeyValueConfiguration(QuorumParameters quorumParameters,
-            List<PartitionMapService> partitionMapProviders, int partitionMapProvidersReadFactor) {
-        this.quorumParameters = quorumParameters;
-        this.partitionMapProviders = ImmutableList.copyOf(partitionMapProviders);
-        this.partitionMapProvidersReadFactor = partitionMapProvidersReadFactor;
+    @Override
+    public final String type() {
+        return TYPE;
     }
 
-    public static PartitionedKeyValueConfiguration of(QuorumParameters quorumParameters,
-            List<PartitionMapService> partitionMapProviders, int partitionMapProvidersReadFactor) {
-        return new PartitionedKeyValueConfiguration(quorumParameters, partitionMapProviders, partitionMapProvidersReadFactor);
-    }
-
-    public static PartitionedKeyValueConfiguration of(QuorumParameters quorumParameters, DynamicPartitionMap partitionMap) {
-        return new PartitionedKeyValueConfiguration(quorumParameters,
-                ImmutableList.<PartitionMapService> of(InMemoryPartitionMapService.create(partitionMap)), 1);
-    }
+    public abstract QuorumParameters getQuorumParameters();
+    public abstract ImmutableList<String> getPartitionMapProviders();
+    public abstract int getPartitionMapProvidersReadFactor();
 
 }
