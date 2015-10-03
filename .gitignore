@@ -12,6 +12,7 @@ Thumbs.db
 *.iml
 *.ipr
 *.iws
+/out/
 fix-ivy.py
 .classpath
 .ecbuild
