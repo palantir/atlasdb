@@ -76,20 +76,20 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
     }
 
     public static SerializableTransactionManager createInMemoryTransactionManager(Schema schema) {
-        return createInMemoryTransactionManagerInternal(schema, null);
+        return createInMemoryTransactionManager(createTableMappingKv(), schema);
     }
 
     public static SerializableTransactionManager createInMemoryTransactionManager(SchemaReference schemaRef) {
-        return createInMemoryTransactionManagerInternal(schemaRef.getSchema(), schemaRef.getNamespace());
+        return createInMemoryTransactionManager(createTableMappingKv(), schemaRef.getSchema());
     }
 
     public static SerializableTransactionManager createInMemoryTransactionManager(AtlasSchema schema) {
-        return createInMemoryTransactionManagerInternal(schema.getLatestSchema(), schema.getNamespace());
+        return createInMemoryTransactionManager(createTableMappingKv(), schema.getLatestSchema());
     }
 
-    private static SerializableTransactionManager createInMemoryTransactionManagerInternal(Schema schema, Namespace namespace) {
+    public static SerializableTransactionManager createInMemoryTransactionManager(
+            KeyValueService keyValueService, Schema schema) {
         TimestampService ts = new InMemoryTimestampService();
-        KeyValueService keyValueService = createTableMappingKv(ts);
 
         Schemas.createTablesAndIndexes(schema, keyValueService);
         SnapshotTransactionManager.createTables(keyValueService);
@@ -123,7 +123,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
         return ret;
     }
 
-    private static KeyValueService createTableMappingKv(final TimestampService ts) {
+    public static KeyValueService createTableMappingKv() {
         KeyValueService kv = new InMemoryKeyValueService(false);
         TableMappingService mapper = getMapper(kv);
         return NamespaceMappingKeyValueService.create(TableRemappingKeyValueService.create(kv, mapper));
