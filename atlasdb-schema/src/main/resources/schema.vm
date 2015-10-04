@@ -1,0 +1,49 @@
+package ${schemaDefinition.packageName};
+
+import java.io.File;
+import java.util.List;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.collect.Lists;
+import com.palantir.atlasdb.persister.JsonNodePersister;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
+import com.palantir.atlasdb.schema.AtlasSchema;
+import com.palantir.atlasdb.schema.Namespace;
+import com.palantir.atlasdb.table.description.IndexDefinition;
+import com.palantir.atlasdb.table.description.IndexDefinition.IndexType;
+import com.palantir.atlasdb.table.description.Schema;
+import com.palantir.atlasdb.table.description.TableDefinition;
+import com.palantir.atlasdb.table.description.ValueType;
+
+public class ${display.capitalize(${schemaDefinition.schemaName})}Schema implements AtlasSchema {
+    public static final AtlasSchema INSTANCE = new ${display.capitalize(${schemaDefinition.schemaName})}Schema();
+    private static final Schema ${schemaDefinition.schemaName.toUpperCase()}_SCHEMA = generateSchema();
+
+    private static Schema generateSchema() {
+        Schema schema = new Schema("${display.capitalize(${schemaDefinition.schemaName})}",
+                "${schemaDefinition.packageName}",
+                Namespace.DEFAULT_NAMESPACE);
+        #foreach( $tableDefinition in $schemaDefinition.tableDefinitions )
+            #parse("table-definition.vm")
+        #end
+        return schema;
+    }
+
+    public static Schema getSchema() {
+        return ${schemaDefinition.schemaName.toUpperCase()}_SCHEMA;
+    }
+
+    public static void main(String[]  args) throws Exception {
+        ${schemaDefinition.schemaName.toUpperCase()}_SCHEMA.renderTables(new File("src/main/java"));
+    }
+
+    @Override
+    public Schema getLatestSchema() {
+        return ${schemaDefinition.schemaName.toUpperCase()}_SCHEMA;
+    }
+
+    @Override
+    public Namespace getNamespace() {
+        return Namespace.DEFAULT_NAMESPACE;
+    }
+}

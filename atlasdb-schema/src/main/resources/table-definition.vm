@@ -1,0 +1,19 @@
+#macro( keyValueType $key)
+	#if( $key.keyTypeFullyQualified == "java.lang.Long" )
+		#if( $key.fixed ) ValueType.FIXED_LONG #else ValueType.VAR_LONG #end
+	#elseif( $key.keyTypeFullyQualified == "java.lang.String" )
+		#if( $key.fixed ) ValueType.STRING #else ValueType.VAR_STRING #end
+	#end
+#end
+
+schema.addTableDefinition("${tableDefinition.tableName}", new TableDefinition() {{
+    rowName();
+		#foreach( $key in $tableDefinition.keyDefinitions )
+        rowComponent("${key.name}", #keyValueType( $key ));
+		#end
+    columns();
+		#foreach( $column in $tableDefinition.columnDefinitions )
+		// TODO: should be not null, make a json persister per column
+		column("${column.columnName}", "${column.columnShortName}", (com.palantir.atlasdb.table.description.ValueType) null);
+		#end
+}});

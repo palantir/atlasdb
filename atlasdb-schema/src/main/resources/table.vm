@@ -1,0 +1,200 @@
+package ${tableDefinition.packageName};
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.SortedMap;
+
+import org.immutables.value.Value;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Charsets;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
+import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.ptobject.EncodingUtils;
+import com.palantir.atlasdb.transaction.api.Transaction;
+
+## Useful macros for defining/calling functions with all keys
+#macro( keysDeclaration )
+    #foreach($key in $tableDefinition.keyDefinitions)${key.keyTypeFullyQualified} ${key.name}#if( $velocityHasNext ), #end#end
+#end
+#macro( keysUsage )
+    #foreach($key in $tableDefinition.keyDefinitions)${key.name}#if( $velocityHasNext ), #end#end
+#end
+#parse( "key-encoding-decoding-macros.vm" )
+
+public class ${tableDefinition.generatedClassName} implements ${tableDefinition.originalClassName} {
+
+    private static final String TABLE_NAME = "${tableDefinition.tableName}";
+
+#foreach($columnDefinition in $tableDefinition.columnDefinitions)
+    private static final byte[] ${columnDefinition.columnName.toUpperCase()}_COLUMN = "${columnDefinition.columnShortName}".getBytes(Charsets.UTF_8);
+#end
+
+    private final Transaction txn;
+    private final ObjectMapper objectMapper;
+
+    public ${tableDefinition.generatedClassName}(Transaction txn) {
+        this.txn = txn;
+        this.objectMapper = new ObjectMapper(); // TODO: make configurable
+    }
+
+## define get/put/delete for each of the columns
+    #foreach($columnDefinition in $tableDefinition.columnDefinitions)
+    public void put${display.capitalize(${columnDefinition.columnName})}(#keysDeclaration(), ${columnDefinition.columnTypeQualifiedName} columnValue) {
+        put${display.capitalize(${columnDefinition.columnName})}s(ImmutableMap.of(Key.of(#keysUsage()), columnValue));
+    }
+
+    public void put${display.capitalize(${columnDefinition.columnName})}s(Map<Key, ${columnDefinition.columnTypeQualifiedName}> valuesByKey) {
+        ImmutableMap.Builder<Cell, byte[]> builder = ImmutableMap.builder();
+        for (Entry<Key, ${columnDefinition.columnTypeQualifiedName}> entry : valuesByKey.entrySet()) {
+            byte[] column = ${columnDefinition.columnName.toUpperCase()}_COLUMN;
+            builder.put(Cell.create(entry.getKey().key(), column), toByteArray(entry.getValue()));
+        }
+        txn.put(TABLE_NAME, builder.build());
+    }
+
+    public ${columnDefinition.columnTypeQualifiedName} get${display.capitalize(${columnDefinition.columnName})}(#keysDeclaration()) {
+        Key key = Key.of(#keysUsage());
+        return get${display.capitalize(${columnDefinition.columnName})}s(ImmutableSet.of(key)).get(key);
+    }
+
+    public Map<Key, ${columnDefinition.columnTypeQualifiedName}> get${display.capitalize(${columnDefinition.columnName})}s(Set<Key> keys) {
+        ImmutableSet.Builder<Cell> cells = ImmutableSet.builder();
+        for (Key key : keys) {
+            cells.add(Cell.create(key.key(), ${columnDefinition.columnName.toUpperCase()}_COLUMN));
+        }
+
+        Map<Cell, byte[]> vals = txn.get(TABLE_NAME, cells.build());
+
+        ImmutableMap.Builder<Key, ${columnDefinition.columnTypeQualifiedName}> results = ImmutableMap.builder();
+        for (Entry<Cell, byte[]> entry : vals.entrySet()) {
+            results.put(Key.from(entry.getKey().getRowName()), toValue(entry.getValue(), ${columnDefinition.columnTypeQualifiedName}.class));
+        }
+
+        return results.build();
+    }
+
+    public void delete${display.capitalize(${columnDefinition.columnName})}(#keysDeclaration()) {
+        Key key = Key.of(#keysUsage());
+        delete${display.capitalize(${columnDefinition.columnName})}s(ImmutableSet.of(key));
+    }
+
+    public void delete${display.capitalize(${columnDefinition.columnName})}s(Iterable<Key> keys) {
+        ImmutableSet.Builder<Cell> cells = ImmutableSet.builder();
+        for (Key key : keys) {
+            cells.add(Cell.create(key.key(), ${columnDefinition.columnName.toUpperCase()}_COLUMN));
+        }
+        txn.delete(TABLE_NAME, cells.build());
+    }
+
+    #end
+    public Optional<Row> getRow(#keysDeclaration()) {
+        return getRow(#keysUsage(), ColumnSelection.all());
+    }
+
+    public Optional<Row> getRow(#keysDeclaration(), ColumnSelection columns) {
+        Key key = Key.of(#keysUsage());
+        List<Row> results = getRows(ImmutableSet.of(key), columns);
+        if(results.isEmpty()) {
+            return Optional.absent();
+        } else {
+            return Optional.of(results.get(0));
+        }
+    }
+
+    public List<Row> getRows(Iterable<Key> keys) {
+        return getRows(keys, ColumnSelection.all());
+    }
+
+    public List<Row> getRows(Iterable<Key> keys, ColumnSelection columns) {
+        ImmutableSet.Builder<byte[]> rows = ImmutableSet.builder();
+        for(Key key : keys) {
+            rows.add(key.key());
+        }
+
+        SortedMap<byte[], RowResult<byte[]>> results = txn.getRows(TABLE_NAME, rows.build(), columns);
+
+        List<Row> rowResults = Lists.newArrayList();
+        for (RowResult<byte[]> row : results.values()) {
+            rowResults.add(new Row(row));
+        }
+        return rowResults;
+    }
+
+    private <T> byte[] toByteArray(T val) {
+        try {
+            return objectMapper.writeValueAsBytes(val);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private <T> T toValue(byte[] arr, Class<T> type) {
+        try {
+            return objectMapper.readValue(arr, type);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Value.Immutable
+    @Value.Style(typeImmutable = "${tableDefinition.originalClassName}*")
+    public abstract static class Key {
+        #foreach($key in $tableDefinition.keyDefinitions)
+        abstract ${key.keyTypeFullyQualified} get${display.capitalize(${key.name})}();
+        #end
+
+        public static Key of(#keysDeclaration()) {
+            return ${tableDefinition.originalClassName}Key.builder()
+                #foreach($key in $tableDefinition.keyDefinitions)
+                .${key.name}(${key.name})
+                #end
+                .build();
+        }
+
+#set( $totalBytes = 40 * ${tableDefinition.keyDefinitions.size()} )
+        public static final Key from(byte[] bytes) {
+            int index = 0;
+            #foreach($key in $tableDefinition.keyDefinitions)
+                #keyDecode( $key )
+            #end
+            return of(#foreach($key in $tableDefinition.keyDefinitions)${key.name}#if($velocityHasNext), #end#end);
+        }
+
+        final byte[] key() {
+            #foreach($key in $tableDefinition.keyDefinitions)
+                        #keyEncode( $key )
+            #end
+            return EncodingUtils.add(#foreach($key in $tableDefinition.keyDefinitions)${key.name}Bytes#if($velocityHasNext), #end#end);
+        }
+    }
+
+    public class Row {
+        private RowResult<byte[]> row;
+        
+        public Row(RowResult<byte[]> row) {
+            this.row = row;
+        }
+
+        #foreach($columnDefinition in $tableDefinition.columnDefinitions)
+        public ${columnDefinition.columnTypeQualifiedName} ${columnDefinition.columnName}() {
+            byte[] bytes = row.getColumns().get(${columnDefinition.columnName.toUpperCase()}_COLUMN);
+            return toValue(bytes, ${columnDefinition.columnTypeQualifiedName}.class);
+        }
+
+        public boolean has${display.capitalize(${columnDefinition.columnName})}() {
+            return row.getColumns().containsKey(${columnDefinition.columnName.toUpperCase()}_COLUMN);
+        }
+
+        #end
+    }
+}

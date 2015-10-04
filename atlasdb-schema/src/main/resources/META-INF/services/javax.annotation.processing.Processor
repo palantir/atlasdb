@@ -1,0 +1,2 @@
+com.palantir.atlasdb.schema.apt.TableProcessor
+com.palantir.atlasdb.schema.apt.KeysAnnotationProcessor
