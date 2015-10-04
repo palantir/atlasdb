@@ -68,7 +68,8 @@ public class TransactionManagers {
      * Create a {@link SerializableTransactionManager} with provided configuration, {@link SSLSocketFactory}, {@link Schema},
      * and an environment in which to register HTTP server endpoints.
      */
-    public static TransactionManager create(AtlasDbConfig config, Optional<SSLSocketFactory> sslSocketFactory, Schema schema, Environment env) {
+    public static SerializableTransactionManager create(
+            AtlasDbConfig config, Optional<SSLSocketFactory> sslSocketFactory, Schema schema, Environment env) {
         return create(config, sslSocketFactory, ImmutableSet.of(schema), env);
     }
 
