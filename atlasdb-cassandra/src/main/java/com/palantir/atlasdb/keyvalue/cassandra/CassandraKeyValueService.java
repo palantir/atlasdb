@@ -195,9 +195,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 client = CassandraClientPoolingContainer.getClientInternal(addr, port, ssl, socketTimeoutMillis, socketQueryTimeoutMillis);
                 String partitioner = client.describe_partitioner();
                 if (safetyDisabled) {
-                    Validate.isTrue(CassandraConstants.PARTITIONER.equals(partitioner)
-                                    || CassandraConstants.PARTITIONER2.equals(partitioner),
-                            "partitioner is: " + partitioner);
+                    Validate.isTrue(CassandraConstants.ALLOWED_PARTITIONERS.contains(partitioner), "partitioner is: " + partitioner);
                 }
                 KsDef ks = null;
                 try {
