@@ -50,7 +50,7 @@ public class PersistentTimestampService implements TimestampService {
     private Clock clock;
     private long lastAllocatedTime;
 
-    public static TimestampService create(TimestampBoundStore tbs) {
+    public static PersistentTimestampService create(TimestampBoundStore tbs) {
         PersistentTimestampService ts = new PersistentTimestampService(
                 tbs,
                 tbs.getUpperLimit(),
@@ -64,12 +64,12 @@ public class PersistentTimestampService implements TimestampService {
     }
 
     @VisibleForTesting
-    protected static TimestampService create(TimestampBoundStore tbs, Clock clock) {
+    protected static PersistentTimestampService create(TimestampBoundStore tbs, Clock clock) {
         PersistentTimestampService ts = new PersistentTimestampService(tbs, tbs.getUpperLimit(), clock);
         return init(ts);
     }
 
-    private static TimestampService init(PersistentTimestampService ts) {
+    private static PersistentTimestampService init(PersistentTimestampService ts) {
         ts.allocateMoreTimestamps();
         return ts;
     }
@@ -82,6 +82,10 @@ public class PersistentTimestampService implements TimestampService {
         isAllocationTaskSubmitted = new AtomicBoolean(false);
         this.clock = clock;
         lastAllocatedTime = clock.getTimeMillis();
+    }
+
+    public long getUpperLimitTimestampToHandOutInclusive() {
+        return upperLimitToHandOutInclusive.get();
     }
 
     private synchronized void allocateMoreTimestamps() {
