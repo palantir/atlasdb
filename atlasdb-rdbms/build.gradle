@@ -1,6 +1,4 @@
-plugins {
-    id 'org.inferred.processors' version '1.1'
-}
+apply plugin: 'org.inferred.processors'
 
 apply from: '../gradle/shared.gradle'
 
