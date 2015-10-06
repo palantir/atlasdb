@@ -426,6 +426,10 @@ public interface KeyValueService extends AutoCloseable {
      *
      * @param tableNames
      */
+    @DELETE
+    @Path("drop-tables")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
     void dropTables(Set<String> tableNames) throws InsufficientConsistencyException;
 
