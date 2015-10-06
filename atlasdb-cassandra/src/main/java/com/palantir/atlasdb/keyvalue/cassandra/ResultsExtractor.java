@@ -19,13 +19,13 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.SortedMap;
 
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -48,25 +48,23 @@ abstract class ResultsExtractor<T, U> {
     public final byte[] extractResults(Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey,
                                        long startTs,
                                        ColumnSelection selection) {
+        /*
+         * Iterate over the entries and avoid direct lookup by ByteBuffer key as ByteBuffer are
+         * mutable and we need to ensure that the buffer is not consumed if we were to do a lookup
+         * as we'd be unable to.
+         */
         byte[] maxRow = null;
-        for (ByteBuffer rowName : colsByKey.keySet()) {
-            byte[] row = CassandraKeyValueServices.getBytesFromByteBuffer(rowName);
+        for (Entry<ByteBuffer, List<ColumnOrSuperColumn>> entry : colsByKey.entrySet()) {
+            byte[] row = CassandraKeyValueServices.getBytesFromByteBuffer(entry.getKey());
             if (maxRow == null) {
                 maxRow = row;
             } else {
                 maxRow = PtBytes.BYTES_COMPARATOR.max(maxRow, row);
             }
-            if (CassandraKeyValueService.THOROUGH_LOGGING.get() != null) {
-                log.error("{} extractResults for row {} with {} columns",
-                        Thread.currentThread().getId(), BaseEncoding.base16().lowerCase().encode(row), colsByKey.get(rowName).size());
-            }
-            for (ColumnOrSuperColumn c : colsByKey.get(rowName)) {
-                Pair<byte[], Long> pair = CassandraKeyValueServices.decompose(c.column.getName());
+
+            for (ColumnOrSuperColumn c : entry.getValue()) {
+                Pair<byte[], Long> pair = CassandraKeyValueServices.decomposeName(c.column);
                 internalExtractResult(startTs, selection, row, pair.lhSide, c.column.getValue(), pair.rhSide);
-                if (CassandraKeyValueService.THOROUGH_LOGGING.get() != null) {
-                    log.error("{} extractResultsInternal, startTs = {}, rowTs = {}",
-                            Thread.currentThread().getId(), startTs, pair.rhSide);
-                }
             }
         }
         return maxRow;

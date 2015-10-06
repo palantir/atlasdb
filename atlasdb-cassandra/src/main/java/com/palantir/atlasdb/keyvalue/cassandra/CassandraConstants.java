@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
-import java.net.SocketTimeoutException;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -27,28 +27,13 @@ import com.google.common.collect.Maps;
 
 
 public class CassandraConstants {
-    /**
-     * Socket timeout is a java side concept.  This the maximum time we will block on a network
-     * read without the server sending us any bytes.  After this time a {@link SocketTimeoutException}
-     * will be thrown.  All cassandra reads time out at less than this value so we shouldn't see
-     * it very much (10s by default).
-     */
-    static final int SOCKET_TIMEOUT_MILLIS = 22000;
-    /**
-     * This is how long we will wait when we first open a socket to the cassandra server.
-     * This should be long enough to enough to handle cross data center latency, but short enough
-     * that it will fail out quickly if it is clear we can't reach that server.
-     */
-    static final int CONNECTION_TIMEOUT_MILLIS = 2000;
+    static final int LONG_RUNNING_QUERY_SOCKET_TIMEOUT_MILLIS = 62000;
     static final String METADATA_TABLE = "_metadata";
     public static final int DEFAULT_REPLICATION_FACTOR = 3;
     static final int SECONDS_BETWEEN_GETTING_HOST_LIST = 600; // 10 min
-    static final int SECONDS_WAIT_FOR_VERSIONS = 20;
+    static final int SECONDS_WAIT_FOR_VERSIONS = 60;
 
-    static final int INDEX_COMPRESSION_KB = 4;
-    static final int TABLE_COMPRESSION_KB = 64;
     static final String DEFAULT_COMPRESSION_TYPE = "LZ4Compressor";
-    static final int PUT_BATCH_SIZE = 100;
     static final String SSTABLE_SIZE_IN_MB = "80";
     static final double DEFAULT_LEVELED_COMPACTION_BLOOM_FILTER_FP_CHANCE = 0.1;
     static final double NEGATIVE_LOOKUPS_BLOOM_FILTER_FP_CHANCE = 0.01;
@@ -62,11 +47,21 @@ public class CassandraConstants {
     static final String REPLICATION_FACTOR_OPTION = "replication_factor";
     static final long SECONDS_TO_WAIT_FOR_SCHEMA_MUTATION_LOCK = 60;
     static final int GC_GRACE_SECONDS = 4 * 24 * 60 * 60; // 4 days; Hinted-Handoffs MUST expire well within this period for delete correctness (I believe we will be expiring hints in half this period)
+    static final float TOMBSTONE_THRESHOLD_RATIO = 0.2f;
+
+    // JMX compaction related
+    public static final String JMX_RMI = "service:jmx:rmi:///jndi/rmi://[%s]:%d/jmxrmi";
+    public static final String STORAGE_SERVICE_OBJECT_NAME = "org.apache.cassandra.db:type=StorageService";
+    public static final String COMPACTION_MANAGER_OBJECT_NAME = "org.apache.cassandra.db:type=CompactionManager";
+    public static final String HINTED_HANDOFF_MANAGER_OBJECT_NAME = "org.apache.cassandra.db:type=HintedHandoffManager";
 
     // this is only used to sanity check reads from a TFramedTransport;
     // writes are sanity checked with server side frame size limits and are user-configurable,
     // so I'm okay with just bypassing the check for reads and having this check only in one place, server side.
     static final int CLIENT_MAX_THRIFT_FRAME_SIZE_BYTES = Integer.MAX_VALUE;
+
+    static final String CFDEF_COMPRESSION_TYPE_KEY = "sstable_compression";
+    static final String CFDEF_COMPRESSION_CHUNK_LENGTH_KEY = "chunk_length_kb";
 
     // update CKVS.isMatchingCf if you update this method
     static CfDef getStandardCfDef(String keyspace, String internalTableName) {

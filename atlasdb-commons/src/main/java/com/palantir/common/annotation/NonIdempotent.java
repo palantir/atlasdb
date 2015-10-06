@@ -21,8 +21,6 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import com.palantir.annotations.PublicApi;
-
 
 /**
  * This annotation is the logical opposite of {@link Idempotent}.
@@ -33,7 +31,6 @@ import com.palantir.annotations.PublicApi;
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
-@PublicApi
 public @interface NonIdempotent {
     // marker annotation
 }

@@ -178,7 +178,7 @@ public final class DataTable implements
 
         @Override
         public String toString() {
-            return MoreObjects.toStringHelper(this)
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
                 .add("id", id)
                 .toString();
         }
@@ -264,6 +264,13 @@ public final class DataTable implements
                 return of(Long.MIN_VALUE ^ PtBytes.toLong(bytes, 0));
             }
         };
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("Value", this.value)
+                .toString();
+        }
     }
 
     public interface DataTrigger {
@@ -328,9 +335,9 @@ public final class DataTable implements
 
         @Override
         public String toString() {
-            return MoreObjects.toStringHelper(this)
-                    .add("RowName", getRowName())
-                    .add("Value", getValue())
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("RowName", getRowName())
+                .add("Value", getValue())
                 .toString();
         }
     }
@@ -392,6 +399,18 @@ public final class DataTable implements
             toPut.put(e.getKey(), Value.of(e.getValue()));
         }
         put(Multimaps.forMap(toPut));
+    }
+
+    public void putValueUnlessExists(DataRow row, Long value) {
+        putUnlessExists(ImmutableMultimap.of(row, Value.of(value)));
+    }
+
+    public void putValueUnlessExists(Map<DataRow, Long> map) {
+        Map<DataRow, DataNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
+        for (Entry<DataRow, Long> e : map.entrySet()) {
+            toPut.put(e.getKey(), Value.of(e.getValue()));
+        }
+        putUnlessExists(Multimaps.forMap(toPut));
     }
 
     @Override
@@ -471,6 +490,18 @@ public final class DataTable implements
         }
     }
 
+    @Override
+    public void putUnlessExists(Multimap<DataRow, ? extends DataNamedColumnValue<?>> rows) {
+        Multimap<DataRow, DataNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
+        Multimap<DataRow, DataNamedColumnValue<?>> toPut = HashMultimap.create();
+        for (Entry<DataRow, ? extends DataNamedColumnValue<?>> entry : rows.entries()) {
+            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
+                toPut.put(entry.getKey(), entry.getValue());
+            }
+        }
+        put(toPut);
+    }
+
     public void deleteValue(DataRow row) {
         deleteValue(ImmutableSet.of(row));
     }
@@ -487,7 +518,7 @@ public final class DataTable implements
     }
 
     private void deleteIndex1IdxRaw(Map<Cell, byte[]> results) {
-        ImmutableSet.Builder<Cell> indexCells = ImmutableSet.builder();
+        Set<Cell> indexCells = Sets.newHashSetWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> result : results.entrySet()) {
             Value col = (Value) shortNameToHydrator.get("v").hydrateFromBytes(result.getValue());
             DataRow row = DataRow.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getRowName());
@@ -497,11 +528,11 @@ public final class DataTable implements
             Index1IdxTable.Index1IdxColumn indexCol = Index1IdxTable.Index1IdxColumn.of(row.persistToBytes(), col.persistColumnName(), id);
             indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
         }
-        t.delete(namespace.getName() + ".index1_idx", indexCells.build());
+        t.delete("default.index1_idx", indexCells);
     }
 
     private void deleteIndex2IdxRaw(Map<Cell, byte[]> results) {
-        ImmutableSet.Builder<Cell> indexCells = ImmutableSet.builder();
+        Set<Cell> indexCells = Sets.newHashSetWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> result : results.entrySet()) {
             Value col = (Value) shortNameToHydrator.get("v").hydrateFromBytes(result.getValue());
             DataRow row = DataRow.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getRowName());
@@ -511,11 +542,11 @@ public final class DataTable implements
             Index2IdxTable.Index2IdxColumn indexCol = Index2IdxTable.Index2IdxColumn.of(row.persistToBytes(), col.persistColumnName());
             indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
         }
-        t.delete(namespace.getName() + ".index2_idx", indexCells.build());
+        t.delete("default.index2_idx", indexCells);
     }
 
     private void deleteIndex3IdxRaw(Map<Cell, byte[]> results) {
-        ImmutableSet.Builder<Cell> indexCells = ImmutableSet.builder();
+        Set<Cell> indexCells = Sets.newHashSetWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> result : results.entrySet()) {
             Value col = (Value) shortNameToHydrator.get("v").hydrateFromBytes(result.getValue());
             DataRow row = DataRow.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getRowName());
@@ -526,11 +557,11 @@ public final class DataTable implements
                 indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
             }
         }
-        t.delete(namespace.getName() + ".index3_idx", indexCells.build());
+        t.delete("default.index3_idx", indexCells);
     }
 
     private void deleteIndex4IdxRaw(Map<Cell, byte[]> results) {
-        ImmutableSet.Builder<Cell> indexCells = ImmutableSet.builder();
+        Set<Cell> indexCells = Sets.newHashSetWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> result : results.entrySet()) {
             Value col = (Value) shortNameToHydrator.get("v").hydrateFromBytes(result.getValue());
             DataRow row = DataRow.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getRowName());
@@ -544,7 +575,7 @@ public final class DataTable implements
                 }
             }
         }
-        t.delete(namespace.getName() + ".index4_idx", indexCells.build());
+        t.delete("default.index4_idx", indexCells);
     }
 
     @Override
@@ -560,9 +591,9 @@ public final class DataTable implements
         deleteIndex3Idx(result);
         deleteIndex4Idx(result);
         List<byte[]> rowBytes = Persistables.persistAll(rows);
-        ImmutableSet.Builder<Cell> cells = ImmutableSet.builder();
+        Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("v")));
-        t.delete(tableName, cells.build());
+        t.delete(tableName, cells);
     }
 
     @Override
@@ -707,7 +738,7 @@ public final class DataTable implements
                 }
             }
         }
-        t.delete(namespace.getName() + ".index1_idx", indexCells.build());
+        t.delete("default.index1_idx", indexCells.build());
     }
 
     private void deleteIndex2Idx(Multimap<DataRow, DataNamedColumnValue<?>> result) {
@@ -724,7 +755,7 @@ public final class DataTable implements
                 }
             }
         }
-        t.delete(namespace.getName() + ".index2_idx", indexCells.build());
+        t.delete("default.index2_idx", indexCells.build());
     }
 
     private void deleteIndex3Idx(Multimap<DataRow, DataNamedColumnValue<?>> result) {
@@ -742,7 +773,7 @@ public final class DataTable implements
                 }
             }
         }
-        t.delete(namespace.getName() + ".index3_idx", indexCells.build());
+        t.delete("default.index3_idx", indexCells.build());
     }
 
     private void deleteIndex4Idx(Multimap<DataRow, DataNamedColumnValue<?>> result) {
@@ -763,7 +794,7 @@ public final class DataTable implements
                 }
             }
         }
-        t.delete(namespace.getName() + ".index4_idx", indexCells.build());
+        t.delete("default.index4_idx", indexCells.build());
     }
 
     public BatchingVisitableView<DataRowResult> getAllRowsUnordered() {
@@ -889,7 +920,7 @@ public final class DataTable implements
 
             @Override
             public String toString() {
-                return MoreObjects.toStringHelper(this)
+                return MoreObjects.toStringHelper(getClass().getSimpleName())
                     .add("value", value)
                     .toString();
             }
@@ -1009,7 +1040,7 @@ public final class DataTable implements
 
             @Override
             public String toString() {
-                return MoreObjects.toStringHelper(this)
+                return MoreObjects.toStringHelper(getClass().getSimpleName())
                     .add("rowName", rowName)
                     .add("columnName", columnName)
                     .add("id", id)
@@ -1028,7 +1059,7 @@ public final class DataTable implements
                     return false;
                 }
                 Index1IdxColumn other = (Index1IdxColumn) obj;
-                return Objects.equal(rowName, other.rowName) && Objects.equal(columnName, other.columnName) && Objects.equal(id, other.id);
+                return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName) && Objects.equal(id, other.id);
             }
 
             @Override
@@ -1117,6 +1148,14 @@ public final class DataTable implements
                     }
                 };
             }
+
+            @Override
+            public String toString() {
+                return MoreObjects.toStringHelper(getClass().getSimpleName())
+                    .add("ColumnName", this.columnName)
+                    .add("Value", this.value)
+                    .toString();
+            }
         }
 
         public static final class Index1IdxRowResult implements TypedRowResult {
@@ -1165,6 +1204,14 @@ public final class DataTable implements
                     }
                 };
             }
+
+            @Override
+            public String toString() {
+                return MoreObjects.toStringHelper(getClass().getSimpleName())
+                    .add("RowName", getRowName())
+                    .add("ColumnValues", getColumnValues())
+                    .toString();
+            }
         }
 
         @Override
@@ -1204,6 +1251,29 @@ public final class DataTable implements
             for (Index1IdxTrigger trigger : triggers) {
                 trigger.putIndex1Idx(values);
             }
+        }
+
+        @Override
+        public void putUnlessExists(Index1IdxRow rowName, Iterable<Index1IdxColumnValue> values) {
+            putUnlessExists(ImmutableMultimap.<Index1IdxRow, Index1IdxColumnValue>builder().putAll(rowName, values).build());
+        }
+
+        @Override
+        public void putUnlessExists(Index1IdxRow rowName, Index1IdxColumnValue... values) {
+            putUnlessExists(ImmutableMultimap.<Index1IdxRow, Index1IdxColumnValue>builder().putAll(rowName, values).build());
+        }
+
+        @Override
+        public void putUnlessExists(Multimap<Index1IdxRow, ? extends Index1IdxColumnValue> rows) {
+            Multimap<Index1IdxRow, Index1IdxColumn> toGet = Multimaps.transformValues(rows, Index1IdxColumnValue.getColumnNameFun());
+            Multimap<Index1IdxRow, Index1IdxColumnValue> existing = get(toGet);
+            Multimap<Index1IdxRow, Index1IdxColumnValue> toPut = HashMultimap.create();
+            for (Entry<Index1IdxRow, ? extends Index1IdxColumnValue> entry : rows.entries()) {
+                if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
+                    toPut.put(entry.getKey(), entry.getValue());
+                }
+            }
+            put(toPut);
         }
 
         @Override
@@ -1334,7 +1404,7 @@ public final class DataTable implements
 
         public IterableView<BatchingVisitable<Index1IdxRowResult>> getRanges(Iterable<RangeRequest> ranges) {
             Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableName, ranges);
-            return IterableView.of(Iterables.transform(rangeResults,
+            return IterableView.of(rangeResults).transform(
                     new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<Index1IdxRowResult>>() {
                 @Override
                 public BatchingVisitable<Index1IdxRowResult> apply(BatchingVisitable<RowResult<byte[]>> visitable) {
@@ -1345,7 +1415,7 @@ public final class DataTable implements
                         }
                     });
                 }
-            }));
+            });
         }
 
         public void deleteRange(RangeRequest range) {
@@ -1499,7 +1569,7 @@ public final class DataTable implements
 
             @Override
             public String toString() {
-                return MoreObjects.toStringHelper(this)
+                return MoreObjects.toStringHelper(getClass().getSimpleName())
                     .add("value", value)
                     .add("id", id)
                     .toString();
@@ -1602,7 +1672,7 @@ public final class DataTable implements
 
             @Override
             public String toString() {
-                return MoreObjects.toStringHelper(this)
+                return MoreObjects.toStringHelper(getClass().getSimpleName())
                     .add("rowName", rowName)
                     .add("columnName", columnName)
                     .toString();
@@ -1620,7 +1690,7 @@ public final class DataTable implements
                     return false;
                 }
                 Index2IdxColumn other = (Index2IdxColumn) obj;
-                return Objects.equal(rowName, other.rowName) && Objects.equal(columnName, other.columnName);
+                return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName);
             }
 
             @Override
@@ -1707,6 +1777,14 @@ public final class DataTable implements
                     }
                 };
             }
+
+            @Override
+            public String toString() {
+                return MoreObjects.toStringHelper(getClass().getSimpleName())
+                    .add("ColumnName", this.columnName)
+                    .add("Value", this.value)
+                    .toString();
+            }
         }
 
         public static final class Index2IdxRowResult implements TypedRowResult {
@@ -1755,6 +1833,14 @@ public final class DataTable implements
                     }
                 };
             }
+
+            @Override
+            public String toString() {
+                return MoreObjects.toStringHelper(getClass().getSimpleName())
+                    .add("RowName", getRowName())
+                    .add("ColumnValues", getColumnValues())
+                    .toString();
+            }
         }
 
         @Override
@@ -1794,6 +1880,29 @@ public final class DataTable implements
             for (Index2IdxTrigger trigger : triggers) {
                 trigger.putIndex2Idx(values);
             }
+        }
+
+        @Override
+        public void putUnlessExists(Index2IdxRow rowName, Iterable<Index2IdxColumnValue> values) {
+            putUnlessExists(ImmutableMultimap.<Index2IdxRow, Index2IdxColumnValue>builder().putAll(rowName, values).build());
+        }
+
+        @Override
+        public void putUnlessExists(Index2IdxRow rowName, Index2IdxColumnValue... values) {
+            putUnlessExists(ImmutableMultimap.<Index2IdxRow, Index2IdxColumnValue>builder().putAll(rowName, values).build());
+        }
+
+        @Override
+        public void putUnlessExists(Multimap<Index2IdxRow, ? extends Index2IdxColumnValue> rows) {
+            Multimap<Index2IdxRow, Index2IdxColumn> toGet = Multimaps.transformValues(rows, Index2IdxColumnValue.getColumnNameFun());
+            Multimap<Index2IdxRow, Index2IdxColumnValue> existing = get(toGet);
+            Multimap<Index2IdxRow, Index2IdxColumnValue> toPut = HashMultimap.create();
+            for (Entry<Index2IdxRow, ? extends Index2IdxColumnValue> entry : rows.entries()) {
+                if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
+                    toPut.put(entry.getKey(), entry.getValue());
+                }
+            }
+            put(toPut);
         }
 
         @Override
@@ -1924,7 +2033,7 @@ public final class DataTable implements
 
         public IterableView<BatchingVisitable<Index2IdxRowResult>> getRanges(Iterable<RangeRequest> ranges) {
             Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableName, ranges);
-            return IterableView.of(Iterables.transform(rangeResults,
+            return IterableView.of(rangeResults).transform(
                     new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<Index2IdxRowResult>>() {
                 @Override
                 public BatchingVisitable<Index2IdxRowResult> apply(BatchingVisitable<RowResult<byte[]>> visitable) {
@@ -1935,7 +2044,7 @@ public final class DataTable implements
                         }
                     });
                 }
-            }));
+            });
         }
 
         public void deleteRange(RangeRequest range) {
@@ -2069,7 +2178,7 @@ public final class DataTable implements
 
             @Override
             public String toString() {
-                return MoreObjects.toStringHelper(this)
+                return MoreObjects.toStringHelper(getClass().getSimpleName())
                     .add("value", value)
                     .toString();
             }
@@ -2170,7 +2279,7 @@ public final class DataTable implements
 
             @Override
             public String toString() {
-                return MoreObjects.toStringHelper(this)
+                return MoreObjects.toStringHelper(getClass().getSimpleName())
                     .add("rowName", rowName)
                     .add("columnName", columnName)
                     .toString();
@@ -2188,7 +2297,7 @@ public final class DataTable implements
                     return false;
                 }
                 Index3IdxColumn other = (Index3IdxColumn) obj;
-                return Objects.equal(rowName, other.rowName) && Objects.equal(columnName, other.columnName);
+                return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName);
             }
 
             @Override
@@ -2275,6 +2384,14 @@ public final class DataTable implements
                     }
                 };
             }
+
+            @Override
+            public String toString() {
+                return MoreObjects.toStringHelper(getClass().getSimpleName())
+                    .add("ColumnName", this.columnName)
+                    .add("Value", this.value)
+                    .toString();
+            }
         }
 
         public static final class Index3IdxRowResult implements TypedRowResult {
@@ -2323,6 +2440,14 @@ public final class DataTable implements
                     }
                 };
             }
+
+            @Override
+            public String toString() {
+                return MoreObjects.toStringHelper(getClass().getSimpleName())
+                    .add("RowName", getRowName())
+                    .add("ColumnValues", getColumnValues())
+                    .toString();
+            }
         }
 
         @Override
@@ -2362,6 +2487,29 @@ public final class DataTable implements
             for (Index3IdxTrigger trigger : triggers) {
                 trigger.putIndex3Idx(values);
             }
+        }
+
+        @Override
+        public void putUnlessExists(Index3IdxRow rowName, Iterable<Index3IdxColumnValue> values) {
+            putUnlessExists(ImmutableMultimap.<Index3IdxRow, Index3IdxColumnValue>builder().putAll(rowName, values).build());
+        }
+
+        @Override
+        public void putUnlessExists(Index3IdxRow rowName, Index3IdxColumnValue... values) {
+            putUnlessExists(ImmutableMultimap.<Index3IdxRow, Index3IdxColumnValue>builder().putAll(rowName, values).build());
+        }
+
+        @Override
+        public void putUnlessExists(Multimap<Index3IdxRow, ? extends Index3IdxColumnValue> rows) {
+            Multimap<Index3IdxRow, Index3IdxColumn> toGet = Multimaps.transformValues(rows, Index3IdxColumnValue.getColumnNameFun());
+            Multimap<Index3IdxRow, Index3IdxColumnValue> existing = get(toGet);
+            Multimap<Index3IdxRow, Index3IdxColumnValue> toPut = HashMultimap.create();
+            for (Entry<Index3IdxRow, ? extends Index3IdxColumnValue> entry : rows.entries()) {
+                if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
+                    toPut.put(entry.getKey(), entry.getValue());
+                }
+            }
+            put(toPut);
         }
 
         @Override
@@ -2492,7 +2640,7 @@ public final class DataTable implements
 
         public IterableView<BatchingVisitable<Index3IdxRowResult>> getRanges(Iterable<RangeRequest> ranges) {
             Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableName, ranges);
-            return IterableView.of(Iterables.transform(rangeResults,
+            return IterableView.of(rangeResults).transform(
                     new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<Index3IdxRowResult>>() {
                 @Override
                 public BatchingVisitable<Index3IdxRowResult> apply(BatchingVisitable<RowResult<byte[]>> visitable) {
@@ -2503,7 +2651,7 @@ public final class DataTable implements
                         }
                     });
                 }
-            }));
+            });
         }
 
         public void deleteRange(RangeRequest range) {
@@ -2657,7 +2805,7 @@ public final class DataTable implements
 
             @Override
             public String toString() {
-                return MoreObjects.toStringHelper(this)
+                return MoreObjects.toStringHelper(getClass().getSimpleName())
                     .add("value1", value1)
                     .add("value2", value2)
                     .toString();
@@ -2760,7 +2908,7 @@ public final class DataTable implements
 
             @Override
             public String toString() {
-                return MoreObjects.toStringHelper(this)
+                return MoreObjects.toStringHelper(getClass().getSimpleName())
                     .add("rowName", rowName)
                     .add("columnName", columnName)
                     .toString();
@@ -2778,7 +2926,7 @@ public final class DataTable implements
                     return false;
                 }
                 Index4IdxColumn other = (Index4IdxColumn) obj;
-                return Objects.equal(rowName, other.rowName) && Objects.equal(columnName, other.columnName);
+                return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName);
             }
 
             @Override
@@ -2865,6 +3013,14 @@ public final class DataTable implements
                     }
                 };
             }
+
+            @Override
+            public String toString() {
+                return MoreObjects.toStringHelper(getClass().getSimpleName())
+                    .add("ColumnName", this.columnName)
+                    .add("Value", this.value)
+                    .toString();
+            }
         }
 
         public static final class Index4IdxRowResult implements TypedRowResult {
@@ -2913,6 +3069,14 @@ public final class DataTable implements
                     }
                 };
             }
+
+            @Override
+            public String toString() {
+                return MoreObjects.toStringHelper(getClass().getSimpleName())
+                    .add("RowName", getRowName())
+                    .add("ColumnValues", getColumnValues())
+                    .toString();
+            }
         }
 
         @Override
@@ -2952,6 +3116,29 @@ public final class DataTable implements
             for (Index4IdxTrigger trigger : triggers) {
                 trigger.putIndex4Idx(values);
             }
+        }
+
+        @Override
+        public void putUnlessExists(Index4IdxRow rowName, Iterable<Index4IdxColumnValue> values) {
+            putUnlessExists(ImmutableMultimap.<Index4IdxRow, Index4IdxColumnValue>builder().putAll(rowName, values).build());
+        }
+
+        @Override
+        public void putUnlessExists(Index4IdxRow rowName, Index4IdxColumnValue... values) {
+            putUnlessExists(ImmutableMultimap.<Index4IdxRow, Index4IdxColumnValue>builder().putAll(rowName, values).build());
+        }
+
+        @Override
+        public void putUnlessExists(Multimap<Index4IdxRow, ? extends Index4IdxColumnValue> rows) {
+            Multimap<Index4IdxRow, Index4IdxColumn> toGet = Multimaps.transformValues(rows, Index4IdxColumnValue.getColumnNameFun());
+            Multimap<Index4IdxRow, Index4IdxColumnValue> existing = get(toGet);
+            Multimap<Index4IdxRow, Index4IdxColumnValue> toPut = HashMultimap.create();
+            for (Entry<Index4IdxRow, ? extends Index4IdxColumnValue> entry : rows.entries()) {
+                if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
+                    toPut.put(entry.getKey(), entry.getValue());
+                }
+            }
+            put(toPut);
         }
 
         @Override
@@ -3082,7 +3269,7 @@ public final class DataTable implements
 
         public IterableView<BatchingVisitable<Index4IdxRowResult>> getRanges(Iterable<RangeRequest> ranges) {
             Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableName, ranges);
-            return IterableView.of(Iterables.transform(rangeResults,
+            return IterableView.of(rangeResults).transform(
                     new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<Index4IdxRowResult>>() {
                 @Override
                 public BatchingVisitable<Index4IdxRowResult> apply(BatchingVisitable<RowResult<byte[]>> visitable) {
@@ -3093,7 +3280,7 @@ public final class DataTable implements
                         }
                     });
                 }
-            }));
+            });
         }
 
         public void deleteRange(RangeRequest range) {
@@ -3131,5 +3318,5 @@ public final class DataTable implements
     }
 
 
-    static String __CLASS_HASH = "9Hcurbf8S4CFBwbKfw847w==";
+    static String __CLASS_HASH = "ViVjKvmt8daAep18q7KtJQ==";
 }

@@ -98,7 +98,7 @@ import com.google.common.base.Objects;
     }
 
     @Override public final String toString() {
-        return MoreObjects.toStringHelper(this)
+        return MoreObjects.toStringHelper(getClass().getSimpleName())
                 .add("isStandaloneServer", isStandaloneServer())
                 .add("maxAllowedLockTimeout", getMaxAllowedLockTimeout())
                 .add("maxAllowedClockDrift", getMaxAllowedClockDrift())
@@ -107,7 +107,7 @@ import com.google.common.base.Objects;
                 .toString();
     }
 
-    protected final void readObject(@SuppressWarnings("unused") ObjectInputStream in)
+    private final void readObject(@SuppressWarnings("unused") ObjectInputStream in)
             throws InvalidObjectException {
         throw new InvalidObjectException("proxy required");
     }

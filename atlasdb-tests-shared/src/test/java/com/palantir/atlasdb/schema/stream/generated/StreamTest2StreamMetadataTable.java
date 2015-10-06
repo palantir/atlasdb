@@ -178,7 +178,7 @@ public final class StreamTest2StreamMetadataTable implements
 
         @Override
         public String toString() {
-            return MoreObjects.toStringHelper(this)
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
                 .add("id", id)
                 .toString();
         }
@@ -288,6 +288,13 @@ public final class StreamTest2StreamMetadataTable implements
                 }
             }
         };
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("Value", this.value)
+                .toString();
+        }
     }
 
     public interface StreamTest2StreamMetadataTrigger {
@@ -352,9 +359,9 @@ public final class StreamTest2StreamMetadataTable implements
 
         @Override
         public String toString() {
-            return MoreObjects.toStringHelper(this)
-                    .add("RowName", getRowName())
-                    .add("Metadata", getMetadata())
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("RowName", getRowName())
+                .add("Metadata", getMetadata())
                 .toString();
         }
     }
@@ -418,6 +425,18 @@ public final class StreamTest2StreamMetadataTable implements
         put(Multimaps.forMap(toPut), duration, unit);
     }
 
+    public void putMetadataUnlessExists(StreamTest2StreamMetadataRow row, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata value, long duration, TimeUnit unit) {
+        putUnlessExists(ImmutableMultimap.of(row, Metadata.of(value)), duration, unit);
+    }
+
+    public void putMetadataUnlessExists(Map<StreamTest2StreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> map, long duration, TimeUnit unit) {
+        Map<StreamTest2StreamMetadataRow, StreamTest2StreamMetadataNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
+        for (Entry<StreamTest2StreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> e : map.entrySet()) {
+            toPut.put(e.getKey(), Metadata.of(e.getValue()));
+        }
+        putUnlessExists(Multimaps.forMap(toPut), duration, unit);
+    }
+
     @Override
     public void put(Multimap<StreamTest2StreamMetadataRow, ? extends StreamTest2StreamMetadataNamedColumnValue<?>> rows, long duration, TimeUnit unit) {
         t.useTable(tableName, this);
@@ -425,6 +444,18 @@ public final class StreamTest2StreamMetadataTable implements
         for (StreamTest2StreamMetadataTrigger trigger : triggers) {
             trigger.putStreamTest2StreamMetadata(rows);
         }
+    }
+
+    @Override
+    public void putUnlessExists(Multimap<StreamTest2StreamMetadataRow, ? extends StreamTest2StreamMetadataNamedColumnValue<?>> rows, long duration, TimeUnit unit) {
+        Multimap<StreamTest2StreamMetadataRow, StreamTest2StreamMetadataNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
+        Multimap<StreamTest2StreamMetadataRow, StreamTest2StreamMetadataNamedColumnValue<?>> toPut = HashMultimap.create();
+        for (Entry<StreamTest2StreamMetadataRow, ? extends StreamTest2StreamMetadataNamedColumnValue<?>> entry : rows.entries()) {
+            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
+                toPut.put(entry.getKey(), entry.getValue());
+            }
+        }
+        put(toPut, duration, unit);
     }
 
     public void deleteMetadata(StreamTest2StreamMetadataRow row) {
@@ -445,9 +476,9 @@ public final class StreamTest2StreamMetadataTable implements
     @Override
     public void delete(Iterable<StreamTest2StreamMetadataRow> rows) {
         List<byte[]> rowBytes = Persistables.persistAll(rows);
-        ImmutableSet.Builder<Cell> cells = ImmutableSet.builder();
+        Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("md")));
-        t.delete(tableName, cells.build());
+        t.delete(tableName, cells);
     }
 
     @Override
@@ -588,5 +619,5 @@ public final class StreamTest2StreamMetadataTable implements
         return ImmutableList.of();
     }
 
-    static String __CLASS_HASH = "8A+remUm8ejVshWxKMk6mw==";
+    static String __CLASS_HASH = "fJBmiJ2sxoo1v7Ly5ln0Mw==";
 }

@@ -7,13 +7,15 @@ message TableMetadata {
     optional CachePriority cachePriority = 4;
     optional PartitionStrategy partitionStrategy = 5;
     optional bool rangeScanAllowed = 6;
-    optional bool dbCompressionRequested = 7;
+    optional bool explicitCompression = 7 [deprecated = true];
     optional bool negativeLookups = 8;
     optional SweepStrategy sweepStrategy = 9;
+    optional int32 explicitCompressionBlockSizeKiloBytes = 10;
 }
 
 message NameMetadataDescription {
     repeated NameComponentDescription nameParts = 1;
+    optional bool hasFirstComponentHash = 2;
 }
 
 message NameComponentDescription {
@@ -21,7 +23,7 @@ message NameComponentDescription {
     required ValueType type = 2;
     required ValueByteOrder order = 3;
     optional bool hasUniformPartitioner = 4;
-    repeated string explicitParitions = 5;
+    repeated string explicitPartitions = 5;
 }
 
 message ColumnMetadataDescription {
@@ -48,9 +50,16 @@ message ColumnValueDescription {
     optional string canonicalClassName = 5;
 
     // This is the proto descriptor so we can render the message without the compiled proto files.
-    optional bytes protoFileDescriptor = 6;
+    optional bytes protoFileDescriptor = 6 [deprecated = true];
     // This protoName is the name of the message in the protoFileDescriptor.
     optional string protoMessageName = 7;
+
+    optional FileDescriptorTreeProto protoFileDescriptorTree = 8;
+}
+
+message FileDescriptorTreeProto {
+    required bytes protoFileDescriptor = 1;
+    repeated FileDescriptorTreeProto dependencies = 2;
 }
 
 enum ValueType {

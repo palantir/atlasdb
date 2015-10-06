@@ -142,10 +142,10 @@ class NamedRowResultRenderer extends Renderer {
     private void renderToString() {
         line("@Override");
         line("public String toString() {"); {
-            line("return MoreObjects.toStringHelper(this)");
-            line("        .add(\"RowName\", getRowName())");
+            line("return MoreObjects.toStringHelper(getClass().getSimpleName())");
+            line("    .add(\"RowName\", getRowName())");
             for (NamedColumnDescription col : cols) {
-                line("        .add(\"", VarName(col), "\", get", VarName(col), "())");
+                line("    .add(\"", VarName(col), "\", get", VarName(col), "())");
             }
             line("    .toString();");
         } line("}");

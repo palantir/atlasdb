@@ -18,9 +18,9 @@ package com.palantir.atlasdb.keyvalue.api;
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.encoding.PtBytes;
 
 public class RangeRequests {
-    private static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
 
     /**
      * This will return the first byte[] less than the given byte[] lexicographically.
@@ -64,7 +64,7 @@ public class RangeRequests {
             }
         }
 
-        return EMPTY_BYTE_ARRAY;
+        return PtBytes.EMPTY_BYTE_ARRAY;
     }
 
     public static byte[] nextLexicographicName(@Nonnull byte[] name) {

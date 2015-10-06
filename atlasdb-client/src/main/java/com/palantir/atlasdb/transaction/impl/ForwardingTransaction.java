@@ -27,6 +27,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
+import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.BatchingVisitable;
 
@@ -101,6 +102,11 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
     @Override
     public long getTimestamp() {
         return delegate().getTimestamp();
+    }
+
+    @Override
+    public TransactionReadSentinelBehavior getReadSentinelBehavior() {
+        return delegate().getReadSentinelBehavior();
     }
 
     @Override

@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.SortedMap;
 
 import com.google.common.base.Function;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
@@ -30,6 +31,8 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
+import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.common.collect.Maps2;
 
 public class RowResult<T> implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -66,7 +69,7 @@ public class RowResult<T> implements Serializable {
     }
 
     public Set<Cell> getCellSet() {
-        Set<Cell> cells = Sets.newHashSet();
+        Set<Cell> cells = Sets.newHashSetWithExpectedSize(columns.size());
         for (byte[] column : columns.keySet()) {
             cells.add(Cell.create(row, column));
         }
@@ -111,8 +114,10 @@ public class RowResult<T> implements Serializable {
 
     @Override
     public String toString() {
-        return "RowResult [row=" + Arrays.toString(row) + ", columns="
-                + columns + "]";
+        return MoreObjects.toStringHelper(getClass())
+                .add("row", PtBytes.encodeHexString(row))
+                .add("columns", Maps2.transformKeys(columns, PtBytes.BYTES_TO_HEX_STRING))
+                .toString();
     }
 
     @Override

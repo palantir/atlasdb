@@ -16,7 +16,6 @@
 package com.palantir.atlasdb;
 
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
 
 import org.junit.After;
 import org.junit.AfterClass;
@@ -49,7 +48,6 @@ import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampService;
 
 public class AtlasDbTestCase {
-    protected static ExecutorService executor;
     protected static LockClient lockClient;
     protected static LockServiceImpl lockService;
 
@@ -60,19 +58,6 @@ public class AtlasDbTestCase {
     protected SweepStrategyManager sweepStrategyManager;
     protected TestTransactionManager txManager;
     protected TransactionService transactionService;
-
-    @BeforeClass
-    public static void setupExecutor() {
-        executor = PTExecutors.newFixedThreadPool(16, PTExecutors.newNamedThreadFactory(true));
-    }
-
-    @AfterClass
-    public static void tearDownExecutor() {
-        if (executor != null) {
-            executor.shutdown();
-            executor = null;
-        }
-    }
 
     @BeforeClass
     public static void setupLockClient() {
@@ -129,7 +114,7 @@ public class AtlasDbTestCase {
     }
 
     protected KeyValueService getBaseKeyValueService() {
-        return new InMemoryKeyValueService(false, executor);
+        return new InMemoryKeyValueService(false, PTExecutors.newSingleThreadExecutor(PTExecutors.newNamedThreadFactory(true)));
     }
 
     @After

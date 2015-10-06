@@ -15,26 +15,16 @@
  */
 package com.palantir.atlasdb.keyvalue;
 
-import java.util.concurrent.ExecutorService;
-
-import org.junit.BeforeClass;
-
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest;
 import com.palantir.common.concurrent.PTExecutors;
 
 public class MemorySerializableTransactionTest extends AbstractSerializableTransactionTest {
-    static ExecutorService executor;
-    @BeforeClass
-    public static void setupExecutor() {
-        executor = PTExecutors.newFixedThreadPool(16, PTExecutors.newNamedThreadFactory(true));
-    }
 
     @Override
     protected KeyValueService getKeyValueService() {
-        return new InMemoryKeyValueService(false, executor);
+        return new InMemoryKeyValueService(false, PTExecutors.newSingleThreadExecutor(PTExecutors.newNamedThreadFactory(true)));
     }
-
 
 }

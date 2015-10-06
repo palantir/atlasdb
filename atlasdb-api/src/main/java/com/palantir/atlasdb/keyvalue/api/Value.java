@@ -26,6 +26,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.io.BaseEncoding;
+import com.palantir.atlasdb.encoding.PtBytes;
 
 /**
  * Represents a value in the key-value store (including its timestamp).
@@ -35,13 +36,12 @@ import com.google.common.io.BaseEncoding;
 public class Value implements Serializable {
     private static final long serialVersionUID = 1L;
     public static final long INVALID_VALUE_TIMESTAMP = -1L;
-    private static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
 
     @JsonCreator
     public static Value create(@JsonProperty("contents") byte[] contents,
                                @JsonProperty("timestamp") long timestamp) {
         if (contents == null) {
-            contents = EMPTY_BYTE_ARRAY;
+            contents = PtBytes.EMPTY_BYTE_ARRAY;
         }
         return new Value(contents, timestamp);
     }
@@ -96,7 +96,7 @@ public class Value implements Serializable {
         final int prime = 31;
         int result = 1;
         result = prime * result + Arrays.hashCode(contents);
-        result = prime * result + (int)(timestamp ^ (timestamp >>> 32));
+        result = prime * result + (int) (timestamp ^ (timestamp >>> 32));
         return result;
     }
 
@@ -124,7 +124,9 @@ public class Value implements Serializable {
     @Override
     public String toString() {
         byte[] prefix = Arrays.copyOf(contents, Math.min(10, contents.length));
-        return "Value [contents=" + new String(BaseEncoding.base16().lowerCase().encode(prefix)) + ", timestamp=" + timestamp + "]";
+        return "Value [contents=" + new String(PtBytes.encodeHexString(prefix)) +
+                ", contentsLength=" + contents.length +
+                ", timestamp=" + timestamp + "]";
     }
 
 

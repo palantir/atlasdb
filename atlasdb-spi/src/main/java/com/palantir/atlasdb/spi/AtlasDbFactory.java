@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.spi;
 
-import java.io.IOException;
-
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.timestamp.TimestampService;
 

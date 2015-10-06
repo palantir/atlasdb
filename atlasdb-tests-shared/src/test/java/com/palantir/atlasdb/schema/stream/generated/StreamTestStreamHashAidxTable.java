@@ -87,7 +87,7 @@ public final class StreamTestStreamHashAidxTable implements
                                                 StreamTestStreamHashAidxTable.StreamTestStreamHashAidxRowResult> {
     private final Transaction t;
     private final List<StreamTestStreamHashAidxTrigger> triggers;
-    private final static String rawTableName = "stream_test_stream_hash_idx";
+    private final static String rawTableName = "stream_test_stream_hash_aidx";
     private final String tableName;
     private final Namespace namespace;
 
@@ -176,7 +176,7 @@ public final class StreamTestStreamHashAidxTable implements
 
         @Override
         public String toString() {
-            return MoreObjects.toStringHelper(this)
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
                 .add("hash", hash)
                 .toString();
         }
@@ -267,7 +267,7 @@ public final class StreamTestStreamHashAidxTable implements
 
         @Override
         public String toString() {
-            return MoreObjects.toStringHelper(this)
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
                 .add("streamId", streamId)
                 .toString();
         }
@@ -369,6 +369,14 @@ public final class StreamTestStreamHashAidxTable implements
                 }
             };
         }
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("ColumnName", this.columnName)
+                .add("Value", this.value)
+                .toString();
+        }
     }
 
     public static final class StreamTestStreamHashAidxRowResult implements TypedRowResult {
@@ -417,6 +425,14 @@ public final class StreamTestStreamHashAidxTable implements
                 }
             };
         }
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("RowName", getRowName())
+                .add("ColumnValues", getColumnValues())
+                .toString();
+        }
     }
 
     @Override
@@ -456,6 +472,29 @@ public final class StreamTestStreamHashAidxTable implements
         for (StreamTestStreamHashAidxTrigger trigger : triggers) {
             trigger.putStreamTestStreamHashAidx(values);
         }
+    }
+
+    @Override
+    public void putUnlessExists(StreamTestStreamHashAidxRow rowName, Iterable<StreamTestStreamHashAidxColumnValue> values) {
+        putUnlessExists(ImmutableMultimap.<StreamTestStreamHashAidxRow, StreamTestStreamHashAidxColumnValue>builder().putAll(rowName, values).build());
+    }
+
+    @Override
+    public void putUnlessExists(StreamTestStreamHashAidxRow rowName, StreamTestStreamHashAidxColumnValue... values) {
+        putUnlessExists(ImmutableMultimap.<StreamTestStreamHashAidxRow, StreamTestStreamHashAidxColumnValue>builder().putAll(rowName, values).build());
+    }
+
+    @Override
+    public void putUnlessExists(Multimap<StreamTestStreamHashAidxRow, ? extends StreamTestStreamHashAidxColumnValue> rows) {
+        Multimap<StreamTestStreamHashAidxRow, StreamTestStreamHashAidxColumn> toGet = Multimaps.transformValues(rows, StreamTestStreamHashAidxColumnValue.getColumnNameFun());
+        Multimap<StreamTestStreamHashAidxRow, StreamTestStreamHashAidxColumnValue> existing = get(toGet);
+        Multimap<StreamTestStreamHashAidxRow, StreamTestStreamHashAidxColumnValue> toPut = HashMultimap.create();
+        for (Entry<StreamTestStreamHashAidxRow, ? extends StreamTestStreamHashAidxColumnValue> entry : rows.entries()) {
+            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
+                toPut.put(entry.getKey(), entry.getValue());
+            }
+        }
+        put(toPut);
     }
 
     @Override
@@ -599,5 +638,5 @@ public final class StreamTestStreamHashAidxTable implements
         return ImmutableList.of();
     }
 
-    static String __CLASS_HASH = "MYoXQKksUUpkOsq/yHgOLw==";
+    static String __CLASS_HASH = "00Nxg4Alo0a4ZK8htn6eBg==";
 }

@@ -108,7 +108,7 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
 
             @Override
             public Integer apply(Integer maxValueSizeBytes) {
-                return maxValueSizeBytes <= 0 ? 1 : maxValueSizeBytes;
+                return maxValueSizeBytes <= Integer.valueOf(0) ? Integer.valueOf(1) : maxValueSizeBytes;
             }
 
         });

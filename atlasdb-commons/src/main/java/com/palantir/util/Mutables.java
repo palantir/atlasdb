@@ -19,7 +19,6 @@ public class Mutables {
     /**
      * Type-inferred factory method for {@link Mutable}
      */
-    @SuppressWarnings("deprecation")
     public static <T> Mutable<T> newMutable(T val) {
         return new Mutable<T>(val);
     }

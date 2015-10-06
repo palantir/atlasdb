@@ -17,8 +17,6 @@ package com.palantir.atlasdb.schema;
 
 import java.util.Map;
 
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -59,7 +57,7 @@ public class TransactionRangeMigratorBuilder {
     private static Function<RowResult<byte[]>, Map<Cell, byte[]>> getIdentityTransform() {
         return new Function<RowResult<byte[]>, Map<Cell,byte[]>>() {
             @Override
-            public Map<Cell, byte[]> apply(@Nullable RowResult<byte[]> input) {
+            public Map<Cell, byte[]> apply(RowResult<byte[]> input) {
                 return Maps2.fromEntries(input.getCells());
             }
         };

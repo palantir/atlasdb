@@ -56,5 +56,5 @@ CONVENIENCE GLOBAL VARIABLES
     or to connect through dispatch
 
       connect(:type=>"DISPATCH", :host=>"my_dispatch_host", :port=>"3280",
-              :username=>"pg_username", :password=>"pg_password")
+              :username=>"username", :password=>"password")
 

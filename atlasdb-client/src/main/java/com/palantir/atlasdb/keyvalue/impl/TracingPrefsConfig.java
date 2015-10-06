@@ -17,7 +17,7 @@ package com.palantir.atlasdb.keyvalue.impl;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.InputStream;
+import java.io.IOException;
 import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
@@ -27,10 +27,11 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.io.Closeables;
 
 public class TracingPrefsConfig implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(TracingPrefsConfig.class);
+    private static final String TRACING_PREF_FILENAME = "atlas_tracing.prefs";
+
     private final Random random = new Random();
     private volatile boolean loadedConfig = false;
     private volatile boolean tracingEnabled = false;
@@ -41,25 +42,24 @@ public class TracingPrefsConfig implements Runnable {
 
     @Override
     public void run() {
-        final String TRACING_PREF_FILENAME = "atlas_tracing.prefs";
-        final File TRACING_PREF_FILE = new File(System.getProperty("user.dir") + java.io.File.separatorChar + TRACING_PREF_FILENAME);
-        if (TRACING_PREF_FILE.exists()) {
-            InputStream is = null;
-            try {
-                is = new FileInputStream(TRACING_PREF_FILE);
-                tracingPrefConfig.load(new FileInputStream(TRACING_PREF_FILE));
-                tracingEnabled = Boolean.parseBoolean(tracingPrefConfig.getProperty("tracing_enabled", "false"));
-                tracingProbability = Double.parseDouble(tracingPrefConfig.getProperty("trace_probability", "1.0"));
-                tracingMinDurationToTraceMillis = Integer.parseInt(tracingPrefConfig.getProperty("min_duration_to_log_ms", "0"));
-                String tableString = tracingPrefConfig.getProperty("tables_to_trace", "");
-                tracedTables = ImmutableSet.copyOf(Splitter.on(",").trimResults().split(tableString));
-            } catch (Throwable e) {
-                log.error("Could not load a malformed " + TRACING_PREF_FILENAME + ".");
-                loadedConfig = false;
-            } finally {
-                Closeables.closeQuietly(is);
+        try {
+            final File TRACING_PREF_FILE = new File(System.getProperty("user.dir") + java.io.File.separatorChar + TRACING_PREF_FILENAME);
+            if (TRACING_PREF_FILE.exists()) {
+                try {
+                    tracingPrefConfig.load(new FileInputStream(TRACING_PREF_FILE));
+                    tracingEnabled = Boolean.parseBoolean(tracingPrefConfig.getProperty("tracing_enabled", "false"));
+                    tracingProbability = Double.parseDouble(tracingPrefConfig.getProperty("trace_probability", "1.0"));
+                    tracingMinDurationToTraceMillis = Integer.parseInt(tracingPrefConfig.getProperty("min_duration_to_log_ms", "0"));
+                    String tableString = tracingPrefConfig.getProperty("tables_to_trace", "");
+                    tracedTables = ImmutableSet.copyOf(Splitter.on(",").trimResults().split(tableString));
+                } catch (IOException e) {
+                    log.error("Could not load a malformed " + TRACING_PREF_FILENAME + ".");
+                    loadedConfig = false;
+                }
+                loadedConfig = true;
             }
-            loadedConfig = true;
+        } catch(Throwable t) {
+            log.error("Error occurred while refreshing {}: {}", TRACING_PREF_FILENAME, t, t);
         }
     }
 

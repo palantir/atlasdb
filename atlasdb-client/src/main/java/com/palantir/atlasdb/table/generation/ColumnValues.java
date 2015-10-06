@@ -65,11 +65,11 @@ public class ColumnValues {
         return Iterables.getOnlyElement(cellValues.entrySet());
     }
 
-    public static <T extends Persistable> Set<Cell> toCells(Multimap<T, ? extends Persistable> map) {
-        Set<Cell> ret = Sets.newHashSet();
-        for (T key : map.keySet()) {
-            byte[] rowName = key.persistToBytes();
-            for (Persistable val : map.get(key)) {
+    public static <T extends Persistable, V extends Persistable> Set<Cell> toCells(Multimap<T, V> map) {
+        Set<Cell> ret = Sets.newHashSetWithExpectedSize(map.size());
+        for (Entry<T, Collection<V>> e : map.asMap().entrySet()) {
+            byte[] rowName = e.getKey().persistToBytes();
+            for (Persistable val : e.getValue()) {
                 ret.add(Cell.create(rowName, val.persistToBytes()));
             }
         }

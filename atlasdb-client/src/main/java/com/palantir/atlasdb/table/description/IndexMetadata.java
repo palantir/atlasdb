@@ -39,9 +39,9 @@ public class IndexMetadata {
     final ImmutableList<IndexComponent> colComponents;
     @Nullable final String columnNameToGetData;
     final CachePriority cachePriority;
-    final PartitionStrategy paritionStrategy;
+    final PartitionStrategy partitionStrategy;
     boolean rangeScanAllowed;
-    boolean dbCompressionRequested;
+    int explicitCompressionBlockSizeKB;
     boolean negativeLookups;
     final ConflictHandler conflictHandler;
     final IndexCondition indexCondition;
@@ -53,10 +53,10 @@ public class IndexMetadata {
                                                     String javaName,
                                                     Iterable<IndexComponent> rowComponents,
                                                     CachePriority cachePriority,
-                                                    PartitionStrategy paritionStrategy,
+                                                    PartitionStrategy partitionStrategy,
                                                     ConflictHandler conflictHandler,
                                                     boolean rangeScanAllowed,
-                                                    boolean dbCompressionRequested,
+                                                    int explicitCompressionBlockSizeKB,
                                                     boolean negativeLookups,
                                                     IndexCondition indexCondition,
                                                     IndexType indexType,
@@ -71,10 +71,10 @@ public class IndexMetadata {
                 colComponents,
                 getColNameToAccessFrom(rowComponents, colComponents, indexCondition),
                 cachePriority,
-                paritionStrategy,
+                partitionStrategy,
                 conflictHandler,
                 rangeScanAllowed,
-                dbCompressionRequested,
+                explicitCompressionBlockSizeKB,
                 negativeLookups,
                 indexCondition,
                 indexType,
@@ -87,10 +87,10 @@ public class IndexMetadata {
                                                            Iterable<IndexComponent> rowComponents,
                                                            Iterable<IndexComponent> colComponents,
                                                            CachePriority cachePriority,
-                                                           PartitionStrategy paritionStrategy,
+                                                           PartitionStrategy partitionStrategy,
                                                            ConflictHandler conflictHandler,
                                                            boolean rangeScanAllowed,
-                                                           boolean dbCompressionRequested,
+                                                           int explicitCompressionBlockSizeKB,
                                                            boolean negativeLookups,
                                                            IndexCondition indexCondition,
                                                            IndexType indexType,
@@ -105,10 +105,10 @@ public class IndexMetadata {
                 colComponents,
                 getColNameToAccessFrom(rowComponents, colComponents, indexCondition),
                 cachePriority,
-                paritionStrategy,
+                partitionStrategy,
                 conflictHandler,
                 rangeScanAllowed,
-                dbCompressionRequested,
+                explicitCompressionBlockSizeKB,
                 negativeLookups,
                 indexCondition,
                 indexType,
@@ -125,7 +125,7 @@ public class IndexMetadata {
                           PartitionStrategy partitionStrategy,
                           ConflictHandler conflictHandler,
                           boolean rangeScanAllowed,
-                          boolean dbCompressionRequested,
+                          int explicitCompressionBlockSizeKB,
                           boolean negativeLookups,
                           IndexCondition indexCondition,
                           IndexType indexType,
@@ -137,10 +137,10 @@ public class IndexMetadata {
         this.colComponents = ImmutableList.copyOf(colComponents);
         this.columnNameToGetData = colNameToAccessFrom;
         this.cachePriority = cachePriority;
-        this.paritionStrategy = partitionStrategy;
+        this.partitionStrategy = partitionStrategy;
         this.conflictHandler = conflictHandler;
         this.rangeScanAllowed = rangeScanAllowed;
-        this.dbCompressionRequested = dbCompressionRequested;
+        this.explicitCompressionBlockSizeKB = explicitCompressionBlockSizeKB;
         this.negativeLookups = negativeLookups;
         this.indexCondition = indexCondition;
         this.indexType = indexType;
@@ -206,13 +206,13 @@ public class IndexMetadata {
             throw new IllegalArgumentException("Unknown index type " + indexType);
         }
         return new TableMetadata(
-                new NameMetadataDescription(rowDescList),
+                NameMetadataDescription.create(rowDescList),
                 column,
                 conflictHandler,
                 cachePriority,
-                paritionStrategy,
+                partitionStrategy,
                 rangeScanAllowed,
-                dbCompressionRequested,
+                explicitCompressionBlockSizeKB,
                 negativeLookups,
                 sweepStrategy,
                 expirationStrategy);
@@ -269,7 +269,7 @@ public class IndexMetadata {
     }
 
     private static ColumnMetadataDescription getDynamicAdditiveIndexColumn(List<NameComponentDescription> components) {
-        NameMetadataDescription columnDescription = new NameMetadataDescription(components);
+        NameMetadataDescription columnDescription = NameMetadataDescription.create(components);
         ColumnValueDescription columnValue = ColumnValueDescription.forType(ValueType.VAR_LONG);
         DynamicColumnDescription dynamicColumn = new DynamicColumnDescription(columnDescription, columnValue);
         return new ColumnMetadataDescription(dynamicColumn);
@@ -281,7 +281,7 @@ public class IndexMetadata {
                 .add(new NameComponentDescription("column_name", ValueType.SIZED_BLOB))
                 .addAll(components)
                 .build();
-        NameMetadataDescription columnDescription = new NameMetadataDescription(components);
+        NameMetadataDescription columnDescription = NameMetadataDescription.create(components);
         ColumnValueDescription columnValue = ColumnValueDescription.forType(ValueType.VAR_LONG);
         DynamicColumnDescription dynamicColumn = new DynamicColumnDescription(columnDescription, columnValue);
         return new ColumnMetadataDescription(dynamicColumn);

@@ -419,6 +419,16 @@ public interface KeyValueService extends AutoCloseable {
     @Idempotent
     void dropTable(@QueryParam("tableName") String tableName) throws InsufficientConsistencyException;
 
+
+    /**
+     * Drops many tables in idempotent fashion. If you are dropping many tables at once,
+     * use this call as the implementation can be much faster/less error-prone on some KVSs.
+     *
+     * @param tableNames
+     */
+    @Idempotent
+    void dropTables(Set<String> tableNames) throws InsufficientConsistencyException;
+
     /**
      * Creates a table with the specified name. If the table already exists, no action is performed
      * (the table is left in its current state).
@@ -437,7 +447,7 @@ public interface KeyValueService extends AutoCloseable {
 
     /**
      * Creates many tables in idempotent fashion. If you are making many tables at once,
-     * use this call as the implementation can be much faster on some distributed KVSs.
+     * use this call as the implementation can be much faster/less error-prone on some KVSs.
      *
      * @param tableNamesToMaxValueSizeInBytes This may be used by the key value store to
      *        throw if a value is too big. It may also be used by the store as a
@@ -456,10 +466,16 @@ public interface KeyValueService extends AutoCloseable {
     @Idempotent
     Set<String> getAllTableNames();
 
+    /**
+     * Gets the metadata for a given table. Also useful for checking to see if a table exists.
+     *
+     * @return a byte array representing the metadata for the table. Array is empty if no table
+     * with the given name exists. Consider {@link TableMetadata#BYTES_HYDRATOR} for hydrating.
+     */
+    @Idempotent
     @POST
     @Path("get-metadata-for-table")
     @Produces(MediaType.APPLICATION_OCTET_STREAM)
-    @Idempotent
     byte[] getMetadataForTable(@QueryParam("tableName") String tableName);
 
     @POST

@@ -38,10 +38,11 @@ public class ConflictDetectionManager {
     }
 
     public boolean isEmptyOrContainsTable(String tableName) {
-        if (supplier.get().isEmpty() && overrides.isEmpty()) {
+        Map<String, ConflictHandler> tableToConflictHandler = supplier.get();
+        if (tableToConflictHandler.isEmpty() && overrides.isEmpty()) {
             return true;
         }
-        if (supplier.get().containsKey(tableName) || overrides.containsKey(tableName)) {
+        if (tableToConflictHandler.containsKey(tableName) || overrides.containsKey(tableName)) {
             return true;
         }
         return false;

@@ -178,7 +178,7 @@ public final class UserPhotosStreamMetadataTable implements
 
         @Override
         public String toString() {
-            return MoreObjects.toStringHelper(this)
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
                 .add("id", id)
                 .toString();
         }
@@ -288,6 +288,13 @@ public final class UserPhotosStreamMetadataTable implements
                 }
             }
         };
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("Value", this.value)
+                .toString();
+        }
     }
 
     public interface UserPhotosStreamMetadataTrigger {
@@ -352,9 +359,9 @@ public final class UserPhotosStreamMetadataTable implements
 
         @Override
         public String toString() {
-            return MoreObjects.toStringHelper(this)
-                    .add("RowName", getRowName())
-                    .add("Metadata", getMetadata())
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("RowName", getRowName())
+                .add("Metadata", getMetadata())
                 .toString();
         }
     }
@@ -418,6 +425,18 @@ public final class UserPhotosStreamMetadataTable implements
         put(Multimaps.forMap(toPut));
     }
 
+    public void putMetadataUnlessExists(UserPhotosStreamMetadataRow row, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata value) {
+        putUnlessExists(ImmutableMultimap.of(row, Metadata.of(value)));
+    }
+
+    public void putMetadataUnlessExists(Map<UserPhotosStreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> map) {
+        Map<UserPhotosStreamMetadataRow, UserPhotosStreamMetadataNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
+        for (Entry<UserPhotosStreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> e : map.entrySet()) {
+            toPut.put(e.getKey(), Metadata.of(e.getValue()));
+        }
+        putUnlessExists(Multimaps.forMap(toPut));
+    }
+
     @Override
     public void put(Multimap<UserPhotosStreamMetadataRow, ? extends UserPhotosStreamMetadataNamedColumnValue<?>> rows) {
         t.useTable(tableName, this);
@@ -425,6 +444,18 @@ public final class UserPhotosStreamMetadataTable implements
         for (UserPhotosStreamMetadataTrigger trigger : triggers) {
             trigger.putUserPhotosStreamMetadata(rows);
         }
+    }
+
+    @Override
+    public void putUnlessExists(Multimap<UserPhotosStreamMetadataRow, ? extends UserPhotosStreamMetadataNamedColumnValue<?>> rows) {
+        Multimap<UserPhotosStreamMetadataRow, UserPhotosStreamMetadataNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
+        Multimap<UserPhotosStreamMetadataRow, UserPhotosStreamMetadataNamedColumnValue<?>> toPut = HashMultimap.create();
+        for (Entry<UserPhotosStreamMetadataRow, ? extends UserPhotosStreamMetadataNamedColumnValue<?>> entry : rows.entries()) {
+            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
+                toPut.put(entry.getKey(), entry.getValue());
+            }
+        }
+        put(toPut);
     }
 
     public void deleteMetadata(UserPhotosStreamMetadataRow row) {
@@ -445,9 +476,9 @@ public final class UserPhotosStreamMetadataTable implements
     @Override
     public void delete(Iterable<UserPhotosStreamMetadataRow> rows) {
         List<byte[]> rowBytes = Persistables.persistAll(rows);
-        ImmutableSet.Builder<Cell> cells = ImmutableSet.builder();
+        Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("md")));
-        t.delete(tableName, cells.build());
+        t.delete(tableName, cells);
     }
 
     @Override
@@ -588,5 +619,5 @@ public final class UserPhotosStreamMetadataTable implements
         return ImmutableList.of();
     }
 
-    static String __CLASS_HASH = "ORtD4+WY8ylisAQdfMhzCg==";
+    static String __CLASS_HASH = "HlzM3MtaHjSyifYRNyv++A==";
 }

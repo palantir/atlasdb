@@ -17,9 +17,6 @@ package com.palantir.util.jmx;
 
 import javax.annotation.Nonnull;
 
-import com.palantir.annotations.PgNotExtendableApi;
-import com.palantir.annotations.PgPublicApi;
-
 /**
  * This is a simple timer class that is asked to begin a timer and end after the operation is done.
  *
@@ -32,8 +29,6 @@ import com.palantir.annotations.PgPublicApi;
  * <p>
  * If {@link TimingState#end()} is called more than once, the results are undefined.
  */
-@PgPublicApi
-@PgNotExtendableApi
 public interface OperationTimer {
     @Nonnull
     public TimingState begin(String operationName);

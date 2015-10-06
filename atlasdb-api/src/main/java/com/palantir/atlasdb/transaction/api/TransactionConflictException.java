@@ -19,8 +19,6 @@ import java.io.Serializable;
 import java.util.Collection;
 import java.util.Set;
 
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -67,7 +65,7 @@ public class TransactionConflictException extends TransactionFailedRetriableExce
         public static Function<CellConflict, Cell> getCellFunction() {
             return new Function<TransactionConflictException.CellConflict, Cell>() {
                 @Override
-                public Cell apply(@Nullable CellConflict input) {
+                public Cell apply(CellConflict input) {
                     return input.cell;
                 }
             };
@@ -86,7 +84,7 @@ public class TransactionConflictException extends TransactionFailedRetriableExce
     }
 
     /**
-     * These conflicts started and commited after our start timestamp.  Having these kinds of conflicts means that we
+     * These conflicts started and committed after our start timestamp.  Having these kinds of conflicts means that we
      * may be a long running transaction.
      */
     public Collection<CellConflict> getDominatingWrites() {

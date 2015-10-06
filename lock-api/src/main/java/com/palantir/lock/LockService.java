@@ -176,6 +176,11 @@ import com.palantir.common.annotation.NonIdempotent;
     /** Returns the options used to configure the lock server. */
     @Idempotent LockServerOptions getLockServerOptions();
 
-    boolean isDelayRequired();
+    /** Returns the current time in milliseconds on the server. */
+    @Idempotent long currentTimeMillis();
+
+    @Idempotent void logCurrentState();
+
+    @Idempotent boolean isDelayRequired();
 
 }

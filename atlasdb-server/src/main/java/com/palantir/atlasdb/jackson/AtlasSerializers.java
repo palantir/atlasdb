@@ -115,7 +115,6 @@ public class AtlasSerializers {
             break;
         case PROTO:
             Message proto = description.hydrateProto(AtlasSerializers.class.getClassLoader(), val);
-//            String rawJson = ForkedJsonFormat.printToString(proto);
             String rawJson = JsonFormat.printToString(proto);
             jgen.writeRawValue(rawJson);
             break;

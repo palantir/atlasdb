@@ -33,25 +33,29 @@ public class StreamTables {
     public static final String INDEX_TABLE_SUFFIX = "_stream_idx";
 
     public static void generateSchema(Schema schema, final String shortPrefix, final String longPrefix, final ValueType idType) {
-        schema.addTableDefinition(shortPrefix + METADATA_TABLE_SUFFIX, getStreamMetadataDefinition(longPrefix, idType, ExpirationStrategy.NEVER));
-        schema.addTableDefinition(shortPrefix + VALUE_TABLE_SUFFIX, getStreamValueDefinition(longPrefix, idType, ExpirationStrategy.NEVER));
+        schema.addTableDefinition(shortPrefix + METADATA_TABLE_SUFFIX, getStreamMetadataDefinition(longPrefix, idType, ExpirationStrategy.NEVER, false));
+        schema.addTableDefinition(shortPrefix + VALUE_TABLE_SUFFIX, getStreamValueDefinition(longPrefix, idType, ExpirationStrategy.NEVER, false));
         schema.addTableDefinition(shortPrefix + HASH_TABLE_SUFFIX, getStreamHashIdxDefinition(longPrefix, idType, ExpirationStrategy.NEVER));
-        schema.addTableDefinition(shortPrefix + INDEX_TABLE_SUFFIX, getStreamIdxDefinition(longPrefix, idType, ExpirationStrategy.NEVER));
+        schema.addTableDefinition(shortPrefix + INDEX_TABLE_SUFFIX, getStreamIdxDefinition(longPrefix, idType, ExpirationStrategy.NEVER, false));
     }
 
     public static TableDefinition getStreamIdxDefinition(final String longPrefix,
                                                          final ValueType idType,
-                                                         final ExpirationStrategy expirationStrategy) {
+                                                         final ExpirationStrategy expirationStrategy,
+                                                         final boolean hashFirstRowComponent) {
         return new TableDefinition() {{
             javaTableName(Renderers.CamelCase(longPrefix) + "StreamIdx");
             rowName();
+                if (hashFirstRowComponent) {
+                    hashFirstRowComponent();
+                }
                 rowComponent("id",            idType);
             dynamicColumns();
                 columnComponent("reference", ValueType.SIZED_BLOB);
                 value(ValueType.VAR_LONG);
             conflictHandler(ConflictHandler.IGNORE_ALL);
             maxValueSize(1);
-            dbCompressionRequested();
+            explicitCompressionRequested();
             expirationStrategy(expirationStrategy);
         }};
     }
@@ -68,43 +72,22 @@ public class StreamTables {
                 value(ValueType.VAR_LONG);
             conflictHandler(ConflictHandler.IGNORE_ALL);
             maxValueSize(1);
-            dbCompressionRequested();
+            explicitCompressionRequested();
             negativeLookups();
             expirationStrategy(expirationStrategy);
         }};
     }
 
-    public static TableDefinition getStreamValueDefinition(String longPrefix,
-                                                           ValueType idType,
-                                                           ExpirationStrategy expirationStrategy) {
-        return getValueDefinition(longPrefix, idType, "Stream", expirationStrategy);
-    }
-
-    public static TableDefinition getStreamMetadataDefinition(String longPrefix,
-                                                              ValueType idType,
-                                                              ExpirationStrategy expirationStrategy) {
-        return getMetadataDefinition(longPrefix, idType, "Stream", expirationStrategy);
-    }
-
-    public static TableDefinition getBlobValueDefinition(String longPrefix,
-                                                         ValueType idType,
-                                                         ExpirationStrategy expirationStrategy) {
-        return getValueDefinition(longPrefix, idType, "Blob", expirationStrategy);
-    }
-
-    public static TableDefinition getBlobMetadataDefinition(String longPrefix,
-                                                            ValueType idType,
-                                                            ExpirationStrategy expirationStrategy) {
-        return getMetadataDefinition(longPrefix, idType, "Blob", expirationStrategy);
-    }
-
-    private static TableDefinition getValueDefinition(final String longPrefix,
-                                                      final ValueType idType,
-                                                      final String type,
-                                                      final ExpirationStrategy expirationStrategy) {
+    public static TableDefinition getStreamValueDefinition(final String longPrefix,
+                                                           final ValueType idType,
+                                                           final ExpirationStrategy expirationStrategy,
+                                                           final boolean hashFirstRowComponent) {
         return new TableDefinition() {{
-            javaTableName(Renderers.CamelCase(longPrefix) + type + "Value");
+            javaTableName(Renderers.CamelCase(longPrefix) + "StreamValue");
             rowName();
+                if (hashFirstRowComponent) {
+                    hashFirstRowComponent();
+                }
                 rowComponent("id",              idType);
                 rowComponent("block_id",        ValueType.VAR_LONG);
             columns();
@@ -116,19 +99,22 @@ public class StreamTables {
         }};
     }
 
-    private static TableDefinition getMetadataDefinition(final String longPrefix,
-                                                         final ValueType idType,
-                                                         final String type,
-                                                         final ExpirationStrategy expirationStrategy) {
+    public static TableDefinition getStreamMetadataDefinition(final String longPrefix,
+                                                              final ValueType idType,
+                                                              final ExpirationStrategy expirationStrategy,
+                                                              final boolean hashFirstRowComponent) {
         return new TableDefinition() {{
-            javaTableName(Renderers.CamelCase(longPrefix) + type + "Metadata");
+            javaTableName(Renderers.CamelCase(longPrefix) + "StreamMetadata");
             rowName();
+                if (hashFirstRowComponent) {
+                    hashFirstRowComponent();
+                }
                 rowComponent("id",              idType);
             columns();
                 column("metadata", "md",        StreamPersistence.StreamMetadata.class);
             maxValueSize(64);
             conflictHandler(ConflictHandler.RETRY_ON_VALUE_CHANGED);
-            dbCompressionRequested();
+            explicitCompressionRequested();
             negativeLookups();
             expirationStrategy(expirationStrategy);
         }};

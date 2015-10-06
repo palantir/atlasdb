@@ -19,6 +19,8 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 public interface AtlasDbNamedExpiringSet<ROW> {
-    public void add(Set<ROW> rows, long duration, TimeUnit durationUnit);
-    public void add(ROW row, long duration, TimeUnit durationUnit);
+    void add(Set<ROW> rows, long duration, TimeUnit durationUnit);
+    void add(ROW row, long duration, TimeUnit durationUnit);
+    void addUnlessExists(ROW row, long duration, TimeUnit durationUnit);
+    void addUnlessExists(Set<ROW> rows, long duration, TimeUnit durationUnit);
 }

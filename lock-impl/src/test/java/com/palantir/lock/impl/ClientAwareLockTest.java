@@ -315,10 +315,9 @@ public final class ClientAwareLockTest {
             /* Expected. */
         }
         futureToCancel.cancel(true);
-        Thread.sleep(10);
         anonymousWriteLock.unlock();
-        futureToSucceed.get(60, TimeUnit.MILLISECONDS);
-        futureToCancel.get(60, TimeUnit.MILLISECONDS);
+        futureToSucceed.get(100, TimeUnit.MILLISECONDS);
+        futureToCancel.get(100, TimeUnit.MILLISECONDS);
         anonymousReadLock.unlock();
         Assert.assertNull(knownClientWriteLock.tryLock());
         knownClientWriteLock.unlock();
@@ -394,7 +393,7 @@ public final class ClientAwareLockTest {
     /** Tests that our objects have {@code toString()} methods defined. */
     @Test public void testToStrings() {
         Assert.assertEquals("client", client.getClientId());
-        Assert.assertEquals("lock", readWriteLock.getDescriptor().getLockId());
+        Assert.assertEquals("lock", readWriteLock.getDescriptor().getLockIdAsString());
         assertGoodToString(readWriteLock);
         assertGoodToString(anonymousReadLock);
         assertGoodToString(knownClientWriteLock);

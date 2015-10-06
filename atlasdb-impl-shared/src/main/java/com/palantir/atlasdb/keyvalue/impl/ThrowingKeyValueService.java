@@ -42,9 +42,10 @@ public class ThrowingKeyValueService implements KeyValueService {
         this.exception = new Exception("Provided for stack trace");
     }
 
-    public ThrowingKeyValueService(String kvsPrefs, Exception e) {
-        this.errorMessage = "Unable to create a key value service with the given preferences, " +
-                kvsPrefs + ". This error was captured and delayed until now when the key value service was used.";
+    public ThrowingKeyValueService(Exception e) {
+        this.errorMessage = "Unable to create a key value service with the given preferences. " +
+                "This error was captured and delayed until now when the key value service was used. " +
+                "Consult the AtlasDB documentation on CHANGING DATABASE CREDENTIALS AND OTHER PARAMETERS.";
         this.exception = e;
     }
 
@@ -167,6 +168,12 @@ public class ThrowingKeyValueService implements KeyValueService {
     @Override
     @Idempotent
     public void dropTable(String tableName) {
+        throw throwEx();
+    }
+
+    @Override
+    @Idempotent
+    public void dropTables(Set<String> tableNames) {
         throw throwEx();
     }
 

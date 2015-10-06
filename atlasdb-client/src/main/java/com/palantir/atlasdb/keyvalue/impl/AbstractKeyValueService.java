@@ -54,6 +54,7 @@ import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.Maps2;
+import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 
 public abstract class AbstractKeyValueService implements KeyValueService {
@@ -64,17 +65,29 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     private final TracingPrefsConfig tracingPrefs;
     private final ScheduledExecutorService scheduledExecutor;
 
+    /**
+     * Note: This takes ownership of the given executor. It will be shutdown when the key
+     * value service is closed.
+     */
     public AbstractKeyValueService(ExecutorService executor) {
         this.executor = executor;
         this.tracingPrefs = new TracingPrefsConfig();
-        this.scheduledExecutor = PTExecutors.newSingleThreadScheduledExecutor();
+        this.scheduledExecutor = PTExecutors.newSingleThreadScheduledExecutor(
+                new NamedThreadFactory(getClass().getSimpleName() + "-tracing-prefs", true));
         this.scheduledExecutor.scheduleWithFixedDelay(this.tracingPrefs, 0, 1, TimeUnit.MINUTES); // reload every minute
     }
 
     @Override
     public void createTables(Map<String, Integer> tableNamesToMaxValueSizeInBytes) {
-        for (String tableName : tableNamesToMaxValueSizeInBytes.keySet()) {
-            createTable(tableName, tableNamesToMaxValueSizeInBytes.get(tableName));
+        for (Entry<String, Integer> entry : tableNamesToMaxValueSizeInBytes.entrySet()) {
+            createTable(entry.getKey(), entry.getValue());
+        }
+    }
+
+    @Override
+    public void dropTables(Set<String> tableNames) {
+        for (String tableName : tableNames) {
+            dropTable(tableName);
         }
     }
 
@@ -196,11 +209,11 @@ public abstract class AbstractKeyValueService implements KeyValueService {
                         Entry<Cell, V> firstEntry = pi.next();
                         runningSize += sizingFunction.apply(firstEntry);
                         entries.add(firstEntry);
-                        String message = "Encountered an entry of approximate size " + sizingFunction.apply(firstEntry) +
-                                " bytes, larger than maximum size of " + maximumBytesPerPartition +
-                                " defined per entire batch, while doing a write to " + tablename +
-                                ". Attempting to batch anyways.";
-                        if (runningSize > maximumBytesPerPartition) {
+                        if (runningSize > maximumBytesPerPartition && log.isWarnEnabled()) {
+                            String message = "Encountered an entry of approximate size " + sizingFunction.apply(firstEntry) +
+                                    " bytes, larger than maximum size of " + maximumBytesPerPartition +
+                                    " defined per entire batch, while doing a write to " + tablename +
+                                    ". Attempting to batch anyways.";
                             if (AtlasDbConstants.TABLES_KNOWN_TO_BE_POORLY_DESIGNED.contains(tablename)) {
                                 log.warn(message);
                             } else {
@@ -237,11 +250,13 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     @Override
     public void close() {
         scheduledExecutor.shutdown();
+        executor.shutdown();
     }
 
     @Override
     public void teardown() {
         scheduledExecutor.shutdown();
+        executor.shutdown();
     }
 
     @Override

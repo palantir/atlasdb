@@ -36,6 +36,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.schema.TableReference;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -72,10 +73,10 @@ public class TableRemappingKeyValueService extends ForwardingObject implements
     @Override
     public void createTables(Map<TableReference, Integer> tableReferencesToMaxValueSizeInBytes) {
         Map<String, Integer> tableNameToMaxValueSize = Maps.newHashMapWithExpectedSize(tableReferencesToMaxValueSizeInBytes.size());
-        for (TableReference table : tableReferencesToMaxValueSizeInBytes.keySet()) {
+        for (Entry<TableReference, Integer> tableEntry : tableReferencesToMaxValueSizeInBytes.entrySet()) {
             tableNameToMaxValueSize.put(
-                    tableMapper.addTable(table),
-                    tableReferencesToMaxValueSizeInBytes.get(table));
+                    tableMapper.addTable(tableEntry.getKey()),
+                    tableEntry.getValue());
         }
         delegate().createTables(tableNameToMaxValueSize);
     }
@@ -92,13 +93,27 @@ public class TableRemappingKeyValueService extends ForwardingObject implements
 
     @Override
     public void dropTable(TableReference tableRef) {
-        delegate().dropTable(tableMapper.getShortTableName(tableRef));
-        // Handles the edge case of deleting _namespace when clearing the kvs
-        if (tableRef.getNamespace().isEmptyNamespace()
-                && tableRef.getTablename().equals(AtlasDbConstants.NAMESPACE_TABLE)) {
-            return;
+        dropTables(ImmutableSet.of(tableRef));
+    }
+
+    @Override
+    public void dropTables(Set<TableReference> tableRefs) {
+        Set<String> tableNames = Sets.newHashSetWithExpectedSize(tableRefs.size());
+        for (TableReference tableRef : tableRefs) {
+            tableNames.add(tableMapper.getShortTableName(tableRef));
+            delegate().dropTables(tableNames);
         }
-        tableMapper.removeTable(tableRef);
+        delegate().dropTables(tableNames);
+
+        // We're purposely updating the table mappings after all drops are complete
+        for (TableReference tableRef : tableRefs) {
+            // Handles the edge case of deleting _namespace when clearing the kvs
+            if (tableRef.getNamespace().equals(Namespace.EMPTY_NAMESPACE)
+                    && tableRef.getTablename().equals(AtlasDbConstants.NAMESPACE_TABLE)) {
+                break;
+            }
+            tableMapper.removeTable(tableRef);
+        }
     }
 
     @Override
@@ -220,10 +235,10 @@ public class TableRemappingKeyValueService extends ForwardingObject implements
     @Override
     public void putMetadataForTables(Map<TableReference, byte[]> tableReferencesToMetadata) {
         Map<String, byte[]> tableNameToMetadata = Maps.newHashMapWithExpectedSize(tableReferencesToMetadata.size());
-        for (TableReference tableRef : tableReferencesToMetadata.keySet()) {
+        for (Entry<TableReference, byte[]> tableEntry : tableReferencesToMetadata.entrySet()) {
             tableNameToMetadata.put(
-                    tableMapper.getShortTableName(tableRef),
-                    tableReferencesToMetadata.get(tableRef));
+                    tableMapper.getShortTableName(tableEntry.getKey()),
+                    tableEntry.getValue());
         }
         delegate().putMetadataForTables(tableNameToMetadata);
     }

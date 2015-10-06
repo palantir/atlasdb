@@ -27,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
+import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.ClientCreationFailedException;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.pooling.ForwardingPoolingContainer;
@@ -73,7 +74,8 @@ public class RetriablePoolingContainer extends ForwardingPoolingContainer<Client
                 || e instanceof TTransportException
                 || e instanceof TimedOutException
                 || e instanceof SocketTimeoutException
-                || e instanceof UnavailableException) {
+                || e instanceof UnavailableException
+                || e instanceof InsufficientConsistencyException) {
             if (numTries >= MAX_TRIES) {
                 if (e instanceof TTransportException
                         && e.getCause() != null

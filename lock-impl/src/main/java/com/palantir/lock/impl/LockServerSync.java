@@ -184,7 +184,7 @@ class LockServerSync extends AbstractQueuedSynchronizer {
             throw LockServerLock.throwIllegalMonitorStateException(
                     clients.fromIndex(oldClient) +
                     " is attempting to create a lock grant" +
-                    " while being supported by multiple dispatch servers." +
+                    " while being supported by multiple clients." +
                     " This is not currently supported.");
         }
         writeLockHolder = newIndex;
@@ -227,7 +227,7 @@ class LockServerSync extends AbstractQueuedSynchronizer {
 
     @Override
     public synchronized String toString() {
-        return MoreObjects.toStringHelper(this)
+        return MoreObjects.toStringHelper(getClass().getSimpleName())
                 .add("hashCode", hashCode())
                 .add("writeLockCount", getState())
                 .add("writeClient", writeLockHolder == 0 ? null : clients.fromIndex(writeLockHolder))

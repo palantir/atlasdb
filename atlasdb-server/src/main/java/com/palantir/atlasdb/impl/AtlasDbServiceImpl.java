@@ -60,8 +60,8 @@ import jersey.repackaged.com.google.common.collect.ImmutableList;
 
 public class AtlasDbServiceImpl implements AtlasDbService {
     private static final TableMetadata RAW_METADATA = new TableMetadata(
-            new NameMetadataDescription(ImmutableList.of(new NameComponentDescription("row", ValueType.STRING))),
-            new ColumnMetadataDescription(new DynamicColumnDescription(new NameMetadataDescription(ImmutableList.of(new NameComponentDescription("col", ValueType.STRING))), ColumnValueDescription.forType(ValueType.STRING))),
+            NameMetadataDescription.create(ImmutableList.of(new NameComponentDescription("row", ValueType.STRING))),
+            new ColumnMetadataDescription(new DynamicColumnDescription(NameMetadataDescription.create(ImmutableList.of(new NameComponentDescription("col", ValueType.STRING))), ColumnValueDescription.forType(ValueType.STRING))),
             ConflictHandler.SERIALIZABLE);
 
     private final KeyValueService kvs;
