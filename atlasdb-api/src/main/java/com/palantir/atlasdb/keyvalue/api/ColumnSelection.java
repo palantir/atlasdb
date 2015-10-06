@@ -18,13 +18,12 @@ package com.palantir.atlasdb.keyvalue.api;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Set;
 import java.util.SortedSet;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
-import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -141,15 +140,6 @@ public class ColumnSelection implements Serializable {
             return false;
         }
         return true;
-    }
-
-    @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(getClass())
-                .add("selectedColumns", (allColumnsSelected())
-                        ? "all"
-                        : Collections2.transform(selectedColumns, PtBytes.BYTES_TO_HEX_STRING))
-                .toString();
     }
 
 }

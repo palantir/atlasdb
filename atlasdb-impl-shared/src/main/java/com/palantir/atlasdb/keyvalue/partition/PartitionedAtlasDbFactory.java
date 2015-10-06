@@ -15,15 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.partition;
 
-import java.util.Iterator;
-import java.util.List;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
-import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
-import com.palantir.atlasdb.keyvalue.remoting.RemotingPartitionMapService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.timestamp.PersistentTimestampService;
@@ -45,23 +37,4 @@ public class PartitionedAtlasDbFactory implements AtlasDbFactory {
     public TimestampService createTimestampService(KeyValueService rawKvs) {
         return PersistentTimestampService.create(PartitionedBoundStore.create(rawKvs));
     }
-
-    private PartitionedKeyValueConfiguration createConfig(JsonNode node) {
-        int repf = node.get("replicationFactor").asInt();
-        int readf = node.get("readFactor").asInt();
-        int writef = node.get("writeFactor").asInt();
-        QuorumParameters parameters = new QuorumParameters(repf, readf, writef);
-
-        List<PartitionMapService> partitionMapProviders = Lists.newArrayList();
-        Iterator<JsonNode> endpointsIterator = node.get("partitionMapProviders").elements();
-        while (endpointsIterator.hasNext()) {
-            String pmsUri = endpointsIterator.next().asText();
-            partitionMapProviders.add(RemotingPartitionMapService.createClientSide(pmsUri));
-        }
-
-        int partitionMapProvidersReadFactor = node.get("partitionMapProvidersReadFactor").asInt();
-
-        return PartitionedKeyValueConfiguration.of(parameters, partitionMapProviders, partitionMapProvidersReadFactor);
-    }
-
 }

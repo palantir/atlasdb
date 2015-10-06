@@ -47,7 +47,7 @@ public class PartitionedBoundStore implements TimestampBoundStore, Closeable {
     private static final long KV_TS = 0L;
     private static final Cell TS_CELL = Cell.create(ROW_AND_COLUMN_NAME.getBytes(Charsets.UTF_8), ROW_AND_COLUMN_NAME.getBytes(Charsets.UTF_8));
     public static final TableMetadata TIMESTAMP_TABLE_METADATA = new TableMetadata(
-        new NameMetadataDescription(ImmutableList.of(new NameComponentDescription("timestamp_name", ValueType.STRING))),
+        NameMetadataDescription.create(ImmutableList.of(new NameComponentDescription("timestamp_name", ValueType.STRING))),
         new ColumnMetadataDescription(ImmutableList.of(
             new NamedColumnDescription(ROW_AND_COLUMN_NAME, "current_max_ts", ColumnValueDescription.forType(ValueType.FIXED_LONG)))),
         ConflictHandler.IGNORE_ALL);

@@ -20,6 +20,7 @@ import static com.palantir.atlasdb.keyvalue.partition.util.RequestCompletionUtil
 import static com.palantir.atlasdb.keyvalue.partition.util.RequestCompletionUtils.retryUntilSuccess;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -37,6 +38,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
@@ -64,6 +66,7 @@ import com.palantir.atlasdb.keyvalue.partition.util.EndpointRequestExecutor.Endp
 import com.palantir.atlasdb.keyvalue.partition.util.MergeResultsUtils;
 import com.palantir.atlasdb.keyvalue.partition.util.PartitionedRangedIterator;
 import com.palantir.atlasdb.keyvalue.partition.util.RowResultUtil;
+import com.palantir.atlasdb.keyvalue.remoting.RemotingPartitionMapService;
 import com.palantir.atlasdb.keyvalue.remoting.proxy.VersionCheckProxy;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.NonIdempotent;
@@ -625,10 +628,16 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
     }
 
     @Override
-    public void dropTables(Set<String> tableNames) throws InsufficientConsistencyException {
-        for (KeyValueService kvs : partitionMap.getDelegates()) {
-            kvs.dropTables(tableNames);
-        }
+    public void dropTables(final Set<String> tableNames) throws InsufficientConsistencyException {
+        runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Void>() {
+            @Override
+            public Void apply(@Nullable DynamicPartitionMap input) {
+                for (KeyValueService kvs : input.getDelegates()) {
+                    kvs.dropTables(tableNames);
+                }
+                return null;
+            }
+        });
     }
 
     @Override
@@ -846,10 +855,19 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
         this.quorumParameters = quorumParameters;
     }
 
-    public static PartitionedKeyValueService create(PartitionedKeyValueConfiguration config) {
+    public static PartitionedKeyValueService create(QuorumParameters quorumParameters, List<PartitionMapService> mapServices) {
         ExecutorService executor = PTExecutors.newCachedThreadPool();
-        return new PartitionedKeyValueService(executor, config.quorumParameters,
-                config.partitionMapProviders, config.partitionMapProvidersReadFactor);
+        return new PartitionedKeyValueService(executor, quorumParameters, ImmutableList.copyOf(mapServices), 1);
+    }
+
+    public static PartitionedKeyValueService create(PartitionedKeyValueConfiguration config) {
+        Builder<PartitionMapService> builder = ImmutableList.builder();
+        for (String provider : config.getPartitionMapProviders()) {
+            builder.add(RemotingPartitionMapService.createClientSide(provider));
+        }
+        ExecutorService executor = PTExecutors.newCachedThreadPool();
+        return new PartitionedKeyValueService(executor, config.getQuorumParameters(),
+                builder.build(), config.getPartitionMapProvidersReadFactor());
     }
 
     // *** Helper methods *************************************************************************

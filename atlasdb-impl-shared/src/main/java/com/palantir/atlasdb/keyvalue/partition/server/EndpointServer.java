@@ -367,6 +367,17 @@ public class EndpointServer implements PartitionMapService, KeyValueService {
     }
 
     @Override
+    public void dropTables(final Set<String> tableNames) throws InsufficientConsistencyException {
+        runPartitionMapReadOperation(new Function<Void, Void>() {
+            @Override
+            public Void apply(Void input) {
+                kvs().dropTables(tableNames);
+                return null;
+            }
+        });
+    }
+
+    @Override
     @Idempotent
     public void createTable(final String tableName, final int maxValueSizeInBytes)
             throws InsufficientConsistencyException {

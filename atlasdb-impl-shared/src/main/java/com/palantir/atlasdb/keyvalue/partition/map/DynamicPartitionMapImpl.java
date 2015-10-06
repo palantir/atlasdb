@@ -49,6 +49,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
@@ -63,7 +64,6 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.keyvalue.partition.PartitionedKeyValueConfiguration;
 import com.palantir.atlasdb.keyvalue.partition.PartitionedKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
@@ -525,7 +525,8 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
      * @param rangeToCopy
      */
     private void copyData(KeyValueService destKvs, RangeRequest rangeToCopy) {
-        PartitionedKeyValueService pkvs = PartitionedKeyValueService.create(PartitionedKeyValueConfiguration.of(quorumParameters, this));
+        ImmutableList<PartitionMapService> mapServices = ImmutableList.<PartitionMapService> of(InMemoryPartitionMapService.create(this));
+        PartitionedKeyValueService pkvs = PartitionedKeyValueService.create(quorumParameters, mapServices);
         for (String tableName : pkvs.getAllTableNames()) {
             // TODO: getRangeOfTimestamps?
             try (ClosableIterator<RowResult<Set<Value>>> allRows = pkvs
@@ -655,7 +656,8 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         kve.partitionMapService().updateMap(this);
         kve.registerPartitionMapVersion(versionSupplier);
 
-        PartitionedKeyValueService pkvs = PartitionedKeyValueService.create(PartitionedKeyValueConfiguration.of(quorumParameters, this));
+        ImmutableList<PartitionMapService> mapServices = ImmutableList.<PartitionMapService> of(InMemoryPartitionMapService.create(this));
+        PartitionedKeyValueService pkvs = PartitionedKeyValueService.create(quorumParameters, mapServices);
         for (String tableName : pkvs.getAllTableNames()) {
             kve.keyValueService().createTable(tableName, MAX_VALUE_SIZE);
             kve.keyValueService().putMetadataForTables(pkvs.getMetadataForTables());

@@ -42,7 +42,6 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.AbstractAtlasDbKeyValueServiceTest;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
-import com.palantir.atlasdb.keyvalue.partition.PartitionedKeyValueConfiguration;
 import com.palantir.atlasdb.keyvalue.partition.PartitionedKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
@@ -50,6 +49,8 @@ import com.palantir.atlasdb.keyvalue.partition.endpoint.SimpleKeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.exception.ClientVersionTooOldException;
 import com.palantir.atlasdb.keyvalue.partition.map.DynamicPartitionMapImpl;
 import com.palantir.atlasdb.keyvalue.partition.map.InKvsPartitionMapService;
+import com.palantir.atlasdb.keyvalue.partition.map.InMemoryPartitionMapService;
+import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
 import com.palantir.atlasdb.keyvalue.remoting.Utils;
 import com.palantir.atlasdb.keyvalue.remoting.Utils.RemoteEndpoint;
@@ -147,7 +148,8 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
         // Do not insert skves[3] - it will be used later to test addEndpoint
 
         DynamicPartitionMap pmap = DynamicPartitionMapImpl.create(QUORUM_PARAMETERS, ring, PTExecutors.newCachedThreadPool());
-        pkvs = PartitionedKeyValueService.create(PartitionedKeyValueConfiguration.of(QUORUM_PARAMETERS, pmap));
+        ImmutableList<PartitionMapService> mapServices = ImmutableList.<PartitionMapService> of(InMemoryPartitionMapService.create(pmap));
+        pkvs = PartitionedKeyValueService.create(QUORUM_PARAMETERS, mapServices);
 
         // Push the map to all the endpoints
         pmap.pushMapToEndpoints();
