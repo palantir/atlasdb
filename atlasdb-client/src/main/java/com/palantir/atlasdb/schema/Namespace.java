@@ -28,7 +28,7 @@ public final class Namespace {
 
     public static Namespace create(String name) {
         Validate.isTrue(!Strings.isNullOrEmpty(name));
-        Validate.isTrue(isNamespaceValid(name), "'%s' contains invalid characters, only letters or numbers allowed.", name);
+        Validate.isTrue(isNamespaceValid(name), "'%s' contains invalid characters, only letters, numbers, underscores, or hyphens are allowed.", name);
         return new Namespace(name);
     }
 
@@ -67,6 +67,16 @@ public final class Namespace {
     }
 
     public static boolean isNamespaceValid(String namespace) {
+        for (int i = 0; i < namespace.length() ; i++) {
+            char c = namespace.charAt(i);
+            if (!Character.isLetterOrDigit(c) && c != '_' && c != '-') {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static boolean isTableMappingNamespaceValid(String namespace) {
         for (int i = 0; i < namespace.length() ; i++) {
             char c = namespace.charAt(i);
             if (!Character.isLetterOrDigit(c)) {
