@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.cassandra.dht.ByteOrderedPartitioner;
 import org.apache.cassandra.dht.BytesToken;
 
-public class AtlasDbPartitioner extends ByteOrderedPartitioner {
+public class AtlasDbOrderedPartitioner extends ByteOrderedPartitioner {
     private final Random r = new SecureRandom();
     private final AtomicInteger indexCounter = new AtomicInteger(r.nextInt(6));
 

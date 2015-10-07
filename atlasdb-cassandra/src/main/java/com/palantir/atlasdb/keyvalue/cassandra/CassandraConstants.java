@@ -39,7 +39,7 @@ public class CassandraConstants {
     static final double NEGATIVE_LOOKUPS_BLOOM_FILTER_FP_CHANCE = 0.01;
     static final String SIMPLE_STRATEGY = "org.apache.cassandra.locator.SimpleStrategy";
     static final String NETWORK_STRATEGY = "org.apache.cassandra.locator.NetworkTopologyStrategy";
-    static final String PARTITIONER = "com.palantir.atlasdb.keyvalue.cassandra.dht.AtlasDbPartitioner";
+    static final String PARTITIONER = "com.palantir.atlasdb.keyvalue.cassandra.dht.AtlasDbOrderedPartitioner";
     static final String PARTITIONER2 = "org.apache.cassandra.dht.ByteOrderedPartitioner";
     static final String DEFAULT_DC = "datacenter1";
     static final String DEFAULT_RACK = "rack1";
