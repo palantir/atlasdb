@@ -15,6 +15,9 @@
  */
 package com.palantir.common.remoting;
 
+import com.google.common.base.Optional;
+import com.google.common.net.HostAndPort;
+
 /**
  * If a server is shutting down or cannot respond to a call for another reson this exception may be thrown.
  * This exception indicates to the caller that this call should be retried on another server that is available.
@@ -22,17 +25,36 @@ package com.palantir.common.remoting;
  * @author carrino
  */
 public class ServiceNotAvailableException extends RuntimeException {
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 2L;
+
+    private final Optional<HostAndPort> serviceHint;
+
+    public ServiceNotAvailableException(String message, Throwable cause, HostAndPort serviceHint) {
+        super(message, cause);
+        this.serviceHint = Optional.of(serviceHint);
+    }
+
+    public ServiceNotAvailableException(String message, HostAndPort serviceHint) {
+        super(message);
+        this.serviceHint = Optional.of(serviceHint);
+    }
 
     public ServiceNotAvailableException(String message, Throwable cause) {
         super(message, cause);
+        this.serviceHint = Optional.absent();
     }
 
     public ServiceNotAvailableException(String message) {
         super(message);
+        this.serviceHint = Optional.absent();
     }
 
     public ServiceNotAvailableException(Throwable cause) {
         super(cause);
+        this.serviceHint = Optional.absent();
+    }
+
+    public Optional<HostAndPort> getServiceHint() {
+        return serviceHint;
     }
 }
