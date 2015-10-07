@@ -1373,66 +1373,41 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         final CassandraKeyValueServiceConfig config = configManager.getConfig();
         long compactionTimeoutSeconds = config.compactionTimeoutSeconds();
         try {
-            alterGcGraceSeconds(tableName, 0);
-            alterTombstoneThreshold(tableName, 0.0f);
+            alterTableForCompaction(tableName, 0, 0.0f);
+            waitForSchemaVersionsToCoalesce("setting up tables for compaction");
             compactionManager.forceTableCompaction(compactionTimeoutSeconds, config.keyspace(), tableName);
         } catch (TimeoutException e) {
             log.error("Compaction could not finish in {} seconds! {}", compactionTimeoutSeconds, e.getMessage());
             log.error(compactionManager.getPendingCompactionStatus());
         } finally {
-            alterGcGraceSeconds(tableName, CassandraConstants.GC_GRACE_SECONDS);
-            alterTombstoneThreshold(tableName, CassandraConstants.TOMBSTONE_THRESHOLD_RATIO);
+            alterTableForCompaction(tableName, CassandraConstants.GC_GRACE_SECONDS, CassandraConstants.TOMBSTONE_THRESHOLD_RATIO);
+            waitForSchemaVersionsToCoalesce("setting up tables post-compaction");
         }
     }
 
-    private void alterGcGraceSeconds(final String tableName, int gcGraceSeconds) {
-        Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName), "tableName:[%s] should not be null or empty", tableName);
-        Preconditions.checkArgument(gcGraceSeconds >= 0, "gcGraceSeconds:[%s] should not be negative", gcGraceSeconds);
-        log.trace("Altering gc_grace_seconds into {} seconds for table:{}", gcGraceSeconds, tableName);
-        String setGcGraceSecondQuery = "ALTER TABLE " + getFullTableName(tableName)
-                + " WITH gc_grace_seconds = '" + gcGraceSeconds + "';";
-        PreparedStatement preparedStatement = getPreparedStatement(setGcGraceSecondQuery);
-        preparedStatement.setConsistencyLevel(ConsistencyLevel.ALL);
-        BoundStatement boundStatement = preparedStatement.bind();
+    private void alterTableForCompaction(final String tableName, int gcGraceSeconds, float tombstoneThreshold) {
+        log.trace("Altering table {} to have gc_grace_seconds={} and tombstone_threshold=%.2f", tableName, gcGraceSeconds, tombstoneThreshold);
+        String alterTableQuery =
+                "ALTER TABLE " + getFullTableName(tableName)
+                + " WITH gc_grace_seconds = " + gcGraceSeconds
+                + " and compaction = {'class':'org.apache.cassandra.db.compaction.LeveledCompactionStrategy', 'tombstone_threshold':"
+                + tombstoneThreshold + "};";
+
+        BoundStatement alterTable = getPreparedStatement(alterTableQuery)
+                .setConsistencyLevel(ConsistencyLevel.ALL)
+                .bind();
         if (shouldTraceQuery(tableName)) {
-            boundStatement.enableTracing();
+            alterTable.enableTracing();
         }
         ResultSet resultSet;
         try {
-            resultSet = session.executeAsync(preparedStatement.bind()).getUninterruptibly();
-            resultSet.all();
+            resultSet = session.executeAsync(alterTable).getUninterruptibly();
         } catch (UnavailableException e) {
             throw new InsufficientConsistencyException("Alter table requires all Cassandra nodes to be up and available.", e);
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
-        logTracedQuery(setGcGraceSecondQuery, resultSet);
-        return;
-    }
-
-
-    private void alterTombstoneThreshold(final String tableName, float tombstoneThreshold) {
-        Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName), "tableName:[%s] should not be null or empty", tableName);
-        Preconditions.checkArgument(tombstoneThreshold >= 0.0, "gcGraceSeconds:[%s] should not be negative", tombstoneThreshold);
-        log.trace("Altering tombstone_threshold into {} for table:{}", tombstoneThreshold, tableName);
-        String setTombStoneQuery = "ALTER TABLE " + getFullTableName(tableName)
-                + " WITH compaction = {'class':'LeveledCompactionStrategy', 'tombstone_threshold':'" + tombstoneThreshold + "';";
-        PreparedStatement preparedStatement = getPreparedStatement(setTombStoneQuery);
-        preparedStatement.setConsistencyLevel(ConsistencyLevel.ALL);
-        BoundStatement boundStatement = preparedStatement.bind();
-        if (shouldTraceQuery(tableName)) {
-            boundStatement.enableTracing();
-        }
-        ResultSet resultSet;
-        try {
-            resultSet = session.executeAsync(preparedStatement.bind()).getUninterruptibly();
-            resultSet.all();
-        } catch (UnavailableException e) {
-            throw new InsufficientConsistencyException("Alter table requires all Cassandra nodes to be up and available.", e);
-        } catch (Exception e) {
-            throw Throwables.throwUncheckedException(e);
-        }
-        logTracedQuery(setTombStoneQuery, resultSet);
+        logTracedQuery(alterTableQuery, resultSet);
         return;
     }
 
