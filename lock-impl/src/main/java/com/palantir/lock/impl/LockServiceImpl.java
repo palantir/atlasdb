@@ -104,7 +104,6 @@ import com.palantir.util.Pair;
 
     private static final Logger log = LoggerFactory.getLogger(LockServiceImpl.class);
     private static final Logger requestLogger = LoggerFactory.getLogger("lock.request");
-    private static final Logger lockStateLogger = LoggerFactory.getLogger("com.palantir.lock.state");
 
     /** Executor for the reaper threads. */
     private final ExecutorService executor = PTExecutors.newCachedThreadPool(
@@ -968,18 +967,6 @@ import com.palantir.util.Pair;
      */
     @Override
     public void logCurrentState() {
-        log.error("logCurrentState() request received; not waiting for consistent state and logging immediately. Current time = "
-                + currentTimeMillis());
-        logCurrentStateToLoggerInconsistent(lockStateLogger);
-    }
-
-    @Override
-    public void close() {
-        isShutDown = true;
-        executor.shutdownNow();
-    }
-
-    private void logCurrentStateToLoggerInconsistent(Logger logger) {
         StringBuilder logString = new StringBuilder();
         logString.append("Logging current state. Time = ").append(currentTimeMillis()).append("\n");
         logString.append("isStandaloneServer = ").append(isStandaloneServer).append("\n");
@@ -1007,7 +994,13 @@ import com.palantir.util.Pair;
             }
         }
         logString.append("Finished logging current state. Time = ").append(currentTimeMillis());
-        logger.error(logString.toString());
+        log.error(logString.toString());
+    }
+
+    @Override
+    public void close() {
+        isShutDown = true;
+        executor.shutdownNow();
     }
 
     @Override
