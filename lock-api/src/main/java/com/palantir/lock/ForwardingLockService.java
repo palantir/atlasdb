@@ -152,4 +152,9 @@ public abstract class ForwardingLockService extends ForwardingObject implements 
     public boolean isDelayRequired() {
         return delegate().isDelayRequired();
     }
+
+    @Override
+    public boolean hasOutstandingLocks() {
+        return delegate().hasOutstandingLocks();
+    }
 }

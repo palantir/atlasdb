@@ -142,6 +142,11 @@ public class LockRefreshingLockService extends ForwardingLockService {
     }
 
     @Override
+    public boolean hasOutstandingLocks() {
+        return !toRefresh.isEmpty() || delegate.hasOutstandingLocks();
+    }
+
+    @Override
     protected void finalize() throws Throwable {
         super.finalize();
         if (!isClosed) {
