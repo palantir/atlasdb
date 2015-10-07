@@ -36,6 +36,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
+import com.google.common.hash.Hashing;
 import com.google.common.primitives.Bytes;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -59,6 +60,7 @@ import com.palantir.atlasdb.table.api.AtlasDbNamedPersistentSet;
 import com.palantir.atlasdb.table.api.ColumnValue;
 import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
+import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
 import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
@@ -112,6 +114,10 @@ public final class UserProfileTable implements
         this.namespace = namespace;
     }
 
+    public static String getRawTableName() {
+        return rawTableName;
+    }
+
     public String getTableName() {
         return tableName;
     }
@@ -155,7 +161,7 @@ public final class UserProfileTable implements
             return new Function<Long, UserProfileRow>() {
                 @Override
                 public UserProfileRow apply(Long row) {
-                    return new UserProfileRow(row);
+                    return UserProfileRow.of(row);
                 }
             };
         }
@@ -172,7 +178,7 @@ public final class UserProfileTable implements
                 int __index = 0;
                 Long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 __index += 8;
-                return of(id);
+                return UserProfileRow.of(id);
             }
         };
 
@@ -1233,6 +1239,10 @@ public final class UserProfileTable implements
             this.namespace = namespace;
         }
 
+        public static String getRawTableName() {
+            return rawTableName;
+        }
+
         public String getTableName() {
             return tableName;
         }
@@ -1276,7 +1286,7 @@ public final class UserProfileTable implements
                 return new Function<String, CookiesIdxRow>() {
                     @Override
                     public CookiesIdxRow apply(String row) {
-                        return new CookiesIdxRow(row);
+                        return CookiesIdxRow.of(row);
                     }
                 };
             }
@@ -1293,7 +1303,7 @@ public final class UserProfileTable implements
                     int __index = 0;
                     String cookie = PtBytes.toString(__input, __index, __input.length-__index);
                     __index += 0;
-                    return of(cookie);
+                    return CookiesIdxRow.of(cookie);
                 }
             };
 
@@ -1413,7 +1423,7 @@ public final class UserProfileTable implements
                     __index += EncodingUtils.sizeOfSizedBytes(columnName);
                     Long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                     __index += 8;
-                    return of(rowName, columnName, id);
+                    return CookiesIdxColumn.of(rowName, columnName, id);
                 }
             };
 
@@ -1862,6 +1872,10 @@ public final class UserProfileTable implements
             this.namespace = namespace;
         }
 
+        public static String getRawTableName() {
+            return rawTableName;
+        }
+
         public String getTableName() {
             return tableName;
         }
@@ -1905,7 +1919,7 @@ public final class UserProfileTable implements
                 return new Function<Long, CreatedIdxRow>() {
                     @Override
                     public CreatedIdxRow apply(Long row) {
-                        return new CreatedIdxRow(row);
+                        return CreatedIdxRow.of(row);
                     }
                 };
             }
@@ -1922,7 +1936,7 @@ public final class UserProfileTable implements
                     int __index = 0;
                     Long time = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                     __index += EncodingUtils.sizeOfUnsignedVarLong(time);
-                    return of(time);
+                    return CreatedIdxRow.of(time);
                 }
             };
 
@@ -2042,7 +2056,7 @@ public final class UserProfileTable implements
                     __index += EncodingUtils.sizeOfSizedBytes(columnName);
                     Long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                     __index += 8;
-                    return of(rowName, columnName, id);
+                    return CreatedIdxColumn.of(rowName, columnName, id);
                 }
             };
 
@@ -2491,6 +2505,10 @@ public final class UserProfileTable implements
             this.namespace = namespace;
         }
 
+        public static String getRawTableName() {
+            return rawTableName;
+        }
+
         public String getTableName() {
             return tableName;
         }
@@ -2534,7 +2552,7 @@ public final class UserProfileTable implements
                 return new Function<Long, UserBirthdaysIdxRow>() {
                     @Override
                     public UserBirthdaysIdxRow apply(Long row) {
-                        return new UserBirthdaysIdxRow(row);
+                        return UserBirthdaysIdxRow.of(row);
                     }
                 };
             }
@@ -2551,7 +2569,7 @@ public final class UserProfileTable implements
                     int __index = 0;
                     Long birthday = EncodingUtils.decodeSignedVarLong(__input, __index);
                     __index += EncodingUtils.sizeOfSignedVarLong(birthday);
-                    return of(birthday);
+                    return UserBirthdaysIdxRow.of(birthday);
                 }
             };
 
@@ -2671,7 +2689,7 @@ public final class UserProfileTable implements
                     __index += EncodingUtils.sizeOfSizedBytes(columnName);
                     Long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                     __index += 8;
-                    return of(rowName, columnName, id);
+                    return UserBirthdaysIdxColumn.of(rowName, columnName, id);
                 }
             };
 
@@ -3090,5 +3108,5 @@ public final class UserProfileTable implements
     }
 
 
-    static String __CLASS_HASH = "sEC6/UzxLgVG3xSPImRzNQ==";
+    static String __CLASS_HASH = "/oKfTLHzGrnOXiqT9ItdbA==";
 }
