@@ -27,7 +27,6 @@ import com.google.common.collect.Lists;
 import feign.Client;
 import feign.Contract;
 import feign.Feign;
-import feign.Target;
 import feign.codec.Decoder;
 import feign.codec.Encoder;
 import feign.jackson.JacksonDecoder;
@@ -36,12 +35,12 @@ import feign.jaxrs.JAXRSContract;
 import feign.okhttp.OkHttpClient;
 
 public class AtlasDbHttpClients {
-    
+
     private static final ObjectMapper mapper = new ObjectMapper();
     private static final Contract contract = new JAXRSContract();
     private static final Encoder encoder = new JacksonEncoder(mapper);
     private static final Decoder decoder = new TextDelegateDecoder(new JacksonDecoder(mapper));
-    
+
     /**
      * Constructs a dynamic proxy for the specified type, using the supplied SSL factory if is present, and feign {@link
      * feign.Client.Default} HTTP client.
@@ -56,13 +55,6 @@ public class AtlasDbHttpClients {
     }
 
     /**
-     * Constructs a dynamic proxy for the specified target, using the provided client.
-     */
-    public static <T> T createProxy(Client client, Target<T> target) {
-        return Feign.builder().contract(contract).encoder(encoder).decoder(decoder).client(client).target(target);
-    }
-
-    /**
      * Constructs a list, corresponding to the iteration order of the supplied endpoints, of dynamic proxies for the
      * specified type, using the supplied SSL factory if it is present.
      */
@@ -74,7 +66,7 @@ public class AtlasDbHttpClients {
         }
         return ret;
     }
-    
+
     /**
      * Constructs an HTTP-invoking dynamic proxy for the specified type that will cycle through the list of supplied
      * endpoints after encountering an exception or connection failure, using the supplied SSL factory if it is
@@ -86,9 +78,15 @@ public class AtlasDbHttpClients {
             Optional<SSLSocketFactory> sslSocketFactory, Collection<String> endpointUris, Class<T> type) {
         FailoverFeignTarget<T> failoverFeignTarget = new FailoverFeignTarget<>(endpointUris, type);
         Client client = failoverFeignTarget.wrapClient(newOkHttpClient(sslSocketFactory));
-        return createProxy(client, failoverFeignTarget);
+        return Feign.builder()
+                .contract(contract)
+                .encoder(encoder)
+                .decoder(decoder)
+                .client(client)
+                .retryer(failoverFeignTarget)
+                .target(failoverFeignTarget);
     }
-    
+
     /**
      * Returns a feign {@link Client} wrapping a {@link com.squareup.okhttp.OkHttpClient} client with optionally
      * specified {@link SSLSocketFactory}.
@@ -98,5 +96,5 @@ public class AtlasDbHttpClients {
         client.setSslSocketFactory(sslSocketFactory.orNull());
         return new OkHttpClient(client);
     }
-    
+
 }
