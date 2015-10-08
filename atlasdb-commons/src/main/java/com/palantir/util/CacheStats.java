@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class CacheStats implements CacheStatsMBean {
 
-    private final SoftCache<?, ?> cache;
+    private final MBeanCache<?, ?> cache;
     final AtomicLong misses = new AtomicLong();
     final AtomicLong hits = new AtomicLong();
     final AtomicLong inverseMisses = new AtomicLong();
@@ -34,7 +34,7 @@ public class CacheStats implements CacheStatsMBean {
     final AtomicLong loadTimeForMisses = new AtomicLong();
     final AtomicLong loadTimeForCacheKey = new AtomicLong();
 
-    public CacheStats(SoftCache<?, ?> cache) {
+    public CacheStats(MBeanCache<?, ?> cache) {
         this.cache = cache;
     }
 

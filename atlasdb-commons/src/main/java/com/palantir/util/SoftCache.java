@@ -39,16 +39,12 @@ import com.google.common.collect.Sets;
  * Thread Safe
  *
  */
-public class SoftCache<K, V> implements NonDistributedCache<K, V> {
+public class SoftCache<K, V> extends MBeanCache<K, V> {
     private static final int INITIAL_SIZE = 1000;
 
     private static final Logger log = LoggerFactory.getLogger(SoftCache.class);
 
     final protected Map<K, CacheEntry<V>> cacheEntries;
-
-    final protected CacheStats mbean = new CacheStats(this);
-
-    volatile private String name = "SoftCache";
 
     public SoftCache() {
         this(INITIAL_SIZE);
@@ -56,58 +52,22 @@ public class SoftCache<K, V> implements NonDistributedCache<K, V> {
 
     public SoftCache(int initialSize) {
         cacheEntries = createCache(initialSize);
+        setName("SoftCache");
         SoftCache.registerForCleanup(this);
     }
 
-    /**
-     * Sets the name for this cache.  Useful
-     * for debugging.
-     *
-     * @param name
-     */
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getName() {
-        return name;
-    }
-
+    @Override
     public int getMaxCacheSize() {
         return -1;
     }
 
+    @Override
     public void setMaxCacheSize(int size) {
         /* do nothing here.  subclasses will override */
     }
 
+    @Deprecated // Reference the same constant in MBeanCache
     public static final String OBJECT_NAME_PREFIX = "com.palantir.caching:type=";
-    public String getStatBeanName() {
-        return OBJECT_NAME_PREFIX + name;
-    }
-
-
-    /**
-     * Registers an mbean for this cache with the provided object name.
-     *
-     * @param objectName
-     *            the object name for the mbean
-     */
-    public void registerMBean(String objectName) {
-        if (objectName == null) {
-            throw new IllegalArgumentException("objectName must not be null.");
-        }
-
-        JMXUtils.registerMBeanCatchAndLogExceptions(mbean, objectName);
-    }
-
-    /**
-     * Make sure to get a unique name on this object before trying to register this cache with JMX.
-     * If it doens't have a unique name, then it won't be registered correctly.
-     */
-    public void registerMBean() {
-        registerMBean(getStatBeanName());
-    }
 
     /**
      * This method should be over-ridden by subclasses to change
@@ -185,14 +145,6 @@ public class SoftCache<K, V> implements NonDistributedCache<K, V> {
         CacheEntry<V> oldEntry = cacheEntries.put(key, entry);
 
         return safeValue(oldEntry);
-    }
-
-    public void collectStatsLoadTimeForMiss(long loadTimeInMillis) {
-        mbean.loadTimeForMisses.addAndGet(loadTimeInMillis);
-    }
-
-    public void collectStatsLoadTimeForCacheKey(long loadTimeInMillis) {
-        mbean.loadTimeForCacheKey.addAndGet(loadTimeInMillis);
     }
 
     /**
@@ -321,7 +273,7 @@ public class SoftCache<K, V> implements NonDistributedCache<K, V> {
     public final void cleanup() {
         mbean.cleanups.incrementAndGet();
         if(log.isTraceEnabled()) {
-            log.trace("cleanup() called on " + name + " of size: " + cacheEntries.size());
+            log.trace("cleanup() called on " + getName() + " of size: " + cacheEntries.size());
         }
 
         int i = 0;
@@ -334,7 +286,7 @@ public class SoftCache<K, V> implements NonDistributedCache<K, V> {
         }
 
         if(log.isTraceEnabled()) {
-            log.trace("cleanup() finished on " + name + ".  " + i + " keys were cleaned up. ");
+            log.trace("cleanup() finished on " + getName() + ".  " + i + " keys were cleaned up. ");
         }
     }
 
@@ -452,7 +404,7 @@ public class SoftCache<K, V> implements NonDistributedCache<K, V> {
 
     @Override
     public synchronized String toString() {
-        return "SoftCache named " + name + ": " + cacheEntries.values().toString();
+        return "SoftCache named " + getName() + ": " + cacheEntries.values().toString();
     }
 
     /**
