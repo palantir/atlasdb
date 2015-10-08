@@ -57,7 +57,7 @@ public class CassandraVerifier {
                 try {
                     client.describe_keyspace(keyspace);
                 } catch (NotFoundException e) {
-                    log.warn("Tried to check ring consistency for node " + host + " before keyspace was fully setup; aborting check for now.", e);
+                    log.info("Tried to check ring consistency for node " + host + " before keyspace was fully setup; aborting check for now.", e);
                     return;
                 }
                 tokenRangesToHost.put(ImmutableSet.copyOf(client.describe_ring(keyspace)), host);
