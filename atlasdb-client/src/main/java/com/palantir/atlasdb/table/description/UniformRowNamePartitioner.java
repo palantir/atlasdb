@@ -52,6 +52,7 @@ public class UniformRowNamePartitioner implements RowNamePartitioner {
         case SHA256HASH:
         case FIXED_LONG_LITTLE_ENDIAN:
         case NULLABLE_FIXED_LONG:
+        case UUID:
             return getRangesForLongs(numberRanges);
         default:
             throw new UnsupportedOperationException("AtlasDB does not yet support this type. (But can if you need it)");
@@ -66,6 +67,7 @@ public class UniformRowNamePartitioner implements RowNamePartitioner {
         case SHA256HASH:
         case FIXED_LONG_LITTLE_ENDIAN:
         case NULLABLE_FIXED_LONG:
+        case UUID:
             return true;
         default:
             return false;
