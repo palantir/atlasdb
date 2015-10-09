@@ -129,4 +129,21 @@ public class CacheStats implements CacheStatsMBean {
     public void setMaxCacheSize(int size) {
         cache.setMaxCacheSize(size);
     }
+
+
+    public void incrementPuts() {
+        puts.incrementAndGet();
+    }
+
+    public void incrementMisses() {
+        misses.incrementAndGet();
+    }
+
+    public void incrementHits() {
+        hits.incrementAndGet();
+    }
+
+    public void incrementCleanups() {
+        cleanups.incrementAndGet();
+    }
 }
