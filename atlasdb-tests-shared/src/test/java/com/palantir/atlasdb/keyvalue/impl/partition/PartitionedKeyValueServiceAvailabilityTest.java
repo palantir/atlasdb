@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.impl.partition;
 
-import org.junit.Ignore;
-
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.AbstractAtlasDbKeyValueServiceTest;
 
@@ -45,12 +43,6 @@ public class PartitionedKeyValueServiceAvailabilityTest extends AbstractAtlasDbK
     @Override
     protected boolean reverseRangesSupported() {
         return false;
-    }
-
-    @Ignore
-    @Override
-    public void testDelete() {
-        super.testDelete();
     }
 
 }
