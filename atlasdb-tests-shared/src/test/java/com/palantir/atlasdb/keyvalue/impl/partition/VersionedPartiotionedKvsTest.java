@@ -26,7 +26,6 @@ import java.util.Set;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -67,7 +66,6 @@ import jersey.repackaged.com.google.common.collect.Iterators;
  * @author htarasiuk
  *
  */
-@Ignore
 public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueServiceTest {
 
     /**
