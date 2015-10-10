@@ -1375,7 +1375,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     @Override
     public void compactInternally(String tableName) {
         Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName), "tableName:[%s] should not be null or empty", tableName);
-        long compactionTimeoutSeconds = config.jmxCompactionTimeoutSeconds();
+        long compactionTimeoutSeconds = config.compactionTimeoutSeconds();
         try {
             alterGcGraceSeconds(tableName, 0);
             alterTombstoneThreshold(tableName, 0.0f);

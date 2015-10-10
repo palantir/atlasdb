@@ -38,7 +38,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.MoreObjects;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.pooling.AbstractPoolingContainer;
 
@@ -157,16 +156,16 @@ public class CassandraClientPoolingContainer extends AbstractPoolingContainer<Cl
         super.cleanupForDiscard(discardedResource);
     }
 
-    public static class Builder{
+    public static class Builder {
         private final String host;
         private final int port;
 
         // default values are provided
-        private int poolSize = CassandraKeyValueServiceConfig.DEFAULT.poolSize();
-        private String keyspace = CassandraKeyValueServiceConfig.DEFAULT.keyspace();
-        private boolean isSsl = CassandraKeyValueServiceConfig.DEFAULT.ssl();
-        private int socketTimeoutMillis = CassandraKeyValueServiceConfig.DEFAULT.socketTimeoutMillis();
-        private int socketQueryTimeoutMillis = CassandraKeyValueServiceConfig.DEFAULT.socketQueryTimeoutMillis();
+        private int poolSize = 20;
+        private String keyspace = "atlasdb";
+        private boolean isSsl = false;
+        private int socketTimeoutMillis = 2000;
+        private int socketQueryTimeoutMillis = 62000;
 
         public Builder(String host, int port) {
             this.host = host;

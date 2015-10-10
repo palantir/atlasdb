@@ -19,7 +19,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
@@ -32,7 +31,6 @@ public class CassandraTimestampTest {
     @Before
     public void setUp() {
         kv = CassandraKeyValueService.create(ImmutableCassandraKeyValueServiceConfig.builder()
-                .from(CassandraKeyValueServiceConfig.DEFAULT)
                 .addServers("localhost")
                 .port(9160)
                 .poolSize(20)
