@@ -32,7 +32,7 @@ public class Mutable<T> implements Serializable {
 
     private volatile T value;
 
-    Mutable(T val) {
+    public Mutable(T val) {
         value = val;
     }
 
