@@ -1307,7 +1307,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     public void compactInternally(String tableName) {
         Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName), "tableName:[%s] should not be null or empty", tableName);
         String keyspace = config.keyspace();
-        long compactionTimeoutSeconds = config.jmxCompactionTimeoutSeconds();
+        long compactionTimeoutSeconds = config.compactionTimeoutSeconds();
 
         try {
             alterGcAndTombstone(keyspace, tableName, 0, 0.0f);

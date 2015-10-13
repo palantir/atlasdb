@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest;
@@ -26,7 +25,6 @@ public class CassandraKeyValueServiceSerializableTransactionTest extends
     @Override
     protected KeyValueService getKeyValueService() {
         return CassandraKeyValueService.create(ImmutableCassandraKeyValueServiceConfig.builder()
-                .from(CassandraKeyValueServiceConfig.DEFAULT)
                 .addServers("localhost")
                 .port(9160)
                 .poolSize(20)
