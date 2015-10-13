@@ -15,7 +15,7 @@
  */
 package com.palantir.atlasdb.table.description.render;
 
-import com.palantir.atlasdb.table.description.IndexMetadata;
+import com.palantir.atlasdb.table.description.DefaultIndexMetadata;
 import com.palantir.atlasdb.table.description.TableDefinition;
 
 public class Renderers {
@@ -73,7 +73,7 @@ public class Renderers {
         }
     }
 
-    static String getIndexTableName(IndexMetadata index) {
+    static String getIndexTableName(DefaultIndexMetadata index) {
         if (index.getJavaIndexName() == null) {
             return Renderers.CamelCase(index.getIndexName());
         } else {

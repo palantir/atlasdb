@@ -24,24 +24,25 @@ import com.palantir.atlasdb.persister.JsonNodePersister;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.atlasdb.schema.AtlasSchema;
 import com.palantir.atlasdb.schema.Namespace;
-import com.palantir.atlasdb.table.description.IndexDefinition;
-import com.palantir.atlasdb.table.description.IndexDefinition.IndexType;
+import com.palantir.atlasdb.table.description.CodeGeneratingIndexDefinition;
+import com.palantir.atlasdb.table.description.CodeGeneratingIndexDefinition.IndexType;
+import com.palantir.atlasdb.table.description.CodeGeneratingSchema;
 import com.palantir.atlasdb.table.description.Schema;
-import com.palantir.atlasdb.table.description.TableDefinition;
+import com.palantir.atlasdb.table.description.CodeGeneratingTableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.example.profile.protos.generated.ProfilePersistence;
 
 public class ProfileSchema implements AtlasSchema {
     public static final AtlasSchema INSTANCE = new ProfileSchema();
 
-    private static final Schema PROFILE_SCHEMA = generateSchema();
+    private static final CodeGeneratingSchema PROFILE_SCHEMA = generateSchema();
 
-    private static Schema generateSchema() {
-        Schema schema = new Schema("Profile",
+    private static CodeGeneratingSchema generateSchema() {
+        CodeGeneratingSchema schema = new CodeGeneratingSchema("Profile",
                 ProfileSchema.class.getPackage().getName() + ".generated",
                 Namespace.DEFAULT_NAMESPACE);
 
-        schema.addTableDefinition("user_profile", new TableDefinition() {{
+        schema.addTableDefinition("user_profile", new CodeGeneratingTableDefinition() {{
             rowName();
                 rowComponent("id", ValueType.FIXED_LONG);
             columns();
@@ -51,7 +52,7 @@ public class ProfileSchema implements AtlasSchema {
                 column("photo_stream_id", "p", ValueType.FIXED_LONG);
         }});
 
-        schema.addIndexDefinition("user_birthdays", new IndexDefinition(IndexType.CELL_REFERENCING) {{
+        schema.addIndexDefinition("user_birthdays", new CodeGeneratingIndexDefinition(IndexType.CELL_REFERENCING) {{
             onTable("user_profile");
             rowName();
                 componentFromColumn("birthday", ValueType.VAR_SIGNED_LONG, "metadata", "_value.getBirthEpochDay()");
@@ -60,7 +61,7 @@ public class ProfileSchema implements AtlasSchema {
             rangeScanAllowed();
         }});
 
-        schema.addIndexDefinition("created", new IndexDefinition(IndexType.CELL_REFERENCING) {{
+        schema.addIndexDefinition("created", new CodeGeneratingIndexDefinition(IndexType.CELL_REFERENCING) {{
             onTable("user_profile");
             rowName();
                 componentFromColumn("time", ValueType.VAR_LONG, "create", "_value.getTimeCreated()");
@@ -69,7 +70,7 @@ public class ProfileSchema implements AtlasSchema {
             rangeScanAllowed();
         }});
 
-        schema.addIndexDefinition("cookies", new IndexDefinition(IndexType.CELL_REFERENCING) {{
+        schema.addIndexDefinition("cookies", new CodeGeneratingIndexDefinition(IndexType.CELL_REFERENCING) {{
             onTable("user_profile");
             rowName();
                 componentFromIterableColumn("cookie", ValueType.STRING, ValueByteOrder.ASCENDING, "json", "com.palantir.example.profile.schema.ProfileSchema.getCookies(_value)");

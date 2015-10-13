@@ -29,7 +29,7 @@ import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
-import com.palantir.atlasdb.table.description.TableDefinition;
+import com.palantir.atlasdb.table.description.CodeGeneratingTableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -265,7 +265,7 @@ public abstract class AbstractSweeperTest {
 
     private void createTable(final SweepStrategy sweepStrategy) {
         kvs.createTable(TABLE_NAME, Integer.MAX_VALUE);
-        kvs.putMetadataForTable(TABLE_NAME, new TableDefinition() {{
+        kvs.putMetadataForTable(TABLE_NAME, new CodeGeneratingTableDefinition() {{
             rowName();
                 rowComponent("row", ValueType.BLOB);
             columns();

@@ -27,10 +27,10 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteO
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
+import com.palantir.atlasdb.table.description.DefaultTableMetadata;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
-import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.common.base.ClosableIterator;
@@ -45,7 +45,7 @@ public class KeyValueServicePuncherStore implements PuncherStore {
 
     public static KeyValueServicePuncherStore create(KeyValueService keyValueService) {
         keyValueService.createTable(AtlasDbConstants.PUNCH_TABLE, EncodingUtils.sizeOfUnsignedVarLong(Long.MAX_VALUE));
-        keyValueService.putMetadataForTable(AtlasDbConstants.PUNCH_TABLE, new TableMetadata(
+        keyValueService.putMetadataForTable(AtlasDbConstants.PUNCH_TABLE, new DefaultTableMetadata(
                 new NameMetadataDescription(ImmutableList.of(new NameComponentDescription("time", ValueType.VAR_LONG, ValueByteOrder.DESCENDING))),
                 new ColumnMetadataDescription(ImmutableList.of(
                         new NamedColumnDescription("t", "t", ColumnValueDescription.forType(ValueType.VAR_LONG)))),

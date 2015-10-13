@@ -21,8 +21,9 @@ import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.palantir.annotations.PtMain;
 import com.palantir.annotations.PtMainType;
+import com.palantir.atlasdb.table.description.CodeGeneratingSchema;
+import com.palantir.atlasdb.table.description.CodeGeneratingTableDefinition;
 import com.palantir.atlasdb.table.description.Schema;
-import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
@@ -31,20 +32,20 @@ public enum SweepSchema implements AtlasSchema {
     INSTANCE;
 
     private static final Namespace NAMESPACE = Namespace.create("sweep");
-    private static final Supplier<Schema> SCHEMA = Suppliers.memoize(new Supplier<Schema>() {
+    private static final Supplier<CodeGeneratingSchema> SCHEMA = Suppliers.memoize(new Supplier<CodeGeneratingSchema>() {
         @Override
-        public Schema get() {
+        public CodeGeneratingSchema get() {
             return generateSchema();
         }
     });
 
-    private static Schema generateSchema() {
-        Schema schema = new Schema("Sweep",
+    private static CodeGeneratingSchema generateSchema() {
+        CodeGeneratingSchema schema = new CodeGeneratingSchema("Sweep",
                 SweepSchema.class.getPackage().getName() + ".generated",
                 NAMESPACE);
 
         // This table tracks progress on a sweep job of a single table.
-        schema.addTableDefinition("progress", new TableDefinition() {{
+        schema.addTableDefinition("progress", new CodeGeneratingTableDefinition() {{
             javaTableName("SweepProgress");
             rowName();
                 // This table has at most one row.
@@ -64,7 +65,7 @@ public enum SweepSchema implements AtlasSchema {
 
         // This table tracks stats about tables that are relevant
         // in determining when and in which order they should be swept.
-        schema.addTableDefinition("priority", new TableDefinition() {{
+        schema.addTableDefinition("priority", new CodeGeneratingTableDefinition() {{
             javaTableName("SweepPriority");
             rowName();
                 rowComponent("full_table_name", ValueType.STRING);

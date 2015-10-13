@@ -92,6 +92,7 @@ import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.schema.UpgradeFailedException;
+import com.palantir.atlasdb.table.description.DefaultTableMetadata;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.ClosableIterator;
@@ -637,7 +638,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         double falsePositiveChance = CassandraConstants.DEFAULT_LEVELED_COMPACTION_BLOOM_FILTER_FP_CHANCE;
 
         if (rawMetadata != null && rawMetadata.length != 0) {
-            TableMetadata tableMetadata = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(rawMetadata);
+            TableMetadata tableMetadata = DefaultTableMetadata.BYTES_HYDRATOR.hydrateFromBytes(rawMetadata);
             dbCompressionRequested = tableMetadata.isDbCompressionRequested();
             rangeScanAllowed = tableMetadata.isRangeScanAllowed();
             negativeLookups = tableMetadata.hasNegativeLookups();

@@ -20,16 +20,17 @@ import java.io.File;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ExpirationStrategy;
 import com.palantir.atlasdb.schema.AtlasSchema;
 import com.palantir.atlasdb.schema.Namespace;
+import com.palantir.atlasdb.table.description.CodeGeneratingSchema;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.ValueType;
 
 public class StreamTestSchema implements AtlasSchema {
     public static final AtlasSchema INSTANCE = new StreamTestSchema();
 
-    private static final Schema STREAM_TEST_SCHEMA = generateSchema();
+    private static final CodeGeneratingSchema STREAM_TEST_SCHEMA = generateSchema();
 
-    private static Schema generateSchema() {
-        Schema schema = new Schema("StreamTest",
+    private static CodeGeneratingSchema generateSchema() {
+        CodeGeneratingSchema schema = new CodeGeneratingSchema("StreamTest",
                 StreamTest.class.getPackage().getName() + ".generated",
                 Namespace.DEFAULT_NAMESPACE);
 

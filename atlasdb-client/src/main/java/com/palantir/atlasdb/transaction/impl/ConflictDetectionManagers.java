@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
+import com.palantir.atlasdb.table.description.DefaultTableMetadata;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
@@ -77,7 +78,7 @@ public class ConflictDetectionManagers {
             @Override
             public ConflictHandler apply(byte[] metadataForTable) {
                 if (metadataForTable != null && metadataForTable.length > 0) {
-                    return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadataForTable).getConflictHandler();
+                    return DefaultTableMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadataForTable).getConflictHandler();
                 } else {
                     return ConflictHandler.RETRY_ON_WRITE_WRITE;
                 }

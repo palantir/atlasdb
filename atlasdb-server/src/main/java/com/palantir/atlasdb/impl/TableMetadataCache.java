@@ -23,11 +23,12 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.table.description.DefaultTableMetadata;
 import com.palantir.atlasdb.table.description.TableMetadata;
 
 public class TableMetadataCache {
     private final LoadingCache<String, TableMetadata> cache;
-    private static final TableMetadata EMPTY = new TableMetadata();
+    private static final TableMetadata EMPTY = new DefaultTableMetadata();
 
     public TableMetadataCache(final KeyValueService kvs) {
         this.cache = CacheBuilder.newBuilder()
@@ -39,7 +40,7 @@ public class TableMetadataCache {
                 if (rawMetadata == null || rawMetadata.length == 0) {
                     return EMPTY;
                 }
-                return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(rawMetadata);
+                return DefaultTableMetadata.BYTES_HYDRATOR.hydrateFromBytes(rawMetadata);
             }
         });
     }

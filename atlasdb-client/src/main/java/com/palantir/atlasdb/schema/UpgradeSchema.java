@@ -22,8 +22,9 @@ import com.google.common.base.Suppliers;
 import com.palantir.annotations.PtMain;
 import com.palantir.annotations.PtMainType;
 import com.palantir.atlasdb.protos.generated.UpgradePersistence;
+import com.palantir.atlasdb.table.description.CodeGeneratingSchema;
+import com.palantir.atlasdb.table.description.CodeGeneratingTableDefinition;
 import com.palantir.atlasdb.table.description.Schema;
-import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
@@ -35,19 +36,19 @@ public enum UpgradeSchema implements AtlasSchema {
     INSTANCE;
 
     private static final Namespace NAMESPACE = Namespace.create("upgrade");
-    private static final Supplier<Schema> SCHEMA = Suppliers.memoize(new Supplier<Schema>() {
+    private static final Supplier<CodeGeneratingSchema> SCHEMA = Suppliers.memoize(new Supplier<CodeGeneratingSchema>() {
         @Override
-        public Schema get() {
+        public CodeGeneratingSchema get() {
             return generateSchema();
         }
     });
 
-    private static Schema generateSchema() {
-        Schema schema = new Schema("Upgrade",
+    private static CodeGeneratingSchema generateSchema() {
+        CodeGeneratingSchema schema = new CodeGeneratingSchema("Upgrade",
                 UpgradeSchema.class.getPackage().getName() + ".generated",
                 Namespace.create("upgrade"));
 
-        schema.addTableDefinition("upgrade_metadata", new TableDefinition() {{
+        schema.addTableDefinition("upgrade_metadata", new CodeGeneratingTableDefinition() {{
             rowName();
                 rowComponent("namespace",      ValueType.STRING); partition();
             columns();
@@ -58,7 +59,7 @@ public enum UpgradeSchema implements AtlasSchema {
             conflictHandler(ConflictHandler.IGNORE_ALL);
         }});
 
-        schema.addTableDefinition("upg_task_metadata", new TableDefinition() {{
+        schema.addTableDefinition("upg_task_metadata", new CodeGeneratingTableDefinition() {{
             rowName();
                 rowComponent("namespace",      ValueType.VAR_STRING); partition();
                 rowComponent("version",        ValueType.VAR_LONG);

@@ -40,6 +40,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.table.description.DefaultTableMetadata;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
@@ -58,7 +59,7 @@ public class KeyValueServices {
             if (metadataForTable == null || metadataForTable.length == 0) {
                 return null;
             }
-            return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadataForTable);
+            return DefaultTableMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadataForTable);
         } catch (Exception e) {
             log.warn("failed to get metadata for table", e);
             return null;

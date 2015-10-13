@@ -78,10 +78,12 @@ import com.palantir.atlasdb.table.api.AtlasDbNamedMutableTable;
 import com.palantir.atlasdb.table.api.AtlasDbNamedPersistentSet;
 import com.palantir.atlasdb.table.api.ColumnValue;
 import com.palantir.atlasdb.table.api.TypedRowResult;
+import com.palantir.atlasdb.table.description.CodeGeneratingIndexDefinition.IndexType;
+import com.palantir.atlasdb.table.description.CodeGeneratingTableDefinition;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
+import com.palantir.atlasdb.table.description.DefaultIndexMetadata;
+import com.palantir.atlasdb.table.description.DefaultTableMetadata;
 import com.palantir.atlasdb.table.description.IndexComponent;
-import com.palantir.atlasdb.table.description.IndexDefinition.IndexType;
-import com.palantir.atlasdb.table.description.IndexMetadata;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.Schemas;
@@ -118,15 +120,15 @@ public class TableRenderer {
         return Renderers.getClassTableName(rawTableName, table) + "Table";
     }
 
-    public String render(String rawTableName, TableDefinition table, SortedSet<IndexMetadata> indices) {
+    public String render(String rawTableName, CodeGeneratingTableDefinition table, SortedSet<DefaultIndexMetadata> indices) {
         return new ClassRenderer(rawTableName, table, indices).render();
     }
 
     private class ClassRenderer extends Renderer {
         private final String tableName;
-        private final TableMetadata table;
-        private final SortedSet<IndexMetadata> indices;
-        private final Collection<IndexMetadata> cellReferencingIndices;
+        private final DefaultTableMetadata table;
+        private final SortedSet<DefaultIndexMetadata> indices;
+        private final Collection<DefaultIndexMetadata> cellReferencingIndices;
         private final String raw_table_name;
         private final boolean isGeneric;
         private final boolean isNestedIndex;
@@ -139,8 +141,8 @@ public class TableRenderer {
         private final String Trigger;
 
         public ClassRenderer(String rawTableName,
-                             TableDefinition table,
-                             SortedSet<IndexMetadata> indices) {
+                             CodeGeneratingTableDefinition table,
+                             SortedSet<DefaultIndexMetadata> indices) {
             Preconditions.checkArgument(
                     Schemas.isTableNameValid(rawTableName),
                     "Invalid table name " + rawTableName);
@@ -160,7 +162,7 @@ public class TableRenderer {
             this.Trigger = tableName + "Trigger";
         }
 
-        public ClassRenderer(Renderer parent, String outerTable, IndexMetadata index) {
+        public ClassRenderer(Renderer parent, String outerTable, DefaultIndexMetadata index) {
             super(parent);
             this.tableName = Renderers.getIndexTableName(index);
             this.table = index.getTableMetadata();
@@ -261,7 +263,7 @@ public class TableRenderer {
                     line();
                 }
                 renderFindConstraintFailures();
-                for (IndexMetadata index : indices) {
+                for (DefaultIndexMetadata index : indices) {
                     line();
                     new ClassRenderer(this, Table, index).run();
                 }
@@ -317,7 +319,7 @@ public class TableRenderer {
             if (!cellReferencingIndices.isEmpty()) {
                 line();
                 renderNamedGetAffectedCells();
-                for (IndexMetadata index : cellReferencingIndices) {
+                for (DefaultIndexMetadata index : cellReferencingIndices) {
                     line();
                     renderCellReferencingIndexDelete(index);
                 }
@@ -460,7 +462,7 @@ public class TableRenderer {
                 line("t.useTable(tableName, this);");
                 if (!indices.isEmpty()) {
                     line("for (Entry<", Row, ", ? extends ", ColumnValue, "> e : values.entries()) {"); {
-                        for (IndexMetadata index : indices) {
+                        for (DefaultIndexMetadata index : indices) {
                             renderIndexPut(index);
                         }
                     } line("}");
@@ -472,7 +474,7 @@ public class TableRenderer {
             } line("}");
         }
 
-        private void renderIndexPut(IndexMetadata index) {
+        private void renderIndexPut(DefaultIndexMetadata index) {
             String args = isExpiring(table) ? ", duration, unit" : "";
             List<String> rowArgumentNames = Lists.newArrayList();
             List<String> colArgumentNames = Lists.newArrayList();
@@ -670,7 +672,7 @@ public class TableRenderer {
 
                 if (!cellReferencingIndices.isEmpty()) {
                     line("Multimap<", Row, ", ", ColumnValue, "> affectedCells = getAffectedCells(rows);");
-                    for (IndexMetadata index : cellReferencingIndices) {
+                    for (DefaultIndexMetadata index : cellReferencingIndices) {
                         String indexName = Renderers.getIndexTableName(index);
                         line("delete", indexName, "(affectedCells);");
                     }
@@ -678,7 +680,7 @@ public class TableRenderer {
 
                 if (!indices.isEmpty()) {
                     line("for (Entry<", Row, ", ? extends ", ColumnValue, "> e : rows.entries()) {"); {
-                        for (IndexMetadata index : indices) {
+                        for (DefaultIndexMetadata index : indices) {
                             renderIndexPut(index);
                         }
                     } line("}");
@@ -690,7 +692,7 @@ public class TableRenderer {
             } line("}");
         }
 
-        private void renderCellReferencingIndexDelete(IndexMetadata index) {
+        private void renderCellReferencingIndexDelete(DefaultIndexMetadata index) {
             String indexName = Renderers.getIndexTableName(index);
             line("private void delete", indexName, "(Multimap<", Row, ", ", ColumnValue, "> result) {"); {
                 List<String> rowArgumentNames = Lists.newArrayList();
@@ -754,8 +756,8 @@ public class TableRenderer {
         }
 
         private void renderNamedDeleteColumn(NamedColumnDescription col) {
-            Collection<IndexMetadata> columnIndices = Lists.newArrayList();
-            for (IndexMetadata index : cellReferencingIndices) {
+            Collection<DefaultIndexMetadata> columnIndices = Lists.newArrayList();
+            for (DefaultIndexMetadata index : cellReferencingIndices) {
                 if (col.getLongName().equals(index.getColumnNameToAccessData())) {
                     columnIndices.add(index);
                 }
@@ -769,19 +771,19 @@ public class TableRenderer {
                 line("Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);");
                 if (!columnIndices.isEmpty()) {
                     line("Map<Cell, byte[]> results = t.get(tableName, cells);");
-                    for (IndexMetadata index : columnIndices) {
+                    for (DefaultIndexMetadata index : columnIndices) {
                         line("delete", Renderers.getIndexTableName(index), "Raw(results);");
                     }
                 }
                 line("t.delete(tableName, cells);");
             } line("}");
-            for (IndexMetadata index : columnIndices) {
+            for (DefaultIndexMetadata index : columnIndices) {
                 line();
                 renderNamedIndexDeleteRaw(col, index);
             }
         }
 
-        private void renderNamedIndexDeleteRaw(NamedColumnDescription col, IndexMetadata index) {
+        private void renderNamedIndexDeleteRaw(NamedColumnDescription col, DefaultIndexMetadata index) {
             String indexName = Renderers.getIndexTableName(index);
             String NamedColumn = Renderers.CamelCase(col.getLongName());
             line("private void delete", indexName, "Raw(Map<Cell, byte[]> results) {"); {
@@ -839,7 +841,7 @@ public class TableRenderer {
 
                 if (!cellReferencingIndices.isEmpty()) {
                     line("Multimap<", Row, ", ", ColumnValue, "> result = getRowsMultimap(rows);");
-                    for (IndexMetadata index : cellReferencingIndices) {
+                    for (DefaultIndexMetadata index : cellReferencingIndices) {
                         line("delete", Renderers.getIndexTableName(index), "(result);");
                     }
                 }
@@ -1125,14 +1127,14 @@ public class TableRenderer {
         return table.getColumns().hasDynamicColumns();
     }
 
-    private static boolean isExpiring(TableMetadata table) {
+    private static boolean isExpiring(DefaultTableMetadata table) {
         return table.getExpirationStrategy() == ExpirationStrategy.INDIVIDUALLY_SPECIFIED;
     }
 
-    private static Collection<IndexMetadata> getCellReferencingIndices(SortedSet<IndexMetadata> indices) {
-        return Collections2.filter(indices, new Predicate<IndexMetadata>() {
+    private static Collection<DefaultIndexMetadata> getCellReferencingIndices(SortedSet<DefaultIndexMetadata> indices) {
+        return Collections2.filter(indices, new Predicate<DefaultIndexMetadata>() {
             @Override
-            public boolean apply(IndexMetadata index) {
+            public boolean apply(DefaultIndexMetadata index) {
                 return index.getIndexType() == IndexType.CELL_REFERENCING;
             }
         });

@@ -27,6 +27,7 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.table.description.DefaultTableMetadata;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -75,16 +76,16 @@ public static AtlasShellConnection createAtlasShellConnection(final AtlasContext
                     public TableMetadata load(String tableName) throws Exception {
                         byte[] metadataBytes = atlasContext.getKeyValueService().getMetadataForTable(tableName);
                         if (metadataBytes == null || metadataBytes.length == 0) {
-                            return new TableMetadata();
+                            return new DefaultTableMetadata();
                         }
-                        return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadataBytes);
+                        return DefaultTableMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadataBytes);
                     }
                 });
         for (Entry<String, byte[]> e : atlasContext.getKeyValueService().getMetadataForTables().entrySet()) {
             if (e.getValue() == null || e.getValue().length == 0) {
-                metadataCache.put(e.getKey(), new TableMetadata());
+                metadataCache.put(e.getKey(), new DefaultTableMetadata());
             } else {
-                metadataCache.put(e.getKey(), TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()));
+                metadataCache.put(e.getKey(), DefaultTableMetadata.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()));
             }
         }
         return new AtlasShellConnection(atlasContext.getKeyValueService(), atlasContext.getTransactionManager(), metadataCache);
@@ -99,7 +100,7 @@ public static AtlasShellConnection createAtlasShellConnection(final AtlasContext
 
     /**
      * @param tableName name of a table in AtlasDB
-     * @return the corresponding {@link TableMetadata} object
+     * @return the corresponding {@link DefaultTableMetadata} object
      */
     public TableMetadata getTableMetadata(String tableName) {
         try {

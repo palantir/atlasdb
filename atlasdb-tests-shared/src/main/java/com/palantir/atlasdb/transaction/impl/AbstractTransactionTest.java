@@ -62,6 +62,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
+import com.palantir.atlasdb.table.description.DefaultTableMetadata;
 import com.palantir.atlasdb.table.description.DynamicColumnDescription;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
@@ -93,7 +94,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 public abstract class AbstractTransactionTest {
     protected static final String TEST_TABLE = "ns.table1";
-    protected static final TableMetadata TEST_TABLE_METADATA = new TableMetadata(
+    protected static final TableMetadata TEST_TABLE_METADATA = new DefaultTableMetadata(
             new NameMetadataDescription(ImmutableList.of(new NameComponentDescription(
                     "row_name",
                     ValueType.STRING))),
@@ -1218,7 +1219,7 @@ public abstract class AbstractTransactionTest {
     public void testTableMetadata() {
         byte[] metadataForTable = keyValueService.getMetadataForTable(TEST_TABLE);
         assertTrue(metadataForTable == null || Arrays.equals(TEST_TABLE_METADATA.persistToBytes(), metadataForTable));
-        byte[] bytes = new TableMetadata().persistToBytes();
+        byte[] bytes = new DefaultTableMetadata().persistToBytes();
         keyValueService.putMetadataForTable(TEST_TABLE, bytes);
         byte[] bytesRead = keyValueService.getMetadataForTable(TEST_TABLE);
         assertTrue(Arrays.equals(bytes, bytesRead));

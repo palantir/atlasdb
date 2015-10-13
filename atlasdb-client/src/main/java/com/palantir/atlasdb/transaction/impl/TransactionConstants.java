@@ -21,6 +21,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
+import com.palantir.atlasdb.table.description.DefaultTableMetadata;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
@@ -50,7 +51,7 @@ public class TransactionConstants {
         return EncodingUtils.decodeVarLong(encodedTimestamp);
     }
 
-    public static final TableMetadata TRANSACTION_TABLE_METADATA = new TableMetadata(
+    public static final TableMetadata TRANSACTION_TABLE_METADATA = new DefaultTableMetadata(
         new NameMetadataDescription(ImmutableList.of(new NameComponentDescription("write_ts", ValueType.VAR_LONG))),
         new ColumnMetadataDescription(ImmutableList.of(
             new NamedColumnDescription(COMMIT_TS_COLUMN_STRING, "commit_ts", ColumnValueDescription.forType(ValueType.VAR_LONG)))),

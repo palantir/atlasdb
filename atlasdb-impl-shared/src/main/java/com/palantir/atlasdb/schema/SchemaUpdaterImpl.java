@@ -30,6 +30,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ExpirationStrategy;
 import com.palantir.atlasdb.schema.stream.StreamTables;
+import com.palantir.atlasdb.table.description.DefaultTableMetadata;
 import com.palantir.atlasdb.table.description.IndexDefinition;
 import com.palantir.atlasdb.table.description.RowNamePartitioner;
 import com.palantir.atlasdb.table.description.Schemas;
@@ -147,7 +148,7 @@ public class SchemaUpdaterImpl implements SchemaUpdater {
         Preconditions.checkState(!ranCopyTable.getAndSet(true), "Cannot copy two tables in the same upgrade task");
 
         byte[] metadata = kvs.getMetadataForTable(fullSrcTable);
-        TableMetadata tableMeta = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadata);
+        TableMetadata tableMeta = DefaultTableMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadata);
         List<RowNamePartitioner> partitioners = tableMeta.getRowMetadata().getPartitionersForRow();
 
         UpgradeTaskCheckpointer checkpointer = new UpgradeTaskCheckpointer(

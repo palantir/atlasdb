@@ -44,6 +44,7 @@ import com.palantir.atlasdb.table.description.ColumnValueDescription;
 import com.palantir.atlasdb.table.description.DynamicColumnDescription;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
+import com.palantir.atlasdb.table.description.DefaultTableMetadata;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
@@ -59,7 +60,7 @@ import com.palantir.lock.LockRefreshToken;
 import jersey.repackaged.com.google.common.collect.ImmutableList;
 
 public class AtlasDbServiceImpl implements AtlasDbService {
-    private static final TableMetadata RAW_METADATA = new TableMetadata(
+    private static final TableMetadata RAW_METADATA = new DefaultTableMetadata(
             new NameMetadataDescription(ImmutableList.of(new NameComponentDescription("row", ValueType.STRING))),
             new ColumnMetadataDescription(new DynamicColumnDescription(new NameMetadataDescription(ImmutableList.of(new NameComponentDescription("col", ValueType.STRING))), ColumnValueDescription.forType(ValueType.STRING))),
             ConflictHandler.SERIALIZABLE);

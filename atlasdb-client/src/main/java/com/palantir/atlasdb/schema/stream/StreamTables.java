@@ -19,7 +19,8 @@ import com.palantir.atlasdb.protos.generated.StreamPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePriority;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ExpirationStrategy;
 import com.palantir.atlasdb.stream.GenericStreamStore;
-import com.palantir.atlasdb.table.description.Schema;
+import com.palantir.atlasdb.table.description.CodeGeneratingSchema;
+import com.palantir.atlasdb.table.description.CodeGeneratingTableDefinition;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.description.render.Renderers;
@@ -32,17 +33,17 @@ public class StreamTables {
     public static final String HASH_TABLE_SUFFIX = "_stream_hash_idx";
     public static final String INDEX_TABLE_SUFFIX = "_stream_idx";
 
-    public static void generateSchema(Schema schema, final String shortPrefix, final String longPrefix, final ValueType idType) {
+    public static void generateSchema(CodeGeneratingSchema schema, final String shortPrefix, final String longPrefix, final ValueType idType) {
         schema.addTableDefinition(shortPrefix + METADATA_TABLE_SUFFIX, getStreamMetadataDefinition(longPrefix, idType, ExpirationStrategy.NEVER));
         schema.addTableDefinition(shortPrefix + VALUE_TABLE_SUFFIX, getStreamValueDefinition(longPrefix, idType, ExpirationStrategy.NEVER));
         schema.addTableDefinition(shortPrefix + HASH_TABLE_SUFFIX, getStreamHashIdxDefinition(longPrefix, idType, ExpirationStrategy.NEVER));
         schema.addTableDefinition(shortPrefix + INDEX_TABLE_SUFFIX, getStreamIdxDefinition(longPrefix, idType, ExpirationStrategy.NEVER));
     }
 
-    public static TableDefinition getStreamIdxDefinition(final String longPrefix,
+    public static CodeGeneratingTableDefinition getStreamIdxDefinition(final String longPrefix,
                                                          final ValueType idType,
                                                          final ExpirationStrategy expirationStrategy) {
-        return new TableDefinition() {{
+        return new CodeGeneratingTableDefinition() {{
             javaTableName(Renderers.CamelCase(longPrefix) + "StreamIdx");
             rowName();
                 rowComponent("id",            idType);
@@ -56,10 +57,10 @@ public class StreamTables {
         }};
     }
 
-    public static TableDefinition getStreamHashIdxDefinition(final String longPrefix,
+    public static CodeGeneratingTableDefinition getStreamHashIdxDefinition(final String longPrefix,
                                                               final ValueType idType,
                                                               final ExpirationStrategy expirationStrategy) {
-        return new TableDefinition() {{
+        return new CodeGeneratingTableDefinition() {{
             javaTableName(Renderers.CamelCase(longPrefix) + "StreamHashAidx");
             rowName();
                 rowComponent("hash",            ValueType.SHA256HASH);
@@ -74,13 +75,13 @@ public class StreamTables {
         }};
     }
 
-    public static TableDefinition getStreamValueDefinition(String longPrefix,
+    public static CodeGeneratingTableDefinition getStreamValueDefinition(String longPrefix,
                                                            ValueType idType,
                                                            ExpirationStrategy expirationStrategy) {
         return getValueDefinition(longPrefix, idType, "Stream", expirationStrategy);
     }
 
-    public static TableDefinition getStreamMetadataDefinition(String longPrefix,
+    public static CodeGeneratingTableDefinition getStreamMetadataDefinition(String longPrefix,
                                                               ValueType idType,
                                                               ExpirationStrategy expirationStrategy) {
         return getMetadataDefinition(longPrefix, idType, "Stream", expirationStrategy);
@@ -98,11 +99,11 @@ public class StreamTables {
         return getMetadataDefinition(longPrefix, idType, "Blob", expirationStrategy);
     }
 
-    private static TableDefinition getValueDefinition(final String longPrefix,
+    private static CodeGeneratingTableDefinition getValueDefinition(final String longPrefix,
                                                       final ValueType idType,
                                                       final String type,
                                                       final ExpirationStrategy expirationStrategy) {
-        return new TableDefinition() {{
+        return new CodeGeneratingTableDefinition() {{
             javaTableName(Renderers.CamelCase(longPrefix) + type + "Value");
             rowName();
                 rowComponent("id",              idType);
@@ -116,11 +117,11 @@ public class StreamTables {
         }};
     }
 
-    private static TableDefinition getMetadataDefinition(final String longPrefix,
+    private static CodeGeneratingTableDefinition getMetadataDefinition(final String longPrefix,
                                                          final ValueType idType,
                                                          final String type,
                                                          final ExpirationStrategy expirationStrategy) {
-        return new TableDefinition() {{
+        return new CodeGeneratingTableDefinition() {{
             javaTableName(Renderers.CamelCase(longPrefix) + type + "Metadata");
             rowName();
                 rowComponent("id",              idType);

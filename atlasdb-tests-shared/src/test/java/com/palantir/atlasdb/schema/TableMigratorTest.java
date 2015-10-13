@@ -36,7 +36,7 @@ import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.NamespaceMappingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.StaticTableMappingService;
 import com.palantir.atlasdb.keyvalue.impl.TableRemappingKeyValueService;
-import com.palantir.atlasdb.table.description.TableDefinition;
+import com.palantir.atlasdb.table.description.CodeGeneratingTableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
@@ -66,7 +66,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
     public void testMigrationToDifferentKvs() {
         final String tableName = "table";
         final String namespacedTableName = "namespace." + tableName;
-        TableDefinition definition = new TableDefinition() {{
+        CodeGeneratingTableDefinition definition = new CodeGeneratingTableDefinition() {{
                 rowName();
                 rowComponent("r", ValueType.BLOB);
             columns();

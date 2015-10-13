@@ -20,30 +20,31 @@ import java.io.File;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.atlasdb.schema.AtlasSchema;
 import com.palantir.atlasdb.schema.Namespace;
-import com.palantir.atlasdb.table.description.IndexDefinition;
-import com.palantir.atlasdb.table.description.IndexDefinition.IndexType;
+import com.palantir.atlasdb.table.description.CodeGeneratingIndexDefinition;
+import com.palantir.atlasdb.table.description.CodeGeneratingIndexDefinition.IndexType;
+import com.palantir.atlasdb.table.description.CodeGeneratingSchema;
 import com.palantir.atlasdb.table.description.Schema;
-import com.palantir.atlasdb.table.description.TableDefinition;
+import com.palantir.atlasdb.table.description.CodeGeneratingTableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 
 public class IndexTestSchema implements AtlasSchema {
     public static final AtlasSchema INSTANCE = new IndexTestSchema();
 
-    private static final Schema INDEX_TEST_SCHEMA = generateSchema();
+    private static final CodeGeneratingSchema INDEX_TEST_SCHEMA = generateSchema();
 
-    private static Schema generateSchema() {
-        Schema schema = new Schema("IndexTest",
+    private static CodeGeneratingSchema generateSchema() {
+        CodeGeneratingSchema schema = new CodeGeneratingSchema("IndexTest",
                 IndexTest.class.getPackage().getName() + ".generated",
                 Namespace.DEFAULT_NAMESPACE);
 
-        schema.addTableDefinition("data", new TableDefinition() {{
+        schema.addTableDefinition("data", new CodeGeneratingTableDefinition() {{
             rowName();
                 rowComponent("id", ValueType.FIXED_LONG);
             columns();
                 column("value", "v", ValueType.FIXED_LONG);
         }});
 
-        schema.addIndexDefinition("index1", new IndexDefinition(IndexType.CELL_REFERENCING) {{
+        schema.addIndexDefinition("index1", new CodeGeneratingIndexDefinition(IndexType.CELL_REFERENCING) {{
             onTable("data");
             rowName();
                 componentFromColumn("value", ValueType.FIXED_LONG, "value", "_value");
@@ -52,7 +53,7 @@ public class IndexTestSchema implements AtlasSchema {
             rangeScanAllowed();
         }});
 
-        schema.addIndexDefinition("index2", new IndexDefinition(IndexType.CELL_REFERENCING) {{
+        schema.addIndexDefinition("index2", new CodeGeneratingIndexDefinition(IndexType.CELL_REFERENCING) {{
             onTable("data");
             rowName();
                 componentFromColumn("value", ValueType.FIXED_LONG, "value", "_value");
@@ -60,14 +61,14 @@ public class IndexTestSchema implements AtlasSchema {
             rangeScanAllowed();
         }});
 
-        schema.addIndexDefinition("index3", new IndexDefinition(IndexType.CELL_REFERENCING) {{
+        schema.addIndexDefinition("index3", new CodeGeneratingIndexDefinition(IndexType.CELL_REFERENCING) {{
             onTable("data");
             rowName();
                 componentFromIterableColumn("value", ValueType.FIXED_LONG, ValueByteOrder.ASCENDING, "value", "ImmutableList.of(_value)");
             rangeScanAllowed();
         }});
 
-        schema.addIndexDefinition("index4", new IndexDefinition(IndexType.CELL_REFERENCING) {{
+        schema.addIndexDefinition("index4", new CodeGeneratingIndexDefinition(IndexType.CELL_REFERENCING) {{
             onTable("data");
             rowName();
                 componentFromIterableColumn("value1", ValueType.FIXED_LONG, ValueByteOrder.ASCENDING, "value", "ImmutableList.of(_value)");
@@ -75,7 +76,7 @@ public class IndexTestSchema implements AtlasSchema {
             rangeScanAllowed();
         }});
 
-        schema.addTableDefinition("two_columns", new TableDefinition() {{
+        schema.addTableDefinition("two_columns", new CodeGeneratingTableDefinition() {{
             rowName();
                 rowComponent("id", ValueType.FIXED_LONG);
             columns();
@@ -83,7 +84,7 @@ public class IndexTestSchema implements AtlasSchema {
                 column("bar", "b", ValueType.FIXED_LONG);
         }});
 
-        schema.addIndexDefinition("foo_to_id", new IndexDefinition(IndexType.CELL_REFERENCING) {{
+        schema.addIndexDefinition("foo_to_id", new CodeGeneratingIndexDefinition(IndexType.CELL_REFERENCING) {{
             onTable("two_columns");
             rowName();
                 componentFromColumn("foo", ValueType.FIXED_LONG, "foo", "_value");
@@ -91,7 +92,7 @@ public class IndexTestSchema implements AtlasSchema {
                 componentFromRow("id", ValueType.FIXED_LONG);
         }});
 
-        schema.addIndexDefinition("foo_to_id_cond", new IndexDefinition(IndexType.CELL_REFERENCING) {{
+        schema.addIndexDefinition("foo_to_id_cond", new CodeGeneratingIndexDefinition(IndexType.CELL_REFERENCING) {{
             onTable("two_columns");
             onCondition("foo", "_value > 1");
             rowName();

@@ -36,6 +36,7 @@ import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.schema.TableReference;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
+import com.palantir.atlasdb.table.description.DefaultTableMetadata;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
@@ -45,7 +46,7 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.common.base.ClosableIterator;
 
 public class KVTableMappingService extends AbstractTableMappingService {
-    public static final TableMetadata NAMESPACE_TABLE_METADATA = new TableMetadata(
+    public static final TableMetadata NAMESPACE_TABLE_METADATA = new DefaultTableMetadata(
         new NameMetadataDescription(ImmutableList.of(
                 new NameComponentDescription("namespace", ValueType.VAR_STRING),
                 new NameComponentDescription("table_name", ValueType.STRING))),

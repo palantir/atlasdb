@@ -19,8 +19,8 @@ import java.util.Set;
 
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.table.description.CodeGeneratingIndexDefinition.IndexType;
 import com.palantir.atlasdb.table.description.IndexDefinition;
-import com.palantir.atlasdb.table.description.IndexDefinition.IndexType;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.table.description.TableDefinition;
 
@@ -78,7 +78,7 @@ public class SimpleSchemaUpdaterImpl implements SimpleSchemaUpdater {
         Set<String> tableNames = kvs.getAllTableNames();
         for(IndexType type : IndexType.values()) {
             String trueIndexName = Schemas.getFullTableName(indexName + type.getIndexSuffix(), namespace);
-            // This should only happen once - enforced by Schema.validateIndex()
+            // This should only happen once - enforced by CodeGeneratingSchema.validateIndex()
             if (tableNames.contains(trueIndexName)) {
                 kvs.dropTable(trueIndexName);
                 return;

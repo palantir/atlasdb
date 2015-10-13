@@ -26,6 +26,7 @@ import com.google.common.collect.Maps.EntryTransformer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
+import com.palantir.atlasdb.table.description.DefaultTableMetadata;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableMetadata;
 
@@ -74,7 +75,7 @@ public class SweepStrategyManagers {
             @Override
             public SweepStrategy transformEntry(String tableName, byte[] tableMetadata) {
                 if (tableMetadata != null && tableMetadata.length > 0) {
-                    return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(tableMetadata).getSweepStrategy();
+                    return DefaultTableMetadata.BYTES_HYDRATOR.hydrateFromBytes(tableMetadata).getSweepStrategy();
                 } else {
                     return SweepStrategy.CONSERVATIVE;
                 }

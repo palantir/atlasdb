@@ -67,6 +67,7 @@ import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import com.palantir.atlasdb.table.description.DefaultTableMetadata;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
@@ -661,7 +662,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     private TableMetadata getTableMetadataForSweepStrategy(SweepStrategy sweepStrategy) {
-        return new TableMetadata(
+        return new DefaultTableMetadata(
                 new NameMetadataDescription(),
                 new ColumnMetadataDescription(),
                 ConflictHandler.RETRY_ON_WRITE_WRITE,

@@ -21,23 +21,24 @@ import java.util.SortedMap;
 
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.schema.Namespace;
+import com.palantir.atlasdb.table.description.CodeGeneratingTableDefinition;
 import com.palantir.atlasdb.table.description.TableDefinition;
 
 public class TableFactoryRenderer {
     private final String schemaName;
     private final String packageName;
     private final String defaultNamespace;
-    private final SortedMap<String, TableDefinition> definitions;
+    private final SortedMap<String, CodeGeneratingTableDefinition> definitions;
 
     public TableFactoryRenderer(String schemaName,
                                 String packageName,
                                 Namespace defaultNamespace,
-                                Map<String, TableDefinition> definitions) {
+                                Map<String, CodeGeneratingTableDefinition> definitions) {
         this.schemaName = schemaName;
         this.packageName = packageName;
         this.definitions = Maps.newTreeMap();
         this.defaultNamespace = defaultNamespace.getName();
-        for (Entry<String, TableDefinition> entry : definitions.entrySet()) {
+        for (Entry<String, CodeGeneratingTableDefinition> entry : definitions.entrySet()) {
             this.definitions.put(Renderers.getClassTableName(entry.getKey(), entry.getValue()), entry.getValue());
         }
     }
@@ -65,7 +66,7 @@ public class TableFactoryRenderer {
                     line();
                     constructors();
                     line();
-                    for (Entry<String, TableDefinition> entry : definitions.entrySet()) {
+                    for (Entry<String, CodeGeneratingTableDefinition> entry : definitions.entrySet()) {
                         getTable(entry.getKey(), entry.getValue());
                         line();
                     }
@@ -137,7 +138,7 @@ public class TableFactoryRenderer {
 
             private void nullSharedTriggers() {
                 line("public abstract static class NullSharedTriggers implements SharedTriggers {"); {
-                    for (Entry<String, TableDefinition> entry : definitions.entrySet()) {
+                    for (Entry<String, CodeGeneratingTableDefinition> entry : definitions.entrySet()) {
                         String name = entry.getKey();
                         TableDefinition table = entry.getValue();
                         String Table = name + "Table";

@@ -34,6 +34,7 @@ import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import com.palantir.atlasdb.table.description.DefaultTableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.common.persist.Persistable;
@@ -56,7 +57,7 @@ public class TableMetadataDeserializer extends StdDeserializer<TableMetadata> {
             col = deserializeNamedCols(node);
         }
 
-        return new TableMetadata(row, col, ConflictHandler.IGNORE_ALL);
+        return new DefaultTableMetadata(row, col, ConflictHandler.IGNORE_ALL);
     }
 
     private NameMetadataDescription deserializeRowish(JsonNode node) {

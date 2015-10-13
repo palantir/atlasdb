@@ -32,9 +32,10 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.ptobject.EncodingUtils.EncodingType;
+import com.palantir.atlasdb.table.description.CodeGeneratingSchema;
+import com.palantir.atlasdb.table.description.CodeGeneratingTableDefinition;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.Schemas;
-import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -129,8 +130,8 @@ public class GeneralTaskCheckpointer extends AbstractTaskCheckpointer {
     }
 
     private Schema getSchema() {
-        Schema schema = new Schema();
-        schema.addTableDefinition(checkpointTableRaw, new TableDefinition() {{
+        CodeGeneratingSchema schema = new CodeGeneratingSchema();
+        schema.addTableDefinition(checkpointTableRaw, new CodeGeneratingTableDefinition() {{
             rowName();
                 rowComponent("table_name", ValueType.VAR_STRING);
                 rowComponent("range_id",   ValueType.VAR_LONG);

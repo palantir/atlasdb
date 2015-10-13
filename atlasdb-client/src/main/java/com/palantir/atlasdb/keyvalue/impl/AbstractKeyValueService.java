@@ -51,6 +51,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
+import com.palantir.atlasdb.table.description.DefaultTableMetadata;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.Maps2;
@@ -249,7 +250,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
         int maxValueSize = Integer.MAX_VALUE; // Safe (but not great) fallback
         byte[] rawMetadata = getMetadataForTable(tableName);
         if (rawMetadata != null && rawMetadata.length != 0) {
-            TableMetadata tableMetadata = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(rawMetadata);
+            TableMetadata tableMetadata = DefaultTableMetadata.BYTES_HYDRATOR.hydrateFromBytes(rawMetadata);
             ColumnMetadataDescription columns = tableMetadata.getColumns();
             maxValueSize = columns.getMaxValueSize();
         }

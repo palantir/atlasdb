@@ -23,8 +23,11 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteO
 import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.schema.SimpleSchemaUpdater;
 import com.palantir.atlasdb.schema.SimpleSchemaUpdaterImpl;
+import com.palantir.atlasdb.table.description.CodeGeneratingIndexDefinition;
+import com.palantir.atlasdb.table.description.CodeGeneratingIndexDefinition.IndexType;
+import com.palantir.atlasdb.table.description.CodeGeneratingTableDefinition;
+import com.palantir.atlasdb.table.description.DefaultTableMetadata;
 import com.palantir.atlasdb.table.description.IndexDefinition;
-import com.palantir.atlasdb.table.description.IndexDefinition.IndexType;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.TableMetadata;
@@ -73,7 +76,7 @@ public class SchemaUpdaterTest extends AtlasDbTestCase {
         updater.addTable("table", getTableWithOneCol("a"));
         updater.updateTableMetadata("table", getTableWithTwoCols("a", "b"));
 
-        TableMetadata metadata = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(keyValueService.getMetadataForTable("table"));
+        TableMetadata metadata = DefaultTableMetadata.BYTES_HYDRATOR.hydrateFromBytes(keyValueService.getMetadataForTable("table"));
         boolean containsNewColumn = false;
         for(NamedColumnDescription column : metadata.getColumns().getNamedColumns()) {
             if (column.getLongName().equals("b")) {
@@ -88,7 +91,7 @@ public class SchemaUpdaterTest extends AtlasDbTestCase {
         updater.addTable("table", getTableWithTwoCols("a", "b"));
         updater.updateTableMetadata("table", getTableWithOneCol("a"));
 
-        TableMetadata metadata = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(keyValueService.getMetadataForTable("table"));
+        TableMetadata metadata = DefaultTableMetadata.BYTES_HYDRATOR.hydrateFromBytes(keyValueService.getMetadataForTable("table"));
 
         for(NamedColumnDescription column : metadata.getColumns().getNamedColumns()) {
             Assert.assertFalse(column.getLongName().equals("b"));
@@ -96,7 +99,7 @@ public class SchemaUpdaterTest extends AtlasDbTestCase {
     }
 
     private IndexDefinition getIndex(final String tableName) {
-        return new IndexDefinition(IndexType.ADDITIVE) {{
+        return new CodeGeneratingIndexDefinition(IndexType.ADDITIVE) {{
             onTable(tableName);
             rowName();
                 componentFromRow("row_id", ValueType.FIXED_LONG,
@@ -105,7 +108,7 @@ public class SchemaUpdaterTest extends AtlasDbTestCase {
     }
 
     private TableDefinition getTableWithTwoCols(final String col1, final String col2) {
-        return new TableDefinition() {{
+        return new CodeGeneratingTableDefinition() {{
             rowName();
                 rowComponent("id", ValueType.VAR_LONG);
                 columns();
@@ -117,7 +120,7 @@ public class SchemaUpdaterTest extends AtlasDbTestCase {
     }
 
     private TableDefinition getTableWithOneCol(final String col) {
-        return new TableDefinition() {{
+        return new CodeGeneratingTableDefinition() {{
             rowName();
                 rowComponent("id", ValueType.VAR_LONG);
             columns();

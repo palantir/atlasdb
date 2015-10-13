@@ -41,10 +41,10 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
+import com.palantir.atlasdb.table.description.DefaultTableMetadata;
 import com.palantir.atlasdb.table.description.DynamicColumnDescription;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
-import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.common.base.ClosableIterator;
@@ -62,7 +62,7 @@ public class KeyValueServiceScrubberStore implements ScrubberStore {
 
     public static ScrubberStore create(KeyValueService keyValueService) {
         keyValueService.createTable(AtlasDbConstants.SCRUB_TABLE, Integer.MAX_VALUE);
-        keyValueService.putMetadataForTable(AtlasDbConstants.SCRUB_TABLE, new TableMetadata(
+        keyValueService.putMetadataForTable(AtlasDbConstants.SCRUB_TABLE, new DefaultTableMetadata(
                 new NameMetadataDescription(ImmutableList.of(new NameComponentDescription("cell", ValueType.BLOB))),
                 new ColumnMetadataDescription(new DynamicColumnDescription(
                         new NameMetadataDescription(ImmutableList.of(new NameComponentDescription("name", ValueType.STRING))),
