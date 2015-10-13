@@ -56,13 +56,7 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Predicates;
-import com.google.common.base.Stopwatch;
-import com.google.common.base.Strings;
-import com.google.common.base.Supplier;
+import com.google.common.base.*;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -93,6 +87,8 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.AllTimestampsCollector;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.StartTsResultsCollector;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.ThreadSafeResultVisitor;
+import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionManager;
+import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionModule;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
@@ -138,7 +134,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     private final CassandraKeyValueServiceConfigManager configManager;
     private final CassandraClientPoolingManager cassandraClientPoolingManager;
-    private final CassandraJMXCompactionManager compactionManager;
+    private final Optional<CassandraJmxCompactionManager> compactionManager;
     protected final ManyClientPoolingContainer containerPoolToUpdate;
     protected final PoolingContainer<Client> clientPool;
     private final ReentrantLock schemaMutationLock = new ReentrantLock(true);
@@ -151,7 +147,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     private static final int OVERSIZE_ROW_CUTOFF = 1000;
 
     public static CassandraKeyValueService create(CassandraKeyValueServiceConfigManager configManager) {
-        final CassandraKeyValueService ret = new CassandraKeyValueService(configManager);
+        Optional<CassandraJmxCompactionManager> compactionManager = new CassandraJmxCompactionModule().createCompactionManager(configManager);
+        final CassandraKeyValueService ret = new CassandraKeyValueService(configManager, compactionManager);
         try {
             ret.initializeFromFreshInstance(ret.containerPoolToUpdate.getCurrentHosts(), configManager.getConfig().replicationFactor());
             ret.getPoolingManager().submitHostRefreshTask();
@@ -161,13 +158,14 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         return ret;
     }
 
-    protected CassandraKeyValueService(CassandraKeyValueServiceConfigManager configManager) {
+    protected CassandraKeyValueService(CassandraKeyValueServiceConfigManager configManager,
+                                       Optional<CassandraJmxCompactionManager> compactionManager) {
         super(PTExecutors.newFixedThreadPool(configManager.getConfig().poolSize() * 2, PTExecutors.newNamedThreadFactory(false)));
         this.configManager = configManager;
         this.containerPoolToUpdate = ManyClientPoolingContainer.create(configManager.getConfig());
         this.clientPool = new RetriablePoolingContainer(this.containerPoolToUpdate);
-        cassandraClientPoolingManager = new CassandraClientPoolingManager(containerPoolToUpdate, clientPool, configManager);
-        compactionManager = CassandraJMXCompactionManager.newInstance(configManager.getConfig());
+        this.cassandraClientPoolingManager = new CassandraClientPoolingManager(containerPoolToUpdate, clientPool, configManager);
+        this.compactionManager = compactionManager;
     }
 
     public CassandraClientPoolingManager getPoolingManager() {
@@ -515,7 +513,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 int mutationBatchSizeBytes = config.mutationBatchSizeBytes();
                 for (List<Entry<Cell, Value>> partition : partitionByCountAndBytes(values, mutationBatchCount,
                         mutationBatchSizeBytes, tableName, ENTRY_SIZING_FUNCTION)) {
-                    Map<ByteBuffer,Map<String,List<Mutation>>> map = Maps.newHashMap();
+                    Map<ByteBuffer, Map<String, List<Mutation>>> map = Maps.newHashMap();
                     for (Map.Entry<Cell, Value> e : partition) {
                         Cell cell = e.getKey();
                         Column col = createColumn(cell, e.getValue(), ttl);
@@ -678,14 +676,14 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     // Delete must delete in the order of timestamp and we don't trust batch_mutate to do it
                     // atomically so we have to potentially do many deletes if there are many timestamps for the
                     // same key.
-                    Map<Integer, Map<ByteBuffer,Map<String,List<Mutation>>>> maps = Maps.newTreeMap();
+                    Map<Integer, Map<ByteBuffer, Map<String, List<Mutation>>>> maps = Maps.newTreeMap();
                     for (Cell key : keys.keySet()) {
                         int mapIndex = 0;
                         for (long ts : Ordering.natural().immutableSortedCopy(keys.get(key))) {
                             if (!maps.containsKey(mapIndex)) {
-                                maps.put(mapIndex, Maps.<ByteBuffer,Map<String,List<Mutation>>>newHashMap());
+                                maps.put(mapIndex, Maps.<ByteBuffer, Map<String, List<Mutation>>>newHashMap());
                             }
-                            Map<ByteBuffer,Map<String,List<Mutation>>> map = maps.get(mapIndex);
+                            Map<ByteBuffer, Map<String, List<Mutation>>> map = maps.get(mapIndex);
                             ByteBuffer colName = CassandraKeyValueServices.makeCompositeBuffer(key.getColumnName(), ts);
                             SlicePredicate pred = new SlicePredicate();
                             pred.setColumn_names(Arrays.asList(colName));
@@ -706,7 +704,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                             mapIndex++;
                         }
                     }
-                    for (Map<ByteBuffer,Map<String,List<Mutation>>> map : maps.values()) {
+                    for (Map<ByteBuffer, Map<String, List<Mutation>>> map : maps.values()) {
                         // NOTE: we run with ConsistencyLevel.ALL here instead of ConsistencyLevel.QUORUM
                         // because we want to remove all copies of this data
                         batchMutateInternal(client, tableName, map, deleteConsistency);
@@ -1206,8 +1204,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     public void close() {
         clientPool.shutdownPooling();
         configManager.shutdown();
-        if (compactionManager != null) {
-            compactionManager.close();
+        if (compactionManager != null && compactionManager.isPresent()) {
+            compactionManager.get().close();
         }
         super.close();
     }
@@ -1288,17 +1286,23 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     @Override
     public void compactInternally(String tableName) {
-        Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName), "tableName:[%s] should not be null or empty", tableName);
+        Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName), "tableName:[%s] should not be null or empty.", tableName);
         final CassandraKeyValueServiceConfig config = configManager.getConfig();
+        if (!compactionManager.isPresent()) {
+            log.warn("No compaction client was configured, but compact was called. If you actually want to clear deleted data immediately " +
+                    "from Cassandra, lower your gc_grace_seconds setting and run `nodetool compact {} {}`.", config.keyspace(), tableName);
+            return;
+        }
+        long timeoutInSeconds = config.compactionTimeoutSeconds();
         String keyspace = config.keyspace();
-        long compactionTimeoutSeconds = config.compactionTimeoutSeconds();
-
         try {
             alterGcAndTombstone(keyspace, tableName, 0, 0.0f);
-            compactionManager.forceTableCompaction(compactionTimeoutSeconds, keyspace, tableName);
+            compactionManager.get().performTombstoneCompaction(timeoutInSeconds, keyspace, tableName);
         } catch (TimeoutException e) {
-            log.error("Compaction could not finish in {} seconds!", compactionTimeoutSeconds, e);
-            log.error(compactionManager.getPendingCompactionStatus());
+            log.error("Compaction for {}.{} could not finish in {} seconds.", keyspace, tableName, timeoutInSeconds, e);
+            log.error(compactionManager.get().getCompactionStatus());
+        } catch (InterruptedException e) {
+            log.error("Compaction for {}.{} was interupted.", keyspace, tableName);
         } finally {
             alterGcAndTombstone(keyspace, tableName, CassandraConstants.GC_GRACE_SECONDS, CassandraConstants.TOMBSTONE_THRESHOLD_RATIO);
         }
