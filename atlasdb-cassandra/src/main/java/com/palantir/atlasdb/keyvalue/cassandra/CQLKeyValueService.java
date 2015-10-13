@@ -150,14 +150,21 @@ public class CQLKeyValueService extends AbstractKeyValueService {
 
         clusterBuilder.withLoadBalancingPolicy(policy);
 
-        cluster = clusterBuilder.build();
-
         Metadata metadata;
         try {
+            cluster = clusterBuilder.build();
             metadata = cluster.getMetadata(); // special; this is the first place we connect to
             // hosts, this is where people will see failures
         } catch (NoHostAvailableException e) {
             if (e.getMessage().contains("Unknown compression algorithm")) {
+                clusterBuilder.withCompression(Compression.NONE);
+                cluster = clusterBuilder.build();
+                metadata = cluster.getMetadata();
+            } else {
+                throw e;
+            }
+        } catch (IllegalStateException e) {
+            if (e.getMessage().contains("requested compression is not available")) { // god dammit datastax what did I do to _you_
                 clusterBuilder.withCompression(Compression.NONE);
                 cluster = clusterBuilder.build();
                 metadata = cluster.getMetadata();
