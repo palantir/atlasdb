@@ -75,7 +75,6 @@ public class SweepTaskRunner {
     private final Supplier<Long> immutableTimestampSupplier;
     private final TransactionService transactionService;
     private final SweepStrategyManager sweepStrategyManager;
-    private final Supplier<Integer> batchSizeSupplier;
     private final Collection<Follower> followers;
 
     public SweepTaskRunner(TransactionManager txManager,
@@ -84,7 +83,6 @@ public class SweepTaskRunner {
                            Supplier<Long> immutableTimestampSupplier,
                            TransactionService transactionService,
                            SweepStrategyManager sweepStrategyManager,
-                           Supplier<Integer> batchSizeSupplier,
                            Collection<Follower> followers) {
         this.txManager = txManager;
         this.keyValueService = keyValueService;
@@ -92,11 +90,10 @@ public class SweepTaskRunner {
         this.immutableTimestampSupplier = immutableTimestampSupplier;
         this.transactionService = transactionService;
         this.sweepStrategyManager = sweepStrategyManager;
-        this.batchSizeSupplier = batchSizeSupplier;
         this.followers = followers;
     }
 
-    public SweepResults run(String tableName, @Nullable byte[] startRow) {
+    public SweepResults run(String tableName, int batchSize, @Nullable byte[] startRow) {
         Preconditions.checkNotNull(tableName);
         Preconditions.checkState(!tableName.startsWith(AtlasDbConstants.NAMESPACE_PREFIX),
                 "The sweeper should not be run on tables passed through namespace mapping.");
@@ -122,7 +119,6 @@ public class SweepTaskRunner {
         if (startRow == null) {
             startRow = new byte[0];
         }
-        int batchSize = batchSizeSupplier.get();
         RangeRequest rangeRequest = RangeRequest.builder().startRowInclusive(startRow).batchHint(batchSize).build();
 
         long sweepTimestamp = getSweepTimestamp(tableName);
