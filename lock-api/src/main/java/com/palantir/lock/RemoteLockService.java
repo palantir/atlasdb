@@ -55,6 +55,26 @@ public interface RemoteLockService {
     LockRefreshToken lockWithClient(@PathParam("client") String client, LockRequest request) throws InterruptedException;
 
     /**
+     * This is the same as {@link #lockAnonymously(LockRequest)} but will return as many locks as can be acquired.
+     * @return a token for the locks acquired
+     */
+    @POST
+    @Path("try-lock-anonymously")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+    HeldLocksToken lockAndGetHeldLocksAnonymously(LockRequest request) throws InterruptedException;
+
+    /**
+     * This is the same as {@link #lockWithClient(String, LockRequest)} but will return as many locks as can be acquired.
+     * @return a token for the locks acquired
+     */
+    @POST
+    @Path("try-lock/{client}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+    HeldLocksToken lockAndGetHeldLocksWithClient(@PathParam("client") String client, LockRequest request) throws InterruptedException;
+
+    /**
      * Attempts to release the set of locks represented by the
      * <code>token</code> parameter. For locks which
      * have been locked multiple times reentrantly, this method decrements the

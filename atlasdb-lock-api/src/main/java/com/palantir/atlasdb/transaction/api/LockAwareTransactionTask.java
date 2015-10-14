@@ -15,8 +15,8 @@
  */
 package com.palantir.atlasdb.transaction.api;
 
-import com.palantir.lock.LockRefreshToken;
+import com.palantir.lock.HeldLocksToken;
 
 public interface LockAwareTransactionTask<T, E extends Exception> {
-    T execute(Transaction t, Iterable<LockRefreshToken> heldLocks) throws E;
+    T execute(Transaction t, Iterable<HeldLocksToken> heldLocks) throws E;
 }

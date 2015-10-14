@@ -18,11 +18,15 @@ package com.palantir.atlasdb.transaction.impl;
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicLong;
 
+import javax.annotation.Nullable;
+
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -36,6 +40,7 @@ import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.AtlasTimestampLockDescriptor;
+import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
@@ -101,10 +106,18 @@ public class SnapshotTransactionManager extends AbstractLockAwareTransactionMana
     }
 
     @Override
-    public <T, E extends Exception> T runTaskWithLocksThrowOnConflict(Iterable<LockRefreshToken> lockTokens,
+    public <T, E extends Exception> T runTaskWithLocksThrowOnConflict(Iterable<HeldLocksToken> lockTokens,
                                                                       LockAwareTransactionTask<T, E> task)
             throws E, TransactionFailedRetriableException {
-        RawTransaction tx = setupRunTaskWithLocksThrowOnConflict(lockTokens);
+        Iterable<LockRefreshToken> lockRefreshTokens= Iterables.transform(lockTokens,
+                new Function<HeldLocksToken, LockRefreshToken>() {
+                    @Nullable
+                    @Override
+                    public LockRefreshToken apply(HeldLocksToken input) {
+                        return input.getLockRefreshToken();
+                    }
+                });
+        RawTransaction tx = setupRunTaskWithLocksThrowOnConflict(lockRefreshTokens);
         return finishRunTaskWithLockThrowOnConflict(tx, LockAwareTransactionTasks.asLockUnaware(task, lockTokens));
     }
 
