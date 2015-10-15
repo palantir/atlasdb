@@ -36,6 +36,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
+import com.google.common.hash.Hashing;
 import com.google.common.primitives.Bytes;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -59,6 +60,7 @@ import com.palantir.atlasdb.table.api.AtlasDbNamedPersistentSet;
 import com.palantir.atlasdb.table.api.ColumnValue;
 import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
+import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
 import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
@@ -112,6 +114,10 @@ public final class DataTable implements
         this.namespace = namespace;
     }
 
+    public static String getRawTableName() {
+        return rawTableName;
+    }
+
     public String getTableName() {
         return tableName;
     }
@@ -155,7 +161,7 @@ public final class DataTable implements
             return new Function<Long, DataRow>() {
                 @Override
                 public DataRow apply(Long row) {
-                    return new DataRow(row);
+                    return DataRow.of(row);
                 }
             };
         }
@@ -172,7 +178,7 @@ public final class DataTable implements
                 int __index = 0;
                 Long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 __index += 8;
-                return of(id);
+                return DataRow.of(id);
             }
         };
 
@@ -854,6 +860,10 @@ public final class DataTable implements
             this.namespace = namespace;
         }
 
+        public static String getRawTableName() {
+            return rawTableName;
+        }
+
         public String getTableName() {
             return tableName;
         }
@@ -897,7 +907,7 @@ public final class DataTable implements
                 return new Function<Long, Index1IdxRow>() {
                     @Override
                     public Index1IdxRow apply(Long row) {
-                        return new Index1IdxRow(row);
+                        return Index1IdxRow.of(row);
                     }
                 };
             }
@@ -914,7 +924,7 @@ public final class DataTable implements
                     int __index = 0;
                     Long value = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                     __index += 8;
-                    return of(value);
+                    return Index1IdxRow.of(value);
                 }
             };
 
@@ -1034,7 +1044,7 @@ public final class DataTable implements
                     __index += EncodingUtils.sizeOfSizedBytes(columnName);
                     Long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                     __index += 8;
-                    return of(rowName, columnName, id);
+                    return Index1IdxColumn.of(rowName, columnName, id);
                 }
             };
 
@@ -1483,6 +1493,10 @@ public final class DataTable implements
             this.namespace = namespace;
         }
 
+        public static String getRawTableName() {
+            return rawTableName;
+        }
+
         public String getTableName() {
             return tableName;
         }
@@ -1553,7 +1567,7 @@ public final class DataTable implements
                     __index += 8;
                     Long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                     __index += 8;
-                    return of(value, id);
+                    return Index2IdxRow.of(value, id);
                 }
             };
 
@@ -1666,7 +1680,7 @@ public final class DataTable implements
                     __index += EncodingUtils.sizeOfSizedBytes(rowName);
                     byte[] columnName = EncodingUtils.decodeSizedBytes(__input, __index);
                     __index += EncodingUtils.sizeOfSizedBytes(columnName);
-                    return of(rowName, columnName);
+                    return Index2IdxColumn.of(rowName, columnName);
                 }
             };
 
@@ -2112,6 +2126,10 @@ public final class DataTable implements
             this.namespace = namespace;
         }
 
+        public static String getRawTableName() {
+            return rawTableName;
+        }
+
         public String getTableName() {
             return tableName;
         }
@@ -2155,7 +2173,7 @@ public final class DataTable implements
                 return new Function<Long, Index3IdxRow>() {
                     @Override
                     public Index3IdxRow apply(Long row) {
-                        return new Index3IdxRow(row);
+                        return Index3IdxRow.of(row);
                     }
                 };
             }
@@ -2172,7 +2190,7 @@ public final class DataTable implements
                     int __index = 0;
                     Long value = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                     __index += 8;
-                    return of(value);
+                    return Index3IdxRow.of(value);
                 }
             };
 
@@ -2273,7 +2291,7 @@ public final class DataTable implements
                     __index += EncodingUtils.sizeOfSizedBytes(rowName);
                     byte[] columnName = EncodingUtils.decodeSizedBytes(__input, __index);
                     __index += EncodingUtils.sizeOfSizedBytes(columnName);
-                    return of(rowName, columnName);
+                    return Index3IdxColumn.of(rowName, columnName);
                 }
             };
 
@@ -2719,6 +2737,10 @@ public final class DataTable implements
             this.namespace = namespace;
         }
 
+        public static String getRawTableName() {
+            return rawTableName;
+        }
+
         public String getTableName() {
             return tableName;
         }
@@ -2789,7 +2811,7 @@ public final class DataTable implements
                     __index += 8;
                     Long value2 = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                     __index += 8;
-                    return of(value1, value2);
+                    return Index4IdxRow.of(value1, value2);
                 }
             };
 
@@ -2902,7 +2924,7 @@ public final class DataTable implements
                     __index += EncodingUtils.sizeOfSizedBytes(rowName);
                     byte[] columnName = EncodingUtils.decodeSizedBytes(__input, __index);
                     __index += EncodingUtils.sizeOfSizedBytes(columnName);
-                    return of(rowName, columnName);
+                    return Index4IdxColumn.of(rowName, columnName);
                 }
             };
 
@@ -3318,5 +3340,5 @@ public final class DataTable implements
     }
 
 
-    static String __CLASS_HASH = "ViVjKvmt8daAep18q7KtJQ==";
+    static String __CLASS_HASH = "4tqSV0ccERqprZI28T6I0w==";
 }

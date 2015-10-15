@@ -36,6 +36,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
+import com.google.common.hash.Hashing;
 import com.google.common.primitives.Bytes;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -59,6 +60,7 @@ import com.palantir.atlasdb.table.api.AtlasDbNamedPersistentSet;
 import com.palantir.atlasdb.table.api.ColumnValue;
 import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
+import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
 import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
@@ -110,6 +112,10 @@ public final class StreamTestStreamValueTable implements
         this.tableName = namespace.getName() + "." + rawTableName;
         this.triggers = triggers;
         this.namespace = namespace;
+    }
+
+    public static String getRawTableName() {
+        return rawTableName;
     }
 
     public String getTableName() {
@@ -182,7 +188,7 @@ public final class StreamTestStreamValueTable implements
                 __index += EncodingUtils.sizeOfUnsignedVarLong(id);
                 Long blockId = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(blockId);
-                return of(id, blockId);
+                return StreamTestStreamValueRow.of(id, blockId);
             }
         };
 
@@ -607,5 +613,5 @@ public final class StreamTestStreamValueTable implements
         return ImmutableList.of();
     }
 
-    static String __CLASS_HASH = "O6Gqoqzbkbu03BQAR6rQtg==";
+    static String __CLASS_HASH = "XLLQ4TtXJ3NMYlSjBRx6uA==";
 }

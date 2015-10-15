@@ -36,6 +36,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
+import com.google.common.hash.Hashing;
 import com.google.common.primitives.Bytes;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -59,6 +60,7 @@ import com.palantir.atlasdb.table.api.AtlasDbNamedPersistentSet;
 import com.palantir.atlasdb.table.api.ColumnValue;
 import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
+import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
 import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
@@ -112,6 +114,10 @@ public final class TwoColumnsTable implements
         this.namespace = namespace;
     }
 
+    public static String getRawTableName() {
+        return rawTableName;
+    }
+
     public String getTableName() {
         return tableName;
     }
@@ -155,7 +161,7 @@ public final class TwoColumnsTable implements
             return new Function<Long, TwoColumnsRow>() {
                 @Override
                 public TwoColumnsRow apply(Long row) {
-                    return new TwoColumnsRow(row);
+                    return TwoColumnsRow.of(row);
                 }
             };
         }
@@ -172,7 +178,7 @@ public final class TwoColumnsTable implements
                 int __index = 0;
                 Long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 __index += 8;
-                return of(id);
+                return TwoColumnsRow.of(id);
             }
         };
 
@@ -884,6 +890,10 @@ public final class TwoColumnsTable implements
             this.namespace = namespace;
         }
 
+        public static String getRawTableName() {
+            return rawTableName;
+        }
+
         public String getTableName() {
             return tableName;
         }
@@ -927,7 +937,7 @@ public final class TwoColumnsTable implements
                 return new Function<Long, FooToIdCondIdxRow>() {
                     @Override
                     public FooToIdCondIdxRow apply(Long row) {
-                        return new FooToIdCondIdxRow(row);
+                        return FooToIdCondIdxRow.of(row);
                     }
                 };
             }
@@ -944,7 +954,7 @@ public final class TwoColumnsTable implements
                     int __index = 0;
                     Long foo = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                     __index += 8;
-                    return of(foo);
+                    return FooToIdCondIdxRow.of(foo);
                 }
             };
 
@@ -1064,7 +1074,7 @@ public final class TwoColumnsTable implements
                     __index += EncodingUtils.sizeOfSizedBytes(columnName);
                     Long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                     __index += 8;
-                    return of(rowName, columnName, id);
+                    return FooToIdCondIdxColumn.of(rowName, columnName, id);
                 }
             };
 
@@ -1479,6 +1489,10 @@ public final class TwoColumnsTable implements
             this.namespace = namespace;
         }
 
+        public static String getRawTableName() {
+            return rawTableName;
+        }
+
         public String getTableName() {
             return tableName;
         }
@@ -1522,7 +1536,7 @@ public final class TwoColumnsTable implements
                 return new Function<Long, FooToIdIdxRow>() {
                     @Override
                     public FooToIdIdxRow apply(Long row) {
-                        return new FooToIdIdxRow(row);
+                        return FooToIdIdxRow.of(row);
                     }
                 };
             }
@@ -1539,7 +1553,7 @@ public final class TwoColumnsTable implements
                     int __index = 0;
                     Long foo = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                     __index += 8;
-                    return of(foo);
+                    return FooToIdIdxRow.of(foo);
                 }
             };
 
@@ -1659,7 +1673,7 @@ public final class TwoColumnsTable implements
                     __index += EncodingUtils.sizeOfSizedBytes(columnName);
                     Long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                     __index += 8;
-                    return of(rowName, columnName, id);
+                    return FooToIdIdxColumn.of(rowName, columnName, id);
                 }
             };
 
@@ -2044,5 +2058,5 @@ public final class TwoColumnsTable implements
     }
 
 
-    static String __CLASS_HASH = "kMLWwWC3cSKEaC03d7jn8g==";
+    static String __CLASS_HASH = "mGHb1bQ4clRh4woUn89ZUw==";
 }

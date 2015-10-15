@@ -36,6 +36,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
+import com.google.common.hash.Hashing;
 import com.google.common.primitives.Bytes;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -59,6 +60,7 @@ import com.palantir.atlasdb.table.api.AtlasDbNamedPersistentSet;
 import com.palantir.atlasdb.table.api.ColumnValue;
 import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
+import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
 import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
@@ -110,6 +112,10 @@ public final class UserPhotosStreamIdxTable implements
         this.namespace = namespace;
     }
 
+    public static String getRawTableName() {
+        return rawTableName;
+    }
+
     public String getTableName() {
         return tableName;
     }
@@ -153,7 +159,7 @@ public final class UserPhotosStreamIdxTable implements
             return new Function<Long, UserPhotosStreamIdxRow>() {
                 @Override
                 public UserPhotosStreamIdxRow apply(Long row) {
-                    return new UserPhotosStreamIdxRow(row);
+                    return UserPhotosStreamIdxRow.of(row);
                 }
             };
         }
@@ -170,7 +176,7 @@ public final class UserPhotosStreamIdxTable implements
                 int __index = 0;
                 Long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(id);
-                return of(id);
+                return UserPhotosStreamIdxRow.of(id);
             }
         };
 
@@ -244,7 +250,7 @@ public final class UserPhotosStreamIdxTable implements
             return new Function<byte[], UserPhotosStreamIdxColumn>() {
                 @Override
                 public UserPhotosStreamIdxColumn apply(byte[] row) {
-                    return new UserPhotosStreamIdxColumn(row);
+                    return UserPhotosStreamIdxColumn.of(row);
                 }
             };
         }
@@ -261,7 +267,7 @@ public final class UserPhotosStreamIdxTable implements
                 int __index = 0;
                 byte[] reference = EncodingUtils.decodeSizedBytes(__input, __index);
                 __index += EncodingUtils.sizeOfSizedBytes(reference);
-                return of(reference);
+                return UserPhotosStreamIdxColumn.of(reference);
             }
         };
 
@@ -638,5 +644,5 @@ public final class UserPhotosStreamIdxTable implements
         return ImmutableList.of();
     }
 
-    static String __CLASS_HASH = "dsSxmLixkLYzQk/QvMaHwA==";
+    static String __CLASS_HASH = "Rn+HjDJ8Yr2SxCYp4J7IlQ==";
 }

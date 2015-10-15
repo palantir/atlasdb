@@ -116,7 +116,7 @@ public class TableFactoryRenderer {
                 String Trigger = Table + "." + name + "Trigger";
                 if (table.getGenericTableName() != null) {
                     line("public ", Table, " get", Table, "(Transaction t, String name, ", Trigger, "... triggers) {"); {
-                        line("return ", Table, ".of(t, name, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));");
+                        line("return ", Table, ".of(t, namespace, name, Triggers.getAllTriggers(t, sharedTriggers, triggers));");
                     } line("}");
                 } else {
                     line("public ", Table, " get", Table, "(Transaction t, ", Trigger, "... triggers) {"); {

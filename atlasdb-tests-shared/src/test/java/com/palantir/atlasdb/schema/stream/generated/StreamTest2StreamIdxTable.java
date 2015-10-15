@@ -36,6 +36,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
+import com.google.common.hash.Hashing;
 import com.google.common.primitives.Bytes;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -59,6 +60,7 @@ import com.palantir.atlasdb.table.api.AtlasDbNamedPersistentSet;
 import com.palantir.atlasdb.table.api.ColumnValue;
 import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
+import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
 import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
@@ -110,6 +112,10 @@ public final class StreamTest2StreamIdxTable implements
         this.namespace = namespace;
     }
 
+    public static String getRawTableName() {
+        return rawTableName;
+    }
+
     public String getTableName() {
         return tableName;
     }
@@ -153,7 +159,7 @@ public final class StreamTest2StreamIdxTable implements
             return new Function<Long, StreamTest2StreamIdxRow>() {
                 @Override
                 public StreamTest2StreamIdxRow apply(Long row) {
-                    return new StreamTest2StreamIdxRow(row);
+                    return StreamTest2StreamIdxRow.of(row);
                 }
             };
         }
@@ -170,7 +176,7 @@ public final class StreamTest2StreamIdxTable implements
                 int __index = 0;
                 Long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(id);
-                return of(id);
+                return StreamTest2StreamIdxRow.of(id);
             }
         };
 
@@ -244,7 +250,7 @@ public final class StreamTest2StreamIdxTable implements
             return new Function<byte[], StreamTest2StreamIdxColumn>() {
                 @Override
                 public StreamTest2StreamIdxColumn apply(byte[] row) {
-                    return new StreamTest2StreamIdxColumn(row);
+                    return StreamTest2StreamIdxColumn.of(row);
                 }
             };
         }
@@ -261,7 +267,7 @@ public final class StreamTest2StreamIdxTable implements
                 int __index = 0;
                 byte[] reference = EncodingUtils.decodeSizedBytes(__input, __index);
                 __index += EncodingUtils.sizeOfSizedBytes(reference);
-                return of(reference);
+                return StreamTest2StreamIdxColumn.of(reference);
             }
         };
 
@@ -627,5 +633,5 @@ public final class StreamTest2StreamIdxTable implements
         return ImmutableList.of();
     }
 
-    static String __CLASS_HASH = "r3tF3jEKRR9S5Xq5PhdvqQ==";
+    static String __CLASS_HASH = "Ck2Qs2dX6qUs5zoGiBS1hg==";
 }

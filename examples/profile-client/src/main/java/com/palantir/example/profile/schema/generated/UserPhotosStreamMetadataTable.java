@@ -36,6 +36,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
+import com.google.common.hash.Hashing;
 import com.google.common.primitives.Bytes;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -59,6 +60,7 @@ import com.palantir.atlasdb.table.api.AtlasDbNamedPersistentSet;
 import com.palantir.atlasdb.table.api.ColumnValue;
 import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
+import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
 import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
@@ -112,6 +114,10 @@ public final class UserPhotosStreamMetadataTable implements
         this.namespace = namespace;
     }
 
+    public static String getRawTableName() {
+        return rawTableName;
+    }
+
     public String getTableName() {
         return tableName;
     }
@@ -155,7 +161,7 @@ public final class UserPhotosStreamMetadataTable implements
             return new Function<Long, UserPhotosStreamMetadataRow>() {
                 @Override
                 public UserPhotosStreamMetadataRow apply(Long row) {
-                    return new UserPhotosStreamMetadataRow(row);
+                    return UserPhotosStreamMetadataRow.of(row);
                 }
             };
         }
@@ -172,7 +178,7 @@ public final class UserPhotosStreamMetadataTable implements
                 int __index = 0;
                 Long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(id);
-                return of(id);
+                return UserPhotosStreamMetadataRow.of(id);
             }
         };
 
@@ -619,5 +625,5 @@ public final class UserPhotosStreamMetadataTable implements
         return ImmutableList.of();
     }
 
-    static String __CLASS_HASH = "HlzM3MtaHjSyifYRNyv++A==";
+    static String __CLASS_HASH = "zNcjeszwItlnjkDopW5cBg==";
 }
