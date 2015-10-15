@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
+import org.apache.commons.lang.Validate;
+
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.collect.BiMap;
@@ -88,6 +90,7 @@ public class KVTableMappingService extends AbstractTableMappingService {
 
     @Override
     public String addTable(TableReference tableRef) {
+        validateTableName(tableRef.getNamespace().getName());
         if (tableRef.getNamespace().isEmptyNamespace()) {
             return tableRef.getTablename();
         }
@@ -103,6 +106,11 @@ public class KVTableMappingService extends AbstractTableMappingService {
             return getShortTableName(tableRef);
         }
         return shortName;
+    }
+
+    private void validateTableName(String name) {
+        Validate.isTrue(Namespace.isTableMappingNamespaceValid(name),
+                "'%s' contains invalid characters, only letters or numbers are allowed.", name);
     }
 
     @Override
