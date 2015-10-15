@@ -366,50 +366,35 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                             final long startTs,
                             final Visitor<Map<Cell, Value>> v,
                             final ConsistencyLevel consistency) throws Exception {
-        final CassandraKeyValueServiceConfig config = configManager.getConfig();
-        int fetchBatchCount = config.fetchBatchCount();
-        Map<byte[], List<Cell>> cellsByPrimaryKey = partitionCellsByPrimaryKey(cells);
         final String loadWithTsQuery = "SELECT * FROM " + getFullTableName(tableName) + " "
                 + "WHERE " + CassandraConstants.ROW_NAME + " = ? AND " + CassandraConstants.COL_NAME_COL + " = ? AND " + CassandraConstants.TS_COL
                 + " > ? LIMIT 1";
-        if (cells.size() > fetchBatchCount) {
-            log.warn("Re-batching in loadWithTs a call to " + tableName
-                    + " that attempted to multiget " + cells.size()
+        final CassandraKeyValueServiceConfig config = configManager.getConfig();
+        if (cells.size() > config.fetchBatchCount()) {
+            log.warn("A call to " + tableName
+                    + " is performing a multiget " + cells.size()
                     + " cells; this may indicate overly-large batching on a higher level.\n"
                     + CassandraKeyValueServices.getFilteredStackTrace("com.palantir"));
         }
         final PreparedStatement preparedStatement = getPreparedStatement(tableName, loadWithTsQuery).setConsistencyLevel(consistency);
         List<ResultSetFuture> resultSetFutures = Lists.newArrayListWithCapacity(cells.size());
-        for (final List<Cell> primaryKeyPartition : cellsByPrimaryKey.values()) {
-            if (primaryKeyPartition.size() > fetchBatchCount) {
-                log.warn("Re-batching in loadWithTs a call to {} that attempted to multiget {} cells; " +
-                                "this may indicate overly-large batching on a higher level.\n {}",
-                        tableName, cells.size(), CassandraKeyValueServices.getFilteredStackTrace("com.palantir"));
-            }
-            for (final List<Cell> partition : Lists.partition(primaryKeyPartition, fetchBatchCount)) {
-                BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
-                if (shouldTraceQuery(tableName)) {
-                    batchStatement.enableTracing();
-                }
-                for (Cell c : partition) {
-                    BoundStatement boundStatement = preparedStatement.bind();
-                    boundStatement.setBytes(CassandraConstants.ROW_NAME, ByteBuffer.wrap(c.getRowName()));
-                    boundStatement.setBytes(
-                            CassandraConstants.COL_NAME_COL,
-                            ByteBuffer.wrap(c.getColumnName()));
-                    boundStatement.setLong(CassandraConstants.TS_COL, ~startTs);
-                    batchStatement.add(boundStatement);
-                }
-                ResultSetFuture resultSetFuture = session.executeAsync(batchStatement);
-                resultSetFutures.add(resultSetFuture);
-                Futures.addCallback(resultSetFuture, getCallback(v, loadWithTsQuery));
-            }
+
+        for (Cell cell : cells) {
+            ResultSetFuture resultSetFuture = session.executeAsync(
+                    preparedStatement.bind(
+                            ByteBuffer.wrap(cell.getRowName()),
+                            ByteBuffer.wrap(cell.getColumnName()),
+                            startTs));
+            resultSetFutures.add(resultSetFuture);
+            Futures.addCallback(resultSetFuture, getCallback(v, loadWithTsQuery));
         }
+
         for (ResultSetFuture rsf : resultSetFutures) {
             rsf.getUninterruptibly();
         }
     }
 
+    // todo use this for insert and delete batch-to-owner-coordinator mapping
     private Map<byte[], List<Cell>> partitionCellsByPrimaryKey(Collection<Cell> cells) {
         return Multimaps.asMap(Multimaps.index(cells, Cells.getRowFunction()));
     }
