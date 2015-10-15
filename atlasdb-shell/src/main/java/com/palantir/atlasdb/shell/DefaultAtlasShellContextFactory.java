@@ -17,6 +17,7 @@ package com.palantir.atlasdb.shell;
 
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -76,19 +77,21 @@ public class DefaultAtlasShellContextFactory implements AtlasShellContextFactory
 
     @Override
     public AtlasContext withReadOnlyTransactionManagerCassandra(String host, String port, String keyspace) {
-        CassandraKeyValueService kv = CassandraKeyValueService.create(ImmutableCassandraKeyValueServiceConfig.builder()
-                .addServers(host)
-                .port(Integer.parseInt(port))
-                .poolSize(20)
-                .keyspace(keyspace)
-                .ssl(false)
-                .replicationFactor(1)
-                .mutationBatchCount(10000)
-                .mutationBatchSizeBytes(10000000)
-                .fetchBatchCount(1000)
-                .safetyDisabled(false)
-                .autoRefreshNodes(false)
-                .build());
+        CassandraKeyValueService kv = CassandraKeyValueService.create(
+                CassandraKeyValueServiceConfigManager.createSimpleManager(
+                        ImmutableCassandraKeyValueServiceConfig.builder()
+                                .addServers(host)
+                                .port(Integer.parseInt(port))
+                                .poolSize(20)
+                                .keyspace(keyspace)
+                                .ssl(false)
+                                .replicationFactor(1)
+                                .mutationBatchCount(10000)
+                                .mutationBatchSizeBytes(10000000)
+                                .fetchBatchCount(1000)
+                                .safetyDisabled(false)
+                                .autoRefreshNodes(false)
+                                .build()));
         TransactionService transactionService = TransactionServices.createTransactionService(kv);
         TransactionManager transactionManager = new ShellAwareReadOnlyTransactionManager(
                 kv,
