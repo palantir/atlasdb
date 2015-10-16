@@ -34,12 +34,12 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
     }
     
     private static CassandraKeyValueService createKv(CassandraKeyValueServiceConfig config) {
-        return CassandraKeyValueService.create(config);
+        return CassandraKeyValueService.create(CassandraKeyValueServiceConfigManager.createSimpleManager(config));
     }
 
     @Override
     public TimestampService createTimestampService(KeyValueService rawKvs) {
-        Preconditions.checkArgument(rawKvs instanceof CassandraKeyValueService, 
+        Preconditions.checkArgument(rawKvs instanceof CassandraKeyValueService,
                 "TimestampService must be created from an instance of CassandraKeyValueService, found %s", rawKvs.getClass());
         return PersistentTimestampService.create(CassandraTimestampBoundStore.create((CassandraKeyValueService) rawKvs));
     }
