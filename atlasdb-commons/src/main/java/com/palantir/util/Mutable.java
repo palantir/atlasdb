@@ -32,7 +32,24 @@ public class Mutable<T> implements Serializable {
 
     private volatile T value;
 
-    Mutable(T val) {
+    public static<T> Mutable<T> create() {
+        return new Mutable<T>();
+    }
+
+    /**
+     * Constructs and returns an empty
+     * <code>Mutable</code>. Use {@link #set(Object)}
+     * to add the enclosed object.
+     */
+    public Mutable() {
+        this(null);
+    }
+
+    /**
+     * Constructs and returns a new <code>Mutable</code>
+     * containing the given <code>val</code>.
+     */
+    public Mutable(T val) {
         value = val;
     }
 
