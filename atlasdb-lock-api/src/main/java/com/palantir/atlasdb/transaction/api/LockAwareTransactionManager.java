@@ -16,7 +16,7 @@
 package com.palantir.atlasdb.transaction.api;
 
 import com.google.common.base.Supplier;
-import com.palantir.lock.LockRefreshToken;
+import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
 
@@ -38,7 +38,7 @@ public interface LockAwareTransactionManager extends TransactionManager {
      * <p>
      * @throws LockAcquisitionException If the supplied lock request is not successfully acquired.
      */
-    <T, E extends Exception> T runTaskWithLocksWithRetry(Iterable<LockRefreshToken> lockTokens,
+    <T, E extends Exception> T runTaskWithLocksWithRetry(Iterable<HeldLocksToken> lockTokens,
                                                          Supplier<LockRequest> lockSupplier,
                                                          LockAwareTransactionTask<T, E> task) throws E, InterruptedException, LockAcquisitionException;
 
@@ -46,7 +46,7 @@ public interface LockAwareTransactionManager extends TransactionManager {
      * This method is the same as {@link #runTaskThrowOnConflict(TransactionTask)} except the created transaction
      * will not commit successfully if these locks are invalid by the time commit is run.
      */
-    <T, E extends Exception> T runTaskWithLocksThrowOnConflict(Iterable<LockRefreshToken> lockTokens,
+    <T, E extends Exception> T runTaskWithLocksThrowOnConflict(Iterable<HeldLocksToken> lockTokens,
                                                                LockAwareTransactionTask<T, E> task) throws E, TransactionFailedRetriableException;
 
 

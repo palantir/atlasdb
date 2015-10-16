@@ -21,7 +21,7 @@ import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
-import com.palantir.lock.LockRefreshToken;
+import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
 
@@ -78,14 +78,14 @@ public abstract class WrappingTransactionManager extends ForwardingLockAwareTran
     private <T, E extends Exception> LockAwareTransactionTask<T, E> wrapTask(final LockAwareTransactionTask<T, E> task) {
         return new LockAwareTransactionTask<T, E>() {
             @Override
-            public T execute(Transaction t, Iterable<LockRefreshToken> locks) throws E {
+            public T execute(Transaction t, Iterable<HeldLocksToken> locks) throws E {
                 return task.execute(wrap(t), locks);
             }
         };
     }
 
     @Override
-    public <T, E extends Exception> T runTaskWithLocksThrowOnConflict(Iterable<LockRefreshToken> lockTokens,
+    public <T, E extends Exception> T runTaskWithLocksThrowOnConflict(Iterable<HeldLocksToken> lockTokens,
                                                                       LockAwareTransactionTask<T, E> task) throws E,
             TransactionConflictException {
         return delegate().runTaskWithLocksThrowOnConflict(lockTokens, wrapTask(task));
@@ -104,7 +104,7 @@ public abstract class WrappingTransactionManager extends ForwardingLockAwareTran
     }
 
     @Override
-    public <T, E extends Exception> T runTaskWithLocksWithRetry(Iterable<LockRefreshToken> lockTokens,
+    public <T, E extends Exception> T runTaskWithLocksWithRetry(Iterable<HeldLocksToken> lockTokens,
                                                                 Supplier<LockRequest> lockSupplier,
                                                                 LockAwareTransactionTask<T, E> task)
             throws E, InterruptedException {
