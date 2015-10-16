@@ -1020,6 +1020,11 @@ import com.palantir.util.Pair;
         return false;
     }
 
+    @Override
+    public boolean hasOutstandingLocks() {
+        return !heldLocksGrantMap.isEmpty() || !heldLocksTokenMap.isEmpty();
+    }
+
     private String getRequestDescription(LockRequest request) {
         StringBuilder builder = new StringBuilder();
         builder.append("\twaiting to lock() ").append(request);

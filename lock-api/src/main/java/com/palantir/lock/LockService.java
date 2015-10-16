@@ -183,4 +183,6 @@ import com.palantir.common.annotation.NonIdempotent;
 
     @Idempotent boolean isDelayRequired();
 
+    @NonIdempotent boolean hasOutstandingLocks();
+
 }
