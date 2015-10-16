@@ -32,7 +32,7 @@ public final class Namespace {
         return new Namespace(name);
     }
 
-    private Namespace(String name) {
+    Namespace(String name) {
         this.name = name;
     }
 
