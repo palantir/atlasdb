@@ -96,6 +96,10 @@ public class Sha256Hash implements Serializable, Comparable<Sha256Hash> {
         return BaseEncoding.base16().lowerCase().encode(bytes);
     }
 
+    public static Sha256Hash deSerializeFromHexString(String s) {
+        return new Sha256Hash(BaseEncoding.base16().lowerCase().decode(s.toLowerCase()));
+    }
+
     public byte[] getBytes() {
         return bytes.clone();
     }
