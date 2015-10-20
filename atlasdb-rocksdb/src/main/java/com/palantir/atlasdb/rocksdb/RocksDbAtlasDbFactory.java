@@ -15,7 +15,11 @@
  */
 package com.palantir.atlasdb.rocksdb;
 
+import java.util.Map;
+
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.rocksdb.impl.RocksDbBoundStore;
 import com.palantir.atlasdb.keyvalue.rocksdb.impl.RocksDbKeyValueService;
@@ -36,14 +40,15 @@ public class RocksDbAtlasDbFactory implements AtlasDbFactory {
         Preconditions.checkArgument(config instanceof RocksDbKeyValueServiceConfig,
                 "RocksDbAtlasDbFactory expects a configuration of type RocksDbKeyValueServiceConfig, found %s", config.getClass());
         RocksDbKeyValueServiceConfig rocksDbConfig = (RocksDbKeyValueServiceConfig) config;
-        return RocksDbKeyValueService.create(rocksDbConfig.dataDir().getAbsolutePath());
+        Map<String, String> options = MoreObjects.firstNonNull(rocksDbConfig.options(), ImmutableMap.<String, String>of());
+        return RocksDbKeyValueService.create(rocksDbConfig.dataDir().getAbsolutePath(), options);
     }
 
     @Override
     public TimestampService createTimestampService(KeyValueService rawKvs) {
-        Preconditions.checkArgument(rawKvs instanceof RocksDbKeyValueService, 
+        Preconditions.checkArgument(rawKvs instanceof RocksDbKeyValueService,
                 "TimestampService must be created from an instance of RocksDbKeyValueService, found %s", rawKvs.getClass());
         return PersistentTimestampService.create(RocksDbBoundStore.create((RocksDbKeyValueService) rawKvs));
     }
-    
+
 }

@@ -37,15 +37,16 @@ public class AtlasDbServer extends Application<AtlasDbServerConfiguration> {
 
     @Override
     public void run(AtlasDbServerConfiguration config, final Environment environment) throws Exception {
-        SerializableTransactionManager tm = TransactionManagers.create(config.getConfig(), Optional.<SSLSocketFactory>absent(), ImmutableSet.<Schema>of(), 
+        SerializableTransactionManager tm = TransactionManagers.create(config.getConfig(), Optional.<SSLSocketFactory>absent(), ImmutableSet.<Schema>of(),
                 new com.palantir.atlasdb.factory.TransactionManagers.Environment() {
+                    @Override
                     public void register(Object resource) {
                         environment.jersey().register(resource);
                     }
                 });
-        
+
         TableMetadataCache cache = new TableMetadataCache(tm.getKeyValueService());
-        
+
         environment.jersey().register(new AtlasDbServiceImpl(tm.getKeyValueService(), tm, cache));
         environment.getObjectMapper().registerModule(new AtlasJacksonModule(cache).createModule());
     }

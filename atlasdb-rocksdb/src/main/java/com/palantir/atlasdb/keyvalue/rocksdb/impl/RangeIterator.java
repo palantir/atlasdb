@@ -26,16 +26,19 @@ import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.rocksdb.impl.ColumnFamilyMap.ColumnFamily;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.Pair;
 
 
 abstract class RangeIterator<T> extends AbstractIterator<RowResult<T>> implements ClosableIterator<RowResult<T>> {
+    private final ColumnFamily table;
     protected final RocksIterator it;
     private final RangeRequest request;
     protected final long maxTimestamp;
 
-    RangeIterator(RocksIterator it, RangeRequest range, long maxTimestamp) {
+    RangeIterator(ColumnFamily table, RocksIterator it, RangeRequest range, long maxTimestamp) {
+        this.table = table;
         this.it = it;
         this.request = range;
         this.maxTimestamp = maxTimestamp;
@@ -81,5 +84,6 @@ abstract class RangeIterator<T> extends AbstractIterator<RowResult<T>> implement
     @Override
     public void close() {
         it.dispose();
+        table.close();
     }
 }

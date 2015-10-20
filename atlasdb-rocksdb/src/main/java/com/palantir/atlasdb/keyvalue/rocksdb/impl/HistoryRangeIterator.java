@@ -23,12 +23,13 @@ import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.rocksdb.impl.ColumnFamilyMap.ColumnFamily;
 import com.palantir.util.Pair;
 
 public class HistoryRangeIterator extends RangeIterator<Set<Value>> {
 
-    HistoryRangeIterator(RocksIterator it, RangeRequest range, long maxTimestamp) {
-        super(it, range, maxTimestamp);
+    HistoryRangeIterator(ColumnFamily table, RocksIterator it, RangeRequest range, long maxTimestamp) {
+        super(table, it, range, maxTimestamp);
     }
 
     @Override
