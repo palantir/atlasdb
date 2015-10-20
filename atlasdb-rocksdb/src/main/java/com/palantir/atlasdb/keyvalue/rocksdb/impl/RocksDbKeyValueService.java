@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.rocksdb.impl;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.lang.reflect.Method;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.nio.channels.OverlappingFileLockException;
@@ -79,7 +80,41 @@ public class RocksDbKeyValueService implements KeyValueService {
     private volatile boolean closed = false;
 
     public static RocksDbKeyValueService create(String dataDir) {
+        return create(dataDir, new Options().setCreateIfMissing(true));
+    }
+
+    public static RocksDbKeyValueService create(String dataDir, Map<String, String> customOptions) {
         Options options = new Options().setCreateIfMissing(true);
+        Method[] methods = Options.class.getMethods();
+        for (Method method : methods) {
+            String methodName = method.getName();
+            Class<?>[] params = method.getParameterTypes();
+            if (methodName.startsWith("set") && methodName.length() >= 4 && params.length == 1) {
+                String optName = Character.toLowerCase(methodName.charAt(3)) + methodName.substring(4);
+                String value = customOptions.get(optName);
+                if (value != null) {
+                    try {
+                        if (params[0] == boolean.class) {
+                            method.invoke(options, Boolean.parseBoolean(value));
+                        } else if (params[0] == int.class) {
+                            method.invoke(options, Integer.parseInt(value));
+                        } else if (params[0] == long.class) {
+                            method.invoke(options, Long.parseLong(value));
+                        } else if (params[0] == double.class) {
+                            method.invoke(options, Double.parseDouble(value));
+                        } else if (params[0] == String.class) {
+                            method.invoke(options, value);
+                        }
+                    } catch (Exception e) {
+                        throw Throwables.propagate(e);
+                    }
+                }
+            }
+        }
+        return create(dataDir, options);
+    }
+
+    public static RocksDbKeyValueService create(String dataDir, Options options) {
         try {
             return lockAndCreateDb(options, new File(dataDir));
         } catch (RocksDBException e) {

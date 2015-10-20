@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.rocksdb;
 
 import java.io.File;
+import java.util.Map;
 
 import org.immutables.value.Value;
 
@@ -30,10 +31,12 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 @JsonTypeName(RocksDbKeyValueServiceConfig.TYPE)
 @Value.Immutable
 public abstract class RocksDbKeyValueServiceConfig implements KeyValueServiceConfig {
-    
+
     public static final String TYPE = "rocksdb";
 
     public abstract File dataDir();
+
+    public abstract Map<String, String> options();
 
     @Value.Check
     protected final void check() {
