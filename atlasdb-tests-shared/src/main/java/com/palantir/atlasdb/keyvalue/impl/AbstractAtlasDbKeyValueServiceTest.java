@@ -73,7 +73,7 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
 
     private static final long TEST_TIMESTAMP = 1000000l;
 
-    KeyValueService keyValueService;
+    protected KeyValueService keyValueService;
 
     @Before
     public void setUp() throws Exception {
