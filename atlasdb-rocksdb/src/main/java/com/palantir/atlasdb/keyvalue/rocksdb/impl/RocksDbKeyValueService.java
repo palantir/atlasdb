@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.ConcurrentMap;
 
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
@@ -40,6 +39,7 @@ import org.rocksdb.WriteBatch;
 import org.rocksdb.WriteOptions;
 
 import com.google.common.base.Charsets;
+import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
@@ -60,6 +60,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
+import com.palantir.atlasdb.keyvalue.rocksdb.impl.ColumnFamilyMap.ColumnFamily;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.collect.Maps2;
 import com.palantir.util.MutuallyExclusiveSetLock;
@@ -71,8 +72,7 @@ public class RocksDbKeyValueService implements KeyValueService {
     private static final long PUT_UNLESS_EXISTS_TS = 0L;
     private static final String LOCK_FILE_PREFIX = ".pt_kv_lock";
     private final RocksDB db;
-    private final Options options;
-    private final ConcurrentMap<String, ColumnFamilyHandle> tables;
+    private final ColumnFamilyMap columnFamilies;
     private final FileLock lock;
     private final RandomAccessFile lockFile;
     private final MutuallyExclusiveSetLock<Cell> lockSet = MutuallyExclusiveSetLock.<Cell>create(false);
@@ -110,7 +110,7 @@ public class RocksDbKeyValueService implements KeyValueService {
         return f.isDirectory();
     }
 
-    private static RocksDbKeyValueService lockAndCreateDb(Options options, File dbDir) throws IOException, RocksDBException {
+    private static RocksDbKeyValueService lockAndCreateDb(final Options options, File dbDir) throws IOException, RocksDBException {
         mkdirsWithRetry(dbDir);
         Preconditions.checkArgument(dbDir.exists() && dbDir.isDirectory(), "DB file must be a directory: " + dbDir);
         final RandomAccessFile randomAccessFile =
@@ -145,11 +145,14 @@ public class RocksDbKeyValueService implements KeyValueService {
             }
             RocksDB db = RocksDB.open(getDBOptions(options), dbDir.getAbsolutePath(), cfDescriptors, cfHandles);
             Preconditions.checkState(cfDescriptors.size() == cfHandles.size());
-            ConcurrentMap<String, ColumnFamilyHandle> tables = Maps.newConcurrentMap();
-            for (int i = 0; i < cfDescriptors.size(); i++) {
-                tables.put(new String(cfDescriptors.get(i).columnFamilyName(), Charsets.UTF_8), cfHandles.get(i));
-            }
-            RocksDbKeyValueService ret = new RocksDbKeyValueService(db, options, tables, lock, randomAccessFile);
+            ColumnFamilyMap columnFamilies = new ColumnFamilyMap(new Function<String, ColumnFamilyDescriptor>() {
+                @Override
+                public ColumnFamilyDescriptor apply(String tableName) {
+                    return new ColumnFamilyDescriptor(tableName.getBytes(Charsets.UTF_8), getCfOptions(options, tableName));
+                }
+            }, db);
+            columnFamilies.initialize(cfDescriptors, cfHandles);
+            RocksDbKeyValueService ret = new RocksDbKeyValueService(db, columnFamilies, lock, randomAccessFile);
             ret.createTable(METADATA_TABLE_NAME, Integer.MAX_VALUE);
             success = true;
             return ret;
@@ -178,13 +181,11 @@ public class RocksDbKeyValueService implements KeyValueService {
     }
 
     private RocksDbKeyValueService(RocksDB db,
-                                   Options options,
-                                   ConcurrentMap<String, ColumnFamilyHandle> tables,
+                                   ColumnFamilyMap columnFamilies,
                                    FileLock lock,
                                    RandomAccessFile file) {
         this.db = db;
-        this.options = options;
-        this.tables = tables;
+        this.columnFamilies = columnFamilies;
         this.lock = lock;
         this.lockFile = file;
     }
@@ -224,63 +225,60 @@ public class RocksDbKeyValueService implements KeyValueService {
                                     Iterable<byte[]> rows,
                                     ColumnSelection columnSelection,
                                     long timestamp) {
-        Map<Cell, Value> results = Maps.newHashMap();
-        RocksIterator iter = getDb().newIterator(getTable(tableName));
-        try {
+        try (Disposer d = new Disposer();
+                ColumnFamily table = columnFamilies.get(tableName)) {
+            Map<Cell, Value> results = Maps.newHashMap();
+            RocksIterator iter = d.register(getDb().newIterator(table.getHandle()));
             for (byte[] row : rows) {
                 RocksDbKeyValueServices.getRow(iter, row, columnSelection, timestamp, results);
             }
-        } finally {
-            iter.dispose();
+            return results;
         }
-        return results;
     }
 
     @Override
     public Map<Cell, Value> get(String tableName,
                                 Map<Cell, Long> timestampByCell) {
-        Map<Cell, Value> results = Maps.newHashMap();
-        RocksIterator iter = getDb().newIterator(getTable(tableName));
-        try {
+        try (Disposer d = new Disposer();
+                ColumnFamily table = columnFamilies.get(tableName)) {
+            Map<Cell, Value> results = Maps.newHashMap();
+            RocksIterator iter = d.register(getDb().newIterator(table.getHandle()));
             for (Entry<Cell, Long> entry : timestampByCell.entrySet()) {
                 Value value = RocksDbKeyValueServices.getCell(iter, entry.getKey(), entry.getValue());
                 if (value != null) {
                     results.put(entry.getKey(), value);
                 }
             }
-        } finally {
-            iter.dispose();
+            return results;
         }
-        return results;
     }
 
     @Override
     public Map<Cell, Long> getLatestTimestamps(String tableName,
                                                Map<Cell, Long> timestampByCell) {
-        Map<Cell, Long> results = Maps.newHashMap();
-        RocksIterator iter = getDb().newIterator(getTable(tableName));
-        try {
+        try (Disposer d = new Disposer();
+                ColumnFamily table = columnFamilies.get(tableName)) {
+            Map<Cell, Long> results = Maps.newHashMap();
+            RocksIterator iter = d.register(getDb().newIterator(table.getHandle()));
             for (Entry<Cell, Long> entry : timestampByCell.entrySet()) {
                 Long ts = RocksDbKeyValueServices.getTimestamp(iter, entry.getKey(), entry.getValue());
                 if (ts != null) {
                     results.put(entry.getKey(), ts);
                 }
             }
-        } finally {
-            iter.dispose();
+            return results;
         }
-        return results;
     }
 
     @Override
     public void put(String tableName, Map<Cell, byte[]> values, long timestamp) {
-        ColumnFamilyHandle table = getTable(tableName);
-        try (Disposer d = new Disposer()) {
+        try (Disposer d = new Disposer();
+                ColumnFamily table = columnFamilies.get(tableName)) {
             WriteOptions options = d.register(new WriteOptions().setSync(true));
             WriteBatch batch = d.register(new WriteBatch());
             for (Entry<Cell, byte[]> entry : values.entrySet()) {
                 byte[] key = RocksDbKeyValueServices.getKey(entry.getKey(), timestamp);
-                batch.put(table, key, entry.getValue());
+                batch.put(table.getHandle(), key, entry.getValue());
             }
             getDb().write(options, batch);
         } catch (RocksDBException e) {
@@ -290,32 +288,42 @@ public class RocksDbKeyValueService implements KeyValueService {
 
     @Override
     public void multiPut(Map<String, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
-        try (Disposer d = new Disposer()) {
-            WriteOptions options = d.register(new WriteOptions().setSync(true));
-            WriteBatch batch = d.register(new WriteBatch());
-            for (Entry<String, ? extends Map<Cell, byte[]>> entry : valuesByTable.entrySet()) {
-                ColumnFamilyHandle table = getTable(entry.getKey());
-                for (Entry<Cell, byte[]> subEntry : entry.getValue().entrySet()) {
-                    byte[] key = RocksDbKeyValueServices.getKey(subEntry.getKey(), timestamp);
-                    batch.put(table, key, subEntry.getValue());
-                }
+        Map<String, ColumnFamily> cfs = Maps.newHashMapWithExpectedSize(valuesByTable.size());
+        try {
+            for (String tableName : valuesByTable.keySet()) {
+                cfs.put(tableName, columnFamilies.get(tableName));
             }
-            getDb().write(options, batch);
-        } catch (RocksDBException e) {
-            throw Throwables.propagate(e);
+            try (Disposer d = new Disposer()) {
+                WriteOptions options = d.register(new WriteOptions().setSync(true));
+                WriteBatch batch = d.register(new WriteBatch());
+                for (Entry<String, ? extends Map<Cell, byte[]>> entry : valuesByTable.entrySet()) {
+                    ColumnFamilyHandle table = cfs.get(entry.getKey()).getHandle();
+                    for (Entry<Cell, byte[]> subEntry : entry.getValue().entrySet()) {
+                        byte[] key = RocksDbKeyValueServices.getKey(subEntry.getKey(), timestamp);
+                        batch.put(table, key, subEntry.getValue());
+                    }
+                }
+                getDb().write(options, batch);
+            } catch (RocksDBException e) {
+                throw Throwables.propagate(e);
+            }
+        } finally {
+            for (ColumnFamily cf : cfs.values()) {
+                cf.close();
+            }
         }
     }
 
     @Override
     public void putWithTimestamps(String tableName, Multimap<Cell, Value> cellValues) {
-        ColumnFamilyHandle table = getTable(tableName);
-        try (Disposer d = new Disposer()) {
+        try (Disposer d = new Disposer();
+                ColumnFamily table = columnFamilies.get(tableName)) {
             WriteOptions options = d.register(new WriteOptions().setSync(true));
             WriteBatch batch = d.register(new WriteBatch());
             for (Entry<Cell, Value> entry : cellValues.entries()) {
                 Value value = entry.getValue();
                 byte[] key = RocksDbKeyValueServices.getKey(entry.getKey(), value.getTimestamp());
-                batch.put(table, key, value.getContents());
+                batch.put(table.getHandle(), key, value.getContents());
             }
             getDb().write(options, batch);
         } catch (RocksDBException e) {
@@ -326,19 +334,19 @@ public class RocksDbKeyValueService implements KeyValueService {
     @Override
     public void putUnlessExists(String tableName, Map<Cell, byte[]> values)
             throws KeyAlreadyExistsException {
-        ColumnFamilyHandle table = getTable(tableName);
         LockState<Cell> locks = lockSet.lockOnObjects(values.keySet());
-        try (Disposer d = new Disposer()) {
+        try (Disposer d = new Disposer();
+                ColumnFamily table = columnFamilies.get(tableName)) {
             Set<Cell> alreadyExists = Sets.newHashSetWithExpectedSize(0);
             WriteOptions options = d.register(new WriteOptions().setSync(true));
             WriteBatch batch = d.register(new WriteBatch());
-            RocksIterator iter = d.register(getDb().newIterator(getTable(tableName)));
+            RocksIterator iter = d.register(getDb().newIterator(table.getHandle()));
             for (Entry<Cell, byte[]> entry : values.entrySet()) {
                 byte[] key = RocksDbKeyValueServices.getKey(entry.getKey(), PUT_UNLESS_EXISTS_TS);
                 if (RocksDbKeyValueServices.keyExists(iter, key)) {
                     alreadyExists.add(entry.getKey());
                 } else {
-                    batch.put(table, key, entry.getValue());
+                    batch.put(table.getHandle(), key, entry.getValue());
                 }
             }
             getDb().write(options, batch);
@@ -354,13 +362,13 @@ public class RocksDbKeyValueService implements KeyValueService {
 
     @Override
     public void delete(String tableName, Multimap<Cell, Long> keys) {
-        ColumnFamilyHandle table = getTable(tableName);
-        try (Disposer d = new Disposer()) {
+        try (Disposer d = new Disposer();
+                ColumnFamily table = columnFamilies.get(tableName)) {
             WriteOptions options = d.register(new WriteOptions().setSync(true));
             WriteBatch batch = d.register(new WriteBatch());
             for (Entry<Cell, Long> entry : keys.entries()) {
                 byte[] key = RocksDbKeyValueServices.getKey(entry.getKey(), entry.getValue());
-                batch.remove(table, key);
+                batch.remove(table.getHandle(), key);
             }
             getDb().write(options, batch);
         } catch (RocksDBException e) {
@@ -370,8 +378,11 @@ public class RocksDbKeyValueService implements KeyValueService {
 
     @Override
     public void truncateTable(String tableName) {
-        dropTable(tableName);
-        createTable(tableName, Integer.MAX_VALUE);
+        try {
+            columnFamilies.truncate(tableName);
+        } catch (RocksDBException | InterruptedException e) {
+            throw Throwables.propagate(e);
+        }
     }
 
     @Override
@@ -385,27 +396,27 @@ public class RocksDbKeyValueService implements KeyValueService {
     public ClosableIterator<RowResult<Value>> getRange(String tableName,
                                                        RangeRequest rangeRequest,
                                                        long timestamp) {
-        ColumnFamilyHandle table = getTable(tableName);
-        RocksIterator iter = getDb().newIterator(table);
-        return new ValueRangeIterator(iter, rangeRequest, timestamp);
+        ColumnFamily table = columnFamilies.get(tableName);
+        RocksIterator iter = getDb().newIterator(table.getHandle());
+        return new ValueRangeIterator(table, iter, rangeRequest, timestamp);
     }
 
     @Override
     public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(String tableName,
                                                                        RangeRequest rangeRequest,
                                                                        long timestamp) {
-        ColumnFamilyHandle table = getTable(tableName);
-        RocksIterator iter = getDb().newIterator(table);
-        return new HistoryRangeIterator(iter, rangeRequest, timestamp);
+        ColumnFamily table = columnFamilies.get(tableName);
+        RocksIterator iter = getDb().newIterator(table.getHandle());
+        return new HistoryRangeIterator(table, iter, rangeRequest, timestamp);
     }
 
     @Override
     public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(String tableName,
                                                                        RangeRequest rangeRequest,
                                                                        long timestamp) {
-        ColumnFamilyHandle table = getTable(tableName);
-        RocksIterator iter = getDb().newIterator(table);
-        return new TimestampRangeIterator(iter, rangeRequest, timestamp);
+        ColumnFamily table = columnFamilies.get(tableName);
+        RocksIterator iter = getDb().newIterator(table.getHandle());
+        return new TimestampRangeIterator(table, iter, rangeRequest, timestamp);
     }
 
     @Override
@@ -417,18 +428,8 @@ public class RocksDbKeyValueService implements KeyValueService {
 
     @Override
     public void dropTable(String tableName) {
-        ColumnFamilyHandle table;
         try {
-            table = getTable(tableName);
-        } catch (IllegalArgumentException e) {
-            // ignore, table didn't exist
-            return;
-        }
-        try {
-            if (tables.remove(tableName, table)) {
-                getDb().dropColumnFamily(table);
-                table.dispose();
-            }
+            columnFamilies.drop(tableName);
         } catch (IllegalArgumentException e) {
             // ignore, table didn't exist
         } catch (RocksDBException e) {
@@ -452,18 +453,10 @@ public class RocksDbKeyValueService implements KeyValueService {
     public void createTables(Map<String, Integer> tableNamesToMaxValueSizeInBytes)
             throws InsufficientConsistencyException {
         for (String tableName : tableNamesToMaxValueSizeInBytes.keySet()) {
-            if (tables.containsKey(tableName)) {
-                return;
-            }
             try {
-                ColumnFamilyDescriptor descriptor = new ColumnFamilyDescriptor(
-                        tableName.getBytes(Charsets.UTF_8), getCfOptions(options, tableName));
-                ColumnFamilyHandle handle = getDb().createColumnFamily(descriptor);
-                if (tables.putIfAbsent(tableName, handle) != null) {
-                    handle.dispose();
-                }
+                columnFamilies.create(tableName);
             } catch (RocksDBException e) {
-                // ignore
+                Throwables.propagate(e);
             }
         }
         putMetadataForTables(Maps2.createConstantValueMap(tableNamesToMaxValueSizeInBytes.keySet(), new byte[0]));
@@ -471,15 +464,14 @@ public class RocksDbKeyValueService implements KeyValueService {
 
     @Override
     public Set<String> getAllTableNames() {
-        return Sets.difference(tables.keySet(), ImmutableSet.of(METADATA_TABLE_NAME,
+        return Sets.difference(columnFamilies.getTableNames(), ImmutableSet.of(METADATA_TABLE_NAME,
                 new String(RocksDB.DEFAULT_COLUMN_FAMILY, Charsets.UTF_8)));
     }
 
     @Override
     public byte[] getMetadataForTable(String tableName) {
-        ColumnFamilyHandle metadataTable = getTable(METADATA_TABLE_NAME);
-        try {
-            return getDb().get(metadataTable, tableName.getBytes(Charsets.UTF_8));
+        try (ColumnFamily metadataTable = columnFamilies.get(METADATA_TABLE_NAME)) {
+            return getDb().get(metadataTable.getHandle(), tableName.getBytes(Charsets.UTF_8));
         } catch (RocksDBException e) {
             throw Throwables.propagate(e);
         }
@@ -487,15 +479,14 @@ public class RocksDbKeyValueService implements KeyValueService {
 
     @Override
     public Map<String, byte[]> getMetadataForTables() {
-        ColumnFamilyHandle metadataTable = getTable(METADATA_TABLE_NAME);
-        Set<String> tableNames = tables.keySet();
+        Set<String> tableNames = columnFamilies.getTableNames();
         List<ColumnFamilyHandle> tables = Lists.newArrayListWithCapacity(tableNames.size());
         List<byte[]> keys = Lists.newArrayListWithCapacity(tableNames.size());
-        for (String tableName : tableNames) {
-            tables.add(metadataTable);
-            keys.add(tableName.getBytes(Charsets.UTF_8));
-        }
-        try {
+        try (ColumnFamily metadataTable = columnFamilies.get(METADATA_TABLE_NAME)) {
+            for (String tableName : tableNames) {
+                tables.add(metadataTable.getHandle());
+                keys.add(tableName.getBytes(Charsets.UTF_8));
+            }
             Map<byte[], byte[]> rawResults = getDb().multiGet(tables, keys);
             Map<String, byte[]> results = Maps.newHashMapWithExpectedSize(rawResults.size());
             for (Entry<byte[], byte[]> entry : rawResults.entrySet()) {
@@ -509,25 +500,23 @@ public class RocksDbKeyValueService implements KeyValueService {
 
     @Override
     public void putMetadataForTable(String tableName, byte[] metadata) {
-        ColumnFamilyHandle metadataTable = getTable(METADATA_TABLE_NAME);
-        WriteOptions options = new WriteOptions().setSync(true);
-        try {
-            getDb().put(metadataTable, options, tableName.getBytes(Charsets.UTF_8), metadata);
+        try (Disposer d = new Disposer();
+                ColumnFamily metadataTable = columnFamilies.get(METADATA_TABLE_NAME)) {
+            WriteOptions options = d.register(new WriteOptions().setSync(true));
+            getDb().put(metadataTable.getHandle(), options, tableName.getBytes(Charsets.UTF_8), metadata);
         } catch (RocksDBException e) {
             throw Throwables.propagate(e);
-        } finally {
-            options.dispose();
         }
     }
 
     @Override
     public void putMetadataForTables(Map<String, byte[]> tableNameToMetadata) {
-        try (Disposer d = new Disposer()) {
-            ColumnFamilyHandle metadataTable = getTable(METADATA_TABLE_NAME);
+        try (Disposer d = new Disposer();
+                ColumnFamily metadataTable = columnFamilies.get(METADATA_TABLE_NAME)) {
             WriteOptions options = d.register(new WriteOptions().setSync(true));
             WriteBatch batch = d.register(new WriteBatch());
             for (Entry<String, byte[]> entry : tableNameToMetadata.entrySet()) {
-                batch.put(metadataTable, entry.getKey().getBytes(Charsets.UTF_8), entry.getValue());
+                batch.put(metadataTable.getHandle(), entry.getKey().getBytes(Charsets.UTF_8), entry.getValue());
             }
             getDb().write(options, batch);
         } catch (RocksDBException e) {
@@ -538,18 +527,19 @@ public class RocksDbKeyValueService implements KeyValueService {
     @Override
     public void addGarbageCollectionSentinelValues(String tableName,
                                                    Set<Cell> cells) {
-        ColumnFamilyHandle table = getTable(tableName);
-        byte[] val = new byte[0];
-        try (Disposer d = new Disposer()) {
-            WriteOptions options = d.register(new WriteOptions().setSync(true));
-            WriteBatch batch = d.register(new WriteBatch());
-            for (Cell cell : cells) {
-                byte[] key = RocksDbKeyValueServices.getKey(cell, Value.INVALID_VALUE_TIMESTAMP);
-                batch.put(table, key, val);
+        try (ColumnFamily table = columnFamilies.get(tableName)) {
+            byte[] val = new byte[0];
+            try (Disposer d = new Disposer()) {
+                WriteOptions options = d.register(new WriteOptions().setSync(true));
+                WriteBatch batch = d.register(new WriteBatch());
+                for (Cell cell : cells) {
+                    byte[] key = RocksDbKeyValueServices.getKey(cell, Value.INVALID_VALUE_TIMESTAMP);
+                    batch.put(table.getHandle(), key, val);
+                }
+                getDb().write(options, batch);
+            } catch (RocksDBException e) {
+                throw Throwables.propagate(e);
             }
-            getDb().write(options, batch);
-        } catch (RocksDBException e) {
-            throw Throwables.propagate(e);
         }
     }
 
@@ -557,28 +547,23 @@ public class RocksDbKeyValueService implements KeyValueService {
     public Multimap<Cell, Long> getAllTimestamps(String tableName,
                                                  Set<Cell> cells,
                                                  long timestamp) {
-        ColumnFamilyHandle table = getTable(tableName);
-        Multimap<Cell, Long> results = ArrayListMultimap.create();
-        RocksIterator iter = getDb().newIterator(table);
-        try {
-            for (Cell cell : cells) {
-                RocksDbKeyValueServices.getTimestamps(iter, cell, timestamp, results);
+        try (ColumnFamily table = columnFamilies.get(tableName)) {
+            Multimap<Cell, Long> results = ArrayListMultimap.create();
+            RocksIterator iter = getDb().newIterator(table.getHandle());
+            try {
+                for (Cell cell : cells) {
+                    RocksDbKeyValueServices.getTimestamps(iter, cell, timestamp, results);
+                }
+            } finally {
+                iter.dispose();
             }
-        } finally {
-            iter.dispose();
+            return results;
         }
-        return results;
     }
 
     @Override
     public void compactInternally(String tableName) {
         // nothing
-    }
-
-    private ColumnFamilyHandle getTable(String tableName) {
-        ColumnFamilyHandle handle = tables.get(tableName);
-        Preconditions.checkArgument(handle != null, "Table %s does not exist.", tableName);
-        return handle;
     }
 
     private RocksDB getDb() {

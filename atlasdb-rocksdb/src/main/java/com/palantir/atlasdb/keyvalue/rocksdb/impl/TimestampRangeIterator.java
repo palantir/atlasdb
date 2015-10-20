@@ -22,12 +22,13 @@ import org.rocksdb.RocksIterator;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.rocksdb.impl.ColumnFamilyMap.ColumnFamily;
 import com.palantir.util.Pair;
 
 public class TimestampRangeIterator extends RangeIterator<Set<Long>> {
 
-    TimestampRangeIterator(RocksIterator it, RangeRequest range, long maxTimestamp) {
-        super(it, range, maxTimestamp);
+    TimestampRangeIterator(ColumnFamily table, RocksIterator it, RangeRequest range, long maxTimestamp) {
+        super(table, it, range, maxTimestamp);
     }
 
     @Override
