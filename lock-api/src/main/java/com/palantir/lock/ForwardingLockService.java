@@ -158,9 +158,4 @@ public abstract class ForwardingLockService extends ForwardingObject implements 
     public void logCurrentState() {
         delegate().logCurrentState();
     }
-
-    @Override
-    public boolean isDelayRequired() {
-        return delegate().isDelayRequired();
-    }
 }
