@@ -24,6 +24,7 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.keyvalue.rocksdb.impl.WriteOpts;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
 @JsonDeserialize(as = ImmutableRocksDbKeyValueServiceConfig.class)
@@ -36,7 +37,9 @@ public abstract class RocksDbKeyValueServiceConfig implements KeyValueServiceCon
 
     public abstract File dataDir();
 
-    public abstract Map<String, String> options();
+    public abstract Map<String, String> dbOptions();
+    public abstract Map<String, String> cfOptions();
+    public abstract WriteOpts writeOptions();
 
     @Value.Check
     protected final void check() {
