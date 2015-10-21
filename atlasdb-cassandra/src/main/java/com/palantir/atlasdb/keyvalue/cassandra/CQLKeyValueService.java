@@ -871,7 +871,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         String create_keyspace = "create keyspace if not exists %s with replication = %s and durable_writes = true";
         String replication;
         if (dcsInCluster.size() > 0) { // default to user-set RF on every user datacenter; user can alter keyspace if this is not what they want
-            replication = "{ 'class' : 'NetworkTopologyStrategy'[";
+            replication = "{ 'class' : 'NetworkTopologyStrategy', ";
             for (Iterator<String> iter =  dcsInCluster.iterator(); iter.hasNext();) {
                 String datacenter = iter.next();
                 replication +=  "'" + datacenter + "' : " + config.replicationFactor();
@@ -879,7 +879,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                     replication += ", ";
                 }
             }
-            replication += "]} ";
+            replication += "} ";
         } else {
             replication = "{ 'class' : 'SimpleStrategy', 'replication_factor' : " + config.replicationFactor() + "}";
         }
