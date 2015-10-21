@@ -1008,11 +1008,6 @@ import com.palantir.util.Pair;
         return System.currentTimeMillis();
     }
 
-    @Override
-    public boolean isDelayRequired() {
-        return false;
-    }
-
     private String getRequestDescription(LockRequest request) {
         StringBuilder builder = new StringBuilder();
         builder.append("\twaiting to lock() ").append(request);

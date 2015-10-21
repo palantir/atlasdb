@@ -183,6 +183,4 @@ import com.palantir.common.annotation.NonIdempotent;
     @Override
     @Idempotent void logCurrentState();
 
-    @Idempotent boolean isDelayRequired();
-
 }
