@@ -73,12 +73,7 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
 
     @Override
     public void createTable(String tableName, int maxValueSizeInBytes) {
-        Validate.isTrue(
-                (!tableName.startsWith("_") && tableName.contains("."))
-                || AtlasDbConstants.hiddenTables.contains(tableName)
-                || tableName.startsWith(AtlasDbConstants.TEMP_TABLE_PREFIX)
-                || tableName.startsWith(AtlasDbConstants.NAMESPACE_PREFIX),
-                "invalid tableName: " + tableName);
+        sanityCheckTableName(tableName);
         if (maxValueSizeInBytes <= 0) {
             maxValueSizeInBytes = 1;
         }
@@ -96,12 +91,7 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
             return;
         }
         for (String tableName : tableNamesToMaxValueSizeInBytes.keySet()) {
-            Validate.isTrue(
-                    !tableName.startsWith("_")
-                    || AtlasDbConstants.hiddenTables.contains(tableName)
-                    || tableName.startsWith(AtlasDbConstants.TEMP_TABLE_PREFIX)
-                    || tableName.startsWith(AtlasDbConstants.NAMESPACE_PREFIX),
-                    "invalid tableName: " + tableName);
+            sanityCheckTableName(tableName);
         }
 
         Map<String, Integer> tableNamesToFlooredMaxValueSizeInBytes = Maps.transformValues(tableNamesToMaxValueSizeInBytes, new Function<Integer, Integer>() {
@@ -114,6 +104,15 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
         });
 
         delegate.createTables(tableNamesToFlooredMaxValueSizeInBytes);
+    }
+
+    protected void sanityCheckTableName(String tableName) {
+        Validate.isTrue(
+                (!tableName.startsWith("_") && tableName.contains("."))
+                        || AtlasDbConstants.hiddenTables.contains(tableName)
+                        || tableName.startsWith(AtlasDbConstants.TEMP_TABLE_PREFIX)
+                        || tableName.startsWith(AtlasDbConstants.NAMESPACE_PREFIX),
+                "invalid tableName: " + tableName);
     }
 
     @Override

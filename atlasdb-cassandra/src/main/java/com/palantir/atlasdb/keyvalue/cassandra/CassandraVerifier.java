@@ -128,13 +128,6 @@ public class CassandraVerifier {
         return dataCenterToRack.keySet();
     }
 
-    static void sanityCheckTableName(String table) {
-        Validate.isTrue(!(table.startsWith("_") && table.contains("."))
-                || AtlasDbConstants.hiddenTables.contains(table)
-                || table.startsWith(AtlasDbConstants.TEMP_TABLE_PREFIX)
-                || table.startsWith(AtlasDbConstants.NAMESPACE_PREFIX), "invalid tableName: " + table);
-    }
-
     private static void logErrorOrThrow(String errorMessage, boolean safetyDisabled) {
         String safetyMessage = " This would have normally resulted in Palantir exiting, however safety checks have been disabled.";
         if (safetyDisabled) {

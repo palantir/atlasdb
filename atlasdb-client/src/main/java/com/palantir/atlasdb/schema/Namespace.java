@@ -28,7 +28,7 @@ public final class Namespace {
 
     public static Namespace create(String name) {
         Validate.isTrue(!Strings.isNullOrEmpty(name));
-        Validate.isTrue(isNamespaceValid(name), "'%s' contains invalid characters, only letters or numbers allowed.", name);
+        Validate.isTrue(isNamespaceValid(name), "'%s' contains invalid characters, only letters, numbers, or non-initial/non-trailing single underscores are allowed.", name);
         return new Namespace(name);
     }
 
@@ -70,7 +70,18 @@ public final class Namespace {
         for (int i = 0; i < namespace.length() ; i++) {
             char c = namespace.charAt(i);
             if (!Character.isLetterOrDigit(c)) {
-                return false;
+                // only underscores are additionally allowed
+                if (c != '_') {
+                    return false;
+                }
+                // underscores must be non-initial and non-trailing
+                else if (i == 0 || i == namespace.length() - 1) {
+                    return false;
+                }
+                // disallow double underscores
+                else if (namespace.charAt(i + 1) == '_') {
+                    return false;
+                }
             }
         }
         return true;
