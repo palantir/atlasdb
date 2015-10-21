@@ -76,34 +76,51 @@ public class RocksDbKeyValueService implements KeyValueService {
     private final ColumnFamilyMap columnFamilies;
     private final FileLock lock;
     private final RandomAccessFile lockFile;
+    private final WriteOpts writeOptions;
     private final MutuallyExclusiveSetLock<Cell> lockSet = MutuallyExclusiveSetLock.<Cell>create(false);
     private volatile boolean closed = false;
 
     public static RocksDbKeyValueService create(String dataDir) {
-        return create(dataDir, new Options().setCreateIfMissing(true));
+        return create(dataDir,
+                ImmutableMap.<String, String>of(),
+                ImmutableMap.<String, String>of(),
+                ImmutableWriteOpts.builder().build());
     }
 
-    public static RocksDbKeyValueService create(String dataDir, Map<String, String> customOptions) {
-        Options options = new Options().setCreateIfMissing(true);
-        Method[] methods = Options.class.getMethods();
+    public static RocksDbKeyValueService create(String dataDir,
+                                                Map<String, String> dbOptions,
+                                                Map<String, String> cfOptions,
+                                                WriteOpts writeOpts) {
+        DBOptions dbOpts = new DBOptions().setCreateIfMissing(true);
+        setReflectionOpts(dbOpts, dbOptions);
+        ColumnFamilyOptions cfMetadataOpts = new ColumnFamilyOptions();
+        setReflectionOpts(cfMetadataOpts, cfOptions);
+        ColumnFamilyOptions cfCommonOpts = new ColumnFamilyOptions().setComparator(RocksComparator.INSTANCE);
+        setReflectionOpts(cfCommonOpts, cfOptions);
+        return create(dataDir, dbOpts, cfMetadataOpts, cfCommonOpts, writeOpts);
+    }
+
+    private static void setReflectionOpts(Object opts,
+                                          Map<String, String> stringOpts) {
+        Method[] methods = opts.getClass().getMethods();
         for (Method method : methods) {
             String methodName = method.getName();
             Class<?>[] params = method.getParameterTypes();
             if (methodName.startsWith("set") && methodName.length() >= 4 && params.length == 1) {
                 String optName = Character.toLowerCase(methodName.charAt(3)) + methodName.substring(4);
-                String value = customOptions.get(optName);
+                String value = stringOpts.get(optName);
                 if (value != null) {
                     try {
                         if (params[0] == boolean.class) {
-                            method.invoke(options, Boolean.parseBoolean(value));
+                            method.invoke(opts, Boolean.parseBoolean(value));
                         } else if (params[0] == int.class) {
-                            method.invoke(options, Integer.parseInt(value));
+                            method.invoke(opts, Integer.parseInt(value));
                         } else if (params[0] == long.class) {
-                            method.invoke(options, Long.parseLong(value));
+                            method.invoke(opts, Long.parseLong(value));
                         } else if (params[0] == double.class) {
-                            method.invoke(options, Double.parseDouble(value));
+                            method.invoke(opts, Double.parseDouble(value));
                         } else if (params[0] == String.class) {
-                            method.invoke(options, value);
+                            method.invoke(opts, value);
                         }
                     } catch (Exception e) {
                         throw Throwables.propagate(e);
@@ -111,15 +128,16 @@ public class RocksDbKeyValueService implements KeyValueService {
                 }
             }
         }
-        return create(dataDir, options);
     }
 
-    public static RocksDbKeyValueService create(String dataDir, Options options) {
+    public static RocksDbKeyValueService create(String dataDir,
+                                                DBOptions dbOptions,
+                                                ColumnFamilyOptions cfMetadataOptions,
+                                                ColumnFamilyOptions cfCommonOptions,
+                                                WriteOpts writeOptions) {
         try {
-            return lockAndCreateDb(options, new File(dataDir));
-        } catch (RocksDBException e) {
-            throw Throwables.propagate(e);
-        } catch (IOException e) {
+            return lockAndCreateDb(new File(dataDir), dbOptions, cfMetadataOptions, cfCommonOptions, writeOptions);
+        } catch (RocksDBException | IOException e) {
             throw Throwables.propagate(e);
         }
     }
@@ -145,7 +163,11 @@ public class RocksDbKeyValueService implements KeyValueService {
         return f.isDirectory();
     }
 
-    private static RocksDbKeyValueService lockAndCreateDb(final Options options, File dbDir) throws IOException, RocksDBException {
+    private static RocksDbKeyValueService lockAndCreateDb(File dbDir,
+                                                          final DBOptions dbOptions,
+                                                          final ColumnFamilyOptions cfMetadataOptions,
+                                                          final ColumnFamilyOptions cfCommonOptions,
+                                                          final WriteOpts writeOpts) throws IOException, RocksDBException {
         mkdirsWithRetry(dbDir);
         Preconditions.checkArgument(dbDir.exists() && dbDir.isDirectory(), "DB file must be a directory: " + dbDir);
         final RandomAccessFile randomAccessFile =
@@ -171,23 +193,24 @@ public class RocksDbKeyValueService implements KeyValueService {
                 throw new IOException("Cannot lock. Someone already has this database open: " + dbDir);
             }
             List<byte[]> initialCfs = MoreObjects.firstNonNull(
-                    RocksDB.listColumnFamilies(options, dbDir.getAbsolutePath()), ImmutableList.<byte[]>of());
+                    RocksDB.listColumnFamilies(new Options(dbOptions, cfMetadataOptions), dbDir.getAbsolutePath()), ImmutableList.<byte[]>of());
             List<ColumnFamilyDescriptor> cfDescriptors = Lists.newArrayListWithCapacity(initialCfs.size());
             List<ColumnFamilyHandle> cfHandles = Lists.newArrayListWithCapacity(1 + initialCfs.size());
             cfDescriptors.add(new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY));
             for (byte[] cf : initialCfs) {
-                cfDescriptors.add(new ColumnFamilyDescriptor(cf, getCfOptions(options, new String(cf, Charsets.UTF_8))));
+                String tableName = new String(cf, Charsets.UTF_8);
+                cfDescriptors.add(getCfDescriptor(tableName, cfMetadataOptions, cfCommonOptions));
             }
-            RocksDB db = RocksDB.open(getDBOptions(options), dbDir.getAbsolutePath(), cfDescriptors, cfHandles);
+            RocksDB db = RocksDB.open(dbOptions, dbDir.getAbsolutePath(), cfDescriptors, cfHandles);
             Preconditions.checkState(cfDescriptors.size() == cfHandles.size());
             ColumnFamilyMap columnFamilies = new ColumnFamilyMap(new Function<String, ColumnFamilyDescriptor>() {
                 @Override
                 public ColumnFamilyDescriptor apply(String tableName) {
-                    return new ColumnFamilyDescriptor(tableName.getBytes(Charsets.UTF_8), getCfOptions(options, tableName));
+                    return getCfDescriptor(tableName, cfMetadataOptions, cfCommonOptions);
                 }
             }, db);
             columnFamilies.initialize(cfDescriptors, cfHandles);
-            RocksDbKeyValueService ret = new RocksDbKeyValueService(db, columnFamilies, lock, randomAccessFile);
+            RocksDbKeyValueService ret = new RocksDbKeyValueService(db, columnFamilies, lock, randomAccessFile, writeOpts);
             ret.createTable(METADATA_TABLE_NAME, Integer.MAX_VALUE);
             success = true;
             return ret;
@@ -200,29 +223,26 @@ public class RocksDbKeyValueService implements KeyValueService {
         }
     }
 
-    private static DBOptions getDBOptions(Options options) {
-        DBOptions dbOptions = new DBOptions();
-        dbOptions.setCreateIfMissing(options.createIfMissing());
-        return dbOptions;
-    }
-
-    private static ColumnFamilyOptions getCfOptions(Options options,
-                                                    String tableName) {
-        ColumnFamilyOptions cfOptions = new ColumnFamilyOptions();
-        if (!tableName.equals(METADATA_TABLE_NAME)) {
-            cfOptions.setComparator(RocksComparator.INSTANCE);
+    private static ColumnFamilyDescriptor getCfDescriptor(String tableName,
+                                                          ColumnFamilyOptions cfMetadataOptions,
+                                                          ColumnFamilyOptions cfCommonOptions) {
+        if (tableName.equals(METADATA_TABLE_NAME)) {
+            return new ColumnFamilyDescriptor(tableName.getBytes(Charsets.UTF_8), cfMetadataOptions);
+        } else {
+            return new ColumnFamilyDescriptor(tableName.getBytes(Charsets.UTF_8), cfCommonOptions);
         }
-        return cfOptions;
     }
 
     private RocksDbKeyValueService(RocksDB db,
                                    ColumnFamilyMap columnFamilies,
                                    FileLock lock,
-                                   RandomAccessFile file) {
+                                   RandomAccessFile file,
+                                   WriteOpts writeOptions) {
         this.db = db;
         this.columnFamilies = columnFamilies;
         this.lock = lock;
         this.lockFile = file;
+        this.writeOptions = writeOptions;
     }
 
     @Override
@@ -309,7 +329,7 @@ public class RocksDbKeyValueService implements KeyValueService {
     public void put(String tableName, Map<Cell, byte[]> values, long timestamp) {
         try (Disposer d = new Disposer();
                 ColumnFamily table = columnFamilies.get(tableName)) {
-            WriteOptions options = d.register(new WriteOptions().setSync(true));
+            WriteOptions options = d.register(new WriteOptions().setSync(writeOptions.fsyncPut()));
             WriteBatch batch = d.register(new WriteBatch());
             for (Entry<Cell, byte[]> entry : values.entrySet()) {
                 byte[] key = RocksDbKeyValueServices.getKey(entry.getKey(), timestamp);
@@ -329,7 +349,7 @@ public class RocksDbKeyValueService implements KeyValueService {
                 cfs.put(tableName, columnFamilies.get(tableName));
             }
             try (Disposer d = new Disposer()) {
-                WriteOptions options = d.register(new WriteOptions().setSync(true));
+                WriteOptions options = d.register(new WriteOptions().setSync(writeOptions.fsyncPut()));
                 WriteBatch batch = d.register(new WriteBatch());
                 for (Entry<String, ? extends Map<Cell, byte[]>> entry : valuesByTable.entrySet()) {
                     ColumnFamilyHandle table = cfs.get(entry.getKey()).getHandle();
@@ -353,7 +373,7 @@ public class RocksDbKeyValueService implements KeyValueService {
     public void putWithTimestamps(String tableName, Multimap<Cell, Value> cellValues) {
         try (Disposer d = new Disposer();
                 ColumnFamily table = columnFamilies.get(tableName)) {
-            WriteOptions options = d.register(new WriteOptions().setSync(true));
+            WriteOptions options = d.register(new WriteOptions().setSync(writeOptions.fsyncPut()));
             WriteBatch batch = d.register(new WriteBatch());
             for (Entry<Cell, Value> entry : cellValues.entries()) {
                 Value value = entry.getValue();
@@ -373,7 +393,7 @@ public class RocksDbKeyValueService implements KeyValueService {
         try (Disposer d = new Disposer();
                 ColumnFamily table = columnFamilies.get(tableName)) {
             Set<Cell> alreadyExists = Sets.newHashSetWithExpectedSize(0);
-            WriteOptions options = d.register(new WriteOptions().setSync(true));
+            WriteOptions options = d.register(new WriteOptions().setSync(writeOptions.fsyncCommit()));
             WriteBatch batch = d.register(new WriteBatch());
             RocksIterator iter = d.register(getDb().newIterator(table.getHandle()));
             for (Entry<Cell, byte[]> entry : values.entrySet()) {
@@ -399,7 +419,7 @@ public class RocksDbKeyValueService implements KeyValueService {
     public void delete(String tableName, Multimap<Cell, Long> keys) {
         try (Disposer d = new Disposer();
                 ColumnFamily table = columnFamilies.get(tableName)) {
-            WriteOptions options = d.register(new WriteOptions().setSync(true));
+            WriteOptions options = d.register(new WriteOptions().setSync(writeOptions.fsyncPut()));
             WriteBatch batch = d.register(new WriteBatch());
             for (Entry<Cell, Long> entry : keys.entries()) {
                 byte[] key = RocksDbKeyValueServices.getKey(entry.getKey(), entry.getValue());

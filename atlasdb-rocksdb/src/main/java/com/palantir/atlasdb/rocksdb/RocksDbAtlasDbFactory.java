@@ -21,8 +21,10 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.rocksdb.impl.ImmutableWriteOpts;
 import com.palantir.atlasdb.keyvalue.rocksdb.impl.RocksDbBoundStore;
 import com.palantir.atlasdb.keyvalue.rocksdb.impl.RocksDbKeyValueService;
+import com.palantir.atlasdb.keyvalue.rocksdb.impl.WriteOpts;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.timestamp.PersistentTimestampService;
@@ -40,8 +42,10 @@ public class RocksDbAtlasDbFactory implements AtlasDbFactory {
         Preconditions.checkArgument(config instanceof RocksDbKeyValueServiceConfig,
                 "RocksDbAtlasDbFactory expects a configuration of type RocksDbKeyValueServiceConfig, found %s", config.getClass());
         RocksDbKeyValueServiceConfig rocksDbConfig = (RocksDbKeyValueServiceConfig) config;
-        Map<String, String> options = MoreObjects.firstNonNull(rocksDbConfig.options(), ImmutableMap.<String, String>of());
-        return RocksDbKeyValueService.create(rocksDbConfig.dataDir().getAbsolutePath(), options);
+        Map<String, String> dbOptions = MoreObjects.firstNonNull(rocksDbConfig.dbOptions(), ImmutableMap.<String, String>of());
+        Map<String, String> cfOptions = MoreObjects.firstNonNull(rocksDbConfig.cfOptions(), ImmutableMap.<String, String>of());
+        WriteOpts writeOptions = MoreObjects.firstNonNull(rocksDbConfig.writeOptions(), ImmutableWriteOpts.builder().build());
+        return RocksDbKeyValueService.create(rocksDbConfig.dataDir().getAbsolutePath(), dbOptions, cfOptions, writeOptions);
     }
 
     @Override
