@@ -236,7 +236,7 @@ public abstract class AbstractSweeperTest {
 
     private SweepResults sweep(long ts) {
         sweepTimestamp.set(ts);
-        SweepResults results = sweepRunner.run(TABLE_NAME, new byte[0]);
+        SweepResults results = sweepRunner.run(TABLE_NAME, 1000, new byte[0]);
         Assert.assertFalse(results.getNextStartRow().isPresent());
         return results;
     }
