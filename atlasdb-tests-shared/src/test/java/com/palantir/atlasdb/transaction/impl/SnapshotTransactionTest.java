@@ -81,10 +81,11 @@ import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.proxy.MultiDelegateProxy;
 import com.palantir.lock.AtlasRowLockDescriptor;
+import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
+import com.palantir.lock.LockCollections;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
-import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 
@@ -533,7 +534,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         testValidateExternalAndCommitLocks(
                 new LockAwareTransactionTask<Void, Exception>() {
                         @Override
-                        public Void execute(Transaction t, Iterable<LockRefreshToken> heldLocks)
+                        public Void execute(Transaction t, Iterable<HeldLocksToken> heldLocks)
                                 throws Exception {
                             t.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(Cell.create("row1".getBytes(),
                                             "column1".getBytes())));
@@ -548,7 +549,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         testValidateExternalAndCommitLocks(
                 new LockAwareTransactionTask<Void, Exception>() {
                         @Override
-                        public Void execute(Transaction t, Iterable<LockRefreshToken> heldLocks)
+                        public Void execute(Transaction t, Iterable<HeldLocksToken> heldLocks)
                                 throws Exception {
                             Iterables.getLast(t.getRanges(TABLE_SWEPT_THOROUGH, ImmutableList.of(rangeRequest)));
                             return null;
@@ -561,7 +562,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         testValidateExternalAndCommitLocks(
                 new LockAwareTransactionTask<Void, Exception>() {
                         @Override
-                        public Void execute(Transaction t, Iterable<LockRefreshToken> heldLocks)
+                        public Void execute(Transaction t, Iterable<HeldLocksToken> heldLocks)
                                 throws Exception {
                             t.getRows(TABLE_SWEPT_THOROUGH, ImmutableSet.of("row1".getBytes()),
                                     ColumnSelection.all());
@@ -652,12 +653,15 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         }
     }
 
-    private LockRefreshToken getFakeHeldLocksToken() {
+    private HeldLocksToken getFakeHeldLocksToken() {
         ImmutableSortedMap.Builder<LockDescriptor, LockMode> builder =
                 ImmutableSortedMap.naturalOrder();
         builder.put(AtlasRowLockDescriptor.of(TransactionConstants.TRANSACTION_TABLE,
                 TransactionConstants.getValueForTimestamp(0L)), LockMode.WRITE);
-        return new LockRefreshToken(new BigInteger("0"), System.currentTimeMillis());
+        return new HeldLocksToken(new BigInteger("0"), lockClient,
+                System.currentTimeMillis(), System.currentTimeMillis(),
+                LockCollections.of(builder.build()),
+                LockRequest.DEFAULT_LOCK_TIMEOUT, 0L);
     }
 
     private TableMetadata getTableMetadataForSweepStrategy(SweepStrategy sweepStrategy) {

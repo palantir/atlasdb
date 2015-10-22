@@ -31,7 +31,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
-import com.google.common.base.Suppliers;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -43,8 +42,6 @@ import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
-import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.RuntimeTransactionTask;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -55,7 +52,6 @@ import com.palantir.common.base.BatchingVisitables;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.BlockingWorkerPool;
 import com.palantir.lock.LockRefreshToken;
-import com.palantir.lock.LockRequest;
 
 public class TableTasks {
     private static final Logger log = LoggerFactory.getLogger(TableTasks.class);
@@ -100,7 +96,7 @@ public class TableTasks {
         });
     }
 
-    public static void copy(final LockAwareTransactionManager txManager,
+    public static void copy(final TransactionManager txManager,
                             ExecutorService exec,
                             final Iterable<LockRefreshToken> lockTokens,
                             final String srcTable,
@@ -111,13 +107,13 @@ public class TableTasks {
         copyExternal(exec, srcTable, dstTable, batchSize, threadCount, stats, new CopyTask() {
             @Override
             public PartialCopyStats call(final RangeRequest request, final MutableRange range) throws InterruptedException {
-                return txManager.runTaskWithLocksWithRetry(lockTokens, Suppliers.<LockRequest>ofInstance(null),
-                        new LockAwareTransactionTask<PartialCopyStats, RuntimeException>() {
-                    @Override
-                    public PartialCopyStats execute(Transaction t, Iterable<LockRefreshToken> heldLocks) {
-                        return copyInternal(t, srcTable, dstTable, request, range);
-                    }
-                });
+                return txManager.runTaskWithRetry(
+                        new RuntimeTransactionTask<PartialCopyStats>() {
+                            @Override
+                            public PartialCopyStats execute(Transaction t) {
+                                return copyInternal(t, srcTable, dstTable, request, range);
+                            }
+                        });
             }
         });
     }
@@ -274,7 +270,7 @@ public class TableTasks {
         });
     }
 
-    public static void diff(final LockAwareTransactionManager txManager,
+    public static void diff(final TransactionManager txManager,
                             ExecutorService exec,
                             final Iterable<LockRefreshToken> lockTokens,
                             final String plusTable,
@@ -287,18 +283,18 @@ public class TableTasks {
             @Override
             public PartialDiffStats call(final RangeRequest request, final MutableRange range, final DiffStrategy strategy)
                     throws InterruptedException {
-                return txManager.runTaskWithLocksWithRetry(lockTokens, Suppliers.<LockRequest>ofInstance(null),
-                        new LockAwareTransactionTask<PartialDiffStats, RuntimeException>() {
-                    @Override
-                    public PartialDiffStats execute(Transaction t, Iterable<LockRefreshToken> heldLocks) {
-                        return diffInternal(t, plusTable, minusTable, request, range, strategy, visitor);
-                    }
+                return txManager.runTaskWithRetry(
+                        new RuntimeTransactionTask<PartialDiffStats>() {
+                            @Override
+                            public PartialDiffStats execute(Transaction t) {
+                                return diffInternal(t, plusTable, minusTable, request, range, strategy, visitor);
+                            }
 
-                    @Override
-                    public String toString() {
-                        return "diff(" + request + ',' + strategy + ')';
-                    }
-                });
+                            @Override
+                            public String toString() {
+                                return "diff(" + request + ',' + strategy + ')';
+                            }
+                        });
             }
         });
     }

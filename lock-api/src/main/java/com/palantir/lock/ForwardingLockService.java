@@ -43,6 +43,17 @@ public abstract class ForwardingLockService extends ForwardingObject implements 
     }
 
     @Override
+    public HeldLocksToken lockAndGetHeldLocksAnonymously(LockRequest request) throws InterruptedException {
+        return delegate().lockAndGetHeldLocksAnonymously(request);
+    }
+
+    @Override
+    public HeldLocksToken lockAndGetHeldLocksWithClient(String client, LockRequest request)
+            throws InterruptedException {
+        return delegate().lockAndGetHeldLocksWithClient(client, request);
+    }
+
+    @Override
     public LockResponse lock(LockClient client, LockRequest request) throws InterruptedException {
         return delegate().lock(client, request);
     }
@@ -146,10 +157,5 @@ public abstract class ForwardingLockService extends ForwardingObject implements 
     @Override
     public void logCurrentState() {
         delegate().logCurrentState();
-    }
-
-    @Override
-    public boolean isDelayRequired() {
-        return delegate().isDelayRequired();
     }
 }

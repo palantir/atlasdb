@@ -36,6 +36,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
+import com.google.common.hash.Hashing;
 import com.google.common.primitives.Bytes;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -59,6 +60,7 @@ import com.palantir.atlasdb.table.api.AtlasDbNamedPersistentSet;
 import com.palantir.atlasdb.table.api.ColumnValue;
 import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
+import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
 import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
@@ -110,6 +112,10 @@ public final class StreamTest2StreamHashAidxTable implements
         this.namespace = namespace;
     }
 
+    public static String getRawTableName() {
+        return rawTableName;
+    }
+
     public String getTableName() {
         return tableName;
     }
@@ -153,7 +159,7 @@ public final class StreamTest2StreamHashAidxTable implements
             return new Function<Sha256Hash, StreamTest2StreamHashAidxRow>() {
                 @Override
                 public StreamTest2StreamHashAidxRow apply(Sha256Hash row) {
-                    return new StreamTest2StreamHashAidxRow(row);
+                    return StreamTest2StreamHashAidxRow.of(row);
                 }
             };
         }
@@ -170,7 +176,7 @@ public final class StreamTest2StreamHashAidxTable implements
                 int __index = 0;
                 Sha256Hash hash = new Sha256Hash(EncodingUtils.get32Bytes(__input, __index));
                 __index += 32;
-                return of(hash);
+                return StreamTest2StreamHashAidxRow.of(hash);
             }
         };
 
@@ -244,7 +250,7 @@ public final class StreamTest2StreamHashAidxTable implements
             return new Function<Long, StreamTest2StreamHashAidxColumn>() {
                 @Override
                 public StreamTest2StreamHashAidxColumn apply(Long row) {
-                    return new StreamTest2StreamHashAidxColumn(row);
+                    return StreamTest2StreamHashAidxColumn.of(row);
                 }
             };
         }
@@ -261,7 +267,7 @@ public final class StreamTest2StreamHashAidxTable implements
                 int __index = 0;
                 Long streamId = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(streamId);
-                return of(streamId);
+                return StreamTest2StreamHashAidxColumn.of(streamId);
             }
         };
 
@@ -627,5 +633,5 @@ public final class StreamTest2StreamHashAidxTable implements
         return ImmutableList.of();
     }
 
-    static String __CLASS_HASH = "0OgTnSLpmih4DnPo8ghp/Q==";
+    static String __CLASS_HASH = "W121mr5e+JMpHnnQg6bu2g==";
 }

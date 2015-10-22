@@ -20,12 +20,13 @@ import org.rocksdb.RocksIterator;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.rocksdb.impl.ColumnFamilyMap.ColumnFamily;
 import com.palantir.util.Pair;
 
 public class ValueRangeIterator extends RangeIterator<Value> {
 
-    ValueRangeIterator(RocksIterator it, RangeRequest range, long maxTimestamp) {
-        super(it, range, maxTimestamp);
+    ValueRangeIterator(ColumnFamily table, RocksIterator it, RangeRequest range, long maxTimestamp) {
+        super(table, it, range, maxTimestamp);
     }
 
     @Override

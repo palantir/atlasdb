@@ -15,14 +15,15 @@
  */
 package com.palantir.atlasdb.cassandra;
 
+import java.net.SocketTimeoutException;
 import java.util.Set;
 
 import org.immutables.value.Value;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
@@ -32,60 +33,46 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 @Value.Immutable
 public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceConfig {
 
-    @JsonIgnore
-    public static final CassandraKeyValueServiceConfig DEFAULT = ImmutableCassandraKeyValueServiceConfig.builder()
-            .addServers("localhost")
-            .port(9160)
-            .ssl(false)
-            .replicationFactor(1)
-            .keystore("./security/Server_Keystore")
-            .keystorePassword("atlasserver")
-            .truststore("./security/Client_Truststore")
-            .truststorePassword("atlasclient")
-            .jmxUsername("admin")
-            .jmxPassword("atlasdb")
-            .build();
-
     public static final String TYPE = "cassandra";
 
     public abstract Set<String> servers();
-    
+
     public abstract int port();
-    
+
     @Value.Default
     public int poolSize() {
         return 20;
     }
-    
+
     @Value.Default
     public String keyspace() {
         return "atlasdb";
     }
-    
+
     public abstract boolean ssl();
-    
+
     public abstract int replicationFactor();
-    
+
     @Value.Default
     public int mutationBatchCount() {
         return 5000;
     }
-    
+
     @Value.Default
     public int mutationBatchSizeBytes() {
         return 4 * 1024 * 1024;
     }
-    
+
     @Value.Default
     public int fetchBatchCount() {
         return 5000;
     }
-    
+
     @Value.Default
     public boolean safetyDisabled() {
         return false;
     }
-    
+
     @Value.Default
     public boolean autoRefreshNodes() {
         return true;
@@ -117,52 +104,23 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
         return 5000;
     }
 
+    @Value.Default
     public int rangesConcurrency() {
         return 64;
     }
 
     @Value.Default
-    public boolean jmx() {
-        return false;
-    }
-
-    @Value.Default
-    public boolean jmxSsl() {
-        return false;
-    }
-
-    @Value.Default
-    public long jmxRmiTimeoutMillis() {
-        return 20000;
-    }
-
-    @Value.Default
-    public int jmxPort() {
-        return 7199;
-    }
-
-    public abstract String keystore();
-
-    public abstract String keystorePassword();
-
-    public abstract String truststore();
-
-    public abstract String truststorePassword();
-
-    public abstract String jmxUsername();
-
-    public abstract String jmxPassword();
-
-    @Value.Default
-    public long jmxCompactionTimeoutSeconds() {
+    public long compactionTimeoutSeconds() {
         return 30 * 60;
     }
+
+    public abstract Optional<CassandraJmxCompactionConfig> jmx();
 
     @Override
     public final String type() {
         return TYPE;
     }
-    
+
     @Value.Check
     protected final void check() {
         Preconditions.checkState(!servers().isEmpty(), "'servers' must have at least one entry");

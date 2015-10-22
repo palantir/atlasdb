@@ -104,7 +104,6 @@ import com.palantir.util.Pair;
 
     private static final Logger log = LoggerFactory.getLogger(LockServiceImpl.class);
     private static final Logger requestLogger = LoggerFactory.getLogger("lock.request");
-    private static final Logger lockStateLogger = LoggerFactory.getLogger("com.palantir.lock.state");
 
     /** Executor for the reaper threads. */
     private final ExecutorService executor = PTExecutors.newCachedThreadPool(
@@ -286,6 +285,8 @@ import com.palantir.util.Pair;
 
     @Override
     public LockRefreshToken lockAnonymously(LockRequest request) throws InterruptedException {
+        Preconditions.checkArgument(request.getLockGroupBehavior() == LockGroupBehavior.LOCK_ALL_OR_NONE,
+                "lockAnonymously() only supports LockGroupBehavior.LOCK_ALL_OR_NONE. Consider using lockAndGetHeldLocksAnonymously().");
         LockResponse result = lock(LockClient.ANONYMOUS, request);
         return result.success() ? result.getLockRefreshToken() : null;
     }
@@ -293,8 +294,22 @@ import com.palantir.util.Pair;
     @Override
     public LockRefreshToken lockWithClient(String client, LockRequest request)
             throws InterruptedException {
+        Preconditions.checkArgument(request.getLockGroupBehavior() == LockGroupBehavior.LOCK_ALL_OR_NONE,
+                "lockWithClient() only supports LockGroupBehavior.LOCK_ALL_OR_NONE. Consider using lockAndGetHeldLocksWithClient().");
         LockResponse result = lock(LockClient.of(client), request);
         return result.success() ? result.getLockRefreshToken() : null;
+    }
+
+    @Override
+    public HeldLocksToken lockAndGetHeldLocksAnonymously(LockRequest request) throws InterruptedException {
+        LockResponse result = lock(LockClient.ANONYMOUS, request);
+        return result.getToken();
+    }
+
+    @Override
+    public HeldLocksToken lockAndGetHeldLocksWithClient(String client, LockRequest request) throws InterruptedException {
+        LockResponse result = lock(LockClient.of(client), request);
+        return result.getToken();
     }
 
     @Override
@@ -952,18 +967,6 @@ import com.palantir.util.Pair;
      */
     @Override
     public void logCurrentState() {
-        log.error("logCurrentState() request received; not waiting for consistent state and logging immediately. Current time = "
-                + currentTimeMillis());
-        logCurrentStateToLoggerInconsistent(lockStateLogger);
-    }
-
-    @Override
-    public void close() {
-        isShutDown = true;
-        executor.shutdownNow();
-    }
-
-    private void logCurrentStateToLoggerInconsistent(Logger logger) {
         StringBuilder logString = new StringBuilder();
         logString.append("Logging current state. Time = ").append(currentTimeMillis()).append("\n");
         logString.append("isStandaloneServer = ").append(isStandaloneServer).append("\n");
@@ -991,17 +994,18 @@ import com.palantir.util.Pair;
             }
         }
         logString.append("Finished logging current state. Time = ").append(currentTimeMillis());
-        logger.error(logString.toString());
+        log.error(logString.toString());
+    }
+
+    @Override
+    public void close() {
+        isShutDown = true;
+        executor.shutdownNow();
     }
 
     @Override
     public long currentTimeMillis() {
         return System.currentTimeMillis();
-    }
-
-    @Override
-    public boolean isDelayRequired() {
-        return false;
     }
 
     private String getRequestDescription(LockRequest request) {

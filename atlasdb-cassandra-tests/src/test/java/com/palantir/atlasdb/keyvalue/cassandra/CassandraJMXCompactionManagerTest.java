@@ -21,14 +21,32 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraJmxCompactionConfig;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 
 /**
  * All tests are JMX disabled.
  */
 public class CassandraJMXCompactionManagerTest {
+
+    public static final CassandraKeyValueServiceConfig DEFAULT = ImmutableCassandraKeyValueServiceConfig.builder()
+            .addServers("localhost")
+            .port(9160)
+            .ssl(false)
+            .replicationFactor(1)
+            .jmx(ImmutableCassandraJmxCompactionConfig.builder()
+                    .keystore("./security/Server_Keystore")
+                    .keystorePassword("atlasserver")
+                    .truststore("./security/Client_Truststore")
+                    .truststorePassword("atlasclient")
+                    .username("admin")
+                    .password("atlasdb")
+                    .build())
+            .build();
+
     @Test
     public void testNewInstance() {
-        CassandraKeyValueServiceConfig config = CassandraKeyValueServiceConfig.DEFAULT;
+        CassandraKeyValueServiceConfig config = DEFAULT;
         // no JMX enabled
         CassandraJMXCompactionManager compactionManager = CassandraJMXCompactionManager.newInstance(config);
         assertNotNull(compactionManager);
@@ -37,14 +55,14 @@ public class CassandraJMXCompactionManagerTest {
 
     @Test
     public void testEmptyInstance() {
-        CassandraKeyValueServiceConfig config = CassandraKeyValueServiceConfig.DEFAULT;
+        CassandraKeyValueServiceConfig config = DEFAULT;
         CassandraJMXCompactionManager compactionManager = CassandraJMXCompactionManager.newInstance(config);
         assertTrue("JMX not enabled, expected it to be empty!", compactionManager.getCompactionClients().isEmpty());
     }
 
     @Test
     public void testCloseWithEmptyCompactionManager() {
-        CassandraKeyValueServiceConfig config = CassandraKeyValueServiceConfig.DEFAULT;
+        CassandraKeyValueServiceConfig config = DEFAULT;
         CassandraJMXCompactionManager compactionManager = CassandraJMXCompactionManager.newInstance(config);
         // empty compaction manager should not throw exception during close()
         compactionManager.close();

@@ -36,6 +36,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
+import com.google.common.hash.Hashing;
 import com.google.common.primitives.Bytes;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -59,6 +60,7 @@ import com.palantir.atlasdb.table.api.AtlasDbNamedPersistentSet;
 import com.palantir.atlasdb.table.api.ColumnValue;
 import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
+import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
 import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
@@ -110,6 +112,10 @@ public final class UpgTaskMetadataTable implements
         this.tableName = namespace.getName() + "." + rawTableName;
         this.triggers = triggers;
         this.namespace = namespace;
+    }
+
+    public static String getRawTableName() {
+        return rawTableName;
     }
 
     public String getTableName() {
@@ -258,7 +264,7 @@ public final class UpgTaskMetadataTable implements
                 __index += EncodingUtils.sizeOfVarString(extraId);
                 Long rangeId = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(rangeId);
-                return of(namespace, version, hotfixVersion, hotfixHotfix, extraId, rangeId);
+                return UpgTaskMetadataRow.of(namespace, version, hotfixVersion, hotfixHotfix, extraId, rangeId);
             }
         };
 
@@ -791,5 +797,5 @@ public final class UpgTaskMetadataTable implements
         return ImmutableList.of();
     }
 
-    static String __CLASS_HASH = "oRyDIlHgjaReJ+rMdhgadw==";
+    static String __CLASS_HASH = "fljatuiBsr6K9BUXbTDoWQ==";
 }

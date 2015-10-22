@@ -25,25 +25,23 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
-import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
+import com.palantir.atlasdb.transaction.api.RuntimeTransactionTask;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.BlockingWorkerPool;
 import com.palantir.lock.LockRefreshToken;
-import com.palantir.lock.LockRequest;
 
 public class RangeVisitor {
     private static final Logger log = LoggerFactory.getLogger(RangeVisitor.class);
-    private final LockAwareTransactionManager txManager;
+    private final TransactionManager txManager;
     private final String tableName;
     private byte[] startRow = new byte[0];
     private byte[] endRow = new byte[0];
@@ -53,7 +51,7 @@ public class RangeVisitor {
     private Iterable<LockRefreshToken> lockTokens = ImmutableList.of();
     private AtomicLong counter = new AtomicLong();
 
-    public RangeVisitor(LockAwareTransactionManager txManager,
+    public RangeVisitor(TransactionManager txManager,
                         String tableName) {
         this.txManager = txManager;
         this.tableName = tableName;
@@ -120,12 +118,10 @@ public class RangeVisitor {
             final RangeRequest request = range.getRangeRequest();
             try {
                 long startTime = System.currentTimeMillis();
-                long numVisited = txManager.runTaskWithLocksWithRetry(lockTokens,
-                        Suppliers.<LockRequest> ofInstance(null),
-                        new LockAwareTransactionTask<Long, RuntimeException>() {
+                long numVisited = txManager.runTaskWithRetry(
+                        new RuntimeTransactionTask<Long>() {
                             @Override
-                            public Long execute(Transaction t,
-                                                Iterable<LockRefreshToken> heldLocks) {
+                            public Long execute(Transaction t) {
                                 return visitInternal(t, visitor, request, range);
                             }
 
@@ -139,7 +135,7 @@ public class RangeVisitor {
                         numVisited,
                         tableName,
                         System.currentTimeMillis() - startTime);
-            } catch (InterruptedException e) {
+            } catch (RuntimeException e) {
                 throw Throwables.rewrapAndThrowUncheckedException(e);
             }
         } while (!range.isComplete());

@@ -19,7 +19,7 @@ import com.google.common.base.Supplier;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
-import com.palantir.lock.LockRefreshToken;
+import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
 
@@ -36,7 +36,7 @@ public abstract class ForwardingLockAwareTransactionManager extends
     }
 
     @Override
-    public <T, E extends Exception> T runTaskWithLocksWithRetry(Iterable<LockRefreshToken> lockTokens,
+    public <T, E extends Exception> T runTaskWithLocksWithRetry(Iterable<HeldLocksToken> lockTokens,
                                                                 Supplier<LockRequest> lockSupplier,
                                                                 LockAwareTransactionTask<T, E> task)
             throws E, InterruptedException {
@@ -47,7 +47,7 @@ public abstract class ForwardingLockAwareTransactionManager extends
     }
 
     @Override
-    public <T, E extends Exception> T runTaskWithLocksThrowOnConflict(Iterable<LockRefreshToken> lockTokens,
+    public <T, E extends Exception> T runTaskWithLocksThrowOnConflict(Iterable<HeldLocksToken> lockTokens,
                                                                       LockAwareTransactionTask<T, E> task)
             throws E, TransactionFailedRetriableException {
         return delegate().runTaskWithLocksThrowOnConflict(lockTokens, task);

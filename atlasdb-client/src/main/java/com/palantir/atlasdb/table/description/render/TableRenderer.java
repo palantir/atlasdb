@@ -54,6 +54,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
+import com.google.common.hash.Hashing;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.Bytes;
 import com.google.common.primitives.UnsignedBytes;
@@ -87,6 +88,7 @@ import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
 import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
@@ -229,6 +231,10 @@ public class TableRenderer {
                 staticFactories();
                 line();
                 constructors();
+                if (!isGeneric) {
+                    line();
+                    renderGetRawTableName();
+                }
                 line();
                 renderGetTableName();
                 line();
@@ -404,6 +410,12 @@ public class TableRenderer {
                 }
                 line("this.triggers = triggers;");
                 line("this.namespace = namespace;");
+            } line("}");
+        }
+
+        private void renderGetRawTableName() {
+            line("public static String getRawTableName() {"); {
+                line("return rawTableName;");
             } line("}");
         }
 
@@ -1302,5 +1314,7 @@ public class TableRenderer {
         CompressionUtils.class,
         Compression.class,
         Namespace.class,
+        Hashing.class,
+        ValueType.class
     };
 }

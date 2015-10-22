@@ -36,6 +36,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -55,6 +56,7 @@ import com.palantir.atlasdb.transaction.api.LockAwareTransactionTasks;
 import com.palantir.atlasdb.transaction.api.RuntimeTransactionTask;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.base.Throwables;
+import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
@@ -68,7 +70,9 @@ public class BackgroundSweeper implements Runnable {
     private final SweepTaskRunner sweepRunner;
     private final Supplier<Boolean> isSweepEnabled;
     private final Supplier<Long> sweepPauseMillis;
+    private final Supplier<Integer> sweepBatchSize;
     private final SweepTableFactory tableFactory;
+    private volatile float batchSizeMultiplier = 1.0f;
     private Thread daemon;
 
     public BackgroundSweeper(LockAwareTransactionManager txManager,
@@ -76,12 +80,14 @@ public class BackgroundSweeper implements Runnable {
                              SweepTaskRunner sweepRunner,
                              Supplier<Boolean> isSweepEnabled,
                              Supplier<Long> sweepPauseMillis,
+                             Supplier<Integer> sweepBatchSize,
                              SweepTableFactory tableFactory) {
         this.txManager = txManager;
         this.kvs = kvs;
         this.sweepRunner = sweepRunner;
         this.isSweepEnabled = isSweepEnabled;
         this.sweepPauseMillis = sweepPauseMillis;
+        this.sweepBatchSize = sweepBatchSize;
         this.tableFactory = tableFactory;
     }
 
@@ -94,7 +100,7 @@ public class BackgroundSweeper implements Runnable {
 
     @Override
     public void run() {
-        Optional<LockRefreshToken> locks = Optional.absent();
+        Optional<HeldLocksToken> locks = Optional.absent();
         try {
             // Wait a while before starting so short lived clis don't try to sweep.
             Thread.sleep(20 * (1000 + sweepPauseMillis.get()));
@@ -123,9 +129,17 @@ public class BackgroundSweeper implements Runnable {
                 } catch (InsufficientConsistencyException e) {
                     log.warn("Could not sweep because not all nodes of the database are online.", e);
                 } catch (RuntimeException e) {
-                    log.error("The background sweep job failed unexpectedly. Attempting to continue regardless...", e);
+                    if (checkAndRepairTableDrop()) {
+                        log.warn("The table being swept by the background sweeper was dropped, moving on...");
+                    } else {
+                        log.warn("The background sweep job failed unexpectedly with a batch size of " +
+                                ((int) (batchSizeMultiplier * sweepBatchSize.get())) +
+                                ". Attempting to continue with a lower batch size...", e);
+                        batchSizeMultiplier /= 2;
+                    }
                 }
                 if (sweptSuccessfully) {
+                    batchSizeMultiplier = Math.min(1.0f, batchSizeMultiplier * 1.01f);
                     Thread.sleep(sweepPauseMillis.get());
                 } else {
                     Thread.sleep(20 * (1000 + sweepPauseMillis.get()));
@@ -135,7 +149,7 @@ public class BackgroundSweeper implements Runnable {
             log.info("Shutting down background sweeper.");
         } finally {
             if (locks.isPresent()) {
-                txManager.getLockService().unlock(locks.get());
+                txManager.getLockService().unlock(locks.get().getLockRefreshToken());
             }
         }
     }
@@ -151,12 +165,22 @@ public class BackgroundSweeper implements Runnable {
             return false;
         }
         SweepProgressRowResult progress = optProgress.get();
+        int batchSize = Math.max(1, (int) (sweepBatchSize.get() * batchSizeMultiplier));
         Stopwatch watch = Stopwatch.createStarted();
-        SweepResults results = sweepRunner.run(progress.getFullTableName(), progress.getStartRow());
-        log.debug("Swept {} unique cells from {} and performed {} deletions in {} ms.",
-                results.getCellsExamined(), progress.getFullTableName(), results.getCellsDeleted(), watch.elapsed(TimeUnit.MILLISECONDS));
-        saveSweepResults(t, progress, results);
-        return true;
+        try {
+            SweepResults results = sweepRunner.run(progress.getFullTableName(), batchSize, progress.getStartRow());
+            log.debug("Swept {} unique cells from {} starting at {} and performed {} deletions in {} ms.",
+                    results.getCellsExamined(), progress.getFullTableName(),
+                    progress.getStartRow() == null ? "0" : PtBytes.encodeHexString(progress.getStartRow()),
+                    results.getCellsDeleted(), watch.elapsed(TimeUnit.MILLISECONDS));
+            saveSweepResults(t, progress, results);
+            return true;
+        } catch (RuntimeException e) {
+            // Error logged at a higher log level above.
+            log.debug("Failed to sweep {} with batch size {} starting from row {}", progress.getFullTableName(), batchSize,
+                    progress.getStartRow() == null ? "0" : PtBytes.encodeHexString(progress.getStartRow()));
+            throw e;
+        }
     }
 
     private Optional<SweepProgressRowResult> chooseNextTableToSweep(Transaction t) {
@@ -305,9 +329,34 @@ public class BackgroundSweeper implements Runnable {
         }
     }
 
-    private Optional<LockRefreshToken> lockOrRefresh(Optional<LockRefreshToken> previousLocks) throws InterruptedException {
+    /**
+     * Check whether the table being swept was dropped. If so, stop sweeping it and move on.
+     * @return Whether the table being swept was dropped.
+     */
+    private boolean checkAndRepairTableDrop() {
+        try {
+            Set<String> tables = kvs.getAllTableNames();
+            SweepProgressRowResult result = txManager.runTaskReadOnly(
+                    new RuntimeTransactionTask<SweepProgressRowResult>() {
+                        @Override
+                        public SweepProgressRowResult execute(Transaction t) {
+                            return tableFactory.getSweepProgressTable(t).getRow(SweepProgressRow.of(0L)).orNull();
+                        }
+                    });
+            if (result == null || tables.contains(result.getFullTableName())) {
+                return false;
+            }
+            kvs.truncateTable(SweepProgressTable.getRawTableName());
+            return true;
+        } catch (RuntimeException e) {
+            log.warn("Failed to check whether the table being swept was dropped. Continuing under the assumption that it wasn't...", e);
+            return false;
+        }
+    }
+
+    private Optional<HeldLocksToken> lockOrRefresh(Optional<HeldLocksToken> previousLocks) throws InterruptedException {
         if (previousLocks.isPresent()) {
-            LockRefreshToken refreshToken = previousLocks.get();
+            LockRefreshToken refreshToken = previousLocks.get().getLockRefreshToken();
             Set<LockRefreshToken> refreshedTokens = txManager.getLockService()
                     .refreshLockRefreshTokens(ImmutableList.of(refreshToken));
             if (refreshedTokens.isEmpty()) {
@@ -318,7 +367,7 @@ public class BackgroundSweeper implements Runnable {
         } else {
             LockDescriptor lock = StringLockDescriptor.of("atlasdb sweep");
             LockRequest request = LockRequest.builder(ImmutableSortedMap.of(lock, LockMode.WRITE)).doNotBlock().build();
-            LockRefreshToken response = txManager.getLockService().lockAnonymously(request);
+            HeldLocksToken response = txManager.getLockService().lockAndGetHeldLocksAnonymously(request);
             if (response != null) {
                 return Optional.of(response);
             } else {

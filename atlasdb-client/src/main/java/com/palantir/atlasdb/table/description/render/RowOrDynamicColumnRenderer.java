@@ -52,15 +52,15 @@ class RowOrDynamicColumnRenderer extends Renderer {
             line();
             constructor();
             line();
-            for (NameComponentDescription comp : desc.getRowParts()) {
+            for (NameComponentDescription comp : getRowPartsWithoutHash()) {
                 getVarName(comp);
                 line();
             }
-            for (NameComponentDescription comp : desc.getRowParts()) {
+            for (NameComponentDescription comp : getRowPartsWithoutHash()) {
                 getVarNameFun(comp);
                 line();
             }
-            if (desc.getRowParts().size() == 1) {
+            if (getRowPartsWithoutHash().size() == 1) {
                 fromVarNameFun();
                 line();
             }
@@ -112,7 +112,10 @@ class RowOrDynamicColumnRenderer extends Renderer {
     }
 
     private void staticFactory() {
-        line("public static ", Name, " of"); renderParameterList(); lineEnd(" {"); {
+        line("public static ", Name, " of"); renderParameterList(getRowPartsWithoutHash()); lineEnd(" {"); {
+            if (desc.hasFirstComponentHash()) {
+                renderComputeFirstComponentHash();
+            }
             line("return new ", Name); renderArgumentList(); lineEnd(";");
         } line("}");
     }
@@ -143,12 +146,12 @@ class RowOrDynamicColumnRenderer extends Renderer {
     }
 
     private void fromVarNameFun() {
-        NameComponentDescription comp = Iterables.getOnlyElement(desc.getRowParts());
+        NameComponentDescription comp = Iterables.getOnlyElement(getRowPartsWithoutHash());
         line("public static Function<", TypeName(comp), ", ", Name, "> from", VarName(comp), "Fun() {"); {
             line("return new Function<", TypeName(comp), ", ", Name, ">() {"); {
                 line("@Override");
                 line("public ", Name, " apply(", TypeName(comp), " row) {"); {
-                    line("return new ", Name, "(row);");
+                    line("return ", Name, ".of(row);");
                 } line("}");
             } line("};");
         } line("}");
@@ -186,15 +189,22 @@ class RowOrDynamicColumnRenderer extends Renderer {
                     }
                     line("__index += ", comp.getType().getHydrateSizeCode(var), ";");
                 }
-                line("return of(", Joiner.on(", ").join(vars), ");");
+                line("return ", Name, ".of(", Joiner.on(", ").join(vars), ");");
             } line("}");
         } line("};");
     }
 
     private void createPrefixRange(int i, boolean isSorted) {
-        line("public static RangeRequest.Builder createPrefixRange", isSorted ? "" : "Unsorted"); renderParameterList(i); lineEnd(" {"); {
+        List<NameComponentDescription> components = getRowPartsWithoutHash().subList(0, i);
+        line("public static RangeRequest.Builder createPrefixRange", isSorted ? "" : "Unsorted"); renderParameterList(components); lineEnd(" {"); {
             List<String> vars = Lists.newArrayList();
-            for (NameComponentDescription comp : desc.getRowParts().subList(0, i)) {
+            if (desc.hasFirstComponentHash()) {
+                renderComputeFirstComponentHash();
+                String var = NameMetadataDescription.HASH_ROW_COMPONENT_NAME + "Bytes";
+                vars.add(var);
+                line("byte[] ", var, " = ", ValueType.FIXED_LONG.getPersistCode(NameMetadataDescription.HASH_ROW_COMPONENT_NAME), ";");
+            }
+            for (NameComponentDescription comp : components) {
                 String var = varName(comp) + "Bytes";
                 vars.add(var);
                 line("byte[] ", var, " = ", comp.getType().getPersistCode(varName(comp)), ";");
@@ -207,9 +217,16 @@ class RowOrDynamicColumnRenderer extends Renderer {
     }
 
     private void prefix(int i, boolean isSorted) {
-        line("public static Prefix prefix", isSorted ? "" : "Unsorted"); renderParameterList(i); lineEnd(" {"); {
+        List<NameComponentDescription> components = getRowPartsWithoutHash().subList(0, i);
+        line("public static Prefix prefix", isSorted ? "" : "Unsorted"); renderParameterList(components); lineEnd(" {"); {
             List<String> vars = Lists.newArrayList();
-            for (NameComponentDescription comp : desc.getRowParts().subList(0, i)) {
+            if (desc.hasFirstComponentHash()) {
+                renderComputeFirstComponentHash();
+                String var = NameMetadataDescription.HASH_ROW_COMPONENT_NAME + "Bytes";
+                vars.add(var);
+                line("byte[] ", var, " = ", ValueType.FIXED_LONG.getPersistCode(NameMetadataDescription.HASH_ROW_COMPONENT_NAME), ";");
+            }
+            for (NameComponentDescription comp : components) {
                 String var = varName(comp) + "Bytes";
                 vars.add(var);
                 line("byte[] ", var, " = ", comp.getType().getPersistCode(varName(comp)), ";");
@@ -219,6 +236,11 @@ class RowOrDynamicColumnRenderer extends Renderer {
             }
             line("return new Prefix(EncodingUtils.add(", Joiner.on(", ").join(vars), "));");
         } line("}");
+    }
+
+    private void renderComputeFirstComponentHash() {
+        NameComponentDescription firstRowPart = getRowPartsWithoutHash().get(0);
+        line("long ", NameMetadataDescription.HASH_ROW_COMPONENT_NAME, " = Hashing.murmur3_128().hashBytes(ValueType.", firstRowPart.getType().name(), ".convertFromJava(", varName(firstRowPart), ")).asLong();");
     }
 
     private void renderToString() {
@@ -270,7 +292,8 @@ class RowOrDynamicColumnRenderer extends Renderer {
 
     private void renderCompareTo() {
         line("@Override");
-        line("public int compareTo(", Name, " o) {"); {
+        line("public int compareTo(", Name, " o) {");
+        {
             line("return ComparisonChain.start()");
             for (NameComponentDescription comp : desc.getRowParts()) {
                 String comparator = TypeName(comp).equals("byte[]") ? ", UnsignedBytes.lexicographicalComparator()" : "";
@@ -281,12 +304,12 @@ class RowOrDynamicColumnRenderer extends Renderer {
     }
 
     private void renderParameterList() {
-        renderParameterList(desc.getRowParts().size());
+        renderParameterList(desc.getRowParts());
     }
 
-    private void renderParameterList(int i) {
+    private void renderParameterList(List<NameComponentDescription> components) {
         lineEnd("(");
-        for (NameComponentDescription comp : desc.getRowParts().subList(0, i)) {
+        for (NameComponentDescription comp : components.subList(0, components.size())) {
             lineEnd(typeName(comp), " ", varName(comp), ", ");
         }
         replace(", ", ")");
@@ -302,5 +325,13 @@ class RowOrDynamicColumnRenderer extends Renderer {
             lineEnd(varName(comp), ", ");
         }
         replace(", ", ")");
+    }
+
+    private List<NameComponentDescription> getRowPartsWithoutHash() {
+        if (!desc.hasFirstComponentHash()) {
+            return desc.getRowParts();
+        } else {
+            return desc.getRowParts().subList(1, desc.getRowParts().size());
+        }
     }
 }

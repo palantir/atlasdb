@@ -30,6 +30,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.palantir.atlasdb.cassandra.CassandraJmxCompactionConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 
 /**
@@ -52,11 +53,12 @@ public final class CassandraJMXCompactionManager {
         Preconditions.checkNotNull(config);
         CassandraJMXCompactionManager compactionManager = new CassandraJMXCompactionManager();
         // if JMX is not enabled, return the empty compactionManager
-        if (!config.jmx()) {
+        if (!config.jmx().isPresent()) {
             return compactionManager;
         }
         // need to set the property before creating the JMX compaction client
-        setProperty(config);
+        setProperty(config.jmx().get());
+
         compactionManager.initCompactionClients(config);
         return compactionManager;
     }
@@ -66,10 +68,10 @@ public final class CassandraJMXCompactionManager {
 
         Set<String> hosts = config.servers();
         Preconditions.checkState(!hosts.isEmpty(), "address list should not be empty");
-        String jmxUsername = config.jmxUsername();
-        String jmxPassword = config.jmxPassword();
-        int jmxPort = config.jmxPort();
-        boolean isJmxSslEnabled = config.jmxSsl();
+        String jmxUsername = config.jmx().get().username();
+        String jmxPassword = config.jmx().get().password();
+        int jmxPort = config.jmx().get().port();
+        boolean isJmxSslEnabled = config.jmx().get().ssl();
 
         for (String host : hosts) {
             CassandraJMXCompaction client = null;
@@ -96,7 +98,7 @@ public final class CassandraJMXCompactionManager {
      *
      * @param config
      */
-    private static void setProperty(CassandraKeyValueServiceConfig config) {
+    private static void setProperty(CassandraJmxCompactionConfig config) {
         long jmxRmiTimeoutMillis = config.jmxRmiTimeoutMillis();
         // NOTE: RMI timeout to avoid hanging tcp connection
         System.setProperty("sun.rmi.transport.tcp.responseTimeout", String.valueOf(jmxRmiTimeoutMillis));

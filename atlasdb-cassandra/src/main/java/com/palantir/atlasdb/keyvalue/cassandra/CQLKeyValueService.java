@@ -95,6 +95,7 @@ import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -144,7 +145,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                 }
             });
 
-    private final CassandraKeyValueServiceConfig config;
+    private final CassandraKeyValueServiceConfigManager configManager;
     private final CassandraClientPoolingManager cassandraClientPoolingManager;
     private final CassandraJMXCompactionManager compactionManager;
     private final ManyClientPoolingContainer containerPoolToUpdate;
@@ -167,9 +168,10 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         LIGHTWEIGHT_TRANSACTION_REQUIRED
     }
 
-    public static CQLKeyValueService create(CassandraKeyValueServiceConfig config) {
+    public static CQLKeyValueService create(CassandraKeyValueServiceConfigManager configManager) {
+        final CassandraKeyValueServiceConfig config = configManager.getConfig();
         Preconditions.checkArgument(!config.servers().isEmpty(), "servers set was empty");
-        final CQLKeyValueService ret = new CQLKeyValueService(config);
+        final CQLKeyValueService ret = new CQLKeyValueService(configManager);
         try {
             ret.initializeFromFreshInstance(ImmutableList.copyOf(config.servers()), config.replicationFactor());
             ret.getPoolingManager().submitHostRefreshTask();
@@ -179,15 +181,15 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         return ret;
     }
 
-    private CQLKeyValueService(CassandraKeyValueServiceConfig config) {
-        super(PTExecutors.newFixedThreadPool(config.poolSize() * 2, new NamedThreadFactory(
+    private CQLKeyValueService(CassandraKeyValueServiceConfigManager configManager) {
+        super(PTExecutors.newFixedThreadPool(configManager.getConfig().poolSize() * 2, new NamedThreadFactory(
                 "CQLKeyValueService",
                 false)));
-        this.config = config;
-        this.containerPoolToUpdate = ManyClientPoolingContainer.create(config);
+        this.configManager = configManager;
+        this.containerPoolToUpdate = ManyClientPoolingContainer.create(configManager.getConfig());
         this.clientPool = new RetriablePoolingContainer(this.containerPoolToUpdate);
-        this.cassandraClientPoolingManager = new CassandraClientPoolingManager(containerPoolToUpdate, clientPool, config);
-        this.compactionManager = CassandraJMXCompactionManager.newInstance(config);
+        this.cassandraClientPoolingManager = new CassandraClientPoolingManager(containerPoolToUpdate, clientPool, configManager);
+        this.compactionManager = CassandraJMXCompactionManager.newInstance(configManager.getConfig());
     }
 
     private CassandraClientPoolingManager getPoolingManager() {
@@ -204,6 +206,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
             }
         }
 
+        final CassandraKeyValueServiceConfig config = configManager.getConfig();
         String keyspace = config.keyspace();
         int poolSize = config.poolSize();
         int poolTimeoutMillis = config.cqlPoolTimeoutMillis();
@@ -299,6 +302,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         clientPool.shutdownPooling();
         hostRefreshExecutor.shutdown();
         traceRetrievalExec.shutdown();
+        configManager.shutdown();
         if (compactionManager != null) {
             compactionManager.close();
         }
@@ -309,6 +313,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         Map<String, Throwable> errorsByHost = Maps.newHashMap();
         initializeConnectionPoolWithNewAPI(ImmutableSet.copyOf(hosts));
 
+        final CassandraKeyValueServiceConfig config = configManager.getConfig();
         int port = config.port();
         String keyspace = config.keyspace();
         boolean ssl = config.ssl();
@@ -399,6 +404,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     }
 
     private void lowerConsistencyWhenSafe(Client client, KsDef ks, int desiredRf) {
+        final CassandraKeyValueServiceConfig config = configManager.getConfig();
         Set<String> dcs;
         try {
             dcs = CassandraVerifier.sanityCheckDatacenters(client, desiredRf, config.safetyDisabled());
@@ -455,6 +461,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     private Map<Cell, Value> getRowsAllColsInternal(final String tableName,
                                              final Iterable<byte[]> rows,
                                              final long startTs) throws Exception {
+        final CassandraKeyValueServiceConfig config = configManager.getConfig();
         int rowCount = 0;
         int fetchBatchCount = config.fetchBatchCount();
         String getRowsQuery = "SELECT * FROM " + getFullTableName(tableName) + " WHERE " + ROW_NAME
@@ -529,6 +536,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                             final long startTs,
                             final Visitor<Map<Cell, Value>> v,
                             final ConsistencyLevel consistency) throws Exception {
+        final CassandraKeyValueServiceConfig config = configManager.getConfig();
         int fetchBatchCount = config.fetchBatchCount();
         Iterable<List<Cell>> partitions = Iterables.partition(cells, fetchBatchCount);
         int numPartitions = (cells.size() / fetchBatchCount)
@@ -632,6 +640,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
 
     private Map<Cell, Long> getLatestTimestampsInternal(final String tableName,
             Map<Cell, Long> timestampByCell) throws Exception {
+        final CassandraKeyValueServiceConfig config = configManager.getConfig();
         int fetchBatchCount = config.fetchBatchCount();
         Iterable<List<Cell>> partitions = Iterables.partition(
                 timestampByCell.keySet(),
@@ -715,7 +724,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
 
     @Override
     protected int getMultiPutBatchCount() {
-        return config.mutationBatchCount();
+        return configManager.getConfig().mutationBatchCount();
     }
 
     @Override
@@ -763,6 +772,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
 
     private void putInternal(final String tableName, final Iterable<Map.Entry<Cell, Value>> values, TransactionType transactionType)
             throws Exception {
+        final CassandraKeyValueServiceConfig config = configManager.getConfig();
         List<ResultSetFuture> resultSetFutures = Lists.newArrayList();
         int mutationBatchCount = config.mutationBatchCount();
         int mutationBatchSizeBytes = config.mutationBatchSizeBytes();
@@ -865,6 +875,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
 
     @Override
     public void delete(final String tableName, final Multimap<Cell, Long> keys) {
+        final CassandraKeyValueServiceConfig config = configManager.getConfig();
         int cellCount = 0;
         int fetchBatchCount = config.fetchBatchCount();
         final String deleteQuery = "DELETE FROM " + getFullTableName(tableName) + " WHERE "
@@ -911,6 +922,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(String tableName,
                                                                                                            Iterable<RangeRequest> rangeRequests,
                                                                                                            long timestamp) {
+        final CassandraKeyValueServiceConfig config = configManager.getConfig();
         int concurrency = config.rangesConcurrency();
         return KeyValueServices.getFirstBatchForRangesUsingGetRangeConcurrent(
                 executor,
@@ -1148,6 +1160,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     private Set<String> getAllTableNamesInternal() {
         BoundStatement boundStatement = statementCache.getUnchecked(
                 "SELECT columnfamily_name FROM system.schema_columnfamilies WHERE keyspace_name = ?").bind();
+        final CassandraKeyValueServiceConfig config = configManager.getConfig();
         boundStatement.setString("keyspace_name", config.keyspace());
         List<Row> rows = session.executeAsync(boundStatement).getUninterruptibly().all();
         Set<String> tableNames = Sets.newHashSetWithExpectedSize(rows.size());
@@ -1268,7 +1281,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     }
 
     private String getFullTableName(String tableName) {
-        return config.keyspace() + ".\"" + tableName + "\"";
+        return configManager.getConfig().keyspace() + ".\"" + tableName + "\"";
     }
 
     private byte[] getRowName(Row row) {
@@ -1375,7 +1388,8 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     @Override
     public void compactInternally(String tableName) {
         Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName), "tableName:[%s] should not be null or empty", tableName);
-        long compactionTimeoutSeconds = config.jmxCompactionTimeoutSeconds();
+        final CassandraKeyValueServiceConfig config = configManager.getConfig();
+        long compactionTimeoutSeconds = config.compactionTimeoutSeconds();
         try {
             alterGcGraceSeconds(tableName, 0);
             alterTombstoneThreshold(tableName, 0.0f);

@@ -29,7 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
@@ -41,17 +41,17 @@ public class CassandraClientPoolingManager {
 
     private final ManyClientPoolingContainer containerPoolToUpdate;
     private final PoolingContainer<Client> clientPool;
-    private final CassandraKeyValueServiceConfig config;
+    private final CassandraKeyValueServiceConfigManager configManager;
     private final ScheduledExecutorService hostModificationExecutor = PTExecutors.newScheduledThreadPool(
             1,
             new ThreadFactoryBuilder().setDaemon(true).setNameFormat("HostModificationThreadPool-%d").build());
 
     public CassandraClientPoolingManager(ManyClientPoolingContainer containerPoolToUpdate,
                                          PoolingContainer<Client> clientPool,
-                                         CassandraKeyValueServiceConfig config) {
+                                         CassandraKeyValueServiceConfigManager configManager) {
         this.containerPoolToUpdate = containerPoolToUpdate;
         this.clientPool = clientPool;
-        this.config = config;
+        this.configManager = configManager;
     }
 
     /**
@@ -84,7 +84,7 @@ public class CassandraClientPoolingManager {
     }
 
     public void setHostsToCurrentHostNames(Set<String> hosts) {
-        containerPoolToUpdate.setNewHosts(ImmutableCassandraKeyValueServiceConfig.copyOf(config).withServers(hosts));
+        containerPoolToUpdate.setNewHosts(ImmutableCassandraKeyValueServiceConfig.copyOf(configManager.getConfig()).withServers(hosts));
     }
 
     public Set<String> getCurrentHostsFromServer(Client c) throws TException {
@@ -104,7 +104,7 @@ public class CassandraClientPoolingManager {
     }
 
     public boolean hostsAutoRefresh() {
-        return config.autoRefreshNodes();
+        return configManager.getConfig().autoRefreshNodes();
     }
 
 }

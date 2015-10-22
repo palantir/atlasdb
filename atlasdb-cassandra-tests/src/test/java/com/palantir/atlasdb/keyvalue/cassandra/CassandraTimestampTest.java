@@ -19,7 +19,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
@@ -31,20 +31,21 @@ public class CassandraTimestampTest {
 
     @Before
     public void setUp() {
-        kv = CassandraKeyValueService.create(ImmutableCassandraKeyValueServiceConfig.builder()
-                .from(CassandraKeyValueServiceConfig.DEFAULT)
-                .addServers("localhost")
-                .port(9160)
-                .poolSize(20)
-                .keyspace("atlasdb")
-                .ssl(false)
-                .replicationFactor(1)
-                .mutationBatchCount(10000)
-                .mutationBatchSizeBytes(10000000)
-                .fetchBatchCount(1000)
-                .safetyDisabled(true)
-                .autoRefreshNodes(false)
-                .build());
+        kv = CassandraKeyValueService.create(
+                CassandraKeyValueServiceConfigManager.createSimpleManager(
+                        ImmutableCassandraKeyValueServiceConfig.builder()
+                                .addServers("localhost")
+                                .port(9160)
+                                .poolSize(20)
+                                .keyspace("atlasdb")
+                                .ssl(false)
+                                .replicationFactor(1)
+                                .mutationBatchCount(10000)
+                                .mutationBatchSizeBytes(10000000)
+                                .fetchBatchCount(1000)
+                                .safetyDisabled(true)
+                                .autoRefreshNodes(false)
+                                .build()));
         kv.initializeFromFreshInstance();
         kv.dropTable(TIMESTAMP_TABLE);
     }

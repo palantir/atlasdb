@@ -36,6 +36,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
+import com.google.common.hash.Hashing;
 import com.google.common.primitives.Bytes;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -59,6 +60,7 @@ import com.palantir.atlasdb.table.api.AtlasDbNamedPersistentSet;
 import com.palantir.atlasdb.table.api.ColumnValue;
 import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
+import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
 import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
@@ -112,6 +114,10 @@ public final class UpgradeMetadataTable implements
         this.namespace = namespace;
     }
 
+    public static String getRawTableName() {
+        return rawTableName;
+    }
+
     public String getTableName() {
         return tableName;
     }
@@ -155,7 +161,7 @@ public final class UpgradeMetadataTable implements
             return new Function<String, UpgradeMetadataRow>() {
                 @Override
                 public UpgradeMetadataRow apply(String row) {
-                    return new UpgradeMetadataRow(row);
+                    return UpgradeMetadataRow.of(row);
                 }
             };
         }
@@ -172,7 +178,7 @@ public final class UpgradeMetadataTable implements
                 int __index = 0;
                 String namespace = PtBytes.toString(__input, __index, __input.length-__index);
                 __index += 0;
-                return of(namespace);
+                return UpgradeMetadataRow.of(namespace);
             }
         };
 
@@ -1059,5 +1065,5 @@ public final class UpgradeMetadataTable implements
         return ImmutableList.of();
     }
 
-    static String __CLASS_HASH = "LpWO30b9kH5IhcrqzJ9auQ==";
+    static String __CLASS_HASH = "h03MSdcbTez7kajqIeeSaA==";
 }
