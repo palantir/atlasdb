@@ -22,12 +22,17 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Map;
+import java.util.Set;
 
 import javax.annotation.CheckForNull;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.Status;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;
@@ -81,6 +86,32 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
     }
 
     @Override
+    public final Map<ID, InputStream> loadStreams(Transaction t, Set<ID> ids) {
+        Map<ID, InputStream> ret = Maps.newHashMap();
+        Map<ID, StreamMetadata> idsToMetadata = getMetadata(t, ids);
+        for (Map.Entry<ID, StreamMetadata> entry : idsToMetadata.entrySet()) {
+            ID id = entry.getKey();
+            try {
+                StreamMetadata metadata = checkStreamStored(id, entry.getValue());
+                if (metadata.getLength() == 0) {
+                    ret.put(id, new ByteArrayInputStream(new byte[0]));
+                } else if (metadata.getLength() <= Math.min(getInMemoryThreshold(), BLOCK_SIZE_IN_BYTES)) {
+                    ByteArrayIOStream ios = new ByteArrayIOStream(Ints.saturatedCast(metadata.getLength()));
+                    loadSingleBlockToOutputStream(t, id, 0, ios);
+                    ret.put(id, ios.getInputStream());
+                } else {
+                    File file = loadToNewTempFile(t, id, metadata);
+                    ret.put(id, new DeleteOnCloseFileInputStream(file));
+                }
+            } catch (FileNotFoundException e) {
+                log.error("Error opening temp file for stream " + id, e);
+                throw Throwables.rewrapAndThrowUncheckedException("Could not open temp file to create stream.", e);
+            }
+        }
+        return ret;
+    }
+
+    @Override
     public final File loadStreamAsFile(Transaction t, ID id) {
         StreamMetadata metadata = checkStreamStored(id, getMetadata(t, id));
         return loadToNewTempFile(t, id, metadata);
@@ -128,9 +159,13 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
         fos.close();
     }
 
+    private StreamMetadata getMetadata(Transaction t, ID id) {
+        return Iterables.getOnlyElement(getMetadata(t, Sets.newHashSet(id)).entrySet()).getValue();
+    }
+
     protected abstract File createTempFile(ID id) throws IOException;
 
     protected abstract void loadSingleBlockToOutputStream(Transaction t, ID streamId, long blockId, OutputStream os);
 
-    protected abstract StreamMetadata getMetadata(Transaction t, ID streamId);
+    protected abstract Map<ID, StreamMetadata> getMetadata(Transaction t, Set<ID> streamIds);
 }

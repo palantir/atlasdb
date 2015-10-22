@@ -20,9 +20,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.CountingInputStream;
 import com.google.protobuf.ByteString;
@@ -56,7 +58,7 @@ public abstract class AbstractExpiringStreamStore<ID> extends AbstractGenericStr
         txnMgr.runTaskThrowOnConflict(new TxTask() {
             @Override
             public Void execute(Transaction t) {
-                putMetadataAndHashIndexTask(t, streamId, metadata, duration, unit);
+                putMetadataAndHashIndexTask(t, ImmutableMap.of(streamId, metadata), duration, unit);
                 return null;
             }
         });
@@ -67,7 +69,7 @@ public abstract class AbstractExpiringStreamStore<ID> extends AbstractGenericStr
         return txnMgr.runTaskThrowOnConflict(new TransactionTask<Long, RuntimeException>() {
             @Override
             public Long execute(Transaction t) {
-                putMetadataAndHashIndexTask(t, streamId, getEmptyMetadata(), duration, unit);
+                putMetadataAndHashIndexTask(t, ImmutableMap.of(streamId, getEmptyMetadata()), duration, unit);
                 return t.getTimestamp();
             }
         });
@@ -119,20 +121,37 @@ public abstract class AbstractExpiringStreamStore<ID> extends AbstractGenericStr
             if (length == 0) {
                 break;
             }
+            Preconditions.checkNotNull(txnMgr);
             if (length < BLOCK_SIZE_IN_BYTES) {
                 // This is the last block.
-                storeBlock(id, blockNumber, PtBytes.head(bytesToStore, length), duration, durationUnit);
+                storeBlockWithTransaction(id, blockNumber, PtBytes.head(bytesToStore, length), duration, durationUnit);
                 break;
             } else {
                 // Store a full block.
-                storeBlock(id, blockNumber, bytesToStore, duration, durationUnit);
+                storeBlockWithTransaction(id, blockNumber, bytesToStore, duration, durationUnit);
             }
             blockNumber++;
         }
     }
 
-    protected abstract void storeBlock(ID id, long blockNumber, byte[] block, long duration, TimeUnit durationUnit);
+    protected void storeBlockWithTransaction(final ID id,
+                                             final long blockNumber,
+                                             final byte[] bytesToStore,
+                                             final long duration,
+                                             final TimeUnit durationUnit) {
+        Preconditions.checkNotNull(txnMgr);
+        txnMgr.runTaskThrowOnConflict(
+                new TransactionTask<Void, RuntimeException>() {
+                    @Override
+                    public Void execute(Transaction t) throws RuntimeException {
+                        storeBlock(t, id, blockNumber, bytesToStore, duration, durationUnit);
+                        return null;
+                    }
+                });
+    }
 
-    protected abstract void putMetadataAndHashIndexTask(Transaction t, ID streamId, StreamMetadata metadata, long duration, TimeUnit unit);
+    protected abstract void storeBlock(Transaction t, ID id, long blockNumber, byte[] block, long duration, TimeUnit durationUnit);
+
+    protected abstract void putMetadataAndHashIndexTask(Transaction t, Map<ID, StreamMetadata> streamIdsToMetadata, long duration, TimeUnit unit);
 
 }

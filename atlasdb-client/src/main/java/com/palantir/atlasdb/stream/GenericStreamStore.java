@@ -17,8 +17,8 @@ package com.palantir.atlasdb.stream;
 
 import java.io.File;
 import java.io.InputStream;
-
-import javax.annotation.CheckForNull;
+import java.util.Map;
+import java.util.Set;
 
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.util.crypto.Sha256Hash;
@@ -29,8 +29,9 @@ import com.palantir.util.crypto.Sha256Hash;
 public interface GenericStreamStore<ID> {
     static int BLOCK_SIZE_IN_BYTES = 1000000; // 1MB. DO NOT CHANGE THIS WITHOUT AN UPGRADE TASK
 
-    @CheckForNull ID lookupStreamIdByHash(Transaction t, Sha256Hash hash);
+    Map<Sha256Hash, ID> lookupStreamIdsByHash(Transaction t, final Set<Sha256Hash> hashes);
 
     InputStream loadStream(Transaction t, ID id);
+    Map<ID, InputStream> loadStreams(Transaction t, Set<ID> ids);
     File loadStreamAsFile(Transaction t, ID id);
 }

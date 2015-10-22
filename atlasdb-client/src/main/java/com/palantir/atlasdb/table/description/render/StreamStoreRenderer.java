@@ -162,16 +162,20 @@ public class StreamStoreRenderer {
                     line();
                     getMetadata();
                     line();
-                    lookupStreamIdByHash();
+                    lookupStreamIdsByHash();
+                    line();
+                    getHashIndexRowsForHashes();
+                    line();
+                    getMetadataRowsForIds();
                     line();
                     putHashIndexTask();
                     line();
                     deleteStreams();
                     if (!isExpiring()) {
                         line();
-                        markStreamsAsUsed();
+                        markStreamsAsUsedInternal();
                         line();
-                        unmarkStreamAsUsed();
+                        unmarkStreamsAsUsed();
                         line();
                         touchMetadataWhileMarkingUsedForConflicts();
                     }
@@ -214,20 +218,13 @@ public class StreamStoreRenderer {
                 String args = isExpiring() ? ", duration, unit" : "";
                 String streamType = isExpiring() ? StreamId : "long";
                 line("@Override");
-                line("protected void storeBlock(", streamType, " id, long blockNumber, final byte[] block", params, ") {"); {
+                line("protected void storeBlock(Transaction t, ", streamType, " id, long blockNumber, final byte[] block", params, ") {"); {
                     line("Preconditions.checkArgument(block.length <= BLOCK_SIZE_IN_BYTES, \"Block to store in DB must be less than BLOCK_SIZE_IN_BYTES\");");
-                    line("Preconditions.checkNotNull(txnMgr);");
                     line("final ", StreamValueRow, " row = ", StreamValueRow, ".of(id, blockNumber);");
                     line("try {"); {
-                        line("txnMgr.runTaskThrowOnConflict(new TransactionTask<Void, RuntimeException>() {"); {
-                            line("@Override");
-                            line("public Void execute(Transaction t) {"); {
-                                line("// Do a touch operation on this table to ensure we get a conflict if someone cleans it up.");
-                                line("touchMetadataWhileStoringForConflicts(t, row.getId(), row.getBlockId()", args, ");");
-                                line("tables.get", StreamValueTable, "(t).putValue(row, block", args, ");");
-                                line("return null;");
-                            } line("}");
-                        } line("});");
+                        line("// Do a touch operation on this table to ensure we get a conflict if someone cleans it up.");
+                        line("touchMetadataWhileStoringForConflicts(t, row.getId(), row.getBlockId()", args, ");");
+                        line("tables.get", StreamValueTable, "(t).putValue(row, block", args, ");");
                     } line("} catch (RuntimeException e) {"); {
                         line("log.error(\"Error storing block \" + row.getBlockId() + \" for stream id \" + row.getId(), e);");
                         line("throw e;");
@@ -254,25 +251,36 @@ public class StreamStoreRenderer {
                 String params = isExpiring() ? ", long duration, TimeUnit unit" : "";
                 String args = isExpiring() ? ", duration, unit" : "";
                 line("@Override");
-                line("protected void putMetadataAndHashIndexTask(Transaction t, ", streamType, " streamId, StreamMetadata metadata", params, ") {"); {
-                    line(StreamMetadataRow, " row = ", StreamMetadataRow, ".of(streamId);");
+                line("protected void putMetadataAndHashIndexTask(Transaction t, Map<", StreamId, ", StreamMetadata> streamIdsToMetadata", params, ") {"); {
                     line(StreamMetadataTable, " mdTable = tables.get", StreamMetadataTable, "(t);");
-                    line("if (metadata.getStatus() == Status.STORED) {"); {
-                        line("StreamMetadata prevMetadata = getMetadata(t, streamId);");
-                        line("if (prevMetadata == null || prevMetadata.getStatus() != Status.STORING) {"); {
-                            line("// This can happen if we cleanup old streams.");
-                            line("throw new TransactionFailedRetriableException(\"Cannot mark a stream as stored that isn't currently storing: \" + prevMetadata);");
-                        } line("}");
-                        line("putHashIndexTask(t, row, metadata", args, ");");
-                    } line("} else if (metadata.getStatus() == Status.STORING) {"); {
-                        line("StreamMetadata prevMetadata = getMetadata(t, streamId);");
-                        line("// This will prevent two users trying to store the same id.");
-                        line("if (prevMetadata != null) {"); {
-                            line("throw new TransactionFailedRetriableException(\"Cannot reuse the same stream id: \" + streamId);");
+                    line("Map<", StreamId, ", StreamMetadata> prevMetadatas = getMetadata(t, streamIdsToMetadata.keySet());");
+                    line();
+                    line("Map<", StreamMetadataRow, ", StreamMetadata> rowsToStoredMetadata = Maps.newHashMap();");
+                    line("Map<", StreamMetadataRow, ", StreamMetadata> rowsToUnstoredMetadata = Maps.newHashMap();");
+                    line("for (Entry<", StreamId, ", StreamMetadata> e : streamIdsToMetadata.entrySet()) {"); {
+                        line(streamType, " streamId = e.getKey();");
+                        line("StreamMetadata metadata = e.getValue();");
+                        line("StreamMetadata prevMetadata = prevMetadatas.get(streamId);");
+                        line("if (metadata.getStatus() == Status.STORED) {"); {
+                            line("if (prevMetadata == null || prevMetadata.getStatus() != Status.STORING) {"); {
+                                line("// This can happen if we cleanup old streams.");
+                                line("throw new TransactionFailedRetriableException(\"Cannot mark a stream as stored that isn't currently storing: \" + prevMetadata);");
+                            } line("}");
+                            line("rowsToStoredMetadata.put(", StreamMetadataRow, ".of(streamId), metadata);");
+                        } line("} else if (metadata.getStatus() == Status.STORING) {"); {
+                            line("// This will prevent two users trying to store the same id.");
+                            line("if (prevMetadata != null) {"); {
+                                line("throw new TransactionFailedRetriableException(\"Cannot reuse the same stream id: \" + streamId);");
+                            } line("}");
+                            line("rowsToUnstoredMetadata.put(", StreamMetadataRow, ".of(streamId), metadata);");
                         } line("}");
                     } line("}");
+                    line("putHashIndexTask(t, rowsToStoredMetadata", args, ");");
                     line();
-                    line("mdTable.putMetadata(row, metadata", args, ");");
+                    line("Map<", StreamMetadataRow, ", StreamMetadata> rowsToMetadata = Maps.newHashMap();");
+                    line("rowsToMetadata.putAll(rowsToStoredMetadata);");
+                    line("rowsToMetadata.putAll(rowsToUnstoredMetadata);");
+                    line("mdTable.putMetadata(rowsToMetadata", args, ");");
                 } line("}");
             }
 
@@ -323,49 +331,99 @@ public class StreamStoreRenderer {
 
             private void getMetadata() {
                 line("@Override");
-                line("protected StreamMetadata getMetadata(Transaction t, ", StreamId, " streamId) {"); {
-                    line(StreamMetadataRow, " row = ", StreamMetadataRow, ".of(streamId);");
+                line("protected Map<", StreamId, ", StreamMetadata> getMetadata(Transaction t, Set<", StreamId, "> streamIds) {"); {
+                    line("if (streamIds.isEmpty()) {"); {
+                        line("return ImmutableMap.of();");
+                    } line("}");
                     line(StreamMetadataTable, " table = tables.get", StreamMetadataTable, "(t);");
-                    line("return table.getMetadatas(ImmutableSet.of(row)).get(row);");
+                    line("Map<", StreamMetadataRow, ", StreamMetadata> metadatas = table.getMetadatas(getMetadataRowsForIds(streamIds));");
+                    line("Map<", StreamId, ", StreamMetadata> ret = Maps.newHashMap();");
+                    line("for (Map.Entry<", StreamMetadataRow, ", StreamMetadata> e : metadatas.entrySet()) {"); {
+                        line("ret.put(e.getKey().getId(), e.getValue());");
+                    } line("}");
+                    line("return ret;");
                 } line("}");
             }
 
-            private void lookupStreamIdByHash() {
-                String streamType = isExpiring() ? StreamId : "long";
+            private void lookupStreamIdsByHash() {
                 line("@Override");
-                line("@CheckForNull");
-                line("public ", StreamId, " lookupStreamIdByHash(Transaction t, Sha256Hash hash) {"); {
+                line("public Map<Sha256Hash, ", StreamId, "> lookupStreamIdsByHash(Transaction t, final Set<Sha256Hash> hashes) {"); {
+                    line("if (hashes.isEmpty()) {"); {
+                        line("return ImmutableMap.of();");
+                    } line("}");
                     line(StreamHashAidxTable, " idx = tables.get", StreamHashAidxTable, "(t);");
-
-                    line("List<", StreamHashAidxColumnValue, "> columns = idx.getRowColumns(", StreamHashAidxRow, ".of(hash));");
-                    line("for (", StreamHashAidxColumnValue, " colVal : columns) {"); {
-                        line(streamType, " streamId = colVal.getColumnName().getStreamId();");
-                        line("StreamMetadata meta = getMetadata(t, streamId);");
-                        line("if (meta.getStatus() == Status.STORED) {"); {
-                            line("return streamId;");
+                    line("Set<", StreamHashAidxRow, "> rows = getHashIndexRowsForHashes(hashes);");
+                    line();
+                    line("Multimap<", StreamHashAidxRow, ", ", StreamHashAidxColumnValue, "> m = idx.getRowsMultimap(rows);");
+                    line("Map<", StreamId, ", Sha256Hash> hashForStreams = Maps.newHashMap();");
+                    line("for (", StreamHashAidxRow, " r : m.keySet()) {"); {
+                        line("for (", StreamHashAidxColumnValue, " v : m.get(r)) {"); {
+                            line(StreamId, " streamId = v.getColumnName().getStreamId();");
+                            line("Sha256Hash hash = r.getHash();");
+                            line("if (hashForStreams.containsKey(streamId)) {"); {
+                                line("AssertUtils.assertAndLog(hashForStreams.get(streamId).equals(hash), \"(BUG) Stream ID has 2 different hashes: \" + streamId);");
+                            } line("}");
+                            line("hashForStreams.put(streamId, hash);");
                         } line("}");
                     } line("}");
-                    line("return null;");
+                    line("Map<", StreamId, ", StreamMetadata> metadata = getMetadata(t, hashForStreams.keySet());");
+                    line();
+                    line("Map<Sha256Hash, ", StreamId, "> ret = Maps.newHashMap();");
+                    line("for (Map.Entry<", StreamId, ", StreamMetadata> e : metadata.entrySet()) {"); {
+                        line("if (e.getValue().getStatus() != Status.STORED) {"); {
+                            line("continue;");
+                        } line("}");
+                        line("Sha256Hash hash = hashForStreams.get(e.getKey());");
+                        line("ret.put(hash, e.getKey());");
+                    } line("}");
+                    line();
+                    line("return ret;");
+                } line("}");
+            }
+
+            private void getHashIndexRowsForHashes() {
+                line("private Set<", StreamHashAidxRow, "> getHashIndexRowsForHashes(final Set<Sha256Hash> hashes) {"); {
+                    line("Set<", StreamHashAidxRow, "> rows = Sets.newHashSet();");
+                    line("for (Sha256Hash h : hashes) {"); {
+                        line("rows.add(", StreamHashAidxRow, ".of(h));");
+                    } line("}");
+                    line("return rows;");
+                } line("}");
+            }
+
+            private void getMetadataRowsForIds() {
+                line("private Set<", StreamMetadataRow, "> getMetadataRowsForIds(final Iterable<", StreamId, "> ids) {"); {
+                    line("Set<", StreamMetadataRow, "> rows = Sets.newHashSet();");
+                    line("for (", StreamId, " id : ids) {"); {
+                        line("rows.add(", StreamMetadataRow, ".of(id));");
+                    } line("}");
+                    line("return rows;");
                 } line("}");
             }
 
             private void putHashIndexTask() {
                 String params = isExpiring() ? ", long duration, TimeUnit unit" : "";
-                String args = isExpiring() ? "duration, unit, " : "";
-                line("private void putHashIndexTask(Transaction t, ", StreamMetadataRow, " row, StreamMetadata metadata", params, ") {"); {
-                    line("Preconditions.checkArgument(");
-                    line("        metadata.getStatus() == Status.STORED,");
-                    line("        \"Should only index successfully stored streams.\");");
-                    line();
-                    line("Sha256Hash hash = Sha256Hash.EMPTY;");
-                    line("if (metadata.getHash() != com.google.protobuf.ByteString.EMPTY) {"); {
-                        line("hash = new Sha256Hash(metadata.getHash().toByteArray());");
+                String args = isExpiring() ? ", duration, unit" : "";
+                line("private void putHashIndexTask(Transaction t, Map<", StreamMetadataRow, ", StreamMetadata> rowsToMetadata", params, ") {"); {
+                    line("Multimap<", StreamHashAidxRow, ", ", StreamHashAidxColumnValue, "> indexMap = HashMultimap.create();");
+                    line("for (Entry<", StreamMetadataRow, ", StreamMetadata> e : rowsToMetadata.entrySet()) {"); {
+                        line(StreamMetadataRow, " row = e.getKey();");
+                        line("StreamMetadata metadata = e.getValue();");
+                        line("Preconditions.checkArgument(");
+                        line("        metadata.getStatus() == Status.STORED,");
+                        line("        \"Should only index successfully stored streams.\");");
+                        line();
+                        line("Sha256Hash hash = Sha256Hash.EMPTY;");
+                        line("if (metadata.getHash() != com.google.protobuf.ByteString.EMPTY) {"); {
+                            line("hash = new Sha256Hash(metadata.getHash().toByteArray());");
+                        } line("}");
+                        line(StreamHashAidxRow, " hashRow = ", StreamHashAidxRow, ".of(hash);");
+                        line(StreamHashAidxColumn, " column = ", StreamHashAidxColumn, ".of(row.getId());");
+                        line(StreamHashAidxColumnValue, " columnValue = ", StreamHashAidxColumnValue, ".of(column, 0L);");
+                        line("indexMap.put(hashRow, columnValue);");
                     } line("}");
-                    line(StreamHashAidxRow, " hashRow = ", StreamHashAidxRow, ".of(hash);");
-                    line(StreamHashAidxColumn, " column = ", StreamHashAidxColumn, ".of(row.getId());");
-                    line(StreamHashAidxColumnValue, " columnValue = ", StreamHashAidxColumnValue, ".of(column, 0L);");
                     line(StreamHashAidxTable, " hiTable = tables.get", StreamHashAidxTable, "(t);");
-                    line("hiTable.put(", args, "hashRow, columnValue);");
+                    line("hiTable.put(indexMap", args, ");");
                 } line("}");
             }
 
@@ -414,42 +472,61 @@ public class StreamStoreRenderer {
 
             private void touchMetadataWhileMarkingUsedForConflicts() {
                 line("@Override");
-                line("protected void touchMetadataWhileMarkingUsedForConflicts(Transaction t, long streamId) {"); {
+                line("protected void touchMetadataWhileMarkingUsedForConflicts(Transaction t, Iterable<", StreamId, "> ids) {"); {
                     line(StreamMetadataTable, " metaTable = tables.get", StreamMetadataTable, "(t);");
                     line("Set<", StreamMetadataRow, "> rows = Sets.newHashSet();");
-                    line("rows.add(", StreamMetadataRow, ".of(streamId));");
+                    line("for (", StreamId, " id : ids) {"); {
+                        line("rows.add(", StreamMetadataRow, ".of(id));");
+                    } line("}");
                     line("Map<", StreamMetadataRow, ", StreamMetadata> metadatas = metaTable.getMetadatas(rows);");
                     line("for (Map.Entry<", StreamMetadataRow, ", StreamMetadata> e : metadatas.entrySet()) {"); {
                         line("StreamMetadata metadata = e.getValue();");
                         line("Preconditions.checkState(metadata.getStatus() == Status.STORED,");
-                        line("        \"Stream: \" + e.getKey().getId() + \" has status: \" + metadata.getStatus());");
+                        line("\"Stream: \" + e.getKey().getId() + \" has status: \" + metadata.getStatus());");
                         line("metaTable.putMetadata(e.getKey(), metadata);");
                     } line("}");
                     line("SetView<", StreamMetadataRow, "> missingRows = Sets.difference(rows, metadatas.keySet());");
                     line("if (!missingRows.isEmpty()) {"); {
-                        line("throw new StreamCleanedException(\"Missing metadata rows for:\" + missingRows");
-                        line("        + \" rows: \" + rows + \" metadata: \" + metadatas + \" txn timestamp: \" + t.getTimestamp());");
+                        line("throw new IllegalStateException(\"Missing metadata rows for:\" + missingRows");
+                        line("+ \" rows: \" + rows + \" metadata: \" + metadatas + \" txn timestamp: \" + t.getTimestamp());");
                     } line("}");
                 } line("}");
             }
 
-            private void markStreamsAsUsed() {
+            private void markStreamsAsUsedInternal() {
                 line("@Override");
-                line("protected void markStreamAsUsedInternal(Transaction t, long streamId, byte[] reference) {"); {
+                line("protected void markStreamsAsUsedInternal(Transaction t, final Map<", StreamId, ", byte[]> streamIdsToReference) {"); {
+                    line("if (streamIdsToReference.isEmpty()) {"); {
+                        line("return;");
+                    } line("}");
                     line(StreamIdxTable, " index = tables.get", StreamIdxTable, "(t);");
-                    line(StreamIdxColumn, " col = ", StreamIdxColumn, ".of(reference);");
-                    line(StreamIdxColumnValue, " value = ", StreamIdxColumnValue, ".of(col, 0L);");
-                    line("index.put(", StreamIdxRow, ".of(streamId), value);");
+                    line("Multimap<", StreamIdxRow, ", ", StreamIdxColumnValue, "> rowsToValues = HashMultimap.create();");
+                    line("for (Map.Entry<", StreamId, ", byte[]> entry : streamIdsToReference.entrySet()) {"); {
+                        line(StreamId, " streamId = entry.getKey();");
+                        line("byte[] reference = entry.getValue();");
+                        line(StreamIdxColumn, " col = ", StreamIdxColumn, ".of(reference);");
+                        line(StreamIdxColumnValue, " value = ", StreamIdxColumnValue, ".of(col, 0L);");
+                        line("rowsToValues.put(", StreamIdxRow, ".of(streamId), value);");
+                    } line("}");
+                    line("index.put(rowsToValues);");
                 } line("}");
             }
 
-            private void unmarkStreamAsUsed() {
+            private void unmarkStreamsAsUsed() {
                 line("@Override");
-                line("public void unmarkStreamAsUsed(Transaction t, long streamId, byte[] reference) {"); {
+                line("public void unmarkStreamsAsUsed(Transaction t, final Map<", StreamId, ", byte[]> streamIdsToReference) {"); {
+                    line("if (streamIdsToReference.isEmpty()) {"); {
+                        line("return;");
+                    } line("}");
                     line(StreamIdxTable, " index = tables.get", StreamIdxTable, "(t);");
-                    line(StreamIdxRow, " row = ", StreamIdxRow, ".of(streamId);");
-                    line(StreamIdxColumn, " col = ", StreamIdxColumn, ".of(reference);");
-                    line("index.delete(row, col);");
+                    line("Multimap<", StreamIdxRow, ", ", StreamIdxColumn, "> toDelete = ArrayListMultimap.create(streamIdsToReference.size(), 1);");
+                    line("for (Map.Entry<", StreamId, ", byte[]> entry : streamIdsToReference.entrySet()) {"); {
+                        line(StreamId, " streamId = entry.getKey();");
+                        line("byte[] reference = entry.getValue();");
+                        line(StreamIdxColumn, " col = ", StreamIdxColumn, ".of(reference);");
+                        line("toDelete.put(", StreamIdxRow, ".of(streamId), col);");
+                    } line("}");
+                    line("index.delete(toDelete);");
                 } line("}");
             }
         }.render();
