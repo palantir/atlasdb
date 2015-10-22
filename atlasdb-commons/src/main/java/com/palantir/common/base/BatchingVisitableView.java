@@ -86,6 +86,10 @@ public abstract class BatchingVisitableView<T> extends ForwardingObject implemen
         return BatchingVisitables.unique(delegate());
     }
 
+    public BatchingVisitableView<T> uniqueOn(Function<T, ?> function) {
+        return BatchingVisitables.uniqueOn(delegate(), function);
+    }
+
     public BatchingVisitableView<T> hintBatchSize(int batchSizeHint) {
         return BatchingVisitables.hintPageSize(delegate(), batchSizeHint);
     }
