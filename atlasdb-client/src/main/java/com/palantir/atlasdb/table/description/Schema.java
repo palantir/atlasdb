@@ -139,7 +139,7 @@ public class Schema {
 
     public void addStreamStoreDefinition(final String longName, String shortName, ValueType streamIdType, int inMemoryThreshold, ExpirationStrategy expirationStrategy, boolean hashFirstRowComponent) {
         if (expirationStrategy == ExpirationStrategy.NEVER) {
-            Preconditions.checkArgument(streamIdType == ValueType.VAR_LONG, "ValueType must be VAR_LONG for persistent streams.");
+            Preconditions.checkArgument(streamIdType.getJavaClassName().equals("long"), "Stream ids must be a long for persistent streams.");
         }
         final StreamStoreRenderer renderer = new StreamStoreRenderer(Renderers.CamelCase(longName), streamIdType, packageName, name, inMemoryThreshold, expirationStrategy);
         addTableDefinition(shortName + "_stream_metadata", StreamTables.getStreamMetadataDefinition(longName, streamIdType, expirationStrategy, hashFirstRowComponent));
