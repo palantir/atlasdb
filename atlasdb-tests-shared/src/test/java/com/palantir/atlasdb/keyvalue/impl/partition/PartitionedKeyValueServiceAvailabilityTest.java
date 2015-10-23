@@ -50,7 +50,13 @@ public class PartitionedKeyValueServiceAvailabilityTest extends AbstractAtlasDbK
     @Ignore
     @Override
     public void testDelete() {
-        super.testDelete();
+        // ignore
+    }
+
+    @Ignore
+    @Override
+    public void testDeleteMultipleVersions() {
+        // ignore
     }
 
 }
