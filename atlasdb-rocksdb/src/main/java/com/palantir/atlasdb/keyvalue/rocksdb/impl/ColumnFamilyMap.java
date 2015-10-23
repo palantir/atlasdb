@@ -71,7 +71,7 @@ public class ColumnFamilyMap {
                 index = 0;
             } else {
                 tableName = fullTableName.substring(0, nameIndex);
-                index = Long.parseLong(fullTableName.substring(nameIndex + 1));
+                index = Long.parseLong(fullTableName.substring(nameIndex + 2));
             }
             ColumnFamily cf = new ColumnFamily(index, cfHandles.get(i));
             ColumnFamily oldCf = cfs.put(tableName, cf);
