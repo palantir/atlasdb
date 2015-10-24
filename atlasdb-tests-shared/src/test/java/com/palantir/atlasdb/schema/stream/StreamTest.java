@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.schema.stream;
 
 import java.io.ByteArrayInputStream;
+import java.util.NoSuchElementException;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -50,11 +51,9 @@ public class StreamTest extends AtlasDbTestCase {
                 Sha256Hash hash = Sha256Hash.computeHash(data);
                 byte[] reference = "ref".getBytes();
                 long streamId = store.getByHashOrStoreStreamAndMarkAsUsed(t, hash, new ByteArrayInputStream(data), reference);
-//                store.markStreamsAsUsed(ImmutableMap.of(streamId, reference));
-//                store.removeStreamsAsUsed(ImmutableMap.of(1L, reference));
                 try {
                     store.loadStream(t, 1L).read(data, 0, data.length);
-                } catch (IllegalArgumentException e) {
+                } catch (NoSuchElementException e) {
                     // expected
                 }
                 return streamId;

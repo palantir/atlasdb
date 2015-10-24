@@ -76,7 +76,7 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
 
     protected static final long TEST_TIMESTAMP = 1000000l;
 
-    KeyValueService keyValueService;
+    protected KeyValueService keyValueService;
 
     protected boolean reverseRangesSupported() {
         return true;

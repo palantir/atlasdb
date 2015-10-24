@@ -16,6 +16,8 @@
 package com.palantir.atlasdb.stream;
 
 import java.io.InputStream;
+import java.util.Map;
+import java.util.Set;
 
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.util.Pair;
@@ -45,11 +47,13 @@ public interface PersistentStreamStore extends GenericStreamStore<Long> {
     long getByHashOrStoreStreamAndMarkAsUsed(Transaction t, Sha256Hash hash, InputStream stream, byte[] reference);
 
     void markStreamAsUsed(Transaction t, long streamId, byte[] reference) throws StreamCleanedException;
+    void markStreamsAsUsed(Transaction t, Map<Long, byte[]> streamIdsToReference) throws StreamCleanedException;
 
     /**
      * This removes the index references from streamId -&gt; reference and deletes streams with no remaining references.
      */
     void unmarkStreamAsUsed(Transaction t, long streamId, byte[] reference);
+    void unmarkStreamsAsUsed(Transaction t, final Map<Long, byte[]> streamIdsToReference);
 
     /**
      * This method will store a stream, but it will not have any references.  This means that if cleanup
@@ -69,4 +73,17 @@ public interface PersistentStreamStore extends GenericStreamStore<Long> {
      */
     Pair<Long, Sha256Hash> storeStream(InputStream stream);
 
+    /**
+     * This method will store a stream, but it will not have any references.  Unlike with
+     * {@link #storeStream(InputStream)} a transaction is required.
+     * <p>
+     * Use the stream ids returned here and the same transaction to also {@link #markStreamsAsUsed(Transaction, Map)}
+     * to ensure that the streams are not cleaned-up.
+     * <p>
+     * Although this method provides performance gains by batching the relevant underlying code it can also also
+     * cause the underlying transaction to be long-running.  When possible, individually add streams using
+     * {@link #getByHashOrStoreStreamAndMarkAsUsed(Transaction, Sha256Hash, InputStream, byte[])} or
+     * {@line #storeStreams(InputStream)}.
+     */
+    Map<Long, Sha256Hash> storeStreams(Transaction t, Map<Long, InputStream> streams);
 }

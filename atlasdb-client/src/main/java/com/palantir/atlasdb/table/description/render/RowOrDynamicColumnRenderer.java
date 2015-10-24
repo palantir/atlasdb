@@ -189,7 +189,7 @@ class RowOrDynamicColumnRenderer extends Renderer {
                     }
                     line("__index += ", comp.getType().getHydrateSizeCode(var), ";");
                 }
-                line("return ", Name, ".of(", Joiner.on(", ").join(vars), ");");
+                line("return new ", Name, "(", Joiner.on(", ").join(vars), ");");
             } line("}");
         } line("};");
     }

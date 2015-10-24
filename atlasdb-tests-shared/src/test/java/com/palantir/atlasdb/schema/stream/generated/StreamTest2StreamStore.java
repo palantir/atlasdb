@@ -93,20 +93,13 @@ public final class StreamTest2StreamStore extends AbstractExpiringStreamStore<Lo
     }
 
     @Override
-    protected void storeBlock(Long id, long blockNumber, final byte[] block, final long duration, final TimeUnit unit) {
+    protected void storeBlock(Transaction t, Long id, long blockNumber, final byte[] block, final long duration, final TimeUnit unit) {
         Preconditions.checkArgument(block.length <= BLOCK_SIZE_IN_BYTES, "Block to store in DB must be less than BLOCK_SIZE_IN_BYTES");
-        Preconditions.checkNotNull(txnMgr);
         final StreamTest2StreamValueTable.StreamTest2StreamValueRow row = StreamTest2StreamValueTable.StreamTest2StreamValueRow.of(id, blockNumber);
         try {
-            txnMgr.runTaskThrowOnConflict(new TransactionTask<Void, RuntimeException>() {
-                @Override
-                public Void execute(Transaction t) {
-                    // Do a touch operation on this table to ensure we get a conflict if someone cleans it up.
-                    touchMetadataWhileStoringForConflicts(t, row.getId(), row.getBlockId(), duration, unit);
-                    tables.getStreamTest2StreamValueTable(t).putValue(row, block, duration, unit);
-                    return null;
-                }
-            });
+            // Do a touch operation on this table to ensure we get a conflict if someone cleans it up.
+            touchMetadataWhileStoringForConflicts(t, row.getId(), row.getBlockId(), duration, unit);
+            tables.getStreamTest2StreamValueTable(t).putValue(row, block, duration, unit);
         } catch (RuntimeException e) {
             log.error("Error storing block " + row.getBlockId() + " for stream id " + row.getId(), e);
             throw e;
@@ -124,25 +117,36 @@ public final class StreamTest2StreamStore extends AbstractExpiringStreamStore<Lo
     }
 
     @Override
-    protected void putMetadataAndHashIndexTask(Transaction t, Long streamId, StreamMetadata metadata, long duration, TimeUnit unit) {
-        StreamTest2StreamMetadataTable.StreamTest2StreamMetadataRow row = StreamTest2StreamMetadataTable.StreamTest2StreamMetadataRow.of(streamId);
+    protected void putMetadataAndHashIndexTask(Transaction t, Map<Long, StreamMetadata> streamIdsToMetadata, long duration, TimeUnit unit) {
         StreamTest2StreamMetadataTable mdTable = tables.getStreamTest2StreamMetadataTable(t);
-        if (metadata.getStatus() == Status.STORED) {
-            StreamMetadata prevMetadata = getMetadata(t, streamId);
-            if (prevMetadata == null || prevMetadata.getStatus() != Status.STORING) {
-                // This can happen if we cleanup old streams.
-                throw new TransactionFailedRetriableException("Cannot mark a stream as stored that isn't currently storing: " + prevMetadata);
-            }
-            putHashIndexTask(t, row, metadata, duration, unit);
-        } else if (metadata.getStatus() == Status.STORING) {
-            StreamMetadata prevMetadata = getMetadata(t, streamId);
-            // This will prevent two users trying to store the same id.
-            if (prevMetadata != null) {
-                throw new TransactionFailedRetriableException("Cannot reuse the same stream id: " + streamId);
+        Map<Long, StreamMetadata> prevMetadatas = getMetadata(t, streamIdsToMetadata.keySet());
+
+        Map<StreamTest2StreamMetadataTable.StreamTest2StreamMetadataRow, StreamMetadata> rowsToStoredMetadata = Maps.newHashMap();
+        Map<StreamTest2StreamMetadataTable.StreamTest2StreamMetadataRow, StreamMetadata> rowsToUnstoredMetadata = Maps.newHashMap();
+        for (Entry<Long, StreamMetadata> e : streamIdsToMetadata.entrySet()) {
+            Long streamId = e.getKey();
+            StreamMetadata metadata = e.getValue();
+            StreamMetadata prevMetadata = prevMetadatas.get(streamId);
+            if (metadata.getStatus() == Status.STORED) {
+                if (prevMetadata == null || prevMetadata.getStatus() != Status.STORING) {
+                    // This can happen if we cleanup old streams.
+                    throw new TransactionFailedRetriableException("Cannot mark a stream as stored that isn't currently storing: " + prevMetadata);
+                }
+                rowsToStoredMetadata.put(StreamTest2StreamMetadataTable.StreamTest2StreamMetadataRow.of(streamId), metadata);
+            } else if (metadata.getStatus() == Status.STORING) {
+                // This will prevent two users trying to store the same id.
+                if (prevMetadata != null) {
+                    throw new TransactionFailedRetriableException("Cannot reuse the same stream id: " + streamId);
+                }
+                rowsToUnstoredMetadata.put(StreamTest2StreamMetadataTable.StreamTest2StreamMetadataRow.of(streamId), metadata);
             }
         }
+        putHashIndexTask(t, rowsToStoredMetadata, duration, unit);
 
-        mdTable.putMetadata(row, metadata, duration, unit);
+        Map<StreamTest2StreamMetadataTable.StreamTest2StreamMetadataRow, StreamMetadata> rowsToMetadata = Maps.newHashMap();
+        rowsToMetadata.putAll(rowsToStoredMetadata);
+        rowsToMetadata.putAll(rowsToUnstoredMetadata);
+        mdTable.putMetadata(rowsToMetadata, duration, unit);
     }
 
     private long getNumberOfBlocksFromMetadata(StreamMetadata metadata) {
@@ -176,41 +180,89 @@ public final class StreamTest2StreamStore extends AbstractExpiringStreamStore<Lo
     }
 
     @Override
-    protected StreamMetadata getMetadata(Transaction t, Long streamId) {
-        StreamTest2StreamMetadataTable.StreamTest2StreamMetadataRow row = StreamTest2StreamMetadataTable.StreamTest2StreamMetadataRow.of(streamId);
+    protected Map<Long, StreamMetadata> getMetadata(Transaction t, Set<Long> streamIds) {
+        if (streamIds.isEmpty()) {
+            return ImmutableMap.of();
+        }
         StreamTest2StreamMetadataTable table = tables.getStreamTest2StreamMetadataTable(t);
-        return table.getMetadatas(ImmutableSet.of(row)).get(row);
+        Map<StreamTest2StreamMetadataTable.StreamTest2StreamMetadataRow, StreamMetadata> metadatas = table.getMetadatas(getMetadataRowsForIds(streamIds));
+        Map<Long, StreamMetadata> ret = Maps.newHashMap();
+        for (Map.Entry<StreamTest2StreamMetadataTable.StreamTest2StreamMetadataRow, StreamMetadata> e : metadatas.entrySet()) {
+            ret.put(e.getKey().getId(), e.getValue());
+        }
+        return ret;
     }
 
     @Override
-    @CheckForNull
-    public Long lookupStreamIdByHash(Transaction t, Sha256Hash hash) {
+    public Map<Sha256Hash, Long> lookupStreamIdsByHash(Transaction t, final Set<Sha256Hash> hashes) {
+        if (hashes.isEmpty()) {
+            return ImmutableMap.of();
+        }
         StreamTest2StreamHashAidxTable idx = tables.getStreamTest2StreamHashAidxTable(t);
-        List<StreamTest2StreamHashAidxTable.StreamTest2StreamHashAidxColumnValue> columns = idx.getRowColumns(StreamTest2StreamHashAidxTable.StreamTest2StreamHashAidxRow.of(hash));
-        for (StreamTest2StreamHashAidxTable.StreamTest2StreamHashAidxColumnValue colVal : columns) {
-            Long streamId = colVal.getColumnName().getStreamId();
-            StreamMetadata meta = getMetadata(t, streamId);
-            if (meta.getStatus() == Status.STORED) {
-                return streamId;
+        Set<StreamTest2StreamHashAidxTable.StreamTest2StreamHashAidxRow> rows = getHashIndexRowsForHashes(hashes);
+
+        Multimap<StreamTest2StreamHashAidxTable.StreamTest2StreamHashAidxRow, StreamTest2StreamHashAidxTable.StreamTest2StreamHashAidxColumnValue> m = idx.getRowsMultimap(rows);
+        Map<Long, Sha256Hash> hashForStreams = Maps.newHashMap();
+        for (StreamTest2StreamHashAidxTable.StreamTest2StreamHashAidxRow r : m.keySet()) {
+            for (StreamTest2StreamHashAidxTable.StreamTest2StreamHashAidxColumnValue v : m.get(r)) {
+                Long streamId = v.getColumnName().getStreamId();
+                Sha256Hash hash = r.getHash();
+                if (hashForStreams.containsKey(streamId)) {
+                    AssertUtils.assertAndLog(hashForStreams.get(streamId).equals(hash), "(BUG) Stream ID has 2 different hashes: " + streamId);
+                }
+                hashForStreams.put(streamId, hash);
             }
         }
-        return null;
+        Map<Long, StreamMetadata> metadata = getMetadata(t, hashForStreams.keySet());
+
+        Map<Sha256Hash, Long> ret = Maps.newHashMap();
+        for (Map.Entry<Long, StreamMetadata> e : metadata.entrySet()) {
+            if (e.getValue().getStatus() != Status.STORED) {
+                continue;
+            }
+            Sha256Hash hash = hashForStreams.get(e.getKey());
+            ret.put(hash, e.getKey());
+        }
+
+        return ret;
     }
 
-    private void putHashIndexTask(Transaction t, StreamTest2StreamMetadataTable.StreamTest2StreamMetadataRow row, StreamMetadata metadata, long duration, TimeUnit unit) {
-        Preconditions.checkArgument(
-                metadata.getStatus() == Status.STORED,
-                "Should only index successfully stored streams.");
-
-        Sha256Hash hash = Sha256Hash.EMPTY;
-        if (metadata.getHash() != com.google.protobuf.ByteString.EMPTY) {
-            hash = new Sha256Hash(metadata.getHash().toByteArray());
+    private Set<StreamTest2StreamHashAidxTable.StreamTest2StreamHashAidxRow> getHashIndexRowsForHashes(final Set<Sha256Hash> hashes) {
+        Set<StreamTest2StreamHashAidxTable.StreamTest2StreamHashAidxRow> rows = Sets.newHashSet();
+        for (Sha256Hash h : hashes) {
+            rows.add(StreamTest2StreamHashAidxTable.StreamTest2StreamHashAidxRow.of(h));
         }
-        StreamTest2StreamHashAidxTable.StreamTest2StreamHashAidxRow hashRow = StreamTest2StreamHashAidxTable.StreamTest2StreamHashAidxRow.of(hash);
-        StreamTest2StreamHashAidxTable.StreamTest2StreamHashAidxColumn column = StreamTest2StreamHashAidxTable.StreamTest2StreamHashAidxColumn.of(row.getId());
-        StreamTest2StreamHashAidxTable.StreamTest2StreamHashAidxColumnValue columnValue = StreamTest2StreamHashAidxTable.StreamTest2StreamHashAidxColumnValue.of(column, 0L);
+        return rows;
+    }
+
+    private Set<StreamTest2StreamMetadataTable.StreamTest2StreamMetadataRow> getMetadataRowsForIds(final Iterable<Long> ids) {
+        Set<StreamTest2StreamMetadataTable.StreamTest2StreamMetadataRow> rows = Sets.newHashSet();
+        for (Long id : ids) {
+            rows.add(StreamTest2StreamMetadataTable.StreamTest2StreamMetadataRow.of(id));
+        }
+        return rows;
+    }
+
+    private void putHashIndexTask(Transaction t, Map<StreamTest2StreamMetadataTable.StreamTest2StreamMetadataRow, StreamMetadata> rowsToMetadata, long duration, TimeUnit unit) {
+        Multimap<StreamTest2StreamHashAidxTable.StreamTest2StreamHashAidxRow, StreamTest2StreamHashAidxTable.StreamTest2StreamHashAidxColumnValue> indexMap = HashMultimap.create();
+        for (Entry<StreamTest2StreamMetadataTable.StreamTest2StreamMetadataRow, StreamMetadata> e : rowsToMetadata.entrySet()) {
+            StreamTest2StreamMetadataTable.StreamTest2StreamMetadataRow row = e.getKey();
+            StreamMetadata metadata = e.getValue();
+            Preconditions.checkArgument(
+                    metadata.getStatus() == Status.STORED,
+                    "Should only index successfully stored streams.");
+
+            Sha256Hash hash = Sha256Hash.EMPTY;
+            if (metadata.getHash() != com.google.protobuf.ByteString.EMPTY) {
+                hash = new Sha256Hash(metadata.getHash().toByteArray());
+            }
+            StreamTest2StreamHashAidxTable.StreamTest2StreamHashAidxRow hashRow = StreamTest2StreamHashAidxTable.StreamTest2StreamHashAidxRow.of(hash);
+            StreamTest2StreamHashAidxTable.StreamTest2StreamHashAidxColumn column = StreamTest2StreamHashAidxTable.StreamTest2StreamHashAidxColumn.of(row.getId());
+            StreamTest2StreamHashAidxTable.StreamTest2StreamHashAidxColumnValue columnValue = StreamTest2StreamHashAidxTable.StreamTest2StreamHashAidxColumnValue.of(column, 0L);
+            indexMap.put(hashRow, columnValue);
+        }
         StreamTest2StreamHashAidxTable hiTable = tables.getStreamTest2StreamHashAidxTable(t);
-        hiTable.put(duration, unit, hashRow, columnValue);
+        hiTable.put(indexMap, duration, unit);
     }
 
     /**

@@ -17,6 +17,8 @@ package com.palantir.atlasdb.stream;
 
 import java.io.File;
 import java.io.InputStream;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.CheckForNull;
@@ -32,9 +34,9 @@ public interface ExpiringStreamStore<ID> extends GenericStreamStore<ID> {
 
     @Override
     @CheckForNull
-    public InputStream loadStream(Transaction t, ID id);
+    InputStream loadStream(Transaction t, ID id);
 
     @Override
     @CheckForNull
-    public File loadStreamAsFile(Transaction t, ID id);
+    File loadStreamAsFile(Transaction t, ID id);
 }

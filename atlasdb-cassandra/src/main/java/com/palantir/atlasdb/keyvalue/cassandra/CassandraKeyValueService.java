@@ -947,14 +947,21 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         if (tableName.startsWith("_")) {
             return tableName;
         }
-        return tableName.replaceFirst("\\.", "_");
+        return tableName.replaceFirst("\\.", "__");
     }
 
     private String fromInternalTableName(String tableName) {
         if (tableName.startsWith("_")) {
             return tableName;
         }
-        return tableName.replaceFirst("_", ".");
+        return tableName.replaceFirst("__", ".");
+    }
+
+    protected void sanityCheckTableName(String table) {
+        Validate.isTrue(!(table.startsWith("_") && table.contains("."))
+                || AtlasDbConstants.hiddenTables.contains(table)
+                || table.startsWith(AtlasDbConstants.TEMP_TABLE_PREFIX)
+                || table.startsWith(AtlasDbConstants.NAMESPACE_PREFIX), "invalid tableName: " + table);
     }
 
     /**
@@ -982,7 +989,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     }
 
                     for (String table : tablesToDrop) {
-                        CassandraVerifier.sanityCheckTableName(table);
+                        sanityCheckTableName(table);
                         String caseInsensitiveTable = table.toLowerCase();
 
                         if (existingTables.contains(caseInsensitiveTable)) {
@@ -1009,7 +1016,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     @Override
     public void createTable(final String tableName, final int maxValueSizeInBytes) {
-        CassandraVerifier.sanityCheckTableName(tableName);
+        sanityCheckTableName(tableName);
         boolean locked = false;
         try {
             trySchemaMutationLock();
@@ -1073,7 +1080,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     }
 
                     for (String tableName : tablesToCreate) {
-                        CassandraVerifier.sanityCheckTableName(tableName);
+                        sanityCheckTableName(tableName);
 
                         if (!existingTables.contains(internalTableName(tableName.toLowerCase()))) {
                             CfDef newCf = CassandraConstants.getStandardCfDef(config.keyspace(), internalTableName(tableName));
