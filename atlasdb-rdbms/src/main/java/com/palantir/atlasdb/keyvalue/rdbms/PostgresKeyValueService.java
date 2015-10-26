@@ -36,6 +36,7 @@ import java.util.concurrent.ExecutorService;
 
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
+import javax.ws.rs.QueryParam;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.postgresql.jdbc2.optional.PoolingDataSource;
@@ -280,8 +281,8 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                 Update update = handle.createStatement(
                         "INSERT INTO " + USR_TABLE(tableName) + " (" +
                                 Columns.ROW.comma(Columns.COLUMN).comma(
-                                Columns.TIMESTAMP).comma(Columns.CONTENT) +
-                        ") VALUES " + makeSlots("cell", values.size(), 4));
+                                        Columns.TIMESTAMP).comma(Columns.CONTENT) +
+                                ") VALUES " + makeSlots("cell", values.size(), 4));
                 AtlasSqlUtils.bindCellsValues(update, values, timestamp);
                 update.execute();
     }
@@ -358,12 +359,13 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
         }
 
         batch(cellValues.entries(), new Function<Collection<Entry<Cell, Value>>, Void>() {
-            @Override @Nullable
+            @Override
+            @Nullable
             public Void apply(@Nullable final Collection<Entry<Cell, Value>> input) {
                 return getDbi().inTransaction(new TransactionCallback<Void>() {
                     @Override
                     public Void inTransaction(Handle conn,
-                            TransactionStatus status) throws Exception {
+                                              TransactionStatus status) throws Exception {
                         deleteInternalInTransaction(tableName, Collections2.transform(input, new Function<Entry<Cell, Value>, Entry<Cell, Long>>() {
                             @Override
                             public Entry<Cell, Long> apply(
@@ -417,7 +419,8 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
 
     private void deleteInTransaction(final String tableName, final Multimap<Cell, Long> keys, final Handle handle) {
             batch(keys.entries(), new Function<Collection<Entry<Cell, Long>>, Void>() {
-                @Override @Nullable
+                @Override
+                @Nullable
                 public Void apply(@Nullable Collection<Entry<Cell, Long>> input) {
                     deleteInternalInTransaction(tableName, input, handle);
                     return null;
@@ -441,6 +444,18 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
             public Void inTransaction(final Handle conn, TransactionStatus status) throws Exception {
                 // Just perform entire delete in a single transaction.
                 deleteInTransaction(tableName, keys, conn);
+                return null;
+            }
+        });
+    }
+
+    // *** truncate *******************************************************************************
+    @Override
+    public void truncateTable(final String tableName) throws InsufficientConsistencyException {
+        getDbi().inTransaction(new TransactionCallback<Void>() {
+            @Override
+            public Void inTransaction(Handle handle, TransactionStatus status) throws Exception {
+                handle.execute("TRUNCATE TABLE " + USR_TABLE(tableName));
                 return null;
             }
         });

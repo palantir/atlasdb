@@ -376,6 +376,11 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     }
 
     @Override
+    public void truncateTable(String tableName) {
+        tables.get(tableName).entries.clear();
+    }
+
+    @Override
     public void createTable(String tableName, byte[] tableMetadata) {
         tables.putIfAbsent(tableName, new Table());
         putMetadataForTable(tableName, tableMetadata);

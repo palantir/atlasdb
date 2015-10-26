@@ -412,6 +412,9 @@ public interface KeyValueService extends AutoCloseable {
     // TABLE CREATION AND METADATA
     ////////////////////////////////////////////////////////////
 
+    /**
+     * Drop the table, and also delete its table metadata.
+     */
     @DELETE
     @Path("drop-table")
     @Produces(MediaType.APPLICATION_JSON)
@@ -423,6 +426,7 @@ public interface KeyValueService extends AutoCloseable {
     /**
      * Drops many tables in idempotent fashion. If you are dropping many tables at once,
      * use this call as the implementation can be much faster/less error-prone on some KVSs.
+     * Also deletes corresponding table metadata.
      *
      * @param tableNames
      */

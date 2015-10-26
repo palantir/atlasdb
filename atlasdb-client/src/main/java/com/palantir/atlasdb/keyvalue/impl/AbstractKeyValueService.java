@@ -276,12 +276,6 @@ public abstract class AbstractKeyValueService implements KeyValueService {
         executor.shutdown();
     }
 
-    public void truncateTable(String tableName) {
-        byte[] rawMetadata = getMetadataForTable(tableName);
-        dropTable(tableName);
-        createTable(tableName, rawMetadata);
-    }
-
     @Override
     public void truncateTables(final Set<String> tableNames) {
         List<Future<Void>> futures = Lists.newArrayList();
