@@ -1,3 +1,5 @@
+apply plugin: 'org.inferred.processors'
+
 apply from: "../gradle/shared.gradle"
 
 apply plugin: 'java'
@@ -12,6 +14,8 @@ dependencies {
   compile(project(":atlasdb-client"))
   compile(project(":atlasdb-lock-api"))
   compile(project(":timestamp-api"))
+  compile(project(":timestamp-impl"))
   compile(project(":atlasdb-commons"))
   compile(project(":lock-impl"))
+  processor 'org.immutables:value:2.0.21'
 }

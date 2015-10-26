@@ -21,6 +21,8 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Defaults;
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
@@ -76,7 +78,10 @@ public final class Cell implements Serializable, Comparable<Cell> {
     }
 
     // NOTE: This constructor doesn't copy the arrays for performance reasons.
-    private Cell(byte[] rowName, byte[] columnName, long ttlDurationMillis) {
+    @JsonCreator
+    private Cell(@JsonProperty("rowName") byte[] rowName,
+                 @JsonProperty("columnName") byte[] columnName,
+                 @JsonProperty("ttlDurationMillis") long ttlDurationMillis) {
         validateNameValid(rowName);
         validateNameValid(columnName);
         this.rowName = rowName;

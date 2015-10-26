@@ -6,13 +6,17 @@ schemas = [
 ]
 
 dependencies {
-    compile project(":atlasdb-impl-shared")
+  compile(project(":atlasdb-impl-shared"))
+  compile 'com.netflix.feign:feign-jackson:8.6.1'
+  compile('com.netflix.feign:feign-jaxrs:8.6.1') {
+      exclude module: 'jsr311-api'
+  }
+  testCompile "io.dropwizard:dropwizard-testing:" + libVersions.dropwizard
+  testCompile(project(":atlasdb-config"))
 
     compile(group: 'junit', name: 'junit', version: libVersions.junit) {
         exclude group: 'org.hamcrest'
     }
 
     compile group: "org.jmock", name: "jmock", version: "2.5.1"
-
-    testRuntime group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.5'
 }

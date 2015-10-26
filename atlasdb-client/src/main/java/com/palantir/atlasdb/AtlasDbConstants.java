@@ -49,6 +49,7 @@ public class AtlasDbConstants {
     public static final String NAMESPACE_SHORT_COLUMN_NAME = "s";
     public static final byte[] NAMESPACE_SHORT_COLUMN_BYTES = PtBytes.toBytes(NAMESPACE_SHORT_COLUMN_NAME);
 
+    public static final String PARTITION_MAP_TABLE = "_partition_map";
     public static final char SCRUB_TABLE_SEPARATOR_CHAR = '\0';
 
     public static final int PUNCH_INTERVAL_MILLIS = 2000;
@@ -70,7 +71,8 @@ public class AtlasDbConstants {
             TransactionConstants.TRANSACTION_TABLE,
             PUNCH_TABLE,
             SCRUB_TABLE,
-            NAMESPACE_TABLE);
+            NAMESPACE_TABLE,
+            PARTITION_MAP_TABLE);
     public static final Set<String> SKIP_POSTFILTER_TABLES = ImmutableSet.of(TransactionConstants.TRANSACTION_TABLE,
             NAMESPACE_TABLE);
 

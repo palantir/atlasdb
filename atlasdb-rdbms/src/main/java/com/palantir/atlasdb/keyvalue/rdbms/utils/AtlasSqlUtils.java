@@ -25,12 +25,15 @@ import java.util.SortedMap;
 
 import javax.annotation.Nullable;
 
+import org.apache.commons.lang.text.StrBuilder;
 import org.skife.jdbi.v2.SQLStatement;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.LinkedListMultimap;
+import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimaps;
@@ -86,6 +89,16 @@ public class AtlasSqlUtils {
         return throwableContainsMessage(e, "ORA-00001", "unique constraint");
     }
 
+    public static <K, V> ListMultimap<K, V> listToListMultimap(List<Pair<K, V>> list) {
+        ListMultimap<K, V> result = LinkedListMultimap.create();
+        for (Pair<K, V> p : list) {
+            // High cost, only check with assertions enabled
+            assert !result.containsEntry(p.lhSide, p.rhSide);
+            result.put(p.lhSide, p.rhSide);
+        }
+        return result;
+    }
+
     public static <K, V> SetMultimap<K, V> listToSetMultimap(List<Pair<K, V>> list) {
         SetMultimap<K, V> result = HashMultimap.create();
         for (Pair<K, V> p : list) {
@@ -104,11 +117,19 @@ public class AtlasSqlUtils {
         return result;
     }
 
-    public static <T> Set<RowResult<Set<T>>> cellsToRows(SetMultimap<Cell, T> cells) {
-        Set<RowResult<Set<T>>> result = Sets.newHashSet();
-        NavigableMap<byte[], SortedMap<byte[], Set<T>>> s = Cells.breakCellsUpByRow(Multimaps.asMap(cells));
-        for (Entry<byte[], SortedMap<byte[], Set<T>>> e : s.entrySet()) {
-            result.add(RowResult.create(e.getKey(), e.getValue()));
+    private static <K, V> SortedMap<K, Set<V>> listSortedMapToSetSortedMap(SortedMap<K, List<V>> map) {
+        SortedMap<K, Set<V>> result = Maps.newTreeMap(map.comparator());
+        for (Entry<K, List<V>> e : map.entrySet()) {
+            result.put(e.getKey(), Sets.<V>newHashSet(e.getValue()));
+        }
+        return result;
+    }
+
+    public static <T> List<RowResult<Set<T>>> cellsToRows(ListMultimap<Cell, T> cells) {
+        List<RowResult<Set<T>>> result = Lists.newArrayList();
+        NavigableMap<byte[],SortedMap<byte[],List<T>>> s = Cells.breakCellsUpByRow(Multimaps.asMap(cells));
+        for (Entry<byte[], SortedMap<byte[], List<T>>> e : s.entrySet()) {
+            result.add(RowResult.create(e.getKey(), listSortedMapToSetSortedMap(e.getValue())));
         }
         return result;
     }
@@ -123,44 +144,41 @@ public class AtlasSqlUtils {
     }
 
     @Nullable
-    public static byte[] generateToken(RangeRequest rangeRequest, List<byte[]> rows) {
-        Preconditions.checkArgument(!rangeRequest.isReverse());
-        Preconditions.checkArgument(rows.size() > 0);
-        byte[] lastRow = rows.get(rows.size() - 1);
-        if (RangeRequests.isLastRowName(lastRow)) {
+    public static byte[] generateToken(RangeRequest rangeRequest, byte[] lastRow) {
+        if (RangeRequests.isTerminalRow(rangeRequest.isReverse(), lastRow)) {
             return null;
         }
         return RangeRequests.getNextStartRow(rangeRequest.isReverse(), lastRow);
     }
 
     public static String makeSlots(String prefix, int number) {
-        String result = "";
+        StringBuilder builder = new StringBuilder();
         for (int i=0; i<number; ++i) {
-            result += ":" + prefix + i;
+            builder.append(":").append(prefix).append(i);
             if (i + 1 < number) {
-                result += ", ";
+                builder.append(", ");
             }
         }
-        return result;
+        return builder.toString();
     }
 
     public static String makeSlots(String prefix, int number, int arity) {
         Preconditions.checkArgument(arity > 0);
-        String result = "";
+        StrBuilder builder = new StrBuilder();
         for (int i=0; i<number; ++i) {
-            result += "(";
+            builder.append("(");
             for (int j=0; j<arity; ++j) {
-                result += ":" + prefix + i + "_" + j;
+                builder.append(":").append(prefix).append(i).append("_").append(j);
                 if (j + 1 < arity) {
-                    result += ", ";
+                    builder.append(", ");
                 }
             }
-            result += ")";
+            builder.append(")");
             if (i + 1 < number) {
-                result += ", ";
+                builder.append(", ");
             }
         }
-        return result;
+        return builder.toString();
     }
 
     public static <T> void bindAll(SQLStatement<?> query, Iterable<T> values) {

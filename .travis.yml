@@ -2,6 +2,8 @@ sudo: false
 language: java
 jdk:
 - oraclejdk7
+script:
+  - travis_wait ./gradlew check --stacktrace
 env:
   matrix:
   - CI=true

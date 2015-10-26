@@ -24,6 +24,9 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.MoreObjects.ToStringHelper;
 import com.google.common.base.Preconditions;
@@ -78,11 +81,12 @@ import com.palantir.util.Pair;
         return builder().build();
     }
 
-    private RangeRequest(byte[] startInclusive,
-                         byte[] endExclusive,
-                         Iterable<byte[]> cols,
-                         Integer batchHint,
-                         boolean reverse) {
+    @JsonCreator
+    private RangeRequest(@JsonProperty("startInclusive") byte[] startInclusive,
+                         @JsonProperty("endExclusive") byte[] endExclusive,
+                         @JsonProperty("columnNames") Iterable<byte[]> cols,
+                         @JsonProperty("batchHint") Integer batchHint,
+                         @JsonProperty("reverse") boolean reverse) {
         this.startInclusive = startInclusive;
         this.endExclusive = endExclusive;
         this.columns = cloneSet(cols);
@@ -125,6 +129,7 @@ import com.palantir.util.Pair;
         return reverse;
     }
 
+    @JsonIgnore
     public boolean isEmptyRange() {
         if (startInclusive.length == 0 && RangeRequests.isFirstRowName(reverse, endExclusive)) {
             return true;
@@ -163,6 +168,7 @@ import com.palantir.util.Pair;
         return new RangeRequest(startInclusive, endExclusive, columns, hint, reverse);
     }
 
+    @JsonIgnore
     public Builder getBuilder() {
         return new Builder(reverse)
                 .endRowExclusive(endExclusive)

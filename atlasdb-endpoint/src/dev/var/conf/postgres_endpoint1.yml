@@ -1,0 +1,15 @@
+server:
+  applicationConnectors:
+    - type: http
+      port: 3818
+  adminConnectors:
+    - type: http
+      port: 3819
+
+extraConfig:
+  postgresConfig:
+    host: localhost
+    port: 5432
+    db: test1
+    user: test
+    password: test

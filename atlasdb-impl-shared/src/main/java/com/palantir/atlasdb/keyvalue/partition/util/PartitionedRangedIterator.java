@@ -28,7 +28,6 @@ import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.partition.ConsistentRingRangeRequest;
 import com.palantir.common.base.ClosableIterator;
 
 public abstract class PartitionedRangedIterator<T> implements ClosableIterator<RowResult<T>> {
@@ -36,7 +35,9 @@ public abstract class PartitionedRangedIterator<T> implements ClosableIterator<R
     final SortedSet<ConsistentRingRangeRequest> ranges;
     Set<ClosablePeekingIterator<RowResult<T>>> currentRangeIterators;
     Iterator<ConsistentRingRangeRequest> currentRange;
-    private PeekingIterator<RowResult<T>> rowIterator = Iterators.peekingIterator(Collections.<RowResult<T>> emptyIterator());
+    private PeekingIterator<RowResult<T>> rowIterator = Iterators.peekingIterator(Collections.<RowResult<T>>emptyIterator());
+    // Used to validate row ordering
+    private RowResult<T> cachedResult;
 
     public PartitionedRangedIterator(Collection<ConsistentRingRangeRequest> ranges) {
         this.ranges = Sets.newTreeSet(ConsistentRingRangeRequests.getCompareByStartRow());
@@ -51,25 +52,34 @@ public abstract class PartitionedRangedIterator<T> implements ClosableIterator<R
         ConsistentRingRangeRequest newRange = currentRange.next();
         closeCurrentRangeIterators();
         currentRangeIterators = computeNextRange(newRange);
-        rowIterator = Iterators.<RowResult<T>> peekingIterator(Iterators.mergeSorted(
+        Preconditions.checkState(!currentRangeIterators.isEmpty());
+        rowIterator = Iterators.<RowResult<T>>peekingIterator(Iterators.mergeSorted(
                 currentRangeIterators,
                 RowResult.<T>getOrderingByRowName()));
     }
 
     protected abstract Set<ClosablePeekingIterator<RowResult<T>>> computeNextRange(ConsistentRingRangeRequest range);
 
-    @Override
-    public final boolean hasNext() {
+    private final void prepareNextElement() {
         while (!getRowIterator().hasNext() && currentRange.hasNext()) {
             prepareNextRange();
         }
+    }
+
+    @Override
+    public final boolean hasNext() {
+        prepareNextElement();
         return getRowIterator().hasNext();
     }
 
-    RowResult<T> cachedResult;
     @Override
     public final RowResult<T> next() {
+        prepareNextElement();
+        Preconditions.checkState(hasNext());
+
         RowResult<T> newResult = computeNext();
+
+        // Validate the row ordering
         if (cachedResult != null) {
             Preconditions.checkState(
                     UnsignedBytes.lexicographicalComparator().compare(
@@ -78,8 +88,9 @@ public abstract class PartitionedRangedIterator<T> implements ClosableIterator<R
                     ) <= 0,
                     "Row must be non-descending.");
         }
+
         cachedResult = newResult;
-        return cachedResult;
+        return newResult;
     }
 
     protected abstract RowResult<T> computeNext();

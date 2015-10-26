@@ -33,9 +33,14 @@ public class RocksDbKeyValueSharedTest extends AbstractAtlasDbKeyValueServiceTes
     }
 
     @Override
-    protected KeyValueService getKeyValueService() {
-        return db;
+    protected boolean reverseRangesSupported() {
+        return false;
     }
+
+	@Override
+	protected KeyValueService getKeyValueService() {
+	    return db;
+	}
 
     @Override
     public void tearDown() throws Exception {

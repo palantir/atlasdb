@@ -1,5 +1,5 @@
 #
-# Eclipse Preferences
+# AtlasDB Eclipse Preferences
 #
 # These preferences should be manually imported into Eclipse every time you create a new workspace.
 #
@@ -7,7 +7,7 @@
 # The tab key should insert spaces.
 /instance/org.eclipse.ui.editors/spacesForTabs=true
 
-# Set import ordering
+# Set import ordering to agree with checkstyle rules
 /instance/org.eclipse.jdt.ui/org.eclipse.jdt.ui.importorder=\#java;\#javax;\#org;\#com;\#;java;javax;org;com;;
 
 # Remove trailing whitespace on save. The default save actions are removed so that they are not run
