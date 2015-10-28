@@ -15,14 +15,15 @@
  */
 package com.palantir.atlasdb.keyvalue.rocksdb.impl;
 
+import java.util.Arrays;
+
 import org.rocksdb.Comparator;
 import org.rocksdb.ComparatorOptions;
 import org.rocksdb.Slice;
 
-import com.google.common.collect.ComparisonChain;
+import com.google.common.primitives.Longs;
 import com.google.common.primitives.UnsignedBytes;
-import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.util.Pair;
+import com.palantir.atlasdb.ptobject.EncodingUtils;
 
 public class RocksComparator extends Comparator {
     public static final RocksComparator INSTANCE = new RocksComparator(new ComparatorOptions());
@@ -36,14 +37,52 @@ public class RocksComparator extends Comparator {
         return "atlasdb";
     }
 
+    // This method is a hotspot, logic from RocksDbKeyValueServices.parseCellAndTs
+    // is duplicated and tuned for perf.
     @Override
     public int compare(Slice a, Slice b) {
-        Pair<Cell, Long> cellAndTsA = RocksDbKeyValueServices.parseCellAndTs(a.data());
-        Pair<Cell, Long> cellAndTsB = RocksDbKeyValueServices.parseCellAndTs(b.data());
-        return ComparisonChain.start()
-                .compare(cellAndTsA.lhSide.getRowName(), cellAndTsB.lhSide.getRowName(), UnsignedBytes.lexicographicalComparator())
-                .compare(cellAndTsA.lhSide.getColumnName(), cellAndTsB.lhSide.getColumnName(), UnsignedBytes.lexicographicalComparator())
-                .compare(cellAndTsA.rhSide, cellAndTsB.rhSide)
-                .result();
+        byte[] adata = a.data();
+        byte[] bdata = b.data();
+        byte[] rowSizeBytes = new byte[2];
+        rowSizeBytes[0] = adata[adata.length - 1];
+        rowSizeBytes[1] = adata[adata.length - 2];
+        int aRowSize = (int) EncodingUtils.decodeVarLong(rowSizeBytes);
+        rowSizeBytes[0] = bdata[bdata.length - 1];
+        rowSizeBytes[1] = bdata[bdata.length - 2];
+        int bRowSize = (int) EncodingUtils.decodeVarLong(rowSizeBytes);
+
+        int comp = UnsignedBytes.lexicographicalComparator().compare(Arrays.copyOf(adata, aRowSize),
+                                                                     Arrays.copyOf(bdata, bRowSize));
+        if (comp != 0) {
+            return comp;
+        }
+
+        int aColEnd = adata.length - 8 - EncodingUtils.sizeOfVarLong(aRowSize);
+        int bColEnd = bdata.length - 8 - EncodingUtils.sizeOfVarLong(bRowSize);
+        comp = UnsignedBytes.lexicographicalComparator().compare(Arrays.copyOfRange(adata, aRowSize, aColEnd),
+                                                                 Arrays.copyOfRange(bdata, bRowSize, bColEnd));
+        if (comp != 0) {
+            return comp;
+        }
+
+        long aTs = Longs.fromBytes(
+                adata[aColEnd+0],
+                adata[aColEnd+1],
+                adata[aColEnd+2],
+                adata[aColEnd+3],
+                adata[aColEnd+4],
+                adata[aColEnd+5],
+                adata[aColEnd+6],
+                adata[aColEnd+7]);
+        long bTs = Longs.fromBytes(
+                bdata[bColEnd+0],
+                bdata[bColEnd+1],
+                bdata[bColEnd+2],
+                bdata[bColEnd+3],
+                bdata[bColEnd+4],
+                bdata[bColEnd+5],
+                bdata[bColEnd+6],
+                bdata[bColEnd+7]);
+        return Long.compare(aTs, bTs);
     }
 }

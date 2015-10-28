@@ -25,6 +25,7 @@ import org.rocksdb.RocksIterator;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Multimap;
+import com.google.common.primitives.Longs;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -144,21 +145,24 @@ public class RocksDbKeyValueServices {
     }
 
     static Pair<Cell, Long> parseCellAndTs(byte[] key) {
-        byte[] rowSizeBytes = PtBytes.tail(key, 2);
-        ArrayUtils.reverse(rowSizeBytes);
+        byte[] rowSizeBytes = new byte[2];
+        rowSizeBytes[0] = key[key.length - 1];
+        rowSizeBytes[1] = key[key.length - 2];
 
         int rowSize = (int) EncodingUtils.decodeVarLong(rowSizeBytes);
-        int colSize = key.length - rowSize - 8 - EncodingUtils.sizeOfVarLong(rowSize);
-        byte[] rowName = new byte[rowSize];
-        if (colSize < 0) {
-            System.out.println("bad");
-        }
-        byte[] colName = new byte[colSize];
+        int colEnd = key.length - 8 - EncodingUtils.sizeOfVarLong(rowSize);
 
-        ByteBuffer keyBuffer = ByteBuffer.wrap(key).order(ByteOrder.BIG_ENDIAN);
-        keyBuffer.get(rowName);
-        keyBuffer.get(colName);
-        long ts = keyBuffer.getLong();
+        byte[] rowName = Arrays.copyOf(key, rowSize);
+        byte[] colName = Arrays.copyOfRange(key, rowSize, colEnd);
+        long ts = Longs.fromBytes(
+                key[colEnd+0],
+                key[colEnd+1],
+                key[colEnd+2],
+                key[colEnd+3],
+                key[colEnd+4],
+                key[colEnd+5],
+                key[colEnd+6],
+                key[colEnd+7]);
 
         return Pair.create(Cell.create(rowName, colName), ts);
     }
