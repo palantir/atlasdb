@@ -58,6 +58,11 @@ public class TableRemappingKeyValueService extends ForwardingObject implements
     }
 
     @Override
+    public TableMappingService getTableMapper() {
+        return tableMapper;
+    }
+
+    @Override
     public void addGarbageCollectionSentinelValues(TableReference tableRef, Set<Cell> cells) {
         delegate().addGarbageCollectionSentinelValues(
                 tableMapper.getShortTableName(tableRef),
