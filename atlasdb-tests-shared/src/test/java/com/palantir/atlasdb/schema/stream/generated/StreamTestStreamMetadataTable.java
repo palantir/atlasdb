@@ -178,7 +178,7 @@ public final class StreamTestStreamMetadataTable implements
                 int __index = 0;
                 Long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(id);
-                return StreamTestStreamMetadataRow.of(id);
+                return new StreamTestStreamMetadataRow(id);
             }
         };
 
@@ -625,5 +625,5 @@ public final class StreamTestStreamMetadataTable implements
         return ImmutableList.of();
     }
 
-    static String __CLASS_HASH = "MWCZ4YhPfWqKZdI9aFHFgQ==";
+    static String __CLASS_HASH = "tt1XSgXcdiAxpKlhW1LrFg==";
 }

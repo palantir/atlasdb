@@ -176,7 +176,7 @@ public final class StreamTestStreamIdxTable implements
                 int __index = 0;
                 Long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(id);
-                return StreamTestStreamIdxRow.of(id);
+                return new StreamTestStreamIdxRow(id);
             }
         };
 
@@ -267,7 +267,7 @@ public final class StreamTestStreamIdxTable implements
                 int __index = 0;
                 byte[] reference = EncodingUtils.decodeSizedBytes(__input, __index);
                 __index += EncodingUtils.sizeOfSizedBytes(reference);
-                return StreamTestStreamIdxColumn.of(reference);
+                return new StreamTestStreamIdxColumn(reference);
             }
         };
 
@@ -644,5 +644,5 @@ public final class StreamTestStreamIdxTable implements
         return ImmutableList.of();
     }
 
-    static String __CLASS_HASH = "SYRz5JOcrd4Z1XvNIKuHuQ==";
+    static String __CLASS_HASH = "PXhIzXMckhNGJnYUJb1EnA==";
 }

@@ -178,7 +178,7 @@ public final class SweepPriorityTable implements
                 int __index = 0;
                 String fullTableName = PtBytes.toString(__input, __index, __input.length-__index);
                 __index += 0;
-                return SweepPriorityRow.of(fullTableName);
+                return new SweepPriorityRow(fullTableName);
             }
         };
 
@@ -1018,5 +1018,5 @@ public final class SweepPriorityTable implements
         return ImmutableList.of();
     }
 
-    static String __CLASS_HASH = "VH+ZkEOsv/yPU+lzUUD6HA==";
+    static String __CLASS_HASH = "7lgYWf0htX0ZwY/ZGjg5jg==";
 }

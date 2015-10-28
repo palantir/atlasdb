@@ -176,7 +176,7 @@ public final class StreamTestStreamHashAidxTable implements
                 int __index = 0;
                 Sha256Hash hash = new Sha256Hash(EncodingUtils.get32Bytes(__input, __index));
                 __index += 32;
-                return StreamTestStreamHashAidxRow.of(hash);
+                return new StreamTestStreamHashAidxRow(hash);
             }
         };
 
@@ -267,7 +267,7 @@ public final class StreamTestStreamHashAidxTable implements
                 int __index = 0;
                 Long streamId = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(streamId);
-                return StreamTestStreamHashAidxColumn.of(streamId);
+                return new StreamTestStreamHashAidxColumn(streamId);
             }
         };
 
@@ -644,5 +644,5 @@ public final class StreamTestStreamHashAidxTable implements
         return ImmutableList.of();
     }
 
-    static String __CLASS_HASH = "7FANJ9if509kjpmioCtNeA==";
+    static String __CLASS_HASH = "ylbAiMo2qutlOzVPcTNR8w==";
 }

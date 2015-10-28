@@ -10,7 +10,7 @@ import com.palantir.atlasdb.table.generation.Triggers;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
 public class SweepTableFactory {
-    private final static Namespace defaultNamespace = Namespace.create("sweep");
+    private final static Namespace defaultNamespace = Namespace.create("sweep", Namespace.UNCHECKED_NAME);
     private final List<Function<? super Transaction, SharedTriggers>> sharedTriggers;
     private final Namespace namespace;
 

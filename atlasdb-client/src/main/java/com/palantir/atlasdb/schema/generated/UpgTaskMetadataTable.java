@@ -264,7 +264,7 @@ public final class UpgTaskMetadataTable implements
                 __index += EncodingUtils.sizeOfVarString(extraId);
                 Long rangeId = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(rangeId);
-                return UpgTaskMetadataRow.of(namespace, version, hotfixVersion, hotfixHotfix, extraId, rangeId);
+                return new UpgTaskMetadataRow(namespace, version, hotfixVersion, hotfixHotfix, extraId, rangeId);
             }
         };
 
@@ -797,5 +797,5 @@ public final class UpgTaskMetadataTable implements
         return ImmutableList.of();
     }
 
-    static String __CLASS_HASH = "fljatuiBsr6K9BUXbTDoWQ==";
+    static String __CLASS_HASH = "gVz7+sxWvDvYszWuNfA8vg==";
 }
