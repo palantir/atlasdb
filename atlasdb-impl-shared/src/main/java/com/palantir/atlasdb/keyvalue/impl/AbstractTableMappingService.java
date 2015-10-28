@@ -26,7 +26,9 @@ import org.apache.commons.lang.Validate;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.TableMappingService;
+import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.schema.TableReference;
 import com.palantir.atlasdb.table.description.Schemas;
 
@@ -95,7 +97,7 @@ public abstract class AbstractTableMappingService implements TableMappingService
         Set<String> tablesToReload = Sets.newHashSet();
         for (String name : tableNames) {
             if (name.contains(PERIOD)) {
-                newSet.add(createTableReferenceFromNamespacedName(name));
+                newSet.add(TableReference.createFromFullyQualifiedName(name));
             } else if (tableMap.get().containsValue(name)) {
                 newSet.add(getFullTableName(name));
             } else if (unmappedTables.containsKey(name)) {
@@ -117,8 +119,15 @@ public abstract class AbstractTableMappingService implements TableMappingService
         return newSet;
     }
 
-    private static TableReference createTableReferenceFromNamespacedName(String name) {
-        return TableReference.createFromFullyQualifiedName(name);
+    @Override
+    public TableReference getTableReference(String tableName) {
+        if (tableName.contains(PERIOD)) {
+            return TableReference.createFromFullyQualifiedName(tableName);
+        }
+        if (AtlasDbConstants.hiddenTables.contains(tableName)) {
+            return TableReference.createWithEmptyNamespace(tableName);
+        }
+        return TableReference.create(Namespace.DEFAULT_NAMESPACE, tableName);
     }
 
 }

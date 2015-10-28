@@ -27,4 +27,5 @@ public interface TableMappingService {
     public String getShortTableName(TableReference tableRef);
     public <T> Map<String, T> mapToShortTableNames(Map<TableReference, T> tableMap);
     public Set<TableReference> mapToFullTableNames(Set<String> tableNames);
+    public TableReference getTableReference(String tableName);
 }
