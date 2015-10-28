@@ -59,7 +59,11 @@ public class TableFactoryRenderer {
                 packageAndImports();
                 line();
                 line("public class ", TableFactory, " {"); {
-                    line("private final static Namespace defaultNamespace = Namespace.create(\"" + defaultNamespace + "\");");
+                    if (defaultNamespace.isEmpty()) {
+                        line("private final static Namespace defaultNamespace = Namespace.EMPTY_NAMESPACE;");
+                    } else {
+                        line("private final static Namespace defaultNamespace = Namespace.create(\"" + defaultNamespace + "\", Namespace.UNCHECKED_NAME);");
+                    }
                     line("private final List<Function<? super Transaction, SharedTriggers>> sharedTriggers;");
                     line("private final Namespace namespace;");
                     line();

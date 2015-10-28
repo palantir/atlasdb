@@ -176,7 +176,7 @@ public final class UserPhotosStreamHashAidxTable implements
                 int __index = 0;
                 Sha256Hash hash = new Sha256Hash(EncodingUtils.get32Bytes(__input, __index));
                 __index += 32;
-                return UserPhotosStreamHashAidxRow.of(hash);
+                return new UserPhotosStreamHashAidxRow(hash);
             }
         };
 
@@ -267,7 +267,7 @@ public final class UserPhotosStreamHashAidxTable implements
                 int __index = 0;
                 Long streamId = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(streamId);
-                return UserPhotosStreamHashAidxColumn.of(streamId);
+                return new UserPhotosStreamHashAidxColumn(streamId);
             }
         };
 
@@ -644,5 +644,5 @@ public final class UserPhotosStreamHashAidxTable implements
         return ImmutableList.of();
     }
 
-    static String __CLASS_HASH = "NgWHlfSo6uZHx13edyG/qA==";
+    static String __CLASS_HASH = "cK4G5Ei0crwugMr7Rfk86g==";
 }

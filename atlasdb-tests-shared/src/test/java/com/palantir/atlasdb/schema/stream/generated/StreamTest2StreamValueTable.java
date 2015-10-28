@@ -188,7 +188,7 @@ public final class StreamTest2StreamValueTable implements
                 __index += EncodingUtils.sizeOfUnsignedVarLong(id);
                 Long blockId = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(blockId);
-                return StreamTest2StreamValueRow.of(id, blockId);
+                return new StreamTest2StreamValueRow(id, blockId);
             }
         };
 
@@ -613,5 +613,5 @@ public final class StreamTest2StreamValueTable implements
         return ImmutableList.of();
     }
 
-    static String __CLASS_HASH = "SKdt7KcvFY6cvVwEHKlhHg==";
+    static String __CLASS_HASH = "zUMFY2Uhg2mrqHaS+HWg3w==";
 }

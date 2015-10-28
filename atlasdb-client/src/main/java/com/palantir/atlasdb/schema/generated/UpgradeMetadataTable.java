@@ -178,7 +178,7 @@ public final class UpgradeMetadataTable implements
                 int __index = 0;
                 String namespace = PtBytes.toString(__input, __index, __input.length-__index);
                 __index += 0;
-                return UpgradeMetadataRow.of(namespace);
+                return new UpgradeMetadataRow(namespace);
             }
         };
 
@@ -1065,5 +1065,5 @@ public final class UpgradeMetadataTable implements
         return ImmutableList.of();
     }
 
-    static String __CLASS_HASH = "h03MSdcbTez7kajqIeeSaA==";
+    static String __CLASS_HASH = "fCaFHBhY3vwSc/FVgbGrYA==";
 }

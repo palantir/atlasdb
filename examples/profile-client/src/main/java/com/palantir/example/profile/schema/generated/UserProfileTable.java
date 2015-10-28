@@ -178,7 +178,7 @@ public final class UserProfileTable implements
                 int __index = 0;
                 Long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 __index += 8;
-                return UserProfileRow.of(id);
+                return new UserProfileRow(id);
             }
         };
 
@@ -1303,7 +1303,7 @@ public final class UserProfileTable implements
                     int __index = 0;
                     String cookie = PtBytes.toString(__input, __index, __input.length-__index);
                     __index += 0;
-                    return CookiesIdxRow.of(cookie);
+                    return new CookiesIdxRow(cookie);
                 }
             };
 
@@ -1423,7 +1423,7 @@ public final class UserProfileTable implements
                     __index += EncodingUtils.sizeOfSizedBytes(columnName);
                     Long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                     __index += 8;
-                    return CookiesIdxColumn.of(rowName, columnName, id);
+                    return new CookiesIdxColumn(rowName, columnName, id);
                 }
             };
 
@@ -1936,7 +1936,7 @@ public final class UserProfileTable implements
                     int __index = 0;
                     Long time = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                     __index += EncodingUtils.sizeOfUnsignedVarLong(time);
-                    return CreatedIdxRow.of(time);
+                    return new CreatedIdxRow(time);
                 }
             };
 
@@ -2056,7 +2056,7 @@ public final class UserProfileTable implements
                     __index += EncodingUtils.sizeOfSizedBytes(columnName);
                     Long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                     __index += 8;
-                    return CreatedIdxColumn.of(rowName, columnName, id);
+                    return new CreatedIdxColumn(rowName, columnName, id);
                 }
             };
 
@@ -2569,7 +2569,7 @@ public final class UserProfileTable implements
                     int __index = 0;
                     Long birthday = EncodingUtils.decodeSignedVarLong(__input, __index);
                     __index += EncodingUtils.sizeOfSignedVarLong(birthday);
-                    return UserBirthdaysIdxRow.of(birthday);
+                    return new UserBirthdaysIdxRow(birthday);
                 }
             };
 
@@ -2689,7 +2689,7 @@ public final class UserProfileTable implements
                     __index += EncodingUtils.sizeOfSizedBytes(columnName);
                     Long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                     __index += 8;
-                    return UserBirthdaysIdxColumn.of(rowName, columnName, id);
+                    return new UserBirthdaysIdxColumn(rowName, columnName, id);
                 }
             };
 
@@ -3108,5 +3108,5 @@ public final class UserProfileTable implements
     }
 
 
-    static String __CLASS_HASH = "/oKfTLHzGrnOXiqT9ItdbA==";
+    static String __CLASS_HASH = "kY6flv/ARXShHnASekEoNA==";
 }
