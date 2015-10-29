@@ -15,35 +15,23 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.io.IOException;
-import java.net.SocketException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-import javax.annotation.Nonnull;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
-
-import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.Cassandra.Client;
-import org.apache.thrift.protocol.TBinaryProtocol;
-import org.apache.thrift.protocol.TProtocol;
+import org.apache.commons.pool2.impl.GenericObjectPool;
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.thrift.protocol.TProtocolException;
-import org.apache.thrift.transport.TFramedTransport;
-import org.apache.thrift.transport.TSocket;
-import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
 import com.palantir.common.base.FunctionCheckedException;
-import com.palantir.common.pooling.AbstractPoolingContainer;
+import com.palantir.common.pooling.PoolingContainer;
 
 /**
  * This class will run the passed function with a valid client with an open socket.  An open socket
@@ -57,19 +45,8 @@ import com.palantir.common.pooling.AbstractPoolingContainer;
  * This class will return an instance of ClientCreationFailedException if the socket could not be
  * opened successfully or the current keyspace could not be set.
  */
-public class CassandraClientPoolingContainer extends AbstractPoolingContainer<Client> {
+public class CassandraClientPoolingContainer implements PoolingContainer<Client> {
     private static final Logger log = LoggerFactory.getLogger(CassandraClientPoolingContainer.class);
-    private static final LoadingCache<String, SSLSocketFactory> sslSocketFactories =
-            CacheBuilder.newBuilder().build(new CacheLoader<String, SSLSocketFactory>() {
-                @Override
-                public SSLSocketFactory load(String host) throws Exception {
-                    /*
-                     * Use a separate SSLSocketFactory per host to reduce contention on the synchronized method
-                     * SecureRandom.nextBytes. Otherwise, this is identical to SSLSocketFactory.getDefault()
-                     */
-                    return SSLContext.getInstance("Default").getSocketFactory();
-                }
-            });
 
     private final String host;
     private final String keyspace;
@@ -78,25 +55,16 @@ public class CassandraClientPoolingContainer extends AbstractPoolingContainer<Cl
     private final int socketTimeoutMillis;
     private final int socketQueryTimeoutMillis;
     private final AtomicLong count = new AtomicLong();
+    private final GenericObjectPool<Client> clientPool;
 
     private CassandraClientPoolingContainer(Builder builder){
-        super(builder.poolSize);
         this.host = builder.host;
         this.port = builder.port;
         this.isSsl = builder.isSsl;
         this.keyspace = builder.keyspace;
         this.socketTimeoutMillis = builder.socketTimeoutMillis;
         this.socketQueryTimeoutMillis = builder.socketQueryTimeoutMillis;
-    }
-
-    @Override
-    @Nonnull
-    protected Client createNewPooledResource() {
-        try {
-            return getClient(host, port, keyspace, isSsl, socketTimeoutMillis, socketQueryTimeoutMillis);
-        } catch (Exception e) {
-            throw new ClientCreationFailedException("Failed to construct client for host: " + host, e);
-        }
+        this.clientPool = builder.clientPool;
     }
 
     @Override
@@ -126,9 +94,9 @@ public class CassandraClientPoolingContainer extends AbstractPoolingContainer<Cl
     private <V, K extends Exception> V runWithGoodResource(FunctionCheckedException<Client, V, K> f)
             throws K {
         boolean shouldReuse = true;
-        Client resource = getGoodClient();
-
+        Client resource = null;
         try {
+            resource = clientPool.borrowObject();
             return f.apply(resource);
         } catch (Exception e) {
             if (e instanceof TTransportException
@@ -139,39 +107,42 @@ public class CassandraClientPoolingContainer extends AbstractPoolingContainer<Cl
             if (e instanceof TTransportException
                     && ((TTransportException) e).getType() == TTransportException.END_OF_FILE) {
                 // If we have an end of file this is most likely due to this cassandra node being bounced.
-                discardCurrentPool();
+                clientPool.clear();
             }
             throw (K) e;
         } finally {
-            if (shouldReuse) {
-                log.info("Returning {} to pool", resource);
-                returnResource(resource);
-            } else {
-                log.info("Discarding: {}", resource);
-                cleanupForDiscard(resource);
+            if (resource != null) {
+                if (shouldReuse) {
+                    log.info("Returning {} to pool", resource);
+                    clientPool.returnObject(resource);
+                } else {
+                    invalidateQuietly(resource);
+                }
             }
         }
     }
 
-    private Client getGoodClient() {
-        Client resource = null;
-        do {
-            if (resource != null) {
-                cleanupForDiscard(resource);
-            }
-            resource = getResource();
-        } while (!resource.getOutputProtocol().getTransport().isOpen());
-        return resource;
+    private void invalidateQuietly(Client resource) {
+        try {
+            log.info("Discarding: {}", resource);
+            clientPool.invalidateObject(resource);
+        } catch (Exception e) {
+            // Ignore
+        }
     }
 
     @Override
-    protected void cleanupForDiscard(Client discardedResource) {
-        discardedResource.getOutputProtocol().getTransport().close();
-        log.info("Closed transport for client {}", discardedResource);
-        super.cleanupForDiscard(discardedResource);
+    public <V> V runWithPooledResource(Function<Client, V> f) {
+        throw new UnsupportedOperationException("you should use FunctionCheckedException<?, ?, Exception> "
+                + "to ensure the TTransportException type is propagated correctly.");
     }
 
-    public static class Builder {
+    @Override
+    public void shutdownPooling() {
+        clientPool.close();
+    }
+
+    public static class Builder{
         private final String host;
         private final int port;
 
@@ -181,6 +152,8 @@ public class CassandraClientPoolingContainer extends AbstractPoolingContainer<Cl
         private boolean isSsl = false;
         private int socketTimeoutMillis = 2000;
         private int socketQueryTimeoutMillis = 62000;
+
+        private GenericObjectPool<Client> clientPool;
 
         public Builder(String host, int port) {
             this.host = host;
@@ -212,7 +185,30 @@ public class CassandraClientPoolingContainer extends AbstractPoolingContainer<Cl
             return this;
         }
 
+        private GenericObjectPool<Client> createClientPool() {
+            CassandraClientFactory cassandraClientFactory =
+                    new CassandraClientFactory(host,
+                            keyspace,
+                            port,
+                            isSsl,
+                            socketTimeoutMillis,
+                            socketQueryTimeoutMillis);
+            GenericObjectPoolConfig config = new GenericObjectPoolConfig();
+            config.setMinIdle(poolSize);
+            config.setTestOnBorrow(true);
+            config.setBlockWhenExhausted(true);
+            // Should we make these configurable/are these intelligent values?
+            config.setMaxTotal(5 * poolSize);
+            config.setMaxIdle(5 * poolSize);
+            config.setMinEvictableIdleTimeMillis(TimeUnit.MILLISECONDS.convert(1, TimeUnit.MINUTES));
+            config.setTimeBetweenEvictionRunsMillis(TimeUnit.MILLISECONDS.convert(1, TimeUnit.MINUTES));
+            config.setNumTestsPerEvictionRun(-1); // Test all idle objects for eviction
+            config.setJmxNamePrefix(host + ":" + port);
+            return new GenericObjectPool<Client>(cassandraClientFactory, config);
+        }
+
         public CassandraClientPoolingContainer build(){
+            clientPool = createClientPool();
             return new CassandraClientPoolingContainer(this);
         }
     }
@@ -230,48 +226,6 @@ public class CassandraClientPoolingContainer extends AbstractPoolingContainer<Cl
         }
     }
 
-    private static Cassandra.Client getClient(String host, int port, String keyspace, boolean isSsl, int socketTimeoutMillis, int socketQueryTimeoutMillis) throws Exception {
-        Client ret = getClientInternal(host, port, isSsl, socketTimeoutMillis, socketQueryTimeoutMillis);
-        try {
-            ret.set_keyspace(keyspace);
-            log.info("Created new client for {}:{}/{} {}", host, port, keyspace, (isSsl ? "over SSL" : ""));
-            return ret;
-        } catch (Exception e) {
-            ret.getOutputProtocol().getTransport().close();
-            throw e;
-        }
-    }
-
-    public static Cassandra.Client getClientInternal(String host, int port, boolean isSsl, int socketTimeoutMillis, int socketQueryTimeoutMillis) throws TTransportException {
-        TSocket tSocket = new TSocket(host, port, socketTimeoutMillis);
-        tSocket.open();
-        try {
-            tSocket.getSocket().setKeepAlive(true);
-            tSocket.getSocket().setSoTimeout(socketQueryTimeoutMillis);
-       } catch (SocketException e1) {
-            log.error("Couldn't set socket keep alive for " + host);
-        }
-
-        if (isSsl) {
-            boolean success = false;
-            try {
-                SSLSocketFactory factory = sslSocketFactories.getUnchecked(host);
-                SSLSocket socket = (SSLSocket) factory.createSocket(tSocket.getSocket(), host, port, true);
-                tSocket = new TSocket(socket);
-                success = true;
-            } catch (IOException e) {
-                throw new TTransportException(e);
-            } finally {
-                if (!success) {
-                    tSocket.close();
-                }
-            }
-        }
-        TTransport tFramedTransport = new TFramedTransport(tSocket, CassandraConstants.CLIENT_MAX_THRIFT_FRAME_SIZE_BYTES);
-        TProtocol protocol = new TBinaryProtocol(tFramedTransport);
-        Cassandra.Client client = new Cassandra.Client(protocol);
-        return client;
-    }
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(getClass())
