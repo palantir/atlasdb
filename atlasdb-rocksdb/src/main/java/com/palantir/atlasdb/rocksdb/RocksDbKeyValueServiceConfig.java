@@ -47,8 +47,8 @@ public abstract class RocksDbKeyValueServiceConfig implements KeyValueServiceCon
     }
 
     @Value.Default
-    public File nativeLibTmpDir() {
-        return new File(System.getProperty("java.io.tmpdir"));
+    public String nativeLibTmpDir() {
+        return null;
     }
 
     @Value.Check
@@ -59,7 +59,9 @@ public abstract class RocksDbKeyValueServiceConfig implements KeyValueServiceCon
         // Doing this here is not really ideal, but we need to do this very
         // early in the process to prevent the default loading of the libraries
         // to java.io.tmpdir that occurs as soon as any rocksdb classes are loaded.
-        RocksDbNativeLibraryLoader.load(nativeLibTmpDir());
+        if (nativeLibTmpDir() != null) {
+            RocksDbNativeLibraryLoader.load(nativeLibTmpDir());
+        }
     }
 
     @Override
