@@ -149,7 +149,10 @@ public class PersistentTimestampService implements TimestampService {
 
     @Override
     public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
-        Preconditions.checkArgument(numTimestampsRequested > 0);
+        Preconditions.checkArgument(numTimestampsRequested > 0,
+                "Number of timestamps requested must be greater than zero, was %s",
+                numTimestampsRequested);
+
         if (numTimestampsRequested > MAX_REQUEST_RANGE_SIZE) {
             numTimestampsRequested = MAX_REQUEST_RANGE_SIZE;
         }
