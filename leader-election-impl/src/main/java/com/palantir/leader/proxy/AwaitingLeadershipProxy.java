@@ -1,21 +1,22 @@
-/**
- * Copyright 2015 Palantir Technologies
- *
- * Licensed under the BSD-3 License (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://opensource.org/licenses/BSD-3-Clause
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2015 Palantir Technologies
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package com.palantir.leader.proxy;
 
 import java.io.Closeable;
+import java.io.IOException;
+import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -23,13 +24,16 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 
+import javax.annotation.Nullable;
+
 import org.apache.commons.lang.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
-import com.google.common.reflect.AbstractInvocationHandler;
+import com.google.common.net.HostAndPort;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.LeaderElectionService;
@@ -37,20 +41,11 @@ import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 import com.palantir.leader.NotCurrentLeaderException;
 
-public final class AwaitingLeadershipProxy extends AbstractInvocationHandler {
+public final class AwaitingLeadershipProxy implements InvocationHandler {
 
     private static final Logger log = LoggerFactory.getLogger(AwaitingLeadershipProxy.class);
+    private static final Logger leaderLog = LoggerFactory.getLogger("leadership");
 
-    /**
-     * This will block on {@link LeaderElectionService#blockOnBecomingLeader()} until we are the leader.
-     * Once we are the leader {@link Supplier#get()} will be called to get a delegate to send requests to.
-     * If we are leading according to {@link LeaderElectionService#isStillLeading(LeadershipToken)} then
-     * calls will be sent to the delegate.  If we find that we lose leadership and the delgate implements
-     * {@link Closeable} then {@link Closeable# close()} will be called to clean up.  We will then begin
-     * blocking on {@link LeaderElectionService#blockOnBecomingLeader()} and wait until we are the leader.
-     * <p>
-     * If a call is make while we aren't the leader a {@link NotCurrentLeaderException} will be thrown.
-     */
     @SuppressWarnings("unchecked")
     public static <T> T newProxyInstance(Class<T> interfaceClass,
                                          Supplier<T> delegateSupplier,
@@ -128,6 +123,7 @@ public final class AwaitingLeadershipProxy extends AbstractInvocationHandler {
                 clearDelegate();
             } else {
                 leadershipTokenRef.set(leadershipToken);
+                leaderLog.warn("Gained leadership");
             }
         } catch (InterruptedException e) {
             log.warn("attempt to gain leadership interrupted", e);
@@ -136,21 +132,19 @@ public final class AwaitingLeadershipProxy extends AbstractInvocationHandler {
         }
     }
 
-    private void clearDelegate() throws Exception {
+    private void clearDelegate() throws IOException {
         Object delegate = delegateRef.getAndSet(null);
         if (delegate instanceof Closeable) {
             ((Closeable) delegate).close();
-        } else if (delegate instanceof AutoCloseable) {
-            ((AutoCloseable) delegate).close();
         }
     }
 
     @Override
-    protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
+    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         final LeadershipToken leadershipToken = leadershipTokenRef.get();
 
         if (leadershipToken == null) {
-            throw new NotCurrentLeaderException("method invoked on a non-leader");
+            throw notCurrentLeaderException("method invoked on a non-leader");
         }
 
         if (method.getName().equals("close") && args.length == 0) {
@@ -167,7 +161,7 @@ public final class AwaitingLeadershipProxy extends AbstractInvocationHandler {
         } while (leading == StillLeadingStatus.NO_QUORUM);
 
         if (leading == StillLeadingStatus.NOT_LEADING) {
-            markAsNotLeading(leadershipToken, null);
+            markAsNotLeading(leadershipToken, null /* cause */);
         }
 
         if (isClosed) {
@@ -186,7 +180,22 @@ public final class AwaitingLeadershipProxy extends AbstractInvocationHandler {
         }
     }
 
-    private void markAsNotLeading(final LeadershipToken leadershipToken, Throwable cause) {
+    private NotCurrentLeaderException notCurrentLeaderException(String message, @Nullable Throwable cause) {
+        Optional<HostAndPort> maybeLeader = leaderElectionService.getSuspectedLeaderInMemory();
+        if (maybeLeader.isPresent()) {
+            HostAndPort leaderHint = maybeLeader.get();
+            return new NotCurrentLeaderException(message + "; hinting suspected leader host " + leaderHint, cause, leaderHint);
+        } else {
+            return new NotCurrentLeaderException(message, cause);
+        }
+    }
+
+    private NotCurrentLeaderException notCurrentLeaderException(String message) {
+        return notCurrentLeaderException(message, null /* cause */);
+    }
+
+    private void markAsNotLeading(final LeadershipToken leadershipToken, @Nullable Throwable cause) {
+        leaderLog.warn("Lost leadership", cause);
         if (leadershipTokenRef.compareAndSet(leadershipToken, null)) {
             try {
                 clearDelegate();
@@ -195,23 +204,7 @@ public final class AwaitingLeadershipProxy extends AbstractInvocationHandler {
             }
             tryToGainLeadership();
         }
-        throw new NotCurrentLeaderException("method invoked on a non-leader (leadership lost)", cause);
-    }
-
-    @Override
-    public String toString() {
-        LeadershipToken leadershipToken = leadershipTokenRef.get();
-        Object delegate = delegateRef.get();
-        boolean isLeading = leadershipToken != null;
-        return "AwaitingLeadershipProxy [delegateSupplier=" + delegateSupplier
-                + ", leaderElectionService=" + leaderElectionService
-                + ", executor=" + executor
-                + ", leadershipTokenRef=" + leadershipToken
-                + ", delegateRef=" + delegate
-                + ", interfaceClass=" + interfaceClass
-                + ", isClosed=" + isClosed
-                + ", isLeading=" + isLeading
-                + "]";
+        throw notCurrentLeaderException("method invoked on a non-leader (leadership lost)", cause);
     }
 
 }

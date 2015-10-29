@@ -42,6 +42,7 @@ import com.palantir.paxos.*;
  */
 public class PaxosLeaderElectionService implements PingableLeader, LeaderElectionService {
     private static final Logger log = LoggerFactory.getLogger(PaxosLeaderElectionService.class);
+    private static final Logger leaderLog = LoggerFactory.getLogger("leadership");
 
     public static final long DEFAULT_UPDATE_POLLING_WAIT_IN_MS = 1000;
     public static final long DEFAULT_RANDOM_WAIT_BEFORE_PROPOSING_LEADERSHIP_IN_MS = 2000;
@@ -97,6 +98,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                 if (leadingStatus == StillLeadingStatus.LEADING) {
                     return token;
                 } else if (leadingStatus == StillLeadingStatus.NO_QUORUM) {
+                    leaderLog.warn("The most recent known information says this server is the leader, but there is no quorum right now");
                     // If we don't have quorum we should just retry our calls.
                     continue;
                 }
@@ -318,9 +320,11 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                 seq = Defaults.defaultValue(long.class);
             }
 
+            leaderLog.info("Proposing leadership with sequence number " + seq);
             proposer.propose(seq, null);
         } catch (PaxosRoundFailureException e) {
             // We have failed trying to become the leader.
+            leaderLog.warn("Leadership was not gained", e);
             return;
         } finally {
             lock.unlock();
