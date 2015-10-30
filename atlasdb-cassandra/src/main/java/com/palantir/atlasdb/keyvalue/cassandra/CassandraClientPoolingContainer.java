@@ -22,6 +22,7 @@ import java.util.Date;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.Nonnull;
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
@@ -38,6 +39,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.pooling.AbstractPoolingContainer;
 
@@ -55,6 +59,17 @@ import com.palantir.common.pooling.AbstractPoolingContainer;
  */
 public class CassandraClientPoolingContainer extends AbstractPoolingContainer<Client> {
     private static final Logger log = LoggerFactory.getLogger(CassandraClientPoolingContainer.class);
+    private static final LoadingCache<String, SSLSocketFactory> sslSocketFactories =
+            CacheBuilder.newBuilder().build(new CacheLoader<String, SSLSocketFactory>() {
+                @Override
+                public SSLSocketFactory load(String host) throws Exception {
+                    /*
+                     * Use a separate SSLSocketFactory per host to reduce contention on the synchronized method
+                     * SecureRandom.nextBytes. Otherwise, this is identical to SSLSocketFactory.getDefault()
+                     */
+                    return SSLContext.getInstance("Default").getSocketFactory();
+                }
+            });
 
     private final String host;
     private final String keyspace;
@@ -240,7 +255,7 @@ public class CassandraClientPoolingContainer extends AbstractPoolingContainer<Cl
         if (isSsl) {
             boolean success = false;
             try {
-                SSLSocketFactory factory = (SSLSocketFactory) SSLSocketFactory.getDefault();
+                SSLSocketFactory factory = sslSocketFactories.getUnchecked(host);
                 SSLSocket socket = (SSLSocket) factory.createSocket(tSocket.getSocket(), host, port, true);
                 tSocket = new TSocket(socket);
                 success = true;
