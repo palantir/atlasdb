@@ -153,6 +153,7 @@ import com.palantir.util.Pair;
     private final TimeDuration maxAllowedBlockingDuration;
     private final TimeDuration maxNormalLockAge;
     private final int randomBitCount;
+    private final Runnable callOnClose;
     private volatile boolean isShutDown = false;
 
     private final LockClientIndices clientIndices = new LockClientIndices();
@@ -213,14 +214,19 @@ import com.palantir.util.Pair;
         if (log.isTraceEnabled()) {
             log.trace("Creating LockService with options=" + options);
         }
-        LockServiceImpl lockService = new LockServiceImpl(options);
-        JMXUtils.registerMBeanCatchAndLogExceptions(lockService,
-                "com.palantir.lock:type=LockServer_" + instanceCount.getAndIncrement());
+        final String jmxBeanRegistrationName = "com.palantir.lock:type=LockServer_" + instanceCount.getAndIncrement();
+        LockServiceImpl lockService = new LockServiceImpl(options, new Runnable() {
+            @Override public void run() {
+                JMXUtils.unregisterMBeanCatchAndLogExceptions(jmxBeanRegistrationName);
+            }
+        });
+        JMXUtils.registerMBeanCatchAndLogExceptions(lockService, jmxBeanRegistrationName);
         return lockService;
     }
 
-    private LockServiceImpl(LockServerOptions options) {
+    private LockServiceImpl(LockServerOptions options, Runnable callOnClose) {
         Preconditions.checkNotNull(options);
+        this.callOnClose = callOnClose;
         isStandaloneServer = options.isStandaloneServer();
         maxAllowedLockTimeout = SimpleTimeDuration.of(options.getMaxAllowedLockTimeout());
         maxAllowedClockDrift = SimpleTimeDuration.of(options.getMaxAllowedClockDrift());
@@ -1005,6 +1011,7 @@ import com.palantir.util.Pair;
     public void close() {
         isShutDown = true;
         executor.shutdownNow();
+        callOnClose.run();
     }
 
     @Override
