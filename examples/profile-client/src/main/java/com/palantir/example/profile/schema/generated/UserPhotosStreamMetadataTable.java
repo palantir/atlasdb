@@ -178,7 +178,7 @@ public final class UserPhotosStreamMetadataTable implements
                 int __index = 0;
                 Long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(id);
-                return UserPhotosStreamMetadataRow.of(id);
+                return new UserPhotosStreamMetadataRow(id);
             }
         };
 
@@ -625,5 +625,5 @@ public final class UserPhotosStreamMetadataTable implements
         return ImmutableList.of();
     }
 
-    static String __CLASS_HASH = "zNcjeszwItlnjkDopW5cBg==";
+    static String __CLASS_HASH = "uexr5coE457P6VunJXPhKA==";
 }

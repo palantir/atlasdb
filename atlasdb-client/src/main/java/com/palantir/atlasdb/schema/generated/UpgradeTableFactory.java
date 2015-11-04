@@ -10,7 +10,7 @@ import com.palantir.atlasdb.table.generation.Triggers;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
 public class UpgradeTableFactory {
-    private final static Namespace defaultNamespace = Namespace.create("upgrade");
+    private final static Namespace defaultNamespace = Namespace.create("upgrade", Namespace.UNCHECKED_NAME);
     private final List<Function<? super Transaction, SharedTriggers>> sharedTriggers;
     private final Namespace namespace;
 

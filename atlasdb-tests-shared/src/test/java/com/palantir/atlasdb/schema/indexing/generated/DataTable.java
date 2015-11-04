@@ -178,7 +178,7 @@ public final class DataTable implements
                 int __index = 0;
                 Long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 __index += 8;
-                return DataRow.of(id);
+                return new DataRow(id);
             }
         };
 
@@ -924,7 +924,7 @@ public final class DataTable implements
                     int __index = 0;
                     Long value = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                     __index += 8;
-                    return Index1IdxRow.of(value);
+                    return new Index1IdxRow(value);
                 }
             };
 
@@ -1044,7 +1044,7 @@ public final class DataTable implements
                     __index += EncodingUtils.sizeOfSizedBytes(columnName);
                     Long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                     __index += 8;
-                    return Index1IdxColumn.of(rowName, columnName, id);
+                    return new Index1IdxColumn(rowName, columnName, id);
                 }
             };
 
@@ -1567,7 +1567,7 @@ public final class DataTable implements
                     __index += 8;
                     Long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                     __index += 8;
-                    return Index2IdxRow.of(value, id);
+                    return new Index2IdxRow(value, id);
                 }
             };
 
@@ -1680,7 +1680,7 @@ public final class DataTable implements
                     __index += EncodingUtils.sizeOfSizedBytes(rowName);
                     byte[] columnName = EncodingUtils.decodeSizedBytes(__input, __index);
                     __index += EncodingUtils.sizeOfSizedBytes(columnName);
-                    return Index2IdxColumn.of(rowName, columnName);
+                    return new Index2IdxColumn(rowName, columnName);
                 }
             };
 
@@ -2190,7 +2190,7 @@ public final class DataTable implements
                     int __index = 0;
                     Long value = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                     __index += 8;
-                    return Index3IdxRow.of(value);
+                    return new Index3IdxRow(value);
                 }
             };
 
@@ -2291,7 +2291,7 @@ public final class DataTable implements
                     __index += EncodingUtils.sizeOfSizedBytes(rowName);
                     byte[] columnName = EncodingUtils.decodeSizedBytes(__input, __index);
                     __index += EncodingUtils.sizeOfSizedBytes(columnName);
-                    return Index3IdxColumn.of(rowName, columnName);
+                    return new Index3IdxColumn(rowName, columnName);
                 }
             };
 
@@ -2811,7 +2811,7 @@ public final class DataTable implements
                     __index += 8;
                     Long value2 = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                     __index += 8;
-                    return Index4IdxRow.of(value1, value2);
+                    return new Index4IdxRow(value1, value2);
                 }
             };
 
@@ -2924,7 +2924,7 @@ public final class DataTable implements
                     __index += EncodingUtils.sizeOfSizedBytes(rowName);
                     byte[] columnName = EncodingUtils.decodeSizedBytes(__input, __index);
                     __index += EncodingUtils.sizeOfSizedBytes(columnName);
-                    return Index4IdxColumn.of(rowName, columnName);
+                    return new Index4IdxColumn(rowName, columnName);
                 }
             };
 
@@ -3340,5 +3340,5 @@ public final class DataTable implements
     }
 
 
-    static String __CLASS_HASH = "4tqSV0ccERqprZI28T6I0w==";
+    static String __CLASS_HASH = "bZAmUBCCwDgWSe0Ud8pIlw==";
 }

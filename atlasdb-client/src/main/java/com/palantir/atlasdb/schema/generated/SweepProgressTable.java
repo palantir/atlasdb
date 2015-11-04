@@ -178,7 +178,7 @@ public final class SweepProgressTable implements
                 int __index = 0;
                 Long dummy = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(dummy);
-                return SweepProgressRow.of(dummy);
+                return new SweepProgressRow(dummy);
             }
         };
 
@@ -1018,5 +1018,5 @@ public final class SweepProgressTable implements
         return ImmutableList.of();
     }
 
-    static String __CLASS_HASH = "ehL5vm/72YkdZNZNA33rQQ==";
+    static String __CLASS_HASH = "Ld3TbQFLpRkHpBuyjmBBpw==";
 }

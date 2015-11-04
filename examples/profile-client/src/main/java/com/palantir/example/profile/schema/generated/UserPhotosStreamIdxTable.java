@@ -176,7 +176,7 @@ public final class UserPhotosStreamIdxTable implements
                 int __index = 0;
                 Long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(id);
-                return UserPhotosStreamIdxRow.of(id);
+                return new UserPhotosStreamIdxRow(id);
             }
         };
 
@@ -267,7 +267,7 @@ public final class UserPhotosStreamIdxTable implements
                 int __index = 0;
                 byte[] reference = EncodingUtils.decodeSizedBytes(__input, __index);
                 __index += EncodingUtils.sizeOfSizedBytes(reference);
-                return UserPhotosStreamIdxColumn.of(reference);
+                return new UserPhotosStreamIdxColumn(reference);
             }
         };
 
@@ -644,5 +644,5 @@ public final class UserPhotosStreamIdxTable implements
         return ImmutableList.of();
     }
 
-    static String __CLASS_HASH = "Rn+HjDJ8Yr2SxCYp4J7IlQ==";
+    static String __CLASS_HASH = "m8tnFTsL/evHVevvenmsGg==";
 }

@@ -188,7 +188,7 @@ public final class UserPhotosStreamValueTable implements
                 __index += EncodingUtils.sizeOfUnsignedVarLong(id);
                 Long blockId = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(blockId);
-                return UserPhotosStreamValueRow.of(id, blockId);
+                return new UserPhotosStreamValueRow(id, blockId);
             }
         };
 
@@ -613,5 +613,5 @@ public final class UserPhotosStreamValueTable implements
         return ImmutableList.of();
     }
 
-    static String __CLASS_HASH = "tjlODO2U7RJ1t2OB2ZGLvw==";
+    static String __CLASS_HASH = "4DIQB23Rz3Mq9f+d8uuD8g==";
 }

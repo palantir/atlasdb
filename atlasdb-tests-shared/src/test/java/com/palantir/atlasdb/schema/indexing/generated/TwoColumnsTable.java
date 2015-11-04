@@ -178,7 +178,7 @@ public final class TwoColumnsTable implements
                 int __index = 0;
                 Long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 __index += 8;
-                return TwoColumnsRow.of(id);
+                return new TwoColumnsRow(id);
             }
         };
 
@@ -954,7 +954,7 @@ public final class TwoColumnsTable implements
                     int __index = 0;
                     Long foo = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                     __index += 8;
-                    return FooToIdCondIdxRow.of(foo);
+                    return new FooToIdCondIdxRow(foo);
                 }
             };
 
@@ -1074,7 +1074,7 @@ public final class TwoColumnsTable implements
                     __index += EncodingUtils.sizeOfSizedBytes(columnName);
                     Long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                     __index += 8;
-                    return FooToIdCondIdxColumn.of(rowName, columnName, id);
+                    return new FooToIdCondIdxColumn(rowName, columnName, id);
                 }
             };
 
@@ -1553,7 +1553,7 @@ public final class TwoColumnsTable implements
                     int __index = 0;
                     Long foo = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                     __index += 8;
-                    return FooToIdIdxRow.of(foo);
+                    return new FooToIdIdxRow(foo);
                 }
             };
 
@@ -1673,7 +1673,7 @@ public final class TwoColumnsTable implements
                     __index += EncodingUtils.sizeOfSizedBytes(columnName);
                     Long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                     __index += 8;
-                    return FooToIdIdxColumn.of(rowName, columnName, id);
+                    return new FooToIdIdxColumn(rowName, columnName, id);
                 }
             };
 
@@ -2058,5 +2058,5 @@ public final class TwoColumnsTable implements
     }
 
 
-    static String __CLASS_HASH = "mGHb1bQ4clRh4woUn89ZUw==";
+    static String __CLASS_HASH = "dJtIQ+aGslHeQ/eHqPXwLg==";
 }
