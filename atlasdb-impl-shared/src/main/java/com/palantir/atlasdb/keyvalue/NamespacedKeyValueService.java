@@ -45,6 +45,8 @@ public interface NamespacedKeyValueService {
 
     void teardown();
 
+    TableMappingService getTableMapper();
+
     @Idempotent
     Map<Cell, Value> getRows(TableReference tableRef, Iterable<byte[]> rows,
                              ColumnSelection columnSelection,long timestamp);

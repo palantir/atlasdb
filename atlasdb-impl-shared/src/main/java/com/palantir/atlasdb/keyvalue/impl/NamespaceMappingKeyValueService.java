@@ -49,7 +49,7 @@ public class NamespaceMappingKeyValueService extends ForwardingObject implements
     }
 
     protected TableReference getTableReference(String tableName) {
-        return StaticTableMappingService.getTableReference(tableName);
+        return delegate().getTableMapper().getTableReference(tableName);
     }
 
     protected Set<String> resolveNamespacedSet(Set<TableReference> set) {

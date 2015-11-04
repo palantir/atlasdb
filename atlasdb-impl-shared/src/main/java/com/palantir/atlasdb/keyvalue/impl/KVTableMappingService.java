@@ -15,7 +15,10 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
+import java.util.List;
+
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.base.Supplier;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -56,7 +59,7 @@ public class KVTableMappingService extends AbstractTableMappingService {
     private final KeyValueService kv;
     private final Supplier<Long> uniqueLongSupplier;
 
-    private KVTableMappingService(KeyValueService kv, Supplier<Long> uniqueLongSupplier) {
+    protected KVTableMappingService(KeyValueService kv, Supplier<Long> uniqueLongSupplier) {
         this.kv = Preconditions.checkNotNull(kv);
         this.uniqueLongSupplier = Preconditions.checkNotNull(uniqueLongSupplier);
     }
