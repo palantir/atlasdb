@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.schema;
 
+import java.util.regex.Pattern;
+
 import org.apache.commons.lang.Validate;
 
 import com.google.common.base.Objects;
@@ -24,15 +26,41 @@ public final class Namespace {
     public static final Namespace EMPTY_NAMESPACE = new Namespace("");
     public static final Namespace DEFAULT_NAMESPACE = new Namespace("default");
 
+    /**
+     * Unchecked name pattern (no dots).
+     * <p>
+     * This will not protect you from creating namespace that are incompatible with your underlying datastore.
+     * <p>
+     * Use {@link Namespace.LOOSELY_CHECKED_NAME} or {@link Namespace.STRICTLY_CHECKED_NAME} if possible.
+     */
+    public static final Pattern UNCHECKED_NAME = Pattern.compile("^[^\\.\\s]+$");
+
+    /**
+     * Less restrictive name pattern (letters, numbers, underscores, and hyphens).
+     * <p>
+     * Use {@link Namespace.STRICTLY_CHECKED_NAME} if possible.
+     */
+    public static final Pattern LOOSELY_CHECKED_NAME = Pattern.compile("^[\\w-]+$");
+
+    /**
+     * Restrictive name pattern (letters, numbers, and non-initial single underscores).
+     */
+    public static final Pattern STRICTLY_CHECKED_NAME = Pattern.compile("^^(?!.*__.*)[a-zA-Z0-9][\\w]*$");
+
     private final String name;
 
     public static Namespace create(String name) {
-        Validate.isTrue(!Strings.isNullOrEmpty(name));
-        Validate.isTrue(isNamespaceValid(name), "'%s' contains invalid characters, only letters, numbers, or non-initial/non-trailing single underscores are allowed.", name);
+        return create(name, STRICTLY_CHECKED_NAME);
+    }
+
+    public static Namespace create(String name, Pattern p) {
+        Validate.notEmpty(name, "namespace name cannot be empty (see Namespace.EMPTY_NAMESPACE instead).");
+        Validate.isTrue(!name.contains("."), "namespace cannot contain dots (atlas reserved).");
+        Validate.isTrue(p.matcher(name).matches(), "'" + name + "' does not match namespace pattern '" + p + "'.");
         return new Namespace(name);
     }
 
-    Namespace(String name) {
+    private Namespace(String name) {
         this.name = name;
     }
 
@@ -64,26 +92,5 @@ public final class Namespace {
     @Override
     public String toString() {
         return "Namespace [name=" + name + "]";
-    }
-
-    public static boolean isNamespaceValid(String namespace) {
-        for (int i = 0; i < namespace.length() ; i++) {
-            char c = namespace.charAt(i);
-            if (!Character.isLetterOrDigit(c)) {
-                // only underscores are additionally allowed
-                if (c != '_') {
-                    return false;
-                }
-                // underscores must be non-initial and non-trailing
-                else if (i == 0 || i == namespace.length() - 1) {
-                    return false;
-                }
-                // disallow double underscores
-                else if (namespace.charAt(i + 1) == '_') {
-                    return false;
-                }
-            }
-        }
-        return true;
     }
 }
