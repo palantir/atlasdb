@@ -20,7 +20,6 @@ import java.util.regex.Pattern;
 import org.apache.commons.lang.Validate;
 
 import com.google.common.base.Objects;
-import com.google.common.base.Strings;
 
 public final class Namespace {
     public static final Namespace EMPTY_NAMESPACE = new Namespace("");
