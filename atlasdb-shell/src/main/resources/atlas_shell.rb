@@ -44,6 +44,10 @@ module AtlasDBShell
       Connection.new $atlas_shell_connection_factory.withSnapshotTransactionManagerInMemory, true
     end
 
+    def self.snapshot_from_rocksdb path
+      Connection.new $atlas_shell_connection_factory.withTransactionManagerRocksDb(path), true
+    end
+
     def self.readonly_from_cassandra host, port, identifier
       Connection.new $atlas_shell_connection_factory.withReadOnlyTransactionManagerCassandra(host, port, identifier), false
     end
@@ -990,6 +994,8 @@ module AtlasDBShell
       return nil
     elsif prefs[:type] == "MEMORY"
       $db = Connection.snapshot_in_memory
+    elsif prefs[:type] == "ROCKSDB"
+        $db = Connection.snapshot_from_rocksdb(prefs[:host])
     elsif prefs[:type] == "CASSANDRA"
       missing_prefs = [:host,:port,:identifier] - prefs.keys
       if missing_prefs.empty?
