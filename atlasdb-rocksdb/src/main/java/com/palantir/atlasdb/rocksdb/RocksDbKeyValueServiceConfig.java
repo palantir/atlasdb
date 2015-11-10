@@ -23,6 +23,7 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.rocksdb.impl.ImmutableWriteOpts;
 import com.palantir.atlasdb.keyvalue.rocksdb.impl.WriteOpts;
@@ -46,15 +47,23 @@ public abstract class RocksDbKeyValueServiceConfig implements KeyValueServiceCon
         return ImmutableWriteOpts.builder().build();
     }
 
+    public abstract Optional<String> nativeLibTmpDir();
+
     @Value.Check
     protected final void check() {
         Preconditions.checkArgument(dataDir().exists() || dataDir().mkdirs(),
                 "dataDir '%s' does not exist and cannot be created.", dataDir());
+
+        // Doing this here is not really ideal, but we need to do this very
+        // early in the process to prevent the default loading of the libraries
+        // to java.io.tmpdir that occurs as soon as any rocksdb classes are loaded.
+        if (nativeLibTmpDir().isPresent()) {
+            RocksDbNativeLibraryLoader.load(nativeLibTmpDir().get());
+        }
     }
 
     @Override
     public final String type() {
         return TYPE;
     }
-
 }
