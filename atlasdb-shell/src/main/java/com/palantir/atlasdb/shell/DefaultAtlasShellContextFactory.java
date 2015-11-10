@@ -23,6 +23,8 @@ import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.keyvalue.rocksdb.impl.RocksDbBoundStore;
+import com.palantir.atlasdb.keyvalue.rocksdb.impl.RocksDbKeyValueService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
@@ -36,6 +38,8 @@ import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timestamp.InMemoryTimestampService;
+import com.palantir.timestamp.PersistentTimestampService;
+import com.palantir.timestamp.TimestampBoundStore;
 import com.palantir.timestamp.TimestampService;
 
 public class DefaultAtlasShellContextFactory implements AtlasShellContextFactory {
@@ -73,6 +77,31 @@ public class DefaultAtlasShellContextFactory implements AtlasShellContextFactory
                 transactionService,
                 atlasdbConstraintCheckingMode);
         return getAtlasContext(keyValueService, transactionManager);
+    }
+
+    @Override
+    public AtlasContext withTransactionManagerRocksDb(String path) {
+        RocksDbKeyValueService kv = RocksDbKeyValueService.create(path);
+        LockClient lockClient = LockClient.of("in memory atlasdb instance");
+        LockService lockService = LockServiceImpl.create(new LockServerOptions() {
+            private final static long serialVersionUID = 5836783944180764369L;
+
+            @Override
+            public boolean isStandaloneServer() {
+                return false;
+            }
+        });
+        TransactionService transactionService = TransactionServices.createTransactionService(kv);
+        TimestampBoundStore boundStore = RocksDbBoundStore.create(kv);
+        TimestampService timestampService = PersistentTimestampService.create(boundStore);
+        kv.initializeFromFreshInstance();
+        SnapshotTransactionManager.createTables(kv);
+        return withSnapshotTransactionManager(
+                kv,
+                transactionService,
+                lockClient,
+                lockService,
+                timestampService);
     }
 
     @Override

@@ -38,6 +38,11 @@ public final class AtlasShellConnectionFactory {
         return AtlasShellConnection.createAtlasShellConnection(atlasContext);
     }
 
+    public AtlasShellConnection withTransactionManagerRocksDb(String path) {
+        AtlasContext atlasContext = atlasShellContextFactory.withTransactionManagerRocksDb(path);
+        return AtlasShellConnection.createAtlasShellConnection(atlasContext);
+    }
+
     /**
      * Create an {@link AtlasShellConnection} with a {@link SnapshotTransactionManager} in it,
      * implemented entirely in memory and with blank initial state

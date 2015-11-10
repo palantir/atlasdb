@@ -102,6 +102,14 @@ public class AtlasShellConnectionDialogView {
             portText.setText(null);
             portText.setVisible(false);
             portLabel.setVisible(false);
+        } else if (connectionType == AtlasShellConnectionType.ROCKSDB) {
+            hostText.setVisible(true);
+            hostLabel.setVisible(true);
+            hostLabel.setText("Dir Path:");
+
+            portText.setText(null);
+            portText.setVisible(false);
+            portLabel.setVisible(false);
         } else {
             hostText.setText(connectionType.getDefaultHostname());
             hostText.setVisible(true);

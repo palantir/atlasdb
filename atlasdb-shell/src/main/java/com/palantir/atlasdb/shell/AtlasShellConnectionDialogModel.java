@@ -201,6 +201,9 @@ public class AtlasShellConnectionDialogModel extends DefaultBindableModel {
         if (type == AtlasShellConnectionType.MEMORY) {
             return true;
         }
+        if (type == AtlasShellConnectionType.ROCKSDB) {
+            return !hostText.isEmpty();
+        }
         return !hostText.isEmpty() && !portText.isEmpty()
                 && !typeText.isEmpty() && validateIdentifier();
     }
