@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.rocksdb.impl;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.lang.management.ManagementFactory;
 import java.lang.reflect.Method;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
@@ -27,6 +28,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
 
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
@@ -38,6 +42,8 @@ import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
 import org.rocksdb.WriteBatch;
 import org.rocksdb.WriteOptions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
@@ -69,6 +75,7 @@ import com.palantir.util.MutuallyExclusiveSetLock.LockState;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 public class RocksDbKeyValueService implements KeyValueService {
+    private static final Logger log = LoggerFactory.getLogger(RocksDbKeyValueService.class);
     private static final String METADATA_TABLE_NAME = "_metadata";
     private static final long PUT_UNLESS_EXISTS_TS = 0L;
     private static final String LOCK_FILE_PREFIX = ".pt_kv_lock";
@@ -136,9 +143,23 @@ public class RocksDbKeyValueService implements KeyValueService {
                                                 ColumnFamilyOptions cfCommonOptions,
                                                 WriteOpts writeOptions) {
         try {
-            return lockAndCreateDb(new File(dataDir), dbOptions, cfMetadataOptions, cfCommonOptions, writeOptions);
-        } catch (RocksDBException | IOException e) {
+            RocksDbKeyValueService kvs = lockAndCreateDb(new File(dataDir), dbOptions, cfMetadataOptions, cfCommonOptions, writeOptions);
+            registerMBean(kvs);
+            return kvs;
+        } catch (Exception e) {
             throw Throwables.propagate(e);
+        }
+    }
+
+    private static void registerMBean(RocksDbKeyValueService kvs) {
+        try {
+            RocksDbMXBean mbean = new RocksDbMXBeanImpl(kvs.db, kvs.columnFamilies);
+            MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
+            ObjectName name = new ObjectName("com.palantir.rocksdb:type=RocksDbMBean,name=" + System.identityHashCode(mbean));
+            mbs.registerMBean(mbean, name);
+        } catch (Exception e) {
+            log.error("Failed to register mbean for rocksdb. It will " +
+                    "not be possible to force compactions or view stats through jmx.", e);
         }
     }
 
