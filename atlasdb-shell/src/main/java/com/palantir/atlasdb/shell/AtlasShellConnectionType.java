@@ -27,6 +27,7 @@ enum IDENTIFIER_REQUIRED {
 public enum AtlasShellConnectionType {
     MEMORY(IDENTIFIER_REQUIRED.NO, null, null, null, null),
     CASSANDRA(IDENTIFIER_REQUIRED.YES, "keyspace", "atlasdb", "localhost", "9160"),
+    ROCKSDB(IDENTIFIER_REQUIRED.NO, null, null, null, null),
 //    ORACLE(IDENTIFIER_REQUIRED.YES, "SID", "localhost", 1521),
 //    POSTGRESQL(IDENTIFIER_REQUIRED.YES, "dbname", "localhost", 5432),
 //    DISPATCH(IDENTIFIER_REQUIRED.NO, null, "localhost", 3280)
