@@ -37,10 +37,10 @@ public class RocksDbMXBeanImpl implements RocksDbMXBean {
 
     @Override
     public void forceCompaction() {
-        try {
-            db.compactRange();
-        } catch (RocksDBException e) {
-            throw Throwables.propagate(e);
+        for (String tableName : cfs.getTableNames()) {
+            if (cfs.getTableNames().contains(tableName)) {
+                forceCompaction(tableName);
+            }
         }
     }
 
@@ -58,11 +58,13 @@ public class RocksDbMXBeanImpl implements RocksDbMXBean {
 
     @Override
     public String getProperty(String property) {
-        try {
-            return db.getProperty(property);
-        } catch (RocksDBException e) {
-            throw Throwables.propagate(e);
+        StringBuilder s = new StringBuilder();
+        for (String tableName : cfs.getTableNames()) {
+            if (cfs.getTableNames().contains(tableName)) {
+                s.append(tableName).append(" : ").append(getProperty(tableName, property)).append("\n");
+            }
         }
+        return s.toString();
     }
 
     @Override
