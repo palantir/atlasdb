@@ -66,6 +66,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
+import com.google.common.collect.Sets;
 import com.google.common.collect.TreeMultiset;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.NamedThreadFactory;
@@ -192,6 +193,9 @@ import com.palantir.util.Pair;
 
     private final SetMultimap<LockClient, LockRequest> outstandingLockRequestMultimap =
         Multimaps.synchronizedSetMultimap(HashMultimap.<LockClient, LockRequest>create());
+
+    private final Set<Thread> indefinitelyBlockingThreads =
+            Sets.newConcurrentHashSet();
 
     private final Multimap<LockClient, Long> versionIdMap = Multimaps.synchronizedMultimap(
             Multimaps.newMultimap(Maps.<LockClient, Collection<Long>>newHashMap(), new Supplier<TreeMultiset<Long>>() {
@@ -343,6 +347,10 @@ import com.palantir.util.Pair;
             throw new ServiceNotAvailableException("This lock server is shut down.");
         }
         try {
+            boolean indefinitelyBlocking = isIndefinitelyBlocking(request.getBlockingMode());
+            if (indefinitelyBlocking) {
+                indefinitelyBlockingThreads.add(Thread.currentThread());
+            }
             outstandingLockRequestMultimap.put(client, request);
             Map<LockDescriptor, LockClient> failedLocks = Maps.newHashMap();
             @Nullable Long deadline = (request.getBlockingDuration() == null) ? null
@@ -417,6 +425,7 @@ import com.palantir.util.Pair;
             return new LockResponse(token, failedLocks);
         } finally {
             outstandingLockRequestMultimap.remove(client, request);
+            indefinitelyBlockingThreads.remove(Thread.currentThread());
             try {
                 for (Entry<ClientAwareReadWriteLock, LockMode> entry : locks.entrySet()) {
                     entry.getKey().get(client, entry.getValue()).unlock();
@@ -426,6 +435,11 @@ import com.palantir.util.Pair;
                 throw Throwables.throwUncheckedException(e);
             }
         }
+    }
+
+    private boolean isIndefinitelyBlocking(BlockingMode blockingMode) {
+        return BlockingMode.BLOCK_INDEFINITELY.equals(blockingMode) ||
+                BlockingMode.BLOCK_INDEFINITELY_THEN_RELEASE.equals(blockingMode);
     }
 
     private void tryLocks(LockClient client, LockRequest request, BlockingMode blockingMode,
@@ -1013,7 +1027,14 @@ import com.palantir.util.Pair;
     public void close() {
         isShutDown = true;
         executor.shutdownNow();
+        wakeIndefiniteBlockers();
         callOnClose.run();
+    }
+
+    private void wakeIndefiniteBlockers() {
+        for (Thread blocked : indefinitelyBlockingThreads) {
+            blocked.interrupt();
+        }
     }
 
     @Override
