@@ -123,7 +123,7 @@ public final class AwaitingLeadershipProxy implements InvocationHandler {
                 clearDelegate();
             } else {
                 leadershipTokenRef.set(leadershipToken);
-                leaderLog.warn("Gained leadership");
+                leaderLog.warn("Gained leadership for {}", leadershipToken);
             }
         } catch (InterruptedException e) {
             log.warn("attempt to gain leadership interrupted", e);

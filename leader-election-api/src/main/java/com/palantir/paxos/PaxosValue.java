@@ -1,18 +1,3 @@
-/**
- * Copyright 2015 Palantir Technologies
- *
- * Licensed under the BSD-3 License (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://opensource.org/licenses/BSD-3-Clause
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package com.palantir.paxos;
 
 import java.io.Serializable;
@@ -20,10 +5,9 @@ import java.util.Arrays;
 
 import javax.annotation.Nullable;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Defaults;
 import com.google.common.base.Preconditions;
+import com.google.common.io.BaseEncoding;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.common.annotation.Immutable;
@@ -52,12 +36,10 @@ public class PaxosValue implements Persistable, Versionable, Serializable {
         }
     };
 
-    public PaxosValue(@JsonProperty("leaderUUID") String leaderUUID,
-                      @JsonProperty("round") long round,
-                      @JsonProperty("data") @Nullable byte[] data) {
+    public PaxosValue(String leaderUUID, long seq, @Nullable byte[] val) {
         this.leaderUUID = Preconditions.checkNotNull(leaderUUID);
-        this.seq = round;
-        this.data = data;
+        this.seq = seq;
+        this.data = val;
     }
 
     public String getLeaderUUID() {
@@ -103,7 +85,6 @@ public class PaxosValue implements Persistable, Versionable, Serializable {
     }
 
     @Override
-    @JsonIgnore
     public long getVersion() {
         return 0;
     }
@@ -149,7 +130,11 @@ public class PaxosValue implements Persistable, Versionable, Serializable {
 
     @Override
     public String toString() {
-        return "PaxosValue [data=" + Arrays.toString(data) + ", leaderUUID="
-                + leaderUUID + ", seq=" + seq + "]";
+        return "PaxosValue{"
+                + "data=" + (data == null ? "null" : BaseEncoding.base16().encode(data))
+                + ", leaderUUID='" + leaderUUID + '\''
+                + ", seq=" + seq
+                + '}';
     }
+
 }

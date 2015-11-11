@@ -48,4 +48,9 @@ public class PaxosLeadershipToken implements LeadershipToken {
                                           .append(value.getData(), v.getData())
                                           .toComparison() == 0);
     }
+
+    @Override
+    public String toString() {
+        return "PaxosLeadershipToken{" + value + '}';
+    }
 }

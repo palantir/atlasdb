@@ -42,6 +42,8 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
 
+import org.joda.time.DateTime;
+import org.joda.time.format.ISODateTimeFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1022,7 +1024,9 @@ import com.palantir.util.Pair;
     private String getRequestDescription(LockRequest request) {
         StringBuilder builder = new StringBuilder();
         builder.append("\twaiting to lock() ").append(request);
-        builder.append("\n\tfor requesting thread\n\t\t").append(request.getCreatingThreadName()).append("\n");
+        builder.append(" starting at ").append(ISODateTimeFormat.dateTime().print(DateTime.now()));
+        builder.append("\n\tfor requesting thread\n\t\t");
+        builder.append(request.getCreatingThreadName()).append("\n");
         return builder.toString();
     }
 

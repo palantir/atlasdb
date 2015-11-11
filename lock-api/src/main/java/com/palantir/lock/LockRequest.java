@@ -1,26 +1,8 @@
-/**
- * Copyright 2015 Palantir Technologies
- *
- * Licensed under the BSD-3 License (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://opensource.org/licenses/BSD-3-Clause
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package com.palantir.lock;
 
 import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
 
@@ -28,17 +10,9 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
 
 /**
  * An encapsulation of all parameters needed to make a locking request to the
@@ -46,7 +20,6 @@ import com.google.common.collect.Maps;
  *
  * @author jtamer
  */
-@JsonDeserialize(builder=LockRequest.SerializationProxy.class)
 @Immutable public final class LockRequest implements Serializable {
     private static final long serialVersionUID = 0xf6c12b970b44af68l;
 
@@ -95,18 +68,8 @@ import com.google.common.collect.Maps;
      * locks which were actually acquired successfully, use
      * {@link HeldLocksToken#getLocks()} instead.
      */
-    @JsonIgnore
     public SortedLockCollection<LockDescriptor> getLockDescriptors() {
         return lockMap;
-    }
-
-    public List<LockWithMode> getLocks() {
-        return ImmutableList.copyOf(Iterables.transform(lockMap.entries(), new Function<Map.Entry<LockDescriptor, LockMode>, LockWithMode>() {
-            @Override
-            public LockWithMode apply(Entry<LockDescriptor, LockMode> input) {
-                return new LockWithMode(input.getKey(), input.getValue());
-            }
-        }));
     }
 
     /**
@@ -194,6 +157,7 @@ import com.google.common.collect.Maps;
 
     @Override public String toString() {
         return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .omitNullValues()
                 .add("lockCount", lockMap.size())
                 .add("firstLock", lockMap.entries().iterator().next())
                 .add("lockTimeout", lockTimeout)
@@ -220,6 +184,7 @@ import com.google.common.collect.Maps;
      * @author jtamer
      */
     @NotThreadSafe public static final class Builder {
+
         @Nullable private SortedLockCollection<LockDescriptor> lockMap;
         @Nullable private TimeDuration lockTimeout;
         @Nullable private LockGroupBehavior lockGroupBehavior;
@@ -384,7 +349,7 @@ import com.google.common.collect.Maps;
         }
     }
 
-    static final class SerializationProxy implements Serializable {
+    private static class SerializationProxy implements Serializable {
         private static final long serialVersionUID = 0xd6b8378030ed100dl;
 
         private final SortedLockCollection<LockDescriptor> lockMap;
@@ -403,31 +368,6 @@ import com.google.common.collect.Maps;
             blockingDuration = lockRequest.blockingDuration;
             versionId = lockRequest.versionId;
             creatingThreadName = lockRequest.creatingThreadName;
-        }
-
-        @JsonCreator
-        public SerializationProxy(@JsonProperty("locks") List<LockWithMode> locks,
-                                  @JsonProperty("lockTimeout") TimeDuration lockTimeout,
-                                  @JsonProperty("lockGroupBehavior") LockGroupBehavior lockGroupBehavior,
-                                  @JsonProperty("blockingMode") BlockingMode blockingMode,
-                                  @JsonProperty("blockingDuration") TimeDuration blockingDuration,
-                                  @JsonProperty("versionId") Long versionId,
-                                  @JsonProperty("creatingThreadName") String creatingThreadName) {
-            SortedMap<LockDescriptor, LockMode> localLockMap = Maps.newTreeMap();
-            for (LockWithMode lock : locks) {
-                localLockMap.put(lock.getLockDescriptor(), lock.getLockMode());
-            }
-            this.lockMap = LockCollections.of(localLockMap);
-            this.lockTimeout = lockTimeout;
-            this.lockGroupBehavior = lockGroupBehavior;
-            this.blockingMode = blockingMode;
-            this.blockingDuration = blockingDuration;
-            this.versionId = versionId;
-            this.creatingThreadName = creatingThreadName;
-        }
-
-        public LockRequest build() {
-            return (LockRequest) readResolve();
         }
 
         Object readResolve() {

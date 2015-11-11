@@ -37,5 +37,6 @@ configurations.matching({ it.name in ['compile', 'runtime'] }).all {
         force 'commons-cli:commons-cli:1.3.1'
         force 'commons-codec:commons-codec:1.6'
         force 'junit:junit:4.10'
+        force 'joda-time:joda-time:2.7'
     }
 }
