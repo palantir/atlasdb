@@ -20,6 +20,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.google.common.base.Throwables;
 
@@ -27,7 +28,7 @@ public class BlockingWorkerPool {
     private final CompletionService<Void> service;
     private final int concurrentTaskLimit;
 
-    private int currentTaskCount = 0;
+    private final AtomicInteger currentTaskCount = new AtomicInteger();
 
     public BlockingWorkerPool(ExecutorService executor, int concurrentTaskLimit) {
         this.service = new ExecutorCompletionService<Void>(executor);
@@ -46,16 +47,16 @@ public class BlockingWorkerPool {
             throws InterruptedException {
         waitForAvailability();
 
-        assert currentTaskCount < concurrentTaskLimit;
+        assert currentTaskCount.get() < concurrentTaskLimit : "currentTaskCount must be less than currentTaskLimit";
         service.submit(task, null);
-        ++currentTaskCount;
+        currentTaskCount.incrementAndGet();
     }
 
     private void waitForSingleTask() throws InterruptedException {
-        if (currentTaskCount <= 0) { return; }
+        if (currentTaskCount.get() <= 0) { return; }
 
         Future<Void> f = service.take();
-        --currentTaskCount;
+        currentTaskCount.decrementAndGet();
         try {
             f.get();
         } catch (ExecutionException e) {
@@ -72,7 +73,7 @@ public class BlockingWorkerPool {
      */
     public synchronized void waitForSubmittedTasks()
             throws InterruptedException {
-        while (currentTaskCount > 0) {
+        while (currentTaskCount.get() > 0) {
             waitForSingleTask();
         }
     }
@@ -82,7 +83,7 @@ public class BlockingWorkerPool {
      * @throws InterruptedException
      */
     public synchronized void waitForAvailability() throws InterruptedException {
-        if (currentTaskCount >= concurrentTaskLimit) {
+        if (currentTaskCount.get() >= concurrentTaskLimit) {
             waitForSingleTask();
         }
     }
