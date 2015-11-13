@@ -29,21 +29,19 @@ import com.palantir.lock.RemoteLockService;
 import com.palantir.timestamp.TimestampService;
 
 public class DefaultCleanerBuilder {
-    private static final int PUNCH_INTERVAL_MILLIS = 60000;
-    private static final long DEFAULT_TRANSACTION_READ_TIMEOUT_MILLIS = 24 * 60 * 60 * 1000;
-    private static final boolean DEFAULT_AGGRESSIVE_SCRUB = false;
-    private static final int DEFAULT_SCRUB_BATCH_SIZE = 2000;
-    private static final int DEFAULT_SCRUB_THREADS = 8;
+    private final KeyValueService keyValueService;
+    private final RemoteLockService lockService;
+    private final TimestampService timestampService;
+    private final LockClient lockClient;
+    private final List<Follower> followerList;
+    private final TransactionService transactionService;
 
-    private static final Supplier<Long> readTimeoutSupplier = Suppliers.ofInstance(DEFAULT_TRANSACTION_READ_TIMEOUT_MILLIS);
-    private static final Supplier<Integer> batchSizeSupplier = Suppliers.ofInstance(DEFAULT_SCRUB_BATCH_SIZE);
-
-    final KeyValueService keyValueService;
-    final RemoteLockService lockService;
-    final TimestampService timestampService;
-    final LockClient lockClient;
-    final List<Follower> followerList;
-    final TransactionService transactionService;
+    private long transactionReadTimeout = AtlasDbConstants.DEFAULT_TRANSACTION_READ_TIMEOUT;
+    private long punchIntervalMillis = AtlasDbConstants.DEFAULT_PUNCH_INTERVAL_MILLIS;
+    private boolean backgroundScrubAggressively = AtlasDbConstants.DEFAULT_BACKGROUND_SCRUB_AGGRESSIVELY;
+    private int backgroundScrubThreads = AtlasDbConstants.DEFAULT_BACKGROUND_SCRUB_THREADS;
+    private long backgroundScrubFrequencyMillis = AtlasDbConstants.DEFAULT_BACKGROUND_SCRUB_FREQUENCY_MILLIS;
+    private int backgroundScrubBatchSize = AtlasDbConstants.DEFAULT_BACKGROUND_SCRUB_BATCH_SIZE;
 
     public DefaultCleanerBuilder(KeyValueService keyValueService,
                                  RemoteLockService lockService,
@@ -59,33 +57,62 @@ public class DefaultCleanerBuilder {
         this.transactionService = transactionService;
     }
 
+    public DefaultCleanerBuilder setTransactionReadTimeout(long transactionReadTimeout) {
+        this.transactionReadTimeout = transactionReadTimeout;
+        return this;
+    }
+
+    public DefaultCleanerBuilder setPunchIntervalMillis(long punchIntervalMillis) {
+        this.punchIntervalMillis = punchIntervalMillis;
+        return this;
+    }
+
+    public DefaultCleanerBuilder setBackgroundScrubAggressively(boolean backgroundScrubAggressively) {
+        this.backgroundScrubAggressively = backgroundScrubAggressively;
+        return this;
+    }
+
+    public DefaultCleanerBuilder setBackgroundScrubThreads(int backgroundScrubThreads) {
+        this.backgroundScrubThreads = backgroundScrubThreads;
+        return this;
+    }
+
+    public DefaultCleanerBuilder setBackgroundScrubFrequencyMillis(long backgroundScrubFrequencyMillis) {
+        this.backgroundScrubFrequencyMillis = backgroundScrubFrequencyMillis;
+        return this;
+    }
+
+    public DefaultCleanerBuilder setBackgroundScrubBatchSize(int backgroundScrubBatchSize) {
+        this.backgroundScrubBatchSize = backgroundScrubBatchSize;
+        return this;
+    }
+
     private Puncher buildPuncher() {
         KeyValueServicePuncherStore keyValuePuncherStore = KeyValueServicePuncherStore.create(keyValueService);
         PuncherStore cachingPuncherStore = CachingPuncherStore.create(
                 keyValuePuncherStore,
-                PUNCH_INTERVAL_MILLIS * 3);
+                punchIntervalMillis * 3);
         Clock clock = GlobalClock.create(lockService);
         SimplePuncher simplePuncher = SimplePuncher.create(
                 cachingPuncherStore,
                 clock,
-                readTimeoutSupplier);
-        return AsyncPuncher.create(simplePuncher, PUNCH_INTERVAL_MILLIS);
+                Suppliers.ofInstance(transactionReadTimeout));
+        return AsyncPuncher.create(simplePuncher, punchIntervalMillis);
     }
 
     private Scrubber buildScrubber(Supplier<Long> unreadableTimestampSupplier,
-                          Supplier<Long> immutableTimestampSupplier) {
+                                   Supplier<Long> immutableTimestampSupplier) {
         ScrubberStore scrubberStore = KeyValueServiceScrubberStore.create(keyValueService);
-        Supplier<Long> backgroundScrubFrequencyMillisSupplier = Suppliers.ofInstance(AtlasDbConstants.DEFAULT_BACKGROUND_SCRUB_FREQUENCY_MILLIS);
         return Scrubber.create(
                 keyValueService,
                 scrubberStore,
-                backgroundScrubFrequencyMillisSupplier,
+                Suppliers.ofInstance(backgroundScrubFrequencyMillis),
                 unreadableTimestampSupplier,
                 immutableTimestampSupplier,
                 transactionService,
-                DEFAULT_AGGRESSIVE_SCRUB,
-                batchSizeSupplier,
-                DEFAULT_SCRUB_THREADS,
+                backgroundScrubAggressively,
+                Suppliers.ofInstance(backgroundScrubBatchSize),
+                backgroundScrubThreads,
                 followerList);
     }
 
@@ -93,6 +120,9 @@ public class DefaultCleanerBuilder {
         Puncher puncher = buildPuncher();
         Supplier<Long> immutableTs = ImmutableTimestampSupplier.createMemoizedWithExpiration(lockService, timestampService, lockClient);
         Scrubber scrubber = buildScrubber(puncher.getTimestampSupplier(), immutableTs);
-        return new SimpleCleaner(scrubber, puncher, readTimeoutSupplier);
+        return new SimpleCleaner(
+                scrubber,
+                puncher,
+                Suppliers.ofInstance(transactionReadTimeout));
     }
 }

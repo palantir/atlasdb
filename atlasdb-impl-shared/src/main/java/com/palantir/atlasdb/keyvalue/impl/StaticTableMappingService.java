@@ -15,16 +15,12 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-import java.util.List;
 import java.util.Set;
 
-import com.google.common.base.Splitter;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.TableMappingService;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.schema.TableReference;
 
 public class StaticTableMappingService extends AbstractTableMappingService {

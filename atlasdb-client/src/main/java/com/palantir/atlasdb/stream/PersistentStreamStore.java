@@ -17,7 +17,6 @@ package com.palantir.atlasdb.stream;
 
 import java.io.InputStream;
 import java.util.Map;
-import java.util.Set;
 
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.util.Pair;

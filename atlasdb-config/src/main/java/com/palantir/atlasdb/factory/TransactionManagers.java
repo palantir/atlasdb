@@ -33,12 +33,17 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
+import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.NamespacedKeyValueServices;
+import com.palantir.atlasdb.schema.SweepSchema;
+import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
+import com.palantir.atlasdb.sweep.BackgroundSweeper;
+import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -55,6 +60,7 @@ import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.client.LockRefreshingRemoteLockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timestamp.TimestampService;
 
@@ -68,8 +74,10 @@ public class TransactionManagers {
      * Create a {@link SerializableTransactionManager} with provided configuration, {@link SSLSocketFactory}, {@link Schema},
      * and an environment in which to register HTTP server endpoints.
      */
-    public static SerializableTransactionManager create(
-            AtlasDbConfig config, Optional<SSLSocketFactory> sslSocketFactory, Schema schema, Environment env) {
+    public static SerializableTransactionManager create(AtlasDbConfig config,
+                                                        Optional<SSLSocketFactory> sslSocketFactory,
+                                                        Schema schema,
+                                                        Environment env) {
         return create(config, sslSocketFactory, ImmutableSet.of(schema), env);
     }
 
@@ -78,9 +86,9 @@ public class TransactionManagers {
      * {@link Schema}s, and an environment in which to register HTTP server endpoints.
      */
     public static SerializableTransactionManager create(AtlasDbConfig config,
-                                            Optional<SSLSocketFactory> sslSocketFactory,
-                                            Set<Schema> schemas,
-                                            Environment env) {
+                                                        Optional<SSLSocketFactory> sslSocketFactory,
+                                                        Set<Schema> schemas,
+                                                        Environment env) {
         final AtlasDbFactory kvsFactory = getKeyValueServiceFactory(config.keyValueService().type());
         final KeyValueService rawKvs = kvsFactory.createRawKeyValueService(config.keyValueService());
         KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs);
@@ -98,6 +106,10 @@ public class TransactionManagers {
                         return kvsFactory.createTimestampService(rawKvs);
                     }
                 });
+        lts = ImmutableLockAndTimestampServices.builder()
+                .from(lts)
+                .lock(LockRefreshingRemoteLockService.create(lts.lock()))
+                .build();
 
         SnapshotTransactionManager.createTables(kvs);
 
@@ -107,18 +119,26 @@ public class TransactionManagers {
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.createDefault(kvs);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(kvs);
 
-        for (Schema schema : schemas) {
+        for (Schema schema : ImmutableSet.<Schema>builder().add(SweepSchema.INSTANCE.getLatestSchema()).addAll(schemas).build()) {
             Schemas.createTablesAndIndexes(schema, kvs);
         }
 
         CleanupFollower follower = CleanupFollower.create(schemas);
 
-        Cleaner cleaner = new DefaultCleanerBuilder(kvs,
+        Cleaner cleaner = new DefaultCleanerBuilder(
+                kvs,
                 lts.lock(),
                 lts.time(),
                 lockClient,
                 ImmutableList.of(follower),
-                transactionService).buildCleaner();
+                transactionService)
+                .setBackgroundScrubAggressively(config.backgroundScrubAggressively())
+                .setBackgroundScrubBatchSize(config.getBackgroundScrubBatchSize())
+                .setBackgroundScrubFrequencyMillis(config.getBackgroundScrubFrequencyMillis())
+                .setBackgroundScrubThreads(config.getBackgroundScrubThreads())
+                .setPunchIntervalMillis(config.getPunchIntervalMillis())
+                .setTransactionReadTimeout(config.getTransactionReadTimeoutMillis())
+                .buildCleaner();
 
         SerializableTransactionManager transactionManager = new SerializableTransactionManager(kvs,
                 lts.time(),
@@ -130,7 +150,43 @@ public class TransactionManagers {
                 sweepStrategyManager,
                 cleaner);
 
+        SweepTaskRunner sweepRunner = new SweepTaskRunner(
+                transactionManager,
+                kvs,
+                getUnreadableTsSupplier(transactionManager),
+                getImmutableTsSupplier(transactionManager),
+                transactionService,
+                sweepStrategyManager,
+                ImmutableList.<Follower>of(follower));
+        BackgroundSweeper backgroundSweeper = new BackgroundSweeper(
+                transactionManager,
+                kvs,
+                sweepRunner,
+                Suppliers.ofInstance(config.enableSweep()),
+                Suppliers.ofInstance(config.getSweepPauseMillis()),
+                Suppliers.ofInstance(config.getSweepBatchSize()),
+                SweepTableFactory.of());
+        backgroundSweeper.runInBackground();
+
         return transactionManager;
+    }
+
+    private static Supplier<Long> getImmutableTsSupplier(final TransactionManager txManager) {
+        return new Supplier<Long>() {
+            @Override
+            public Long get() {
+                return txManager.getImmutableTimestamp();
+            }
+        };
+    }
+
+    private static Supplier<Long> getUnreadableTsSupplier(final TransactionManager txManager) {
+        return new Supplier<Long>() {
+            @Override
+            public Long get() {
+                return txManager.getUnreadableTimestamp();
+            }
+        };
     }
 
     private static AtlasDbFactory getKeyValueServiceFactory(String type) {
