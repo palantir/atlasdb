@@ -17,8 +17,6 @@ package com.palantir.atlasdb.stream;
 
 import java.io.File;
 import java.io.InputStream;
-import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.CheckForNull;

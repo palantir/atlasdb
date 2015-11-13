@@ -79,7 +79,7 @@ public interface Cleaner extends Closeable {
      * getting back no data. This is needed to ensure that all transactions either produce correct values or fail.
      * It is not an option to return incorrect data.
      */
-    public long getUnreadableTimestamp();
+    long getUnreadableTimestamp();
 
     /**
      * Release resources.

@@ -71,7 +71,6 @@ import com.palantir.common.concurrent.PTExecutors;
  */
 public final class Scrubber {
     private static final Logger log = LoggerFactory.getLogger(Scrubber.class);
-    private static final int AGGRESSIVE_SCRUB_FREQUENCY_IN_MILLIS = 5 * 60 * 1000; // 5 min
     private static final int MAX_RETRY_ATTEMPTS = 100;
     private static final int RETRY_SLEEP_INTERVAL_IN_MILLIS = 1000;
 
