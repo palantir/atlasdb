@@ -346,8 +346,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         rawResults.keySet().removeAll(result.keySet());
 
         SortedMap<byte[], RowResult<byte[]>> results = filterRowResults(tableName, rawResults, result);
-        if (perfLogger.isInfoEnabled()) {
-            perfLogger.info("getRows({}, {} rows) found {} rows, took {} ms",
+        if (perfLogger.isDebugEnabled()) {
+            perfLogger.debug("getRows({}, {} rows) found {} rows, took {} ms",
                     tableName, Iterables.size(rows), results.size(), watch.elapsed(TimeUnit.MILLISECONDS));
         }
         validateExternalAndCommitLocksIfNecessary(tableName);
@@ -415,8 +415,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         // We don't need to read any cells that were written locally.
         result.putAll(getFromKeyValueService(tableName, Sets.difference(cells, result.keySet())));
 
-        if (perfLogger.isInfoEnabled()) {
-            perfLogger.info("get({}, {} cells) found {} cells (some possibly deleted), took {} ms",
+        if (perfLogger.isDebugEnabled()) {
+            perfLogger.debug("get({}, {} cells) found {} cells (some possibly deleted), took {} ms",
                     tableName, cells.size(), result.size(), watch.elapsed(TimeUnit.MILLISECONDS));
         }
         validateExternalAndCommitLocksIfNecessary(tableName);
@@ -740,7 +740,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
             // If the last row we got was the maximal row, then we are done.
             if (RangeRequests.isTerminalRow(range.isReverse(), lastRow)) {
-                results = ClosableIterators.wrap(Iterators.<RowResult<Value>>emptyIterator());
+                results = ClosableIterators.wrap(ImmutableList.<RowResult<Value>>of().iterator());
                 return;
             }
 
@@ -1110,7 +1110,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 checkConstraints();
                 commitWrites(transactionService);
             }
-            perfLogger.info("Commited transaction {} in {}ms",
+            perfLogger.debug("Commited transaction {} in {}ms",
                     getStartTimestamp(),
                     getTrasactionTimer().elapsed(TimeUnit.MILLISECONDS));
             success = true;
@@ -1186,13 +1186,15 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 log.error(errorMessage, new TransactionFailedRetriableException(errorMessage));
             }
             long millisSinceCreation = System.currentTimeMillis() - timeCreated;
-            perfLogger.info("Committed {} bytes with locks, start ts {}, commit ts {}, " +
-                    "acquiring locks took {} ms, checking for conflicts took {} ms, " +
-                    "writing took {} ms, punch took {} ms, putCommitTs took {} ms, " +
-                    "total time since tx creation {} ms, tables: {}.",
-                    byteCount.get(), getStartTimestamp(),
-                    commitTimestamp, millisForLocks, millisCheckingForConflicts, millisForWrites,
-                    millisForPunch, millisForCommitTs, millisSinceCreation, writesByTable.keySet());
+            if (perfLogger.isDebugEnabled()) {
+                perfLogger.debug("Committed {} bytes with locks, start ts {}, commit ts {}, " +
+                        "acquiring locks took {} ms, checking for conflicts took {} ms, " +
+                        "writing took {} ms, punch took {} ms, putCommitTs took {} ms, " +
+                        "total time since tx creation {} ms, tables: {}.",
+                        byteCount.get(), getStartTimestamp(),
+                        commitTimestamp, millisForLocks, millisCheckingForConflicts, millisForWrites,
+                        millisForPunch, millisForCommitTs, millisSinceCreation, writesByTable.keySet());
+            }
         } finally {
             lockService.unlock(commitLocksToken);
         }
@@ -1581,7 +1583,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (waitForCommitterToComplete) {
             Stopwatch watch = Stopwatch.createStarted();
             waitForCommitToComplete(startTimestamps);
-            perfLogger.info("Waited {} ms to get commit timestamps for table {}.",
+            perfLogger.debug("Waited {} ms to get commit timestamps for table {}.",
                     watch.elapsed(TimeUnit.MILLISECONDS), tableName);
         }
 
