@@ -60,6 +60,7 @@ import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.client.LockRefreshingRemoteLockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timestamp.TimestampService;
 
@@ -105,6 +106,10 @@ public class TransactionManagers {
                         return kvsFactory.createTimestampService(rawKvs);
                     }
                 });
+        lts = ImmutableLockAndTimestampServices.builder()
+                .from(lts)
+                .lock(LockRefreshingRemoteLockService.create(lts.lock()))
+                .build();
 
         SnapshotTransactionManager.createTables(kvs);
 
