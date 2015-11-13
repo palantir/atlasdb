@@ -42,9 +42,6 @@ public class DefaultCleanerBuilder {
     private int backgroundScrubThreads = AtlasDbConstants.DEFAULT_BACKGROUND_SCRUB_THREADS;
     private long backgroundScrubFrequencyMillis = AtlasDbConstants.DEFAULT_BACKGROUND_SCRUB_FREQUENCY_MILLIS;
     private int backgroundScrubBatchSize = AtlasDbConstants.DEFAULT_BACKGROUND_SCRUB_BATCH_SIZE;
-    private boolean enableSweep = AtlasDbConstants.DEFAULT_ENABLE_SWEEP;
-    private long sweepPauseMillis = AtlasDbConstants.DEFAULT_SWEEP_PAUSE_MILLIS;
-    private int sweepBatchSize = AtlasDbConstants.DEFAULT_SWEEP_BATCH_SIZE;
 
     public DefaultCleanerBuilder(KeyValueService keyValueService,
                                  RemoteLockService lockService,
@@ -87,21 +84,6 @@ public class DefaultCleanerBuilder {
 
     public DefaultCleanerBuilder setBackgroundScrubBatchSize(int backgroundScrubBatchSize) {
         this.backgroundScrubBatchSize = backgroundScrubBatchSize;
-        return this;
-    }
-
-    public DefaultCleanerBuilder setEnableSweep(boolean enableSweep) {
-        this.enableSweep = enableSweep;
-        return this;
-    }
-
-    public DefaultCleanerBuilder setSweepPauseMillis(long sweepPauseMillis) {
-        this.sweepPauseMillis = sweepPauseMillis;
-        return this;
-    }
-
-    public DefaultCleanerBuilder setSweepBatchSize(int sweepBatchSize) {
-        this.sweepBatchSize = sweepBatchSize;
         return this;
     }
 
