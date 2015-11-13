@@ -15,10 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-import java.util.List;
-
 import com.google.common.base.Preconditions;
-import com.google.common.base.Splitter;
 import com.google.common.base.Supplier;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;

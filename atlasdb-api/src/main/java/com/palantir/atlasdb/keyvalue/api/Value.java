@@ -25,7 +25,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
-import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.encoding.PtBytes;
 
 /**

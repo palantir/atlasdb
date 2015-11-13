@@ -27,20 +27,7 @@ import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 public class AtlasDbConstants {
     public static final Logger PERF_LOG = LoggerFactory.getLogger("dualschema.perf");
 
-    public static final int DEFAULT_CASSANDRA_PORT = 9160;
-    public static final int DEFAULT_REPLICATION_FACTOR = 3;
-
-
-    public static final long BASE_REALM_ID = 1L;
-    public static final int DEFAULT_RANGE_BATCH_SIZE = 100;
-
-    public static final long NULL_HORIZON_DATA_EVENT_ID = -1L;
-
-    public static final long TRANSACTION_TS = 0L;
-
-    public static final String RELATIONAL_TABLE_PREFIX = "pt_met_";
     public static final String TEMP_TABLE_PREFIX = "_t";
-    public static final String INDEX_SUFFIX = "idx";
 
     public static final String PUNCH_TABLE = "_punch";
     public static final String SCRUB_TABLE = "_scrub";
@@ -52,19 +39,13 @@ public class AtlasDbConstants {
     public static final String PARTITION_MAP_TABLE = "_partition_map";
     public static final char SCRUB_TABLE_SEPARATOR_CHAR = '\0';
 
-    public static final int PUNCH_INTERVAL_MILLIS = 2000;
     public static final long SCRUBBER_RETRY_DELAY_MILLIS = 2000L;
-    public static final int DEFAULT_SCRUBBER_BATCH_SIZE = 1000;
-    public static final int DEFAULT_SCRUBBER_THREAD_COUNT = 8;
-    public static final int DEFAULT_SWEEPER_BATCH_SIZE = 1000;
 
     public static final int MINIMUM_COMPRESSION_BLOCK_SIZE_KB = 4;
     public static final int DEFAULT_INDEX_COMPRESSION_BLOCK_SIZE_KB = 4;
     public static final int DEFAULT_TABLE_COMPRESSION_BLOCK_SIZE_KB = 8;
     public static final int DEFAULT_TABLE_WITH_RANGESCANS_COMPRESSION_BLOCK_SIZE_KB = 64;
 
-    public static final long DEFAULT_TRANSACTION_READ_TIMEOUT_MILLIS = 86400000L;
-    public static final long DEFAULT_BACKGROUND_SCRUB_FREQUENCY_MILLIS = 3600000L;
 
     // TODO (ejin): Organize constants (maybe into a single class?)
     public static final Set<String> hiddenTables = ImmutableSet.of(
@@ -83,12 +64,15 @@ public class AtlasDbConstants {
             TransactionConstants.TRANSACTION_TABLE,
             NAMESPACE_TABLE);
 
-    public static final long FAKE_SYSTEM_ID = 1L;
-
-    public static final String DELETE_RESYNC_CRAWL_LOGGER = "deleteResyncCrawlLogger"; //$NON-NLS-1$
-
-    public static final String HARD_DELETE_LOGGER = "hardDeleteLogger"; //$NON-NLS-1$
-    public static final String HARD_DELETE_CHRONICLE_TAG = "hard-delete"; //$NON-NLS-1$
-
     public static final Set<String> TABLES_KNOWN_TO_BE_POORLY_DESIGNED = ImmutableSet.of("resync_object");
+
+    public static final long DEFAULT_TRANSACTION_READ_TIMEOUT = 60 * 60 * 1000; // one hour
+    public static final long DEFAULT_PUNCH_INTERVAL_MILLIS = 60 * 1000; // one minute
+    public static final boolean DEFAULT_BACKGROUND_SCRUB_AGGRESSIVELY = false;
+    public static final int DEFAULT_BACKGROUND_SCRUB_THREADS = 8;
+    public static final long DEFAULT_BACKGROUND_SCRUB_FREQUENCY_MILLIS = 3600000L;
+    public static final int DEFAULT_BACKGROUND_SCRUB_BATCH_SIZE = 2000;
+    public static final boolean DEFAULT_ENABLE_SWEEP = false;
+    public static final long DEFAULT_SWEEP_PAUSE_MILLIS = 5 * 1000;
+    public static final int DEFAULT_SWEEP_BATCH_SIZE = 1000;
 }

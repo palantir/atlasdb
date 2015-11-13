@@ -42,7 +42,6 @@ import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
-import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
@@ -68,8 +67,10 @@ public class TransactionManagers {
      * Create a {@link SerializableTransactionManager} with provided configuration, {@link SSLSocketFactory}, {@link Schema},
      * and an environment in which to register HTTP server endpoints.
      */
-    public static SerializableTransactionManager create(
-            AtlasDbConfig config, Optional<SSLSocketFactory> sslSocketFactory, Schema schema, Environment env) {
+    public static SerializableTransactionManager create(AtlasDbConfig config,
+                                                        Optional<SSLSocketFactory> sslSocketFactory,
+                                                        Schema schema,
+                                                        Environment env) {
         return create(config, sslSocketFactory, ImmutableSet.of(schema), env);
     }
 
@@ -78,9 +79,9 @@ public class TransactionManagers {
      * {@link Schema}s, and an environment in which to register HTTP server endpoints.
      */
     public static SerializableTransactionManager create(AtlasDbConfig config,
-                                            Optional<SSLSocketFactory> sslSocketFactory,
-                                            Set<Schema> schemas,
-                                            Environment env) {
+                                                        Optional<SSLSocketFactory> sslSocketFactory,
+                                                        Set<Schema> schemas,
+                                                        Environment env) {
         final AtlasDbFactory kvsFactory = getKeyValueServiceFactory(config.keyValueService().type());
         final KeyValueService rawKvs = kvsFactory.createRawKeyValueService(config.keyValueService());
         KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs);
