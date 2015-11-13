@@ -151,6 +151,7 @@ import com.palantir.util.Pair;
     private final TimeDuration maxAllowedLockTimeout;
     private final TimeDuration maxAllowedClockDrift;
     private final TimeDuration maxAllowedBlockingDuration;
+    private final TimeDuration maxNormalLockAge;
     private final int randomBitCount;
     private volatile boolean isShutDown = false;
 
@@ -224,6 +225,7 @@ import com.palantir.util.Pair;
         maxAllowedLockTimeout = SimpleTimeDuration.of(options.getMaxAllowedLockTimeout());
         maxAllowedClockDrift = SimpleTimeDuration.of(options.getMaxAllowedClockDrift());
         maxAllowedBlockingDuration = SimpleTimeDuration.of(options.getMaxAllowedBlockingDuration());
+        maxNormalLockAge = SimpleTimeDuration.of(options.getMaxNormalLockAge());
         randomBitCount = options.getRandomBitCount();
         executor.execute(new Runnable() {
             @Override
@@ -730,7 +732,9 @@ import com.palantir.util.Pair;
     private void logIfAbnormallyOld(ExpiringToken token, long now, Supplier<String> description) {
         if (log.isInfoEnabled()) {
             long age = now - token.getCreationDateMs();
-            log.info("Token refreshed which is " + age + " ms old: " + description.get());
+            if (age > maxNormalLockAge.toMillis()) {
+                log.info("Token refreshed which is " + age + " ms old: " + description.get());
+            }
         }
     }
 

@@ -76,6 +76,14 @@ import com.google.common.base.Objects;
     }
 
     /**
+     * Returns the maximum amount of time a lock is usually held for.
+     * The default value is 1 hour.
+     */
+    public TimeDuration getMaxNormalLockAge() {
+        return SimpleTimeDuration.of(1, TimeUnit.HOURS);
+    }
+
+    /**
      * Returns the number of bits used to create random lock token IDs. The
      * default value is 64 bits.
      */
@@ -87,13 +95,20 @@ import com.google.common.base.Objects;
         if (this == obj) return true;
         if (!(obj instanceof LockServerOptions)) return false;
         LockServerOptions other = (LockServerOptions) obj;
-        return Objects.equal(getMaxAllowedLockTimeout(), other.getMaxAllowedLockTimeout())
+        return Objects.equal(isStandaloneServer(), other.isStandaloneServer())
+                && Objects.equal(getMaxAllowedLockTimeout(), other.getMaxAllowedLockTimeout())
                 && Objects.equal(getMaxAllowedClockDrift(), other.getMaxAllowedClockDrift())
+                && Objects.equal(getMaxAllowedBlockingDuration(), other.getMaxAllowedBlockingDuration())
+                && Objects.equal(getMaxNormalLockAge(), other.getMaxNormalLockAge())
                 && (getRandomBitCount() == other.getRandomBitCount());
     }
 
     @Override public final int hashCode() {
-        return Objects.hashCode(getMaxAllowedLockTimeout(), getMaxAllowedClockDrift(),
+        return Objects.hashCode(isStandaloneServer(),
+                getMaxAllowedLockTimeout(),
+                getMaxAllowedClockDrift(),
+                getMaxAllowedBlockingDuration(),
+                getMaxNormalLockAge(),
                 getRandomBitCount());
     }
 
@@ -103,6 +118,7 @@ import com.google.common.base.Objects;
                 .add("maxAllowedLockTimeout", getMaxAllowedLockTimeout())
                 .add("maxAllowedClockDrift", getMaxAllowedClockDrift())
                 .add("maxAllowedBlockingDuration", getMaxAllowedBlockingDuration())
+                .add("maxNormalLockAge", getMaxNormalLockAge())
                 .add("randomBitCount", getRandomBitCount())
                 .toString();
     }
@@ -123,6 +139,7 @@ import com.google.common.base.Objects;
         private final SimpleTimeDuration maxAllowedLockTimeout;
         private final SimpleTimeDuration maxAllowedClockDrift;
         private final SimpleTimeDuration maxAllowedBlockingDuration;
+        private final SimpleTimeDuration maxNormalLockAge;
         private final int randomBitCount;
 
         SerializationProxy(LockServerOptions lockServerOptions) {
@@ -133,6 +150,8 @@ import com.google.common.base.Objects;
                     lockServerOptions.getMaxAllowedClockDrift());
             maxAllowedBlockingDuration = SimpleTimeDuration.of(
                     lockServerOptions.getMaxAllowedBlockingDuration());
+            maxNormalLockAge = SimpleTimeDuration.of(
+                    lockServerOptions.getMaxNormalLockAge());
             randomBitCount = lockServerOptions.getRandomBitCount();
         }
 
@@ -150,6 +169,9 @@ import com.google.common.base.Objects;
                 }
                 @Override public TimeDuration getMaxAllowedBlockingDuration() {
                     return maxAllowedBlockingDuration;
+                }
+                @Override public TimeDuration getMaxNormalLockAge() {
+                    return maxNormalLockAge;
                 }
                 @Override public int getRandomBitCount() {
                     return randomBitCount;
