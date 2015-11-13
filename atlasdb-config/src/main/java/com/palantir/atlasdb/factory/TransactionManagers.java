@@ -39,6 +39,7 @@ import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.NamespacedKeyValueServices;
+import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
@@ -91,7 +92,6 @@ public class TransactionManagers {
                                                         Environment env) {
         final AtlasDbFactory kvsFactory = getKeyValueServiceFactory(config.keyValueService().type());
         final KeyValueService rawKvs = kvsFactory.createRawKeyValueService(config.keyValueService());
-        KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs);
 
         LockAndTimestampServices lts = createLockAndTimestampServices(config, sslSocketFactory, env,
                 new Supplier<RemoteLockService>() {
@@ -110,6 +110,9 @@ public class TransactionManagers {
                 .from(lts)
                 .lock(LockRefreshingRemoteLockService.create(lts.lock()))
                 .build();
+
+        KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs);
+        kvs = new SweepStatsKeyValueService(kvs, lts.time());
 
         SnapshotTransactionManager.createTables(kvs);
 

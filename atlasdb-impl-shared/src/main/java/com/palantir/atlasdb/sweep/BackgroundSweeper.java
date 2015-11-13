@@ -104,7 +104,7 @@ public class BackgroundSweeper implements Runnable {
         try {
             // Wait a while before starting so short lived clis don't try to sweep.
             Thread.sleep(20 * (1000 + sweepPauseMillis.get()));
-            log.info("Starting background sweeper.");
+            log.debug("Starting background sweeper.");
             while (true) {
                 boolean sweptSuccessfully = false;
                 try {
@@ -146,7 +146,7 @@ public class BackgroundSweeper implements Runnable {
                 }
             }
         } catch (InterruptedException e) {
-            log.info("Shutting down background sweeper.");
+            log.debug("Shutting down background sweeper.");
         } finally {
             if (locks.isPresent()) {
                 txManager.getLockService().unlock(locks.get().getLockRefreshToken());
@@ -380,7 +380,7 @@ public class BackgroundSweeper implements Runnable {
         if (daemon == null) {
             return;
         }
-        log.info("Signalling background sweeper to shut down.");
+        log.debug("Signalling background sweeper to shut down.");
         daemon.interrupt();
         try {
             daemon.join();
