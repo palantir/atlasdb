@@ -733,7 +733,7 @@ import com.palantir.util.Pair;
         if (log.isInfoEnabled()) {
             long age = now - token.getCreationDateMs();
             if (age > maxNormalLockAge.toMillis()) {
-                log.info("Token refreshed which is " + age + " ms old: " + description.get());
+                log.debug("Token refreshed which is " + age + " ms old: " + description.get());
             }
         }
     }

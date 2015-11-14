@@ -234,10 +234,10 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
             return;
         }
 
-        log.info("Flushing stats for writes to {} tables and {} clears",
+        log.debug("Flushing stats for {} writes and {} clears",
                 writes.size(), clears.size());
-        log.debug("Flushing writes: {}", writes);
-        log.debug("Flushing clears: {}", clears);
+        log.trace("Flushing writes: {}", writes);
+        log.trace("Flushing clears: {}", clears);
         try {
             Set<String> tableNames = Sets.difference(writes.elementSet(), clears);
             Iterable<byte[]> rows = Collections2.transform(tableNames,

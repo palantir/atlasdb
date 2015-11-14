@@ -106,7 +106,7 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
         try {
             // Wait a while before starting so short lived clis don't try to sweep.
             Thread.sleep(20 * (1000 + sweepPauseMillis.get()));
-            log.info("Starting background sweeper.");
+            log.debug("Starting background sweeper.");
             while (true) {
                 boolean sweptSuccessfully = false;
                 try {
@@ -140,7 +140,7 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
                 }
             }
         } catch (InterruptedException e) {
-            log.info("Shutting down background sweeper.");
+            log.debug("Shutting down background sweeper.");
         } finally {
             if (locks.isPresent()) {
                 txManager.getLockService().unlock(locks.get());
@@ -208,7 +208,7 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
                          SweepProgressTable.FullTableName.of(tableName).persistValue())
                     .build());
 
-        log.info("Now starting to sweep {}.", tableName);
+        log.debug("Now starting to sweep {}.", tableName);
         return SweepProgressRowResult.of(rawResult);
     }
 
@@ -275,13 +275,13 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
 
         saveFinalSweepResults(progress, cellsDeleted, cellsExamined);
 
-        log.info("Finished sweeping {}, examined {} unique cells, deleted {} cells.",
+        log.debug("Finished sweeping {}, examined {} unique cells, deleted {} cells.",
                 progress.getFullTableName(), cellsExamined, cellsDeleted);
 
         if (cellsDeleted > 0) {
             Stopwatch watch = Stopwatch.createStarted();
             kvs.compactInternally(progress.getFullTableName());
-            log.info("Finished performing compactInternally on {} in {} ms.",
+            log.debug("Finished performing compactInternally on {} in {} ms.",
                     progress.getFullTableName(), watch.elapsed(TimeUnit.MILLISECONDS));
         }
 
@@ -385,7 +385,7 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
         if (daemon == null) {
             return;
         }
-        log.info("Signalling background sweeper to shut down.");
+        log.debug("Signalling background sweeper to shut down.");
         daemon.interrupt();
         try {
             daemon.join();
