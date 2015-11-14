@@ -15,12 +15,18 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import javax.annotation.Nullable;
-
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 
-public interface SweepTaskRunner {
-    public SweepResults run(String tableName, int batchSize, @Nullable byte[] startRow);
-    public long getSweepTimestamp(SweepStrategy sweepStrategy);
+public class NoOpSweepTaskRunner implements SweepTaskRunner {
+
+    @Override
+    public SweepResults run(String tableName, int batchSize, byte[] startRow) {
+        return new SweepResults(null, 0, 0);
+    }
+
+    @Override
+    public long getSweepTimestamp(SweepStrategy sweepStrategy) {
+        return 0;
+    }
 }

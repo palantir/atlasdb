@@ -44,7 +44,9 @@ import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.sweep.BackgroundSweeper;
+import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
+import com.palantir.atlasdb.sweep.SweepTaskRunnerImpl;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -153,7 +155,7 @@ public class TransactionManagers {
                 sweepStrategyManager,
                 cleaner);
 
-        SweepTaskRunner sweepRunner = new SweepTaskRunner(
+        SweepTaskRunner sweepRunner = new SweepTaskRunnerImpl(
                 transactionManager,
                 kvs,
                 getUnreadableTsSupplier(transactionManager),
@@ -161,7 +163,7 @@ public class TransactionManagers {
                 transactionService,
                 sweepStrategyManager,
                 ImmutableList.<Follower>of(follower));
-        BackgroundSweeper backgroundSweeper = new BackgroundSweeper(
+        BackgroundSweeper backgroundSweeper = new BackgroundSweeperImpl(
                 transactionManager,
                 kvs,
                 sweepRunner,
