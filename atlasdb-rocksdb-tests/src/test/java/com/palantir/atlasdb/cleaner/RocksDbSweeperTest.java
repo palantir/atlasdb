@@ -25,7 +25,7 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.Files;
 import com.palantir.atlasdb.keyvalue.rocksdb.impl.RocksDbKeyValueService;
-import com.palantir.atlasdb.sweep.SweepTaskRunner;
+import com.palantir.atlasdb.sweep.SweepTaskRunnerImpl;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
@@ -60,7 +60,7 @@ public class RocksDbSweeperTest extends AbstractSweeperTest {
         LockAwareTransactionManager txManager = new SnapshotTransactionManager(kvs, tsService, lockClient, lockService, txService, constraints, cdm, ssm, cleaner, false);
         SnapshotTransactionManager.createTables(kvs);
         Supplier<Long> tsSupplier = new Supplier<Long>() { @Override public Long get() { return sweepTimestamp.get(); }};
-        sweepRunner = new SweepTaskRunner(txManager, kvs, tsSupplier, tsSupplier, txService, ssm, ImmutableList.<Follower>of());
+        sweepRunner = new SweepTaskRunnerImpl(txManager, kvs, tsSupplier, tsSupplier, txService, ssm, ImmutableList.<Follower>of());
     }
 
     @After

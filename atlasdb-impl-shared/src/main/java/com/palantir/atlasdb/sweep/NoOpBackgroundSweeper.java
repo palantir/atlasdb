@@ -15,12 +15,20 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import javax.annotation.Nullable;
+public class NoOpBackgroundSweeper implements BackgroundSweeper {
 
-import com.palantir.atlasdb.keyvalue.api.SweepResults;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
+    @Override
+    public void run() {
+        // do nothing
+    }
 
-public interface SweepTaskRunner {
-    public SweepResults run(String tableName, int batchSize, @Nullable byte[] startRow);
-    public long getSweepTimestamp(SweepStrategy sweepStrategy);
+    @Override
+    public void runInBackground() {
+        // do nothing
+    }
+
+    @Override
+    public void shutdown() {
+        // do nothing
+    }
 }
