@@ -234,7 +234,7 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
             return;
         }
 
-        log.debug("Flushing stats for writes to {} tables and {} clears",
+        log.debug("Flushing stats for {} writes and {} clears",
                 writes.size(), clears.size());
         log.trace("Flushing writes: {}", writes);
         log.trace("Flushing clears: {}", clears);
