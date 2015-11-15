@@ -275,7 +275,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     private void lowerConsistencyWhenSafe(Client client, KsDef ks, int desiredRf) {
         CassandraKeyValueServiceConfig config = configManager.getConfig();
-        String keyspace = config.keyspace();
         boolean safetyDisabled = config.safetyDisabled();
 
         Set<String> dcs;
@@ -1106,6 +1105,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     @Override
     public Set<String> getAllTableNames() {
+        final Set<String> hiddenTables = ImmutableSet.of(
+                CassandraConstants.METADATA_TABLE, CassandraTimestampBoundStore.TIMESTAMP_TABLE);
         final CassandraKeyValueServiceConfig config = configManager.getConfig();
         try {
             return clientPool.runWithPooledResource(new FunctionCheckedException<Client, Set<String>, Exception>() {
@@ -1115,7 +1116,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
                     Set<String> ret = Sets.newHashSet();
                     for (CfDef cf : ks.getCf_defs()) {
-                        if (!cf.getName().equals(CassandraConstants.METADATA_TABLE)) {
+                        if (!hiddenTables.contains(cf.getName())) {
                             ret.add(fromInternalTableName(cf.getName()));
                         }
                     }

@@ -464,6 +464,13 @@ public interface KeyValueService extends AutoCloseable {
     @Idempotent
     void createTables(Map<String, Integer> tableNamesToMaxValueSizeInBytes) throws InsufficientConsistencyException;
 
+    /**
+     * Return the list of tables stored in this key value service.
+     *
+     * This will contain system tables (such as the _transaction table), but will not contain
+     * the names of any tables used internally by the key value service (a common example is
+     * a _metadata table for storing table metadata).
+     */
     @POST
     @Path("get-all-table-names")
     @Produces(MediaType.APPLICATION_JSON)

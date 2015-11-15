@@ -16,9 +16,10 @@
 package com.palantir.atlasdb.keyvalue.rdbms;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.impl.SimpleKvsTimestampBoundStore;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
-import com.palantir.timestamp.InMemoryTimestampService;
+import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.TimestampService;
 
 public class PostgresAtlasDbFactory implements AtlasDbFactory {
@@ -35,7 +36,6 @@ public class PostgresAtlasDbFactory implements AtlasDbFactory {
 
     @Override
     public TimestampService createTimestampService(KeyValueService rawKvs) {
-        return new InMemoryTimestampService();
+        return PersistentTimestampService.create(SimpleKvsTimestampBoundStore.create(rawKvs));
     }
-
 }

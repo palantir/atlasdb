@@ -62,7 +62,6 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
-import com.datastax.driver.core.SocketOptions;
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
 import com.datastax.driver.core.exceptions.UnavailableException;
 import com.datastax.driver.core.policies.LatencyAwarePolicy;
@@ -71,7 +70,6 @@ import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Strings;
 import com.google.common.base.Supplier;
@@ -134,8 +132,8 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         }
     };
 
-    private Cluster cluster, longRunningQueryCluster;
-    private Session session, longRunningQuerySession;
+    private Cluster cluster;
+    private Session session;
 
     private final LoadingCache<String, PreparedStatement> statementCache = CacheBuilder.newBuilder()
             .build(new CacheLoader<String, PreparedStatement>() {
@@ -207,9 +205,6 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         }
 
         final CassandraKeyValueServiceConfig config = configManager.getConfig();
-        String keyspace = config.keyspace();
-        int poolSize = config.poolSize();
-        int poolTimeoutMillis = config.cqlPoolTimeoutMillis();
 
         Cluster.Builder clusterBuilder = Cluster.builder();
         clusterBuilder.addContactPoints(addresses);
@@ -221,8 +216,8 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         }
 
         PoolingOptions poolingOptions = new PoolingOptions();
-        poolingOptions.setMaxSimultaneousRequestsPerHostThreshold(HostDistance.LOCAL, config.poolSize());
-        poolingOptions.setMaxSimultaneousRequestsPerHostThreshold(HostDistance.REMOTE, config.poolSize());
+        poolingOptions.setMaxRequestsPerConnection(HostDistance.LOCAL, config.poolSize());
+        poolingOptions.setMaxRequestsPerConnection(HostDistance.REMOTE, config.poolSize());
         poolingOptions.setPoolTimeoutMillis(config.cqlPoolTimeoutMillis());
         clusterBuilder.withPoolingOptions(poolingOptions);
 
@@ -259,10 +254,6 @@ public class CQLKeyValueService extends AbstractKeyValueService {
             }
         }
         session = cluster.connect();
-
-        clusterBuilder.withSocketOptions(new SocketOptions().setReadTimeoutMillis(CassandraConstants.LONG_RUNNING_QUERY_SOCKET_TIMEOUT_MILLIS));
-        longRunningQueryCluster = clusterBuilder.build();
-        longRunningQuerySession = longRunningQueryCluster.connect();
 
         String partitioner = metadata.getPartitioner();
         String clusterName = metadata.getClusterName();
@@ -1148,16 +1139,8 @@ public class CQLKeyValueService extends AbstractKeyValueService {
 
     @Override
     public Set<String> getAllTableNames() {
-        return Sets.filter(getAllTableNamesInternal(), new Predicate<String>() {
-            @Override
-            public boolean apply(String tableName) {
-                return !tableName.startsWith("_")
-                        || tableName.startsWith(AtlasDbConstants.NAMESPACE_PREFIX);
-            }
-        });
-    }
-
-    private Set<String> getAllTableNamesInternal() {
+        Set<String> hiddenTables = ImmutableSet.of(
+                CassandraConstants.METADATA_TABLE, CassandraTimestampBoundStore.TIMESTAMP_TABLE);
         BoundStatement boundStatement = statementCache.getUnchecked(
                 "SELECT columnfamily_name FROM system.schema_columnfamilies WHERE keyspace_name = ?").bind();
         final CassandraKeyValueServiceConfig config = configManager.getConfig();
@@ -1165,7 +1148,10 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         List<Row> rows = session.executeAsync(boundStatement).getUninterruptibly().all();
         Set<String> tableNames = Sets.newHashSetWithExpectedSize(rows.size());
         for (Row row : rows) {
-            tableNames.add(row.getString(0));
+            String tableName = row.getString(0);
+            if (!hiddenTables.contains(tableName)) {
+                tableNames.add(tableName);
+            }
         }
         return tableNames;
     }

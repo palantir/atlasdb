@@ -23,7 +23,7 @@ import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
-import com.palantir.atlasdb.keyvalue.rocksdb.impl.RocksDbBoundStore;
+import com.palantir.atlasdb.keyvalue.impl.SimpleKvsTimestampBoundStore;
 import com.palantir.atlasdb.keyvalue.rocksdb.impl.RocksDbKeyValueService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -92,7 +92,7 @@ public class DefaultAtlasShellContextFactory implements AtlasShellContextFactory
             }
         });
         TransactionService transactionService = TransactionServices.createTransactionService(kv);
-        TimestampBoundStore boundStore = RocksDbBoundStore.create(kv);
+        TimestampBoundStore boundStore = SimpleKvsTimestampBoundStore.create(kv);
         TimestampService timestampService = PersistentTimestampService.create(boundStore);
         kv.initializeFromFreshInstance();
         SnapshotTransactionManager.createTables(kv);

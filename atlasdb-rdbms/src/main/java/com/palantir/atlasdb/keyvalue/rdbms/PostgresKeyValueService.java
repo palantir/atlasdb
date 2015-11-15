@@ -50,14 +50,13 @@ import org.skife.jdbi.v2.tweak.HandleCallback;
 import org.skife.jdbi.v2.tweak.ResultSetMapper;
 import org.skife.jdbi.v2.util.ByteArrayMapper;
 import org.skife.jdbi.v2.util.StringMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
@@ -78,6 +77,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
+import com.palantir.atlasdb.keyvalue.impl.SimpleKvsTimestampBoundStore;
 import com.palantir.atlasdb.keyvalue.rdbms.utils.AtlasSqlUtils;
 import com.palantir.atlasdb.keyvalue.rdbms.utils.CellMapper;
 import com.palantir.atlasdb.keyvalue.rdbms.utils.CellValueMapper;
@@ -96,8 +96,6 @@ import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 public final class PostgresKeyValueService extends AbstractKeyValueService {
-
-    private static final Logger log = LoggerFactory.getLogger(PostgresKeyValueService.class);
 
     // *** Connection / driver ********************************************************************
     private final DBI dbi;
@@ -872,7 +870,9 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
     @Override
     @Idempotent
     public Set<String> getAllTableNames() {
-        return Sets.newHashSet(getDbi().withHandle(new HandleCallback<List<String>>() {
+        Set<String> hiddenTables = ImmutableSet.of(
+                MetaTable.META_TABLE_NAME, SimpleKvsTimestampBoundStore.TIMESTAMP_TABLE);
+        Set<String> allTables = Sets.newHashSet(getDbi().withHandle(new HandleCallback<List<String>>() {
             @Override
             public List<String> withHandle(Handle handle) throws Exception {
                 return handle.createQuery(
@@ -882,6 +882,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                         .list();
             }
         }));
+        return Sets.difference(allTables, hiddenTables);
     }
 
     @Override

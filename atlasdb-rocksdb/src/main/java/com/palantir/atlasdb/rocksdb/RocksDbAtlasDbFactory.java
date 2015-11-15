@@ -21,8 +21,8 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.impl.SimpleKvsTimestampBoundStore;
 import com.palantir.atlasdb.keyvalue.rocksdb.impl.ImmutableWriteOpts;
-import com.palantir.atlasdb.keyvalue.rocksdb.impl.RocksDbBoundStore;
 import com.palantir.atlasdb.keyvalue.rocksdb.impl.RocksDbKeyValueService;
 import com.palantir.atlasdb.keyvalue.rocksdb.impl.WriteOpts;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
@@ -52,7 +52,7 @@ public class RocksDbAtlasDbFactory implements AtlasDbFactory {
     public TimestampService createTimestampService(KeyValueService rawKvs) {
         Preconditions.checkArgument(rawKvs instanceof RocksDbKeyValueService,
                 "TimestampService must be created from an instance of RocksDbKeyValueService, found %s", rawKvs.getClass());
-        return PersistentTimestampService.create(RocksDbBoundStore.create((RocksDbKeyValueService) rawKvs));
+        return PersistentTimestampService.create(SimpleKvsTimestampBoundStore.create((RocksDbKeyValueService) rawKvs));
     }
 
 }
