@@ -13,10 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.keyvalue.rocksdb.impl;
+package com.palantir.atlasdb.keyvalue.impl;
 
-import java.io.Closeable;
-import java.io.IOException;
 import java.util.Map;
 
 import javax.annotation.concurrent.GuardedBy;
@@ -26,6 +24,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
@@ -38,8 +37,8 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
 
-public class RocksDbBoundStore implements TimestampBoundStore, Closeable {
-    private static final String TIMESTAMP_TABLE = "_timestamp";
+public class SimpleKvsTimestampBoundStore implements TimestampBoundStore {
+    public static final String TIMESTAMP_TABLE = "_timestamp";
     private static final String ROW_AND_COLUMN_NAME = "ts";
     private static final long KV_TS = 0L;
     private static final Cell TS_CELL = Cell.create(ROW_AND_COLUMN_NAME.getBytes(Charsets.UTF_8), ROW_AND_COLUMN_NAME.getBytes(Charsets.UTF_8));
@@ -51,19 +50,19 @@ public class RocksDbBoundStore implements TimestampBoundStore, Closeable {
 
     private static final long INITIAL_VALUE = 10000L;
 
-    public static TimestampBoundStore create(RocksDbKeyValueService kv) {
+    public static TimestampBoundStore create(KeyValueService kv) {
         kv.createTable(TIMESTAMP_TABLE, 8);
         kv.putMetadataForTable(TIMESTAMP_TABLE, TIMESTAMP_TABLE_METADATA.persistToBytes());
-        return new RocksDbBoundStore(kv);
+        return new SimpleKvsTimestampBoundStore(kv);
     }
 
     @GuardedBy("this")
     private long currentLimit = -1;
     @GuardedBy("this")
     private Throwable lastWriteException = null;
-    private final RocksDbKeyValueService kv;
+    private final KeyValueService kv;
 
-    private RocksDbBoundStore(RocksDbKeyValueService kv) {
+    private SimpleKvsTimestampBoundStore(KeyValueService kv) {
         this.kv = kv;
     }
 
@@ -85,7 +84,7 @@ public class RocksDbBoundStore implements TimestampBoundStore, Closeable {
         if (oldValue != currentLimit) {
             String msg = "Timestamp limit changed underneath us (limit in memory: " + currentLimit
                     + "). This may indicate that "
-                    + "another timestamp service is running against this rocksdb store!";
+                    + "another timestamp service is running against this key value store!";
             throw new MultipleRunningTimestampServiceError(msg);
         }
         putValue(limit);
@@ -98,10 +97,5 @@ public class RocksDbBoundStore implements TimestampBoundStore, Closeable {
 
     private long getValueFromResult(Map<Cell, Value> result) {
         return PtBytes.toLong(result.get(TS_CELL).getContents());
-    }
-
-    @Override
-    public void close() throws IOException {
-        kv.close();
     }
 }
