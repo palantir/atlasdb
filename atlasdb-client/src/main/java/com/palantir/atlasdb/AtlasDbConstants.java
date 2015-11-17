@@ -28,8 +28,6 @@ import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 public class AtlasDbConstants {
     public static final Logger PERF_LOG = LoggerFactory.getLogger("dualschema.perf");
 
-    public static final String TEMP_TABLE_PREFIX = "_t";
-
     public static final String PUNCH_TABLE = "_punch";
     public static final String SCRUB_TABLE = "_scrub";
     public static final String NAMESPACE_TABLE = "_namespace";
