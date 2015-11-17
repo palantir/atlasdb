@@ -132,14 +132,6 @@ public class AtlasDbTestCase {
                 timestampService, lockClient, lockService, transactionService, mode);
     }
 
-    protected void createTable(String tableName) {
-        keyValueService.createTable(tableName, AtlasDbConstants.GENERIC_TABLE_METADATA);
-    }
-
-    protected void deleteTable(String tableName) {
-        keyValueService.dropTable(tableName);
-    }
-
     protected void clearTablesWrittenTo() {
         keyValueService.clearTablesWrittenTo();
     }
