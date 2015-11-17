@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.commons.lang.Validate;
 
@@ -115,6 +116,14 @@ public class Schema {
             ret.put(e.getKey(), e.getValue().toIndexMetadata(e.getKey()).getTableMetadata());
         }
         return ret;
+    }
+
+    public Set<String> getAllIndexes() {
+        return indexDefinitions.keySet();
+    }
+
+    public Set<String> getAllTables() {
+        return tableDefinitions.keySet();
     }
 
     public void addIndexDefinition(String idxName, IndexDefinition definition) {
