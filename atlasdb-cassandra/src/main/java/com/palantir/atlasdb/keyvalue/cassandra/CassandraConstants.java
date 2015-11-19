@@ -55,7 +55,8 @@ public class CassandraConstants {
     // They're both ordered, we just had to change the name to accommodate datastax client-side driver handling
     static final Set<String> ALLOWED_PARTITIONERS = ImmutableSet.of(
             "com.palantir.atlasdb.keyvalue.cassandra.dht.AtlasDbPartitioner",
-            "com.palantir.atlasdb.keyvalue.cassandra.dht.AtlasDbOrderedPartitioner");
+            "com.palantir.atlasdb.keyvalue.cassandra.dht.AtlasDbOrderedPartitioner",
+            "org.apache.cassandra.dht.ByteOrderedPartitioner");
 
     static final String DEFAULT_DC = "datacenter1";
     static final String DEFAULT_RACK = "rack1";
