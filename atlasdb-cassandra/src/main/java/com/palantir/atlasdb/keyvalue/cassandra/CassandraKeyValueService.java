@@ -133,6 +133,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         }
     };
 
+    private static final Set<String> HIDDEN_TABLES = ImmutableSet.of(
+            CassandraConstants.METADATA_TABLE, CassandraTimestampBoundStore.TIMESTAMP_TABLE);
+
     private final CassandraKeyValueServiceConfigManager configManager;
     private final CassandraClientPoolingManager cassandraClientPoolingManager;
     private final CassandraJMXCompactionManager compactionManager;
@@ -259,7 +262,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     log.warn("Upgrading table {} to new internal Cassandra schema", tableName);
                     tablesToUpgrade.put(tableName, clusterSideMetadata);
                 }
-            } else if (!tableName.equals(CassandraConstants.METADATA_TABLE)) { // only expected case
+            } else if (!HIDDEN_TABLES.contains(tableName)) { // only expected cases
                 // Possible to get here from a race condition with another server starting up and performing schema upgrades concurrent with us doing this check
                 throw new RuntimeException(new UpgradeFailedException("Found a table " + tableName + " that did not have persisted AtlasDB metadata. If you recently did a Palantir update, try waiting until schema upgrades are completed on all backend servers and restarting this service."));
             }
@@ -1105,8 +1108,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     @Override
     public Set<String> getAllTableNames() {
-        final Set<String> hiddenTables = ImmutableSet.of(
-                CassandraConstants.METADATA_TABLE, CassandraTimestampBoundStore.TIMESTAMP_TABLE);
         final CassandraKeyValueServiceConfig config = configManager.getConfig();
         try {
             return clientPool.runWithPooledResource(new FunctionCheckedException<Client, Set<String>, Exception>() {
@@ -1116,7 +1117,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
                     Set<String> ret = Sets.newHashSet();
                     for (CfDef cf : ks.getCf_defs()) {
-                        if (!hiddenTables.contains(cf.getName())) {
+                        if (!HIDDEN_TABLES.contains(cf.getName())) {
                             ret.add(fromInternalTableName(cf.getName()));
                         }
                     }
