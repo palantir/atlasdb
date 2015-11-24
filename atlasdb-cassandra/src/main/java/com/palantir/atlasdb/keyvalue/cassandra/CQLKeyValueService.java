@@ -132,6 +132,9 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         }
     };
 
+    private static final Set<String> HIDDEN_TABLES = ImmutableSet.of(
+            CassandraConstants.METADATA_TABLE, CassandraTimestampBoundStore.TIMESTAMP_TABLE);
+
     private Cluster cluster;
     private Session session;
 
@@ -1139,8 +1142,6 @@ public class CQLKeyValueService extends AbstractKeyValueService {
 
     @Override
     public Set<String> getAllTableNames() {
-        Set<String> hiddenTables = ImmutableSet.of(
-                CassandraConstants.METADATA_TABLE, CassandraTimestampBoundStore.TIMESTAMP_TABLE);
         BoundStatement boundStatement = statementCache.getUnchecked(
                 "SELECT columnfamily_name FROM system.schema_columnfamilies WHERE keyspace_name = ?").bind();
         final CassandraKeyValueServiceConfig config = configManager.getConfig();
@@ -1149,7 +1150,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         Set<String> tableNames = Sets.newHashSetWithExpectedSize(rows.size());
         for (Row row : rows) {
             String tableName = row.getString(0);
-            if (!hiddenTables.contains(tableName)) {
+            if (!HIDDEN_TABLES.contains(tableName)) {
                 tableNames.add(tableName);
             }
         }
