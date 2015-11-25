@@ -33,18 +33,6 @@ import com.google.common.base.MoreObjects;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.pooling.PoolingContainer;
 
-/**
- * This class will run the passed function with a valid client with an open socket.  An open socket
- * is not a guarantee that it will actually move bytes over the wire.  The default tcp keep alive is
- * normally set to 2 hours, so it may be the case that the other side of the socket has been dead for
- * almost 2 hours.
- * <p>
- * This class will not reuse a socket that has experienced a TTransportException because that socket
- * may not read the TProtocol correctly anymore.
- * <p>
- * This class will return an instance of ClientCreationFailedException if the socket could not be
- * opened successfully or the current keyspace could not be set.
- */
 public class CassandraClientPoolingContainer implements PoolingContainer<Client> {
     private static final Logger log = LoggerFactory.getLogger(CassandraClientPoolingContainer.class);
 
@@ -197,32 +185,19 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
             config.setMinIdle(poolSize);
             config.setTestOnBorrow(true);
             config.setBlockWhenExhausted(true);
-            // Should we make these configurable/are these intelligent values?
+            // TODO: Should we make these configurable/are these intelligent values?
             config.setMaxTotal(5 * poolSize);
             config.setMaxIdle(5 * poolSize);
             config.setMinEvictableIdleTimeMillis(TimeUnit.MILLISECONDS.convert(1, TimeUnit.MINUTES));
             config.setTimeBetweenEvictionRunsMillis(TimeUnit.MILLISECONDS.convert(1, TimeUnit.MINUTES));
             config.setNumTestsPerEvictionRun(-1); // Test all idle objects for eviction
-            config.setJmxNamePrefix(host + ":" + port);
+            config.setJmxNamePrefix(host);
             return new GenericObjectPool<Client>(cassandraClientFactory, config);
         }
 
         public CassandraClientPoolingContainer build(){
             clientPool = createClientPool();
             return new CassandraClientPoolingContainer(this);
-        }
-    }
-
-    static class ClientCreationFailedException extends RuntimeException {
-        private static final long serialVersionUID = 1L;
-
-        public ClientCreationFailedException(String message, Exception cause) {
-            super(message, cause);
-        }
-
-        @Override
-        public Exception getCause() {
-            return (Exception) super.getCause();
         }
     }
 

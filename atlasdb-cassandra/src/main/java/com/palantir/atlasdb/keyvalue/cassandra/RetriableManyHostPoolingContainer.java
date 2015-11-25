@@ -29,10 +29,9 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.ClientCreationFailedException;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.ClientCreationFailedException;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.pooling.ForwardingPoolingContainer;
-import com.palantir.common.pooling.PoolingContainer;
 
 public class RetriableManyHostPoolingContainer extends ForwardingPoolingContainer<Client>
         implements ManyHostPoolingContainer<Client> {
