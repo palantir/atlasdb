@@ -31,7 +31,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
 import com.palantir.common.base.Throwables;
 
-public class RowResultUtil {
+public class RowResults {
 
     public static Map<Cell, Value> getNewestValue(RowResult<Value> row) {
 

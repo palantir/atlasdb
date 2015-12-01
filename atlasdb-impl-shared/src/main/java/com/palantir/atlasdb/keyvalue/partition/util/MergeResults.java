@@ -25,7 +25,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Value;
 
 
-public class MergeResultsUtils {
+public class MergeResults {
 
     private static void mergeLatestTimestampMapIntoMap(Map<Cell, Long> globalResult,
                                                 Map<Cell, Long> partResult) {

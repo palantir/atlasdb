@@ -32,9 +32,9 @@ import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumTracker;
 import com.palantir.atlasdb.keyvalue.partition.util.EndpointRequestExecutor.EndpointRequestCompletionService;
 import com.palantir.common.base.Throwables;
 
-public class RequestCompletionUtils {
+public class RequestCompletions {
 
-    private static final Logger log = LoggerFactory.getLogger(RequestCompletionUtils.class);
+    private static final Logger log = LoggerFactory.getLogger(RequestCompletions.class);
 
     // These exceptions should be thrown immediately
     private static boolean isNonInterceptableException(Throwable e) {
