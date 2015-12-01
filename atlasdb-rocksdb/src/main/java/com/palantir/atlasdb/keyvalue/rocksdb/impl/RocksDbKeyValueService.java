@@ -73,6 +73,7 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.collect.Maps2;
 import com.palantir.util.MutuallyExclusiveSetLock;
 import com.palantir.util.MutuallyExclusiveSetLock.LockState;
+import com.palantir.util.file.TempFileUtils;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 public class RocksDbKeyValueService implements KeyValueService {
@@ -164,33 +165,12 @@ public class RocksDbKeyValueService implements KeyValueService {
         }
     }
 
-    /**
-     * A thread-safer mkdirs. mkdirs() will fail if another thread creates one of the directories it means to create
-     * before it does. http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4742723
-     *
-     * This attempts the mkdirs() multiple times, so that if another thread does create one of the directories,
-     * the next call to mkdirs() will take that into account.
-     *
-     * Note: this returns true iff the file f ends up being a directory, contrary to mkdirs(), which returns false
-     * if it existed before the call.
-     */
-    // This was copied from FileUtils so we don't have to depend on commons
-    private static boolean mkdirsWithRetry(final File f) {
-        if (f.exists()) {
-            return f.isDirectory();
-        }
-        for (int i = 0; i < 10 && !f.isDirectory(); ++i) {
-            f.mkdirs();
-        }
-        return f.isDirectory();
-    }
-
     private static RocksDbKeyValueService lockAndCreateDb(File dbDir,
                                                           final DBOptions dbOptions,
                                                           final ColumnFamilyOptions cfMetadataOptions,
                                                           final ColumnFamilyOptions cfCommonOptions,
                                                           final WriteOpts writeOpts) throws IOException, RocksDBException {
-        mkdirsWithRetry(dbDir);
+        TempFileUtils.mkdirsWithRetry(dbDir);
         Preconditions.checkArgument(dbDir.exists() && dbDir.isDirectory(), "DB file must be a directory: " + dbDir);
         final RandomAccessFile randomAccessFile =
             new RandomAccessFile(

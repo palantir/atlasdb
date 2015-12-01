@@ -73,7 +73,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.ByteArrayIOStream;
 import com.palantir.util.crypto.Sha256Hash;
 import com.palantir.util.file.DeleteOnCloseFileInputStream;
-import com.palantir.util.file.FileUtils;
+import com.palantir.util.file.TempFileUtils;
 
 public class StreamStoreRenderer {
     private final String name;
@@ -300,7 +300,7 @@ public class StreamStoreRenderer {
             private void createTempFile() {
                 line("@Override");
                 line("protected File createTempFile(", StreamId, " id) throws IOException {"); {
-                    line("File file = FileUtils.createTempFile(STREAM_FILE_PREFIX + id, STREAM_FILE_SUFFIX);");
+                    line("File file = TempFileUtils.createTempFile(STREAM_FILE_PREFIX + id, STREAM_FILE_SUFFIX);");
                     line("file.deleteOnExit();");
                     line("return file;");
                 } line("}");
@@ -714,7 +714,7 @@ public class StreamStoreRenderer {
         ByteArrayIOStream.class,
         Sha256Hash.class,
         DeleteOnCloseFileInputStream.class,
-        FileUtils.class,
+        TempFileUtils.class,
         TransactionFailedRetriableException.class,
         StreamCleanedException.class,
         AbstractPersistentStreamStore.class,
