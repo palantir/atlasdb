@@ -272,23 +272,19 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                                                    String keyspace,
                                                    Cassandra.Client client) throws InvalidRequestException, TException, SchemaDisagreementException {
         try {
-            KsDef ks = client.describe_keyspace(configManager.getConfig().keyspace());
-            updateExistingKeyspace(replicationFactor, safetyDisabled, client, ks);
+            KsDef originalKsDef = client.describe_keyspace(configManager.getConfig().keyspace());
+            KsDef modifiedKsDef = originalKsDef.deepCopy();
+            CassandraVerifier.checkAndSetReplicationFactor(client, modifiedKsDef, false, replicationFactor, safetyDisabled);
+            lowerConsistencyWhenSafe(client, modifiedKsDef, replicationFactor);
+
+            if (!modifiedKsDef.equals(originalKsDef)) {
+                modifiedKsDef.setCf_defs(ImmutableList.<CfDef>of()); // Can't call system_update_keyspace to update replication factor if CfDefs are set
+                client.system_update_keyspace(modifiedKsDef);
+                CassandraKeyValueServices.waitForSchemaVersions(client, "(updating the existing keyspace)");
+            }
         } catch (NotFoundException e) {
             createKeyspace(replicationFactor, safetyDisabled, keyspace, client);
         }
-    }
-
-    private void updateExistingKeyspace(int replicationFactor,
-                                        boolean safetyDisabled,
-                                        Cassandra.Client client,
-                                        KsDef ks) throws InvalidRequestException, SchemaDisagreementException, TException {
-        CassandraVerifier.checkAndSetReplicationFactor(client, ks, false, replicationFactor, safetyDisabled);
-        lowerConsistencyWhenSafe(client, ks, replicationFactor);
-        // Can't call system_update_keyspace to update replication factor if CfDefs are set
-        ks.setCf_defs(ImmutableList.<CfDef>of());
-        client.system_update_keyspace(ks);
-        CassandraKeyValueServices.waitForSchemaVersions(client, "(updating the existing keyspace)");
     }
 
     private void createKeyspace(int replicationFactor, boolean safetyDisabled, String keyspace, Cassandra.Client client)
