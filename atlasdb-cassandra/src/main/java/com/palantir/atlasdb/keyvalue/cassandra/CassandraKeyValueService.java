@@ -1551,22 +1551,36 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     private <V> Map<InetAddress, Map<Cell, V>> partitionMapByHost(Iterable<Map.Entry<Cell, V>> cells) {
+        Map<InetAddress, List<Map.Entry<Cell, V>>> partitionedByHost =
+                partitionByHost(cells, new Function<Map.Entry<Cell, V>, byte[]>() {
+                    @Override
+                    public byte[] apply(Entry<Cell, V> entry) {
+                        return entry.getKey().getRowName();
+                    }
+                });
         Map<InetAddress, Map<Cell, V>> cellsByHost = Maps.newHashMap();
-        for (Map.Entry<Cell, V> entry : cells) {
-            InetAddress host = tokenAwareMapper.getRandomHostForKey(entry.getKey().getRowName());
-            if (!cellsByHost.containsKey(host)) {
-                cellsByHost.put(host, Maps.<Cell, V>newHashMap());
+        for (Map.Entry<InetAddress, List<Map.Entry<Cell, V>>> hostAndCells : partitionedByHost.entrySet()) {
+            Map<Cell, V> cellsForHost = Maps.newHashMapWithExpectedSize(hostAndCells.getValue().size());
+            for (Map.Entry<Cell, V> entry : hostAndCells.getValue()) {
+                cellsForHost.put(entry.getKey(), entry.getValue());
             }
-            cellsByHost.get(host).put(entry.getKey(), entry.getValue());
+            cellsByHost.put(hostAndCells.getKey(), cellsForHost);
         }
         return cellsByHost;
     }
 
     private <V> Map<InetAddress, List<V>> partitionByHost(Iterable<V> iterable, Function<V, byte[]> keyExtractor) {
-        ListMultimap<InetAddress, V> valuesByHost = ArrayListMultimap.create();
+        // Ensure that the same key goes to the same partition. This is important when writing multiple columns
+        // to the same row, since this is a normally a single write in cassandra, whereas splitting the columns
+        // into different requests results in multiple writes.
+        ListMultimap<ByteBuffer, V> partitionedByKey = ArrayListMultimap.create();
         for (V value : iterable) {
-            InetAddress host = tokenAwareMapper.getRandomHostForKey(keyExtractor.apply(value));
-            valuesByHost.put(host, value);
+            partitionedByKey.put(ByteBuffer.wrap(keyExtractor.apply(value)), value);
+        }
+        ListMultimap<InetAddress, V> valuesByHost = ArrayListMultimap.create();
+        for (ByteBuffer key : partitionedByKey.keySet()) {
+            InetAddress host = tokenAwareMapper.getRandomHostForKey(key.array());
+            valuesByHost.putAll(host, partitionedByKey.get(key));
         }
         return Multimaps.asMap(valuesByHost);
     }
