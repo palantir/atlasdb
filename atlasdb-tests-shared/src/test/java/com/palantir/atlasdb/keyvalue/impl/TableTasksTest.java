@@ -32,6 +32,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -89,8 +90,8 @@ public class TableTasksTest {
     @Test
     public void testDiffTask() throws InterruptedException {
         Random rand = new Random();
-        kvs.createTable("table1", Integer.MAX_VALUE);
-        kvs.createTable("table2", Integer.MAX_VALUE);
+        kvs.createTable("table1", AtlasDbConstants.EMPTY_TABLE_METADATA);
+        kvs.createTable("table2", AtlasDbConstants.EMPTY_TABLE_METADATA);
         HashMultimap<Integer, Integer> keys1 = HashMultimap.create();
         HashMultimap<Integer, Integer> keys2 = HashMultimap.create();
         int key = 0;

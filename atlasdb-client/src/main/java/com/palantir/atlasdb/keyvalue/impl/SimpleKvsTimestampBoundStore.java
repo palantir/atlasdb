@@ -51,8 +51,7 @@ public class SimpleKvsTimestampBoundStore implements TimestampBoundStore {
     private static final long INITIAL_VALUE = 10000L;
 
     public static TimestampBoundStore create(KeyValueService kv) {
-        kv.createTable(TIMESTAMP_TABLE, 8);
-        kv.putMetadataForTable(TIMESTAMP_TABLE, TIMESTAMP_TABLE_METADATA.persistToBytes());
+        kv.createTable(TIMESTAMP_TABLE, TIMESTAMP_TABLE_METADATA.persistToBytes());
         return new SimpleKvsTimestampBoundStore(kv);
     }
 

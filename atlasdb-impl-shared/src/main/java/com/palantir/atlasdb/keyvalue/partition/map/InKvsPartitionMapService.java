@@ -44,7 +44,7 @@ public final class InKvsPartitionMapService implements PartitionMapService {
 
     private InKvsPartitionMapService(DynamicPartitionMapImpl partitionMap, KeyValueService storage) {
     	this.storage = storage;
-    	storage.createTable(PARTITION_MAP_TABLE, 1234);
+    	storage.createTable(PARTITION_MAP_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
     	if (partitionMap != null) {
     	    updateMap(partitionMap);
     	}
@@ -131,7 +131,7 @@ public final class InKvsPartitionMapService implements PartitionMapService {
         }
 
         DynamicPartitionMapImpl dpmi = (DynamicPartitionMapImpl) partitionMap;
-        storage.createTable(PARTITION_MAP_TABLE, 1234);
+        storage.createTable(PARTITION_MAP_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
         storage.truncateTable(PARTITION_MAP_TABLE);
         storage.put(PARTITION_MAP_TABLE, dpmi.toTable(), 0L);
     }

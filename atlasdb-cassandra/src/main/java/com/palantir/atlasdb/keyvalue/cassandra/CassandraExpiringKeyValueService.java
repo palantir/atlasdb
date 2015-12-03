@@ -46,21 +46,17 @@ import com.palantir.common.collect.Maps2;
 public class CassandraExpiringKeyValueService extends CassandraKeyValueService implements ExpiringKeyValueService{
 
     public static CassandraExpiringKeyValueService create(CassandraKeyValueServiceConfigManager configManager) {
+        Preconditions.checkState(!configManager.getConfig().servers().isEmpty(), "address list was empty");
+
         Optional<CassandraJmxCompactionManager> compactionManager = new CassandraJmxCompactionModule().createCompactionManager(configManager);
-        return new CassandraExpiringKeyValueService(configManager, compactionManager);
+        CassandraExpiringKeyValueService kvs = new CassandraExpiringKeyValueService(configManager, compactionManager);
+        kvs.init();
+        return kvs;
     }
 
     protected CassandraExpiringKeyValueService(CassandraKeyValueServiceConfigManager configManager,
                                                Optional<CassandraJmxCompactionManager> compactionManager) {
         super(configManager, compactionManager);
-        CassandraKeyValueServiceConfig config = configManager.getConfig();
-        Preconditions.checkState(!config.servers().isEmpty(), "address list was empty");
-        try {
-            initializeFromFreshInstance(containerPoolToUpdate.getCurrentHosts(), config.replicationFactor());
-            getPoolingManager().submitHostRefreshTask();
-        } catch (Exception e) {
-            throw Throwables.throwUncheckedException(e);
-        }
     }
 
     @Override

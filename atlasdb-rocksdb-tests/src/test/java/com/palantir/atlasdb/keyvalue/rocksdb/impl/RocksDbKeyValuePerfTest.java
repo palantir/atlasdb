@@ -33,6 +33,7 @@ import org.junit.Test;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.common.concurrent.PTExecutors;
@@ -55,7 +56,7 @@ public final class RocksDbKeyValuePerfTest {
         for (String table : db.getAllTableNames()) {
             db.dropTable(table);
         }
-        db.createTable("t", Integer.MAX_VALUE);
+        db.createTable("t", AtlasDbConstants.EMPTY_TABLE_METADATA);
     }
 
     @After

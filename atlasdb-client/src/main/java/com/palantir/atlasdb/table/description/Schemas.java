@@ -41,16 +41,11 @@ public final class Schemas {
     }
 
     public static void createIndices(KeyValueService kvs, Map<String, IndexDefinition> fullIndexNameToDefinition) {
-        Map<String, Integer> fullIndexNameToMaxValueSize = Maps.newHashMapWithExpectedSize(fullIndexNameToDefinition.size());
         Map<String, byte[]> fullIndexNameToMetadata = Maps.newHashMapWithExpectedSize(fullIndexNameToDefinition.size());
-
         for (Entry<String, IndexDefinition> indexEntry : fullIndexNameToDefinition.entrySet()) {
-            fullIndexNameToMaxValueSize.put(indexEntry.getKey(), indexEntry.getValue().getMaxValueSize());
             fullIndexNameToMetadata.put(indexEntry.getKey(), indexEntry.getValue().toIndexMetadata(indexEntry.getKey()).getTableMetadata().persistToBytes());
         }
-
-        kvs.createTables(fullIndexNameToMaxValueSize);
-        kvs.putMetadataForTables(fullIndexNameToMetadata);
+        kvs.createTables(fullIndexNameToMetadata);
     }
 
     public static void createTable(KeyValueService kvs, String fullTableName, TableDefinition definition) {
@@ -58,16 +53,11 @@ public final class Schemas {
     }
 
     public static void createTables(KeyValueService kvs, Map<String, TableDefinition>  fullTableNameToDefinition) {
-        Map<String, Integer> fullTableNameToMaxValueSize = Maps.newHashMapWithExpectedSize(fullTableNameToDefinition.size());
         Map<String, byte[]> fullTableNameToMetadata = Maps.newHashMapWithExpectedSize(fullTableNameToDefinition.size());
-
         for (Entry<String, TableDefinition> tableEntry : fullTableNameToDefinition.entrySet()) {
-            fullTableNameToMaxValueSize.put(tableEntry.getKey(), tableEntry.getValue().getMaxValueSize());
             fullTableNameToMetadata.put(tableEntry.getKey(), tableEntry.getValue().toTableMetadata().persistToBytes());
         }
-
-        kvs.createTables(fullTableNameToMaxValueSize);
-        kvs.putMetadataForTables(fullTableNameToMetadata);
+        kvs.createTables(fullTableNameToMetadata);
     }
 
     public static String getFullTableName(String tableName, Namespace namespace) {

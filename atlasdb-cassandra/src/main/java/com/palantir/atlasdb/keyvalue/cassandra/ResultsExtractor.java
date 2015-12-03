@@ -1,3 +1,18 @@
+/**
+ * Copyright 2015 Palantir Technologies
+ *
+ * Licensed under the BSD-3 License (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://opensource.org/licenses/BSD-3-Clause
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.nio.ByteBuffer;
@@ -22,7 +37,6 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 abstract class ResultsExtractor<T, U> {
     protected final T collector;
-    byte[] maxRow = null;
 
     public ResultsExtractor(T collector) {
         this.collector = collector;
@@ -31,25 +45,21 @@ abstract class ResultsExtractor<T, U> {
     public final byte[] extractResults(Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey,
                                        long startTs,
                                        ColumnSelection selection) {
-            /*
-             * Iterate over the entries and avoid direct lookup by ByteBuffer key as ByteBuffer are
-             * mutable and we need to ensure that the buffer is not consumed if we were to do a lookup
-             * as we'd be unable to.
-             */
-            for (Entry<ByteBuffer, List<ColumnOrSuperColumn>> entry : colsByKey.entrySet()) {
-                byte[] row = CassandraKeyValueServices.getBytesFromByteBuffer(entry.getKey());
-                if (maxRow == null) {
-                    maxRow = row;
-                } else {
-                    maxRow = PtBytes.BYTES_COMPARATOR.max(maxRow, row);
-                }
-
-                for (ColumnOrSuperColumn c : entry.getValue()) {
-                    Pair<byte[], Long> pair = CassandraKeyValueServices.decomposeName(c.column);
-                    internalExtractResult(startTs, selection, row, pair.lhSide, c.column.getValue(), pair.rhSide);
-                }
+        byte[] maxRow = null;
+        for (Entry<ByteBuffer, List<ColumnOrSuperColumn>> colEntry : colsByKey.entrySet()) {
+            byte[] row = CassandraKeyValueServices.getBytesFromByteBuffer(colEntry.getKey());
+            if (maxRow == null) {
+                maxRow = row;
+            } else {
+                maxRow = PtBytes.BYTES_COMPARATOR.max(maxRow, row);
             }
-            return maxRow;
+
+            for (ColumnOrSuperColumn c : colEntry.getValue()) {
+                Pair<byte[], Long> pair = CassandraKeyValueServices.decomposeName(c.column);
+                internalExtractResult(startTs, selection, row, pair.lhSide, c.column.getValue(), pair.rhSide);
+            }
+        }
+        return maxRow;
     }
 
     public TokenBackedBasicResultsPage<RowResult<U>, byte[]> getPageFromRangeResults(
@@ -63,7 +73,7 @@ abstract class ResultsExtractor<T, U> {
     }
 
     public static <T> TokenBackedBasicResultsPage<RowResult<T>, byte[]> getRowResults(final byte[] endExclusive,
-            byte[] lastRow, SortedMap<byte[], SortedMap<byte[], T>> resultsByRow) {
+                                                                                      byte[] lastRow, SortedMap<byte[], SortedMap<byte[], T>> resultsByRow) {
         SortedMap<byte[], RowResult<T>> ret = RowResults.viewOfSortedMap(resultsByRow);
         if (lastRow == null || RangeRequests.isLastRowName(lastRow)) {
             return new SimpleTokenBackedResultsPage<RowResult<T>, byte[]>(endExclusive, ret.values(), false);

@@ -224,8 +224,7 @@ public class SnapshotTransactionManager extends AbstractLockAwareTransactionMana
     }
 
     public static void createTables(KeyValueService keyValueService) {
-        keyValueService.createTable(TransactionConstants.TRANSACTION_TABLE, TransactionConstants.getValueForTimestamp(-1).length);
-        keyValueService.putMetadataForTable(TransactionConstants.TRANSACTION_TABLE, TransactionConstants.TRANSACTION_TABLE_METADATA.persistToBytes());
+        keyValueService.createTable(TransactionConstants.TRANSACTION_TABLE, TransactionConstants.TRANSACTION_TABLE_METADATA.persistToBytes());
     }
 
     public static void deleteTables(KeyValueService keyValueService) {

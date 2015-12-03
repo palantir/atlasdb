@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
 public class AtlasDbConstants {
@@ -38,6 +39,8 @@ public class AtlasDbConstants {
 
     public static final String PARTITION_MAP_TABLE = "_partition_map";
     public static final char SCRUB_TABLE_SEPARATOR_CHAR = '\0';
+    public static final byte[] EMPTY_TABLE_METADATA = {}; // use carefully
+    public static final byte[] GENERIC_TABLE_METADATA = new TableMetadata().persistToBytes();
 
     public static final long SCRUBBER_RETRY_DELAY_MILLIS = 2000L;
 

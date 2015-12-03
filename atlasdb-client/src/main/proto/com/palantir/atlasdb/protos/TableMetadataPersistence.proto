@@ -11,6 +11,7 @@ message TableMetadata {
     optional bool negativeLookups = 8;
     optional SweepStrategy sweepStrategy = 9;
     optional int32 explicitCompressionBlockSizeKiloBytes = 10;
+    optional bool appendHeavyAndReadLight = 11;
 }
 
 message NameMetadataDescription {

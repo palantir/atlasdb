@@ -48,20 +48,22 @@ public class IndexMetadata {
     IndexType indexType;
     final SweepStrategy sweepStrategy;
     private final ExpirationStrategy expirationStrategy;
+    private boolean appendHeavyAndReadLight;
 
     public static IndexMetadata createIndex(String name,
-                                                    String javaName,
-                                                    Iterable<IndexComponent> rowComponents,
-                                                    CachePriority cachePriority,
-                                                    PartitionStrategy partitionStrategy,
-                                                    ConflictHandler conflictHandler,
-                                                    boolean rangeScanAllowed,
-                                                    int explicitCompressionBlockSizeKB,
-                                                    boolean negativeLookups,
-                                                    IndexCondition indexCondition,
-                                                    IndexType indexType,
-                                                    SweepStrategy sweepStrategy,
-                                                    ExpirationStrategy expirationStrategy) {
+                                            String javaName,
+                                            Iterable<IndexComponent> rowComponents,
+                                            CachePriority cachePriority,
+                                            PartitionStrategy partitionStrategy,
+                                            ConflictHandler conflictHandler,
+                                            boolean rangeScanAllowed,
+                                            int explicitCompressionBlockSizeKB,
+                                            boolean negativeLookups,
+                                            IndexCondition indexCondition,
+                                            IndexType indexType,
+                                            SweepStrategy sweepStrategy,
+                                            ExpirationStrategy expirationStrategy,
+                                            boolean appendHeavyAndReadLight) {
         Validate.isTrue(!Iterables.isEmpty(rowComponents));
         Iterable<IndexComponent> colComponents = ImmutableList.<IndexComponent>of();
         return new IndexMetadata(
@@ -79,23 +81,25 @@ public class IndexMetadata {
                 indexCondition,
                 indexType,
                 sweepStrategy,
-                expirationStrategy);
+                expirationStrategy,
+                appendHeavyAndReadLight);
     }
 
     public static IndexMetadata createDynamicIndex(String name,
-                                                           String javaName,
-                                                           Iterable<IndexComponent> rowComponents,
-                                                           Iterable<IndexComponent> colComponents,
-                                                           CachePriority cachePriority,
-                                                           PartitionStrategy partitionStrategy,
-                                                           ConflictHandler conflictHandler,
-                                                           boolean rangeScanAllowed,
-                                                           int explicitCompressionBlockSizeKB,
-                                                           boolean negativeLookups,
-                                                           IndexCondition indexCondition,
-                                                           IndexType indexType,
-                                                           SweepStrategy sweepStrategy,
-                                                           ExpirationStrategy expirationStrategy) {
+                                                   String javaName,
+                                                   Iterable<IndexComponent> rowComponents,
+                                                   Iterable<IndexComponent> colComponents,
+                                                   CachePriority cachePriority,
+                                                   PartitionStrategy partitionStrategy,
+                                                   ConflictHandler conflictHandler,
+                                                   boolean rangeScanAllowed,
+                                                   int explicitCompressionBlockSizeKB,
+                                                   boolean negativeLookups,
+                                                   IndexCondition indexCondition,
+                                                   IndexType indexType,
+                                                   SweepStrategy sweepStrategy,
+                                                   ExpirationStrategy expirationStrategy,
+                                                   boolean appendHeavyAndReadLight) {
         Validate.isTrue(!Iterables.isEmpty(rowComponents));
         Validate.isTrue(!Iterables.isEmpty(colComponents));
         return new IndexMetadata(
@@ -113,7 +117,8 @@ public class IndexMetadata {
                 indexCondition,
                 indexType,
                 sweepStrategy,
-                expirationStrategy);
+                expirationStrategy,
+                appendHeavyAndReadLight);
     }
 
     private IndexMetadata(String name,
@@ -130,7 +135,8 @@ public class IndexMetadata {
                           IndexCondition indexCondition,
                           IndexType indexType,
                           SweepStrategy sweepStrategy,
-                          ExpirationStrategy expirationStrategy) {
+                          ExpirationStrategy expirationStrategy,
+                          boolean appendHeavyAndReadLight) {
         this.name = name;
         this.javaName = javaName;
         this.rowComponents = ImmutableList.copyOf(rowComponents);
@@ -146,11 +152,12 @@ public class IndexMetadata {
         this.indexType = indexType;
         this.sweepStrategy = sweepStrategy;
         this.expirationStrategy = expirationStrategy;
+        this.appendHeavyAndReadLight = appendHeavyAndReadLight;
     }
 
     private static String getColNameToAccessFrom(Iterable<IndexComponent> rowComponents,
-                                          Iterable<IndexComponent> colComponents,
-                                          IndexCondition indexCondition) {
+                                                 Iterable<IndexComponent> colComponents,
+                                                 IndexCondition indexCondition) {
 
         String colNameToAccessFrom = null;
         for (IndexComponent indexComponent : Iterables.concat(rowComponents, colComponents)) {
@@ -215,7 +222,8 @@ public class IndexMetadata {
                 explicitCompressionBlockSizeKB,
                 negativeLookups,
                 sweepStrategy,
-                expirationStrategy);
+                expirationStrategy,
+                appendHeavyAndReadLight);
     }
 
     public boolean isDynamicIndex() {

@@ -41,6 +41,7 @@ public class TableMetadata implements Persistable {
     final boolean negativeLookups;
     final SweepStrategy sweepStrategy;
     final ExpirationStrategy expirationStrategy;
+    final boolean appendHeavyAndReadLight;
 
     public TableMetadata() {
         this(
@@ -62,7 +63,8 @@ public class TableMetadata implements Persistable {
                 0,
                 false,
                 SweepStrategy.CONSERVATIVE,
-                ExpirationStrategy.NEVER);
+                ExpirationStrategy.NEVER,
+                false);
     }
 
     public TableMetadata(NameMetadataDescription rowMetadata,
@@ -74,7 +76,8 @@ public class TableMetadata implements Persistable {
                          int explicitCompressionBlockSizeKB,
                          boolean negativeLookups,
                          SweepStrategy sweepStrategy,
-                         ExpirationStrategy expirationStrategy) {
+                         ExpirationStrategy expirationStrategy,
+                         boolean appendHeavyAndReadLight) {
         if (rangeScanAllowed) {
             Preconditions.checkArgument(
                     partitionStrategy == PartitionStrategy.ORDERED,
@@ -90,6 +93,7 @@ public class TableMetadata implements Persistable {
         this.negativeLookups = negativeLookups;
         this.sweepStrategy = sweepStrategy;
         this.expirationStrategy = expirationStrategy;
+        this.appendHeavyAndReadLight = appendHeavyAndReadLight;
     }
 
     public NameMetadataDescription getRowMetadata() {
@@ -136,6 +140,10 @@ public class TableMetadata implements Persistable {
         return expirationStrategy;
     }
 
+    public boolean isAppendHeavyAndReadLight() {
+        return appendHeavyAndReadLight;
+    }
+
     @Override
     public byte[] persistToBytes() {
         return persistToProto().build().toByteArray();
@@ -164,6 +172,7 @@ public class TableMetadata implements Persistable {
         builder.setNegativeLookups(negativeLookups);
         builder.setSweepStrategy(sweepStrategy);
         // expiration strategy doesn't need to be persisted.
+        builder.setAppendHeavyAndReadLight(appendHeavyAndReadLight);
         return builder;
     }
 
@@ -192,6 +201,11 @@ public class TableMetadata implements Persistable {
         if (message.hasSweepStrategy()) {
             sweepStrategy = message.getSweepStrategy();
         }
+        boolean appendHeavyAndReadLight = false;
+        if (message.hasAppendHeavyAndReadLight()) {
+            appendHeavyAndReadLight = message.getAppendHeavyAndReadLight();
+        }
+
         return new TableMetadata(
                 NameMetadataDescription.hydrateFromProto(message.getRowName()),
                 ColumnMetadataDescription.hydrateFromProto(message.getColumns()),
@@ -202,7 +216,8 @@ public class TableMetadata implements Persistable {
                 explicitCompressionBlockSizeKB,
                 negativeLookups,
                 sweepStrategy,
-                ExpirationStrategy.NEVER);
+                ExpirationStrategy.NEVER,
+                appendHeavyAndReadLight);
     }
 
     @Override
@@ -217,6 +232,7 @@ public class TableMetadata implements Persistable {
                 + ", explicitCompressionBlockSizeKB =" + explicitCompressionBlockSizeKB
                 + ", negativeLookups = " + negativeLookups
                 + ", sweepStrategy = " + sweepStrategy
+                + ", appendHeavyAndReadLight = " + appendHeavyAndReadLight
                 + "]";
     }
 
@@ -234,6 +250,7 @@ public class TableMetadata implements Persistable {
         result = prime * result + (explicitCompressionBlockSizeKB);
         result = prime * result + (negativeLookups? 0 : 1);
         result = prime * result + (sweepStrategy.hashCode());
+        result = prime * result + (appendHeavyAndReadLight? 0 : 1);
         return result;
     }
 
@@ -287,6 +304,10 @@ public class TableMetadata implements Persistable {
         if (sweepStrategy != other.sweepStrategy) {
             return false;
         }
+        if (appendHeavyAndReadLight != other.appendHeavyAndReadLight) {
+            return false;
+        }
+
         return true;
     }
 

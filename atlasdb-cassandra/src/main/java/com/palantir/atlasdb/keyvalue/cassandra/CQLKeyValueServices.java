@@ -152,7 +152,7 @@ public class CQLKeyValueServices {
 
     public static Set<Peer> getPeers(Session session) {
         PreparedStatement selectPeerInfo = session.prepare(
-                "select peer, data_center, rack, release_version, ring_id, rpc_address, schema_version, tokens from system.peers;");
+                "select peer, data_center, rack, release_version, rpc_address, schema_version, tokens from system.peers;");
 
         Set<Peer> peers = Sets.newHashSet();
 
@@ -172,7 +172,7 @@ public class CQLKeyValueServices {
     }
 
     public static void waitForSchemaVersionsToCoalesce(String encapsulatingOperationDescription, CQLKeyValueService kvs) {
-        PreparedStatement peerInfoQuery = kvs.getPreparedStatement(CassandraConstants.NO_TABLE, "select peer, schema_version from system.peers;");
+        PreparedStatement peerInfoQuery = kvs.getPreparedStatement(CassandraConstants.NO_TABLE, "select peer, schema_version from system.peers;", kvs.session);
         peerInfoQuery.setConsistencyLevel(ConsistencyLevel.ALL);
 
         Multimap<UUID, InetAddress> peerInfo = ArrayListMultimap.create();
@@ -222,39 +222,112 @@ public class CQLKeyValueServices {
         return CassandraKeyValueServices.getBytesFromByteBuffer(row.getBytes(CassandraConstants.VALUE_COL));
     }
 
-    static void setSettingsForTable(String tableName, byte[] rawMetadata, CQLKeyValueService kvs) {
+    static void createTableWithSettings(String tableName, byte[] rawMetadata, CQLKeyValueService kvs) {
+        StringBuilder queryBuilder = new StringBuilder();
+
         int explicitCompressionBlockSizeKB = 0;
         boolean negativeLookups = false;
         double falsePositiveChance = CassandraConstants.DEFAULT_LEVELED_COMPACTION_BLOOM_FILTER_FP_CHANCE;
+        boolean appendHeavyAndReadLight = false;
+
 
         if (rawMetadata != null && rawMetadata.length != 0) {
             TableMetadata tableMetadata = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(rawMetadata);
             explicitCompressionBlockSizeKB = tableMetadata.getExplicitCompressionBlockSizeKB();
             negativeLookups = tableMetadata.hasNegativeLookups();
-        }
-        if (negativeLookups) {
-            falsePositiveChance = CassandraConstants.NEGATIVE_LOOKUPS_BLOOM_FILTER_FP_CHANCE;
+            appendHeavyAndReadLight = tableMetadata.isAppendHeavyAndReadLight();
         }
 
-        StringBuilder sb = new StringBuilder();
-        sb.append("ALTER TABLE " + kvs.getFullTableName(tableName) + " WITH "
-                + "bloom_filter_fp_chance = " + falsePositiveChance + " ");
+        if (negativeLookups) {
+            falsePositiveChance = CassandraConstants.NEGATIVE_LOOKUPS_BLOOM_FILTER_FP_CHANCE;
+        } else if (appendHeavyAndReadLight) {
+            falsePositiveChance = CassandraConstants.DEFAULT_SIZE_TIERED_COMPACTION_BLOOM_FILTER_FP_CHANCE;
+        }
 
         int chunkLength = AtlasDbConstants.MINIMUM_COMPRESSION_BLOCK_SIZE_KB;
         if (explicitCompressionBlockSizeKB != 0) {
             chunkLength = explicitCompressionBlockSizeKB;
         }
 
-        sb.append("AND caching = '{\"keys\":\"ALL\", \"rows_per_partition\":\"ALL\"}' ");
-        sb.append("AND compaction = {'sstable_size_in_mb': '80', 'class': 'org.apache.cassandra.db.compaction.LeveledCompactionStrategy'} ");
-        sb.append("AND compression = {'chunk_length_kb': '" + chunkLength + "', "
+        queryBuilder.append("CREATE TABLE " + kvs.getFullTableName(tableName) + " ( " // full table name (ks.cf)
+                + CassandraConstants.ROW_NAME + " blob, "
+                + CassandraConstants.COL_NAME_COL + " blob, "
+                + CassandraConstants.TS_COL + " bigint, "
+                + CassandraConstants.VALUE_COL + " blob, "
+                + "PRIMARY KEY ("
+                + CassandraConstants.ROW_NAME + ", "
+                + CassandraConstants.COL_NAME_COL + ", "
+                + CassandraConstants.TS_COL + ")) "
+                + "WITH COMPACT STORAGE ");
+        queryBuilder.append("AND " + "bloom_filter_fp_chance = " + falsePositiveChance + " ");
+        queryBuilder.append("AND caching = '{\"keys\":\"ALL\", \"rows_per_partition\":\"ALL\"}' ");
+        if (appendHeavyAndReadLight) {
+            queryBuilder.append("AND compaction = { 'class': 'org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy'} ");
+        } else {
+            queryBuilder.append("AND compaction = {'sstable_size_in_mb': '80', 'class': 'org.apache.cassandra.db.compaction.LeveledCompactionStrategy'} ");
+        }
+        queryBuilder.append("AND compression = {'chunk_length_kb': '" + chunkLength + "', "
                 + "'sstable_compression': '" + CassandraConstants.DEFAULT_COMPRESSION_TYPE + "'}");
-        BoundStatement alterTableStatement =
-                kvs.getPreparedStatement(tableName, sb.toString())
+        queryBuilder.append("AND CLUSTERING ORDER BY ("
+                + CassandraConstants.COL_NAME_COL + " ASC, "
+                + CassandraConstants.TS_COL + " ASC) ");
+
+        BoundStatement createTableStatement =
+                kvs.getPreparedStatement(tableName, queryBuilder.toString(), kvs.longRunningQuerySession)
                         .setConsistencyLevel(ConsistencyLevel.ALL)
                         .bind();
         try {
-            kvs.session.execute(alterTableStatement);
+            ResultSet resultSet = kvs.longRunningQuerySession.execute(createTableStatement);
+            CQLKeyValueServices.logTracedQuery(queryBuilder.toString(), resultSet, kvs.session, kvs.cqlStatementCache.NORMAL_QUERY);
+        } catch (Throwable t) {
+            throw Throwables.throwUncheckedException(t);
+        }
+    }
+
+    static void setSettingsForTable(String tableName, byte[] rawMetadata, CQLKeyValueService kvs) {
+        int explicitCompressionBlockSizeKB = 0;
+        boolean negativeLookups = false;
+        double falsePositiveChance = CassandraConstants.DEFAULT_LEVELED_COMPACTION_BLOOM_FILTER_FP_CHANCE;
+        boolean appendHeavyAndReadLight = false;
+
+        if (rawMetadata != null && rawMetadata.length != 0) {
+            TableMetadata tableMetadata = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(rawMetadata);
+            explicitCompressionBlockSizeKB = tableMetadata.getExplicitCompressionBlockSizeKB();
+            negativeLookups = tableMetadata.hasNegativeLookups();
+            appendHeavyAndReadLight = tableMetadata.isAppendHeavyAndReadLight();
+        }
+
+        if (negativeLookups) {
+            falsePositiveChance = CassandraConstants.NEGATIVE_LOOKUPS_BLOOM_FILTER_FP_CHANCE;
+        } else if (appendHeavyAndReadLight) {
+            falsePositiveChance = CassandraConstants.DEFAULT_SIZE_TIERED_COMPACTION_BLOOM_FILTER_FP_CHANCE;
+        }
+
+        int chunkLength = AtlasDbConstants.MINIMUM_COMPRESSION_BLOCK_SIZE_KB;
+        if (explicitCompressionBlockSizeKB != 0) {
+            chunkLength = explicitCompressionBlockSizeKB;
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("ALTER TABLE " + kvs.getFullTableName(tableName) + " WITH "
+                + "bloom_filter_fp_chance = " + falsePositiveChance + " ");
+
+        sb.append("AND caching = '{\"keys\":\"ALL\", \"rows_per_partition\":\"ALL\"}' ");
+
+        if (appendHeavyAndReadLight) {
+            sb.append("AND compaction = { 'class': 'org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy'} ");
+        } else {
+            sb.append("AND compaction = {'sstable_size_in_mb': '80', 'class': 'org.apache.cassandra.db.compaction.LeveledCompactionStrategy'} ");
+        }
+        sb.append("AND compression = {'chunk_length_kb': '" + chunkLength + "', "
+                + "'sstable_compression': '" + CassandraConstants.DEFAULT_COMPRESSION_TYPE + "'}");
+
+        BoundStatement alterTableStatement =
+                kvs.getPreparedStatement(tableName, sb.toString(), kvs.longRunningQuerySession)
+                        .setConsistencyLevel(ConsistencyLevel.ALL)
+                        .bind();
+        try {
+            kvs.longRunningQuerySession.execute(alterTableStatement);
         } catch (Throwable t) {
             throw Throwables.throwUncheckedException(t);
         }

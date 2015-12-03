@@ -10,6 +10,8 @@ dependencies {
   compile 'org.apache.cassandra:cassandra-all:2.1.7'
   compile 'com.datastax.cassandra:cassandra-driver-core:2.1.7'
 
+  compile 'org.apache.commons:commons-pool2:2.4.2'
+
   processor 'org.immutables:value:2.0.21'
 }
 

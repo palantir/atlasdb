@@ -109,10 +109,10 @@ public interface NamespacedKeyValueService {
     void dropTables(Set<TableReference> tableRef);
 
     @Idempotent
-    void createTable(TableReference tableRef, int maxValueSizeInBytes);
+    void createTable(TableReference tableRef, byte[] tableMetadata);
 
     @Idempotent
-    void createTables(Map<TableReference, Integer> tableReferencesToMaxValueSizeInBytes);
+    void createTables(Map<TableReference, byte[]> tableReferencesToTableMetadata);
 
     @Idempotent
     Set<TableReference> getAllTableNames();

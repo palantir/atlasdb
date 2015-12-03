@@ -179,7 +179,7 @@ public class ThrowingKeyValueService implements KeyValueService {
 
     @Override
     @Idempotent
-    public void createTable(String tableName, int maxValueSizeInBytes) {
+    public void createTable(String tableName, byte[] tableMetadata) {
         throw throwEx();
     }
 
@@ -220,7 +220,7 @@ public class ThrowingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void createTables(Map<String, Integer> tableNamesToMaxValueSizeInBytes) {
+    public void createTables(Map<String, byte[]> tableNameToTableMetadata) {
         throw throwEx();
     }
 

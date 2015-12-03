@@ -25,6 +25,7 @@ import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -55,8 +56,7 @@ public class PartitionedBoundStore implements TimestampBoundStore, Closeable {
     private static final long INITIAL_VALUE = 10000L;
 
     public static TimestampBoundStore create(KeyValueService kv) {
-        kv.createTable(TIMESTAMP_TABLE, 8);
-        kv.putMetadataForTable(TIMESTAMP_TABLE, TIMESTAMP_TABLE_METADATA.persistToBytes());
+        kv.createTable(TIMESTAMP_TABLE, TIMESTAMP_TABLE_METADATA.persistToBytes());
         return new PartitionedBoundStore(kv);
     }
 

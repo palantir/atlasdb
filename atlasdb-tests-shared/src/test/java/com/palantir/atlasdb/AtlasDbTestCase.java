@@ -133,7 +133,7 @@ public class AtlasDbTestCase {
     }
 
     protected void createTable(String tableName) {
-        keyValueService.createTable(tableName, Integer.MAX_VALUE);
+        keyValueService.createTable(tableName, AtlasDbConstants.GENERIC_TABLE_METADATA);
     }
 
     protected void deleteTable(String tableName) {

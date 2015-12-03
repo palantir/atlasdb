@@ -35,6 +35,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.UnsignedBytes;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -174,7 +175,7 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
         skves[1].partitionMapService().updateMapIfNewer(pkvs.getPartitionMap());
         skves[2].partitionMapService().updateMapIfNewer(pkvs.getPartitionMap());
         skves[3].partitionMapService().updateMapIfNewer(pkvs.getPartitionMap());
-        pkvs.createTable("TABLE_NAME_2", 12345);
+        pkvs.createTable("TABLE_NAME_2", AtlasDbConstants.GENERIC_TABLE_METADATA);
 
         pkvs.getPartitionMap().setVersion(0L);
 
@@ -213,7 +214,7 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
         pkvs.getPartitionMap().addEndpoint(ept_key_3, skves[NUM_EPTS-1]);
         pkvs.getPartitionMap().pushMapToEndpoints();
 
-        pkvs.createTable(TEST_TABLE, 12345);
+        pkvs.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
 
         // Force pmap updateMap (why not)
         pkvs.getPartitionMap().setVersion(0L);
@@ -272,7 +273,7 @@ public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueService
         pkvs.getPartitionMap().promoteAddedEndpoint(ept_key_3);
         pkvs.getPartitionMap().pushMapToEndpoints();
 
-        pkvs.createTable(TEST_TABLE, 12345);
+        pkvs.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
 
         // Begin the remove operation
         pkvs.getPartitionMap().removeEndpoint(ept_key_1);

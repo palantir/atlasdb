@@ -106,24 +106,24 @@ public class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void createTable(String tableName, int maxValueSizeInBytes) {
+    public void createTable(String tableName, byte[] tableMetadata) {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
-            delegate.createTable(tableName, maxValueSizeInBytes);
+            delegate.createTable(tableName, tableMetadata);
             logTimeAndTable("createTable", tableName, stopwatch);
         } else {
-            delegate.createTable(tableName, maxValueSizeInBytes);
+            delegate.createTable(tableName, tableMetadata);
         }
     }
 
     @Override
-    public void createTables(Map<String, Integer> tableNamesToMaxValueSizeInBytes) {
+    public void createTables(Map<String, byte[]> tableNameToTableMetadata) {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
-            delegate.createTables(tableNamesToMaxValueSizeInBytes);
-            logTimeAndTableCount("createTables", tableNamesToMaxValueSizeInBytes.keySet().size(), stopwatch);
+            delegate.createTables(tableNameToTableMetadata);
+            logTimeAndTableCount("createTables", tableNameToTableMetadata.keySet().size(), stopwatch);
         } else {
-            delegate.createTables(tableNamesToMaxValueSizeInBytes);
+            delegate.createTables(tableNameToTableMetadata);
         }
     }
 

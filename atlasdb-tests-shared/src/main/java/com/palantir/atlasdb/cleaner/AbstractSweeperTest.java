@@ -264,14 +264,15 @@ public abstract class AbstractSweeperTest {
     }
 
     private void createTable(final SweepStrategy sweepStrategy) {
-        kvs.createTable(TABLE_NAME, Integer.MAX_VALUE);
-        kvs.putMetadataForTable(TABLE_NAME, new TableDefinition() {{
-            rowName();
-                rowComponent("row", ValueType.BLOB);
-            columns();
-                column("col", COL, ValueType.BLOB);
-            conflictHandler(ConflictHandler.IGNORE_ALL);
-            sweepStrategy(sweepStrategy);
-        }}.toTableMetadata().persistToBytes());
+        kvs.createTable(TABLE_NAME,
+                new TableDefinition() {{
+                    rowName();
+                    rowComponent("row", ValueType.BLOB);
+                    columns();
+                    column("col", COL, ValueType.BLOB);
+                    conflictHandler(ConflictHandler.IGNORE_ALL);
+                    sweepStrategy(sweepStrategy);
+                }}.toTableMetadata().persistToBytes()
+        );
     }
 }

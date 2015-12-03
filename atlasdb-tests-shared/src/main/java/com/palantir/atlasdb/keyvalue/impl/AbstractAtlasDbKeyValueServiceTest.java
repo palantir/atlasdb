@@ -41,6 +41,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Multimap;
 import com.google.common.primitives.UnsignedBytes;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -85,7 +86,7 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
     @Before
     public void setUp() throws Exception {
         keyValueService = getKeyValueService();
-        keyValueService.createTable(TEST_TABLE, Integer.MAX_VALUE);
+        keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
     }
 
     @After
@@ -262,7 +263,7 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         final String anotherTable = "AnotherTable";
         assertEquals(1, keyValueService.getAllTableNames().size());
         assertEquals(TEST_TABLE, keyValueService.getAllTableNames().iterator().next());
-        keyValueService.createTable(anotherTable, 123);
+        keyValueService.createTable(anotherTable, AtlasDbConstants.GENERIC_TABLE_METADATA);
         assertEquals(2, keyValueService.getAllTableNames().size());
         assertTrue(keyValueService.getAllTableNames().contains(anotherTable));
         assertTrue(keyValueService.getAllTableNames().contains(TEST_TABLE));

@@ -15,15 +15,16 @@
  */
 package com.palantir.atlasdb.factory;
 
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import javax.net.ssl.SSLSocketFactory;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
+import com.google.common.net.HostAndPort;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.factory.TransactionManagers.Environment;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
@@ -63,8 +64,7 @@ public class Leaders {
                 AtlasDbHttpClients.createProxies(sslSocketFactory, remoteLeaderUris, PaxosAcceptor.class);
         acceptors.add(ourAcceptor);
 
-        List<PingableLeader> otherLeaders =
-                AtlasDbHttpClients.createProxies(sslSocketFactory, remoteLeaderUris, PingableLeader.class);
+        Map<PingableLeader, HostAndPort> otherLeaders = generatePingables(remoteLeaderUris, sslSocketFactory);
 
         ExecutorService executor = Executors.newCachedThreadPool();
 
@@ -79,8 +79,8 @@ public class Leaders {
                 proposer,
                 ourLearner,
                 otherLeaders,
-                acceptors,
-                learners,
+                ImmutableList.copyOf(acceptors),
+                ImmutableList.copyOf(learners),
                 executor,
                 config.pingRateMs(),
                 config.randomWaitBeforeProposingLeadershipMs(),
@@ -93,6 +93,20 @@ public class Leaders {
         env.register(new NotCurrentLeaderExceptionMapper());
 
         return leader;
+    }
+
+    public static Map<PingableLeader, HostAndPort> generatePingables(Collection<String> remoteEndpoints,
+                                                                    Optional<SSLSocketFactory> sslSocketFactory) {
+        /* The interface used as a key here may be a proxy, which may have strange .equals() behavior.
+         * This is circumvented by using an IdentityHashMap which will just use native == for equality.
+         */
+        Map<PingableLeader, HostAndPort> pingables = new IdentityHashMap<PingableLeader, HostAndPort>();
+        for (String endpoint : remoteEndpoints) {
+            PingableLeader remoteInterface = AtlasDbHttpClients.createProxy(sslSocketFactory, endpoint, PingableLeader.class);
+            HostAndPort hostAndPort = HostAndPort.fromString(endpoint);
+            pingables.put(remoteInterface, hostAndPort);
+        }
+        return pingables;
     }
 
 }

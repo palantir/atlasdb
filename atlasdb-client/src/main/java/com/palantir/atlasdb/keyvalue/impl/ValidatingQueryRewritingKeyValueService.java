@@ -72,38 +72,25 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
     }
 
     @Override
-    public void createTable(String tableName, int maxValueSizeInBytes) {
+    public void createTable(String tableName, byte[] tableMetadata) {
         sanityCheckTableName(tableName);
-        if (maxValueSizeInBytes <= 0) {
-            maxValueSizeInBytes = 1;
-        }
-        delegate.createTable(tableName, maxValueSizeInBytes);
+        delegate.createTable(tableName, tableMetadata);
     }
 
     @Override
-    public void createTables(Map<String, Integer> tableNamesToMaxValueSizeInBytes) {
-        if (tableNamesToMaxValueSizeInBytes.isEmpty()) {
+    public void createTables(Map<String, byte[]> tableNameToTableMetadata) {
+        if (tableNameToTableMetadata.isEmpty()) {
             return;
         }
-        if (tableNamesToMaxValueSizeInBytes.size() == 1) {
-            Entry<String, Integer> element = Iterables.getOnlyElement(tableNamesToMaxValueSizeInBytes.entrySet());
+        if (tableNameToTableMetadata.size() == 1) {
+            Entry<String, byte[]> element = Iterables.getOnlyElement(tableNameToTableMetadata.entrySet());
             createTable(element.getKey(), element.getValue());
             return;
         }
-        for (String tableName : tableNamesToMaxValueSizeInBytes.keySet()) {
+        for (String tableName : tableNameToTableMetadata.keySet()) {
             sanityCheckTableName(tableName);
         }
-
-        Map<String, Integer> tableNamesToFlooredMaxValueSizeInBytes = Maps.transformValues(tableNamesToMaxValueSizeInBytes, new Function<Integer, Integer>() {
-
-            @Override
-            public Integer apply(Integer maxValueSizeBytes) {
-                return maxValueSizeBytes <= Integer.valueOf(0) ? Integer.valueOf(1) : maxValueSizeBytes;
-            }
-
-        });
-
-        delegate.createTables(tableNamesToFlooredMaxValueSizeInBytes);
+        delegate.createTables(tableNameToTableMetadata);
     }
 
     protected void sanityCheckTableName(String tableName) {

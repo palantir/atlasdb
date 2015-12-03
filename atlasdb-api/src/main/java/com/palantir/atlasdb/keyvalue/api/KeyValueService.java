@@ -438,31 +438,27 @@ public interface KeyValueService extends AutoCloseable {
      * (the table is left in its current state).
      *
      * @param tableName
-     * @param maxValueSizeInBytes This may be used by the key value store to
-     *        throw if a value is too big. It may also be used by the store as a
-     *        hint for small values so we can cache them more effectively in memory.
+     * @param tableMetadata
      */
     @POST
     @Path("create-table")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    void createTable(@QueryParam("tableName") String tableName, @QueryParam("maxValueSizeInBytes") int maxValueSizeInBytes) throws InsufficientConsistencyException;
+    void createTable(@QueryParam("tableName") String tableName, @QueryParam("tableMetadata") final byte[] tableMetadata) throws InsufficientConsistencyException;
 
     /**
      * Creates many tables in idempotent fashion. If you are making many tables at once,
      * use this call as the implementation can be much faster/less error-prone on some KVSs.
      *
-     * @param tableNamesToMaxValueSizeInBytes This may be used by the key value store to
-     *        throw if a value is too big. It may also be used by the store as a
-     *        hint for small values so we can cache them more effectively in memory.
+     * @param tableNameToTableMetadata
      */
     @POST
     @Path("create-tables")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    void createTables(Map<String, Integer> tableNamesToMaxValueSizeInBytes) throws InsufficientConsistencyException;
+    void createTables(Map<String, byte[]> tableNameToTableMetadata) throws InsufficientConsistencyException;
 
     /**
      * Return the list of tables stored in this key value service.

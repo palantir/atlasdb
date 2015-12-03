@@ -156,9 +156,9 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void createTable(String tableName, int maxValueSizeInBytes) {
-        delegate1.createTable(tableName, maxValueSizeInBytes);
-        delegate2.createTable(tableName, maxValueSizeInBytes);
+    public void createTable(String tableName, byte[] tableMetadata) {
+        delegate1.createTable(tableName, tableMetadata);
+        delegate2.createTable(tableName, tableMetadata);
     }
 
     @Override
@@ -204,9 +204,9 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void createTables(Map<String, Integer> tableNamesToMaxValueSizeInBytes) {
-        delegate1.createTables(tableNamesToMaxValueSizeInBytes);
-        delegate2.createTables(tableNamesToMaxValueSizeInBytes);
+    public void createTables(Map<String, byte[]> tableNameToTableMetadata) {
+        delegate1.createTables(tableNameToTableMetadata);
+        delegate2.createTables(tableNameToTableMetadata);
     }
 
     @Override

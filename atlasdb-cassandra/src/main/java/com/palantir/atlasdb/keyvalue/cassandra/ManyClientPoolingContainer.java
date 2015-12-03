@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.net.InetAddress;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -26,15 +27,19 @@ import org.apache.cassandra.thrift.Cassandra.Client;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.google.common.net.InetAddresses;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.pooling.ForwardingPoolingContainer;
 import com.palantir.common.pooling.PoolingContainer;
 
-public class ManyClientPoolingContainer extends ForwardingPoolingContainer<Client> {
+public class ManyClientPoolingContainer extends ForwardingPoolingContainer<Client>
+        implements ManyHostPoolingContainer<Client> {
     private static final Logger log = LoggerFactory.getLogger(ManyClientPoolingContainer.class);
     volatile ImmutableList<PoolingContainer<Client>> containers = ImmutableList.of();
     @GuardedBy("this")
@@ -116,6 +121,27 @@ public class ManyClientPoolingContainer extends ForwardingPoolingContainer<Clien
     protected PoolingContainer<Client> delegate() {
         List<PoolingContainer<Client>> list = containers;
         return list.get(random.nextInt(list.size()));
+    }
+
+    @Override
+    public <V, K extends Exception> V runWithPooledResourceOnHost(InetAddress host,
+                                                                  FunctionCheckedException<Client, V, K> f) throws K {
+        return delegateForHost(host).runWithPooledResource(f);
+    }
+
+    @Override
+    public <V> V runWithPooledResourceOnHost(InetAddress host, Function<Client, V> f) {
+        return delegateForHost(host).runWithPooledResource(f);
+    }
+
+    private PoolingContainer<Client> delegateForHost(InetAddress host) {
+        for (Map.Entry<String, PoolingContainer<Client>> entry : containerMap.entrySet()) {
+            if (InetAddresses.forString(entry.getKey()).equals(host)) {
+                return entry.getValue();
+            }
+        }
+        log.warn("Unrecognized host {}, falling back to a randomly chosen client", host);
+        return delegate();
     }
 
 }

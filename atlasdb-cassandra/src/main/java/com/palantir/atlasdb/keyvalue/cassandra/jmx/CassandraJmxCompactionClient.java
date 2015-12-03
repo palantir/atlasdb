@@ -17,6 +17,9 @@ import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 
+import org.apache.cassandra.db.HintedHandOffManagerMBean;
+import org.apache.cassandra.db.compaction.CompactionManagerMBean;
+import org.apache.cassandra.service.StorageServiceMBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -149,7 +152,7 @@ public class CassandraJmxCompactionClient {
     public void forceTableFlush(String keyspace, String tableName) {
         log.trace("flushing {}.{} on node {}:{} for tombstone compaction!", keyspace, tableName, host, port);
         try {
-            storageServiceProxy.forceTableFlush(keyspace, tableName);
+            storageServiceProxy.forceKeyspaceFlush(keyspace, tableName);
         } catch (IOException e) {
             log.error("forceTableFlush IOException: {}", e.getMessage());
             Throwables.throwUncheckedException(e);
@@ -191,7 +194,7 @@ public class CassandraJmxCompactionClient {
     private boolean tryTableCompaction(String keyspace, String tableName) {
         try {
             Stopwatch stopWatch = Stopwatch.createStarted();
-            storageServiceProxy.forceTableCompaction(keyspace, tableName);
+            storageServiceProxy.forceKeyspaceCompaction(keyspace, tableName);
             log.info("Compaction for {}.{} completed on node {}:{} in {}", keyspace, Arrays.asList(tableName), host, port, stopWatch.stop());
         } catch (IOException e) {
             log.error("Invalid keyspace or tableNames specified for forceTableCompaction()", e);

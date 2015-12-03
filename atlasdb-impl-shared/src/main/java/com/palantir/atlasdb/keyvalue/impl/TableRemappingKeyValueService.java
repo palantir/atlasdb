@@ -70,20 +70,20 @@ public class TableRemappingKeyValueService extends ForwardingObject implements
     }
 
     @Override
-    public void createTable(TableReference tableRef, int maxValueSize) {
+    public void createTable(TableReference tableRef, byte[] tableMetadata) {
         String shortName = tableMapper.addTable(tableRef);
-        delegate().createTable(shortName, maxValueSize);
+        delegate().createTable(shortName, tableMetadata);
     }
 
     @Override
-    public void createTables(Map<TableReference, Integer> tableReferencesToMaxValueSizeInBytes) {
-        Map<String, Integer> tableNameToMaxValueSize = Maps.newHashMapWithExpectedSize(tableReferencesToMaxValueSizeInBytes.size());
-        for (Entry<TableReference, Integer> tableEntry : tableReferencesToMaxValueSizeInBytes.entrySet()) {
-            tableNameToMaxValueSize.put(
+    public void createTables(Map<TableReference, byte[]> tableReferencesToTableMetadata) {
+        Map<String, byte[]> tableNameToTableMetadata= Maps.newHashMapWithExpectedSize(tableReferencesToTableMetadata.size());
+        for (Entry<TableReference, byte[]> tableEntry : tableReferencesToTableMetadata.entrySet()) {
+            tableNameToTableMetadata.put(
                     tableMapper.addTable(tableEntry.getKey()),
                     tableEntry.getValue());
         }
-        delegate().createTables(tableNameToMaxValueSize);
+        delegate().createTables(tableNameToTableMetadata);
     }
 
     @Override

@@ -83,28 +83,28 @@ public class TableSplittingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void createTable(String tableName, int maxValueSizeInBytes) {
-        getDelegate(tableName).createTable(tableName, maxValueSizeInBytes);
+    public void createTable(String tableName, byte[] tableMetadata) {
+        getDelegate(tableName).createTable(tableName, tableMetadata);
     }
 
     @Override
-    public void createTables(Map<String, Integer> tableNamesToMaxValueSizeInBytes) {
-        Map<KeyValueService, Map<String, Integer>> splitTableNamesToMaxValueSize = Maps.newHashMap();
-        for (Entry<String, Integer> tableEntry : tableNamesToMaxValueSizeInBytes.entrySet()) {
+    public void createTables(Map<String, byte[]> tableNamesToTableMetadata) {
+        Map<KeyValueService, Map<String, byte[]>> splitTableNamesToTableMetadata = Maps.newHashMap();
+        for (Entry<String, byte[]> tableEntry : tableNamesToTableMetadata.entrySet()) {
             String tableName = tableEntry.getKey();
-            int maxValueSizeInBytes = tableEntry.getValue();
+            byte[] tableMetadata = tableEntry.getValue();
 
             KeyValueService delegate = getDelegate(tableName);
-            if (splitTableNamesToMaxValueSize.containsKey(delegate)) {
-                splitTableNamesToMaxValueSize.get(delegate).put(tableName, maxValueSizeInBytes);
+            if (splitTableNamesToTableMetadata.containsKey(delegate)) {
+                splitTableNamesToTableMetadata.get(delegate).put(tableName, tableMetadata);
             } else {
-                Map<String, Integer> mapTableToMaxValue = Maps.newHashMap();
-                mapTableToMaxValue.put(tableName, maxValueSizeInBytes);
-                splitTableNamesToMaxValueSize.put(delegate, mapTableToMaxValue);
+                Map<String, byte[]> mapTableToMaxValue = Maps.newHashMap();
+                mapTableToMaxValue.put(tableName, tableMetadata);
+                splitTableNamesToTableMetadata.put(delegate, mapTableToMaxValue);
             }
         }
-        for (KeyValueService delegate : splitTableNamesToMaxValueSize.keySet()) {
-            delegate.createTables(splitTableNamesToMaxValueSize.get(delegate));
+        for (KeyValueService delegate : splitTableNamesToTableMetadata.keySet()) {
+            delegate.createTables(splitTableNamesToTableMetadata.get(delegate));
         }
     }
 

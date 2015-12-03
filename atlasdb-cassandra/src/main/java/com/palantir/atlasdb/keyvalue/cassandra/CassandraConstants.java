@@ -46,7 +46,9 @@ public class CassandraConstants {
     static final String DEFAULT_COMPRESSION_TYPE = "LZ4Compressor";
     static final String SSTABLE_SIZE_IN_MB = "80";
     static final double DEFAULT_LEVELED_COMPACTION_BLOOM_FILTER_FP_CHANCE = 0.1;
+    static final double DEFAULT_SIZE_TIERED_COMPACTION_BLOOM_FILTER_FP_CHANCE = 0.01;
     static final double NEGATIVE_LOOKUPS_BLOOM_FILTER_FP_CHANCE = 0.01;
+    static final double NEGATIVE_LOOKUPS_SIZE_TIERED_BLOOM_FILTER_FP_CHANCE = 0.0001;
     static final String SIMPLE_STRATEGY = "org.apache.cassandra.locator.SimpleStrategy";
     static final String NETWORK_STRATEGY = "org.apache.cassandra.locator.NetworkTopologyStrategy";
 
@@ -78,12 +80,19 @@ public class CassandraConstants {
     static final String CFDEF_COMPRESSION_CHUNK_LENGTH_KEY = "chunk_length_kb";
 
     public static String NO_TABLE = "SYSTEM";
+    public static int NO_TTL = -1;
+
+    static final String LEVELED_COMPACTION_STRATEGY = "org.apache.cassandra.db.compaction.LeveledCompactionStrategy";
+    static final String SIZE_TIERED_COMPACTION_STRATEGY = "org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy";
+
+    public static final Set<String> HIDDEN_TABLES = ImmutableSet.of(
+            CassandraConstants.METADATA_TABLE, CassandraTimestampBoundStore.TIMESTAMP_TABLE);
 
     // update CKVS.isMatchingCf if you update this method
     static CfDef getStandardCfDef(String keyspace, String internalTableName) {
         CfDef cf = new CfDef(keyspace, internalTableName);
         cf.setComparator_type("CompositeType(BytesType,LongType)");
-        cf.setCompaction_strategy("LeveledCompactionStrategy");
+        cf.setCompaction_strategy(LEVELED_COMPACTION_STRATEGY);
         cf.setCompaction_strategy_options(ImmutableMap.of("sstable_size_in_mb", CassandraConstants.SSTABLE_SIZE_IN_MB));
         cf.setCompression_options(Maps.<String, String>newHashMap());
         cf.setGc_grace_seconds(GC_GRACE_SECONDS);

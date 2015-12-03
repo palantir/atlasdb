@@ -659,8 +659,8 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         ImmutableList<PartitionMapService> mapServices = ImmutableList.<PartitionMapService> of(InMemoryPartitionMapService.create(this));
         PartitionedKeyValueService pkvs = PartitionedKeyValueService.create(quorumParameters, mapServices);
         for (String tableName : pkvs.getAllTableNames()) {
-            kve.keyValueService().createTable(tableName, MAX_VALUE_SIZE);
-            kve.keyValueService().putMetadataForTables(pkvs.getMetadataForTables());
+            byte[] metadata = kve.keyValueService().getMetadataForTable(tableName);
+            kve.keyValueService().createTable(tableName, metadata);
         }
 
         ring.put(key, new EndpointWithJoiningStatus(kve));

@@ -44,6 +44,7 @@ import com.google.common.collect.Sets;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.Longs;
 import com.google.common.primitives.UnsignedBytes;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
@@ -313,15 +314,15 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
 
     @Override
     public void put(String tableName, Map<Cell, byte[]> values, long timestamp) {
-        putInternal(tableName, KeyValueServices.toConstantTimestampValues(values.entrySet(), timestamp), false);
+        putInternal(tableName, KeyValueServices.toConstantTimestampValues(values.entrySet(), timestamp));
     }
 
     @Override
     public void putWithTimestamps(String tableName, Multimap<Cell, Value> values) {
-        putInternal(tableName, values.entries(), false);
+        putInternal(tableName, values.entries());
     }
 
-    private void putInternal(String tableName, Collection<Map.Entry<Cell, Value>> values, boolean doNotOverwriteWithSameValue) {
+    private void putInternal(String tableName, Collection<Map.Entry<Cell, Value>> values) {
         Table table = getTableMap(tableName);
         for (Map.Entry<Cell, Value> e : values) {
             Cell cell = e.getKey();
@@ -329,17 +330,14 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
             byte[] col = cell.getColumnName();
             byte[] contents = e.getValue().getContents();
             long timestamp = e.getValue().getTimestamp();
-            if (contents != null && contents.length > table.maxValueSize) {
-                throw new IllegalArgumentException("value is too large for this table: " +
-                        tableName + ", max: " + table.maxValueSize);
-            }
+
             Key nextKey = table.entries.ceilingKey(new Key(row, ArrayUtils.EMPTY_BYTE_ARRAY, Long.MIN_VALUE));
             if (nextKey != null && nextKey.matchesRow(row)) {
                 // Save memory by sharing rows.
                 row = nextKey.row;
             }
             byte[] oldContents = table.entries.putIfAbsent(new Key(row, col, timestamp), contents);
-            if (oldContents != null && (doNotOverwriteWithSameValue || !Arrays.equals(oldContents, contents))) {
+            if (oldContents != null) {
                 throw new KeyAlreadyExistsException("We already have a value for this timestamp");
             }
         }
@@ -348,7 +346,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     @Override
     public void putUnlessExists(String tableName, Map<Cell, byte[]> values)
             throws KeyAlreadyExistsException {
-        putInternal(tableName, KeyValueServices.toConstantTimestampValues(values.entrySet(), 0), true);
+        put(tableName, values, 0);
     }
 
     @Override
@@ -378,8 +376,9 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     }
 
     @Override
-    public void createTable(String tableName, int maxValueSize) {
-        tables.putIfAbsent(tableName, new Table(maxValueSize));
+    public void createTable(String tableName, byte[] tableMetadata) {
+        tables.putIfAbsent(tableName, new Table());
+        putMetadataForTable(tableName, tableMetadata);
     }
 
     @Override
@@ -406,17 +405,15 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
 
     static class Table {
         final ConcurrentSkipListMap<Key, byte[]> entries;
-        final int maxValueSize;
 
-        public Table(int maxValueSize) {
+        public Table() {
             this.entries = new ConcurrentSkipListMap<Key, byte[]>();
-            this.maxValueSize = maxValueSize;
         }
     }
 
     private Table getTableMap(String tableName) {
         if (createTablesAutomatically && !tables.containsKey(tableName)) {
-            createTable(tableName, Integer.MAX_VALUE);
+            createTable(tableName, AtlasDbConstants.EMPTY_TABLE_METADATA);
         }
         Table table = tables.get(tableName);
         if (table == null) {

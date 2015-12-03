@@ -835,7 +835,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
 
     @Override
     @Idempotent
-    public void createTable(final String tableName, int maxValueSizeInBytes)
+    public void createTable(final String tableName, final byte[] tableMetadata)
             throws InsufficientConsistencyException {
         getDbi().inTransaction(new TransactionCallback<Void>() {
             @Override
@@ -854,7 +854,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                     handle.execute("INSERT INTO " + MetaTable.META_TABLE_NAME + " (" +
                             "    " + MetaTable.Columns.TABLE_NAME + ", " +
                             "    " + MetaTable.Columns.METADATA + " ) VALUES (" +
-                            "    ?, ?)", tableName, ArrayUtils.EMPTY_BYTE_ARRAY);
+                            "    ?, ?)", tableName, tableMetadata);
                 } catch (RuntimeException e) {
                     if (AtlasSqlUtils.isKeyAlreadyExistsException(e)) {
                         // The table has existed perviously: no-op

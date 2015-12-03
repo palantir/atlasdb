@@ -28,6 +28,7 @@ import org.apache.cassandra.thrift.KsDef;
 import org.apache.cassandra.thrift.NotFoundException;
 import org.apache.cassandra.thrift.SchemaDisagreementException;
 import org.apache.cassandra.thrift.TokenRange;
+import org.apache.commons.lang.Validate;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +39,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.common.collect.Maps2;
 
 
@@ -53,7 +55,7 @@ public class CassandraVerifier {
         for (String host : currentHosts) {
             Cassandra.Client client = null;
             try {
-                client = CassandraClientPoolingContainer.getClientInternal(host, port, isSsl, socketTimeoutMillis, socketQueryTimeoutMillis);
+                client = CassandraClientFactory.getClientInternal(host, port, isSsl, socketTimeoutMillis, socketQueryTimeoutMillis);
                 try {
                     client.describe_keyspace(keyspace);
                 } catch (NotFoundException e) {
@@ -124,6 +126,12 @@ public class CassandraVerifier {
         }
 
         return dataCenterToRack.keySet();
+    }
+
+    static void sanityCheckTableName(String table) {
+        Validate.isTrue(!table.startsWith("_")
+                || AtlasDbConstants.hiddenTables.contains(table)
+                || table.startsWith(AtlasDbConstants.NAMESPACE_PREFIX), "invalid tableName: " + table);
     }
 
     private static void logErrorOrThrow(String errorMessage, boolean safetyDisabled) {

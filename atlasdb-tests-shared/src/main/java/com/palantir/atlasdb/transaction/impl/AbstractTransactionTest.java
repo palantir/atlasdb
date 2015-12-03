@@ -50,6 +50,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.io.BaseEncoding;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -140,12 +141,10 @@ public abstract class AbstractTransactionTest {
         keyValueService = getKeyValueService();
         timestampService = new InMemoryTimestampService();
         keyValueService.initializeFromFreshInstance();
-        keyValueService.dropTable(TEST_TABLE);
-        keyValueService.dropTable(TransactionConstants.TRANSACTION_TABLE);
-        keyValueService.createTable(TEST_TABLE, Integer.MAX_VALUE);
-        keyValueService.putMetadataForTable(TEST_TABLE, TEST_TABLE_METADATA.persistToBytes());
-        keyValueService.createTable(TransactionConstants.TRANSACTION_TABLE, ValueType.VAR_LONG.getMaxValueSize());
-        keyValueService.putMetadataForTable(TransactionConstants.TRANSACTION_TABLE, TransactionConstants.TRANSACTION_TABLE_METADATA.persistToBytes());
+        keyValueService.createTables(ImmutableMap.of(
+                TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA,
+                TransactionConstants.TRANSACTION_TABLE, TransactionConstants.TRANSACTION_TABLE_METADATA.persistToBytes()));
+        keyValueService.truncateTables(ImmutableSet.of(TEST_TABLE, TransactionConstants.TRANSACTION_TABLE));
         transactionService = TransactionServices.createTransactionService(keyValueService);
         conflictDetectionManager = ConflictDetectionManagers.createDefault(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
@@ -698,7 +697,7 @@ public abstract class AbstractTransactionTest {
 
     @Test
     public void testKeyValueMultiput() {
-        keyValueService.createTable("table2", 100);
+        keyValueService.createTable("table2", AtlasDbConstants.GENERIC_TABLE_METADATA);
         Cell k = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("col"));
         String value = "whatever";
         byte[] v = PtBytes.toBytes(value);
@@ -1009,64 +1008,12 @@ public abstract class AbstractTransactionTest {
     }
 
     @Test
-    public void testTempTables() {
-        String table = getManager().runTaskReadOnly(new TransactionTask<String, RuntimeException>() {
-            @Override
-            public String execute(Transaction t) throws RuntimeException {
-                String tempTable = t.createNewTempTable(Integer.MAX_VALUE);
-                put(t, tempTable, "row1", "col1", "v1");
-                assertEquals("v1", get(t, tempTable, "row1", "col1"));
-                return tempTable;
-            }
-        });
-        assertFalse(keyValueService.getAllTableNames().contains(table));
-    }
-
-    @Test
-    public void testTempTableHuge() {
-         getManager().runTaskReadOnly(new TransactionTask<String, RuntimeException>() {
-            @Override
-            public String execute(Transaction t) throws RuntimeException {
-                StringBuilder sb = new StringBuilder();
-                for (int i = 0 ; i < AbstractTransaction.TEMP_TABLE_IN_MEMORY_BYTES_LIMIT ; i++) {
-                    sb.append('a');
-                }
-                String tempTable = t.createNewTempTable(Integer.MAX_VALUE);
-                put(t, tempTable, "row1", "col1", sb.toString());
-                Pair<String, Long> direct = getDirect(tempTable, "row1", "col1", 1);
-                assertEquals(sb.toString(), direct.lhSide);
-                assertEquals(0L, (long)direct.rhSide);
-                assertEquals(sb.toString(), get(t, tempTable, "row1", "col1"));
-                return null;
-            }
-        });
-    }
-
-    @Test
     public void testWriteFailsOnReadOnly() {
         try {
             getManager().runTaskReadOnly(new TransactionTask<Void, RuntimeException>() {
                 @Override
                 public Void execute(Transaction t) throws RuntimeException {
                     put(t, "row1", "col1", "v1");
-                    return null;
-                }
-            });
-            fail();
-        } catch (RuntimeException e) {
-            // we want this to throw
-        }
-    }
-
-    @Test
-    public void testTempTableDisallowedOnWrite() {
-        try {
-            getManager().runTaskWithRetry(new TransactionTask<Void, RuntimeException>() {
-                @Override
-                public Void execute(Transaction t) throws RuntimeException {
-                    String tempTable = t.createNewTempTable(Integer.MAX_VALUE);
-                    put(t, "row1", "col1", "v1");
-                    put(t, tempTable, "row1", "col1", "v1");
                     return null;
                 }
             });

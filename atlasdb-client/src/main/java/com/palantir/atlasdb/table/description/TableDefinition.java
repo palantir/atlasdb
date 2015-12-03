@@ -15,7 +15,9 @@
  */
 package com.palantir.atlasdb.table.description;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import com.google.common.base.Preconditions;
@@ -24,7 +26,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.protobuf.GeneratedMessage;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.persist.api.Persister;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
 import com.palantir.atlasdb.table.description.constraints.ConstraintMetadata;
@@ -160,13 +161,13 @@ public class TableDefinition extends AbstractDefinition {
         dynamicColumnNameComponents.add(new NameComponentDescription(componentName, valueType, valueByteOrder));
     }
 
-    public void value(Class<?> protoOrPersistable) {
-        value(protoOrPersistable, Compression.NONE);
+    public void value(Class<? extends GeneratedMessage> proto) {
+        value(proto, Compression.NONE);
     }
 
-    public void value(Class<?> protoOrPersistable, Compression compression) {
+    public void value(Class<? extends GeneratedMessage> proto, Compression compression) {
         Preconditions.checkState(state == State.DEFINING_DYNAMIC_COLUMN);
-        dynamicColumnValue = getColumnValueDescription(protoOrPersistable, compression);
+        dynamicColumnValue = getColumnValueDescription(proto, compression);
     }
 
     public void value(ValueType valueType) {
@@ -192,6 +193,14 @@ public class TableDefinition extends AbstractDefinition {
         constraintBuilder.addForeignKeyConstraint(constraint);
     }
 
+    public void addImport(String shortName, String qualifiedName){
+        additionalImports.put(shortName, qualifiedName);
+    }
+
+    public Map<String,String> getAdditionalImports() {
+        return additionalImports;
+    }
+
     public void explicitCompressionRequested(){
         explicitCompressionRequested = true;
     }
@@ -206,6 +215,14 @@ public class TableDefinition extends AbstractDefinition {
 
     public int getExplicitCompressionBlockSize() {
         return explicitCompressionBlockSizeKB;
+    }
+
+    public void appendHeavyAndReadLight() {
+        appendHeavyAndReadLight = true;
+    }
+
+    public boolean isAppendHeavyAndReadLight() {
+        return appendHeavyAndReadLight;
     }
 
     public void rangeScanAllowed() {
@@ -270,6 +287,8 @@ public class TableDefinition extends AbstractDefinition {
     private int explicitCompressionBlockSizeKB = 0;
     private boolean rangeScanAllowed = false;
     private boolean negativeLookups = false;
+    private boolean appendHeavyAndReadLight = false;
+    private Map<String, String> additionalImports = new HashMap<String, String>();
     private Set<String> fixedColumnShortNames = Sets.newHashSet();
     private Set<String> fixedColumnLongNames = Sets.newHashSet();
     private boolean noColumns = false;
@@ -295,7 +314,8 @@ public class TableDefinition extends AbstractDefinition {
                 explicitCompressionBlockSizeKB,
                 negativeLookups,
                 sweepStrategy,
-                expirationStrategy);
+                expirationStrategy,
+                appendHeavyAndReadLight);
     }
 
     private ColumnMetadataDescription getColumnMetadataDescription() {
@@ -310,7 +330,7 @@ public class TableDefinition extends AbstractDefinition {
                     "Columns not properly defined.");
             return new ColumnMetadataDescription(
                     new DynamicColumnDescription(NameMetadataDescription.create(dynamicColumnNameComponents),
-                    dynamicColumnValue));
+                            dynamicColumnValue));
         }
     }
 
@@ -322,8 +342,6 @@ public class TableDefinition extends AbstractDefinition {
     private ColumnValueDescription getColumnValueDescription(Class protoOrPersistable, Compression compression) {
         if (GeneratedMessage.class.isAssignableFrom(protoOrPersistable)) {
             return ColumnValueDescription.forProtoMessage(protoOrPersistable, compression);
-        } else if (Persister.class.isAssignableFrom(protoOrPersistable)) {
-            return ColumnValueDescription.forPersister(protoOrPersistable, compression);
         } else if (Persistable.class.isAssignableFrom(protoOrPersistable)) {
             return ColumnValueDescription.forPersistable(protoOrPersistable, compression);
         } else {
