@@ -46,6 +46,7 @@ public class AtlasDbConstants {
     public static final int DEFAULT_TABLE_COMPRESSION_BLOCK_SIZE_KB = 8;
     public static final int DEFAULT_TABLE_WITH_RANGESCANS_COMPRESSION_BLOCK_SIZE_KB = 64;
 
+    public static final long TRANSACTION_TS = 0L;
 
     // TODO (ejin): Organize constants (maybe into a single class?)
     public static final Set<String> hiddenTables = ImmutableSet.of(

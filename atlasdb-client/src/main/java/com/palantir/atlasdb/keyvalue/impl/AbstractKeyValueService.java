@@ -243,7 +243,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
         }
     }
 
-    protected boolean shouldTraceQuery(final String tableName) {
+    public boolean shouldTraceQuery(final String tableName) {
         return tracingPrefs.shouldTraceQuery(tableName);
     }
 
