@@ -17,6 +17,9 @@ package com.palantir.leader;
 
 import java.io.Serializable;
 
+import com.google.common.base.Optional;
+import com.google.common.net.HostAndPort;
+
 public interface LeaderElectionService {
     public static interface LeadershipToken extends Serializable {
         public boolean sameAs(LeadershipToken o);
@@ -50,4 +53,12 @@ public interface LeaderElectionService {
      * @return LEADING if the token is still the leader.
      */
     StillLeadingStatus isStillLeading(LeadershipToken token);
+
+    /**
+     * Cheaply get the network location of the currently suspected leader. This will not do any network
+     * calls and is meant to be callable without major performance implications. The value it returns
+     * is only a hint and may be unreliable. It can also return nothing if it doesn't suspect any
+     * leader or can't cheaply find one.
+     */
+    Optional<HostAndPort> getSuspectedLeaderInMemory();
 }
