@@ -45,7 +45,7 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.persist.Persistable;
 import com.palantir.paxos.persistence.generated.PaxosPersistence;
 import com.palantir.util.crypto.Sha256Hash;
-import com.palantir.util.file.FileUtils;
+import com.palantir.util.file.TempFileUtils;
 
 public class PaxosStateLogImpl<V extends Persistable & Versionable> implements PaxosStateLog<V> {
 
@@ -89,7 +89,7 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
     public PaxosStateLogImpl(String path) {
         this.path = path;
         try {
-            FileUtils.mkdirsWithRetry(new File(path));
+            TempFileUtils.mkdirsWithRetry(new File(path));
             if (getGreatestLogEntry() == PaxosAcceptor.NO_LOG_ENTRY) {
                 // For a brand new log, we create a lowest entry so #getLeastLogEntry will return the right thing
                 // If we didn't add this then we could miss seq 0 and accept seq 1, then when we restart we will

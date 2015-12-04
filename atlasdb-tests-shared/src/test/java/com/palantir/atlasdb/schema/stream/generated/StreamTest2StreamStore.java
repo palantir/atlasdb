@@ -29,7 +29,7 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
-import com.palantir.util.file.FileUtils;
+import com.palantir.util.file.TempFileUtils;
 
 
 public final class StreamTest2StreamStore extends AbstractExpiringStreamStore<Long> {
@@ -126,7 +126,7 @@ public final class StreamTest2StreamStore extends AbstractExpiringStreamStore<Lo
 
     @Override
     protected File createTempFile(Long id) throws IOException {
-        File file = FileUtils.createTempFile(STREAM_FILE_PREFIX + id, STREAM_FILE_SUFFIX);
+        File file = TempFileUtils.createTempFile(STREAM_FILE_PREFIX + id, STREAM_FILE_SUFFIX);
         file.deleteOnExit();
         return file;
     }

@@ -21,8 +21,8 @@ import java.util.Random;
 
 import com.google.common.io.BaseEncoding;
 
-public final class FileUtils {
-    private FileUtils() {/**/
+public final class TempFileUtils {
+    private TempFileUtils() {/**/
     }
 
     private static final Random tempFileRandom = new Random();
@@ -46,6 +46,27 @@ public final class FileUtils {
         ensureTempDirectoryExists();
         byte[] bytes = generateRandomBytes(32);
         return File.createTempFile(prefix + bytesToHex(bytes), suffix, directory);
+    }
+
+    public static File createTempDirectory(final String prefix, final String suffix) throws IOException {
+        final File tempFile = createTempFile(prefix, suffix);
+        if (tempFile.exists() && !tempFile.delete()) {
+            throw new IOException("Unable to delete file to create directory.");
+        }
+        if (!tempFile.mkdir()) {
+            throw new IOException("Unable to create directory.");
+        }
+        return tempFile;
+    }
+
+    /**
+     * Ensures that the file exists
+     * @throws IOException
+     */
+    public static void ensureFileExists(File file) throws IOException {
+        if (!file.exists()) {
+            file.createNewFile();
+        }
     }
 
     /**
