@@ -55,7 +55,6 @@ import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.helpers.MessageFormatter;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
@@ -132,7 +131,6 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 public class CassandraKeyValueService extends AbstractKeyValueService {
 
     private static final Logger log = LoggerFactory.getLogger(CassandraKeyValueService.class);
-    private static final String CHRONICLE_SERVICE_NAME = "atlas-cassandra";
 
     private static final Function<Entry<Cell, Value>, Long> ENTRY_SIZING_FUNCTION = new Function<Entry<Cell, Value>, Long>() {
         @Override
@@ -141,7 +139,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         }
     };
 
-    private static final int OVERSIZE_ROW_CUTOFF = 1000;
     private static final int MAX_REQUEST_RETRIES = 10;
     private static final int REQUEST_TRIES_BEFORE_RANDOMIZING = 2;
 
