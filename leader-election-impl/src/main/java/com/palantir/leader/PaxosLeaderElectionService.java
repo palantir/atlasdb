@@ -29,7 +29,6 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 
 import javax.annotation.Nullable;
@@ -47,7 +46,15 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.net.HostAndPort;
 import com.palantir.common.base.Throwables;
-import com.palantir.paxos.*;
+import com.palantir.paxos.BooleanPaxosResponse;
+import com.palantir.paxos.PaxosAcceptor;
+import com.palantir.paxos.PaxosLearner;
+import com.palantir.paxos.PaxosProposer;
+import com.palantir.paxos.PaxosQuorumChecker;
+import com.palantir.paxos.PaxosResponse;
+import com.palantir.paxos.PaxosRoundFailureException;
+import com.palantir.paxos.PaxosUpdate;
+import com.palantir.paxos.PaxosValue;
 
 /**
  * Implementation of a paxos member than can be a designated proposer (leader) and designated
@@ -58,13 +65,6 @@ import com.palantir.paxos.*;
 public class PaxosLeaderElectionService implements PingableLeader, LeaderElectionService {
     private static final Logger log = LoggerFactory.getLogger(PaxosLeaderElectionService.class);
     private static final Logger leaderLog = LoggerFactory.getLogger("leadership");
-
-    public static final String UPDATE_POLLING_WAIT_IN_MS = "UPDATE_POLLING_WAIT_IN_MS";
-    public static final String RANDOM_WAIT_BEFORE_PROPOSING_LEADERSHIP_IN_MS = "RANDOM_WAIT_BEFORE_PROPOSING_LEADERSHIP_IN_MS";
-    public static final String LEADER_PING_RESPONSE_WAIT_IN_MS = "LEADER_PING_RESPONSE_WAIT_IN_MS";
-    public static final long DEFAULT_UPDATE_POLLING_WAIT_IN_MS = 1000;
-    public static final long DEFAULT_RANDOM_WAIT_BEFORE_PROPOSING_LEADERSHIP_IN_MS = 2000;
-    public static final long DEFAULT_LEADER_PING_RESPONSE_WAIT_IN_MS = 2000;
 
     private final ReentrantLock lock;
 
@@ -352,11 +352,10 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     static class StillLeadingCall {
         public final CountDownLatch populationLatch;
         public volatile boolean failed;
-        /* The status and token must only be written by the thread that owns and created this
-         * call. They must only be read by other threads after awaiting the populationLatch.
+        /* The status must only be written by the thread that owns and created this call. They must only be read by
+         * other threads after awaiting the populationLatch.
          */
         public volatile StillLeadingStatus status;
-        public volatile LeadershipToken token;
 
         public StillLeadingCall() {
             // Counted down once by the thread that owns and created this call, after population or failure.
@@ -364,23 +363,21 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
             this.failed = false;
         }
 
-        public void populate(StillLeadingStatus status, LeadershipToken token) {
+        public void populate(StillLeadingStatus status) {
             this.status = status;
-            this.token = token;
         }
     }
 
-    /* The currently outstanding leadership check, if any. If it exists, it should be used,
-     * thus batching remote calls. If there is none, one should be created and installed.
-     * The creator of a call must populate it.
+    /* The currently outstanding leadership check for a given token, if any. If it exists, it should be used, thus
+     * batching remote calls. If there is none, one should be created and installed. The creator of a call must
+     * populate it.
      */
-    private final AtomicReference</* nullable */ StillLeadingCall> currentIsStillLeadingCall =
-            new AtomicReference<StillLeadingCall>(null);
+    private final ConcurrentMap<LeadershipToken, StillLeadingCall> currentIsStillLeadingCall = Maps.newConcurrentMap();
 
     @Override
     public StillLeadingStatus isStillLeading(LeadershipToken token) {
         while (true) {
-            StillLeadingCallBatch callBatch = getStillLeadingCallBatch();
+            StillLeadingCallBatch callBatch = getStillLeadingCallBatch(token);
 
             StillLeadingCall batch = callBatch.batch;
             if (callBatch.thisThreadOwnsBatch) {
@@ -395,7 +392,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                 continue;
             }
             // Now the batch is ready to be read.
-            if ((!batch.failed) && token.sameAs(batch.token)) {
+            if (!batch.failed) {
                 return batch.status;
             }
         }
@@ -411,24 +408,28 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         }
     }
     private final static int MAX_INSTALL_BATCH_ATTEMPTS = 5;
-    private StillLeadingCallBatch getStillLeadingCallBatch() {
+    private StillLeadingCallBatch getStillLeadingCallBatch(LeadershipToken token) {
         boolean installedNewBatch = false;
         boolean joinedBatch = false;
         @Nullable StillLeadingCall batch = null;
         for (int installBatchAttempts = 0; !(installedNewBatch || joinedBatch); installBatchAttempts++) {
-            batch = currentIsStillLeadingCall.get();
+            batch = currentIsStillLeadingCall.get(token);
             if (batch != null) {
                 joinedBatch = !batch.failed;
             }
             if (!joinedBatch) {
                 StillLeadingCall newBatch = new StillLeadingCall();
                 if (installBatchAttempts <= MAX_INSTALL_BATCH_ATTEMPTS) {
-                    installedNewBatch = currentIsStillLeadingCall.compareAndSet(batch, newBatch);
+                    if (batch == null) {
+                        installedNewBatch = currentIsStillLeadingCall.putIfAbsent(token, newBatch) == null;
+                    } else {
+                        installedNewBatch = currentIsStillLeadingCall.replace(token, batch, newBatch);
+                    }
                 } else {
                     // Barge ahead in this case to prevent very unfortunate scheduling from preventing progress.
                     log.warn("Failed to install a leadership check batch {} times; blindly installing a batch. " +
                             "This should be rare!", MAX_INSTALL_BATCH_ATTEMPTS);
-                    currentIsStillLeadingCall.set(newBatch);
+                    currentIsStillLeadingCall.put(token, newBatch);
                     installedNewBatch = true;
                 }
                 if (installedNewBatch) {
@@ -443,7 +444,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     private void populateStillLeadingCall(StillLeadingCall batch, LeadershipToken token) {
         try {
             StillLeadingStatus status = isStillLeadingInternal(token);
-            batch.populate(status, token);
+            batch.populate(status);
         } catch (Throwable t) {
             log.error("Something went wrong while checking leadership", t);
             batch.failed = true;
@@ -452,7 +453,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
             /* Close only the current batch. If someone else has replaced this batch
              * already, don't close them prematurely; let them close themselves.
              */
-            currentIsStillLeadingCall.compareAndSet(batch, null);
+            currentIsStillLeadingCall.remove(token, batch);
         }
     }
 
