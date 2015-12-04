@@ -15,9 +15,9 @@
  */
 package com.palantir.atlasdb.keyvalue.partition;
 
-import static com.palantir.atlasdb.keyvalue.partition.util.RequestCompletionUtils.completeReadRequest;
-import static com.palantir.atlasdb.keyvalue.partition.util.RequestCompletionUtils.completeWriteRequest;
-import static com.palantir.atlasdb.keyvalue.partition.util.RequestCompletionUtils.retryUntilSuccess;
+import static com.palantir.atlasdb.keyvalue.partition.util.RequestCompletions.completeReadRequest;
+import static com.palantir.atlasdb.keyvalue.partition.util.RequestCompletions.completeWriteRequest;
+import static com.palantir.atlasdb.keyvalue.partition.util.RequestCompletions.retryUntilSuccess;
 
 import java.util.Collection;
 import java.util.List;
@@ -63,9 +63,9 @@ import com.palantir.atlasdb.keyvalue.partition.util.ClosablePeekingIterator;
 import com.palantir.atlasdb.keyvalue.partition.util.ConsistentRingRangeRequest;
 import com.palantir.atlasdb.keyvalue.partition.util.EndpointRequestExecutor;
 import com.palantir.atlasdb.keyvalue.partition.util.EndpointRequestExecutor.EndpointRequestCompletionService;
-import com.palantir.atlasdb.keyvalue.partition.util.MergeResultsUtils;
+import com.palantir.atlasdb.keyvalue.partition.util.MergeResults;
 import com.palantir.atlasdb.keyvalue.partition.util.PartitionedRangedIterator;
-import com.palantir.atlasdb.keyvalue.partition.util.RowResultUtil;
+import com.palantir.atlasdb.keyvalue.partition.util.RowResults;
 import com.palantir.atlasdb.keyvalue.remoting.RemotingPartitionMapService;
 import com.palantir.atlasdb.keyvalue.remoting.proxy.VersionCheckProxy;
 import com.palantir.common.annotation.Idempotent;
@@ -121,7 +121,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                     }
                 });
 
-                completeReadRequest(tracker, execSvc, MergeResultsUtils.newCellValueMapMerger(overallResult));
+                completeReadRequest(tracker, execSvc, MergeResults.newCellValueMapMerger(overallResult));
                 return overallResult;
             }
         });
@@ -154,7 +154,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                     }
                 });
 
-                completeReadRequest(tracker, execSvc, MergeResultsUtils.newCellValueMapMerger(globalResult));
+                completeReadRequest(tracker, execSvc, MergeResults.newCellValueMapMerger(globalResult));
                 return globalResult;
             }
         });
@@ -189,7 +189,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                     }
                 });
 
-                completeReadRequest(tracker, execSvc, MergeResultsUtils.newAllTimestampsMapMerger(globalResult));
+                completeReadRequest(tracker, execSvc, MergeResults.newAllTimestampsMapMerger(globalResult));
                 return globalResult;
             }
         });
@@ -221,7 +221,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                     }
                 });
 
-                completeReadRequest(tracker, execSvc, MergeResultsUtils.newLatestTimestampMapMerger(globalResult));
+                completeReadRequest(tracker, execSvc, MergeResults.newLatestTimestampMapMerger(globalResult));
                 return globalResult;
             }
         });
@@ -269,7 +269,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                 return runWithPartitionMap(new Function<DynamicPartitionMap, RowResult<Value>>() {
                     @Override
                     public RowResult<Value> apply(DynamicPartitionMap input) {
-                        return RowResultUtil.mergeResults(getRowIterator(), quorumParameters.getReadRequestParameters());
+                        return RowResults.mergeResults(getRowIterator(), quorumParameters.getReadRequestParameters());
                     }
                 });
             }
@@ -349,7 +349,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                 return runWithPartitionMap(new Function<DynamicPartitionMap, RowResult<Set<Value>>>() {
                     @Override
                     public RowResult<Set<Value>> apply(DynamicPartitionMap input) {
-                        return RowResultUtil.allResults(getRowIterator());
+                        return RowResults.allResults(getRowIterator());
                     }});
             }
 
@@ -408,7 +408,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                 return runWithPartitionMap(new Function<DynamicPartitionMap, RowResult<Set<Long>>>() {
                     @Override
                     public RowResult<Set<Long>> apply(DynamicPartitionMap input) {
-                        return RowResultUtil.allTimestamps(getRowIterator());
+                        return RowResults.allTimestamps(getRowIterator());
                     }
                 });
             }
