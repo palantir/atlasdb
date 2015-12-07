@@ -7,8 +7,8 @@ dependencies {
   compile project(":atlasdb-spi")
   compile project(':timestamp-impl')
 
-  compile 'org.apache.cassandra:cassandra-all:2.1.7'
-  compile 'com.datastax.cassandra:cassandra-driver-core:2.1.7'
+  compile 'org.apache.cassandra:cassandra-all:' + libVersions.cassandra
+  compile 'com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core
 
   compile 'org.apache.commons:commons-pool2:2.4.2'
 

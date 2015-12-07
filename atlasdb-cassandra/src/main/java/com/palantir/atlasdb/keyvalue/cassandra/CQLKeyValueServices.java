@@ -16,18 +16,35 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.net.InetAddress;
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.datastax.driver.core.*;
+import com.datastax.driver.core.BoundStatement;
+import com.datastax.driver.core.ConsistencyLevel;
+import com.datastax.driver.core.ExecutionInfo;
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.ResultSetFuture;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.Session;
 import com.google.common.base.Function;
 import com.google.common.cache.LoadingCache;
-import com.google.common.collect.*;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Value;
@@ -105,7 +122,7 @@ public class CQLKeyValueServices {
 
                                 sb.append(" requestType: ").append(sessionRow.getString("request"));
                                 sb.append(" coordinator: ").append(sessionRow.getInet("coordinator"));
-                                sb.append(" started_at: ").append(sessionRow.getDate("started_at").getTime());
+                                sb.append(" started_at: ").append(sessionRow.getTime("started_at"));
                                 sb.append(" duration: ").append(sessionRow.getInt("duration"));
                                 if (!sessionRow.isNull("parameters")) {
                                     sb.append("\nparameters: "

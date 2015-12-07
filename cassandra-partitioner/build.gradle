@@ -1,7 +1,7 @@
 apply from: "../gradle/shared.gradle"
 
 dependencies {
-    compile('org.apache.cassandra:cassandra-all:2.1.5') {
+    compile('org.apache.cassandra:cassandra-all:' + libVersions.cassandra) {
         transitive = false
     }
 }

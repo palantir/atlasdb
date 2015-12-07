@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.security.Permission;
 
 import org.apache.cassandra.service.CassandraDaemon;
 import org.slf4j.Logger;
@@ -63,31 +64,39 @@ public final class CassandraService {
     private static class TestCassandraDaemon extends CassandraDaemon {
         private static final Logger logger = LoggerFactory.getLogger(CassandraService.TestCassandraDaemon.class);
 
-        // Copied from CassandraDaemon::stop to fix issue on Windows
+        // catch System.exit() on Windows (okay for testing)
         @Override
         public void stop() {
-            // On linux, this doesn't entirely shut down Cassandra, just the RPC server.
-            // jsvc takes care of taking the rest down
-            logger.info("Cassandra shutting down...");
-            thriftServer.stop();
-            nativeServer.stop();
-
-            // Not needed for a test daemon
-            // On windows, we need to stop the entire system as prunsrv doesn't have the jsvc hooks
-            // We rely on the shutdown hook to drain the node
-            // if (FBUtilities.isWindows())
-            //    System.exit(0);
-
-            if (jmxServer != null)
-            {
-                try
-                {
-                    jmxServer.stop();
-                } catch (IOException e)
-                {
-                    logger.error("Error shutting down local JMX server: ", e);
-                }
+            SecurityManager orig = System.getSecurityManager();
+            System.setSecurityManager(new NoExitSecurityManager());
+            try {
+                super.stop();
+            } catch (ExitingException e) {
+                // ignore
             }
+            System.setSecurityManager(orig);
         }
+    }
+
+    // allows us to catch exits
+    private static class NoExitSecurityManager extends SecurityManager
+    {
+        @Override
+        public void checkPermission(Permission perm) {
+            // allow anything.
+        }
+        @Override
+        public void checkPermission(Permission perm, Object context) {
+            // allow anything.
+        }
+        @Override
+        public void checkExit(int status) {
+            super.checkExit(status);
+            throw new ExitingException() ;
+        }
+    }
+
+    private static class ExitingException extends RuntimeException {
+        // flag exception
     }
 }
