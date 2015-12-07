@@ -21,6 +21,7 @@ import javax.annotation.concurrent.Immutable;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Ordering;
+import com.palantir.common.annotation.LongTermSerialized;
 
 /**
  * A generic class for handling pairs of things.
@@ -31,6 +32,7 @@ import com.google.common.collect.Ordering;
  *             really need to put 3 things in this "pair" anyways.
  */
 @Immutable
+@LongTermSerialized
 public final class Pair<V, W> implements java.io.Serializable {
     private static final long serialVersionUID = 1L;
 
