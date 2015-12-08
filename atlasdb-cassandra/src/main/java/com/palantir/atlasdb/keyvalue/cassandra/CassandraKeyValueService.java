@@ -113,6 +113,7 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.common.pooling.PoolingContainer;
 import com.palantir.util.paging.AbstractPagingIterable;
+import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 /**
@@ -1070,7 +1071,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     }
 
                     TokenBackedBasicResultsPage<RowResult<U>, byte[]> page(final byte[] startKey) throws Exception {
-                        return clientPool.runWithPooledResource(new FunctionCheckedException<Client, TokenBackedBasicResultsPage<RowResult<U>, byte[]>, Exception>() {
+                        InetAddress host = tokenAwareMapper.getRandomHostForKey(startKey);
+                        return clientPool.runWithPooledResourceOnHost(host, new FunctionCheckedException<Client, TokenBackedBasicResultsPage<RowResult<U>, byte[]>, Exception>() {
                             @Override
                             public TokenBackedBasicResultsPage<RowResult<U>, byte[]> apply(Client client) throws Exception {
                                 final byte[] endExclusive = rangeRequest.getEndExclusive();
@@ -1108,7 +1110,14 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                                 }
 
                                 Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey = CassandraKeyValueServices.getColsByKey(firstPage);
-                                return resultsExtractor.get().getPageFromRangeResults(colsByKey, timestamp, selection, endExclusive);
+                                TokenBackedBasicResultsPage<RowResult<U>, byte[]> page =
+                                        resultsExtractor.get().getPageFromRangeResults(colsByKey, timestamp, selection, endExclusive);
+                                if (page.moreResultsAvailable() && firstPage.size() < batchHint) {
+                                    // If get_range_slices didn't return the full number of results, there's no
+                                    // point to trying to get another page
+                                    page = SimpleTokenBackedResultsPage.create(endExclusive, page.getResults(), false);
+                                }
+                                return page;
                             }
 
                             @Override
