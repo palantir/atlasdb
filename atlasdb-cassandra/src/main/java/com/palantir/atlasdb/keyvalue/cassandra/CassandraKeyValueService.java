@@ -1491,12 +1491,12 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     public void compactInternally(String tableName) {
         Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName), "tableName:[%s] should not be null or empty.", tableName);
         CassandraKeyValueServiceConfig config = configManager.getConfig();
-        if (!compactionManager.isPresent()) {
+        if (!compactionManager.isPresent() || !config.jmx().isPresent()) {
             log.warn("No compaction client was configured, but compact was called. If you actually want to clear deleted data immediately " +
                     "from Cassandra, lower your gc_grace_seconds setting and run `nodetool compact {} {}`.", config.keyspace(), tableName);
             return;
         }
-        long timeoutInSeconds = config.compactionTimeoutSeconds();
+        long timeoutInSeconds = config.jmx().get().compactionTimeoutSeconds();
         String keyspace = config.keyspace();
         try {
             alterGcAndTombstone(keyspace, tableName, 0, 0.0f);

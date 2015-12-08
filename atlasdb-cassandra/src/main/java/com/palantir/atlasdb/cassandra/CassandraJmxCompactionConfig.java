@@ -40,6 +40,11 @@ public abstract class CassandraJmxCompactionConfig {
         return 7199;
     }
 
+    @Value.Default
+    public long compactionTimeoutSeconds() {
+        return 30 * 60;
+    }
+
     public abstract String keystore();
 
     public abstract String keystorePassword();
