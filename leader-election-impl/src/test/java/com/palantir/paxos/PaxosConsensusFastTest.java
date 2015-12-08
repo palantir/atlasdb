@@ -23,23 +23,19 @@ import static org.junit.Assert.fail;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Proxy;
-import java.util.List;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.io.FileUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.collect.Lists;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.proxy.DelegatingInvocationHandler;
-import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 
@@ -47,21 +43,11 @@ public class PaxosConsensusFastTest {
 
     private final int NUM_POTENTIAL_LEADERS = 6;
     private final int QUORUM_SIZE = 4;
-
-    List<LeaderElectionService> leaders = Lists.newArrayList();
-    List<PaxosAcceptor> acceptors = Lists.newArrayList();
-    List<PaxosLearner> learners = Lists.newArrayList();
-    List<AtomicBoolean> failureToggles = Lists.newArrayList();
+    private PaxosTestState state;
 
     @Before
     public void setup() {
-        PaxosConsensusTestUtils.setup(
-                NUM_POTENTIAL_LEADERS,
-                QUORUM_SIZE,
-                leaders,
-                acceptors,
-                learners,
-                failureToggles);
+        state = PaxosConsensusTestUtils.setup(NUM_POTENTIAL_LEADERS, QUORUM_SIZE);
     }
 
     @After
@@ -69,71 +55,50 @@ public class PaxosConsensusFastTest {
         PaxosConsensusTestUtils.teardown();
     }
 
-    public LeadershipToken gainLeadership(int leaderNum) {
-        LeadershipToken t = null;
-        try {
-            t = leaders.get(leaderNum).blockOnBecomingLeader();
-        } catch (InterruptedException e) {
-            fail(e.getMessage());
-        }
-        assertTrue(
-                "leader should still be leading right after becoming leader",
-                leaders.get(leaderNum).isStillLeading(t) != StillLeadingStatus.NOT_LEADING);
-        return t;
-    }
-
-    public void godown(int i) {
-        failureToggles.get(i).set(true);
-    }
-
-    public void comeup(int i) {
-        failureToggles.get(i).set(false);
-    }
-
     @Test
     public void singleProposal() {
-        gainLeadership(0);
+        state.gainLeadership(0);
     }
 
     @Test
     public void singleProposal2() {
-        gainLeadership(2);
+        state.gainLeadership(2);
     }
 
     @Test
     public void changeLeadership() {
-        gainLeadership(4);
-        gainLeadership(2);
+        state.gainLeadership(4);
+        state.gainLeadership(2);
     }
 
     @Test
     public void leaderFailure1() {
-        gainLeadership(4);
-        godown(4);
-        gainLeadership(5);
+        state.gainLeadership(4);
+        state.goDown(4);
+        state.gainLeadership(5);
     }
 
     @Test
     public void leaderFailure2() {
-        godown(2);
-        gainLeadership(3);
-        godown(3);
-        comeup(2);
-        gainLeadership(2);
+        state.goDown(2);
+        state.gainLeadership(3);
+        state.goDown(3);
+        state.comeUp(2);
+        state.gainLeadership(2);
     }
 
     @Test
     public void loseQuorum() {
-        LeadershipToken t = gainLeadership(0);
+        LeadershipToken t = state.gainLeadership(0);
         for (int i = 1; i < NUM_POTENTIAL_LEADERS - QUORUM_SIZE + 2; i++) {
-            godown(i);
+            state.goDown(i);
         }
         assertFalse(
                 "leader cannot maintain leadership withou quorum",
-                leaders.get(0).isStillLeading(t) == StillLeadingStatus.LEADING);
-        comeup(1);
-        gainLeadership(0);
-        assertTrue("leader can confirm leadership with quorum", leaders.get(0).isStillLeading(t) != StillLeadingStatus.NOT_LEADING);
+                state.leader(0).isStillLeading(t) == StillLeadingStatus.LEADING);
+        state.comeUp(1);
+        state.gainLeadership(0);
+        assertTrue("leader can confirm leadership with quorum", state.leader(0).isStillLeading(t) != StillLeadingStatus.NOT_LEADING);
     }
 
     @Test
@@ -153,10 +118,10 @@ public class PaxosConsensusFastTest {
     @Test
     public void loseQuorumDiffToken() throws InterruptedException {
         for (int i = QUORUM_SIZE; i < NUM_POTENTIAL_LEADERS ; i++) {
-            godown(i);
+            state.goDown(i);
         }
-        LeadershipToken t = gainLeadership(0);
-        godown(QUORUM_SIZE-1);
+        LeadershipToken t = state.gainLeadership(0);
+        state.goDown(QUORUM_SIZE - 1);
         ExecutorService exec = PTExecutors.newSingleThreadExecutor();
         Future<Void> f = exec.submit(new Callable<Void>() {
             @Override
@@ -167,20 +132,21 @@ public class PaxosConsensusFastTest {
                     if (next == NUM_POTENTIAL_LEADERS) {
                         next = QUORUM_SIZE-1;
                     }
-                    godown(next);
-                    comeup(i);
+                    state.goDown(next);
+                    state.comeUp(i);
                     i = next;
                 }
                 return null;
             }
         });
-        LeadershipToken token2 = gainLeadership(0);
+        // Don't check leadership immediately after gaining it, since quorum might get lost.
+        LeadershipToken token2 = state.gainLeadershipWithoutCheckingAfter(0);
         assertTrue("leader can confirm leadership with quorum", t.sameAs(token2));
         f.cancel(true);
         exec.shutdown();
         exec.awaitTermination(10, TimeUnit.SECONDS);
         for (int i = 0; i < NUM_POTENTIAL_LEADERS ; i++) {
-            comeup(i);
+            state.comeUp(i);
         }
     }
 
@@ -213,15 +179,15 @@ public class PaxosConsensusFastTest {
     @Test
     public void learnerRecovery() {
         for (int i = 0; i < NUM_POTENTIAL_LEADERS * 3; i++) {
-            gainLeadership(i % NUM_POTENTIAL_LEADERS);
+            state.gainLeadership(i % NUM_POTENTIAL_LEADERS);
         }
         PaxosLearnerImpl learner = (PaxosLearnerImpl)
-                ((DelegatingInvocationHandler) Proxy.getInvocationHandler(learners.get(0))).getDelegate();
+                ((DelegatingInvocationHandler) Proxy.getInvocationHandler(state.learner(0))).getDelegate();
         PaxosStateLog<PaxosValue> log = learner.log;
         SortedMap<Long, PaxosValue> cache = learner.state;
         log.truncate(log.getGreatestLogEntry());
         cache.clear();
-        gainLeadership(0);
+        state.gainLeadership(0);
     }
 }
 

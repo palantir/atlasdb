@@ -16,7 +16,6 @@
 package com.palantir.paxos;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -25,6 +24,7 @@ import org.apache.commons.io.FileUtils;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import com.google.common.net.HostAndPort;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.LeaderElectionService;
@@ -43,12 +43,12 @@ public final class PaxosConsensusTestUtils {
     private static final String LEARNER_DIR_PREFIX = LOG_DIR + "learner/";
     private static final String ACCEPTOR_DIR_PREFIX = LOG_DIR + "acceptor/";
 
-    public static void setup(int numLeaders,
-                             int quorumSize,
-                             List<LeaderElectionService> leaders,
-                             List<PaxosAcceptor> acceptors,
-                             List<PaxosLearner> learners,
-                             List<AtomicBoolean> failureToggles) {
+    public static PaxosTestState setup(int numLeaders,
+                                       int quorumSize) {
+        List<LeaderElectionService> leaders = Lists.newArrayList();
+        List<PaxosAcceptor> acceptors = Lists.newArrayList();
+        List<PaxosLearner> learners = Lists.newArrayList();
+        List<AtomicBoolean> failureToggles = Lists.newArrayList();
         Executor executor = PTExecutors.newCachedThreadPool();
 
         RuntimeException e = new RuntimeException("mock server failure");
@@ -91,6 +91,8 @@ public final class PaxosConsensusTestUtils {
                     SERVER_DELAY_TIME_MS,
                     failureToggles.get(i)));
         }
+
+        return new PaxosTestState(leaders, acceptors, learners, failureToggles);
     }
 
     public static void teardown() {

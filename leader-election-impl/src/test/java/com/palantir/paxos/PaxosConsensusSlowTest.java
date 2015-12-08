@@ -17,27 +17,18 @@ package com.palantir.paxos;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.collect.Lists;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.leader.LeaderElectionService;
-import com.palantir.leader.LeaderElectionService.LeadershipToken;
-import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 
 public class PaxosConsensusSlowTest {
 
@@ -45,20 +36,11 @@ public class PaxosConsensusSlowTest {
     private final int QUORUM_SIZE = 4;
 
     Executor executor = PTExecutors.newCachedThreadPool();
-    List<LeaderElectionService> leaders = new ArrayList<LeaderElectionService>();
-    List<PaxosAcceptor> acceptors = Lists.newArrayList();
-    List<PaxosLearner> learners = Lists.newArrayList();
-    List<AtomicBoolean> failureToggles = new ArrayList<AtomicBoolean>();
+    private PaxosTestState state;
 
     @Before
     public void setup() {
-        PaxosConsensusTestUtils.setup(
-                NUM_POTENTIAL_LEADERS,
-                QUORUM_SIZE,
-                leaders,
-                acceptors,
-                learners,
-                failureToggles);
+        state = PaxosConsensusTestUtils.setup(NUM_POTENTIAL_LEADERS, QUORUM_SIZE);
     }
 
     @After
@@ -67,34 +49,13 @@ public class PaxosConsensusSlowTest {
     }
 
 
-    public LeadershipToken gainLeadership(int leaderNum) {
-        LeadershipToken t = null;
-        try {
-            t = leaders.get(leaderNum).blockOnBecomingLeader();
-        } catch (InterruptedException e) {
-            fail(e.getMessage());
-        }
-        assertTrue(
-                "leader should still be leading right after becoming leader",
-                leaders.get(leaderNum).isStillLeading(t) != StillLeadingStatus.NO_QUORUM);
-        return t;
-    }
-
-    public void godown(int i) {
-        failureToggles.get(i).set(true);
-    }
-
-    public void comeup(int i) {
-        failureToggles.get(i).set(false);
-    }
-
     static final long NO_QUORUM_POLL_WAIT_TIME_IN_MS = 100;
     static final long QUORUM_POLL_WAIT_TIME_IN_MS = 30000;
 
     @Test
     public void waitingOnQuorum() {
         for (int i = 0; i < NUM_POTENTIAL_LEADERS - 1; i++) {
-            godown(i);
+            state.goDown(i);
         }
 
         CompletionService<Void> leadershipCompletionService = new ExecutorCompletionService<Void>(
@@ -102,7 +63,7 @@ public class PaxosConsensusSlowTest {
         leadershipCompletionService.submit(new Callable<Void>() {
             @Override
             public Void call() throws Exception {
-                gainLeadership(NUM_POTENTIAL_LEADERS - 1);
+                state.gainLeadership(NUM_POTENTIAL_LEADERS - 1);
                 return null;
             }
         });
@@ -125,7 +86,7 @@ public class PaxosConsensusSlowTest {
                 }
             } catch (InterruptedException e) {
             } finally {
-                comeup(i);
+                state.comeUp(i);
             }
         }
     }
