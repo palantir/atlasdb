@@ -813,20 +813,16 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         return ClosableIterators.wrap(
                 new AbstractPagingIterable<RowResult<U>, TokenBackedBasicResultsPage<RowResult<U>, byte[]>>() {
                     @Override
-                    protected TokenBackedBasicResultsPage<RowResult<U>, byte[]> getFirstPage()
-                            throws Exception {
+                    protected TokenBackedBasicResultsPage<RowResult<U>, byte[]> getFirstPage() throws Exception {
                         return getPage(rangeRequest.getStartInclusive());
                     }
 
                     @Override
-                    protected TokenBackedBasicResultsPage<RowResult<U>, byte[]> getNextPage(
-                            TokenBackedBasicResultsPage<RowResult<U>, byte[]> previous)
-                            throws Exception {
+                    protected TokenBackedBasicResultsPage<RowResult<U>, byte[]> getNextPage(TokenBackedBasicResultsPage<RowResult<U>, byte[]> previous) throws Exception {
                         return getPage(previous.getTokenForNextPage());
                     }
 
-                    TokenBackedBasicResultsPage<RowResult<U>, byte[]> getPage(
-                            final byte[] startKey) throws Exception {
+                    TokenBackedBasicResultsPage<RowResult<U>, byte[]> getPage(final byte[] startKey) throws Exception {
                         return clientPool.runWithPooledResource(new FunctionCheckedException<Client, TokenBackedBasicResultsPage<RowResult<U>, byte[]>, Exception>() {
                             @Override
                             public TokenBackedBasicResultsPage<RowResult<U>, byte[]> apply(Client client) throws Exception {
@@ -841,33 +837,20 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                                     keyRange.setEnd_key(RangeRequests.previousLexicographicName(endExclusive));
                                 }
 
-                                final List<KeySlice> nonOversizeSlices = Lists.newArrayList();
-                                final List<KeySlice> oversizeRows = Lists.newArrayList();
-                                final SlicePredicate pred = new SlicePredicate().setSlice_range(new SliceRange(ByteBuffer.wrap(new byte[0]), ByteBuffer.wrap(new byte[0]), false, OVERSIZE_ROW_CUTOFF));
+                                List<KeySlice> firstPage;
+
                                 try {
                                     if (shouldTraceQuery(tableName)) {
                                         ByteBuffer recv_trace = client.trace_next_query();
                                         Stopwatch stopwatch = Stopwatch.createStarted();
-                                        for (KeySlice row : client.get_range_slices(colFam, pred, keyRange, consistency)) {
-                                            if (row.columns.size() == OVERSIZE_ROW_CUTOFF) {
-                                                oversizeRows.add(row);
-                                            } else {
-                                                nonOversizeSlices.add(row);
-                                            }
-                                        }
+                                        firstPage = client.get_range_slices(colFam, pred, keyRange, consistency);
                                         long duration = stopwatch.elapsed(TimeUnit.MILLISECONDS);
                                         if (duration > getMinimumDurationToTraceMillis()) {
                                             log.error("Traced a call to " + tableName + " that took " + duration + " ms."
                                                     + " It will appear in system_traces with UUID=" + CassandraKeyValueServices.convertCassandraByteBufferUUIDtoString(recv_trace));
                                         }
                                     } else {
-                                        for (KeySlice row : client.get_range_slices(colFam, pred, keyRange, consistency)) {
-                                            if (row.columns.size() == OVERSIZE_ROW_CUTOFF) {
-                                                oversizeRows.add(row);
-                                            } else {
-                                                nonOversizeSlices.add(row);
-                                            }
-                                        }
+                                        firstPage = client.get_range_slices(colFam, pred, keyRange, consistency);
                                     }
                                 } catch (UnavailableException e) {
                                     if (consistency.equals(ConsistencyLevel.ALL)) {
@@ -877,29 +860,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                                     }
                                 }
 
-                                ResultsExtractor<T, U> extractor = resultsExtractor.get();
-                                for (KeySlice oversize : oversizeRows) {
-                                    KeyRange singleRow = new KeyRange(1).setStart_key(oversize.key.array()).setEnd_key(oversize.key.array());
-                                    KeySlice current = oversize;
-                                    while (true) {
-                                        Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey = CassandraKeyValueServices.getColsByKey(ImmutableList.of(current));
-                                        extractor.extractResults(colsByKey, timestamp, selection);
-                                        if (current.columns.size() < OVERSIZE_ROW_CUTOFF) {
-                                            break;
-                                        }
-                                        // current.columns must be ordered.
-                                        ByteBuffer lastColumn = current.columns.get(current.columns.size()).column.name;
-                                        SlicePredicate updatedPred = new SlicePredicate().setSlice_range(new SliceRange(ByteBuffer.wrap(ArrayUtils.add(lastColumn.array(), (byte) 0)), ByteBuffer.wrap(new byte[0]), false, OVERSIZE_ROW_CUTOFF));
-                                        List<KeySlice> result = client.get_range_slices(colFam, updatedPred, singleRow, consistency);
-                                        if (result.isEmpty()) {
-                                            break;
-                                        }
-                                        current = result.iterator().next();
-                                    }
-                                }
-
-                                Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey = CassandraKeyValueServices.getColsByKey(nonOversizeSlices);
-                                return extractor.getPageFromRangeResults(colsByKey, timestamp, selection, endExclusive);
+                                Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey = CassandraKeyValueServices.getColsByKey(firstPage);
+                                return resultsExtractor.get().getPageFromRangeResults(colsByKey, timestamp, selection, endExclusive);
                             }
 
                             @Override
@@ -908,6 +870,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                             }
                         });
                     }
+
                 }.iterator());
     }
 
