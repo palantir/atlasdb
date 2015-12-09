@@ -31,7 +31,7 @@ public abstract class CassandraJmxCompactionConfig {
     }
 
     @Value.Default
-    public long jmxRmiTimeoutMillis() {
+    public long rmiTimeoutMillis() {
         return 20000;
     }
 
