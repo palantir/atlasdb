@@ -41,7 +41,7 @@ public class ValueRangeIterator extends RangeIterator<Value> {
             if (!cellAndTs.lhSide.equals(cell)) {
                 break;
             }
-            if (cellAndTs.rhSide < maxTimestamp) {
+            if (ret == null && cellAndTs.rhSide < maxTimestamp) {
                 ret = Value.create(it.value(), cellAndTs.rhSide);
             }
         }

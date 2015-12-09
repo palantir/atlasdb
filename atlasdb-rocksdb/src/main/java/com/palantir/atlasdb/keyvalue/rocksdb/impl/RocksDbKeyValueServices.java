@@ -51,15 +51,19 @@ public class RocksDbKeyValueServices {
                        ColumnSelection columnSelection,
                        long timestamp,
                        @Output Map<Cell, Value> results) {
-        iter.seek(getKey(row, Value.INVALID_VALUE_TIMESTAMP));
+        iter.seek(getKey(row, timestamp - 1));
+        byte[] col = null;
         for (; iter.isValid(); iter.next()) {
             Pair<Cell, Long> cellAndTs = parseCellAndTs(iter.key());
             if (!Arrays.equals(row, cellAndTs.lhSide.getRowName())) {
                 return;
             }
-            if (cellAndTs.rhSide >= timestamp || !columnSelection.contains(cellAndTs.lhSide.getColumnName())) {
+            if (cellAndTs.rhSide >= timestamp ||
+                    !columnSelection.contains(cellAndTs.lhSide.getColumnName()) ||
+                    Arrays.equals(col, cellAndTs.lhSide.getColumnName())) {
                 continue;
             }
+            col = cellAndTs.lhSide.getColumnName();
             results.put(cellAndTs.lhSide, Value.create(iter.value(), cellAndTs.rhSide));
         }
     }
@@ -67,55 +71,41 @@ public class RocksDbKeyValueServices {
     static Value getCell(RocksIterator iter,
                          Cell cell,
                          long timestamp) {
-        Value value = null;
-        iter.seek(getKey(cell, Value.INVALID_VALUE_TIMESTAMP));
-        for (; iter.isValid(); iter.next()) {
+        iter.seek(getKey(cell, timestamp - 1));
+        if (iter.isValid()) {
             Pair<Cell, Long> cellAndTs = parseCellAndTs(iter.key());
-            if (!cellAndTs.lhSide.equals(cell) || cellAndTs.rhSide >= timestamp) {
-                break;
+            if (cellAndTs.lhSide.equals(cell)) {
+                return Value.create(iter.value(), cellAndTs.rhSide);
             }
-            value = Value.create(iter.value(), cellAndTs.rhSide);
         }
-        return value;
+        return null;
     }
 
     static Long getTimestamp(RocksIterator iter,
                              Cell cell,
                              long timestamp) {
-        Long ts = null;
-        iter.seek(getKey(cell, Value.INVALID_VALUE_TIMESTAMP));
-        for (; iter.isValid(); iter.next()) {
+        iter.seek(getKey(cell, timestamp - 1));
+        if (iter.isValid()) {
             Pair<Cell, Long> cellAndTs = parseCellAndTs(iter.key());
-            if (!cellAndTs.lhSide.equals(cell) || cellAndTs.rhSide >= timestamp) {
-                break;
+            if (cellAndTs.lhSide.equals(cell)) {
+                return cellAndTs.rhSide;
             }
-            ts = cellAndTs.rhSide;
         }
-        return ts;
+        return null;
     }
 
     static void getTimestamps(RocksIterator iter,
                               Cell cell,
                               long timestamp,
                               @Output Multimap<Cell, Long> results) {
-        iter.seek(getKey(cell, Value.INVALID_VALUE_TIMESTAMP));
+        iter.seek(getKey(cell, timestamp - 1));
         for (; iter.isValid(); iter.next()) {
             Pair<Cell, Long> cellAndTs = parseCellAndTs(iter.key());
-            if (!cell.equals(cellAndTs.lhSide) || cellAndTs.rhSide >= timestamp) {
+            if (!cell.equals(cellAndTs.lhSide)) {
                 return;
             }
             results.put(cellAndTs.lhSide, cellAndTs.rhSide);
         }
-    }
-
-    static byte[] getKeyPrefix(Cell cell) {
-        byte[] rowName = cell.getRowName();
-        byte[] colName = cell.getColumnName();
-
-        byte[] key = new byte[rowName.length + colName.length];
-        System.arraycopy(rowName, 0, key, 0, rowName.length);
-        System.arraycopy(colName, 0, key, rowName.length, colName.length);
-        return key;
     }
 
     static byte[] getKey(byte[] row,
