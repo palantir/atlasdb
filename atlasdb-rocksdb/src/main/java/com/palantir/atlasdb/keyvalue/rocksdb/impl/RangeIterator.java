@@ -46,7 +46,7 @@ abstract class RangeIterator<T> extends AbstractIterator<RowResult<T>> implement
         if (start.length == 0) {
             it.seekToFirst();
         } else {
-            it.seek(RocksDbKeyValueServices.getKey(start, 0));
+            it.seek(RocksDbKeyValueServices.getKey(start, maxTimestamp - 1));
         }
     }
 

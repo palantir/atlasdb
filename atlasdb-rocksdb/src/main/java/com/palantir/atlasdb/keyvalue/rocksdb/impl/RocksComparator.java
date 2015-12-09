@@ -34,7 +34,7 @@ public class RocksComparator extends Comparator {
 
     @Override
     public String name() {
-        return "atlasdb";
+        return "atlasdb-v2";
     }
 
     // This method is a hotspot, logic from RocksDbKeyValueServices.parseCellAndTs
@@ -83,6 +83,8 @@ public class RocksComparator extends Comparator {
                 bdata[bColEnd+5],
                 bdata[bColEnd+6],
                 bdata[bColEnd+7]);
-        return Long.compare(aTs, bTs);
+
+        // Note: Ordering is reversed, later timestamps come before eariler ones.
+        return Long.compare(bTs, aTs);
     }
 }
