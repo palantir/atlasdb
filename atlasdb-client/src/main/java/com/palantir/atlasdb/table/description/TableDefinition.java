@@ -15,9 +15,7 @@
  */
 package com.palantir.atlasdb.table.description;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import com.google.common.base.Preconditions;
@@ -194,14 +192,6 @@ public class TableDefinition extends AbstractDefinition {
         constraintBuilder.addForeignKeyConstraint(constraint);
     }
 
-    public void addImport(String shortName, String qualifiedName){
-        additionalImports.put(shortName, qualifiedName);
-    }
-
-    public Map<String,String> getAdditionalImports() {
-        return additionalImports;
-    }
-
     public void explicitCompressionRequested(){
         explicitCompressionRequested = true;
     }
@@ -289,7 +279,6 @@ public class TableDefinition extends AbstractDefinition {
     private boolean rangeScanAllowed = false;
     private boolean negativeLookups = false;
     private boolean appendHeavyAndReadLight = false;
-    private Map<String, String> additionalImports = new HashMap<String, String>();
     private Set<String> fixedColumnShortNames = Sets.newHashSet();
     private Set<String> fixedColumnLongNames = Sets.newHashSet();
     private boolean noColumns = false;
