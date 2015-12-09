@@ -25,16 +25,16 @@ import com.google.common.primitives.Longs;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 
-public class RocksComparator extends Comparator {
-    public static final RocksComparator INSTANCE = new RocksComparator(new ComparatorOptions());
+public class RocksOldComparator extends Comparator {
+    public static final RocksOldComparator INSTANCE = new RocksOldComparator(new ComparatorOptions());
 
-    public RocksComparator(ComparatorOptions copt) {
+    public RocksOldComparator(ComparatorOptions copt) {
         super(copt);
     }
 
     @Override
     public String name() {
-        return RocksComparatorName.V2.getComparatorName();
+        return RocksComparatorName.V1.getComparatorName();
     }
 
     // This method is a hotspot, logic from RocksDbKeyValueServices.parseCellAndTs
@@ -84,7 +84,6 @@ public class RocksComparator extends Comparator {
                 bdata[bColEnd+6],
                 bdata[bColEnd+7]);
 
-        // Note: Ordering is reversed, later timestamps come before eariler ones.
-        return Long.compare(bTs, aTs);
+        return Long.compare(aTs, bTs);
     }
 }

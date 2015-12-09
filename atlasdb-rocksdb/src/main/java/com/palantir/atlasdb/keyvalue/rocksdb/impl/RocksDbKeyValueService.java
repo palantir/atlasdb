@@ -81,8 +81,8 @@ public class RocksDbKeyValueService implements KeyValueService {
     private static final String METADATA_TABLE_NAME = "_metadata";
     private static final long PUT_UNLESS_EXISTS_TS = 0L;
     private static final String LOCK_FILE_PREFIX = ".pt_kv_lock";
-    private final RocksDB db;
-    private final ColumnFamilyMap columnFamilies;
+    final RocksDB db;
+    final ColumnFamilyMap columnFamilies;
     private final FileLock lock;
     private final RandomAccessFile lockFile;
     private final WriteOpts writeOptions;
@@ -93,18 +93,30 @@ public class RocksDbKeyValueService implements KeyValueService {
         return create(dataDir,
                 ImmutableMap.<String, String>of(),
                 ImmutableMap.<String, String>of(),
-                ImmutableWriteOpts.builder().build());
+                ImmutableWriteOpts.builder().build(),
+                RocksComparatorName.V2.getComparatorName());
     }
 
     public static RocksDbKeyValueService create(String dataDir,
                                                 Map<String, String> dbOptions,
                                                 Map<String, String> cfOptions,
-                                                WriteOpts writeOpts) {
+                                                WriteOpts writeOpts,
+                                                String comparator) {
         DBOptions dbOpts = new DBOptions().setCreateIfMissing(true);
         setReflectionOpts(dbOpts, dbOptions);
         ColumnFamilyOptions cfMetadataOpts = new ColumnFamilyOptions();
         setReflectionOpts(cfMetadataOpts, cfOptions);
-        ColumnFamilyOptions cfCommonOpts = new ColumnFamilyOptions().setComparator(RocksComparator.INSTANCE);
+        ColumnFamilyOptions cfCommonOpts;
+        switch (comparator) {
+        case "atlasdb-v2":
+            cfCommonOpts = new ColumnFamilyOptions().setComparator(RocksComparator.INSTANCE);
+            break;
+        case "atlasdb":
+            cfCommonOpts = new ColumnFamilyOptions().setComparator(RocksOldComparator.INSTANCE);
+            break;
+        default:
+            throw new IllegalArgumentException("Unknown comparator " + comparator);
+        }
         setReflectionOpts(cfCommonOpts, cfOptions);
         return create(dataDir, dbOpts, cfMetadataOpts, cfCommonOpts, writeOpts);
     }

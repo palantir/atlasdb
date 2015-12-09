@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.rocksdb.impl.ImmutableWriteOpts;
+import com.palantir.atlasdb.keyvalue.rocksdb.impl.RocksComparatorName;
 import com.palantir.atlasdb.keyvalue.rocksdb.impl.WriteOpts;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
@@ -48,6 +49,11 @@ public abstract class RocksDbKeyValueServiceConfig implements KeyValueServiceCon
     }
 
     public abstract Optional<String> nativeLibTmpDir();
+
+    @Value.Default
+    public String getComparator() {
+        return RocksComparatorName.V2.getComparatorName();
+    }
 
     @Value.Check
     protected final void check() {
