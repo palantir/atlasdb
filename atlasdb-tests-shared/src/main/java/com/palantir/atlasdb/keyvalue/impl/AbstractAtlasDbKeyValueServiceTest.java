@@ -274,7 +274,7 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
 
     @Test
     public void testTableMetadata() {
-        assertEquals(0, keyValueService.getMetadataForTable(TEST_TABLE).length);
+        assertEquals(AtlasDbConstants.GENERIC_TABLE_METADATA.length, keyValueService.getMetadataForTable(TEST_TABLE).length);
         keyValueService.putMetadataForTable(TEST_TABLE, ArrayUtils.EMPTY_BYTE_ARRAY);
         assertEquals(0, keyValueService.getMetadataForTable(TEST_TABLE).length);
         keyValueService.putMetadataForTable(TEST_TABLE, metadata0);

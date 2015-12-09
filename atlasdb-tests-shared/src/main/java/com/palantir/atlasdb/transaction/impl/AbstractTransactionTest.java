@@ -142,7 +142,7 @@ public abstract class AbstractTransactionTest {
         timestampService = new InMemoryTimestampService();
         keyValueService.initializeFromFreshInstance();
         keyValueService.createTables(ImmutableMap.of(
-                TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA,
+                TEST_TABLE, TEST_TABLE_METADATA.persistToBytes(),
                 TransactionConstants.TRANSACTION_TABLE, TransactionConstants.TRANSACTION_TABLE_METADATA.persistToBytes()));
         keyValueService.truncateTables(ImmutableSet.of(TEST_TABLE, TransactionConstants.TRANSACTION_TABLE));
         transactionService = TransactionServices.createTransactionService(keyValueService);

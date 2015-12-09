@@ -529,7 +529,7 @@ public class RocksDbKeyValueService implements KeyValueService {
                 Throwables.propagate(e);
             }
         }
-        putMetadataForTables(Maps2.createConstantValueMap(tableNameToTableMetadata.keySet(), new byte[0]));
+        putMetadataForTables(tableNameToTableMetadata);
     }
 
     @Override
