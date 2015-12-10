@@ -5,6 +5,8 @@ import java.util.Arrays;
 
 import javax.annotation.Nullable;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Defaults;
 import com.google.common.base.Preconditions;
 import com.google.common.io.BaseEncoding;
@@ -36,10 +38,12 @@ public class PaxosValue implements Persistable, Versionable, Serializable {
         }
     };
 
-    public PaxosValue(String leaderUUID, long seq, @Nullable byte[] val) {
+    public PaxosValue(@JsonProperty("leaderUUID") String leaderUUID,
+                      @JsonProperty("round") long round,
+                      @JsonProperty("data") @Nullable byte[] data) {
         this.leaderUUID = Preconditions.checkNotNull(leaderUUID);
-        this.seq = seq;
-        this.data = val;
+        this.seq = round;
+        this.data = data;
     }
 
     public String getLeaderUUID() {
@@ -85,6 +89,7 @@ public class PaxosValue implements Persistable, Versionable, Serializable {
     }
 
     @Override
+    @JsonIgnore
     public long getVersion() {
         return 0;
     }
