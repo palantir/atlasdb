@@ -449,7 +449,7 @@ public interface KeyValueService extends AutoCloseable {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    void createTable(@QueryParam("tableName") String tableName, @QueryParam("tableMetadata") final byte[] tableMetadata) throws InsufficientConsistencyException;
+    void createTable(@QueryParam("tableName") String tableName, byte[] tableMetadata) throws InsufficientConsistencyException;
 
     /**
      * Creates many tables in idempotent fashion. If you are making many tables at once,
