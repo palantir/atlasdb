@@ -22,6 +22,7 @@ import org.rocksdb.RocksIterator;
 import org.rocksdb.WriteOptions;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.rocksdb.impl.ColumnFamilyMap.ColumnFamily;
 import com.palantir.atlasdb.rocksdb.RocksDbAtlasDbFactory;
 import com.palantir.atlasdb.rocksdb.RocksDbKeyValueServiceConfig;
@@ -52,7 +53,7 @@ public class RocksDbUpgrader {
         RocksDbKeyValueService newKvs = factory.createRawKeyValueService(newConfig);
 
         for (String table : oldKvs.getAllTableNames()) {
-            newKvs.createTable(table, Integer.MAX_VALUE);
+            newKvs.createTable(table, AtlasDbConstants.EMPTY_TABLE_METADATA);
         }
         factory.createTimestampService(newKvs);
 
