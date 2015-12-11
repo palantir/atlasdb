@@ -31,6 +31,7 @@ public class AtlasDbConstants {
     public static final String PUNCH_TABLE = "_punch";
     public static final String SCRUB_TABLE = "_scrub";
     public static final String NAMESPACE_TABLE = "_namespace";
+    public static final String TIMESTAMP_TABLE = "_timestamp";
     public static final String NAMESPACE_PREFIX = "_n_";
     public static final String NAMESPACE_SHORT_COLUMN_NAME = "s";
     public static final byte[] NAMESPACE_SHORT_COLUMN_BYTES = PtBytes.toBytes(NAMESPACE_SHORT_COLUMN_NAME);

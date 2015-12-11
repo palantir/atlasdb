@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
@@ -52,7 +53,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     private static final String ROW_AND_COLUMN_NAME = "ts";
 
 
-    public static final String TIMESTAMP_TABLE = "_timestamp";
+    public static final String TIMESTAMP_TABLE = AtlasDbConstants.TIMESTAMP_TABLE;
     public static final TableMetadata TIMESTAMP_TABLE_METADATA = new TableMetadata(
         NameMetadataDescription.create(ImmutableList.of(new NameComponentDescription("timestamp_name", ValueType.STRING))),
         new ColumnMetadataDescription(ImmutableList.of(

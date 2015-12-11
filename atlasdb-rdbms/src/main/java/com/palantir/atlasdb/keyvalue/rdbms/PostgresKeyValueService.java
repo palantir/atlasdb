@@ -36,7 +36,6 @@ import java.util.concurrent.ExecutorService;
 
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
-import javax.ws.rs.QueryParam;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.postgresql.jdbc2.optional.PoolingDataSource;
@@ -68,6 +67,7 @@ import com.google.common.collect.Ordering;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
@@ -886,7 +886,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
     @Idempotent
     public Set<String> getAllTableNames() {
         Set<String> hiddenTables = ImmutableSet.of(
-                MetaTable.META_TABLE_NAME, SimpleKvsTimestampBoundStore.TIMESTAMP_TABLE);
+                MetaTable.META_TABLE_NAME, AtlasDbConstants.TIMESTAMP_TABLE);
         Set<String> allTables = Sets.newHashSet(getDbi().withHandle(new HandleCallback<List<String>>() {
             @Override
             public List<String> withHandle(Handle handle) throws Exception {

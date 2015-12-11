@@ -43,7 +43,7 @@ import com.palantir.timestamp.TimestampBoundStore;
 
 public class PartitionedBoundStore implements TimestampBoundStore, Closeable {
 
-    private static final String TIMESTAMP_TABLE = "_timestamp";
+    private static final String TIMESTAMP_TABLE = AtlasDbConstants.TIMESTAMP_TABLE;
     private static final String ROW_AND_COLUMN_NAME = "ts";
     private static final long KV_TS = 0L;
     private static final Cell TS_CELL = Cell.create(ROW_AND_COLUMN_NAME.getBytes(Charsets.UTF_8), ROW_AND_COLUMN_NAME.getBytes(Charsets.UTF_8));

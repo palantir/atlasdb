@@ -68,10 +68,8 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
-import com.palantir.atlasdb.keyvalue.impl.SimpleKvsTimestampBoundStore;
 import com.palantir.atlasdb.keyvalue.rocksdb.impl.ColumnFamilyMap.ColumnFamily;
 import com.palantir.common.base.ClosableIterator;
-import com.palantir.common.collect.Maps2;
 import com.palantir.util.MutuallyExclusiveSetLock;
 import com.palantir.util.MutuallyExclusiveSetLock.LockState;
 import com.palantir.util.file.TempFileUtils;
@@ -537,7 +535,7 @@ public class RocksDbKeyValueService implements KeyValueService {
         Set<String> hiddenTables = ImmutableSet.of(
                 METADATA_TABLE_NAME,
                 new String(RocksDB.DEFAULT_COLUMN_FAMILY, Charsets.UTF_8),
-                SimpleKvsTimestampBoundStore.TIMESTAMP_TABLE);
+                AtlasDbConstants.TIMESTAMP_TABLE);
         return Sets.difference(columnFamilies.getTableNames(), hiddenTables);
     }
 

@@ -129,7 +129,7 @@ public class CassandraVerifier {
     }
 
     static void sanityCheckTableName(String table) {
-        Validate.isTrue(!table.startsWith("_")
+        Validate.isTrue(!(table.startsWith("_") && table.contains("."))
                 || AtlasDbConstants.hiddenTables.contains(table)
                 || table.startsWith(AtlasDbConstants.NAMESPACE_PREFIX), "invalid tableName: " + table);
     }

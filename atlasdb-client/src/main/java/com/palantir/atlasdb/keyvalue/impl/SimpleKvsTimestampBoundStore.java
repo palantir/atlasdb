@@ -22,6 +22,7 @@ import javax.annotation.concurrent.GuardedBy;
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -38,7 +39,7 @@ import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
 
 public class SimpleKvsTimestampBoundStore implements TimestampBoundStore {
-    public static final String TIMESTAMP_TABLE = "_timestamp";
+    private static final String TIMESTAMP_TABLE = AtlasDbConstants.TIMESTAMP_TABLE;
     private static final String ROW_AND_COLUMN_NAME = "ts";
     private static final long KV_TS = 0L;
     private static final Cell TS_CELL = Cell.create(ROW_AND_COLUMN_NAME.getBytes(Charsets.UTF_8), ROW_AND_COLUMN_NAME.getBytes(Charsets.UTF_8));
