@@ -31,7 +31,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 
 public class CassandraConstants {
     static final int LONG_RUNNING_QUERY_SOCKET_TIMEOUT_MILLIS = 62000;
-    static final String METADATA_TABLE = "_metadata";
+    public static final String METADATA_TABLE = "_metadata";
     public static final int DEFAULT_REPLICATION_FACTOR = 3;
     static final int SECONDS_BETWEEN_GETTING_HOST_LIST = 600; // 10 min
     static final int SECONDS_WAIT_FOR_VERSIONS = 60;
