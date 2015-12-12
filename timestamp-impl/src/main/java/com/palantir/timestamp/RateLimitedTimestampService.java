@@ -179,13 +179,15 @@ public class RateLimitedTimestampService implements TimestampService {
     }
 
     private void sleepForRateLimiting() {
+        if (minTimeBetweenRequestsMillis == 0) {
+            return;
+        }
+
         long nowNanos = System.nanoTime();
         long elapsedMillis = TimeUnit.MILLISECONDS.convert(
                 nowNanos - lastRequestTimeNanos,
                 TimeUnit.NANOSECONDS);
-        long timeToSleepMillis = minTimeBetweenRequestsMillis - elapsedMillis;
-
-        timeToSleepMillis = Math.max(0, timeToSleepMillis);
+        long timeToSleepMillis = Math.max(0, minTimeBetweenRequestsMillis - elapsedMillis);
 
         if (timeToSleepMillis > 0) {
             try {
