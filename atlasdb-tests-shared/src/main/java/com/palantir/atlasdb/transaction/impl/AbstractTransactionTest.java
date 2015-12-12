@@ -94,16 +94,6 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 public abstract class AbstractTransactionTest {
     protected static final String TEST_TABLE = "ns.table1";
-    protected static final TableMetadata TEST_TABLE_METADATA = new TableMetadata(
-            NameMetadataDescription.create(ImmutableList.of(new NameComponentDescription(
-                    "row_name",
-                    ValueType.STRING))),
-            new ColumnMetadataDescription(new DynamicColumnDescription(
-                    NameMetadataDescription.create(ImmutableList.of(new NameComponentDescription(
-                            "col_name",
-                            ValueType.STRING))),
-                    ColumnValueDescription.forType(ValueType.STRING))),
-            ConflictHandler.RETRY_ON_WRITE_WRITE);
 
     protected static LockClient lockClient = null;
     protected static LockServiceImpl lockService = null;
@@ -142,7 +132,7 @@ public abstract class AbstractTransactionTest {
         timestampService = new InMemoryTimestampService();
         keyValueService.initializeFromFreshInstance();
         keyValueService.createTables(ImmutableMap.of(
-                TEST_TABLE, TEST_TABLE_METADATA.persistToBytes(),
+                TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA,
                 TransactionConstants.TRANSACTION_TABLE, TransactionConstants.TRANSACTION_TABLE_METADATA.persistToBytes()));
         keyValueService.truncateTables(ImmutableSet.of(TEST_TABLE, TransactionConstants.TRANSACTION_TABLE));
         transactionService = TransactionServices.createTransactionService(keyValueService);
@@ -1164,7 +1154,7 @@ public abstract class AbstractTransactionTest {
     @Test
     public void testTableMetadata() {
         byte[] metadataForTable = keyValueService.getMetadataForTable(TEST_TABLE);
-        assertTrue(metadataForTable == null || Arrays.equals(TEST_TABLE_METADATA.persistToBytes(), metadataForTable));
+        assertTrue(metadataForTable == null || Arrays.equals(AtlasDbConstants.GENERIC_TABLE_METADATA, metadataForTable));
         byte[] bytes = new TableMetadata().persistToBytes();
         keyValueService.putMetadataForTable(TEST_TABLE, bytes);
         byte[] bytesRead = keyValueService.getMetadataForTable(TEST_TABLE);

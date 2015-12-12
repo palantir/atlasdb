@@ -18,13 +18,13 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.security.Permission;
 
 import org.apache.cassandra.service.CassandraDaemon;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class CassandraService {
+    private static final Logger log = LoggerFactory.getLogger(CassandraService.class);
     private static final String CASSANDRA_CONFIG = "./cassandra.yaml";
 
     private static CassandraDaemon daemon;
@@ -34,10 +34,14 @@ public final class CassandraService {
     }
 
     public static void main(String[] args) {
-        CassandraService.start();
+        try {
+            CassandraService.start();
+        } catch (IOException e) {
+            log.error("failed to start cassandra", e);
+        }
     }
 
-    public static synchronized void start() {
+    public static synchronized void start() throws IOException {
         File tempDir;
         try {
             tempDir = Files.createTempDirectory("cassandra").toFile();
@@ -48,8 +52,9 @@ public final class CassandraService {
         System.setProperty("cassandra.config", new File(CASSANDRA_CONFIG).toURI().toString());
         System.setProperty("cassandra.storagedir", tempDir.getPath());
 
-        daemon = new TestCassandraDaemon();
-        daemon.activate();
+        daemon = new CassandraDaemon();
+        daemon.init(null);
+        daemon.start();
     }
 
     public static synchronized void stop() {
@@ -58,45 +63,7 @@ public final class CassandraService {
             return;
         }
         daemon.deactivate();
+        daemon.stop();
         daemon = null;
-    }
-
-    private static class TestCassandraDaemon extends CassandraDaemon {
-        private static final Logger logger = LoggerFactory.getLogger(CassandraService.TestCassandraDaemon.class);
-
-        // catch System.exit() on Windows (okay for testing)
-        @Override
-        public void stop() {
-            SecurityManager orig = System.getSecurityManager();
-            System.setSecurityManager(new NoExitSecurityManager());
-            try {
-                super.stop();
-            } catch (ExitingException e) {
-                // ignore
-            }
-            System.setSecurityManager(orig);
-        }
-    }
-
-    // allows us to catch exits
-    private static class NoExitSecurityManager extends SecurityManager
-    {
-        @Override
-        public void checkPermission(Permission perm) {
-            // allow anything.
-        }
-        @Override
-        public void checkPermission(Permission perm, Object context) {
-            // allow anything.
-        }
-        @Override
-        public void checkExit(int status) {
-            super.checkExit(status);
-            throw new ExitingException() ;
-        }
-    }
-
-    private static class ExitingException extends RuntimeException {
-        // flag exception
     }
 }

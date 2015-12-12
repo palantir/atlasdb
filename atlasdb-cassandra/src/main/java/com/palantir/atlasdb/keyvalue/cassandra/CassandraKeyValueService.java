@@ -752,10 +752,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 map.put(rowName, rowPuts);
             }
 
-            List<Mutation> tableMutations = rowPuts.get(tableCellAndValue.tableName);
+            List<Mutation> tableMutations = rowPuts.get(internalTableName(tableCellAndValue.tableName));
             if (tableMutations == null) {
                 tableMutations = Lists.<Mutation>newArrayList();
-                rowPuts.put(tableCellAndValue.tableName, tableMutations);
+                rowPuts.put(internalTableName(tableCellAndValue.tableName), tableMutations);
             }
 
             tableMutations.add(m);
