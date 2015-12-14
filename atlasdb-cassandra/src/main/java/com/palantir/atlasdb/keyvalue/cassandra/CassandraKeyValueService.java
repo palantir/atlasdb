@@ -102,6 +102,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionModule;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.ClosableIterator;
@@ -956,12 +957,14 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         double falsePositiveChance = CassandraConstants.DEFAULT_LEVELED_COMPACTION_BLOOM_FILTER_FP_CHANCE;
         int explicitCompressionBlockSizeKB = 0;
         boolean appendHeavyAndReadLight = false;
+        TableMetadataPersistence.CachePriority cachePriority = TableMetadataPersistence.CachePriority.WARM;
 
         if (!CassandraKeyValueServices.isEmptyOrInvalidMetadata(rawMetadata)) {
             TableMetadata tableMetadata = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(rawMetadata);
             negativeLookups = tableMetadata.hasNegativeLookups();
             explicitCompressionBlockSizeKB = tableMetadata.getExplicitCompressionBlockSizeKB();
             appendHeavyAndReadLight = tableMetadata.isAppendHeavyAndReadLight();
+            cachePriority = tableMetadata.getCachePriority();
         }
 
         if (explicitCompressionBlockSizeKB != 0) {
@@ -986,6 +989,19 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             } else {
                 falsePositiveChance = CassandraConstants.NEGATIVE_LOOKUPS_SIZE_TIERED_BLOOM_FILTER_FP_CHANCE;
             }
+        }
+
+        switch (cachePriority) {
+            case COLDEST:
+                break;
+            case COLD:
+                break;
+            case WARM:
+                break;
+            case HOT:
+                break;
+            case HOTTEST:
+                cf.setPopulate_io_cache_on_flushIsSet(true);
         }
 
         cf.setBloom_filter_fp_chance(falsePositiveChance);

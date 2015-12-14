@@ -292,6 +292,13 @@ public class CassandraKeyValueServices {
                     clusterSide.compaction_strategy);
             return false;
         }
+        if (clientSide.isSetPopulate_io_cache_on_flush() != clusterSide.isSetPopulate_io_cache_on_flush()) {
+            log.debug("Found client/server disagreement on populate_io_cache_on_flush for {}. (client = ({}), server = ({}))",
+                    tableName,
+                    clientSide.isSetPopulate_io_cache_on_flush(),
+                    clusterSide.isSetPopulate_io_cache_on_flush());
+            return false;
+        }
 
         return true;
     }
