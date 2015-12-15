@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -33,6 +34,7 @@ import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
@@ -74,6 +76,10 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
     private final SweepTableFactory tableFactory;
     private volatile float batchSizeMultiplier = 1.0f;
     private Thread daemon;
+
+    // weights one month of no sweeping with the same priority as about 100000 expected cells to sweep.
+    private static final double MILLIS_SINCE_SWEEP_PRIORITY_WEIGHT = 100000.0 / TimeUnit.MILLISECONDS.convert(30, TimeUnit.DAYS);
+
 
     public BackgroundSweeperImpl(LockAwareTransactionManager txManager,
                                  KeyValueService kvs,
@@ -129,7 +135,7 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
                         log.error("The background sweep job failed unexpectedly with a batch size of " +
                                 ((int) (batchSizeMultiplier * sweepBatchSize.get())) +
                                 ". Attempting to continue with a lower batch size...", e);
-                        batchSizeMultiplier /= 2;
+                        batchSizeMultiplier = Math.min(batchSizeMultiplier / 2, 1.0f / sweepBatchSize.get());
                     }
                 }
                 if (sweptSuccessfully) {
@@ -149,7 +155,7 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
     }
 
     private boolean runOnce() {
-        SweepProgressRowResult progress = txManager.runTaskReadOnly(
+        SweepProgressRowResult progress = txManager.runTaskWithRetry(
                 new RuntimeTransactionTask<SweepProgressRowResult>() {
             @Override
             public SweepProgressRowResult execute(Transaction t) {
@@ -197,8 +203,7 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
         List<SweepPriorityRowResult> newPriorities = newPriorityTable.getAllRowsUnordered().immutableCopy();
         Map<String,SweepPriorityRowResult> newPrioritiesByTableName = Maps.uniqueIndex(newPriorities,
                 Functions.compose(SweepPriorityRow.getFullTableNameFun(), SweepPriorityRowResult.getRowNameFun()));
-        Set<String> unsweptTables = Sets.difference(allTables, newPrioritiesByTableName.keySet());
-        String tableName = getTableToSweep(unsweptTables, oldPriorities, newPrioritiesByTableName);
+        String tableName = getTableToSweep(t, allTables, oldPriorities, newPrioritiesByTableName);
         if (tableName == null) {
             return null;
         }
@@ -213,23 +218,34 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
     }
 
     @Nullable
-    private String getTableToSweep(Set<String> unsweptTables,
+    private String getTableToSweep(SweepTransaction t,
+                                   Set<String> allTables,
                                    List<SweepPriorityRowResult> oldPriorities,
                                    Map<String, SweepPriorityRowResult> newPrioritiesByTableName) {
+        Set<String> unsweptTables = Sets.difference(allTables, newPrioritiesByTableName.keySet());
         if (!unsweptTables.isEmpty()) {
             return Iterables.get(unsweptTables, 0);
         }
         double maxPriority = 0.0;
         String toSweep = null;
+        Collection<SweepPriorityRow> toDelete = Lists.newArrayList();
         for (SweepPriorityRowResult oldPriority : oldPriorities) {
             String tableName = oldPriority.getRowName().getFullTableName();
-            SweepPriorityRowResult newPriority = newPrioritiesByTableName.get(tableName);
-            double priority = getSweepPriority(oldPriority, newPriority);
-            if (priority > maxPriority) {
-                maxPriority = priority;
-                toSweep = tableName;
+            if (allTables.contains(tableName)) {
+                SweepPriorityRowResult newPriority = newPrioritiesByTableName.get(tableName);
+                double priority = getSweepPriority(oldPriority, newPriority);
+                if (priority > maxPriority) {
+                    maxPriority = priority;
+                    toSweep = tableName;
+                }
+            } else {
+                toDelete.add(oldPriority.getRowName());
             }
         }
+
+        // Clean up rows for tables that no longer exist.
+        tableFactory.getSweepPriorityTable(t.delegate()).delete(toDelete);
+
         return toSweep;
     }
 
@@ -261,7 +277,7 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
 
         // This ordering function weights one month of no sweeping
         // with the same priority as about 100000 expected cells to sweep.
-        return estimatedCellsToSweep + millisSinceSweep / 25;
+        return estimatedCellsToSweep + millisSinceSweep * MILLIS_SINCE_SWEEP_PRIORITY_WEIGHT;
     }
 
     private void saveSweepResults(final SweepProgressRowResult progress,
