@@ -17,12 +17,14 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Set;
 
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.ColumnDef;
 import org.apache.cassandra.thrift.TriggerDef;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 
 
@@ -39,8 +41,9 @@ public class CassandraConstants {
     static final double NEGATIVE_LOOKUPS_BLOOM_FILTER_FP_CHANCE = 0.01;
     static final String SIMPLE_STRATEGY = "org.apache.cassandra.locator.SimpleStrategy";
     static final String NETWORK_STRATEGY = "org.apache.cassandra.locator.NetworkTopologyStrategy";
-    static final String PARTITIONER = "com.palantir.atlasdb.keyvalue.cassandra.dht.AtlasDbPartitioner";
-    static final String PARTITIONER2 = "org.apache.cassandra.dht.ByteOrderedPartitioner";
+    static final Set<String> PARTITIONERS = ImmutableSet.of(
+            "com.palantir.atlasdb.keyvalue.cassandra.dht.AtlasDbPartitioner",
+            "org.apache.cassandra.dht.ByteOrderedPartitioner");
     static final String DEFAULT_DC = "datacenter1";
     static final String DEFAULT_RACK = "rack1";
     static final String SIMPLE_RF_TEST_KEYSPACE = "__simple_rf_test_keyspace__";
