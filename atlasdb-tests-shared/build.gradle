@@ -21,4 +21,5 @@ dependencies {
     exclude group: 'org.hamcrest'
   }
   compile 'org.hamcrest:hamcrest-core:' + libVersions.hamcrest
+  compile 'org.hamcrest:hamcrest-library:' + libVersions.hamcrest
 }
