@@ -6,8 +6,10 @@ dependencies {
   testCompile project(":atlasdb-cassandra")
   testCompile project(":atlasdb-tests-shared")
 
-  testCompile 'org.apache.cassandra:cassandra-all:2.1.7'
-  testCompile 'com.datastax.cassandra:cassandra-driver-core:2.1.7'
+  testCompile 'org.apache.cassandra:cassandra-all:' + libVersions.cassandra
+  testCompile 'com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core
+
+  testCompile 'org.mockito:mockito-core:1.9.5' 
 }
 
 jacoco {

@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -34,10 +35,12 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.Value;
@@ -233,7 +236,7 @@ public class CassandraKeyValueServices {
     }
 
     static private void extractTimestampResults(@Output Multimap<Cell, Long> ret,
-            Map<ByteBuffer, List<ColumnOrSuperColumn>> results) {
+                                                Map<ByteBuffer, List<ColumnOrSuperColumn>> results) {
         for (Entry<ByteBuffer, List<ColumnOrSuperColumn>> result : results.entrySet()) {
             byte[] row = CassandraKeyValueServices.getBytesFromByteBuffer(result.getKey());
             for (ColumnOrSuperColumn col : result.getValue()) {
@@ -253,7 +256,7 @@ public class CassandraKeyValueServices {
     // also because compression_options after serialization / deserialization comes back as blank for the ones we set 4K chunk on... ?!
     public static final boolean isMatchingCf(CfDef clientSide, CfDef clusterSide) {
         String tableName = clientSide.name;
-        if (!clientSide.compaction_strategy_options.equals(clusterSide.compaction_strategy_options)) {
+        if (!Objects.equal(clientSide.compaction_strategy_options, clusterSide.compaction_strategy_options)) {
             log.debug("Found client/server disagreement on compaction strategy options for {}. (client = ({}), server = ({}))",
                     tableName,
                     clientSide.compaction_strategy_options,
@@ -282,8 +285,22 @@ public class CassandraKeyValueServices {
                     clusterSide.compression_options.get(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY));
             return false;
         }
+        if (!Objects.equal(clientSide.compaction_strategy, clusterSide.compaction_strategy)) {
+            log.debug("Found client/server disagreement on compaction_strategy for {}. (client = ({}), server = ({}))",
+                    tableName,
+                    clientSide.compaction_strategy,
+                    clusterSide.compaction_strategy);
+            return false;
+        }
 
         return true;
+    }
+
+    public static boolean isEmptyOrInvalidMetadata(byte[] metadata) {
+        if (metadata == null || Arrays.equals(metadata, AtlasDbConstants.EMPTY_TABLE_METADATA) || Arrays.equals(metadata, AtlasDbConstants.GENERIC_TABLE_METADATA)) {
+            return true;
+        }
+        return false;
     }
 
 }

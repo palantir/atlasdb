@@ -139,11 +139,11 @@ public class CachingTransaction extends ForwardingTransaction {
 
         ConcurrentMap<Cell, byte[]> cache = getColCacheForTable(tableName);
         Set<Cell> toLoad = Sets.newHashSet();
-        Map<Cell, byte[]> cacheHit = Maps.newHashMap();
+        Map<Cell, byte[]> cacheHit = Maps.newHashMapWithExpectedSize(cells.size());
         for (Cell cell : cells) {
-            if (cache.containsKey(cell)) {
-                byte[] val = cache.get(cell);
-                if (val != null && val.length > 0) {
+            byte[] val = cache.get(cell);
+            if (val != null) {
+                if (val.length > 0) {
                     cacheHit.put(cell, val);
                 }
             } else {

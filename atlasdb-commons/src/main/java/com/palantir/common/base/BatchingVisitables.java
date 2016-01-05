@@ -289,7 +289,7 @@ public class BatchingVisitables {
         return BatchingVisitableView.of(new AbstractBatchingVisitable<T>() {
             @Override
             protected <K extends Exception> void batchAcceptSizeHint(int batchSizeHint,
-                                                                        final ConsistentVisitor<T, K> v) throws K {
+                                                                     final ConsistentVisitor<T, K> v) throws K {
                 visitable.batchAccept(batchSizeHint, new AbortingVisitor<List<F>, K>() {
                     @Override
                     public boolean visit(List<F> batch) throws K {
@@ -309,7 +309,7 @@ public class BatchingVisitables {
         return BatchingVisitableView.of(new AbstractBatchingVisitable<T>() {
             @Override
             protected <K extends Exception> void batchAcceptSizeHint(int batchSizeHint,
-                                                                        final ConsistentVisitor<T, K> v) throws K {
+                                                                     final ConsistentVisitor<T, K> v) throws K {
                 if (batchSizeHint > limit) {
                     batchSizeHint = (int)limit;
                 }
@@ -381,7 +381,12 @@ public class BatchingVisitables {
      * null is supported bug discouraged
      */
     public static <T> BatchingVisitableView<T> unique(final BatchingVisitable<T> visitable) {
+        return uniqueOn(visitable, Functions.<T>identity());
+    }
+
+    public static <T> BatchingVisitableView<T> uniqueOn(final BatchingVisitable<T> visitable, final Function<T, ?> function) {
         Preconditions.checkNotNull(visitable);
+        Preconditions.checkNotNull(function);
         return BatchingVisitableView.of(new AbstractBatchingVisitable<T>() {
             @Override
             protected <K extends Exception> void batchAcceptSizeHint(int batchSizeHint,
@@ -389,16 +394,19 @@ public class BatchingVisitables {
                     throws K {
                 visitable.batchAccept(batchSizeHint, new AbortingVisitor<List<T>, K>() {
                     boolean hasVisitedFirst = false;
-                    T lastVisited = null;
+                    Object lastVisited = null;
                     @Override
                     public boolean visit(List<T> batch) throws K {
                         for (T item : batch) {
-                            if (!hasVisitedFirst || !Objects.equal(item, lastVisited)) {
+
+                            Object itemKey = function.apply(item);
+
+                            if (!hasVisitedFirst || !Objects.equal(itemKey, lastVisited)) {
                                 if (!v.visitOne(item)) {
                                     return false;
                                 }
                                 hasVisitedFirst = true;
-                                lastVisited = item;
+                                lastVisited = itemKey;
                             }
                         }
                         return true;

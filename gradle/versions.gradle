@@ -7,6 +7,8 @@ ext.libVersions = [
     commons_lang: '2.6',
     jackson: '2.5.1',
     jackson_annotation: '2.5.0',
+    cassandra: '2.2.0',
+    cassandra_driver_core: '2.2.0-rc3'
 ]
 
 configurations.matching({ it.name in ['compile', 'runtime'] }).all {

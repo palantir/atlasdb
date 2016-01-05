@@ -91,8 +91,7 @@ public class AtlasDbServiceImpl implements AtlasDbService {
 
     @Override
     public void createTable(String tableName) {
-        kvs.createTable(tableName, Integer.MAX_VALUE);
-        kvs.putMetadataForTable(tableName, RAW_METADATA.persistToBytes());
+        kvs.createTable(tableName, RAW_METADATA.persistToBytes());
     }
 
     @Override

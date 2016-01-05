@@ -19,13 +19,14 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
 
 public class CassandraTimestampTest {
-    private static final String TIMESTAMP_TABLE = "_timestamp";
+    private static final String TIMESTAMP_TABLE = AtlasDbConstants.TIMESTAMP_TABLE;
 
     private CassandraKeyValueService kv;
 

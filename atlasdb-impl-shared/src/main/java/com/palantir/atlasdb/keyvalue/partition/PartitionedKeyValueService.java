@@ -642,13 +642,13 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 
     @Override
     @Idempotent
-    public void createTable(final String tableName, final int maxValueSizeInBytes)
+    public void createTable(final String tableName, final byte[] tableMetadata)
             throws InsufficientConsistencyException {
         runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Void>() {
             @Override
             public Void apply(@Nullable DynamicPartitionMap input) {
                 for (KeyValueService kvs : input.getDelegates()) {
-                    kvs.createTable(tableName, maxValueSizeInBytes);
+                    kvs.createTable(tableName, tableMetadata);
                 }
                 return null;
             }
@@ -685,13 +685,13 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 
     @Override
     @Idempotent
-    public void createTables(final Map<String, Integer> tableNamesToMaxValueSizeInBytes)
+    public void createTables(final Map<String, byte[]> tableNameToTableMetadata)
             throws InsufficientConsistencyException {
         runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Void>() {
             @Override
             public Void apply(@Nullable DynamicPartitionMap input) {
                 for (KeyValueService kvs : input.getDelegates()) {
-                    kvs.createTables(tableNamesToMaxValueSizeInBytes);
+                    kvs.createTables(tableNameToTableMetadata);
                 }
                 return null;
             }

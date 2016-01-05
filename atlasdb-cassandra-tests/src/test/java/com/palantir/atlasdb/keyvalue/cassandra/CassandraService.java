@@ -24,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class CassandraService {
+    private static final Logger log = LoggerFactory.getLogger(CassandraService.class);
     private static final String CASSANDRA_CONFIG = "./cassandra.yaml";
 
     private static CassandraDaemon daemon;
@@ -33,10 +34,14 @@ public final class CassandraService {
     }
 
     public static void main(String[] args) {
-        CassandraService.start();
+        try {
+            CassandraService.start();
+        } catch (IOException e) {
+            log.error("failed to start cassandra", e);
+        }
     }
 
-    public static synchronized void start() {
+    public static synchronized void start() throws IOException {
         File tempDir;
         try {
             tempDir = Files.createTempDirectory("cassandra").toFile();
@@ -47,8 +52,9 @@ public final class CassandraService {
         System.setProperty("cassandra.config", new File(CASSANDRA_CONFIG).toURI().toString());
         System.setProperty("cassandra.storagedir", tempDir.getPath());
 
-        daemon = new TestCassandraDaemon();
-        daemon.activate();
+        daemon = new CassandraDaemon();
+        daemon.init(null);
+        daemon.start();
     }
 
     public static synchronized void stop() {
@@ -57,37 +63,7 @@ public final class CassandraService {
             return;
         }
         daemon.deactivate();
+        daemon.stop();
         daemon = null;
-    }
-
-    private static class TestCassandraDaemon extends CassandraDaemon {
-        private static final Logger logger = LoggerFactory.getLogger(CassandraService.TestCassandraDaemon.class);
-
-        // Copied from CassandraDaemon::stop to fix issue on Windows
-        @Override
-        public void stop() {
-            // On linux, this doesn't entirely shut down Cassandra, just the RPC server.
-            // jsvc takes care of taking the rest down
-            logger.info("Cassandra shutting down...");
-            thriftServer.stop();
-            nativeServer.stop();
-
-            // Not needed for a test daemon
-            // On windows, we need to stop the entire system as prunsrv doesn't have the jsvc hooks
-            // We rely on the shutdown hook to drain the node
-            // if (FBUtilities.isWindows())
-            //    System.exit(0);
-
-            if (jmxServer != null)
-            {
-                try
-                {
-                    jmxServer.stop();
-                } catch (IOException e)
-                {
-                    logger.error("Error shutting down local JMX server: ", e);
-                }
-            }
-        }
     }
 }

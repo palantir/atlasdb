@@ -33,17 +33,19 @@ public class StreamTables {
     public static final String INDEX_TABLE_SUFFIX = "_stream_idx";
 
     public static void generateSchema(Schema schema, final String shortPrefix, final String longPrefix, final ValueType idType) {
-        schema.addTableDefinition(shortPrefix + METADATA_TABLE_SUFFIX, getStreamMetadataDefinition(longPrefix, idType, ExpirationStrategy.NEVER, false));
-        schema.addTableDefinition(shortPrefix + VALUE_TABLE_SUFFIX, getStreamValueDefinition(longPrefix, idType, ExpirationStrategy.NEVER, false));
-        schema.addTableDefinition(shortPrefix + HASH_TABLE_SUFFIX, getStreamHashIdxDefinition(longPrefix, idType, ExpirationStrategy.NEVER));
-        schema.addTableDefinition(shortPrefix + INDEX_TABLE_SUFFIX, getStreamIdxDefinition(longPrefix, idType, ExpirationStrategy.NEVER, false));
+        schema.addTableDefinition(shortPrefix + METADATA_TABLE_SUFFIX, getStreamMetadataDefinition(longPrefix, idType, ExpirationStrategy.NEVER, false, false));
+        schema.addTableDefinition(shortPrefix + VALUE_TABLE_SUFFIX, getStreamValueDefinition(longPrefix, idType, ExpirationStrategy.NEVER, false, false));
+        schema.addTableDefinition(shortPrefix + HASH_TABLE_SUFFIX, getStreamHashIdxDefinition(longPrefix, idType, ExpirationStrategy.NEVER, false));
+        schema.addTableDefinition(shortPrefix + INDEX_TABLE_SUFFIX, getStreamIdxDefinition(longPrefix, idType, ExpirationStrategy.NEVER, false, false));
     }
 
     public static TableDefinition getStreamIdxDefinition(final String longPrefix,
                                                          final ValueType idType,
                                                          final ExpirationStrategy expirationStrategy,
-                                                         final boolean hashFirstRowComponent) {
-        return new TableDefinition() {{
+                                                         final boolean hashFirstRowComponent,
+                                                         final boolean isAppendHeavyAndReadLight) {
+
+            return new TableDefinition() {{
             javaTableName(Renderers.CamelCase(longPrefix) + "StreamIdx");
             rowName();
                 if (hashFirstRowComponent) {
@@ -57,12 +59,17 @@ public class StreamTables {
             maxValueSize(1);
             explicitCompressionRequested();
             expirationStrategy(expirationStrategy);
+            if (isAppendHeavyAndReadLight) {
+                isAppendHeavyAndReadLight();
+            }
         }};
     }
 
     public static TableDefinition getStreamHashIdxDefinition(final String longPrefix,
-                                                              final ValueType idType,
-                                                              final ExpirationStrategy expirationStrategy) {
+                                                             final ValueType idType,
+                                                             final ExpirationStrategy expirationStrategy,
+                                                             final boolean isAppendHeavyAndReadLight) {
+
         return new TableDefinition() {{
             javaTableName(Renderers.CamelCase(longPrefix) + "StreamHashAidx");
             rowName();
@@ -75,13 +82,17 @@ public class StreamTables {
             explicitCompressionRequested();
             negativeLookups();
             expirationStrategy(expirationStrategy);
+            if (isAppendHeavyAndReadLight) {
+                isAppendHeavyAndReadLight();
+            }
         }};
     }
 
     public static TableDefinition getStreamValueDefinition(final String longPrefix,
                                                            final ValueType idType,
                                                            final ExpirationStrategy expirationStrategy,
-                                                           final boolean hashFirstRowComponent) {
+                                                           final boolean hashFirstRowComponent,
+                                                           final boolean isAppendHeavyAndReadLight) {
         return new TableDefinition() {{
             javaTableName(Renderers.CamelCase(longPrefix) + "StreamValue");
             rowName();
@@ -96,27 +107,34 @@ public class StreamTables {
             maxValueSize(GenericStreamStore.BLOCK_SIZE_IN_BYTES);
             cachePriority(CachePriority.COLD);
             expirationStrategy(expirationStrategy);
+            if (isAppendHeavyAndReadLight) {
+                isAppendHeavyAndReadLight();
+            }
         }};
     }
 
     public static TableDefinition getStreamMetadataDefinition(final String longPrefix,
                                                               final ValueType idType,
                                                               final ExpirationStrategy expirationStrategy,
-                                                              final boolean hashFirstRowComponent) {
+                                                              final boolean hashFirstRowComponent,
+                                                              final boolean isAppendHeavyAndReadLight) {
         return new TableDefinition() {{
             javaTableName(Renderers.CamelCase(longPrefix) + "StreamMetadata");
             rowName();
                 if (hashFirstRowComponent) {
                     hashFirstRowComponent();
                 }
-                rowComponent("id",              idType);
+                rowComponent("id", idType);
             columns();
-                column("metadata", "md",        StreamPersistence.StreamMetadata.class);
+                column("metadata", "md", StreamPersistence.StreamMetadata.class);
             maxValueSize(64);
             conflictHandler(ConflictHandler.RETRY_ON_VALUE_CHANGED);
             explicitCompressionRequested();
             negativeLookups();
             expirationStrategy(expirationStrategy);
+            if (isAppendHeavyAndReadLight) {
+                isAppendHeavyAndReadLight();
+            }
         }};
     }
 }

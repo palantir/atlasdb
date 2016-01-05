@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.util.Random;
@@ -28,23 +29,35 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.ClientCreationFailedException;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.ClientCreationFailedException;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.pooling.ForwardingPoolingContainer;
-import com.palantir.common.pooling.PoolingContainer;
 
-public class RetriablePoolingContainer extends ForwardingPoolingContainer<Client> {
-    private static final Logger log = LoggerFactory.getLogger(RetriablePoolingContainer.class);
-    private static final int MAX_TRIES = 10;
+public class RetriableManyHostPoolingContainer extends ForwardingPoolingContainer<Client>
+        implements ManyHostPoolingContainer<Client> {
+    private static final Logger log = LoggerFactory.getLogger(RetriableManyHostPoolingContainer.class);
 
-    private final PoolingContainer<Client> delegate;
+    private final int maxTries;
+    private final int triesBeforeRandomHost;
+    private final ManyHostPoolingContainer<Client> delegate;
 
-    public RetriablePoolingContainer(PoolingContainer<Client> delegate) {
+    private RetriableManyHostPoolingContainer(int maxTries, int triesBeforeRandomHost, ManyHostPoolingContainer<Client> delegate) {
+        this.maxTries = maxTries;
+        this.triesBeforeRandomHost = triesBeforeRandomHost;
         this.delegate = delegate;
     }
 
+    /**
+     * @param delegate a ManyHostPoolingContainer from which to draw hosts
+     * @param triesBeforeRandomizing The maximum number of times to try a request on the specified host before falling back to random hosts.
+     * @param maxTries The maximum number of times to try a request in total.
+     */
+    public static ManyHostPoolingContainer create(int maxTries, int triesBeforeRandomizing, ManyHostPoolingContainer<Client> delegate) {
+        return new RetriableManyHostPoolingContainer(maxTries, triesBeforeRandomizing, delegate);
+    }
+
     @Override
-    protected PoolingContainer<Client> delegate() {
+    protected ManyHostPoolingContainer<Client> delegate() {
         return delegate;
     }
 
@@ -65,7 +78,27 @@ public class RetriablePoolingContainer extends ForwardingPoolingContainer<Client
     public <V> V runWithPooledResource(Function<Client, V> f) {
         throw new UnsupportedOperationException(
                 "you should use FunctionCheckedException<?, ?, Exception> " +
-                "to ensure the TTransportException type is propagated correctly.");
+                        "to ensure the TTransportException type is propagated correctly.");
+    }
+
+    @Override
+    public <V, K extends Exception> V runWithPooledResourceOnHost(InetAddress host,
+                                                                  FunctionCheckedException<Client, V, K> f) throws K {
+        int numTries = 0;
+        while (true) {
+            try {
+                return numTries >= triesBeforeRandomHost ? delegate.runWithPooledResource(f) : delegate.runWithPooledResourceOnHost(host, f);
+            } catch (Exception e) {
+                numTries++;
+                this.<K>handleException(numTries, e);
+            }
+        }
+    }
+
+    @Override
+    public <V> V runWithPooledResourceOnHost(InetAddress host, Function<Client, V> f) {
+        throw new UnsupportedOperationException("you should use FunctionCheckedException<?, ?, Exception> "
+                + "to ensure the TTransportException type is propagated correctly.");
     }
 
     @SuppressWarnings("unchecked")
@@ -76,7 +109,7 @@ public class RetriablePoolingContainer extends ForwardingPoolingContainer<Client
                 || e instanceof SocketTimeoutException
                 || e instanceof UnavailableException
                 || e instanceof InsufficientConsistencyException) {
-            if (numTries >= MAX_TRIES) {
+            if (numTries >= maxTries) {
                 if (e instanceof TTransportException
                         && e.getCause() != null
                         && (e.getCause().getClass() == SocketException.class)) {

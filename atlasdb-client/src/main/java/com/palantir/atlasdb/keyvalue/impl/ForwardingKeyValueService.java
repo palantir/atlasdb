@@ -57,13 +57,13 @@ public abstract class ForwardingKeyValueService extends ForwardingObject impleme
     }
 
     @Override
-    public void createTable(String tableName, int maxValueSize) {
-        delegate().createTable(tableName, maxValueSize);
+    public void createTable(String tableName, final byte[] tableMetadata) {
+        delegate().createTable(tableName, tableMetadata);
     }
 
     @Override
-    public void createTables(Map<String, Integer> tableNamesToMaxValueSizeInBytes) {
-        delegate().createTables(tableNamesToMaxValueSizeInBytes);
+    public void createTables(Map<String, byte[]> tableNameToTableMetadata) {
+        delegate().createTables(tableNameToTableMetadata);
     }
 
     @Override

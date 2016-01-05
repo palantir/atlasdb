@@ -379,12 +379,12 @@ public class EndpointServer implements PartitionMapService, KeyValueService {
 
     @Override
     @Idempotent
-    public void createTable(final String tableName, final int maxValueSizeInBytes)
+    public void createTable(final String tableName, final byte[] tableMetadata)
             throws InsufficientConsistencyException {
         runPartitionMapReadOperation(new Function<Void, Void> () {
             @Override
             public Void apply(Void input) {
-                kvs().createTable(tableName, maxValueSizeInBytes);
+                kvs().createTable(tableName, tableMetadata);
                 return null;
             }
         });
@@ -393,12 +393,12 @@ public class EndpointServer implements PartitionMapService, KeyValueService {
     @Override
     @Idempotent
     public void createTables(
-            final Map<String, Integer> tableNamesToMaxValueSizeInBytes)
+            final Map<String, byte[]> tableNameToTableMetadata)
             throws InsufficientConsistencyException {
         runPartitionMapReadOperation(new Function<Void, Void>() {
             @Override
             public Void apply(Void input) {
-                kvs().createTables(tableNamesToMaxValueSizeInBytes);
+                kvs().createTables(tableNameToTableMetadata);
                 return null;
             }
         });

@@ -23,7 +23,7 @@ message PaxosProposalId {
 
 message ExceptionProto {
     required string type = 1;
-    required string message = 2;
+    optional string message = 2;
     repeated StackTraceElementProto stack_trace = 3;
     optional ExceptionProto cause = 4;
 }

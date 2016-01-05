@@ -1671,13 +1671,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return keyValueService;
     }
 
-    @Override
-    public String createNewTempTable(int maxValueSizeInBytes) {
-        Validate.isTrue(getAllTempTables().containsAll(writesByTable.keySet()),
-                "Temp tables may only be used by read only transactions.");
-        return super.createNewTempTable(maxValueSizeInBytes);
-    }
-
     private Multimap<String, Cell> getCellsToQueueForScrubbing() {
         return getCellsToScrub(State.COMMITTING);
     }

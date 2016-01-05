@@ -20,7 +20,6 @@ import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.cassandra.dht.ByteOrderedPartitioner;
-import org.apache.cassandra.dht.BytesToken;
 
 public class AtlasDbPartitioner extends ByteOrderedPartitioner {
     private final Random r = new SecureRandom();

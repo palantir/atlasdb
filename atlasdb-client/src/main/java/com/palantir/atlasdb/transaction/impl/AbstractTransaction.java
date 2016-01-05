@@ -69,17 +69,6 @@ public abstract class AbstractTransaction implements Transaction {
         put(tableName, Cells.constantValueMap(cells, PtBytes.EMPTY_BYTE_ARRAY));
     }
 
-    @Override
-    public String createNewTempTable(int maxValueSizeInBytes) {
-        String table = Transactions.createTempTable(
-                getKeyValueService(),
-                getTimestamp(),
-                tempTableCounter.getAndIncrement(),
-                maxValueSizeInBytes);
-        tempTables.add(table);
-        return table;
-    }
-
     public boolean isTempTable(String tableName) {
         return tempTables.contains(tableName);
     }

@@ -156,7 +156,7 @@ public class SnapshotTransactionManager extends AbstractLockAwareTransactionMana
         } finally {
             lockService.unlock(tx.getImmutableTsLock());
         }
-        if (tx.getTransactionType() == TransactionType.AGGRESSIVE_HARD_DELETE) {
+        if ((tx.getTransactionType() == TransactionType.AGGRESSIVE_HARD_DELETE) && !tx.isAborted()) {
             // t.getCellsToScrubImmediately() checks that t has been committed
             cleaner.scrubImmediately(this,
                     tx.delegate().getCellsToScrubImmediately(),
@@ -224,8 +224,7 @@ public class SnapshotTransactionManager extends AbstractLockAwareTransactionMana
     }
 
     public static void createTables(KeyValueService keyValueService) {
-        keyValueService.createTable(TransactionConstants.TRANSACTION_TABLE, TransactionConstants.getValueForTimestamp(-1).length);
-        keyValueService.putMetadataForTable(TransactionConstants.TRANSACTION_TABLE, TransactionConstants.TRANSACTION_TABLE_METADATA.persistToBytes());
+        keyValueService.createTable(TransactionConstants.TRANSACTION_TABLE, TransactionConstants.TRANSACTION_TABLE_METADATA.persistToBytes());
     }
 
     public static void deleteTables(KeyValueService keyValueService) {

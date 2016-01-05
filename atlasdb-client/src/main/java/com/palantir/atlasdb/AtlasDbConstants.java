@@ -22,22 +22,24 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
 public class AtlasDbConstants {
     public static final Logger PERF_LOG = LoggerFactory.getLogger("dualschema.perf");
 
-    public static final String TEMP_TABLE_PREFIX = "_t";
-
     public static final String PUNCH_TABLE = "_punch";
     public static final String SCRUB_TABLE = "_scrub";
     public static final String NAMESPACE_TABLE = "_namespace";
+    public static final String TIMESTAMP_TABLE = "_timestamp";
     public static final String NAMESPACE_PREFIX = "_n_";
     public static final String NAMESPACE_SHORT_COLUMN_NAME = "s";
     public static final byte[] NAMESPACE_SHORT_COLUMN_BYTES = PtBytes.toBytes(NAMESPACE_SHORT_COLUMN_NAME);
 
     public static final String PARTITION_MAP_TABLE = "_partition_map";
     public static final char SCRUB_TABLE_SEPARATOR_CHAR = '\0';
+    public static final byte[] EMPTY_TABLE_METADATA = {}; // use carefully
+    public static final byte[] GENERIC_TABLE_METADATA = new TableMetadata().persistToBytes();
 
     public static final long SCRUBBER_RETRY_DELAY_MILLIS = 2000L;
 
@@ -46,6 +48,7 @@ public class AtlasDbConstants {
     public static final int DEFAULT_TABLE_COMPRESSION_BLOCK_SIZE_KB = 8;
     public static final int DEFAULT_TABLE_WITH_RANGESCANS_COMPRESSION_BLOCK_SIZE_KB = 64;
 
+    public static final long TRANSACTION_TS = 0L;
 
     // TODO (ejin): Organize constants (maybe into a single class?)
     public static final Set<String> hiddenTables = ImmutableSet.of(

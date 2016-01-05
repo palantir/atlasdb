@@ -67,6 +67,7 @@ import com.google.common.collect.Ordering;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
@@ -280,8 +281,8 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                 Update update = handle.createStatement(
                         "INSERT INTO " + USR_TABLE(tableName) + " (" +
                                 Columns.ROW.comma(Columns.COLUMN).comma(
-                                Columns.TIMESTAMP).comma(Columns.CONTENT) +
-                        ") VALUES " + makeSlots("cell", values.size(), 4));
+                                        Columns.TIMESTAMP).comma(Columns.CONTENT) +
+                                ") VALUES " + makeSlots("cell", values.size(), 4));
                 AtlasSqlUtils.bindCellsValues(update, values, timestamp);
                 update.execute();
     }
@@ -358,12 +359,13 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
         }
 
         batch(cellValues.entries(), new Function<Collection<Entry<Cell, Value>>, Void>() {
-            @Override @Nullable
+            @Override
+            @Nullable
             public Void apply(@Nullable final Collection<Entry<Cell, Value>> input) {
                 return getDbi().inTransaction(new TransactionCallback<Void>() {
                     @Override
                     public Void inTransaction(Handle conn,
-                            TransactionStatus status) throws Exception {
+                                              TransactionStatus status) throws Exception {
                         deleteInternalInTransaction(tableName, Collections2.transform(input, new Function<Entry<Cell, Value>, Entry<Cell, Long>>() {
                             @Override
                             public Entry<Cell, Long> apply(
@@ -417,7 +419,8 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
 
     private void deleteInTransaction(final String tableName, final Multimap<Cell, Long> keys, final Handle handle) {
             batch(keys.entries(), new Function<Collection<Entry<Cell, Long>>, Void>() {
-                @Override @Nullable
+                @Override
+                @Nullable
                 public Void apply(@Nullable Collection<Entry<Cell, Long>> input) {
                     deleteInternalInTransaction(tableName, input, handle);
                     return null;
@@ -441,6 +444,18 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
             public Void inTransaction(final Handle conn, TransactionStatus status) throws Exception {
                 // Just perform entire delete in a single transaction.
                 deleteInTransaction(tableName, keys, conn);
+                return null;
+            }
+        });
+    }
+
+    // *** truncate *******************************************************************************
+    @Override
+    public void truncateTable(final String tableName) throws InsufficientConsistencyException {
+        getDbi().inTransaction(new TransactionCallback<Void>() {
+            @Override
+            public Void inTransaction(Handle handle, TransactionStatus status) throws Exception {
+                handle.execute("TRUNCATE TABLE " + USR_TABLE(tableName));
                 return null;
             }
         });
@@ -835,7 +850,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
 
     @Override
     @Idempotent
-    public void createTable(final String tableName, int maxValueSizeInBytes)
+    public void createTable(final String tableName, final byte[] tableMetadata)
             throws InsufficientConsistencyException {
         getDbi().inTransaction(new TransactionCallback<Void>() {
             @Override
@@ -854,7 +869,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
                     handle.execute("INSERT INTO " + MetaTable.META_TABLE_NAME + " (" +
                             "    " + MetaTable.Columns.TABLE_NAME + ", " +
                             "    " + MetaTable.Columns.METADATA + " ) VALUES (" +
-                            "    ?, ?)", tableName, ArrayUtils.EMPTY_BYTE_ARRAY);
+                            "    ?, ?)", tableName, tableMetadata);
                 } catch (RuntimeException e) {
                     if (AtlasSqlUtils.isKeyAlreadyExistsException(e)) {
                         // The table has existed perviously: no-op
@@ -871,7 +886,7 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
     @Idempotent
     public Set<String> getAllTableNames() {
         Set<String> hiddenTables = ImmutableSet.of(
-                MetaTable.META_TABLE_NAME, SimpleKvsTimestampBoundStore.TIMESTAMP_TABLE);
+                MetaTable.META_TABLE_NAME, AtlasDbConstants.TIMESTAMP_TABLE);
         Set<String> allTables = Sets.newHashSet(getDbi().withHandle(new HandleCallback<List<String>>() {
             @Override
             public List<String> withHandle(Handle handle) throws Exception {

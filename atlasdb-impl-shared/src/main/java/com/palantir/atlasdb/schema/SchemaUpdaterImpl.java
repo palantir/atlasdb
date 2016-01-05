@@ -183,10 +183,10 @@ public class SchemaUpdaterImpl implements SchemaUpdater {
 
     @Override
     public void addStreamStore(String longName, String shortName, ValueType streamIdType) {
-        delegate.addTable(shortName + StreamTables.METADATA_TABLE_SUFFIX, StreamTables.getStreamMetadataDefinition(longName, streamIdType, ExpirationStrategy.NEVER, false));
-        delegate.addTable(shortName + StreamTables.VALUE_TABLE_SUFFIX, StreamTables.getStreamValueDefinition(longName, streamIdType, ExpirationStrategy.NEVER, false));
-        delegate.addTable(shortName + StreamTables.HASH_TABLE_SUFFIX, StreamTables.getStreamHashIdxDefinition(longName, streamIdType, ExpirationStrategy.NEVER));
-        delegate.addTable(shortName + StreamTables.INDEX_TABLE_SUFFIX, StreamTables.getStreamIdxDefinition(longName, streamIdType, ExpirationStrategy.NEVER, false));
+        delegate.addTable(shortName + StreamTables.METADATA_TABLE_SUFFIX, StreamTables.getStreamMetadataDefinition(longName, streamIdType, ExpirationStrategy.NEVER, false, false));
+        delegate.addTable(shortName + StreamTables.VALUE_TABLE_SUFFIX, StreamTables.getStreamValueDefinition(longName, streamIdType, ExpirationStrategy.NEVER, false, false));
+        delegate.addTable(shortName + StreamTables.HASH_TABLE_SUFFIX, StreamTables.getStreamHashIdxDefinition(longName, streamIdType, ExpirationStrategy.NEVER, false));
+        delegate.addTable(shortName + StreamTables.INDEX_TABLE_SUFFIX, StreamTables.getStreamIdxDefinition(longName, streamIdType, ExpirationStrategy.NEVER, false, false));
     }
 
     @Override

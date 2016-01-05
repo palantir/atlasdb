@@ -110,11 +110,6 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
     }
 
     @Override
-    public String createNewTempTable(int maxValueSizeInBytes) {
-        return delegate().createNewTempTable(maxValueSizeInBytes);
-    }
-
-    @Override
     public void setTransactionType(TransactionType transactionType) {
         delegate().setTransactionType(transactionType);
     }

@@ -49,8 +49,12 @@ public class AssertUtils {
 
     public static void assertAndLog(boolean cheapTest, String msg) {
         if (!cheapTest) {
-            assertAndLogWithException(false, msg, new Exception("This stack trace is not from a thrown exception. It's provided just for debugging this error."));
+            assertAndLogWithException(false, msg, getDebuggingException());
         }
+    }
+
+    public static Exception getDebuggingException() {
+        return new Exception("This stack trace is not from a thrown exception. It's provided just for debugging this error.");
     }
 
     public static void assertAndLog(boolean cheapTest, String format, Object... args) {

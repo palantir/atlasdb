@@ -17,13 +17,16 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Set;
 
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.ColumnDef;
 import org.apache.cassandra.thrift.TriggerDef;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
+import com.palantir.atlasdb.AtlasDbConstants;
 
 
 public class CassandraConstants {
@@ -33,14 +36,29 @@ public class CassandraConstants {
     static final int SECONDS_BETWEEN_GETTING_HOST_LIST = 600; // 10 min
     static final int SECONDS_WAIT_FOR_VERSIONS = 60;
 
+    static final int ABSOLUTE_MINIMUM_NUMBER_OF_TOKENS_PER_NODE = 32;
+    static final long TS_SIZE = 4L;
+
+    static final String ROW_NAME = "key";
+    static final String COL_NAME_COL = "column1";
+    static final String TS_COL = "column2";
+    static final String VALUE_COL = "value";
+
     static final String DEFAULT_COMPRESSION_TYPE = "LZ4Compressor";
     static final String SSTABLE_SIZE_IN_MB = "80";
     static final double DEFAULT_LEVELED_COMPACTION_BLOOM_FILTER_FP_CHANCE = 0.1;
+    static final double DEFAULT_SIZE_TIERED_COMPACTION_BLOOM_FILTER_FP_CHANCE = 0.01;
     static final double NEGATIVE_LOOKUPS_BLOOM_FILTER_FP_CHANCE = 0.01;
+    static final double NEGATIVE_LOOKUPS_SIZE_TIERED_BLOOM_FILTER_FP_CHANCE = 0.0001;
     static final String SIMPLE_STRATEGY = "org.apache.cassandra.locator.SimpleStrategy";
     static final String NETWORK_STRATEGY = "org.apache.cassandra.locator.NetworkTopologyStrategy";
-    static final String PARTITIONER = "com.palantir.atlasdb.keyvalue.cassandra.dht.AtlasDbPartitioner";
-    static final String PARTITIONER2 = "org.apache.cassandra.dht.ByteOrderedPartitioner";
+
+    // They're both ordered, we just had to change the name to accommodate datastax client-side driver handling
+    static final Set<String> ALLOWED_PARTITIONERS = ImmutableSet.of(
+            "com.palantir.atlasdb.keyvalue.cassandra.dht.AtlasDbPartitioner",
+            "com.palantir.atlasdb.keyvalue.cassandra.dht.AtlasDbOrderedPartitioner",
+            "org.apache.cassandra.dht.ByteOrderedPartitioner");
+
     static final String DEFAULT_DC = "datacenter1";
     static final String DEFAULT_RACK = "rack1";
     static final String SIMPLE_RF_TEST_KEYSPACE = "__simple_rf_test_keyspace__";
@@ -63,11 +81,20 @@ public class CassandraConstants {
     static final String CFDEF_COMPRESSION_TYPE_KEY = "sstable_compression";
     static final String CFDEF_COMPRESSION_CHUNK_LENGTH_KEY = "chunk_length_kb";
 
+    public static String NO_TABLE = "SYSTEM";
+    public static int NO_TTL = -1;
+
+    static final String LEVELED_COMPACTION_STRATEGY = "org.apache.cassandra.db.compaction.LeveledCompactionStrategy";
+    static final String SIZE_TIERED_COMPACTION_STRATEGY = "org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy";
+
+    public static final Set<String> HIDDEN_TABLES = ImmutableSet.of(
+            CassandraConstants.METADATA_TABLE, AtlasDbConstants.TIMESTAMP_TABLE);
+
     // update CKVS.isMatchingCf if you update this method
     static CfDef getStandardCfDef(String keyspace, String internalTableName) {
         CfDef cf = new CfDef(keyspace, internalTableName);
         cf.setComparator_type("CompositeType(BytesType,LongType)");
-        cf.setCompaction_strategy("LeveledCompactionStrategy");
+        cf.setCompaction_strategy(LEVELED_COMPACTION_STRATEGY);
         cf.setCompaction_strategy_options(ImmutableMap.of("sstable_size_in_mb", CassandraConstants.SSTABLE_SIZE_IN_MB));
         cf.setCompression_options(Maps.<String, String>newHashMap());
         cf.setGc_grace_seconds(GC_GRACE_SECONDS);

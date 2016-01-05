@@ -23,8 +23,6 @@ import java.util.Map.Entry;
 import java.util.SortedMap;
 
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -38,7 +36,6 @@ import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 abstract class ResultsExtractor<T, U> {
-    private static final Logger log = LoggerFactory.getLogger(ResultsExtractor.class);
     protected final T collector;
 
     public ResultsExtractor(T collector) {
@@ -48,21 +45,16 @@ abstract class ResultsExtractor<T, U> {
     public final byte[] extractResults(Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey,
                                        long startTs,
                                        ColumnSelection selection) {
-        /*
-         * Iterate over the entries and avoid direct lookup by ByteBuffer key as ByteBuffer are
-         * mutable and we need to ensure that the buffer is not consumed if we were to do a lookup
-         * as we'd be unable to.
-         */
         byte[] maxRow = null;
-        for (Entry<ByteBuffer, List<ColumnOrSuperColumn>> entry : colsByKey.entrySet()) {
-            byte[] row = CassandraKeyValueServices.getBytesFromByteBuffer(entry.getKey());
+        for (Entry<ByteBuffer, List<ColumnOrSuperColumn>> colEntry : colsByKey.entrySet()) {
+            byte[] row = CassandraKeyValueServices.getBytesFromByteBuffer(colEntry.getKey());
             if (maxRow == null) {
                 maxRow = row;
             } else {
                 maxRow = PtBytes.BYTES_COMPARATOR.max(maxRow, row);
             }
 
-            for (ColumnOrSuperColumn c : entry.getValue()) {
+            for (ColumnOrSuperColumn c : colEntry.getValue()) {
                 Pair<byte[], Long> pair = CassandraKeyValueServices.decomposeName(c.column);
                 internalExtractResult(startTs, selection, row, pair.lhSide, c.column.getValue(), pair.rhSide);
             }
@@ -81,7 +73,7 @@ abstract class ResultsExtractor<T, U> {
     }
 
     public static <T> TokenBackedBasicResultsPage<RowResult<T>, byte[]> getRowResults(final byte[] endExclusive,
-            byte[] lastRow, SortedMap<byte[], SortedMap<byte[], T>> resultsByRow) {
+                                                                                      byte[] lastRow, SortedMap<byte[], SortedMap<byte[], T>> resultsByRow) {
         SortedMap<byte[], RowResult<T>> ret = RowResults.viewOfSortedMap(resultsByRow);
         if (lastRow == null || RangeRequests.isLastRowName(lastRow)) {
             return new SimpleTokenBackedResultsPage<RowResult<T>, byte[]>(endExclusive, ret.values(), false);

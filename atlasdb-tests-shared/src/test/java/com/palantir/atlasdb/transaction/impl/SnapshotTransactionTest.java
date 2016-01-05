@@ -49,6 +49,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbTestCase;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -148,9 +149,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 throw new RuntimeException("cannot delete");
             }
         };
-        keyValueService.createTable(TABLE, Integer.MAX_VALUE);
-        keyValueService.createTable(TABLE1, Integer.MAX_VALUE);
-        keyValueService.createTable(TABLE2, Integer.MAX_VALUE);
+        keyValueService.createTable(TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        keyValueService.createTable(TABLE1, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        keyValueService.createTable(TABLE2, AtlasDbConstants.GENERIC_TABLE_METADATA);
     }
 
     @Test
@@ -675,13 +676,13 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 0,
                 false,
                 sweepStrategy,
-                ExpirationStrategy.NEVER);
+                ExpirationStrategy.NEVER,
+                false);
     }
 
     private void testValidateExternalAndCommitLocks(final LockAwareTransactionTask<Void, Exception>
             lockAwareTransactionTask) throws Exception {
-        keyValueService.createTable(TABLE_SWEPT_THOROUGH, Integer.MAX_VALUE);
-        keyValueService.putMetadataForTable(TABLE_SWEPT_THOROUGH, getTableMetadataForSweepStrategy(
+        keyValueService.createTable(TABLE_SWEPT_THOROUGH, getTableMetadataForSweepStrategy(
                 SweepStrategy.THOROUGH).persistToBytes());
         txManager.runTaskWithLocksThrowOnConflict(
                 ImmutableList.of(getFakeHeldLocksToken()),

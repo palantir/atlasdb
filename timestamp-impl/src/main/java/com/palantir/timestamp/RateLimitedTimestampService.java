@@ -21,6 +21,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.annotation.concurrent.GuardedBy;
 import javax.annotation.concurrent.ThreadSafe;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.base.Preconditions;
 import com.palantir.common.proxy.TimingProxy;
 import com.palantir.util.jmx.OperationTimer;
@@ -33,6 +36,7 @@ import com.palantir.util.timer.LoggingOperationTimer;
 @ThreadSafe
 public class RateLimitedTimestampService implements TimestampService {
     private final static OperationTimer timer = LoggingOperationTimer.create(RateLimitedTimestampService.class);
+    private static final Logger log = LoggerFactory.getLogger(RateLimitedTimestampService.class);
 
     @GuardedBy("this")
     private long lastRequestTimeNanos = 0;
@@ -57,8 +61,12 @@ public class RateLimitedTimestampService implements TimestampService {
                 continue;
             }
             synchronized (batch) {
-                if (!batch.isPopulated) {
-                    populateBatchAndInstallNewBatch(batch);
+                if (!batch.isPopulated()) {
+                    boolean populated = populateBatchAndInstallNewBatch(batch);
+                    if (!populated) {
+                        // This batch went bad. Try a new one.
+                        continue;
+                    }
                 }
                 result = batch.getValue();
             }
@@ -71,20 +79,26 @@ public class RateLimitedTimestampService implements TimestampService {
         return delegate.getFreshTimestamps(numTimestampsRequested);
     }
 
-    private synchronized void populateBatchAndInstallNewBatch(TimestampHolder batch) {
+    private synchronized boolean populateBatchAndInstallNewBatch(TimestampHolder batch) {
         sleepForRateLimiting();
 
         currentBatch = new TimestampHolder();
-
-        int numTimestampsToGet = batch.getRequestCountAndSetInvalid();
 
         // NOTE: At this point, we are sure no new requests for fresh timestamps
         // for "batch" can come in. We can now safely populate the batch
         // with fresh timestamps without violating any freshness guarantees.
 
+        // TODO: probably need to adjust this formula
+        int numTimestampsToGet = batch.getRequestCountAndSetInvalid();
+        if (!TimestampHolder.isRequestCountValid(numTimestampsToGet)) {
+            log.warn("Skipping populating timestamps request. It looks like something went wrong with the " +
+                    "previous attempt to populate. Request count: {}", numTimestampsToGet);
+            return false;
+        }
         batch.populate(delegate.getFreshTimestamps(numTimestampsToGet));
 
         lastRequestTimeNanos = System.nanoTime();
+        return true;
     }
 
     private void sleepForRateLimiting() {
@@ -130,6 +144,10 @@ public class RateLimitedTimestampService implements TimestampService {
             return valueToReturnNext <= endInclusive;
         }
 
+        public synchronized boolean isPopulated() {
+            return isPopulated;
+        }
+
         /**
          * @return true if we are included in the batch and false otherwise
          */
@@ -138,11 +156,15 @@ public class RateLimitedTimestampService implements TimestampService {
                 return false;
             }
             int val = requestCount.incrementAndGet();
-            return val > 0;
+            return isRequestCountValid(val);
         }
 
         public int getRequestCountAndSetInvalid() {
             return requestCount.getAndSet(Integer.MIN_VALUE);
+        }
+
+        public static boolean isRequestCountValid(int requestCount) {
+            return requestCount > 0;
         }
     }
 }

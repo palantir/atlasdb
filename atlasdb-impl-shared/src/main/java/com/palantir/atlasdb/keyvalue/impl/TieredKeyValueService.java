@@ -555,45 +555,45 @@ public class TieredKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void createTable(final String tableName, final int maxValueSizeInBytes) {
+    public void createTable(final String tableName, final byte[] tableMetadata) {
         if (isNotTiered(tableName)) {
-            primary.createTable(tableName, maxValueSizeInBytes);
+            primary.createTable(tableName, tableMetadata);
             return;
         }
-        primary.createTable(tableName, maxValueSizeInBytes);
-        secondary.createTable(tableName, maxValueSizeInBytes);
+        primary.createTable(tableName, tableMetadata);
+        secondary.createTable(tableName, tableMetadata);
     }
 
     @Override
-    public void createTables(Map<String, Integer> tableNamesToMaxValueSizeInBytes) {
-        Map<KeyValueService, Map<String, Integer>> delegateToTablenameMaxValueSize = Maps.newHashMapWithExpectedSize(2);
-        for (Entry<String, Integer> tableEntry : tableNamesToMaxValueSizeInBytes.entrySet()) {
+    public void createTables(Map<String, byte[]> tableNameToTableMetadata) {
+        Map<KeyValueService, Map<String, byte[]>> delegateToTableMetadata = Maps.newHashMapWithExpectedSize(2);
+        for (Entry<String, byte[]> tableEntry : tableNameToTableMetadata.entrySet()) {
             String tableName = tableEntry.getKey();
-            int maxValueSize = tableEntry.getValue();
-            Map<String, Integer> splitTableToValueSize = ImmutableMap.of();
+            byte[] metadata = tableEntry.getValue();
+            Map<String, byte[]> splitTableToMetadata = ImmutableMap.of();
 
             // always place in primary
-            if (delegateToTablenameMaxValueSize.containsKey(primary)) {
-                splitTableToValueSize = delegateToTablenameMaxValueSize.get(primary);
+            if (delegateToTableMetadata.containsKey(primary)) {
+                splitTableToMetadata = delegateToTableMetadata.get(primary);
             } else {
-                splitTableToValueSize = Maps.newHashMap();
+                splitTableToMetadata = Maps.newHashMap();
             }
-            splitTableToValueSize.put(tableName, maxValueSize);
-            delegateToTablenameMaxValueSize.put(primary, splitTableToValueSize);
+            splitTableToMetadata.put(tableName, metadata);
+            delegateToTableMetadata.put(primary, splitTableToMetadata);
 
             if (!isNotTiered(tableName)) { // if tiered also place in secondary
-                if (delegateToTablenameMaxValueSize.containsKey(secondary)) {
-                    splitTableToValueSize = delegateToTablenameMaxValueSize.get(secondary);
+                if (delegateToTableMetadata.containsKey(secondary)) {
+                    splitTableToMetadata = delegateToTableMetadata.get(secondary);
                 } else {
-                    splitTableToValueSize = Maps.newHashMap();
+                    splitTableToMetadata = Maps.newHashMap();
                 }
-                splitTableToValueSize.put(tableName, maxValueSize);
-                delegateToTablenameMaxValueSize.put(secondary, splitTableToValueSize);
+                splitTableToMetadata.put(tableName, metadata);
+                delegateToTableMetadata.put(secondary, splitTableToMetadata);
             }
         }
 
-        for (KeyValueService kvs : delegateToTablenameMaxValueSize.keySet()) {
-            kvs.createTables(delegateToTablenameMaxValueSize.get(kvs));
+        for (KeyValueService kvs : delegateToTableMetadata.keySet()) {
+            kvs.createTables(delegateToTableMetadata.get(kvs));
         }
     }
 

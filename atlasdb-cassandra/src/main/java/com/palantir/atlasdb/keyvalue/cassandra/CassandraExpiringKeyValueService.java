@@ -25,6 +25,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Function;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Lists;
@@ -35,6 +36,8 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ExpiringKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionManager;
+import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionModule;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.common.base.Throwables;
@@ -42,16 +45,18 @@ import com.palantir.common.collect.Maps2;
 
 public class CassandraExpiringKeyValueService extends CassandraKeyValueService implements ExpiringKeyValueService{
 
-    public CassandraExpiringKeyValueService(CassandraKeyValueServiceConfigManager configManager) {
-        super(configManager);
-        CassandraKeyValueServiceConfig config = configManager.getConfig();
-        Preconditions.checkState(!config.servers().isEmpty(), "address list was empty");
-        try {
-            initializeFromFreshInstance(containerPoolToUpdate.getCurrentHosts(), config.replicationFactor());
-            getPoolingManager().submitHostRefreshTask();
-        } catch (Exception e) {
-            throw Throwables.throwUncheckedException(e);
-        }
+    public static CassandraExpiringKeyValueService create(CassandraKeyValueServiceConfigManager configManager) {
+        Preconditions.checkState(!configManager.getConfig().servers().isEmpty(), "address list was empty");
+
+        Optional<CassandraJmxCompactionManager> compactionManager = new CassandraJmxCompactionModule().createCompactionManager(configManager);
+        CassandraExpiringKeyValueService kvs = new CassandraExpiringKeyValueService(configManager, compactionManager);
+        kvs.init();
+        return kvs;
+    }
+
+    protected CassandraExpiringKeyValueService(CassandraKeyValueServiceConfigManager configManager,
+                                               Optional<CassandraJmxCompactionManager> compactionManager) {
+        super(configManager, compactionManager);
     }
 
     @Override

@@ -69,8 +69,7 @@ public class KVTableMappingService extends AbstractTableMappingService {
     }
 
     public static void createTables(KeyValueService keyValueService) {
-        keyValueService.createTable(AtlasDbConstants.NAMESPACE_TABLE, Integer.MAX_VALUE);
-        keyValueService.putMetadataForTable(AtlasDbConstants.NAMESPACE_TABLE, NAMESPACE_TABLE_METADATA.persistToBytes());
+        keyValueService.createTable(AtlasDbConstants.NAMESPACE_TABLE, NAMESPACE_TABLE_METADATA.persistToBytes());
     }
 
     public static final byte[] getBytesForTableRef(TableReference tableRef) {

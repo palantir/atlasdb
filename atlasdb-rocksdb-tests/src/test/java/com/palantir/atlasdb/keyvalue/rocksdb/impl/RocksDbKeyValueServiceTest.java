@@ -32,6 +32,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -55,7 +56,7 @@ public final class RocksDbKeyValueServiceTest {
                 db.dropTable(table);
             }
         }
-        db.createTable("yo", Integer.MAX_VALUE);
+        db.createTable("yo", AtlasDbConstants.EMPTY_TABLE_METADATA);
     }
 
 
@@ -70,9 +71,9 @@ public final class RocksDbKeyValueServiceTest {
 
     @Test
     public void testCreate() {
-        db.createTable("yo", Integer.MAX_VALUE);
-        db.createTable("yodog", Integer.MAX_VALUE);
-        db.createTable(TRANSACTION_TABLE, Integer.MAX_VALUE);
+        db.createTable("yo", AtlasDbConstants.EMPTY_TABLE_METADATA);
+        db.createTable("yodog", AtlasDbConstants.EMPTY_TABLE_METADATA);
+        db.createTable(TRANSACTION_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA);
         assertEquals(ImmutableSet.of("yo", "yodog", TRANSACTION_TABLE),
                      db.getAllTableNames());
     }
@@ -254,7 +255,7 @@ public final class RocksDbKeyValueServiceTest {
 
     @Test
     public void testDoubleWriteToTransactionTable() {
-        db.createTable(TRANSACTION_TABLE, Integer.MAX_VALUE);
+        db.createTable(TRANSACTION_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA);
         final Cell cell = Cell.create("r1".getBytes(), COMMIT_TS_COLUMN);
         db.putUnlessExists(TRANSACTION_TABLE, ImmutableMap.of(cell, "v1".getBytes()));
         try {

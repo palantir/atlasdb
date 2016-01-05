@@ -70,9 +70,4 @@ public class Transactions {
         return Arrays.equals(v1, v2);
     }
 
-    public static String createTempTable(KeyValueService kv, long ts, int seq, int maxValueSizeInBytes) {
-        String tableName = AtlasDbConstants.TEMP_TABLE_PREFIX + ts + "_" + seq;
-        kv.createTable(tableName, maxValueSizeInBytes);
-        return tableName;
-    }
 }

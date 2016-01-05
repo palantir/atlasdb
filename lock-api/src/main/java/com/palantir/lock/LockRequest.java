@@ -20,7 +20,6 @@ import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
 
@@ -103,7 +102,7 @@ import com.google.common.collect.Maps;
     public List<LockWithMode> getLocks() {
         return ImmutableList.copyOf(Iterables.transform(lockMap.entries(), new Function<Map.Entry<LockDescriptor, LockMode>, LockWithMode>() {
             @Override
-            public LockWithMode apply(Entry<LockDescriptor, LockMode> input) {
+            public LockWithMode apply(Map.Entry<LockDescriptor, LockMode> input) {
                 return new LockWithMode(input.getKey(), input.getValue());
             }
         }));
@@ -194,6 +193,7 @@ import com.google.common.collect.Maps;
 
     @Override public String toString() {
         return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .omitNullValues()
                 .add("lockCount", lockMap.size())
                 .add("firstLock", lockMap.entries().iterator().next())
                 .add("lockTimeout", lockTimeout)
@@ -384,7 +384,7 @@ import com.google.common.collect.Maps;
         }
     }
 
-    static final class SerializationProxy implements Serializable {
+    static class SerializationProxy implements Serializable {
         private static final long serialVersionUID = 0xd6b8378030ed100dl;
 
         private final SortedLockCollection<LockDescriptor> lockMap;

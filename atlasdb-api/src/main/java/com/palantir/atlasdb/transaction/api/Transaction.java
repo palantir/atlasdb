@@ -160,10 +160,4 @@ public interface Transaction {
      * Informs the transaction that a particular table has been written to.
      */
     void useTable(String tableName, ConstraintCheckable table);
-
-    /**
-     * A temp table allows a long running read only transaction the ability to store temporary
-     * results. A temp table may not be read by any other transactions.
-     */
-    String createNewTempTable(int maxValueSizeInBytes);
 }

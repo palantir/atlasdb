@@ -70,8 +70,8 @@ public class NamespaceMappingKeyValueService extends ForwardingObject implements
     }
 
     @Override
-    public void createTable(String tableName, int maxValueSize) {
-        delegate().createTable(getTableReference(tableName), maxValueSize);
+    public void createTable(String tableName, byte[] tableMetadata) {
+        delegate().createTable(getTableReference(tableName), tableMetadata);
     }
 
     @Override
@@ -233,12 +233,12 @@ public class NamespaceMappingKeyValueService extends ForwardingObject implements
     }
 
     @Override
-    public void createTables(Map<String, Integer> tableNamesToMaxValueSizeInBytes) {
-        Map<TableReference, Integer> tableReferencesToMaxValueSizeInBytes = Maps.newHashMapWithExpectedSize(tableNamesToMaxValueSizeInBytes.size());
-        for (Entry<String, Integer> tableToMaxValue : tableNamesToMaxValueSizeInBytes.entrySet()) {
-            tableReferencesToMaxValueSizeInBytes.put(getTableReference(tableToMaxValue.getKey()), tableToMaxValue.getValue());
+    public void createTables(Map<String, byte[]> tableNameToTableMetadata) {
+        Map<TableReference, byte[]> tableReferencesToTableMetadata = Maps.newHashMapWithExpectedSize(tableNameToTableMetadata.size());
+        for (Entry<String, byte[]> tableToMetadata : tableNameToTableMetadata.entrySet()) {
+            tableReferencesToTableMetadata.put(getTableReference(tableToMetadata.getKey()), tableToMetadata.getValue());
         }
-        delegate().createTables(tableReferencesToMaxValueSizeInBytes);
+        delegate().createTables(tableReferencesToTableMetadata);
     }
 
     @Override

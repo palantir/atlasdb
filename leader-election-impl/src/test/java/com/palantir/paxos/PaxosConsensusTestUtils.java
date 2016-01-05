@@ -24,6 +24,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.io.FileUtils;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.net.HostAndPort;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PaxosLeaderElectionService;
@@ -78,7 +80,7 @@ public final class PaxosConsensusTestUtils {
             PaxosLeaderElectionService leader = new PaxosLeaderElectionService(
                     proposer,
                     learners.get(i),
-                    new ArrayList<PingableLeader>(),
+                    ImmutableMap.<PingableLeader, HostAndPort>of(),
                     ImmutableList.<PaxosAcceptor> copyOf(acceptors),
                     ImmutableList.<PaxosLearner> copyOf(learners),
                     executor,

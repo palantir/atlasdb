@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
@@ -51,8 +52,6 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     private static final long CASSANDRA_TIMESTAMP = 0L;
     private static final String ROW_AND_COLUMN_NAME = "ts";
 
-
-    public static final String TIMESTAMP_TABLE = "_timestamp";
     public static final TableMetadata TIMESTAMP_TABLE_METADATA = new TableMetadata(
         NameMetadataDescription.create(ImmutableList.of(new NameComponentDescription("timestamp_name", ValueType.STRING))),
         new ColumnMetadataDescription(ImmutableList.of(
@@ -68,8 +67,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     private final PoolingContainer<Client> clientPool;
 
     public static TimestampBoundStore create(CassandraKeyValueService kvs) {
-        kvs.createTable(TIMESTAMP_TABLE, 8);
-        kvs.putMetadataForTable(TIMESTAMP_TABLE, TIMESTAMP_TABLE_METADATA.persistToBytes());
+        kvs.createTable(AtlasDbConstants.TIMESTAMP_TABLE, TIMESTAMP_TABLE_METADATA.persistToBytes());
         return new CassandraTimestampBoundStore(kvs.clientPool);
     }
 
@@ -83,7 +81,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
             @Override
             public Long apply(Client client) {
                 ByteBuffer rowName = getRowName();
-                ColumnPath columnPath = new ColumnPath(TIMESTAMP_TABLE);
+                ColumnPath columnPath = new ColumnPath(AtlasDbConstants.TIMESTAMP_TABLE);
                 columnPath.setColumn(getColumnName());
                 ColumnOrSuperColumn result;
                 try {
@@ -121,7 +119,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
         try {
             result = client.cas(
                     getRowName(),
-                    TIMESTAMP_TABLE,
+                    AtlasDbConstants.TIMESTAMP_TABLE,
                     oldVal == null ? ImmutableList.<Column> of() : ImmutableList.of(makeColumn(oldVal)),
                     ImmutableList.of(makeColumn(newVal)),
                     ConsistencyLevel.SERIAL,

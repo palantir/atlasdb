@@ -58,6 +58,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
@@ -67,10 +68,8 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
-import com.palantir.atlasdb.keyvalue.impl.SimpleKvsTimestampBoundStore;
 import com.palantir.atlasdb.keyvalue.rocksdb.impl.ColumnFamilyMap.ColumnFamily;
 import com.palantir.common.base.ClosableIterator;
-import com.palantir.common.collect.Maps2;
 import com.palantir.util.MutuallyExclusiveSetLock;
 import com.palantir.util.MutuallyExclusiveSetLock.LockState;
 import com.palantir.util.file.TempFileUtils;
@@ -225,7 +224,7 @@ public class RocksDbKeyValueService implements KeyValueService {
             }, db);
             columnFamilies.initialize(cfDescriptors, cfHandles);
             RocksDbKeyValueService ret = new RocksDbKeyValueService(db, columnFamilies, lock, randomAccessFile, writeOpts);
-            ret.createTable(METADATA_TABLE_NAME, Integer.MAX_VALUE);
+            ret.createTable(METADATA_TABLE_NAME, AtlasDbConstants.EMPTY_TABLE_METADATA);
             success = true;
             return ret;
         } catch (OverlappingFileLockException e) {
@@ -514,21 +513,21 @@ public class RocksDbKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void createTable(String tableName, int maxValueSizeInBytes) {
-        createTables(ImmutableMap.of(tableName, maxValueSizeInBytes));
+    public void createTable(String tableName, byte[] tableMetadata) {
+        createTables(ImmutableMap.of(tableName, tableMetadata));
     }
 
     @Override
-    public void createTables(Map<String, Integer> tableNamesToMaxValueSizeInBytes)
+    public void createTables(Map<String, byte[]> tableNameToTableMetadata)
             throws InsufficientConsistencyException {
-        for (String tableName : tableNamesToMaxValueSizeInBytes.keySet()) {
+        for (String tableName : tableNameToTableMetadata.keySet()) {
             try {
                 columnFamilies.create(tableName);
             } catch (RocksDBException e) {
                 Throwables.propagate(e);
             }
         }
-        putMetadataForTables(Maps2.createConstantValueMap(tableNamesToMaxValueSizeInBytes.keySet(), new byte[0]));
+        putMetadataForTables(tableNameToTableMetadata);
     }
 
     @Override
@@ -536,7 +535,7 @@ public class RocksDbKeyValueService implements KeyValueService {
         Set<String> hiddenTables = ImmutableSet.of(
                 METADATA_TABLE_NAME,
                 new String(RocksDB.DEFAULT_COLUMN_FAMILY, Charsets.UTF_8),
-                SimpleKvsTimestampBoundStore.TIMESTAMP_TABLE);
+                AtlasDbConstants.TIMESTAMP_TABLE);
         return Sets.difference(columnFamilies.getTableNames(), hiddenTables);
     }
 

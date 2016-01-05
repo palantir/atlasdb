@@ -24,6 +24,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Defaults;
 import com.google.common.base.Preconditions;
+import com.google.common.io.BaseEncoding;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.common.annotation.Immutable;
@@ -149,7 +150,11 @@ public class PaxosValue implements Persistable, Versionable, Serializable {
 
     @Override
     public String toString() {
-        return "PaxosValue [data=" + Arrays.toString(data) + ", leaderUUID="
-                + leaderUUID + ", seq=" + seq + "]";
+        return "PaxosValue{"
+                + "data=" + (data == null ? "null" : BaseEncoding.base16().encode(data))
+                + ", leaderUUID='" + leaderUUID + '\''
+                + ", seq=" + seq
+                + '}';
     }
+
 }

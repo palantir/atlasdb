@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.commons.lang.Validate;
 
@@ -117,6 +118,14 @@ public class Schema {
         return ret;
     }
 
+    public Set<String> getAllIndexes() {
+        return indexDefinitions.keySet();
+    }
+
+    public Set<String> getAllTables() {
+        return tableDefinitions.keySet();
+    }
+
     public void addIndexDefinition(String idxName, IndexDefinition definition) {
         validateIndex(idxName, definition);
         String indexName = Schemas.appendIndexSuffix(idxName, definition);
@@ -134,18 +143,18 @@ public class Schema {
      * into memory.
      */
     public void addStreamStoreDefinition(final String longName, String shortName, ValueType streamIdType, int inMemoryThreshold) {
-        addStreamStoreDefinition(longName, shortName, streamIdType, inMemoryThreshold, ExpirationStrategy.NEVER, false);
+        addStreamStoreDefinition(longName, shortName, streamIdType, inMemoryThreshold, ExpirationStrategy.NEVER, false, false);
     }
 
-    public void addStreamStoreDefinition(final String longName, String shortName, ValueType streamIdType, int inMemoryThreshold, ExpirationStrategy expirationStrategy, boolean hashFirstRowComponent) {
+    public void addStreamStoreDefinition(final String longName, String shortName, ValueType streamIdType, int inMemoryThreshold, ExpirationStrategy expirationStrategy, boolean hashFirstRowComponent, boolean isAppendHeavyAndReadLight) {
         if (expirationStrategy == ExpirationStrategy.NEVER) {
             Preconditions.checkArgument(streamIdType.getJavaClassName().equals("long"), "Stream ids must be a long for persistent streams.");
         }
         final StreamStoreRenderer renderer = new StreamStoreRenderer(Renderers.CamelCase(longName), streamIdType, packageName, name, inMemoryThreshold, expirationStrategy);
-        addTableDefinition(shortName + "_stream_metadata", StreamTables.getStreamMetadataDefinition(longName, streamIdType, expirationStrategy, hashFirstRowComponent));
-        addTableDefinition(shortName + "_stream_value", StreamTables.getStreamValueDefinition(longName, streamIdType, expirationStrategy, hashFirstRowComponent));
-        addTableDefinition(shortName + "_stream_hash_aidx", StreamTables.getStreamHashIdxDefinition(longName, streamIdType, expirationStrategy));
-        addTableDefinition(shortName + "_stream_idx", StreamTables.getStreamIdxDefinition(longName, streamIdType, expirationStrategy, hashFirstRowComponent));
+        addTableDefinition(shortName + "_stream_metadata", StreamTables.getStreamMetadataDefinition(longName, streamIdType, expirationStrategy, hashFirstRowComponent, isAppendHeavyAndReadLight));
+        addTableDefinition(shortName + "_stream_value", StreamTables.getStreamValueDefinition(longName, streamIdType, expirationStrategy, hashFirstRowComponent, isAppendHeavyAndReadLight));
+        addTableDefinition(shortName + "_stream_hash_aidx", StreamTables.getStreamHashIdxDefinition(longName, streamIdType, expirationStrategy, isAppendHeavyAndReadLight));
+        addTableDefinition(shortName + "_stream_idx", StreamTables.getStreamIdxDefinition(longName, streamIdType, expirationStrategy, hashFirstRowComponent, isAppendHeavyAndReadLight));
 
         // We use reflection and wrap these in suppliers because these classes are generated classes that might not always exist.
         addCleanupTask(shortName + "_stream_metadata", new Supplier<OnCleanupTask>() {

@@ -94,7 +94,7 @@ public class IndexDefinition extends AbstractDefinition {
     public void partition(RowNamePartitioner... partitioners) {
         Preconditions.checkState(state == State.DEFINING_ROW_COMPONENTS);
         IndexComponent last = rowComponents.get(rowComponents.size()-1);
-        rowComponents.set(rowComponents.size()-1, last.withPartitioners(partitioners));
+        rowComponents.set(rowComponents.size() - 1, last.withPartitioners(partitioners));
     }
 
     public ExplicitRowNamePartitioner explicit(String... componentValues) {
@@ -126,7 +126,7 @@ public class IndexDefinition extends AbstractDefinition {
 
     /**
      * Allows multiple index rows when indexing by a cell with iterable values.
-     * It doesn't support arbitrary protobuf structures - you need to be able to extract an iterable&lt;valueType&gt; using codeToAccessValue.
+     * It doesn't support arbitrary protobuf structures - you need to be able to extract an iterable<valueType> using codeToAccessValue.
      */
     public void componentFromIterableColumn(String componentName, ValueType valueType, ValueByteOrder valueByteOrder, String sourceColumnName, String codeToAccessValue) {
         addComponent(IndexComponent.createIterableFromColumn(new NameComponentDescription(componentName, valueType, valueByteOrder), sourceColumnName, codeToAccessValue));
@@ -174,6 +174,14 @@ public class IndexDefinition extends AbstractDefinition {
         return negativeLookups;
     }
 
+    public void appendHeavyAndReadLight() {
+        appendHeavyAndReadLight = true;
+    }
+
+    public boolean isAppendHeavyAndReadLight() {
+        return appendHeavyAndReadLight;
+    }
+
     public int getMaxValueSize() {
         // N.B., indexes are always max value size of 1.
         return 1;
@@ -214,6 +222,7 @@ public class IndexDefinition extends AbstractDefinition {
     private final IndexType indexType;
     private boolean explicitCompressionRequested = true;
     private int explicitCompressionBlockSizeKB = 0;
+    private boolean appendHeavyAndReadLight = false;
 
     public enum IndexType {
         ADDITIVE("_aidx"),
@@ -256,7 +265,8 @@ public class IndexDefinition extends AbstractDefinition {
                     indexCondition,
                     indexType,
                     sweepStrategy,
-                    expirationStrategy);
+                    expirationStrategy,
+                    appendHeavyAndReadLight);
         } else {
             return IndexMetadata.createDynamicIndex(
                     indexTableName,
@@ -272,7 +282,8 @@ public class IndexDefinition extends AbstractDefinition {
                     indexCondition,
                     indexType,
                     sweepStrategy,
-                    expirationStrategy);
+                    expirationStrategy,
+                    appendHeavyAndReadLight);
         }
     }
 }

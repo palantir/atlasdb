@@ -74,8 +74,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
         }};
         SimpleSchemaUpdater updater = SimpleSchemaUpdaterImpl.create(keyValueService, Namespace.DEFAULT_NAMESPACE);
         updater.addTable(tableName, definition);
-        int maxValueSize = definition.getMaxValueSize();
-        keyValueService.createTable(namespacedTableName, maxValueSize);
+        keyValueService.createTable(namespacedTableName, definition.toTableMetadata().persistToBytes());
         keyValueService.putMetadataForTable(namespacedTableName, definition.toTableMetadata().persistToBytes());
 
         TableMappingService tableMap = StaticTableMappingService.create(keyValueService);
@@ -109,8 +108,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
                 ssm2);
         SimpleSchemaUpdater updater2 = SimpleSchemaUpdaterImpl.create(kvs2, Namespace.DEFAULT_NAMESPACE);
         updater2.addTable(tableName, definition);
-        kvs2.createTable(shortTableName, maxValueSize);
-        kvs2.putMetadataForTable(shortTableName, definition.toTableMetadata().persistToBytes());
+        kvs2.createTable(shortTableName, definition.toTableMetadata().persistToBytes());
 
         GeneralTaskCheckpointer checkpointer = new GeneralTaskCheckpointer("checkpoint", kvs2, txManager2);
         // The namespaced table is migrated under the short name.
