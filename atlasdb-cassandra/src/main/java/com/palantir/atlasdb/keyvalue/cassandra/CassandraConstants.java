@@ -26,6 +26,7 @@ import org.apache.cassandra.thrift.TriggerDef;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
+import com.palantir.atlasdb.AtlasDbConstants;
 
 
 public class CassandraConstants {
@@ -87,7 +88,7 @@ public class CassandraConstants {
     static final String SIZE_TIERED_COMPACTION_STRATEGY = "org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy";
 
     public static final Set<String> HIDDEN_TABLES = ImmutableSet.of(
-            CassandraConstants.METADATA_TABLE, CassandraTimestampBoundStore.TIMESTAMP_TABLE);
+            CassandraConstants.METADATA_TABLE, AtlasDbConstants.TIMESTAMP_TABLE);
 
     // update CKVS.isMatchingCf if you update this method
     static CfDef getStandardCfDef(String keyspace, String internalTableName) {

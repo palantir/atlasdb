@@ -138,7 +138,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     }
 
     /* (non-Javadoc)
-     * @see com.palantir.metropolis.keyvalue.api.KeyValueService#multiPut(java.util.Map, long)
+     * @see com.palantir.atlasdb.keyvalue.api.KeyValueService#multiPut(java.util.Map, long)
      */
     @Override
     public void multiPut(Map<String, ? extends Map<Cell, byte[]>> valuesByTable, final long timestamp) throws KeyAlreadyExistsException {

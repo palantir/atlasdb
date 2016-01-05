@@ -116,7 +116,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 /**
  *
- * each dispatch service can have one or many C* KVS.
+ * each service can have one or many C* KVS.
  * For each C* KVS, it maintains a list of active nodes, and the client connections attached to each node
  *
  * n1->c1, c2, c3
@@ -316,14 +316,14 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     tablesToUpgrade.put(tableName, clusterSideMetadata);
                 }
             } else if (!tableName.equals(CassandraConstants.METADATA_TABLE)) { // only expected case
-                // Possible to get here from a race condition with another dispatch starting up and performing schema upgrades concurrent with us doing this check
+                // Possible to get here from a race condition with another service starting up and performing schema upgrades concurrent with us doing this check
                 log.error("Found a table " + tableName + " that did not have persisted Atlas metadata."
-                        + "If you recently did a Palantir update, try waiting until schema upgrades are completed on all backend CLIs/dispatches etc and restarting this service."
+                        + "If you recently did a Palantir update, try waiting until schema upgrades are completed on all backend CLIs/services etc and restarting this service."
                         + "If this error re-occurs on subsequent attempted startups, please contact Palantir support.");
             }
         }
 
-        // we are racing another dispatch to do these same operations here, but they are idempotent / safe
+        // we are racing another service to do these same operations here, but they are idempotent / safe
         if (!tablesToUpgrade.isEmpty()) {
             putMetadataForTables(tablesToUpgrade);
         }
@@ -1346,7 +1346,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
         Map<Cell, Long> requestForLatestDbSideMetadata = Maps.transformValues(metadataRequestedForUpdate, Functions.constant(Long.MAX_VALUE));
 
-        // technically we're racing other dispatches from here on, during an update period,
+        // technically we're racing other services from here on, during an update period,
         // but the penalty for not caring is just some superfluous schema mutations and a few dead rows in the metadata table.
         Map<Cell, Value> persistedMetadata = get(CassandraConstants.METADATA_TABLE, requestForLatestDbSideMetadata);
         final Map<Cell, byte[]> newMetadata = Maps.newHashMap();
@@ -1483,7 +1483,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     private void trySchemaMutationLock() throws InterruptedException, TimeoutException {
         if (!schemaMutationLock.tryLock(CassandraConstants.SECONDS_TO_WAIT_FOR_SCHEMA_MUTATION_LOCK, TimeUnit.SECONDS)) {
-            throw new TimeoutException("AtlasDB was unable to get a lock on Cassandra system schema mutations for your cluster. Likely cause: Dispatch(es) performing heavy schema mutations in parallel, or extremely heavy Cassandra cluster load.");
+            throw new TimeoutException("AtlasDB was unable to get a lock on Cassandra system schema mutations for your cluster. Likely cause: Service(s) performing heavy schema mutations in parallel, or extremely heavy Cassandra cluster load.");
         }
     }
 
