@@ -7,8 +7,11 @@ dependencies {
   compile(group: 'junit', name: 'junit', version: libVersions.junit) {
     exclude group: 'org.hamcrest'
   }
-
-  compile group: "org.jmock", name: "jmock", version: "2.5.1"
+  compile(group: "org.jmock", name: "jmock", version: libVersions.jmock) {
+    exclude group: 'org.hamcrest'
+  }
+  compile 'org.hamcrest:hamcrest-core:' + libVersions.hamcrest
+  compile 'org.hamcrest:hamcrest-library:' + libVersions.hamcrest
 
   testRuntime group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.5'
 }

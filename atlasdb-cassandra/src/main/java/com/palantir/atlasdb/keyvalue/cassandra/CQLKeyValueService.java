@@ -1110,13 +1110,13 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     public void compactInternally(String tableName) {
         Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName), "tableName:[%s] should not be null or empty", tableName);
         final CassandraKeyValueServiceConfig config = configManager.getConfig();
-        if(!compactionManager.isPresent()){
+        if(!compactionManager.isPresent() || !config.jmx().isPresent()){
             log.warn("No compaction client was configured, but compact was called. If you actually want to clear deleted data immediately " +
                     "from Cassandra, lower your gc_grace_seconds setting and run `nodetool compact {} {}`.", config.keyspace(), tableName);
             return;
         }
 
-        long compactionTimeoutSeconds = config.compactionTimeoutSeconds();
+        long compactionTimeoutSeconds = config.jmx().get().compactionTimeoutSeconds();
         try {
             alterTableForCompaction(tableName, 0, 0.0f);
             CQLKeyValueServices.waitForSchemaVersionsToCoalesce("setting up tables for compaction", this);

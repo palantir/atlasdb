@@ -121,11 +121,11 @@ public class RetriableManyHostPoolingContainer extends ForwardingPoolingContaine
                 }
                 throw (K) e;
             } else {
-                log.warn("Transport failure to cassandra. We will retry.", e);
+                log.warn("Error occurred talking to cassandra. Attempt {} of {}.", numTries, maxTries, e);
                 if (e instanceof SocketTimeoutException
                         || e instanceof UnavailableException) {
                     // Connection is no good? This may be due to a long GC, we should back off sending them requests.
-                    // Binary exponential backoff; should in total take ~10s on average w/MAX_TRIES=10
+                    // Binary exponential backoff; should in total take ~10s on average w/maxTries=10
                     try {
                         Thread.sleep(new Random().nextInt((1 << numTries)-1)*20);
                     } catch (InterruptedException e1) {

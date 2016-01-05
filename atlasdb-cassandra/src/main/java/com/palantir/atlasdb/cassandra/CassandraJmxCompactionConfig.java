@@ -31,13 +31,18 @@ public abstract class CassandraJmxCompactionConfig {
     }
 
     @Value.Default
-    public long jmxRmiTimeoutMillis() {
+    public long rmiTimeoutMillis() {
         return 20000;
     }
 
     @Value.Default
     public int port() {
         return 7199;
+    }
+
+    @Value.Default
+    public long compactionTimeoutSeconds() {
+        return 30 * 60;
     }
 
     public abstract String keystore();

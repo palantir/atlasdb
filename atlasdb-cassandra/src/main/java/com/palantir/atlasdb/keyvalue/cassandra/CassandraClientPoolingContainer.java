@@ -56,7 +56,6 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public <V, K extends Exception> V runWithPooledResource(FunctionCheckedException<Client, V, K> f)
             throws K {
         final String origName = Thread.currentThread().getName();
@@ -67,12 +66,8 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
         try {
             return runWithGoodResource(f);
         } catch (Throwable t) {
-            log.warn("Failed while connecting to host: " + host, t);
-            if (t instanceof Exception) {
-                throw (K) t;
-            } else {
-                throw (Error) t;
-            }
+            log.warn("Error occurred talking to host '{}': {}", host, t.getMessage());
+            throw t;
         } finally {
             Thread.currentThread().setName(origName);
         }

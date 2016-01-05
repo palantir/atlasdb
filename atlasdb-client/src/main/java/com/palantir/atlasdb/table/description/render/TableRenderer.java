@@ -275,6 +275,7 @@ public class TableRenderer {
                 }
                 if (!isNestedIndex) {
                     line();
+                    importRenderer.renderImportJavaDoc();
                     renderClassHash();
                 }
             } line("}");
@@ -404,9 +405,9 @@ public class TableRenderer {
             line("private ", Table, "(Transaction t, Namespace namespace", isGeneric ? ", String tableName" : "", ", List<", Trigger, "> triggers) {"); {
                 line("this.t = t;");
                 if (isGeneric) {
-                    line("this.tableName = namespace.getName() + \".\" + tableName;");
+                    line("this.tableName = namespace.getName().isEmpty() ? tableName : namespace.getName() + \".\" + tableName;");
                 } else {
-                    line("this.tableName = namespace.getName() + \".\" + rawTableName;");
+                    line("this.tableName = namespace.getName().isEmpty() ? rawTableName : namespace.getName() + \".\" + rawTableName;");
                 }
                 line("this.triggers = triggers;");
                 line("this.namespace = namespace;");

@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.table.description.render;
 
 import java.util.Collection;
+import java.util.Map;
 import java.util.SortedSet;
 
 import com.google.common.collect.ImmutableList;
@@ -35,7 +36,7 @@ public class ImportRenderer extends Renderer {
     }
 
     void renderImports() {
-        for (String prefix : ImmutableList.of("java.", "javax.", "org.", "com.")) {
+        for (String prefix : ImmutableList.of("java.", "org.", "com.")) {
             for (String importClass : importsSortedByFullName()) {
                 if (importClass.startsWith(prefix)) {
                     line("import ", importClass, ";");
@@ -45,10 +46,27 @@ public class ImportRenderer extends Renderer {
         }
     }
 
+    void renderImportJavaDoc() {
+        line("/**");
+        line(" * This exists to avoid unused import warnings");
+        for (String className : importsSortedBySimpleName()) {
+            line(" * {@link ", className, "}", "");
+        }
+        line(" */");
+    }
+
     private SortedSet<String> importsSortedByFullName() {
         ImmutableSortedSet.Builder<String> sortedImports = ImmutableSortedSet.naturalOrder();
         for (Class<?> clazz : imports) {
             sortedImports.add(clazz.getCanonicalName());
+        }
+        return sortedImports.build();
+    }
+
+    private SortedSet<String> importsSortedBySimpleName() {
+        ImmutableSortedSet.Builder<String> sortedImports = ImmutableSortedSet.naturalOrder();
+        for (Class<?> clazz : imports) {
+            sortedImports.add(clazz.getSimpleName());
         }
         return sortedImports.build();
     }

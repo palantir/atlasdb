@@ -109,11 +109,6 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
         return 64;
     }
 
-    @Value.Default
-    public long compactionTimeoutSeconds() {
-        return 30 * 60;
-    }
-
     public abstract Optional<CassandraJmxCompactionConfig> jmx();
 
     @Override

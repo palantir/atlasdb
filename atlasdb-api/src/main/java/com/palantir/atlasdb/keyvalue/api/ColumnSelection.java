@@ -104,6 +104,13 @@ public class ColumnSelection implements Serializable {
         return Collections.unmodifiableCollection(selectedColumns);
     }
 
+    /**
+     * Returns true if no columns are selected.
+     */
+    public boolean noColumnsSelected() {
+        return selectedColumns != null && selectedColumns.isEmpty();
+    }
+
     @Override
     public int hashCode() {
         /*

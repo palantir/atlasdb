@@ -60,7 +60,7 @@ public class StreamTables {
             explicitCompressionRequested();
             expirationStrategy(expirationStrategy);
             if (isAppendHeavyAndReadLight) {
-                isAppendHeavyAndReadLight();
+                appendHeavyAndReadLight();
             }
         }};
     }
@@ -83,7 +83,7 @@ public class StreamTables {
             negativeLookups();
             expirationStrategy(expirationStrategy);
             if (isAppendHeavyAndReadLight) {
-                isAppendHeavyAndReadLight();
+                appendHeavyAndReadLight();
             }
         }};
     }
@@ -108,7 +108,7 @@ public class StreamTables {
             cachePriority(CachePriority.COLD);
             expirationStrategy(expirationStrategy);
             if (isAppendHeavyAndReadLight) {
-                isAppendHeavyAndReadLight();
+                appendHeavyAndReadLight();
             }
         }};
     }
@@ -133,7 +133,7 @@ public class StreamTables {
             negativeLookups();
             expirationStrategy(expirationStrategy);
             if (isAppendHeavyAndReadLight) {
-                isAppendHeavyAndReadLight();
+                appendHeavyAndReadLight();
             }
         }};
     }

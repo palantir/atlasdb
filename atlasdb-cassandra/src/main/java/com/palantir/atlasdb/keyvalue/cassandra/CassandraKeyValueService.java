@@ -102,6 +102,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionModule;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.ClosableIterator;
@@ -112,6 +113,7 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.common.pooling.PoolingContainer;
 import com.palantir.util.paging.AbstractPagingIterable;
+import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 /**
@@ -272,23 +274,19 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                                                    String keyspace,
                                                    Cassandra.Client client) throws InvalidRequestException, TException, SchemaDisagreementException {
         try {
-            KsDef ks = client.describe_keyspace(configManager.getConfig().keyspace());
-            updateExistingKeyspace(replicationFactor, safetyDisabled, client, ks);
+            KsDef originalKsDef = client.describe_keyspace(configManager.getConfig().keyspace());
+            KsDef modifiedKsDef = originalKsDef.deepCopy();
+            CassandraVerifier.checkAndSetReplicationFactor(client, modifiedKsDef, false, replicationFactor, safetyDisabled);
+            lowerConsistencyWhenSafe(client, modifiedKsDef, replicationFactor);
+
+            if (!modifiedKsDef.equals(originalKsDef)) {
+                modifiedKsDef.setCf_defs(ImmutableList.<CfDef>of()); // Can't call system_update_keyspace to update replication factor if CfDefs are set
+                client.system_update_keyspace(modifiedKsDef);
+                CassandraKeyValueServices.waitForSchemaVersions(client, "(updating the existing keyspace)");
+            }
         } catch (NotFoundException e) {
             createKeyspace(replicationFactor, safetyDisabled, keyspace, client);
         }
-    }
-
-    private void updateExistingKeyspace(int replicationFactor,
-                                        boolean safetyDisabled,
-                                        Cassandra.Client client,
-                                        KsDef ks) throws InvalidRequestException, SchemaDisagreementException, TException {
-        CassandraVerifier.checkAndSetReplicationFactor(client, ks, false, replicationFactor, safetyDisabled);
-        lowerConsistencyWhenSafe(client, ks, replicationFactor);
-        // Can't call system_update_keyspace to update replication factor if CfDefs are set
-        ks.setCf_defs(ImmutableList.<CfDef>of());
-        client.system_update_keyspace(ks);
-        CassandraKeyValueServices.waitForSchemaVersions(client, "(updating the existing keyspace)");
     }
 
     private void createKeyspace(int replicationFactor, boolean safetyDisabled, String keyspace, Cassandra.Client client)
@@ -960,12 +958,14 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         double falsePositiveChance = CassandraConstants.DEFAULT_LEVELED_COMPACTION_BLOOM_FILTER_FP_CHANCE;
         int explicitCompressionBlockSizeKB = 0;
         boolean appendHeavyAndReadLight = false;
+        TableMetadataPersistence.CachePriority cachePriority = TableMetadataPersistence.CachePriority.WARM;
 
         if (!CassandraKeyValueServices.isEmptyOrInvalidMetadata(rawMetadata)) {
             TableMetadata tableMetadata = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(rawMetadata);
             negativeLookups = tableMetadata.hasNegativeLookups();
             explicitCompressionBlockSizeKB = tableMetadata.getExplicitCompressionBlockSizeKB();
             appendHeavyAndReadLight = tableMetadata.isAppendHeavyAndReadLight();
+            cachePriority = tableMetadata.getCachePriority();
         }
 
         if (explicitCompressionBlockSizeKB != 0) {
@@ -990,6 +990,19 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             } else {
                 falsePositiveChance = CassandraConstants.NEGATIVE_LOOKUPS_SIZE_TIERED_BLOOM_FILTER_FP_CHANCE;
             }
+        }
+
+        switch (cachePriority) {
+            case COLDEST:
+                break;
+            case COLD:
+                break;
+            case WARM:
+                break;
+            case HOT:
+                break;
+            case HOTTEST:
+                cf.setPopulate_io_cache_on_flushIsSet(true);
         }
 
         cf.setBloom_filter_fp_chance(falsePositiveChance);
@@ -1058,7 +1071,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     }
 
                     TokenBackedBasicResultsPage<RowResult<U>, byte[]> page(final byte[] startKey) throws Exception {
-                        return clientPool.runWithPooledResource(new FunctionCheckedException<Client, TokenBackedBasicResultsPage<RowResult<U>, byte[]>, Exception>() {
+                        InetAddress host = tokenAwareMapper.getRandomHostForKey(startKey);
+                        return clientPool.runWithPooledResourceOnHost(host, new FunctionCheckedException<Client, TokenBackedBasicResultsPage<RowResult<U>, byte[]>, Exception>() {
                             @Override
                             public TokenBackedBasicResultsPage<RowResult<U>, byte[]> apply(Client client) throws Exception {
                                 final byte[] endExclusive = rangeRequest.getEndExclusive();
@@ -1096,7 +1110,14 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                                 }
 
                                 Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey = CassandraKeyValueServices.getColsByKey(firstPage);
-                                return resultsExtractor.get().getPageFromRangeResults(colsByKey, timestamp, selection, endExclusive);
+                                TokenBackedBasicResultsPage<RowResult<U>, byte[]> page =
+                                        resultsExtractor.get().getPageFromRangeResults(colsByKey, timestamp, selection, endExclusive);
+                                if (page.moreResultsAvailable() && firstPage.size() < batchHint) {
+                                    // If get_range_slices didn't return the full number of results, there's no
+                                    // point to trying to get another page
+                                    page = SimpleTokenBackedResultsPage.create(endExclusive, page.getResults(), false);
+                                }
+                                return page;
                             }
 
                             @Override
@@ -1491,12 +1512,12 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     public void compactInternally(String tableName) {
         Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName), "tableName:[%s] should not be null or empty.", tableName);
         CassandraKeyValueServiceConfig config = configManager.getConfig();
-        if (!compactionManager.isPresent()) {
+        if (!compactionManager.isPresent() || !config.jmx().isPresent()) {
             log.warn("No compaction client was configured, but compact was called. If you actually want to clear deleted data immediately " +
                     "from Cassandra, lower your gc_grace_seconds setting and run `nodetool compact {} {}`.", config.keyspace(), tableName);
             return;
         }
-        long timeoutInSeconds = config.compactionTimeoutSeconds();
+        long timeoutInSeconds = config.jmx().get().compactionTimeoutSeconds();
         String keyspace = config.keyspace();
         try {
             alterGcAndTombstone(keyspace, tableName, 0, 0.0f);
@@ -1551,22 +1572,36 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     private <V> Map<InetAddress, Map<Cell, V>> partitionMapByHost(Iterable<Map.Entry<Cell, V>> cells) {
+        Map<InetAddress, List<Map.Entry<Cell, V>>> partitionedByHost =
+                partitionByHost(cells, new Function<Map.Entry<Cell, V>, byte[]>() {
+                    @Override
+                    public byte[] apply(Entry<Cell, V> entry) {
+                        return entry.getKey().getRowName();
+                    }
+                });
         Map<InetAddress, Map<Cell, V>> cellsByHost = Maps.newHashMap();
-        for (Map.Entry<Cell, V> entry : cells) {
-            InetAddress host = tokenAwareMapper.getRandomHostForKey(entry.getKey().getRowName());
-            if (!cellsByHost.containsKey(host)) {
-                cellsByHost.put(host, Maps.<Cell, V>newHashMap());
+        for (Map.Entry<InetAddress, List<Map.Entry<Cell, V>>> hostAndCells : partitionedByHost.entrySet()) {
+            Map<Cell, V> cellsForHost = Maps.newHashMapWithExpectedSize(hostAndCells.getValue().size());
+            for (Map.Entry<Cell, V> entry : hostAndCells.getValue()) {
+                cellsForHost.put(entry.getKey(), entry.getValue());
             }
-            cellsByHost.get(host).put(entry.getKey(), entry.getValue());
+            cellsByHost.put(hostAndCells.getKey(), cellsForHost);
         }
         return cellsByHost;
     }
 
     private <V> Map<InetAddress, List<V>> partitionByHost(Iterable<V> iterable, Function<V, byte[]> keyExtractor) {
-        ListMultimap<InetAddress, V> valuesByHost = ArrayListMultimap.create();
+        // Ensure that the same key goes to the same partition. This is important when writing multiple columns
+        // to the same row, since this is a normally a single write in cassandra, whereas splitting the columns
+        // into different requests results in multiple writes.
+        ListMultimap<ByteBuffer, V> partitionedByKey = ArrayListMultimap.create();
         for (V value : iterable) {
-            InetAddress host = tokenAwareMapper.getRandomHostForKey(keyExtractor.apply(value));
-            valuesByHost.put(host, value);
+            partitionedByKey.put(ByteBuffer.wrap(keyExtractor.apply(value)), value);
+        }
+        ListMultimap<InetAddress, V> valuesByHost = ArrayListMultimap.create();
+        for (ByteBuffer key : partitionedByKey.keySet()) {
+            InetAddress host = tokenAwareMapper.getRandomHostForKey(key.array());
+            valuesByHost.putAll(host, partitionedByKey.get(key));
         }
         return Multimaps.asMap(valuesByHost);
     }

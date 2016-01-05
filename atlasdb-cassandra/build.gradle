@@ -7,8 +7,15 @@ dependencies {
   compile project(":atlasdb-spi")
   compile project(':timestamp-impl')
 
-  compile 'org.apache.cassandra:cassandra-all:' + libVersions.cassandra
-  compile 'com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core
+  compile('org.apache.cassandra:cassandra-all:' + libVersions.cassandra) {
+    exclude(group: 'com.google.guava', module: 'guava')
+    exclude(module: 'junit')
+  }
+  compile('com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core) {
+    exclude group: 'com.google.guava', module: 'guava'
+  }
+  compile 'com.google.guava:guava:' + libVersions.guava
+  compile 'junit:junit:' + libVersions.junit
 
   compile 'org.apache.commons:commons-pool2:2.4.2'
 
@@ -20,13 +27,11 @@ configurations.matching({ it.name in ['compile', 'runtime'] }).all {
         force 'com.fasterxml.jackson.core:jackson-databind:' + libVersions.jackson
         force 'com.fasterxml.jackson.core:jackson-core:' + libVersions.jackson
         force 'com.fasterxml.jackson.datatype:jackson-datatype-guava:' + libVersions.jackson
-        force 'com.google.guava:guava:' + libVersions.guava
         force 'com.googlecode.json-simple:json-simple:1.1.1'
         force 'org.apache.thrift:libthrift:0.9.2'
         force 'org.slf4j:slf4j-api:1.7.6'
-        force 'org.xerial.snappy:snappy-java:1.1.0.1'
+        force 'org.xerial.snappy:snappy-java:' + libVersions.snappy
         force 'org.yaml:snakeyaml:1.12'
-        force 'junit:junit:4.10'
         force 'commons-codec:commons-codec:1.6'
     }
 }

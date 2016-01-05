@@ -39,9 +39,9 @@ public class CassandraJmxCompactionManagers {
      * @param jmxConfig
      */
     private static void setJmxSslProperty(CassandraJmxCompactionConfig jmxConfig) {
-        long jmxRmiTimeoutMillis = jmxConfig.jmxRmiTimeoutMillis();
+        long rmiTimeoutMillis = jmxConfig.rmiTimeoutMillis();
         // NOTE: RMI timeout to avoid hanging tcp connection
-        System.setProperty("sun.rmi.transport.tcp.responseTimeout", String.valueOf(jmxRmiTimeoutMillis));
+        System.setProperty("sun.rmi.transport.tcp.responseTimeout", String.valueOf(rmiTimeoutMillis));
 
         String keyStoreFile = jmxConfig.keystore();
         String keyStorePassword = jmxConfig.keystorePassword();

@@ -107,7 +107,9 @@ public class KVTableMappingService extends AbstractTableMappingService {
     @Override
     public void removeTable(TableReference tableRef) {
         Cell key = Cell.create(getBytesForTableRef(tableRef), AtlasDbConstants.NAMESPACE_SHORT_COLUMN_BYTES);
-        kv.delete(AtlasDbConstants.NAMESPACE_TABLE, ImmutableMultimap.of(key, 0L));
+        if (kv.getAllTableNames().contains(AtlasDbConstants.NAMESPACE_TABLE)) {
+            kv.delete(AtlasDbConstants.NAMESPACE_TABLE, ImmutableMultimap.of(key, 0L));
+        }
         // Need to invalidate the table ref in case we end up re-creating the same table
         // again. Frequently when we drop one table we end up dropping a bunch of tables,
         // so just invalidate everything.

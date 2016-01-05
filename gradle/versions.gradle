@@ -3,12 +3,16 @@ ext.libVersions = [
     slf4j:   '1.7.5',
     jsr305:  '1.3.9',
     junit:   '4.11',
+    jmock:   '2.5.1',
     dropwizard:   '0.8.2',
     commons_lang: '2.6',
+    joda_time: '2.7',
+    snappy: '1.1.1.7',
     jackson: '2.5.1',
     jackson_annotation: '2.5.0',
     cassandra: '2.2.0',
-    cassandra_driver_core: '2.2.0-rc3'
+    cassandra_driver_core: '2.2.0-rc3',
+    hamcrest: '1.3'
 ]
 
 configurations.matching({ it.name in ['compile', 'runtime'] }).all {
