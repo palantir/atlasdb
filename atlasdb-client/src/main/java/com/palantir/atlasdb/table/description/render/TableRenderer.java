@@ -31,6 +31,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Generated;
+
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -192,6 +194,7 @@ public class TableRenderer {
                 importRenderer.renderImports();
                 line();
             }
+            line("@Generated(\"",  TableRenderer.class.getName(), "\")");
             line("public ", isNestedIndex ? "static " : "", "final class ", Table, " implements");
             if (isNamedSet(table)) {
                 if (isExpiring(table)) {
@@ -1316,6 +1319,7 @@ public class TableRenderer {
         Compression.class,
         Namespace.class,
         Hashing.class,
-        ValueType.class
+        ValueType.class,
+        Generated.class
     };
 }

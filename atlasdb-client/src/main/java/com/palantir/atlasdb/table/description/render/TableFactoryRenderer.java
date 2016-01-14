@@ -58,7 +58,8 @@ public class TableFactoryRenderer {
             protected void run() {
                 packageAndImports();
                 line();
-                line("public class ", TableFactory, " {"); {
+                line("@Generated(\"",  TableFactoryRenderer.class.getName(), "\")");
+                line("public final class ", TableFactory, " {"); {
                     if (defaultNamespace.isEmpty()) {
                         line("private final static Namespace defaultNamespace = Namespace.EMPTY_NAMESPACE;");
                     } else {
@@ -83,6 +84,8 @@ public class TableFactoryRenderer {
                 line("package ", packageName, ";");
                 line();
                 line("import java.util.List;");
+                line();
+                line("import javax.annotation.Generated;");
                 line();
                 line("import com.google.common.base.Function;");
                 line("import com.google.common.collect.ImmutableList;");

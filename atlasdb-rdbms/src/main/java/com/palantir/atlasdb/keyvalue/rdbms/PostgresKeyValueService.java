@@ -78,7 +78,6 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
-import com.palantir.atlasdb.keyvalue.impl.SimpleKvsTimestampBoundStore;
 import com.palantir.atlasdb.keyvalue.rdbms.utils.AtlasSqlUtils;
 import com.palantir.atlasdb.keyvalue.rdbms.utils.CellMapper;
 import com.palantir.atlasdb.keyvalue.rdbms.utils.CellValueMapper;
@@ -121,7 +120,9 @@ public final class PostgresKeyValueService extends AbstractKeyValueService {
         ds.setDatabaseName(config.getDb());
         ds.setUser(config.getUser());
         ds.setPassword(config.getPassword());
-        return new PostgresKeyValueService(ds);
+        PostgresKeyValueService ret = new PostgresKeyValueService(ds);
+        ret.initializeFromFreshInstance();
+        return ret;
     }
 
     // *** Initialization and teardown ************************************************************

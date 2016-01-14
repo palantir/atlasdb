@@ -34,6 +34,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Generated;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -139,6 +140,7 @@ public class StreamStoreRenderer {
                 line();
                 importRenderer.renderImports();
                 line();
+                line("@Generated(\"",  StreamStoreRenderer.class.getName(), "\")");
                 line("public final class ", StreamStore, " extends ", (isExpiring() ? "AbstractExpiringStreamStore<" + StreamId + ">" : "AbstractPersistentStreamStore"), " {"); {
                     fields();
                     line();
@@ -722,5 +724,6 @@ public class StreamStoreRenderer {
         AbstractExpiringStreamStore.class,
         List.class,
         CheckForNull.class,
+        Generated.class,
     };
 }
