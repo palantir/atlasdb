@@ -252,7 +252,8 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
                 byte[] row = SweepPriorityRow.of(tableName).persistToBytes();
                 Cell cell = Cell.create(row, col);
                 Value oldValue = oldWriteCounts.get(cell);
-                long oldCount = oldValue == null ? 0 : SweepPriorityTable.WriteCount.BYTES_HYDRATOR.hydrateFromBytes(oldValue.getContents()).getValue();
+                long oldCount = oldValue == null || oldValue.getContents().length == 0 ? 0 :
+                    SweepPriorityTable.WriteCount.BYTES_HYDRATOR.hydrateFromBytes(oldValue.getContents()).getValue();
                 long newValue = clears.contains(tableName) ? writes.count(tableName) : oldCount + writes.count(tableName);
                 log.debug("Sweep priority for {} has {} writes (was {})", tableName, newValue, oldCount);
                 newWriteCounts.put(cell, SweepPriorityTable.WriteCount.of(newValue).persistValue());
