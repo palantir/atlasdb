@@ -35,22 +35,6 @@ public class StreamTestTableFactory {
         return of(ImmutableList.<Function<? super Transaction, SharedTriggers>>of(), defaultNamespace);
     }
 
-    public StreamTest2StreamHashAidxTable getStreamTest2StreamHashAidxTable(Transaction t, StreamTest2StreamHashAidxTable.StreamTest2StreamHashAidxTrigger... triggers) {
-        return StreamTest2StreamHashAidxTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
-    }
-
-    public StreamTest2StreamIdxTable getStreamTest2StreamIdxTable(Transaction t, StreamTest2StreamIdxTable.StreamTest2StreamIdxTrigger... triggers) {
-        return StreamTest2StreamIdxTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
-    }
-
-    public StreamTest2StreamMetadataTable getStreamTest2StreamMetadataTable(Transaction t, StreamTest2StreamMetadataTable.StreamTest2StreamMetadataTrigger... triggers) {
-        return StreamTest2StreamMetadataTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
-    }
-
-    public StreamTest2StreamValueTable getStreamTest2StreamValueTable(Transaction t, StreamTest2StreamValueTable.StreamTest2StreamValueTrigger... triggers) {
-        return StreamTest2StreamValueTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
-    }
-
     public StreamTestStreamHashAidxTable getStreamTestStreamHashAidxTable(Transaction t, StreamTestStreamHashAidxTable.StreamTestStreamHashAidxTrigger... triggers) {
         return StreamTestStreamHashAidxTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
@@ -67,39 +51,35 @@ public class StreamTestTableFactory {
         return StreamTestStreamValueTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
+    public StreamTestWithHashStreamHashAidxTable getStreamTestWithHashStreamHashAidxTable(Transaction t, StreamTestWithHashStreamHashAidxTable.StreamTestWithHashStreamHashAidxTrigger... triggers) {
+        return StreamTestWithHashStreamHashAidxTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+    }
+
+    public StreamTestWithHashStreamIdxTable getStreamTestWithHashStreamIdxTable(Transaction t, StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxTrigger... triggers) {
+        return StreamTestWithHashStreamIdxTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+    }
+
+    public StreamTestWithHashStreamMetadataTable getStreamTestWithHashStreamMetadataTable(Transaction t, StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataTrigger... triggers) {
+        return StreamTestWithHashStreamMetadataTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+    }
+
+    public StreamTestWithHashStreamValueTable getStreamTestWithHashStreamValueTable(Transaction t, StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueTrigger... triggers) {
+        return StreamTestWithHashStreamValueTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+    }
+
     public interface SharedTriggers extends
-            StreamTest2StreamHashAidxTable.StreamTest2StreamHashAidxTrigger,
-            StreamTest2StreamIdxTable.StreamTest2StreamIdxTrigger,
-            StreamTest2StreamMetadataTable.StreamTest2StreamMetadataTrigger,
-            StreamTest2StreamValueTable.StreamTest2StreamValueTrigger,
             StreamTestStreamHashAidxTable.StreamTestStreamHashAidxTrigger,
             StreamTestStreamIdxTable.StreamTestStreamIdxTrigger,
             StreamTestStreamMetadataTable.StreamTestStreamMetadataTrigger,
-            StreamTestStreamValueTable.StreamTestStreamValueTrigger {
+            StreamTestStreamValueTable.StreamTestStreamValueTrigger,
+            StreamTestWithHashStreamHashAidxTable.StreamTestWithHashStreamHashAidxTrigger,
+            StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxTrigger,
+            StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataTrigger,
+            StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueTrigger {
         /* empty */
     }
 
     public abstract static class NullSharedTriggers implements SharedTriggers {
-        @Override
-        public void putStreamTest2StreamHashAidx(Multimap<StreamTest2StreamHashAidxTable.StreamTest2StreamHashAidxRow, ? extends StreamTest2StreamHashAidxTable.StreamTest2StreamHashAidxColumnValue> newRows) {
-            // do nothing
-        }
-
-        @Override
-        public void putStreamTest2StreamIdx(Multimap<StreamTest2StreamIdxTable.StreamTest2StreamIdxRow, ? extends StreamTest2StreamIdxTable.StreamTest2StreamIdxColumnValue> newRows) {
-            // do nothing
-        }
-
-        @Override
-        public void putStreamTest2StreamMetadata(Multimap<StreamTest2StreamMetadataTable.StreamTest2StreamMetadataRow, ? extends StreamTest2StreamMetadataTable.StreamTest2StreamMetadataNamedColumnValue<?>> newRows) {
-            // do nothing
-        }
-
-        @Override
-        public void putStreamTest2StreamValue(Multimap<StreamTest2StreamValueTable.StreamTest2StreamValueRow, ? extends StreamTest2StreamValueTable.StreamTest2StreamValueNamedColumnValue<?>> newRows) {
-            // do nothing
-        }
-
         @Override
         public void putStreamTestStreamHashAidx(Multimap<StreamTestStreamHashAidxTable.StreamTestStreamHashAidxRow, ? extends StreamTestStreamHashAidxTable.StreamTestStreamHashAidxColumnValue> newRows) {
             // do nothing
@@ -117,6 +97,26 @@ public class StreamTestTableFactory {
 
         @Override
         public void putStreamTestStreamValue(Multimap<StreamTestStreamValueTable.StreamTestStreamValueRow, ? extends StreamTestStreamValueTable.StreamTestStreamValueNamedColumnValue<?>> newRows) {
+            // do nothing
+        }
+
+        @Override
+        public void putStreamTestWithHashStreamHashAidx(Multimap<StreamTestWithHashStreamHashAidxTable.StreamTestWithHashStreamHashAidxRow, ? extends StreamTestWithHashStreamHashAidxTable.StreamTestWithHashStreamHashAidxColumnValue> newRows) {
+            // do nothing
+        }
+
+        @Override
+        public void putStreamTestWithHashStreamIdx(Multimap<StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxRow, ? extends StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxColumnValue> newRows) {
+            // do nothing
+        }
+
+        @Override
+        public void putStreamTestWithHashStreamMetadata(Multimap<StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow, ? extends StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataNamedColumnValue<?>> newRows) {
+            // do nothing
+        }
+
+        @Override
+        public void putStreamTestWithHashStreamValue(Multimap<StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueRow, ? extends StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueNamedColumnValue<?>> newRows) {
             // do nothing
         }
     }

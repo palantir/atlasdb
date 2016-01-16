@@ -24,6 +24,6 @@ import com.palantir.common.base.ThrowablesTest;
 @RunWith(Suite.class)
 @SuiteClasses({
     ThrowablesTest.class})
-public class AllPapayaTests {
+public class AllAtlasCommonsTests {
     // blank
 }

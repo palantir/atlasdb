@@ -75,23 +75,6 @@ public class Utils {
         }
     }
 
-    public static DynamicPartitionMap createInMemoryMap(Collection<? extends KeyValueService> services, QuorumParameters parameters) {
-        ArrayList<Byte> keyList = new ArrayList<>();
-        NavigableMap<byte[], KeyValueEndpoint> ring = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
-        keyList.add((byte) 0);
-        for (KeyValueService kvs : services) {
-            KeyValueEndpoint endpoint = InMemoryKeyValueEndpoint.create(kvs, InMemoryPartitionMapService.createEmpty());
-            byte[] key = ArrayUtils.toPrimitive(keyList.toArray(new Byte[keyList.size()]));
-            ring.put(key, endpoint);
-            keyList.add((byte) 0);
-        }
-        DynamicPartitionMap partitionMap = DynamicPartitionMapImpl.create(parameters, ring, PTExecutors.newCachedThreadPool());
-        for (KeyValueEndpoint endpoint : ring.values()) {
-            endpoint.partitionMapService().updateMap(partitionMap);
-        }
-        return partitionMap;
-    }
-
     public static class RemoteKvs {
         public final KeyValueService delegate;
         public final KeyValueService remoteKvs;

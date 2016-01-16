@@ -46,12 +46,12 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.net.HostAndPort;
 import com.palantir.common.base.Throwables;
-import com.palantir.paxos.BooleanPaxosResponse;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosQuorumChecker;
 import com.palantir.paxos.PaxosResponse;
+import com.palantir.paxos.PaxosResponseImpl;
 import com.palantir.paxos.PaxosRoundFailureException;
 import com.palantir.paxos.PaxosUpdate;
 import com.palantir.paxos.PaxosValue;
@@ -512,7 +512,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
      * @return a paxos response that either confirms the leader or nacks
      */
     private PaxosResponse confirmLeader(PaxosAcceptor acceptor, long seq) {
-        return new BooleanPaxosResponse(seq >= acceptor.getLatestSequencePreparedOrAccepted());
+        return new PaxosResponseImpl(seq >= acceptor.getLatestSequencePreparedOrAccepted());
     }
 
     public ImmutableList<PaxosAcceptor> getAcceptors() {

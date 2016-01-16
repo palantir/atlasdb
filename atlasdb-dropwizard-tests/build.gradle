@@ -1,0 +1,7 @@
+apply from: "../gradle/shared.gradle"
+
+dependencies {
+  compile(project(":atlasdb-tests-shared"))
+  testCompile(project(":atlasdb-config"))
+  testCompile "io.dropwizard:dropwizard-testing:" + libVersions.dropwizard
+}

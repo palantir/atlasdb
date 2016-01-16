@@ -40,14 +40,14 @@ public class PaxosProposerImpl implements PaxosProposer {
     private static final Logger log = LoggerFactory.getLogger(PaxosProposerImpl.class);
 
     public static PaxosProposer newProposer(PaxosLearner localLearner,
-                                            List<PaxosAcceptor> allAcceptors,
-                                            List<PaxosLearner> allLearners,
+                                            ImmutableList<PaxosAcceptor> allAcceptors,
+                                            ImmutableList<PaxosLearner> allLearners,
                                             int quorumSize,
                                             Executor executor) {
         return new PaxosProposerImpl(
                 localLearner,
-                ImmutableList.copyOf(allAcceptors),
-                ImmutableList.copyOf(allLearners),
+                allAcceptors,
+                allLearners,
                 quorumSize,
                 UUID.randomUUID().toString(),
                 executor);
@@ -63,11 +63,11 @@ public class PaxosProposerImpl implements PaxosProposer {
     private final Executor executor;
 
     private PaxosProposerImpl(PaxosLearner localLearner,
-                             ImmutableList<PaxosAcceptor> acceptors,
-                             ImmutableList<PaxosLearner> learners,
-                             int quorumSize,
-                             String uuid,
-                             Executor executor) {
+                              ImmutableList<PaxosAcceptor> acceptors,
+                              ImmutableList<PaxosLearner> learners,
+                              int quorumSize,
+                              String uuid,
+                              Executor executor) {
         Preconditions.checkState(
                 quorumSize > acceptors.size() / 2,
                 "quorum size needs to be at least the majority of acceptors");
@@ -104,7 +104,7 @@ public class PaxosProposerImpl implements PaxosProposer {
                     try {
                         learner.learn(seq, finalValue);
                     } catch (Throwable e) {
-                        log.info("failed to teach learner", e);
+                        log.warn("failed to teach learner", e);
                     }
                 }
             });
@@ -147,10 +147,10 @@ public class PaxosProposerImpl implements PaxosProposer {
             for (PaxosPromise promise : receivedPromises) {
                 while (true) {
                     long curNum = proposalNum.get();
-                    if (promise.promisedId.getNumber() <= curNum) {
+                    if (promise.promisedId.number <= curNum) {
                         break;
                     }
-                    if (proposalNum.compareAndSet(curNum, promise.promisedId.getNumber())) {
+                    if (proposalNum.compareAndSet(curNum, promise.promisedId.number)) {
                         break;
                     }
                 }

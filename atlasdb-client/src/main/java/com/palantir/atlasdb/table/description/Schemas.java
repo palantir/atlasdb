@@ -21,7 +21,9 @@ import java.util.Set;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.schema.Namespace;
 
@@ -122,6 +124,7 @@ public final class Schemas {
 
     public static void deleteTablesAndIndexes(Schema schema, KeyValueService kvs) {
         schema.validate();
+        kvs.dropTables(getExistingTablesAlsoPresentInSchema(schema, kvs));
         Set<String> allTables = kvs.getAllTableNames();
         for (String n : schema.getAllTablesAndIndexMetadata().keySet()) {
             if (allTables.contains(n)) {
@@ -130,7 +133,25 @@ public final class Schemas {
         }
     }
 
+    /** intended for use by tests **/
+    public static void truncateTablesAndIndexes(Schema schema, KeyValueService kvs) {
+        schema.validate();
+        kvs.truncateTables(getExistingTablesAlsoPresentInSchema(schema, kvs));
+    }
+    
+    private static Set<String> getExistingTablesAlsoPresentInSchema(Schema schema, KeyValueService kvs) {
+        Set<String> allTables = kvs.getAllTableNames();
+        Set<String> tablesToDrop = Sets.newHashSet();
+        for (String n : Iterables.concat(schema.getIndexDefinitions().keySet(), schema.getTableDefinitions().keySet())) {
+            if (allTables.contains(n)) {
+                tablesToDrop.add(n);
+            }
+        }
+        return tablesToDrop;
+    }
+
     public static void deleteTable(KeyValueService kvs, String tableName) {
         kvs.dropTable(tableName);
     }
+
 }

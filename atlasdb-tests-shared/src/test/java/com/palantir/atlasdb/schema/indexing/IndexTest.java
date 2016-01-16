@@ -44,7 +44,7 @@ public class IndexTest extends AtlasDbTestCase {
 
     @Before
     public void createSchema() {
-        Schemas.deleteTablesAndIndexes(IndexTestSchema.getSchema(), keyValueService);
+        Schemas.truncateTablesAndIndexes(IndexTestSchema.getSchema(), keyValueService);
         Schemas.createTablesAndIndexes(IndexTestSchema.getSchema(), keyValueService);
     }
 

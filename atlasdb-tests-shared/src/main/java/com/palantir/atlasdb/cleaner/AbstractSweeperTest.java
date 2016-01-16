@@ -35,6 +35,7 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 
 public abstract class AbstractSweeperTest {
+
     protected static final String TABLE_NAME = "table";
     private static final String COL = "c";
     protected KeyValueService kvs;
