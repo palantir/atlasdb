@@ -32,8 +32,9 @@ public abstract class AbstractBatchingVisitable<T> implements BatchingVisitable<
     final public <K extends Exception> boolean batchAccept(int batchSize, AbortingVisitor<? super List<T>, K> v) throws K {
         Preconditions.checkArgument(batchSize > 0);
         if (v instanceof ConsistentVisitor) {
-            @SuppressWarnings({ "unchecked", "rawtypes" })
-            ConsistentVisitor<T, K> consistentVisitor = (ConsistentVisitor) v;
+            @SuppressWarnings("unchecked")
+            AbortingVisitor<List<T>, K> v2 = (AbortingVisitor<List<T>, K>) v;
+            ConsistentVisitor<T, K> consistentVisitor = (ConsistentVisitor<T, K>) v2;
             Preconditions.checkState(consistentVisitor.visitorAlwaysReturnedTrue,
                     "passed a visitor that has already said stop");
             batchAcceptSizeHint(batchSize, consistentVisitor);

@@ -62,7 +62,7 @@ public class CQLExpiringKeyValueService extends CQLKeyValueService implements Ex
     @Override
     public void put(final String tableName, final Map<Cell, byte[]> values, final long timestamp, final long time, final TimeUnit unit) {
         try {
-            putInternal(tableName, KeyValueServices.toConstantTimestampValues(values.entrySet(), timestamp), TransactionType.NONE, CassandraKeyValueServices.convertTtl(time, unit));
+            putInternal(tableName, KeyValueServices.toConstantTimestampValues(values.entrySet(), timestamp), TransactionType.NONE, CassandraKeyValueServices.convertTtl(time, unit), false);
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
@@ -71,7 +71,7 @@ public class CQLExpiringKeyValueService extends CQLKeyValueService implements Ex
     @Override
     public void putWithTimestamps(String tableName, Multimap<Cell, Value> values, final long time, final TimeUnit unit) {
         try {
-            putInternal(tableName, values.entries(), TransactionType.NONE, CassandraKeyValueServices.convertTtl(time, unit));
+            putInternal(tableName, values.entries(), TransactionType.NONE, CassandraKeyValueServices.convertTtl(time, unit), false);
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }

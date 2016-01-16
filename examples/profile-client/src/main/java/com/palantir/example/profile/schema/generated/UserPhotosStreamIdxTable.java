@@ -15,7 +15,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 
-
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -107,7 +106,7 @@ public final class UserPhotosStreamIdxTable implements
 
     private UserPhotosStreamIdxTable(Transaction t, Namespace namespace, List<UserPhotosStreamIdxTrigger> triggers) {
         this.t = t;
-        this.tableName = namespace.getName() + "." + rawTableName;
+        this.tableName = namespace.getName().isEmpty() ? rawTableName : namespace.getName() + "." + rawTableName;
         this.triggers = triggers;
         this.namespace = namespace;
     }
@@ -644,5 +643,85 @@ public final class UserPhotosStreamIdxTable implements
         return ImmutableList.of();
     }
 
-    static String __CLASS_HASH = "m8tnFTsL/evHVevvenmsGg==";
+    /**
+     * This exists to avoid unused import warnings
+     * {@link AbortingVisitor}
+     * {@link AbortingVisitors}
+     * {@link ArrayListMultimap}
+     * {@link Arrays}
+     * {@link AssertUtils}
+     * {@link AsyncProxy}
+     * {@link AtlasDbConstraintCheckingMode}
+     * {@link AtlasDbDynamicMutableExpiringTable}
+     * {@link AtlasDbDynamicMutablePersistentTable}
+     * {@link AtlasDbMutableExpiringTable}
+     * {@link AtlasDbMutablePersistentTable}
+     * {@link AtlasDbNamedExpiringSet}
+     * {@link AtlasDbNamedMutableTable}
+     * {@link AtlasDbNamedPersistentSet}
+     * {@link BatchingVisitable}
+     * {@link BatchingVisitableView}
+     * {@link BatchingVisitables}
+     * {@link Bytes}
+     * {@link Callable}
+     * {@link Cell}
+     * {@link Cells}
+     * {@link Collection}
+     * {@link Collections2}
+     * {@link ColumnSelection}
+     * {@link ColumnValue}
+     * {@link ColumnValues}
+     * {@link ComparisonChain}
+     * {@link Compression}
+     * {@link CompressionUtils}
+     * {@link ConstraintCheckingTransaction}
+     * {@link Descending}
+     * {@link EncodingUtils}
+     * {@link Entry}
+     * {@link EnumSet}
+     * {@link ExecutorService}
+     * {@link Function}
+     * {@link HashMultimap}
+     * {@link HashSet}
+     * {@link Hashing}
+     * {@link Hydrator}
+     * {@link ImmutableList}
+     * {@link ImmutableMap}
+     * {@link ImmutableMultimap}
+     * {@link ImmutableSet}
+     * {@link InvalidProtocolBufferException}
+     * {@link IterableView}
+     * {@link Iterables}
+     * {@link Iterator}
+     * {@link Joiner}
+     * {@link List}
+     * {@link Lists}
+     * {@link Map}
+     * {@link Maps}
+     * {@link MoreObjects}
+     * {@link Multimap}
+     * {@link Multimaps}
+     * {@link NamedColumnValue}
+     * {@link Namespace}
+     * {@link Objects}
+     * {@link Optional}
+     * {@link Persistable}
+     * {@link Persistables}
+     * {@link Prefix}
+     * {@link PtBytes}
+     * {@link RangeRequest}
+     * {@link RowResult}
+     * {@link Set}
+     * {@link Sets}
+     * {@link Sha256Hash}
+     * {@link SortedMap}
+     * {@link Supplier}
+     * {@link Throwables}
+     * {@link TimeUnit}
+     * {@link Transaction}
+     * {@link TypedRowResult}
+     * {@link UnsignedBytes}
+     * {@link ValueType}
+     */
+    static String __CLASS_HASH = "v+K9459ZalQv2WcldskOPA==";
 }

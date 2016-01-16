@@ -440,7 +440,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
         try {
             StartTsResultsCollector collector = new StartTsResultsCollector(startTs);
-            loadWithTs(tableName, cells, startTs, collector, readConsistency);
+            loadWithTs(tableName, cells, startTs, false, collector, readConsistency);
             return collector.collectedResults;
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
@@ -458,7 +458,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             Long firstTs = timestampByCell.values().iterator().next();
             if (Iterables.all(timestampByCell.values(), Predicates.equalTo(firstTs))) {
                 StartTsResultsCollector collector = new StartTsResultsCollector(firstTs);
-                loadWithTs(tableName, timestampByCell.keySet(), firstTs, collector, readConsistency);
+                loadWithTs(tableName, timestampByCell.keySet(), firstTs, false, collector, readConsistency);
                 return collector.collectedResults;
             }
 
@@ -467,7 +467,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             Builder<Cell, Value> builder = ImmutableMap.builder();
             for (long ts : cellsByTs.keySet()) {
                 StartTsResultsCollector collector = new StartTsResultsCollector(ts);
-                loadWithTs(tableName, cellsByTs.get(ts), ts, collector, readConsistency);
+                loadWithTs(tableName, cellsByTs.get(ts), ts, false, collector, readConsistency);
                 builder.putAll(collector.collectedResults);
             }
             return builder.build();
@@ -479,17 +479,19 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     private void loadWithTs(String tableName,
                             Set<Cell> cells,
                             long startTs,
+                            boolean loadAllTs,
                             ThreadSafeResultVisitor v,
                             ConsistencyLevel consistency) throws Exception {
         List<Callable<Void>> tasks = Lists.newArrayList();
         for (Map.Entry<InetAddress, List<Cell>> hostAndCells : partitionByHost(cells,
-                Cells.getRowFunction()).entrySet()) {
+                                                                               Cells.getRowFunction()).entrySet()) {
             tasks.addAll(getLoadWithTsTasksForSingleHost(hostAndCells.getKey(),
-                    tableName,
-                    hostAndCells.getValue(),
-                    startTs,
-                    v,
-                    consistency));
+                                                         tableName,
+                                                         hostAndCells.getValue(),
+                                                         startTs,
+                                                         loadAllTs,
+                                                         v,
+                                                         consistency));
         }
         runAllTasksCancelOnFailure(tasks);
     }
@@ -499,6 +501,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                                                                  final String tableName,
                                                                  Collection<Cell> cells,
                                                                  final long startTs,
+                                                                 final boolean loadAllTs,
                                                                  final ThreadSafeResultVisitor v,
                                                                  final ConsistencyLevel consistency) throws Exception {
         final ColumnParent colFam = new ColumnParent(internalTableName(tableName));
@@ -527,7 +530,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                             public Void apply(Client client) throws Exception {
                                 ByteBuffer start = CassandraKeyValueServices.makeCompositeBuffer(col, startTs - 1);
                                 ByteBuffer end = CassandraKeyValueServices.makeCompositeBuffer(col, -1);
-                                SliceRange slice = new SliceRange(start, end, false, 1);
+                                SliceRange slice = new SliceRange(start, end, false, loadAllTs ? Integer.MAX_VALUE : 1);
                                 SlicePredicate pred = new SlicePredicate();
                                 pred.setSlice_range(slice);
 
@@ -822,7 +825,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                                                                         ColumnParent colFam,
                                                                         SlicePredicate pred,
                                                                         ConsistencyLevel consistency) throws TException {
-
         Map<ByteBuffer, List<ColumnOrSuperColumn>> results;
         if (shouldTraceQuery(tableName)) {
             ByteBuffer recv_trace = client.trace_next_query();
@@ -1332,7 +1334,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                         } else {
                             contents = value.getContents();
                         }
-
                         tableToMetadataContents.put(tableName, contents);
                     } else {
                         log.info("Non-existing table {}: {}", tableName, value);
@@ -1411,7 +1412,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     private void putMetadataWithoutChangingSettings(final String tableName, final byte[] meta) {
-        put(CassandraConstants.METADATA_TABLE, ImmutableMap.of(getMetadataCell(tableName), meta), System.currentTimeMillis());
+        put(CassandraConstants.METADATA_TABLE, ImmutableMap.of(getMetadataCell(tableName), meta), 0L);
     }
 
     @Override
@@ -1444,7 +1445,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     public Multimap<Cell, Long> getAllTimestamps(String tableName, Set<Cell> cells, long ts) {
         AllTimestampsCollector collector = new AllTimestampsCollector();
         try {
-            loadWithTs(tableName, cells, ts, collector, deleteConsistency);
+            loadWithTs(tableName, cells, ts, true, collector, deleteConsistency);
         } catch (UnavailableException e) {
             throw new InsufficientConsistencyException("Get all timestamps requires all Cassandra nodes to be up and available.", e);
         } catch (Exception e) {

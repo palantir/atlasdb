@@ -34,8 +34,14 @@ public class StreamTestSchema implements AtlasSchema {
                 Namespace.DEFAULT_NAMESPACE);
 
         schema.addStreamStoreDefinition("stream_test", "stream_test", ValueType.VAR_LONG, 4000);
-
-        schema.addStreamStoreDefinition("stream_test_2", "stream_test_2", ValueType.VAR_LONG, 4000, ExpirationStrategy.INDIVIDUALLY_SPECIFIED, false, false);
+        schema.addStreamStoreDefinition(
+                "stream_test_with_hash",
+                "stream_test_with_hash",
+                ValueType.VAR_LONG,
+                4000,
+                ExpirationStrategy.INDIVIDUALLY_SPECIFIED,
+                true,
+                true);
 
         return schema;
     }

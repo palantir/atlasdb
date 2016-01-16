@@ -1,35 +1,61 @@
 package com.palantir.atlasdb.schema.stream.generated;
 
+import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
+import com.google.common.io.CountingInputStream;
+import com.google.common.primitives.Ints;
 import com.google.protobuf.ByteString;
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.Status;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata.Builder;
+import com.palantir.atlasdb.stream.AbstractExpiringStreamStore;
 import com.palantir.atlasdb.stream.AbstractPersistentStreamStore;
+import com.palantir.atlasdb.stream.ExpiringStreamStore;
+import com.palantir.atlasdb.stream.PersistentStreamStore;
+import com.palantir.atlasdb.stream.StreamCleanedException;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.atlasdb.transaction.api.TransactionTask;
+import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.io.ConcatenatedInputStream;
 import com.palantir.util.AssertUtils;
+import com.palantir.util.ByteArrayIOStream;
 import com.palantir.util.crypto.Sha256Hash;
+import com.palantir.util.file.DeleteOnCloseFileInputStream;
 import com.palantir.util.file.TempFileUtils;
 
 
@@ -328,5 +354,64 @@ public final class StreamTestStreamStore extends AbstractPersistentStreamStore {
         }
     }
 
+    /**
+     * This exists to avoid unused import warnings
+     * {@link AbstractExpiringStreamStore}
+     * {@link AbstractPersistentStreamStore}
+     * {@link ArrayListMultimap}
+     * {@link Arrays}
+     * {@link AssertUtils}
+     * {@link BufferedInputStream}
+     * {@link Builder}
+     * {@link ByteArrayIOStream}
+     * {@link ByteArrayInputStream}
+     * {@link ByteString}
+     * {@link Cell}
+     * {@link CheckForNull}
+     * {@link Collection}
+     * {@link Collections2}
+     * {@link ConcatenatedInputStream}
+     * {@link CountingInputStream}
+     * {@link DeleteOnCloseFileInputStream}
+     * {@link DigestInputStream}
+     * {@link Entry}
+     * {@link ExpiringStreamStore}
+     * {@link File}
+     * {@link FileNotFoundException}
+     * {@link FileOutputStream}
+     * {@link HashMultimap}
+     * {@link IOException}
+     * {@link ImmutableMap}
+     * {@link ImmutableSet}
+     * {@link InputStream}
+     * {@link Ints}
+     * {@link List}
+     * {@link Lists}
+     * {@link Logger}
+     * {@link LoggerFactory}
+     * {@link Map}
+     * {@link Maps}
+     * {@link MessageDigest}
+     * {@link Multimap}
+     * {@link Multimaps}
+     * {@link OutputStream}
+     * {@link PersistentStreamStore}
+     * {@link Preconditions}
+     * {@link Set}
+     * {@link SetView}
+     * {@link Sets}
+     * {@link Sha256Hash}
+     * {@link Status}
+     * {@link StreamCleanedException}
+     * {@link StreamMetadata}
+     * {@link TempFileUtils}
+     * {@link Throwables}
+     * {@link TimeUnit}
+     * {@link Transaction}
+     * {@link TransactionFailedRetriableException}
+     * {@link TransactionManager}
+     * {@link TransactionTask}
+     * {@link TxTask}
+     */
     static final int dummy = 0;
 }

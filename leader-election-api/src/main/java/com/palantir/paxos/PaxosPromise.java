@@ -35,6 +35,7 @@ public class PaxosPromise implements Comparable<PaxosPromise>, PaxosResponse {
     private static final long serialVersionUID = 1L;
 
     final boolean ack;
+
     @Nonnull final PaxosProposalId promisedId;
     @Nullable final PaxosProposalId lastAcceptedId;
     @Nullable final PaxosValue lastAcceptedValue;
@@ -68,6 +69,7 @@ public class PaxosPromise implements Comparable<PaxosPromise>, PaxosResponse {
     }
 
     @Override
+    // XXX Contrary to common wisdom, this is NOT consistent with equals().
     public int compareTo(PaxosPromise o) {
         // nulls are less than non-nulls so nacks are less than acks
         return new CompareToBuilder().append(lastAcceptedId, o.lastAcceptedId).toComparison();
@@ -88,5 +90,67 @@ public class PaxosPromise implements Comparable<PaxosPromise>, PaxosResponse {
 
     public PaxosValue getLastAcceptedValue() {
         return lastAcceptedValue;
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + (ack ? 1231 : 1237);
+        result = prime * result
+                + ((lastAcceptedId == null) ? 0 : lastAcceptedId.hashCode());
+        result = prime
+                * result
+                + ((lastAcceptedValue == null) ? 0
+                : lastAcceptedValue.hashCode());
+        result = prime * result
+                + ((promisedId == null) ? 0 : promisedId.hashCode());
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        PaxosPromise other = (PaxosPromise) obj;
+        if (ack != other.ack) {
+            return false;
+        }
+        if (lastAcceptedId == null) {
+            if (other.lastAcceptedId != null) {
+                return false;
+            }
+        } else if (!lastAcceptedId.equals(other.lastAcceptedId)) {
+            return false;
+        }
+        if (lastAcceptedValue == null) {
+            if (other.lastAcceptedValue != null) {
+                return false;
+            }
+        } else if (!lastAcceptedValue.equals(other.lastAcceptedValue)) {
+            return false;
+        }
+        if (promisedId == null) {
+            if (other.promisedId != null) {
+                return false;
+            }
+        } else if (!promisedId.equals(other.promisedId)) {
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    public String toString() {
+        return "PaxosPromise [ack=" + ack + ", promisedId=" + promisedId
+                + ", lastAcceptedId=" + lastAcceptedId + ", lastAcceptedValue="
+                + lastAcceptedValue + "]";
     }
 }

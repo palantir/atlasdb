@@ -26,18 +26,19 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.concurrent.locks.ReentrantLock;
 
 import javax.annotation.Nullable;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
-import com.google.common.io.Closeables;
-import com.google.common.io.Files;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
@@ -45,7 +46,6 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.persist.Persistable;
 import com.palantir.paxos.persistence.generated.PaxosPersistence;
 import com.palantir.util.crypto.Sha256Hash;
-import com.palantir.util.file.TempFileUtils;
 
 public class PaxosStateLogImpl<V extends Persistable & Versionable> implements PaxosStateLog<V> {
 
@@ -89,12 +89,12 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
     public PaxosStateLogImpl(String path) {
         this.path = path;
         try {
-            TempFileUtils.mkdirsWithRetry(new File(path));
+            FileUtils.forceMkdir(new File(path));
             if (getGreatestLogEntry() == PaxosAcceptor.NO_LOG_ENTRY) {
                 // For a brand new log, we create a lowest entry so #getLeastLogEntry will return the right thing
                 // If we didn't add this then we could miss seq 0 and accept seq 1, then when we restart we will
                 // start ignoring seq 0 which may cause things to get stalled
-                Files.touch(new File(path, getFilenameFromSeq(PaxosAcceptor.NO_LOG_ENTRY)));
+                FileUtils.touch(new File(path, getFilenameFromSeq(PaxosAcceptor.NO_LOG_ENTRY)));
             }
         } catch (IOException e) {
             throw new RuntimeException("IO problem related to the path " + new File(path).getAbsolutePath(), e);
@@ -141,7 +141,7 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
             log.error("problem writing paxos state", e);
             throw Throwables.throwUncheckedException(e);
         } finally {
-            try { fileOut.close(); } catch (IOException e) {}
+            IOUtils.closeQuietly(fileOut);
         }
 
         // overwrite file with tmp
@@ -186,15 +186,19 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
         try {
             File dir = new File(path);
             List<File> files = getLogEntries(dir);
-            if (files == null || files.isEmpty()) {
+            if (files == null) {
                 return PaxosAcceptor.NO_LOG_ENTRY;
             }
 
-            File file = (extreme == Extreme.GREATEST)
-                    ? Collections.max(files, nameAsLongComparator())
-                    : Collections.min(files, nameAsLongComparator());
-            long seq = getSeqFromFilename(file);
-            return seq;
+            try {
+                File file = (extreme == Extreme.GREATEST)
+                        ? Collections.max(files, nameAsLongComparator())
+                        : Collections.min(files, nameAsLongComparator());
+                long seq = getSeqFromFilename(file);
+                return seq;
+            } catch (NoSuchElementException e) {
+                return PaxosAcceptor.NO_LOG_ENTRY;
+            }
         } finally {
             lock.unlock();
         }
@@ -264,7 +268,7 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
                 log.error("problem reading paxos state");
                 throw Throwables.rewrap(e);
             } finally {
-                Closeables.closeQuietly(fileIn);
+                IOUtils.closeQuietly(fileIn);
             }
         } finally {
             lock.unlock();
