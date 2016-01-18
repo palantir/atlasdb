@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.table.description.render;
 
 import java.util.Collection;
-import java.util.Map;
 import java.util.SortedSet;
 
 import com.google.common.collect.ImmutableList;

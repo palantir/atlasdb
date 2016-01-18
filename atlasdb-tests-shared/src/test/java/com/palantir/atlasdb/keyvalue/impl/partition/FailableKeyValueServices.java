@@ -20,26 +20,34 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.NavigableMap;
 import java.util.Random;
 import java.util.Set;
 
+import org.apache.commons.lang.ArrayUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.google.common.primitives.UnsignedBytes;
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.PartitionedKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
+import com.palantir.atlasdb.keyvalue.partition.endpoint.InMemoryKeyValueEndpoint;
+import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
+import com.palantir.atlasdb.keyvalue.partition.map.DynamicPartitionMapImpl;
 import com.palantir.atlasdb.keyvalue.partition.map.InMemoryPartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters.QuorumRequestParameters;
-import com.palantir.atlasdb.keyvalue.remoting.Utils;
+import com.palantir.common.concurrent.PTExecutors;
 
 public class FailableKeyValueServices {
 
@@ -235,6 +243,23 @@ public class FailableKeyValueServices {
         };
     }
 
+    public static DynamicPartitionMap createInMemoryMap(Collection<? extends KeyValueService> services, QuorumParameters parameters) {
+        ArrayList<Byte> keyList = new ArrayList<>();
+        NavigableMap<byte[], KeyValueEndpoint> ring = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
+        keyList.add((byte) 0);
+        for (KeyValueService kvs : services) {
+            KeyValueEndpoint endpoint = InMemoryKeyValueEndpoint.create(kvs, InMemoryPartitionMapService.createEmpty());
+            byte[] key = ArrayUtils.toPrimitive(keyList.toArray(new Byte[keyList.size()]));
+            ring.put(key, endpoint);
+            keyList.add((byte) 0);
+        }
+        DynamicPartitionMap partitionMap = DynamicPartitionMapImpl.create(parameters, ring, PTExecutors.newCachedThreadPool());
+        for (KeyValueEndpoint endpoint : ring.values()) {
+            endpoint.partitionMapService().updateMap(partitionMap);
+        }
+        return partitionMap;
+    }
+
     public static KeyValueService sampleFailingKeyValueService() {
         Set<FailableKeyValueService> svcs = Sets.newHashSet();
         Set<KeyValueService> rawSvcs = Sets.newHashSet();
@@ -245,7 +270,7 @@ public class FailableKeyValueServices {
             svcs.add(fkvs);
             rawSvcs.add(fkvs.get());
         }
-        DynamicPartitionMap dynamicMap = Utils.createInMemoryMap(rawSvcs, quorumParameters);
+        DynamicPartitionMap dynamicMap = createInMemoryMap(rawSvcs, quorumParameters);
         ImmutableList<PartitionMapService> mapServices = ImmutableList.<PartitionMapService> of(InMemoryPartitionMapService.create(dynamicMap));
         PartitionedKeyValueService parition = PartitionedKeyValueService
                 .create(quorumParameters, mapServices);

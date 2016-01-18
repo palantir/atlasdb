@@ -50,7 +50,7 @@ public class PaxosLearnerImpl implements PaxosLearner {
     final PaxosStateLog<PaxosValue> log;
 
     private PaxosLearnerImpl(SortedMap<Long, PaxosValue> stateWithGreatestValueFromLog,
-                            PaxosStateLog<PaxosValue> log) {
+                             PaxosStateLog<PaxosValue> log) {
         this.state = stateWithGreatestValueFromLog;
         this.log = log;
     }

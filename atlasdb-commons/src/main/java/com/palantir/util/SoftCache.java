@@ -87,18 +87,6 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
      *******************
      */
 
-    @Deprecated
-    public void  stopCleanupThread() {
-//        This operation does nothing
-//        Do not call it anymore
-    }
-
-    @Deprecated
-    public void startCleanupThread() {
-//        This operation does nothing
-//        Do not call it anymore
-    }
-
     private synchronized void removeReference(Reference<? extends V> ref){
         if (ref instanceof KeyedReference){
             Object key = ((KeyedReference) ref).getKey();
@@ -156,10 +144,11 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
      */
     public synchronized V putIfAbsent(K key, V value)
     {
-        if (!containsKey(key))
+        if (!containsKey(key)) {
             return put(key, value);
-        else
+        } else {
             return get(key);
+        }
     }
 
     public synchronized void putAll(Map<? extends K, ? extends V> map) {

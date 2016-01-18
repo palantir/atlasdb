@@ -24,7 +24,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
@@ -38,7 +37,7 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServiceImpl;
 import com.palantir.atlasdb.transaction.service.WriteAheadLogManager;
 
-public class TransactionServiceTest extends Assert {
+public class TransactionServiceTest {
 
     private static final ExecutorService executor = Executors.newCachedThreadPool();
     private static final long FLUSH_PERIOD = 100;

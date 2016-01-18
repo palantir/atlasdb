@@ -42,8 +42,8 @@ public class PaxosAcceptorImpl implements PaxosAcceptor {
     final long greatestInLogAtStartup;
 
     private PaxosAcceptorImpl(ConcurrentSkipListMap<Long, PaxosAcceptorState> state,
-                             PaxosStateLog<PaxosAcceptorState> log,
-                             long greatestInLogAtStartup) {
+                              PaxosStateLog<PaxosAcceptorState> log,
+                              long greatestInLogAtStartup) {
         this.state = state;
         this.log = log;
         this.greatestInLogAtStartup = greatestInLogAtStartup;
@@ -107,12 +107,9 @@ public class PaxosAcceptorImpl implements PaxosAcceptor {
             }
 
             // ack
-            final PaxosAcceptorState newState;
-            if (oldState == null) {
-                newState = PaxosAcceptorState.newState(proposal);
-            } else {
-                newState = oldState.withState(proposal.id, proposal.id, proposal.val);
-            }
+            PaxosAcceptorState newState = oldState != null
+                    ? oldState.withState(proposal.id, proposal.id, proposal.val)
+                    : PaxosAcceptorState.newState(proposal.id);
             if ((oldState == null && state.putIfAbsent(seq, newState) == null)
                     || (oldState != null && state.replace(seq, oldState, newState))) {
                 log.writeRound(seq, newState);

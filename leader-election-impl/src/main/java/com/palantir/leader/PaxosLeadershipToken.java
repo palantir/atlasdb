@@ -15,8 +15,6 @@
  */
 package com.palantir.leader;
 
-import javax.annotation.CheckForNull;
-
 import org.apache.commons.lang.builder.CompareToBuilder;
 
 import com.palantir.common.annotation.Immutable;
@@ -27,9 +25,9 @@ import com.palantir.paxos.PaxosValue;
 public class PaxosLeadershipToken implements LeadershipToken {
     private static final long serialVersionUID = 1L;
 
-    @CheckForNull final PaxosValue value;
+    final PaxosValue value;
 
-    public PaxosLeadershipToken(@CheckForNull PaxosValue value) {
+    public PaxosLeadershipToken(PaxosValue value) {
         this.value = value;
     }
 
@@ -44,9 +42,39 @@ public class PaxosLeadershipToken implements LeadershipToken {
         }
         return value != null && v != null
                 && (new CompareToBuilder().append(value.getLeaderUUID(), v.getLeaderUUID())
-                                          .append(value.getRound(), v.getRound())
-                                          .append(value.getData(), v.getData())
-                                          .toComparison() == 0);
+                .append(value.getRound(), v.getRound())
+                .append(value.getData(), v.getData())
+                .toComparison() == 0);
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((value == null) ? 0 : value.hashCode());
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        PaxosLeadershipToken other = (PaxosLeadershipToken) obj;
+        if (value == null) {
+            if (other.value != null) {
+                return false;
+            }
+        } else if (!value.equals(other.value)) {
+            return false;
+        }
+        return true;
     }
 
     @Override
