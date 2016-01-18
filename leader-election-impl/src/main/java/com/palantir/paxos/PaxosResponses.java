@@ -18,6 +18,7 @@ package com.palantir.paxos;
 import javax.annotation.Nullable;
 
 import com.google.common.base.Predicate;
+import com.palantir.paxos.persistence.generated.remoting.PaxosAcceptorPersistence;
 
 public class PaxosResponses {
     public static Predicate<PaxosResponse> isSuccessfulPredicate() {
@@ -27,5 +28,16 @@ public class PaxosResponses {
                 return response != null && response.isSuccessful();
             }
         };
+    }
+
+    public static PaxosAcceptorPersistence.PaxosResponse toProto(PaxosResponse result) {
+        return PaxosAcceptorPersistence.PaxosResponse.newBuilder().
+                setAck(result.isSuccessful()).
+                build();
+    }
+
+    public static PaxosResponse fromProto(PaxosAcceptorPersistence.PaxosResponse proto) {
+        boolean ack = proto.getAck();
+        return new PaxosResponseImpl(ack);
     }
 }

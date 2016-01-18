@@ -2,6 +2,9 @@ package com.palantir.atlasdb.schema.stream.generated;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -9,11 +12,16 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+
 
 import com.google.common.base.Function;
+import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
+import com.google.common.base.Supplier;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.HashMultimap;
@@ -21,37 +29,56 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
+import com.google.common.hash.Hashing;
+import com.google.common.primitives.Bytes;
+import com.google.common.primitives.UnsignedBytes;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.Prefix;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.schema.Namespace;
+import com.palantir.atlasdb.table.api.AtlasDbDynamicMutableExpiringTable;
+import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
+import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutablePersistentTable;
+import com.palantir.atlasdb.table.api.AtlasDbNamedExpiringSet;
 import com.palantir.atlasdb.table.api.AtlasDbNamedMutableTable;
+import com.palantir.atlasdb.table.api.AtlasDbNamedPersistentSet;
+import com.palantir.atlasdb.table.api.ColumnValue;
 import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
+import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
+import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckingTransaction;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.common.base.AbortingVisitor;
+import com.palantir.common.base.AbortingVisitors;
+import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitableView;
 import com.palantir.common.base.BatchingVisitables;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.collect.IterableView;
 import com.palantir.common.persist.Persistable;
 import com.palantir.common.persist.Persistable.Hydrator;
 import com.palantir.common.persist.Persistables;
 import com.palantir.common.proxy.AsyncProxy;
+import com.palantir.util.AssertUtils;
+import com.palantir.util.crypto.Sha256Hash;
 
 
 public final class StreamTestStreamMetadataTable implements
@@ -81,7 +108,7 @@ public final class StreamTestStreamMetadataTable implements
 
     private StreamTestStreamMetadataTable(Transaction t, Namespace namespace, List<StreamTestStreamMetadataTrigger> triggers) {
         this.t = t;
-        this.tableName = namespace.getName() + "." + rawTableName;
+        this.tableName = namespace.getName().isEmpty() ? rawTableName : namespace.getName() + "." + rawTableName;
         this.triggers = triggers;
         this.namespace = namespace;
     }
@@ -597,5 +624,85 @@ public final class StreamTestStreamMetadataTable implements
         return ImmutableList.of();
     }
 
-    static String __CLASS_HASH = "tt1XSgXcdiAxpKlhW1LrFg==";
+    /**
+     * This exists to avoid unused import warnings
+     * {@link AbortingVisitor}
+     * {@link AbortingVisitors}
+     * {@link ArrayListMultimap}
+     * {@link Arrays}
+     * {@link AssertUtils}
+     * {@link AsyncProxy}
+     * {@link AtlasDbConstraintCheckingMode}
+     * {@link AtlasDbDynamicMutableExpiringTable}
+     * {@link AtlasDbDynamicMutablePersistentTable}
+     * {@link AtlasDbMutableExpiringTable}
+     * {@link AtlasDbMutablePersistentTable}
+     * {@link AtlasDbNamedExpiringSet}
+     * {@link AtlasDbNamedMutableTable}
+     * {@link AtlasDbNamedPersistentSet}
+     * {@link BatchingVisitable}
+     * {@link BatchingVisitableView}
+     * {@link BatchingVisitables}
+     * {@link Bytes}
+     * {@link Callable}
+     * {@link Cell}
+     * {@link Cells}
+     * {@link Collection}
+     * {@link Collections2}
+     * {@link ColumnSelection}
+     * {@link ColumnValue}
+     * {@link ColumnValues}
+     * {@link ComparisonChain}
+     * {@link Compression}
+     * {@link CompressionUtils}
+     * {@link ConstraintCheckingTransaction}
+     * {@link Descending}
+     * {@link EncodingUtils}
+     * {@link Entry}
+     * {@link EnumSet}
+     * {@link ExecutorService}
+     * {@link Function}
+     * {@link HashMultimap}
+     * {@link HashSet}
+     * {@link Hashing}
+     * {@link Hydrator}
+     * {@link ImmutableList}
+     * {@link ImmutableMap}
+     * {@link ImmutableMultimap}
+     * {@link ImmutableSet}
+     * {@link InvalidProtocolBufferException}
+     * {@link IterableView}
+     * {@link Iterables}
+     * {@link Iterator}
+     * {@link Joiner}
+     * {@link List}
+     * {@link Lists}
+     * {@link Map}
+     * {@link Maps}
+     * {@link MoreObjects}
+     * {@link Multimap}
+     * {@link Multimaps}
+     * {@link NamedColumnValue}
+     * {@link Namespace}
+     * {@link Objects}
+     * {@link Optional}
+     * {@link Persistable}
+     * {@link Persistables}
+     * {@link Prefix}
+     * {@link PtBytes}
+     * {@link RangeRequest}
+     * {@link RowResult}
+     * {@link Set}
+     * {@link Sets}
+     * {@link Sha256Hash}
+     * {@link SortedMap}
+     * {@link Supplier}
+     * {@link Throwables}
+     * {@link TimeUnit}
+     * {@link Transaction}
+     * {@link TypedRowResult}
+     * {@link UnsignedBytes}
+     * {@link ValueType}
+     */
+    static String __CLASS_HASH = "98DAhrEvUw9ZA/6/dXYzeQ==";
 }

@@ -35,7 +35,7 @@ import com.palantir.paxos.persistence.generated.PaxosPersistence;
 public class PaxosProposalId implements Comparable<PaxosProposalId>, Serializable {
     private static final long serialVersionUID = 1L;
 
-    private final long number;
+    final long number;
     @Nonnull
     private final String proposerUUID;
 

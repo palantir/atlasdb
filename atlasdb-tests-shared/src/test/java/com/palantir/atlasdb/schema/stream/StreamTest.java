@@ -26,6 +26,9 @@ import com.palantir.atlasdb.AtlasDbTestCase;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestStreamStore;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestTableFactory;
+import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxRow;
+import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow;
+import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueRow;
 import com.palantir.atlasdb.stream.PersistentStreamStore;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -67,5 +70,32 @@ public class StreamTest extends AtlasDbTestCase {
                 return null;
             }
         });
+    }
+
+    @Test
+    public void testStreamStoreWithHashValueRowPersistToBytesAndHydrateSucceeds() {
+        StreamTestWithHashStreamValueRow row = StreamTestWithHashStreamValueRow.of(5L, 5L);
+        byte[] persistedRow = row.persistToBytes();
+        StreamTestWithHashStreamValueRow hydratedRow =
+                StreamTestWithHashStreamValueRow.BYTES_HYDRATOR.hydrateFromBytes(persistedRow);
+        Assert.assertEquals(row, hydratedRow);
+    }
+
+    @Test
+    public void testStreamStoreWithHashMetadataRowPersistToBytesAndHydrateSucceeds() {
+        StreamTestWithHashStreamMetadataRow row = StreamTestWithHashStreamMetadataRow.of(5L);
+        byte[] persistedRow = row.persistToBytes();
+        StreamTestWithHashStreamMetadataRow hydratedRow =
+                StreamTestWithHashStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(persistedRow);
+        Assert.assertEquals(row, hydratedRow);
+    }
+
+    @Test
+    public void testStreamStoreWithHashIdxRowPersistToBytesAndHydrateSucceeds() {
+        StreamTestWithHashStreamIdxRow row = StreamTestWithHashStreamIdxRow.of(5L);
+        byte[] persistedRow = row.persistToBytes();
+        StreamTestWithHashStreamIdxRow hydratedRow =
+                StreamTestWithHashStreamIdxRow.BYTES_HYDRATOR.hydrateFromBytes(persistedRow);
+        Assert.assertEquals(row, hydratedRow);
     }
 }

@@ -216,17 +216,20 @@ public class TableTasks {
         private final AtomicLong rowsOnlyInSource;
         private final AtomicLong rowsPartiallyInCommon;
         private final AtomicLong rowsCompletelyInCommon;
+        private final AtomicLong rowsVisited;
         private final AtomicLong cellsOnlyInSource;
         private final AtomicLong cellsInCommon;
 
         public DiffStats(AtomicLong rowsOnlyInSource,
                          AtomicLong rowsPartiallyInCommon,
                          AtomicLong rowsCompletelyInCommon,
+                         AtomicLong rowsVisited,
                          AtomicLong cellsOnlyInSource,
                          AtomicLong cellsInCommon) {
             this.rowsOnlyInSource = rowsOnlyInSource;
             this.rowsPartiallyInCommon = rowsPartiallyInCommon;
             this.rowsCompletelyInCommon = rowsCompletelyInCommon;
+            this.rowsVisited = rowsVisited;
             this.cellsOnlyInSource = cellsOnlyInSource;
             this.cellsInCommon = cellsInCommon;
         }
@@ -236,6 +239,7 @@ public class TableTasks {
         private long rowsOnlyInSource;
         private long rowsPartiallyInCommon;
         private long rowsCompletelyInCommon;
+        private long rowsVisited;
         private long cellsOnlyInSource;
         private long cellsInCommon;
     }
@@ -321,16 +325,19 @@ public class TableTasks {
                             stats.rowsOnlyInSource.addAndGet(partialStats.rowsOnlyInSource);
                             stats.rowsPartiallyInCommon.addAndGet(partialStats.rowsPartiallyInCommon);
                             stats.rowsCompletelyInCommon.addAndGet(partialStats.rowsCompletelyInCommon);
+                            stats.rowsVisited.addAndGet(partialStats.rowsVisited);
                             stats.cellsOnlyInSource.addAndGet(partialStats.cellsOnlyInSource);
                             stats.cellsInCommon.addAndGet(partialStats.cellsInCommon);
                             if (log.isInfoEnabled()) {
                                 log.info("Processed diff of " +
+                                        "{} rows " +
                                         "{} rows only in source " +
                                         "{} rows partially in common " +
                                         "{} rows completely in common " +
                                         "{} cells only in source " +
                                         "{} cells in common " +
                                         "between {} and {} in {} ms.",
+                                        partialStats.rowsVisited,
                                         partialStats.rowsOnlyInSource,
                                         partialStats.rowsPartiallyInCommon,
                                         partialStats.rowsCompletelyInCommon,
@@ -381,10 +388,11 @@ public class TableTasks {
                 partialStats.rowsOnlyInSource = 0;
                 partialStats.rowsPartiallyInCommon = 0;
                 partialStats.rowsCompletelyInCommon = 0;
+                partialStats.rowsVisited = 0;
                 partialStats.cellsOnlyInSource = 0;
                 partialStats.cellsInCommon = 0;
                 byte[] lastRow = batch.get(batch.size() - 1).getRowName();
-                if (batch.size() < batch.size()) {
+                if (batch.size() < range.getBatchSize()) {
                     range.setStartRow(null);
                 } else {
                     range.setStartRow(RangeRequests.nextLexicographicName(lastRow));
@@ -399,6 +407,7 @@ public class TableTasks {
                             ColumnSelection.all()).values();
                 }
                 visitor.visit(t, diffInternal(asCells(batch), asCells(toRemove), partialStats));
+                partialStats.rowsVisited += batch.size();
                 return false;
             }
         });

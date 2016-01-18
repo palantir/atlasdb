@@ -52,6 +52,7 @@ import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.SocketOptions;
+import com.datastax.driver.core.exceptions.InvalidQueryException;
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
 import com.datastax.driver.core.exceptions.UnavailableException;
 import com.datastax.driver.core.policies.LatencyAwarePolicy;
@@ -127,6 +128,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     private final ConsistencyLevel writeConsistency = ConsistencyLevel.EACH_QUORUM;
     private final ConsistencyLevel deleteConsistency = ConsistencyLevel.ALL;
 
+    private boolean limitBatchSizesToServerDefaults = false;
 
     public static CQLKeyValueService create(CassandraKeyValueServiceConfigManager configManager) {
         Optional<CassandraJmxCompactionManager> compactionManager = new CassandraJmxCompactionModule().createCompactionManager(configManager);
@@ -596,16 +598,15 @@ public class CQLKeyValueService extends AbstractKeyValueService {
 
     private void putInternal(final String tableName, final Iterable<Map.Entry<Cell, Value>> values, TransactionType transactionType)
             throws Exception {
-        putInternal(tableName, values, transactionType, CassandraConstants.NO_TTL);
+        putInternal(tableName, values, transactionType, CassandraConstants.NO_TTL, false);
     }
 
-
-    protected void putInternal(final String tableName, final Iterable<Map.Entry<Cell, Value>> values, TransactionType transactionType, final int ttl)
+    protected void putInternal(final String tableName, final Iterable<Map.Entry<Cell, Value>> values, TransactionType transactionType, final int ttl, boolean recursive)
             throws Exception {
         List<ResultSetFuture> resultSetFutures = Lists.newArrayList();
-        final CassandraKeyValueServiceConfig config = configManager.getConfig();
-        int mutationBatchCount = config.mutationBatchCount();
-        long mutationBatchSizeBytes = config.mutationBatchSizeBytes();
+        int mutationBatchCount = configManager.getConfig().mutationBatchCount();
+        long mutationBatchSizeBytes = limitBatchSizesToServerDefaults?
+                CQLKeyValueServices.UNCONFIGURED_DEFAULT_BATCH_SIZE_BYTES : configManager.getConfig().mutationBatchSizeBytes();
         for (List<Entry<Cell, Value>> partition : partitionByCountAndBytes(
                 values,
                 mutationBatchCount,
@@ -621,10 +622,22 @@ public class CQLKeyValueService extends AbstractKeyValueService {
             try {
                 resultSet = resultSetFuture.getUninterruptibly();
                 resultSet.all();
+                CQLKeyValueServices.logTracedQuery(putQuery, resultSet, session, cqlStatementCache.NORMAL_QUERY);
+            } catch (InvalidQueryException e) {
+                if (e.getMessage().contains("Batch too large") && !recursive) {
+                    log.error("Attempted a put to " + tableName + " that the Cassandra server deemed to be too large to accept. Batch sizes on the Atlas-side have been artificially lowered to the Cassandra default maximum batch sizes.");
+                    limitBatchSizesToServerDefaults = true;
+                    try {
+                        putInternal(tableName, values, transactionType, ttl, true);
+                    } catch (Throwable t) {
+                        throw Throwables.throwUncheckedException(t);
+                    }
+                } else {
+                    throw Throwables.throwUncheckedException(e);
+                }
             } catch (Throwable t) {
                 throw Throwables.throwUncheckedException(t);
             }
-            CQLKeyValueServices.logTracedQuery(putQuery, resultSet, session, cqlStatementCache.NORMAL_QUERY);
         }
     }
 

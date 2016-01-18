@@ -18,8 +18,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.CheckForNull;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -356,5 +354,64 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
         }
     }
 
+    /**
+     * This exists to avoid unused import warnings
+     * {@link AbstractExpiringStreamStore}
+     * {@link AbstractPersistentStreamStore}
+     * {@link ArrayListMultimap}
+     * {@link Arrays}
+     * {@link AssertUtils}
+     * {@link BufferedInputStream}
+     * {@link Builder}
+     * {@link ByteArrayIOStream}
+     * {@link ByteArrayInputStream}
+     * {@link ByteString}
+     * {@link Cell}
+     * {@link CheckForNull}
+     * {@link Collection}
+     * {@link Collections2}
+     * {@link ConcatenatedInputStream}
+     * {@link CountingInputStream}
+     * {@link DeleteOnCloseFileInputStream}
+     * {@link DigestInputStream}
+     * {@link Entry}
+     * {@link ExpiringStreamStore}
+     * {@link File}
+     * {@link FileNotFoundException}
+     * {@link FileOutputStream}
+     * {@link HashMultimap}
+     * {@link IOException}
+     * {@link ImmutableMap}
+     * {@link ImmutableSet}
+     * {@link InputStream}
+     * {@link Ints}
+     * {@link List}
+     * {@link Lists}
+     * {@link Logger}
+     * {@link LoggerFactory}
+     * {@link Map}
+     * {@link Maps}
+     * {@link MessageDigest}
+     * {@link Multimap}
+     * {@link Multimaps}
+     * {@link OutputStream}
+     * {@link PersistentStreamStore}
+     * {@link Preconditions}
+     * {@link Set}
+     * {@link SetView}
+     * {@link Sets}
+     * {@link Sha256Hash}
+     * {@link Status}
+     * {@link StreamCleanedException}
+     * {@link StreamMetadata}
+     * {@link TempFileUtils}
+     * {@link Throwables}
+     * {@link TimeUnit}
+     * {@link Transaction}
+     * {@link TransactionFailedRetriableException}
+     * {@link TransactionManager}
+     * {@link TransactionTask}
+     * {@link TxTask}
+     */
     static final int dummy = 0;
 }

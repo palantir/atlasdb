@@ -74,8 +74,8 @@ public class Leaders {
 
         PaxosProposer proposer = PaxosProposerImpl.newProposer(
                 ourLearner,
-                acceptors,
-                learners,
+                ImmutableList.copyOf(acceptors),
+                ImmutableList.copyOf(learners),
                 config.quorumSize(),
                 executor);
 

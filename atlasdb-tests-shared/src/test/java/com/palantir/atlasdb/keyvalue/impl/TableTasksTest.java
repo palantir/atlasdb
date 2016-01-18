@@ -113,9 +113,10 @@ public class TableTasksTest {
         AtomicLong rowsOnlyInSource = new AtomicLong();
         AtomicLong rowsPartiallyInCommon = new AtomicLong();
         AtomicLong rowsCompletelyInCommon = new AtomicLong();
+        AtomicLong rowsVisited = new AtomicLong();
         AtomicLong cellsOnlyInSource = new AtomicLong();
         AtomicLong cellsInCommon = new AtomicLong();
-        DiffStats stats = new TableTasks.DiffStats(rowsOnlyInSource, rowsPartiallyInCommon, rowsCompletelyInCommon, cellsOnlyInSource, cellsInCommon);
+        DiffStats stats = new TableTasks.DiffStats(rowsOnlyInSource, rowsPartiallyInCommon, rowsCompletelyInCommon, rowsVisited, cellsOnlyInSource, cellsInCommon);
         TableTasks.diff(txManager, MoreExecutors.newDirectExecutorService(), "table1", "table2", 10, 1, stats, new TableTasks.DiffVisitor() {
             @Override
             public void visit(Transaction t, Iterator<Cell> partialDiff) {
@@ -146,5 +147,6 @@ public class TableTasksTest {
         Assert.assertEquals(disjointRows, rowsOnlyInSource.get());
         Assert.assertEquals(commonRows, rowsCompletelyInCommon.get());
         Assert.assertEquals(partialRows, rowsPartiallyInCommon.get());
+        Assert.assertEquals(keys1.keySet().size(), rowsVisited.get());
     }
 }

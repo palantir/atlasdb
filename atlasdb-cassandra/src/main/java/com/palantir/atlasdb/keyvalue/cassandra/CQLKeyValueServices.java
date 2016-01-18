@@ -57,9 +57,7 @@ import com.palantir.util.Visitor;
 public class CQLKeyValueServices {
     private static final Logger log = LoggerFactory.getLogger(CQLKeyValueService.class); // not a typo
 
-
-
-
+    static final int UNCONFIGURED_DEFAULT_BATCH_SIZE_BYTES = 50 * 1024; // this is used as a fallback when the user is using small server-side limiting of batches
     static final Function<Entry<Cell, Value>, Long> PUT_ENTRY_SIZING_FUNCTION = new Function<Entry<Cell, Value>, Long>() {
         @Override
         public Long apply(Entry<Cell, Value> input) {
