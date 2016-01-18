@@ -4,7 +4,20 @@ dependencies {
     compile project(':lock-impl')
     compile project(':leader-election-impl')
     compile project(':atlasdb-config')
-    compile project(':atlasdb-rocksdb')
+    runtime project(':atlasdb-rocksdb')
+    runtime(project(':atlasdb-cassandra')) {
+        exclude(module:'log4j-over-slf4j')
+        exclude(module:'jcl-over-slf4j')
+        exclude(module:'json-simple')
+        exclude(module:'metrics-core')
+        exclude(module:'logback-core')
+        exclude(module:'logback-classic')
+        exclude(module:'joda-time')
+        exclude(module:'snakeyaml')
+        exclude(module:'hibernate-validator')
+        exclude(module:'libthrift')
+    }
+    runtime project(':atlasdb-rdbms')
     compile "io.dropwizard:dropwizard-core:" + libVersions.dropwizard
     
     testCompile "io.dropwizard:dropwizard-testing:" + libVersions.dropwizard
