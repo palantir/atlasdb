@@ -14,6 +14,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Generated;
+
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -81,6 +83,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 
+@Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
 public final class UserProfileTable implements
         AtlasDbMutablePersistentTable<UserProfileTable.UserProfileRow,
                                          UserProfileTable.UserProfileNamedColumnValue<?>,
@@ -1208,6 +1211,7 @@ public final class UserProfileTable implements
         return ImmutableList.of();
     }
 
+    @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
     public static final class CookiesIdxTable implements
             AtlasDbDynamicMutablePersistentTable<CookiesIdxTable.CookiesIdxRow,
                                                     CookiesIdxTable.CookiesIdxColumn,
@@ -1841,6 +1845,7 @@ public final class UserProfileTable implements
     }
 
 
+    @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
     public static final class CreatedIdxTable implements
             AtlasDbDynamicMutablePersistentTable<CreatedIdxTable.CreatedIdxRow,
                                                     CreatedIdxTable.CreatedIdxColumn,
@@ -2474,6 +2479,7 @@ public final class UserProfileTable implements
     }
 
 
+    @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
     public static final class UserBirthdaysIdxTable implements
             AtlasDbDynamicMutablePersistentTable<UserBirthdaysIdxTable.UserBirthdaysIdxRow,
                                                     UserBirthdaysIdxTable.UserBirthdaysIdxColumn,
@@ -3145,6 +3151,7 @@ public final class UserProfileTable implements
      * {@link EnumSet}
      * {@link ExecutorService}
      * {@link Function}
+     * {@link Generated}
      * {@link HashMultimap}
      * {@link HashSet}
      * {@link Hashing}
@@ -3187,5 +3194,5 @@ public final class UserProfileTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "jtlg6PfnPeGMdkQkum3edA==";
+    static String __CLASS_HASH = "rdMgcZO4bfOQ7uoK3qFyew==";
 }

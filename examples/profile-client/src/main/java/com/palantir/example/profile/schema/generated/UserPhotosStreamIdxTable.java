@@ -14,6 +14,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Generated;
+
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -81,6 +83,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 
+@Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
 public final class UserPhotosStreamIdxTable implements
         AtlasDbDynamicMutablePersistentTable<UserPhotosStreamIdxTable.UserPhotosStreamIdxRow,
                                                 UserPhotosStreamIdxTable.UserPhotosStreamIdxColumn,
@@ -681,6 +684,7 @@ public final class UserPhotosStreamIdxTable implements
      * {@link EnumSet}
      * {@link ExecutorService}
      * {@link Function}
+     * {@link Generated}
      * {@link HashMultimap}
      * {@link HashSet}
      * {@link Hashing}
@@ -723,5 +727,5 @@ public final class UserPhotosStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "v+K9459ZalQv2WcldskOPA==";
+    static String __CLASS_HASH = "bQXWznMO2mE8E0Yadoje4A==";
 }

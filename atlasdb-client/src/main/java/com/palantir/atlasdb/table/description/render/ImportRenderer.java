@@ -35,7 +35,7 @@ public class ImportRenderer extends Renderer {
     }
 
     void renderImports() {
-        for (String prefix : ImmutableList.of("java.", "org.", "com.")) {
+        for (String prefix : ImmutableList.of("java.", "javax.", "org.", "com.")) {
             for (String importClass : importsSortedByFullName()) {
                 if (importClass.startsWith(prefix)) {
                     line("import ", importClass, ";");

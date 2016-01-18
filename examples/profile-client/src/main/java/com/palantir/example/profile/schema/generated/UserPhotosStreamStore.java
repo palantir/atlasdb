@@ -18,6 +18,9 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Generated;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,6 +62,7 @@ import com.palantir.util.file.DeleteOnCloseFileInputStream;
 import com.palantir.util.file.TempFileUtils;
 
 
+@Generated("com.palantir.atlasdb.table.description.render.StreamStoreRenderer")
 public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
     public static final int BLOCK_SIZE_IN_BYTES = 1000000; // 1MB. DO NOT CHANGE THIS WITHOUT AN UPGRADE TASK
     public static final int IN_MEMORY_THRESHOLD = 2097152; // streams under this size are kept in memory when loaded
@@ -379,6 +383,7 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
      * {@link File}
      * {@link FileNotFoundException}
      * {@link FileOutputStream}
+     * {@link Generated}
      * {@link HashMultimap}
      * {@link IOException}
      * {@link ImmutableMap}

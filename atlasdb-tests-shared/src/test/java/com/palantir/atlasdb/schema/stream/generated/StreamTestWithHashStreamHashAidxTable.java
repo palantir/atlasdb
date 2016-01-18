@@ -14,6 +14,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Generated;
+
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -81,6 +83,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 
+@Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
 public final class StreamTestWithHashStreamHashAidxTable implements
         AtlasDbDynamicMutableExpiringTable<StreamTestWithHashStreamHashAidxTable.StreamTestWithHashStreamHashAidxRow,
                                               StreamTestWithHashStreamHashAidxTable.StreamTestWithHashStreamHashAidxColumn,
@@ -670,6 +673,7 @@ public final class StreamTestWithHashStreamHashAidxTable implements
      * {@link EnumSet}
      * {@link ExecutorService}
      * {@link Function}
+     * {@link Generated}
      * {@link HashMultimap}
      * {@link HashSet}
      * {@link Hashing}
@@ -712,5 +716,5 @@ public final class StreamTestWithHashStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "8gGDNIclBHaL9F73xnW1Vg==";
+    static String __CLASS_HASH = "jiTMuCR8WMsOId61i6lLrA==";
 }
