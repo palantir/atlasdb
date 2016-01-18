@@ -14,6 +14,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Generated;
+
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -81,6 +83,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 
+@Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
 public final class StreamTestStreamMetadataTable implements
         AtlasDbMutablePersistentTable<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow,
                                          StreamTestStreamMetadataTable.StreamTestStreamMetadataNamedColumnValue<?>,
@@ -662,6 +665,7 @@ public final class StreamTestStreamMetadataTable implements
      * {@link EnumSet}
      * {@link ExecutorService}
      * {@link Function}
+     * {@link Generated}
      * {@link HashMultimap}
      * {@link HashSet}
      * {@link Hashing}
@@ -704,5 +708,5 @@ public final class StreamTestStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "98DAhrEvUw9ZA/6/dXYzeQ==";
+    static String __CLASS_HASH = "nfeT1YhZbqEf8rndZT7uUA==";
 }
