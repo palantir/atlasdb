@@ -62,7 +62,7 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
 
     private final KeyValueService delegate;
 
-    private ValidatingQueryRewritingKeyValueService(KeyValueService delegate) {
+    protected ValidatingQueryRewritingKeyValueService(KeyValueService delegate) {
         this.delegate = delegate;
     }
 
