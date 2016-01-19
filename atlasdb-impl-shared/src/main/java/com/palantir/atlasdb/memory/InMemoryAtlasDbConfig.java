@@ -16,13 +16,15 @@
 package com.palantir.atlasdb.memory;
 
 import com.fasterxml.jackson.annotation.JsonTypeName;
+import com.google.auto.service.AutoService;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
 @JsonTypeName(InMemoryAtlasDbConfig.TYPE)
+@AutoService(KeyValueServiceConfig.class)
 public final class InMemoryAtlasDbConfig implements KeyValueServiceConfig {
 
     public static final String TYPE = "memory";
-    
+
     @Override
     public final String type() {
         return TYPE;

@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.memory;
 
+import com.google.auto.service.AutoService;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cleaner.Cleaner;
@@ -58,6 +59,7 @@ import com.palantir.timestamp.TimestampService;
  * This method creates all the tables in the pass {@link Schema} and provides Snapshot Isolation
  * (SI) on all of the transactions it creates.
  */
+@AutoService(AtlasDbFactory.class)
 public class InMemoryAtlasDbFactory implements AtlasDbFactory {
 
     @Override

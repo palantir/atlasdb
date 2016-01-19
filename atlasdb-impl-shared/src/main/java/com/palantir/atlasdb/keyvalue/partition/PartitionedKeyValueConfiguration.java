@@ -15,10 +15,11 @@
  */
 package com.palantir.atlasdb.keyvalue.partition;
 
+import java.util.List;
+
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.annotation.JsonTypeName;
-import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
@@ -40,7 +41,7 @@ public abstract class PartitionedKeyValueConfiguration implements KeyValueServic
     }
 
     public abstract QuorumParameters getQuorumParameters();
-    public abstract ImmutableList<String> getPartitionMapProviders();
+    public abstract List<String> getPartitionMapProviders();
     public abstract int getPartitionMapProvidersReadFactor();
 
 }
