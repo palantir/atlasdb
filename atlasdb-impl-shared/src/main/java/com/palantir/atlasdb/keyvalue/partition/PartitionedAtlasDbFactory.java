@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.partition;
 
-import org.immutables.value.internal..processor..meta..ValueMirrors.Auxiliary;
-
 import com.google.auto.service.AutoService;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;

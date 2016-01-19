@@ -20,6 +20,7 @@ import java.util.List;
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.annotation.JsonTypeName;
+import com.google.auto.service.AutoService;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
@@ -32,6 +33,7 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
  */
 @JsonTypeName(PartitionedKeyValueConfiguration.TYPE)
 @Value.Immutable
+@AutoService(KeyValueServiceConfig.class)
 public abstract class PartitionedKeyValueConfiguration implements KeyValueServiceConfig {
     public static final String TYPE = "partitioned";
 
