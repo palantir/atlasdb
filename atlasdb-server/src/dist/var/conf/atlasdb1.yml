@@ -19,8 +19,8 @@ atlasdb:
     replicationFactory: 1
   leader:
     quorumSize: 2
-    learnerLogDir: paxosLog/learner1
-    acceptorLogDir: paxosLog/acceptor1
+    learnerLogDir: var/data/paxosLog/learner1
+    acceptorLogDir: var/data/paxosLog/acceptor1
     localServer: http://localhost:3828
     leaders:
       - http://localhost:3828

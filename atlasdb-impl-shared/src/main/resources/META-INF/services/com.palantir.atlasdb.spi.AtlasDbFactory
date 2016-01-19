@@ -1,2 +1,0 @@
-com.palantir.atlasdb.keyvalue.partition.PartitionedAtlasDbFactory
-com.palantir.atlasdb.memory.InMemoryAtlasDbFactory
