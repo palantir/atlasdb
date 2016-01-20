@@ -239,7 +239,7 @@ public class TransactionManagers {
     }
 
     private static <T> T createService(Optional<SSLSocketFactory> sslSocketFactory, Set<String> uris, Class<T> serviceClass) {
-        return AtlasDbHttpClients.createProxyWithFailover(sslSocketFactory, uris, serviceClass);
+        return AtlasDbHttpClients.createRemoteProxyWithFailover(sslSocketFactory, uris, serviceClass);
     }
 
     private static class ServiceCreator<T> implements Function<ServerListConfig, T> {

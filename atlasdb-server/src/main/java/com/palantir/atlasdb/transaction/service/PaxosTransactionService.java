@@ -17,6 +17,9 @@ package com.palantir.atlasdb.transaction.service;
 
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
@@ -25,6 +28,8 @@ import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosRoundFailureException;
 
 public class PaxosTransactionService implements TransactionService {
+    private static final Logger log = LoggerFactory.getLogger(PaxosTransactionService.class);
+
     private final PaxosProposer proposer;
     private final TransactionKVSWrapper kvStore;
 
@@ -56,7 +61,8 @@ public class PaxosTransactionService implements TransactionService {
                 // Make sure we do this put before we return because we want #get to succeed.
                 kvStore.putAll(ImmutableMap.of(startTimestamp, finalCommitTs));
             } catch (KeyAlreadyExistsException e) {
-                // this case isn't worrisome
+                // This case is worrisome because KV is required to not throw on an idempotent put.
+                log.error("KV threw on put.  This is likely a bug in the KV store because it shouldn't throw in this case", e);
             }
             if (commitTimestamp != finalCommitTs) {
                 throw new KeyAlreadyExistsException("Key " + startTimestamp + " already exists and is mapped to " + finalCommitTs);

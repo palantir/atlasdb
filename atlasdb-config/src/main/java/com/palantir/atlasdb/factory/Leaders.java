@@ -61,11 +61,11 @@ public class Leaders {
         remoteLeaderUris.remove(config.localServer());
 
         List<PaxosLearner> learners =
-                AtlasDbHttpClients.createProxies(sslSocketFactory, remoteLeaderUris, PaxosLearner.class);
+                AtlasDbHttpClients.createRemoteProxies(sslSocketFactory, remoteLeaderUris, PaxosLearner.class);
         learners.add(ourLearner);
 
         List<PaxosAcceptor> acceptors =
-                AtlasDbHttpClients.createProxies(sslSocketFactory, remoteLeaderUris, PaxosAcceptor.class);
+                AtlasDbHttpClients.createRemoteProxies(sslSocketFactory, remoteLeaderUris, PaxosAcceptor.class);
         acceptors.add(ourAcceptor);
 
         Map<PingableLeader, HostAndPort> otherLeaders = generatePingables(remoteLeaderUris, sslSocketFactory);
@@ -106,7 +106,7 @@ public class Leaders {
          */
         Map<PingableLeader, HostAndPort> pingables = new IdentityHashMap<PingableLeader, HostAndPort>();
         for (String endpoint : remoteEndpoints) {
-            PingableLeader remoteInterface = AtlasDbHttpClients.createProxy(sslSocketFactory, endpoint, PingableLeader.class);
+            PingableLeader remoteInterface = AtlasDbHttpClients.createRemoteProxy(sslSocketFactory, endpoint, PingableLeader.class);
             HostAndPort hostAndPort = HostAndPort.fromString(endpoint);
             pingables.put(remoteInterface, hostAndPort);
         }
