@@ -36,6 +36,7 @@ import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
@@ -43,12 +44,14 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.concurrent.FileLockBasedLock;
 import com.palantir.common.persist.Persistable;
 import com.palantir.paxos.persistence.generated.PaxosPersistence;
 import com.palantir.util.crypto.Sha256Hash;
 
 public class PaxosStateLogImpl<V extends Persistable & Versionable> implements PaxosStateLog<V> {
 
+    private final FileLockBasedLock globalLock;
     private final ReentrantLock lock = new ReentrantLock();
     private final HashMap<Long, Long> seqToVersionMap = new HashMap<Long, Long>();
 
@@ -86,18 +89,32 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
 
     final String path;
 
-    public PaxosStateLogImpl(String path) {
-        this.path = path;
+    public static <T extends Persistable & Versionable> PaxosStateLogImpl<T> create(String path) {
+        FileLockBasedLock globalLock = null;
+        boolean success = false;
         try {
-            FileUtils.forceMkdir(new File(path));
-            if (getGreatestLogEntry() == PaxosAcceptor.NO_LOG_ENTRY) {
-                // For a brand new log, we create a lowest entry so #getLeastLogEntry will return the right thing
-                // If we didn't add this then we could miss seq 0 and accept seq 1, then when we restart we will
-                // start ignoring seq 0 which may cause things to get stalled
-                FileUtils.touch(new File(path, getFilenameFromSeq(PaxosAcceptor.NO_LOG_ENTRY)));
-            }
+            globalLock = FileLockBasedLock.lockDirectory(new File(path));
+            PaxosStateLogImpl<T> ret = new PaxosStateLogImpl<>(path, globalLock);
+            success = true;
+            return ret;
         } catch (IOException e) {
             throw new RuntimeException("IO problem related to the path " + new File(path).getAbsolutePath(), e);
+        } finally {
+            if (!success && globalLock != null) {
+                globalLock.close();
+            }
+        }
+    }
+
+    private PaxosStateLogImpl(String path, FileLockBasedLock globalLock) throws IOException {
+        this.globalLock = Preconditions.checkNotNull(globalLock);
+        this.path = path;
+        FileUtils.forceMkdir(new File(path));
+        if (getGreatestLogEntry() == PaxosAcceptor.NO_LOG_ENTRY) {
+            // For a brand new log, we create a lowest entry so #getLeastLogEntry will return the right thing
+            // If we didn't add this then we could miss seq 0 and accept seq 1, then when we restart we will
+            // start ignoring seq 0 which may cause things to get stalled
+            FileUtils.touch(new File(path, getFilenameFromSeq(PaxosAcceptor.NO_LOG_ENTRY)));
         }
     }
 
@@ -274,6 +291,11 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
             lock.unlock();
         }
         return null;
+    }
+
+    @Override
+    public void close() {
+        globalLock.unlock();
     }
 
 }

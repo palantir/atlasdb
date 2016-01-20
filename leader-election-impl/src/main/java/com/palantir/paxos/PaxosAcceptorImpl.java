@@ -15,13 +15,14 @@
  */
 package com.palantir.paxos;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class PaxosAcceptorImpl implements PaxosAcceptor {
+public class PaxosAcceptorImpl implements PaxosAcceptor, Closeable {
     private static final Logger logger = LoggerFactory.getLogger(PaxosAcceptorImpl.class);
 
     /**
@@ -30,7 +31,7 @@ public class PaxosAcceptorImpl implements PaxosAcceptor {
      * @return a new acceptor
      */
     public static PaxosAcceptor newAcceptor(String logDir) {
-        PaxosStateLog<PaxosAcceptorState> log = new PaxosStateLogImpl<PaxosAcceptorState>(logDir);
+        PaxosStateLog<PaxosAcceptorState> log = PaxosStateLogImpl.create(logDir);
         return new PaxosAcceptorImpl(
                 new ConcurrentSkipListMap<Long, PaxosAcceptorState>(),
                 log,
@@ -143,6 +144,11 @@ public class PaxosAcceptorImpl implements PaxosAcceptor {
                 state.put(seq, PaxosAcceptorState.BYTES_HYDRATOR.hydrateFromBytes(bytes));
             }
         }
+    }
+
+    @Override
+    public void close() {
+        log.close();
     }
 
 }

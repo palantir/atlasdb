@@ -15,8 +15,6 @@
  */
 package com.palantir.leader.proxy;
 
-import java.io.Closeable;
-import java.io.IOException;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -57,7 +55,7 @@ public final class AwaitingLeadershipProxy implements InvocationHandler {
                 interfaceClass);
         proxy.tryToGainLeadership();
         return (T) Proxy.newProxyInstance(interfaceClass.getClassLoader(), new Class<?>[] {
-                interfaceClass, Closeable.class }, proxy);
+                interfaceClass, AutoCloseable.class }, proxy);
     }
 
     final Supplier<?> delegateSupplier;
@@ -133,10 +131,10 @@ public final class AwaitingLeadershipProxy implements InvocationHandler {
         }
     }
 
-    private void clearDelegate() throws IOException {
+    private void clearDelegate() throws Exception {
         Object delegate = delegateRef.getAndSet(null);
-        if (delegate instanceof Closeable) {
-            ((Closeable) delegate).close();
+        if (delegate instanceof AutoCloseable) {
+            ((AutoCloseable) delegate).close();
         }
     }
 

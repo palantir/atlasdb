@@ -70,6 +70,8 @@ public abstract class LeaderConfig {
                 "Learner log directory '%s' does not exist and cannot be created.", learnerLogDir());
         Preconditions.checkArgument(acceptorLogDir().exists() || acceptorLogDir().mkdirs(),
                 "Acceptor log directory '%s' does not exist and cannot be created.", acceptorLogDir());
+        Preconditions.checkArgument(quorumSize() > leaders().size() / 2,
+                "Quorum must be a majority.");
     }
 
 }

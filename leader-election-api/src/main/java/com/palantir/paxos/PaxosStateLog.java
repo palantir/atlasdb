@@ -15,11 +15,12 @@
  */
 package com.palantir.paxos;
 
+import java.io.Closeable;
 import java.io.IOException;
 
 import com.palantir.common.persist.Persistable;
 
-public interface PaxosStateLog<V extends Persistable & Versionable> {
+public interface PaxosStateLog<V extends Persistable & Versionable> extends Closeable {
 
     public class CorruptLogFileException extends IOException {
         private static final long serialVersionUID = 1L;
@@ -60,5 +61,8 @@ public interface PaxosStateLog<V extends Persistable & Versionable> {
      * @param toDeleteInclusive the upper bound sequence number (inclusive)
      */
     public void truncate(long toDeleteInclusive);
+
+    @Override
+    void close();
 
 }

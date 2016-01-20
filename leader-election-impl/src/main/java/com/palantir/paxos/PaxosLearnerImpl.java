@@ -15,6 +15,7 @@
  */
 package com.palantir.paxos;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -24,7 +25,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class PaxosLearnerImpl implements PaxosLearner {
+public class PaxosLearnerImpl implements PaxosLearner, Closeable {
 
     private static final Logger logger = LoggerFactory.getLogger(PaxosLearnerImpl.class);
 
@@ -34,7 +35,7 @@ public class PaxosLearnerImpl implements PaxosLearner {
      * @return a new learner
      */
     public static PaxosLearner newLearner(String logDir) {
-        PaxosStateLogImpl<PaxosValue> log = new PaxosStateLogImpl<PaxosValue>(logDir);
+        PaxosStateLogImpl<PaxosValue> log = PaxosStateLogImpl.create(logDir);
         ConcurrentSkipListMap<Long, PaxosValue> state = new ConcurrentSkipListMap<Long, PaxosValue>();
 
         byte[] greatestValidValue = PaxosStateLogs.getGreatestValidLogEntry(log);
@@ -103,5 +104,10 @@ public class PaxosLearnerImpl implements PaxosLearner {
             return state.get(state.lastKey());
         }
         return null;
+    }
+
+    @Override
+    public void close() {
+        log.close();
     }
 }
