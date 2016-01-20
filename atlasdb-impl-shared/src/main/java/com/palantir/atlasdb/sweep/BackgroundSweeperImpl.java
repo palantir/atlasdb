@@ -392,7 +392,7 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
         } else {
             LockDescriptor lock = StringLockDescriptor.of("atlas sweep");
             LockRequest request = LockRequest.builder(ImmutableSortedMap.of(lock, LockMode.WRITE)).doNotBlock().build();
-            LockRefreshToken token = txManager.getLockService().lock(LockClient.ANONYMOUS_REMOTE, request);
+            LockRefreshToken token = txManager.getLockService().lock(LockClient.ANONYMOUS.getClientId(), request);
             return Optional.fromNullable(token);
         }
     }

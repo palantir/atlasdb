@@ -974,7 +974,7 @@ public final class LockServiceImplTest {
         String longString = String.copyValueOf(longChar);
 
         Assert.assertEquals(LockClient.of(null), LockClient.ANONYMOUS);
-        Assert.assertEquals(LockClient.of(LockClient.ANONYMOUS_REMOTE), LockClient.ANONYMOUS);
+        Assert.assertEquals(LockClient.of(LockClient.ANONYMOUS.getClientId()), LockClient.ANONYMOUS);
 
         client = LockClient.of(longString);
         Assert.assertEquals(longString, client.getClientId());
@@ -1090,7 +1090,7 @@ public final class LockServiceImplTest {
     /** Tests identity operations */
     @Test public void testIdentity() {
         Assert.assertEquals("a client", client.getClientId());
-        Assert.assertNull(LockClient.ANONYMOUS.getClientId());
+        Assert.assertEquals("", LockClient.ANONYMOUS.getClientId());
         Assert.assertEquals("lock1", lock1.getLockIdAsString());
         Assert.assertEquals("lock2", lock2.getLockIdAsString());
     }

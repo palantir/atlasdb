@@ -63,7 +63,7 @@ public class LockRemotingTest {
         writeValueAsString = mapper.writeValueAsString(request);
         LockRequest request2 = mapper.readValue(writeValueAsString, LockRequest.class);
 
-        LockRefreshToken lockResponse = rawLock.lock(LockClient.ANONYMOUS_REMOTE, request);
+        LockRefreshToken lockResponse = rawLock.lock(LockClient.ANONYMOUS.getClientId(), request);
         rawLock.unlock(lockResponse);
         writeValueAsString = mapper.writeValueAsString(lockResponse);
         LockRefreshToken lockResponse2 = mapper.readValue(writeValueAsString, LockRefreshToken.class);
@@ -80,7 +80,7 @@ public class LockRemotingTest {
         long minLockedInVersionId = lock.getMinLockedInVersionId(lockClient);
         Assert.assertEquals(minVersion, minLockedInVersionId);
         lock.unlock(token);
-        token = lock.lock(LockClient.ANONYMOUS_REMOTE, request);
+        token = lock.lock(LockClient.ANONYMOUS.getClientId(), request);
         Set<LockRefreshToken> refreshed = lock.refreshLockRefreshTokens(ImmutableList.of(token));
         Assert.assertEquals(1, refreshed.size());
         lock.unlock(token);

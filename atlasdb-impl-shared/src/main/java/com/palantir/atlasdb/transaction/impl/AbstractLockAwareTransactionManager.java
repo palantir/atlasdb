@@ -42,7 +42,7 @@ public abstract class AbstractLockAwareTransactionManager extends AbstractTransa
             HeldLocksToken lockToken = null;
             if (lockRequest != null) {
                 Validate.isTrue(lockRequest.getVersionId() == null, "Using a version id is not allowed");
-                HeldLocksToken response = getLockService().lockAndGetHeldLocks(LockClient.ANONYMOUS_REMOTE, lockRequest);
+                HeldLocksToken response = getLockService().lockAndGetHeldLocks(LockClient.ANONYMOUS.getClientId(), lockRequest);
                 if (response == null) {
                     RuntimeException e = new LockAcquisitionException("Failed to lock using the provided lock request: " + lockRequest);
                     log.warn("Could not lock successfullly", e);

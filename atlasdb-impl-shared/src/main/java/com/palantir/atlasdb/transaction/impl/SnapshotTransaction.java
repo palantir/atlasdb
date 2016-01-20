@@ -1480,7 +1480,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected LockRefreshToken acquireLocksForCommit() {
         SortedMap<LockDescriptor, LockMode> lockMap = getLocksForWrites();
         try {
-            return lockService.lock(LockClient.ANONYMOUS_REMOTE, LockRequest.builder(lockMap).build());
+            return lockService.lock(LockClient.ANONYMOUS.getClientId(), LockRequest.builder(lockMap).build());
         } catch (InterruptedException e) {
             throw Throwables.throwUncheckedException(e);
         }
@@ -1536,7 +1536,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         // TODO: This can have better performance if we have a blockAndReturn method in lock server
         // However lock server blocking is an issue if we fill up all our requests
         try {
-            lockService.lock(LockClient.ANONYMOUS_REMOTE, LockRequest.builder(builder.build()).lockAndRelease().build());
+            lockService.lock(LockClient.ANONYMOUS.getClientId(), LockRequest.builder(builder.build()).lockAndRelease().build());
         } catch (InterruptedException e) {
             throw Throwables.throwUncheckedException(e);
         }

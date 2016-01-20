@@ -52,11 +52,7 @@ public class ClientSplitLockService extends ForwardingRemoteLockService {
 
     private LockRefreshToken lock(LockClient client, LockRequest request) throws InterruptedException {
         if (request.getBlockingMode() == BlockingMode.DO_NOT_BLOCK) {
-            if (client == LockClient.ANONYMOUS) {
-                return nonBlockingClient.lock(LockClient.ANONYMOUS_REMOTE, request);
-            } else {
-                return nonBlockingClient.lock(client.getClientId(), request);
-            }
+            return nonBlockingClient.lock(client.getClientId(), request);
         }
 
         // Let's try sending this request as a non-blocking request.
@@ -68,22 +64,13 @@ public class ClientSplitLockService extends ForwardingRemoteLockService {
             if (request.getVersionId() != null) {
                 newRequest.withLockedInVersionId(request.getVersionId());
             }
-            final LockRefreshToken response;
-            if (client == LockClient.ANONYMOUS) {
-                response = nonBlockingClient.lock(LockClient.ANONYMOUS_REMOTE, request);
-            } else {
-                response = nonBlockingClient.lock(client.getClientId(), request);
-            }
+            final LockRefreshToken response = nonBlockingClient.lock(client.getClientId(), request);
             if (response != null) {
                 return response;
             }
         }
 
         // No choice but to send it as a blocking request.
-        if (client == LockClient.ANONYMOUS) {
-            return blockingClient.lock(LockClient.ANONYMOUS_REMOTE, request);
-        } else {
-            return blockingClient.lock(client.getClientId(), request);
-        }
+        return blockingClient.lock(client.getClientId(), request);
     }
 }
