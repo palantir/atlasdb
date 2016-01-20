@@ -43,7 +43,6 @@ import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ExpirationStrategy;
 import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.schema.stream.StreamTables;
-import com.palantir.atlasdb.stream.GenericStreamStore;
 import com.palantir.atlasdb.table.description.IndexDefinition.IndexType;
 import com.palantir.atlasdb.table.description.render.Renderers;
 import com.palantir.atlasdb.table.description.render.StreamStoreRenderer;
@@ -51,7 +50,6 @@ import com.palantir.atlasdb.table.description.render.TableFactoryRenderer;
 import com.palantir.atlasdb.table.description.render.TableRenderer;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.common.base.Throwables;
-import com.palantir.util.file.DeleteOnCloseFileInputStream;
 
 /**
  * Defines a schema.

@@ -15,7 +15,6 @@
  */
 package com.palantir.exception;
 
-import com.palantir.common.base.Throwables;
 import com.palantir.common.exception.PalantirRuntimeException;
 
 /**

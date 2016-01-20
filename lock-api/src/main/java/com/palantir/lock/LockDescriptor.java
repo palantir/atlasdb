@@ -17,7 +17,6 @@ package com.palantir.lock;
 
 import java.io.Serializable;
 import java.util.Arrays;
-import java.util.concurrent.locks.ReadWriteLock;
 
 import javax.annotation.concurrent.Immutable;
 

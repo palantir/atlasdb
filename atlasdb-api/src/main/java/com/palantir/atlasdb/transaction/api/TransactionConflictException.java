@@ -17,7 +17,6 @@ package com.palantir.atlasdb.transaction.api;
 
 import java.io.Serializable;
 import java.util.Collection;
-import java.util.Set;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;

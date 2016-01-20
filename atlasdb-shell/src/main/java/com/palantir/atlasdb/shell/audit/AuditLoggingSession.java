@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.shell.audit;
 
 import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Random;
 

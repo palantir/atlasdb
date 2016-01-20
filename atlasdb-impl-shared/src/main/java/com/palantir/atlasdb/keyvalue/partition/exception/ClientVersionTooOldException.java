@@ -16,10 +16,8 @@
 package com.palantir.atlasdb.keyvalue.partition.exception;
 
 import com.google.common.base.Preconditions;
-import com.palantir.atlasdb.keyvalue.partition.PartitionedKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
 import com.palantir.atlasdb.keyvalue.remoting.RemotingPartitionMapService;
-import com.palantir.atlasdb.keyvalue.remoting.proxy.FillInUrlProxy;
 import com.palantir.common.annotation.Immutable;
 
 /**

@@ -15,7 +15,6 @@
  */
 package com.palantir.lock;
 
-import java.util.concurrent.locks.ReadWriteLock;
 
 /**
  * Defines the mode of a {@link ReadWriteLock}; either {@code READ} or {@code WRITE}.

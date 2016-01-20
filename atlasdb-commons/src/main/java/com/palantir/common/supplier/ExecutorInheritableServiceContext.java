@@ -15,8 +15,6 @@
  */
 package com.palantir.common.supplier;
 
-import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
 
 import com.palantir.common.concurrent.ExecutorInheritableThreadLocal;
 

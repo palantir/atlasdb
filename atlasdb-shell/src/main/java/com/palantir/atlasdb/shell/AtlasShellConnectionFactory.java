@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.shell;
 
-import com.palantir.atlasdb.transaction.impl.ShellAwareReadOnlyTransactionManager;
-import com.palantir.atlasdb.transaction.impl.SnapshotTransactionManager;
 
 /**
  * The {@link AtlasShellConnectionFactory} factory, as you may have guessed, knows how to make
