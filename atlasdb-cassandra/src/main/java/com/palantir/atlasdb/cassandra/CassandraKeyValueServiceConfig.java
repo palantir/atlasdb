@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.cassandra;
 
-import java.net.SocketTimeoutException;
 import java.util.Set;
 
 import org.immutables.value.Value;

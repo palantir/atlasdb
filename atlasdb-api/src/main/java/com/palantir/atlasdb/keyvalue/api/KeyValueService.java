@@ -31,7 +31,6 @@ import com.google.common.collect.Multimap;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.NonIdempotent;
 import com.palantir.common.base.ClosableIterator;
-import com.palantir.util.paging.BasicResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 /**

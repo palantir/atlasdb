@@ -26,7 +26,6 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
-import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.exception.ClientVersionTooOldException;
 import com.palantir.atlasdb.keyvalue.partition.exception.EndpointVersionTooOldException;
 import com.palantir.common.base.ClosableIterator;

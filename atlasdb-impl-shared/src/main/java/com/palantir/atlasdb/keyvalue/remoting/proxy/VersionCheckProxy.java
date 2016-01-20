@@ -36,7 +36,6 @@ import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.exception.ClientVersionTooOldException;
 import com.palantir.atlasdb.keyvalue.partition.exception.EndpointVersionTooOldException;
 import com.palantir.atlasdb.keyvalue.remoting.RemotingKeyValueService.LONG_HOLDER;
-import com.palantir.atlasdb.keyvalue.remoting.RemotingKeyValueService.STRING_HOLDER;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.supplier.RemoteContextHolder;
 import com.palantir.common.supplier.ServiceContext;

@@ -37,7 +37,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.annotation.Immutable;
 import com.palantir.common.persist.Persistable;
 import com.palantir.util.Pair;
