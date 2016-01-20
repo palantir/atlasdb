@@ -30,17 +30,6 @@ import com.palantir.common.annotation.NonIdempotent;
 
 @Path("/lock")
 public interface RemoteLockService {
-    /**
-     * This is the same as {@link #lock(LockClient, LockRequest)} but passing in {@link LockClient#ANONYMOUS}
-     * as the first param.
-     * @return null if the lock request failed
-     */
-    @POST
-    @Path("lock-anonymously")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Nullable
-    LockRefreshToken lockAnonymously(LockRequest request) throws InterruptedException;
 
     /**
      * This is the same as {@link #lock(LockClient, LockRequest)} but passing in <code>LockClient.of(client)</code>
@@ -48,31 +37,21 @@ public interface RemoteLockService {
      * @return null if the lock request failed
      */
     @POST
-    @Path("lock/{client}")
+    @Path("lock/{client: .*}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Nullable
-    LockRefreshToken lockWithClient(@PathParam("client") String client, LockRequest request) throws InterruptedException;
+    LockRefreshToken lock(@PathParam("client") String client, LockRequest request) throws InterruptedException;
 
     /**
-     * This is the same as {@link #lockAnonymously(LockRequest)} but will return as many locks as can be acquired.
+     * This is the same as {@link #lock(String, LockRequest)} but will return as many locks as can be acquired.
      * @return a token for the locks acquired
      */
     @POST
-    @Path("try-lock-anonymously")
+    @Path("try-lock/{client: .*}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    HeldLocksToken lockAndGetHeldLocksAnonymously(LockRequest request) throws InterruptedException;
-
-    /**
-     * This is the same as {@link #lockWithClient(String, LockRequest)} but will return as many locks as can be acquired.
-     * @return a token for the locks acquired
-     */
-    @POST
-    @Path("try-lock/{client}")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
-    HeldLocksToken lockAndGetHeldLocksWithClient(@PathParam("client") String client, LockRequest request) throws InterruptedException;
+    HeldLocksToken lockAndGetHeldLocks(@PathParam("client") String client, LockRequest request) throws InterruptedException;
 
     /**
      * Attempts to release the set of locks represented by the

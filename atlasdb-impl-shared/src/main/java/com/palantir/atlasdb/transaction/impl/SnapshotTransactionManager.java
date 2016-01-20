@@ -130,7 +130,7 @@ public class SnapshotTransactionManager extends AbstractLockAwareTransactionMana
                         immutableLockTs).build();
         final LockRefreshToken lock;
         try {
-            lock = lockService.lockWithClient(lockClient.getClientId(), lockRequest);
+            lock = lockService.lock(lockClient.getClientId(), lockRequest);
         } catch (InterruptedException e) {
             throw Throwables.throwUncheckedException(e);
         }

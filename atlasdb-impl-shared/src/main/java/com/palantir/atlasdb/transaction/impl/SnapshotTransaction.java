@@ -106,6 +106,7 @@ import com.palantir.common.collect.IteratorUtils;
 import com.palantir.common.collect.MapEntries;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
+import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
@@ -1479,7 +1480,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected LockRefreshToken acquireLocksForCommit() {
         SortedMap<LockDescriptor, LockMode> lockMap = getLocksForWrites();
         try {
-            return lockService.lockAnonymously(LockRequest.builder(lockMap).build());
+            return lockService.lock(LockClient.ANONYMOUS_REMOTE, LockRequest.builder(lockMap).build());
         } catch (InterruptedException e) {
             throw Throwables.throwUncheckedException(e);
         }
@@ -1535,7 +1536,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         // TODO: This can have better performance if we have a blockAndReturn method in lock server
         // However lock server blocking is an issue if we fill up all our requests
         try {
-            lockService.lockAnonymously(LockRequest.builder(builder.build()).lockAndRelease().build());
+            lockService.lock(LockClient.ANONYMOUS_REMOTE, LockRequest.builder(builder.build()).lockAndRelease().build());
         } catch (InterruptedException e) {
             throw Throwables.throwUncheckedException(e);
         }

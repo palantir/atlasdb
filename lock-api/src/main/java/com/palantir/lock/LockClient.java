@@ -42,6 +42,7 @@ import com.google.common.base.Strings;
      * current client is the same one who already holds the lock.
      */
     public static final LockClient ANONYMOUS = new LockClient(null);
+    public static final String ANONYMOUS_REMOTE = "";
 
     private static final String INTERNAL_LOCK_GRANT_CLIENT_ID = "(internal lock grant client)";
 
@@ -60,7 +61,9 @@ import com.google.common.base.Strings;
      *         the empty string
      */
     public static LockClient of(String clientId) {
-        Preconditions.checkArgument(!Strings.isNullOrEmpty(clientId));
+        if (Strings.isNullOrEmpty(clientId)) {
+            return ANONYMOUS;
+        }
         Preconditions.checkArgument(!clientId.equals(INTERNAL_LOCK_GRANT_CLIENT_ID));
         return new LockClient(clientId);
     }

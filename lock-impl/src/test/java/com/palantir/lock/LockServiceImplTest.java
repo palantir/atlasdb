@@ -973,12 +973,9 @@ public final class LockServiceImplTest {
         longChar[999999] = '\0';
         String longString = String.copyValueOf(longChar);
 
-        try {
-            client = LockClient.of("");
-            Assert.fail();
-        } catch (IllegalArgumentException expected) {
-            /* Expected: empty string */
-        }
+        Assert.assertEquals(LockClient.of(null), LockClient.ANONYMOUS);
+        Assert.assertEquals(LockClient.of(LockClient.ANONYMOUS_REMOTE), LockClient.ANONYMOUS);
+
         client = LockClient.of(longString);
         Assert.assertEquals(longString, client.getClientId());
         try {
