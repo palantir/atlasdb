@@ -30,22 +30,24 @@ import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
 
 public class JdbcTimestampBoundStore implements TimestampBoundStore {
-    private static final Table<Record> TABLE = DSL.table("_timestamp");
-    private static final Field<Integer> DUMMY_COLUMN = DSL.field("dummy_column", Integer.class);
-    private static final Field<Long> LATEST_TIMESTAMP = DSL.field("latest_timestamp", Long.class);
-
     private final JdbcKeyValueService kvs;
     private long latestTimestamp;
 
+    private final Table<Record> TABLE;
+    private static final Field<Integer> DUMMY_COLUMN = DSL.field("dummy_column", Integer.class);
+    private static final Field<Long> LATEST_TIMESTAMP = DSL.field("latest_timestamp", Long.class);
+
     private JdbcTimestampBoundStore(JdbcKeyValueService kvs) {
         this.kvs = kvs;
+        TABLE = kvs.atlasTable("_timestamp");
     }
 
     public static JdbcTimestampBoundStore create(JdbcKeyValueService kvs) {
+        final JdbcTimestampBoundStore store = new JdbcTimestampBoundStore(kvs);
         kvs.run(new Function<DSLContext, Void>() {
             @Override
             public Void apply(DSLContext ctx) {
-                String partialSql = ctx.createTable(TABLE)
+                String partialSql = ctx.createTable(store.TABLE)
                         .column(DUMMY_COLUMN, INTEGER.nullable(false))
                         .column(LATEST_TIMESTAMP, BIGINT.nullable(false))
                         .getSQL();
@@ -59,14 +61,14 @@ public class JdbcTimestampBoundStore implements TimestampBoundStore {
                 } catch (DataAccessException e) {
                     // TODO: check if it's because the table already exists.
                 }
-                ctx.insertInto(TABLE, DUMMY_COLUMN, LATEST_TIMESTAMP)
+                ctx.insertInto(store.TABLE, DUMMY_COLUMN, LATEST_TIMESTAMP)
                     .values(0, 10000L)
                     .onDuplicateKeyIgnore()
                     .execute();
                 return null;
             }
         });
-        return new JdbcTimestampBoundStore(kvs);
+        return store;
     }
 
     @Override
