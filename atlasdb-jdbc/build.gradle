@@ -14,3 +14,9 @@ dependencies {
   processor "com.google.auto.service:auto-service:1.0-rc2"
 }
 
+configurations.matching({ it.name in ['compile', 'runtime'] }).all {
+    resolutionStrategy {
+        force 'com.google.code.findbugs:jsr305:' + libVersions.jsr305
+        force 'org.slf4j:slf4j-api:' + libVersions.slf4j
+    }
+}
