@@ -72,7 +72,7 @@ public class KeyValueServices {
         }
         RangeRequest requestWithHint = request;
         if (request.getBatchHint() == null) {
-            requestWithHint = request.withBatchHint(1);
+            requestWithHint = request.withBatchHint(100);
         }
         final ClosableIterator<RowResult<Value>> range = kv.getRange(tableName, requestWithHint, timestamp);
         try {
