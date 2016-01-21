@@ -1,0 +1,16 @@
+apply plugin: "org.inferred.processors"
+
+apply from: "../gradle/shared.gradle"
+
+dependencies {
+  compile project(":atlasdb-client")
+  compile project(":atlasdb-spi")
+  compile project(":timestamp-impl")
+
+  compile "io.dropwizard:dropwizard-jackson:" + libVersions.dropwizard
+  compile "org.jooq:jooq:3.7.2"
+
+  processor "org.immutables:value:2.0.21"
+  processor "com.google.auto.service:auto-service:1.0-rc2"
+}
+

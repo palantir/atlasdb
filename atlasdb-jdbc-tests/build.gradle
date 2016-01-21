@@ -1,0 +1,10 @@
+apply from: "../gradle/shared.gradle"
+
+dependencies {
+  testCompile project(":atlasdb-jdbc")
+  testCompile project(":atlasdb-tests-shared")
+
+  testCompile project(":atlasdb-hikari")
+  testCompile "com.h2database:h2:1.4.190"
+}
+
