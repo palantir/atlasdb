@@ -87,18 +87,22 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
 
     private static enum Extreme { GREATEST, LEAST }
 
-    final String path;
+    final File dir;
 
     public static <T extends Persistable & Versionable> PaxosStateLogImpl<T> create(String path) {
+        return create(new File(path));
+    }
+
+    public static <T extends Persistable & Versionable> PaxosStateLogImpl<T> create(File dir) {
         FileLockBasedLock globalLock = null;
         boolean success = false;
         try {
-            globalLock = FileLockBasedLock.lockDirectory(new File(path));
-            PaxosStateLogImpl<T> ret = new PaxosStateLogImpl<>(path, globalLock);
+            globalLock = FileLockBasedLock.lockDirectory(dir);
+            PaxosStateLogImpl<T> ret = new PaxosStateLogImpl<>(dir, globalLock);
             success = true;
             return ret;
         } catch (IOException e) {
-            throw new RuntimeException("IO problem related to the path " + new File(path).getAbsolutePath(), e);
+            throw new RuntimeException("IO problem related to the path " + dir.getAbsolutePath(), e);
         } finally {
             if (!success && globalLock != null) {
                 globalLock.close();
@@ -106,15 +110,15 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
         }
     }
 
-    private PaxosStateLogImpl(String path, FileLockBasedLock globalLock) throws IOException {
+    private PaxosStateLogImpl(File dir, FileLockBasedLock globalLock) throws IOException {
         this.globalLock = Preconditions.checkNotNull(globalLock);
-        this.path = path;
-        FileUtils.forceMkdir(new File(path));
+        this.dir = dir;
+        FileUtils.forceMkdir(dir);
         if (getGreatestLogEntry() == PaxosAcceptor.NO_LOG_ENTRY) {
             // For a brand new log, we create a lowest entry so #getLeastLogEntry will return the right thing
             // If we didn't add this then we could miss seq 0 and accept seq 1, then when we restart we will
             // start ignoring seq 0 which may cause things to get stalled
-            FileUtils.touch(new File(path, getFilenameFromSeq(PaxosAcceptor.NO_LOG_ENTRY)));
+            FileUtils.touch(new File(dir, getFilenameFromSeq(PaxosAcceptor.NO_LOG_ENTRY)));
         }
     }
 
@@ -137,7 +141,7 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
 
     private void writeRoundInternal(long seq, V round) {
         String name = getFilenameFromSeq(seq);
-        File tmpFile = new File(path, name + TMP_FILE_SUFFIX);
+        File tmpFile = new File(dir, name + TMP_FILE_SUFFIX);
 
         // compute checksum hash
         byte[] bytes = round.persistToBytes();
@@ -162,7 +166,7 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
         }
 
         // overwrite file with tmp
-        File file = new File(path, name);
+        File file = new File(dir, name);
         tmpFile.renameTo(file);
 
         // update version
@@ -173,7 +177,7 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
     public byte[] readRound(long seq) throws IOException {
         lock.lock();
         try {
-            File file = new File(path, getFilenameFromSeq(seq));
+            File file = new File(dir, getFilenameFromSeq(seq));
             return getBytesAndCheckChecksum(file);
         } finally {
             lock.unlock();
@@ -201,8 +205,7 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
     public long getExtremeLogEntry(Extreme extreme) {
         lock.lock();
         try {
-            File dir = new File(path);
-            List<File> files = getLogEntries(dir);
+            List<File> files = getLogEntries();
             if (files == null) {
                 return PaxosAcceptor.NO_LOG_ENTRY;
             }
@@ -230,8 +233,7 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
                 // We never want to remove our most recent entry
                 toDeleteInclusive = Math.min(greatestLogEntry - 1, toDeleteInclusive);
             }
-            File dir = new File(path);
-            List<File> files = getLogEntries(dir);
+            List<File> files = getLogEntries();
             Collections.<File> sort(files, nameAsLongComparator());
             for (File file : files) {
                 long fileSeq = getSeqFromFilename(file);
@@ -248,7 +250,7 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
         }
     }
 
-    private List<File> getLogEntries(File dir) {
+    private List<File> getLogEntries() {
         File[] files = dir.listFiles();
         if (files == null) {
             return null;

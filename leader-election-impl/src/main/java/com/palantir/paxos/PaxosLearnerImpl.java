@@ -16,6 +16,7 @@
 package com.palantir.paxos;
 
 import java.io.Closeable;
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -35,6 +36,10 @@ public class PaxosLearnerImpl implements PaxosLearner, Closeable {
      * @return a new learner
      */
     public static PaxosLearner newLearner(String logDir) {
+        return newLearner(new File(logDir));
+    }
+
+    public static PaxosLearner newLearner(File logDir) {
         PaxosStateLogImpl<PaxosValue> log = PaxosStateLogImpl.create(logDir);
         ConcurrentSkipListMap<Long, PaxosValue> state = new ConcurrentSkipListMap<Long, PaxosValue>();
 

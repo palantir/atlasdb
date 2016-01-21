@@ -16,6 +16,7 @@
 package com.palantir.paxos;
 
 import java.io.Closeable;
+import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.ConcurrentSkipListMap;
 
@@ -25,17 +26,21 @@ import org.slf4j.LoggerFactory;
 public class PaxosAcceptorImpl implements PaxosAcceptor, Closeable {
     private static final Logger logger = LoggerFactory.getLogger(PaxosAcceptorImpl.class);
 
+    public static PaxosAcceptor newAcceptor(File logDir) {
+        PaxosStateLog<PaxosAcceptorState> log = PaxosStateLogImpl.create(logDir);
+        return new PaxosAcceptorImpl(
+                new ConcurrentSkipListMap<Long, PaxosAcceptorState>(),
+                log,
+                log.getGreatestLogEntry());
+    }
+
     /**
      * @param logDir string path for directory to place durable logs
      * @param type the type of the objects accepted by the acceptor
      * @return a new acceptor
      */
     public static PaxosAcceptor newAcceptor(String logDir) {
-        PaxosStateLog<PaxosAcceptorState> log = PaxosStateLogImpl.create(logDir);
-        return new PaxosAcceptorImpl(
-                new ConcurrentSkipListMap<Long, PaxosAcceptorState>(),
-                log,
-                log.getGreatestLogEntry());
+        return newAcceptor(new File(logDir));
     }
 
     final ConcurrentSkipListMap<Long, PaxosAcceptorState> state;
