@@ -505,38 +505,8 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
      *
      */
     @Override
-    @Deprecated
-    public void putUnlessExists(final String tableName, final Map<Cell, byte[]> values)
-            throws KeyAlreadyExistsException {
-        // TODO: This should eventually throw new UnsupportedOperationException().
-        // For some testing purposes it does not do it now and calls putUnlessExists
-        // on all relevant delegates which is NOT a correct solution!
-        runWithPartitionMap(new Function<DynamicPartitionMap, Void>() {
-            @Override
-            public Void apply(DynamicPartitionMap input) {
-                final EndpointRequestCompletionService<Void> writeService = EndpointRequestExecutor.newService(executor);
-                final QuorumTracker<Void, Cell> tracker = QuorumTracker.of(
-                        values.keySet(), quorumParameters.getWriteRequestParameters());
-
-                input.runForCellsWrite(tableName, values, new Function<Pair<KeyValueService, Map<Cell, byte[]>>, Void>() {
-                    @Override
-                    public Void apply(final Pair<KeyValueService, Map<Cell, byte[]>> e) {
-                        Future<Void> future = writeService.submit(new Callable<Void>() {
-                            @Override
-                            public Void call() throws Exception {
-                                e.lhSide.putUnlessExists(tableName, e.rhSide);
-                                return null;
-                            }
-                        }, e.lhSide);
-                        tracker.registerRef(future, e.rhSide.keySet());
-                        return null;
-                    }
-                });
-
-                completeWriteRequest(tracker, writeService);
-                return null;
-            }
-        });
+    public void putUnlessExists(final String tableName, final Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
+        throw new UnsupportedOperationException("Paritioned KV stores are not able to handle putUnlessExists.");
     }
 
     @Override
