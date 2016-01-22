@@ -44,9 +44,9 @@ public class SimpleCleaner implements Cleaner {
     }
 
     @Override
-    public void queueCellsForScrubbing(Multimap<String, Cell> tableNameToCell,
+    public void queueCellsForScrubbing(Multimap<Cell, String> cellToTableNames,
                                        long scrubTimestamp) {
-        scrubber.queueCellsForScrubbing(tableNameToCell, scrubTimestamp);
+        scrubber.queueCellsForScrubbing(cellToTableNames, scrubTimestamp);
     }
 
     @Override

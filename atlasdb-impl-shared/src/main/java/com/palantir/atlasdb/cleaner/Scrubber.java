@@ -311,11 +311,11 @@ public final class Scrubber {
     // Warning: scrubTimestamp MUST be the start timestamp of the hard delete transaction that triggers
     // the scrubbing; we need this start timestamp to check whether the hard delete transaction was
     // actually committed before we do any scrubbing
-    /* package */ void queueCellsForScrubbing(Multimap<String, Cell> tableNameToCell, long scrubTimestamp) {
-        if (tableNameToCell.isEmpty()) {
+    /* package */ void queueCellsForScrubbing(Multimap<Cell, String> cellToTableNames, long scrubTimestamp) {
+        if (cellToTableNames.isEmpty()) {
             return;
         }
-        scrubberStore.queueCellsForScrubbing(tableNameToCell, scrubTimestamp, batchSizeSupplier.get());
+        scrubberStore.queueCellsForScrubbing(cellToTableNames, scrubTimestamp, batchSizeSupplier.get());
     }
 
     private long getCommitTimestampRollBackIfNecessary(long startTimestamp,

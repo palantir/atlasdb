@@ -28,7 +28,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
  */
 public interface ScrubberStore {
 
-    void queueCellsForScrubbing(Multimap<String, Cell> tableNameToCells, long scrubTimestamp, int batchSize);
+    void queueCellsForScrubbing(Multimap<Cell, String> cellToTableNames, long scrubTimestamp, int batchSize);
 
     void markCellsAsScrubbed(Multimap<Cell, Long> cellToScrubTimestamp, int batchSize);
 

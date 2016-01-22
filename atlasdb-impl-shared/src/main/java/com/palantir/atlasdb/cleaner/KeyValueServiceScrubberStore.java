@@ -80,10 +80,7 @@ public class KeyValueServiceScrubberStore implements ScrubberStore {
     }
 
     @Override
-    public void queueCellsForScrubbing(Multimap<String, Cell> tableNameToCells, long scrubTimestamp, int batchSize) {
-        Multimap<Cell, String> cellToTableNames = HashMultimap.create();
-        cellToTableNames = Multimaps.invertFrom(tableNameToCells, cellToTableNames);
-
+    public void queueCellsForScrubbing(Multimap<Cell, String> cellToTableNames, long scrubTimestamp, int batchSize) {
         Map<Cell, byte[]> values = Maps.newHashMap();
         for (Map.Entry<Cell, Collection<String>> entry : cellToTableNames.asMap().entrySet()) {
             Cell cell = entry.getKey();
