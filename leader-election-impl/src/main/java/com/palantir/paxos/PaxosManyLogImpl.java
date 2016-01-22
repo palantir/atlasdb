@@ -11,10 +11,10 @@ public class PaxosManyLogImpl implements PaxosManyLogApi {
     final Map<String, PaxosAcceptor> acceptors;
     final Map<String, PaxosLearner> learners;
 
-    public static PaxosManyLogApi create(Map<String, File> logDirectories) {
+    public static PaxosManyLogApi create(Map<String, String> logDirectories) {
         Builder<String, PaxosAcceptor> acceptors = ImmutableMap.builder();
         Builder<String, PaxosLearner> learners = ImmutableMap.builder();
-        for (Map.Entry<String, File> e : logDirectories.entrySet()) {
+        for (Map.Entry<String, String> e : logDirectories.entrySet()) {
             acceptors.put(e.getKey(), PaxosAcceptorImpl.newAcceptor(new File(e.getValue(), "acceptor-log")));
             learners.put(e.getKey(), PaxosLearnerImpl.newLearner(new File(e.getValue(), "learner-log")));
         }

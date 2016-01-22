@@ -38,6 +38,12 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
 
+/**
+ * This stores the latest timestamp bounds into the KV store directly.
+ * This class is NOT THREAD SAFE and DOES NOT support leader election.
+ * <p>
+ * The key value service used must allow put to be called to overwrite data.
+ */
 public class SimpleKvsTimestampBoundStore implements TimestampBoundStore {
     private static final String ROW_AND_COLUMN_NAME = "ts";
     private static final long KV_TS = 0L;

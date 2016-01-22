@@ -58,13 +58,13 @@ import com.palantir.atlasdb.transaction.impl.SnapshotTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.service.TransactionService;
-import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.client.LockRefreshingRemoteLockService;
 import com.palantir.lock.impl.LockServiceImpl;
+import com.palantir.paxos.PaxosManyLogImpl;
 import com.palantir.timestamp.TimestampService;
 
 public class TransactionManagers {
@@ -88,11 +88,11 @@ public class TransactionManagers {
      * Create a {@link SerializableTransactionManager} with provided configuration, {@link SSLSocketFactory}, a set of
      * {@link Schema}s, and an environment in which to register HTTP server endpoints.
      */
-    public static SerializableTransactionManager create(AtlasDbConfig config,
+    public static SerializableTransactionManager create(final AtlasDbConfig config,
                                                         Optional<SSLSocketFactory> sslSocketFactory,
                                                         Set<Schema> schemas,
                                                         Environment env) {
-        final AtlasDbFactory kvsFactory = getKeyValueServiceFactory(config.keyValueService().type());
+        final AtlasDbFactory kvsFactory = getKeyValueServiceFactory(config.getFactoryType());
         final KeyValueService rawKvs = kvsFactory.createRawKeyValueService(config.keyValueService());
 
         LockAndTimestampServices lts = createLockAndTimestampServices(config, sslSocketFactory, env,
@@ -105,7 +105,7 @@ public class TransactionManagers {
                 new Supplier<TimestampService>() {
                     @Override
                     public TimestampService get() {
-                        return kvsFactory.createTimestampService(rawKvs);
+                        return kvsFactory.createTimestampService(config.timestampService(), rawKvs);
                     }
                 });
         lts = ImmutableLockAndTimestampServices.builder()
@@ -120,7 +120,7 @@ public class TransactionManagers {
 
         LockClient lockClient = LockClient.of("atlas instance");
 
-        TransactionService transactionService = TransactionServices.createTransactionService(kvs);
+        TransactionService transactionService = kvsFactory.createTransactionService(config.transactionService(), kvs);
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.createDefault(kvs);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(kvs);
 
@@ -210,6 +210,10 @@ public class TransactionManagers {
             Supplier<RemoteLockService> lock,
             Supplier<TimestampService> time) {
 
+        if (config.getExtraPaxosLogs().isPresent()) {
+            env.register(PaxosManyLogImpl.create(config.getExtraPaxosLogs().get()));
+        }
+
         if (config.leader().isPresent()) {
             LeaderElectionService leader = Leaders.create(sslSocketFactory, env, config.leader().get());
             env.register(AwaitingLeadershipProxy.newProxyInstance(RemoteLockService.class, lock, leader));
@@ -219,8 +223,8 @@ public class TransactionManagers {
             warnIf(config.timestamp().isPresent(), "Ignoring timestamp server configuration because leadership election is enabled");
 
             return ImmutableLockAndTimestampServices.builder()
-                    .lock(createService(sslSocketFactory, config.leader().get().leaders(), RemoteLockService.class))
-                    .time(createService(sslSocketFactory, config.leader().get().leaders(), TimestampService.class))
+                    .lock(createRemoteServiceWithFailover(sslSocketFactory, config.leader().get().leaders(), RemoteLockService.class))
+                    .time(createRemoteServiceWithFailover(sslSocketFactory, config.leader().get().leaders(), TimestampService.class))
                     .build();
         } else {
             warnIf(config.lock().isPresent() != config.timestamp().isPresent(), "Using embedded instances for one (but not both) of lock and timestamp services");
@@ -238,7 +242,7 @@ public class TransactionManagers {
         }
     }
 
-    private static <T> T createService(Optional<SSLSocketFactory> sslSocketFactory, Set<String> uris, Class<T> serviceClass) {
+    private static <T> T createRemoteServiceWithFailover(Optional<SSLSocketFactory> sslSocketFactory, Set<String> uris, Class<T> serviceClass) {
         return AtlasDbHttpClients.createRemoteProxyWithFailover(sslSocketFactory, uris, serviceClass);
     }
 
@@ -253,7 +257,7 @@ public class TransactionManagers {
 
         @Override
         public T apply(ServerListConfig input) {
-            return createService(sslSocketFactory, input.servers(), serviceClass);
+            return createRemoteServiceWithFailover(sslSocketFactory, input.servers(), serviceClass);
         }
     }
 

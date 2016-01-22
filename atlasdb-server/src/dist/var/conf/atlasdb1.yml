@@ -16,7 +16,10 @@ atlasdb:
        - localhost
     port: 9160
     ssl: false
-    replicationFactory: 1
+    replicationFactor: 1
+  extraPaxosLogs:
+    timestamp: var/data/extraPaxos1/timestamp
+    transaction: var/data/extraPaxos1/transaction
   leader:
     quorumSize: 2
     learnerLogDir: var/data/paxosLog/learner1

@@ -6,6 +6,7 @@ dependencies {
   compile project(":atlasdb-client")
   compile project(":atlasdb-spi")
   compile project(':timestamp-impl')
+  compile project(':atlasdb-impl-shared')
 
   compile('org.apache.cassandra:cassandra-all:' + libVersions.cassandra) {
     exclude(group: 'com.google.guava', module: 'guava')
@@ -33,5 +34,6 @@ configurations.matching({ it.name in ['compile', 'runtime'] }).all {
         force 'org.xerial.snappy:snappy-java:' + libVersions.snappy
         force 'org.yaml:snakeyaml:1.12'
         force 'commons-codec:commons-codec:1.6'
+        force 'joda-time:joda-time:' + libVersions.joda_time
     }
 }

@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.memory;
 
 import com.google.auto.service.AutoService;
+import com.google.common.base.Optional;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cleaner.Cleaner;
@@ -33,6 +34,8 @@ import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.schema.SchemaReference;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.spi.TimestampServiceConfig;
+import com.palantir.atlasdb.spi.TransactionServiceConfig;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -73,8 +76,13 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
     }
 
     @Override
-    public TimestampService createTimestampService(KeyValueService rawKvs) {
+    public TimestampService createTimestampService(Optional<TimestampServiceConfig> config, KeyValueService rawKvs) {
         return new InMemoryTimestampService();
+    }
+
+    @Override
+    public TransactionService createTransactionService(Optional<TransactionServiceConfig> config, KeyValueService rawKvs) {
+        return TransactionServices.createTransactionService(rawKvs);
     }
 
     public static SerializableTransactionManager createInMemoryTransactionManager(Schema schema) {

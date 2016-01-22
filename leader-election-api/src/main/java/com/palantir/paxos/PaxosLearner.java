@@ -39,7 +39,7 @@ public interface PaxosLearner {
      * @param val value learned for that round
      */
     @POST
-    @Path("learn/{seq:.+}")
+    @Path("learn/{seq}")
     @Consumes(MediaType.APPLICATION_JSON)
     public void learn(@PathParam("seq") long seq, PaxosValue val);
 
@@ -48,7 +48,7 @@ public interface PaxosLearner {
      */
     @Nullable
     @GET
-    @Path("learned-value/{seq:.+}")
+    @Path("learned-value/{seq}")
     @Produces(MediaType.APPLICATION_JSON)
     public PaxosValue getLearnedValue(@PathParam("seq") long seq);
 
@@ -69,7 +69,7 @@ public interface PaxosLearner {
      */
     @Nonnull
     @GET
-    @Path("learned-values-since/{seq:.+}")
+    @Path("learned-values-since/{seq}")
     @Produces(MediaType.APPLICATION_JSON)
     Collection<PaxosValue> getLearnedValuesSince(@PathParam("seq") @Inclusive long seq);
 

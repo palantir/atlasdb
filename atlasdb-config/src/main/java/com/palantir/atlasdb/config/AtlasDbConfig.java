@@ -15,13 +15,19 @@
  */
 package com.palantir.atlasdb.config;
 
+import java.util.Map;
+
 import org.immutables.value.Value;
+import org.immutables.value.Value.Check;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.spi.TimestampServiceConfig;
+import com.palantir.atlasdb.spi.TransactionServiceConfig;
 
 @JsonDeserialize(as = ImmutableAtlasDbConfig.class)
 @JsonSerialize(as = ImmutableAtlasDbConfig.class)
@@ -30,11 +36,22 @@ public abstract class AtlasDbConfig {
 
     public abstract KeyValueServiceConfig keyValueService();
 
+    public abstract Optional<TimestampServiceConfig> timestampService();
+
+    public abstract Optional<TransactionServiceConfig> transactionService();
+
     public abstract Optional<LeaderConfig> leader();
 
     public abstract Optional<ServerListConfig> lock();
 
     public abstract Optional<ServerListConfig> timestamp();
+
+    public abstract Optional<Map<String, String>> getExtraPaxosLogs();
+
+    @Value.Default
+    public String getFactoryType() {
+        return keyValueService().type();
+    }
 
     /**
      * The transaction read timeout is the maximum amount of
@@ -147,5 +164,13 @@ public abstract class AtlasDbConfig {
     @Value.Default
     public int getSweepBatchSize() {
         return AtlasDbConstants.DEFAULT_SWEEP_BATCH_SIZE;
+    }
+
+    @Check
+    final void check() {
+        if (leader().isPresent()) {
+            Preconditions.checkArgument(!lock().isPresent(), "If leader is specified, lock will be set to the leader settings and may not be specified.");
+            Preconditions.checkArgument(!timestamp().isPresent(), "If leader is specified, timestamp will be set to the leader settings and may not be specified.");
+        }
     }
 }

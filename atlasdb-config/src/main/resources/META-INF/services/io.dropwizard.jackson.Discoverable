@@ -1,1 +1,3 @@
 com.palantir.atlasdb.spi.KeyValueServiceConfig
+com.palantir.atlasdb.spi.TimestampServiceConfig
+com.palantir.atlasdb.spi.TransactionServiceConfig

@@ -21,6 +21,7 @@ import java.util.Set;
 import javax.validation.constraints.Size;
 
 import org.immutables.value.Value;
+import org.immutables.value.Value.Check;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -63,6 +64,7 @@ public abstract class LeaderConfig {
         return 5000l;
     }
 
+    @Check
     protected final void check() {
         Preconditions.checkArgument(leaders().contains(localServer()),
                 "The localServer '%s' must included in the leader entries %s.", localServer(), leaders());

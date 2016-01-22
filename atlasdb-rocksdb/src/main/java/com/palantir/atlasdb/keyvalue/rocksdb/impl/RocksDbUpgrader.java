@@ -22,10 +22,12 @@ import org.rocksdb.RocksIterator;
 import org.rocksdb.WriteOptions;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Optional;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.rocksdb.impl.ColumnFamilyMap.ColumnFamily;
 import com.palantir.atlasdb.rocksdb.RocksDbAtlasDbFactory;
 import com.palantir.atlasdb.rocksdb.RocksDbKeyValueServiceConfig;
+import com.palantir.atlasdb.spi.TimestampServiceConfig;
 
 public class RocksDbUpgrader {
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -55,7 +57,7 @@ public class RocksDbUpgrader {
         for (String table : oldKvs.getAllTableNames()) {
             newKvs.createTable(table, AtlasDbConstants.EMPTY_TABLE_METADATA);
         }
-        factory.createTimestampService(newKvs);
+        factory.createTimestampService(Optional.<TimestampServiceConfig>absent(), newKvs);
 
         for (String table : oldKvs.columnFamilies.getTableNames()) {
             System.out.println("Migrating table " + table);

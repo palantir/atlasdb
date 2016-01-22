@@ -53,7 +53,6 @@ public class TransactionKVSWrapper {
     }
 
     public Map<Long, Long> get(Iterable<Long> startTimestamps) {
-        Map<Long, Long> result = Maps.newHashMap();
         Map<Cell, Long> startTsMap = Maps.newHashMap();
         for (Long startTimestamp: startTimestamps) {
             Cell k = getTransactionCell(startTimestamp);
@@ -61,6 +60,7 @@ public class TransactionKVSWrapper {
         }
 
         Map<Cell, Value> rawResults = keyValueService.get(TransactionConstants.TRANSACTION_TABLE, startTsMap);
+        Map<Long, Long> result = Maps.newHashMapWithExpectedSize(rawResults .size());
         for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
             long startTs = TransactionConstants.getTimestampForValue(e.getKey().getRowName());
             long commitTs = TransactionConstants.getTimestampForValue(e.getValue().getContents());
