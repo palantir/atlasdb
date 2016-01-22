@@ -72,8 +72,8 @@ import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
+import com.palantir.atlasdb.transaction.service.KVSBasedTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
-import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.common.base.AbortingVisitors;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitables;
@@ -132,7 +132,7 @@ public abstract class AbstractTransactionTest {
                 TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA,
                 TransactionConstants.TRANSACTION_TABLE, TransactionConstants.TRANSACTION_TABLE_METADATA.persistToBytes()));
         keyValueService.truncateTables(ImmutableSet.of(TEST_TABLE, TransactionConstants.TRANSACTION_TABLE));
-        transactionService = TransactionServices.createTransactionService(keyValueService);
+        transactionService = new KVSBasedTransactionService(keyValueService);
         conflictDetectionManager = ConflictDetectionManagers.createDefault(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
     }

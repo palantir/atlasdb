@@ -45,6 +45,7 @@ import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SnapshotTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
+import com.palantir.atlasdb.transaction.service.KVSBasedTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.lock.LockClient;
@@ -82,7 +83,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
 
     @Override
     public TransactionService createTransactionService(Optional<TransactionServiceConfig> config, KeyValueService rawKvs) {
-        return TransactionServices.createTransactionService(rawKvs);
+        return TransactionServices.createTransactionService(config, rawKvs);
     }
 
     public static SerializableTransactionManager createInMemoryTransactionManager(Schema schema) {
@@ -104,7 +105,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
         Schemas.createTablesAndIndexes(schema, keyValueService);
         SnapshotTransactionManager.createTables(keyValueService);
 
-        TransactionService transactionService = TransactionServices.createTransactionService(keyValueService);
+        TransactionService transactionService = new KVSBasedTransactionService(keyValueService);
         RemoteLockService lock = LockRefreshingLockService.create(LockServiceImpl.create(new LockServerOptions() {
             private static final long serialVersionUID = 1L;
 

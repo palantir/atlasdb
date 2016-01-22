@@ -40,14 +40,14 @@ public class PaxosProposerImpl implements PaxosProposer {
     private static final Logger log = LoggerFactory.getLogger(PaxosProposerImpl.class);
 
     public static PaxosProposer newProposer(PaxosLearner localLearner,
-                                            ImmutableList<PaxosAcceptor> allAcceptors,
-                                            ImmutableList<PaxosLearner> allLearners,
+                                            List<PaxosAcceptor> allAcceptors,
+                                            List<PaxosLearner> allLearners,
                                             int quorumSize,
                                             Executor executor) {
         return new PaxosProposerImpl(
                 localLearner,
-                allAcceptors,
-                allLearners,
+                ImmutableList.copyOf(allAcceptors),
+                ImmutableList.copyOf(allLearners),
                 quorumSize,
                 UUID.randomUUID().toString(),
                 executor);

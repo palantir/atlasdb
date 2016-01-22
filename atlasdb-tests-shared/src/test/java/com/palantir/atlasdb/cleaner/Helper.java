@@ -25,12 +25,12 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.transaction.service.KVSBasedTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
-import com.palantir.atlasdb.transaction.service.TransactionServices;
 
 public final class Helper {
     public final KeyValueService keyValueService = new InMemoryKeyValueService(false);
-    public final TransactionService transactionService = TransactionServices.createTransactionService(keyValueService);
+    public final TransactionService transactionService = new KVSBasedTransactionService(keyValueService);
 
     public String get(String tableName, String rowString, String colString, long ts) {
         Cell cell = Cell.create(rowString.getBytes(), colString.getBytes());

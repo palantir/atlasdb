@@ -23,6 +23,7 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.TimestampServiceConfig;
 import com.palantir.atlasdb.spi.TransactionServiceConfig;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.timestamp.TimestampService;
 
 @AutoService(AtlasDbFactory.class)
@@ -46,7 +47,7 @@ public class PartitionedAtlasDbFactory implements AtlasDbFactory {
 
     @Override
     public TransactionService createTransactionService(Optional<TransactionServiceConfig> config, KeyValueService rawKvs) {
-        return null;
+        return TransactionServices.createTransactionService(config, rawKvs);
     }
 
 }

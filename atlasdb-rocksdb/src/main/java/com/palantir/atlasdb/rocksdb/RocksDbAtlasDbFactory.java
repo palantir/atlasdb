@@ -61,7 +61,7 @@ public class RocksDbAtlasDbFactory implements AtlasDbFactory {
 
     @Override
     public TransactionService createTransactionService(Optional<TransactionServiceConfig> config, KeyValueService rawKvs) {
-        return TransactionServices.createTransactionService(rawKvs);
+        return TransactionServices.createTransactionService(config, rawKvs);
     }
 
 

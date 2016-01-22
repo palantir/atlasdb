@@ -17,6 +17,14 @@ atlasdb:
     port: 9160
     ssl: false
     replicationFactor: 1
+  transactionService:
+    type: paxos
+    quorumSize: 2
+    localServer: http://localhost:3828
+    endpoints:
+      - http://localhost:3828
+      - http://localhost:4828
+      - http://localhost:5828
   extraPaxosLogs:
     timestamp: var/data/extraPaxos1/timestamp
     transaction: var/data/extraPaxos1/transaction
