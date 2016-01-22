@@ -16,30 +16,16 @@
 package com.palantir.atlasdb.keyvalue.remoting;
 
 import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.NavigableMap;
-
-import org.apache.commons.lang.ArrayUtils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.google.common.base.Supplier;
-import com.google.common.collect.Maps;
-import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
-import com.palantir.atlasdb.keyvalue.partition.endpoint.InMemoryKeyValueEndpoint;
-import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
-import com.palantir.atlasdb.keyvalue.partition.map.DynamicPartitionMapImpl;
-import com.palantir.atlasdb.keyvalue.partition.map.InMemoryPartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
-import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
 import com.palantir.atlasdb.keyvalue.partition.server.EndpointServer;
 import com.palantir.atlasdb.keyvalue.remoting.outofband.InboxPopulatingContainerRequestFilter;
 import com.palantir.common.base.Throwables;
-import com.palantir.common.concurrent.PTExecutors;
 
 import io.dropwizard.Configuration;
 import io.dropwizard.testing.DropwizardTestSupport;
