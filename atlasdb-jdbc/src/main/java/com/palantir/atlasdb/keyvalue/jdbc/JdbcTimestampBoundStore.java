@@ -21,8 +21,8 @@ import static org.jooq.impl.SQLDataType.INTEGER;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.Record;
+import org.jooq.RowN;
 import org.jooq.Table;
-import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
 
 import com.google.common.base.Function;
@@ -39,10 +39,10 @@ public class JdbcTimestampBoundStore implements TimestampBoundStore {
 
     private JdbcTimestampBoundStore(JdbcKeyValueService kvs) {
         this.kvs = kvs;
-        TABLE = kvs.atlasTable("_timestamp");
+        TABLE = DSL.table(kvs.tableName("_timestamp"));
     }
 
-    public static JdbcTimestampBoundStore create(JdbcKeyValueService kvs) {
+    public static JdbcTimestampBoundStore create(final JdbcKeyValueService kvs) {
         final JdbcTimestampBoundStore store = new JdbcTimestampBoundStore(kvs);
         kvs.run(new Function<DSLContext, Void>() {
             @Override
@@ -53,17 +53,20 @@ public class JdbcTimestampBoundStore implements TimestampBoundStore {
                         .getSQL();
                 int endIndex = partialSql.lastIndexOf(')');
                 String fullSql = partialSql.substring(0, endIndex) + "," +
-                        " CONSTRAINT pk_timestamp" +
+                        " CONSTRAINT " + kvs.primaryKey("_timestamp") +
                         " PRIMARY KEY (" + DUMMY_COLUMN.getName() + ")" +
                         partialSql.substring(endIndex);
-                try {
+                //try {
                     ctx.execute(fullSql);
-                } catch (DataAccessException e) {
+                //} catch (DataAccessException e) {
                     // TODO: check if it's because the table already exists.
-                }
+                //}
                 ctx.insertInto(store.TABLE, DUMMY_COLUMN, LATEST_TIMESTAMP)
-                    .values(0, 10000L)
-                    .onDuplicateKeyIgnore()
+                    .select(ctx.select(DUMMY_COLUMN, LATEST_TIMESTAMP)
+                            .from(DSL.values((RowN) DSL.row(0, 10000L)).as("t", DUMMY_COLUMN.getName(), LATEST_TIMESTAMP.getName()))
+                            .whereNotExists(ctx.selectOne()
+                                    .from(store.TABLE)
+                                    .where(DUMMY_COLUMN.eq(0))))
                     .execute();
                 return null;
             }
