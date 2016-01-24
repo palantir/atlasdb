@@ -203,23 +203,24 @@ public class AtlasShellPanel extends JPanel implements AtlasShellGuiCallback {
                 }
             }
 
+            // TODO:  Make these better with JDK8
             @Override
-            public void columnAdded(TableColumnModelEvent _) {
+            public void columnAdded(TableColumnModelEvent __) {
                 //
             }
 
             @Override
-            public void columnMoved(TableColumnModelEvent _) {
+            public void columnMoved(TableColumnModelEvent __) {
                 //
             }
 
             @Override
-            public void columnRemoved(TableColumnModelEvent _) {
+            public void columnRemoved(TableColumnModelEvent __) {
                 //
             }
 
             @Override
-            public void columnSelectionChanged(ListSelectionEvent _) {
+            public void columnSelectionChanged(ListSelectionEvent __) {
                 //
             }
         });
