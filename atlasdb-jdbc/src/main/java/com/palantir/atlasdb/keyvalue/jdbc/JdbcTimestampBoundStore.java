@@ -23,6 +23,7 @@ import org.jooq.Field;
 import org.jooq.Record;
 import org.jooq.RowN;
 import org.jooq.Table;
+import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
 
 import com.google.common.base.Function;
@@ -56,11 +57,11 @@ public class JdbcTimestampBoundStore implements TimestampBoundStore {
                         " CONSTRAINT " + kvs.primaryKey("_timestamp") +
                         " PRIMARY KEY (" + DUMMY_COLUMN.getName() + ")" +
                         partialSql.substring(endIndex);
-                //try {
+                try {
                     ctx.execute(fullSql);
-                //} catch (DataAccessException e) {
-                    // TODO: check if it's because the table already exists.
-                //}
+                } catch (DataAccessException e) {
+                    kvs.handleTableCreationException(e);
+                }
                 ctx.insertInto(store.TABLE, DUMMY_COLUMN, LATEST_TIMESTAMP)
                     .select(ctx.select(DUMMY_COLUMN, LATEST_TIMESTAMP)
                             .from(DSL.values((RowN) DSL.row(0, 10000L)).as("t", DUMMY_COLUMN.getName(), LATEST_TIMESTAMP.getName()))
@@ -79,10 +80,7 @@ public class JdbcTimestampBoundStore implements TimestampBoundStore {
         return kvs.run(new Function<DSLContext, Long>() {
             @Override
             public Long apply(DSLContext ctx) {
-                return latestTimestamp = ctx.select(LATEST_TIMESTAMP)
-                        .from(TABLE)
-                        .where(DUMMY_COLUMN.eq(0))
-                        .fetchOne(LATEST_TIMESTAMP);
+                return latestTimestamp = getLatestTimestamp(ctx);
             }
         });
     }
@@ -92,23 +90,26 @@ public class JdbcTimestampBoundStore implements TimestampBoundStore {
         kvs.runInTransaction(new Function<DSLContext, Void>() {
             @Override
             public Void apply(DSLContext ctx) {
-                long actualLatestTimestamp = ctx.select(LATEST_TIMESTAMP)
-                        .from(TABLE)
-                        .where(DUMMY_COLUMN.eq(0))
-                        .forUpdate()
-                        .fetchOne(LATEST_TIMESTAMP);
-                if (latestTimestamp != actualLatestTimestamp) {
+                int rowsUpdated = ctx.update(TABLE)
+                    .set(LATEST_TIMESTAMP, limit)
+                    .where(DUMMY_COLUMN.eq(0).and(LATEST_TIMESTAMP.eq(latestTimestamp)))
+                    .execute();
+                if (rowsUpdated != 1) {
+                    long actualLatestTimestamp = getLatestTimestamp(ctx);
                     throw new MultipleRunningTimestampServiceError("Timestamp limit changed underneath " +
                             "us (limit in memory: " + latestTimestamp + ", limit in db: " + actualLatestTimestamp +
                             "). This may indicate that another timestamp service is running against this db!");
                 }
                 latestTimestamp = limit;
-                ctx.update(TABLE)
-                    .set(LATEST_TIMESTAMP, limit)
-                    .where(DUMMY_COLUMN.eq(0))
-                    .execute();
                 return null;
             }
         });
+    }
+
+    private long getLatestTimestamp(DSLContext ctx) {
+        return ctx.select(LATEST_TIMESTAMP)
+                .from(TABLE)
+                .where(DUMMY_COLUMN.eq(0))
+                .fetchOne(LATEST_TIMESTAMP);
     }
 }
