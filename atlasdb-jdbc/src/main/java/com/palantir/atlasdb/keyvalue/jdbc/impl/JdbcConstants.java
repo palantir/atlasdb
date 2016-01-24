@@ -39,6 +39,12 @@ public class JdbcConstants {
     public static final Field<Long> A_TIMESTAMP = field(ATLAS_TABLE + '.' + TIMESTAMP, Long.class);
     public static final Field<byte[]> A_VALUE = field(ATLAS_TABLE + '.' + VALUE, byte[].class);
 
+    public static final String RANGE_TABLE = "r";
+    public static final Field<byte[]> R_ROW_NAME = field(RANGE_TABLE + '.' + ROW_NAME, byte[].class);
+    public static final Field<byte[]> R_COL_NAME = field(RANGE_TABLE + '.' + COL_NAME, byte[].class);
+    public static final Field<Long> R_TIMESTAMP = field(RANGE_TABLE + '.' + TIMESTAMP, Long.class);
+    public static final Field<byte[]> R_VALUE = field(RANGE_TABLE + '.' + VALUE, byte[].class);
+
     public static final String TEMP_TABLE_1 = "t1";
     public static final Field<byte[]> T1_ROW_NAME = field(TEMP_TABLE_1 + '.' + ROW_NAME, byte[].class);
     public static final Field<byte[]> T1_COL_NAME = field(TEMP_TABLE_1 + '.' + COL_NAME, byte[].class);
