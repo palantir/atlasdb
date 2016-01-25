@@ -27,7 +27,7 @@ import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
 
 import com.google.common.base.Function;
-import com.palantir.timestamp.MultipleRunningTimestampServiceError;
+import com.palantir.timestamp.MultipleRunningTimestampServiceException;
 import com.palantir.timestamp.TimestampBoundStore;
 
 public class JdbcTimestampBoundStore implements TimestampBoundStore {
@@ -86,7 +86,7 @@ public class JdbcTimestampBoundStore implements TimestampBoundStore {
     }
 
     @Override
-    public synchronized void storeUpperLimit(final long limit) throws MultipleRunningTimestampServiceError {
+    public synchronized void storeUpperLimit(final long limit) throws MultipleRunningTimestampServiceException {
         kvs.runInTransaction(new Function<DSLContext, Void>() {
             @Override
             public Void apply(DSLContext ctx) {
@@ -96,7 +96,7 @@ public class JdbcTimestampBoundStore implements TimestampBoundStore {
                     .execute();
                 if (rowsUpdated != 1) {
                     long actualLatestTimestamp = getLatestTimestamp(ctx);
-                    throw new MultipleRunningTimestampServiceError("Timestamp limit changed underneath " +
+                    throw new MultipleRunningTimestampServiceException("Timestamp limit changed underneath " +
                             "us (limit in memory: " + latestTimestamp + ", limit in db: " + actualLatestTimestamp +
                             "). This may indicate that another timestamp service is running against this db!");
                 }

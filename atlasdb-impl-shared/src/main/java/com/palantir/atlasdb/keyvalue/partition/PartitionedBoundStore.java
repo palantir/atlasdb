@@ -38,7 +38,7 @@ import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
-import com.palantir.timestamp.MultipleRunningTimestampServiceError;
+import com.palantir.timestamp.MultipleRunningTimestampServiceException;
 import com.palantir.timestamp.TimestampBoundStore;
 
 public class PartitionedBoundStore implements TimestampBoundStore, Closeable {
@@ -82,14 +82,14 @@ public class PartitionedBoundStore implements TimestampBoundStore, Closeable {
     }
 
     @Override
-    public synchronized void storeUpperLimit(long limit) throws MultipleRunningTimestampServiceError {
+    public synchronized void storeUpperLimit(long limit) throws MultipleRunningTimestampServiceException {
         Map<Cell, Value> result = kv.get(TIMESTAMP_TABLE, ImmutableMap.of(TS_CELL, KV_TS+1));
         long oldValue = getValueFromResult(result);
         if (oldValue != currentLimit) {
             String msg = "Timestamp limit changed underneath us (limit in memory: " + currentLimit
                     + "). This may indicate that "
                     + "another timestamp service is running against this leveldb store!";
-            throw new MultipleRunningTimestampServiceError(msg);
+            throw new MultipleRunningTimestampServiceException(msg);
         }
         putValue(limit);
         currentLimit = limit;

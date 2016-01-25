@@ -112,7 +112,7 @@ public class PersistentTimestampService implements TimestampService {
                 @Override
                 public void run() {
                     try {
-                        if (allocationFailure instanceof MultipleRunningTimestampServiceError) {
+                        if (allocationFailure instanceof MultipleRunningTimestampServiceException) {
                             // We cannot allocate timestamps anymore because another server is running.
                             return;
                         }
@@ -163,7 +163,7 @@ public class PersistentTimestampService implements TimestampService {
             if (lastVal >= upperLimit) {
                 submitAllocationTask();
                 Throwable possibleFailure = allocationFailure;
-                if (possibleFailure instanceof MultipleRunningTimestampServiceError) {
+                if (possibleFailure instanceof MultipleRunningTimestampServiceException) {
                     throw new ServiceNotAvailableException("This server is no longer valid because another is running.", possibleFailure);
                 } else if (possibleFailure != null) {
                     throw new RuntimeException("failed to allocate more timestamps", possibleFailure);

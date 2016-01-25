@@ -20,18 +20,18 @@ package com.palantir.timestamp;
  * Error indicating that multiple timestamp services are running against the
  * same database.
  */
-public class MultipleRunningTimestampServiceError extends Error {
+public class MultipleRunningTimestampServiceException extends RuntimeException {
     private static final long serialVersionUID = 1L;
 
-    public MultipleRunningTimestampServiceError(String message) {
+    public MultipleRunningTimestampServiceException(String message) {
         super(message);
     }
 
-    public MultipleRunningTimestampServiceError(String message, Throwable t) {
+    public MultipleRunningTimestampServiceException(String message, Throwable t) {
         super(message, t);
     }
 
-    public MultipleRunningTimestampServiceError(Throwable t) {
+    public MultipleRunningTimestampServiceException(Throwable t) {
         super(t);
     }
 }

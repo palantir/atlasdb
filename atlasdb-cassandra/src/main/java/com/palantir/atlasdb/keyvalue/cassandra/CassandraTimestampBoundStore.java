@@ -43,7 +43,7 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.pooling.PoolingContainer;
-import com.palantir.timestamp.MultipleRunningTimestampServiceError;
+import com.palantir.timestamp.MultipleRunningTimestampServiceException;
 import com.palantir.timestamp.TimestampBoundStore;
 
 public final class CassandraTimestampBoundStore implements TimestampBoundStore {
@@ -132,7 +132,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
             String msg = "Timestamp limit changed underneath us (limit in memory: " + currentLimit
                     + "). This may indicate that "
                     + "another timestamp service is running against this cassandra!";
-            MultipleRunningTimestampServiceError e = new MultipleRunningTimestampServiceError(msg);
+            MultipleRunningTimestampServiceException e = new MultipleRunningTimestampServiceException(msg);
             log.error(msg, e);
             lastWriteException = e;
             throw e;

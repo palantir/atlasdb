@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.config;
 
-import java.util.Map;
-
 import org.immutables.value.Value;
 import org.immutables.value.Value.Check;
 
@@ -25,9 +23,11 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.TimestampServiceConfig;
 import com.palantir.atlasdb.spi.TransactionServiceConfig;
+import com.palantir.leader.NotCurrentLeaderException;
 
 @JsonDeserialize(as = ImmutableAtlasDbConfig.class)
 @JsonSerialize(as = ImmutableAtlasDbConfig.class)
@@ -36,18 +36,45 @@ public abstract class AtlasDbConfig {
 
     public abstract KeyValueServiceConfig keyValueService();
 
+    /**
+     * This is server config that will determine how a timestamp service is created.
+     * This config object will be passed to {@link AtlasDbFactory#createTimestampService(Optional, com.palantir.atlasdb.keyvalue.api.KeyValueService)}
+     */
     public abstract Optional<TimestampServiceConfig> timestampService();
 
+    /**
+     * This is server config that will determine how a transaction service is created.
+     * This config object will be passed to {@link AtlasDbFactory#createTransactionService(Optional, com.palantir.atlasdb.keyvalue.api.KeyValueService)}
+     */
     public abstract Optional<TransactionServiceConfig> transactionService();
 
+    /**
+     * Server config to start a leader node.
+     * <p>
+     * A leader server also exposes a lock server and timestamp server that block
+     * on leadership.  Only one of the servers will be active at one time.  The rest
+     * will throw {@link NotCurrentLeaderException}.
+     * <p>
+     * If leader is specified {@link #timestamp()} and {@link #lock()} are not
+     * needed and will just be set to the server list from
+     * <code>leader().get().leaders()</code>
+     */
     public abstract Optional<LeaderConfig> leader();
 
+    /**
+     * Client config to connect to a running lock server.
+     */
     public abstract Optional<ServerListConfig> lock();
 
+    /**
+     * Client config to connect to a running timestamp server.
+     */
     public abstract Optional<ServerListConfig> timestamp();
 
-    public abstract Optional<Map<String, String>> getExtraPaxosLogs();
-
+    /**
+     * An {@link AtlasDbFactory} of this type will be constructed to create each
+     * component.
+     */
     @Value.Default
     public String getFactoryType() {
         return keyValueService().type();

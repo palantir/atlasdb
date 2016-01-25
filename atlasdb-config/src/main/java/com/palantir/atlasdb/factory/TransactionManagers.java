@@ -35,6 +35,7 @@ import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.config.AtlasDbConfig;
+import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -210,12 +211,12 @@ public class TransactionManagers {
             Supplier<RemoteLockService> lock,
             Supplier<TimestampService> time) {
 
-        if (config.getExtraPaxosLogs().isPresent()) {
-            env.register(PaxosManyLogImpl.create(config.getExtraPaxosLogs().get()));
-        }
-
         if (config.leader().isPresent()) {
-            LeaderElectionService leader = Leaders.create(sslSocketFactory, env, config.leader().get());
+            LeaderConfig leaderConfig = config.leader().get();
+            if (leaderConfig.additionalPaxosEndpointsToLogDir().isPresent()) {
+                env.register(PaxosManyLogImpl.create(leaderConfig.additionalPaxosEndpointsToLogDir().get()));
+            }
+            LeaderElectionService leader = Leaders.create(sslSocketFactory, env, leaderConfig);
             env.register(AwaitingLeadershipProxy.newProxyInstance(RemoteLockService.class, lock, leader));
             env.register(AwaitingLeadershipProxy.newProxyInstance(TimestampService.class, time, leader));
 
@@ -223,8 +224,8 @@ public class TransactionManagers {
             warnIf(config.timestamp().isPresent(), "Ignoring timestamp server configuration because leadership election is enabled");
 
             return ImmutableLockAndTimestampServices.builder()
-                    .lock(createRemoteServiceWithFailover(sslSocketFactory, config.leader().get().leaders(), RemoteLockService.class))
-                    .time(createRemoteServiceWithFailover(sslSocketFactory, config.leader().get().leaders(), TimestampService.class))
+                    .lock(createRemoteServiceWithFailover(sslSocketFactory, leaderConfig.leaders(), RemoteLockService.class))
+                    .time(createRemoteServiceWithFailover(sslSocketFactory, leaderConfig.leaders(), TimestampService.class))
                     .build();
         } else {
             warnIf(config.lock().isPresent() != config.timestamp().isPresent(), "Using embedded instances for one (but not both) of lock and timestamp services");

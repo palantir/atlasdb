@@ -25,10 +25,9 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.auto.service.AutoService;
 import com.google.common.base.Preconditions;
-import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.TransactionServiceConfig;
 
-@AutoService(KeyValueServiceConfig.class)
+@AutoService(TransactionServiceConfig.class)
 @JsonDeserialize(as = ImmutablePaxosTransactionServiceConfig.class)
 @JsonSerialize(as = ImmutablePaxosTransactionServiceConfig.class)
 @JsonTypeName(PaxosTransactionServiceConfig.TYPE)

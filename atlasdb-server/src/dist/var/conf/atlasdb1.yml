@@ -25,9 +25,6 @@ atlasdb:
       - http://localhost:3828
       - http://localhost:4828
       - http://localhost:5828
-  extraPaxosLogs:
-    timestamp: var/data/extraPaxos1/timestamp
-    transaction: var/data/extraPaxos1/transaction
   leader:
     quorumSize: 2
     learnerLogDir: var/data/paxosLog/learner1
@@ -37,3 +34,6 @@ atlasdb:
       - http://localhost:3828
       - http://localhost:4828
       - http://localhost:5828
+    additionalPaxosEndpointsToLogDir:
+      timestamp: var/data/extraPaxos1/timestamp
+      transaction: var/data/extraPaxos1/transaction
