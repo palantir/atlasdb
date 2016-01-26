@@ -17,7 +17,6 @@ dependencies {
         exclude(module:'hibernate-validator')
         exclude(module:'libthrift')
     }
-    runtime project(':atlasdb-rdbms')
     compile "io.dropwizard:dropwizard-core:" + libVersions.dropwizard
     
     testCompile "io.dropwizard:dropwizard-testing:" + libVersions.dropwizard
