@@ -254,7 +254,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 }
             }
         }
-        throw new IllegalStateException(CassandraKeyValueServices.buildErrorMessage("Could not connect to any Cassandra hosts", errorsByHost));
+        throw new IllegalStateException(CassandraKeyValueServices.buildErrorMessage("Could not connect to any Cassandra hosts. Check the status of your cluster, and check your host list and SSL settings to make sure they match.", errorsByHost));
     }
 
     private void validatePartitioner(Cassandra.Client client) throws TException {
