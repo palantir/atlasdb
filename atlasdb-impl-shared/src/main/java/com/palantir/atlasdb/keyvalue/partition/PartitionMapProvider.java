@@ -61,8 +61,7 @@ public class PartitionMapProvider {
                 return runWithPartitionMap(task);
             } catch (ClientVersionTooOldException | EndpointVersionTooOldException e) {
                 // New version should be used now, retry.
-                e.printStackTrace(System.out);
-                log.info("Retrying...");
+                log.info("Retrying...", e);
             }
         }
     }

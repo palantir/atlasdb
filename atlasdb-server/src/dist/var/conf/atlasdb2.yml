@@ -26,6 +26,3 @@ atlasdb:
       - http://localhost:3828
       - http://localhost:4828
       - http://localhost:5828
-    additionalPaxosEndpointsToLogDir:
-      timestamp: var/data/extraPaxos2/timestamp
-      transaction: var/data/extraPaxos2/transaction

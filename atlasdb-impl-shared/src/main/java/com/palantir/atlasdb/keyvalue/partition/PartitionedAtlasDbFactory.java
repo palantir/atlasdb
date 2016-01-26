@@ -23,6 +23,7 @@ import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.TimestampServiceConfig;
 import com.palantir.atlasdb.spi.TransactionServiceConfig;
+import com.palantir.atlasdb.timestamp.config.PaxosTimestampServiceConfig;
 import com.palantir.atlasdb.transaction.config.PaxosTransactionServiceConfig;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
@@ -37,14 +38,16 @@ public class PartitionedAtlasDbFactory implements AtlasDbFactory {
     }
 
     @Override
-    public PartitionedKeyValueService createRawKeyValueService(KeyValueServiceConfig config) {
-        return PartitionedKeyValueService.create((PartitionedKeyValueConfiguration) config);
+    public PartitionedKeyValueService createRawKeyValueService(KeyValueServiceConfig kvc) {
+        PartitionedKeyValueConfiguration config = (PartitionedKeyValueConfiguration) kvc;
+        return PartitionedKeyValueService.create(config);
     }
 
     @Override
     public TimestampService createTimestampService(Optional<TimestampServiceConfig> config,
                                                    KeyValueService rawKvs) {
-        return null;
+        Preconditions.checkArgument(config.isPresent() && config.get() instanceof PaxosTimestampServiceConfig);
+        return TransactionServices.createTimestampService((PaxosTimestampServiceConfig) config.get());
     }
 
     @Override
