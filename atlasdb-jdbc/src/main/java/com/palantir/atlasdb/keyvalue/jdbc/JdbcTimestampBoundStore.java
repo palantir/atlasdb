@@ -64,7 +64,7 @@ public class JdbcTimestampBoundStore implements TimestampBoundStore {
                 }
                 ctx.insertInto(store.TABLE, DUMMY_COLUMN, LATEST_TIMESTAMP)
                     .select(ctx.select(DUMMY_COLUMN, LATEST_TIMESTAMP)
-                            .from(DSL.values((RowN) DSL.row(0, 10000L)).as("t", DUMMY_COLUMN.getName(), LATEST_TIMESTAMP.getName()))
+                            .from(kvs.values(ctx, new RowN[] {(RowN) DSL.row(0, 10000L)}, "t", DUMMY_COLUMN.getName(), LATEST_TIMESTAMP.getName()))
                             .whereNotExists(ctx.selectOne()
                                     .from(store.TABLE)
                                     .where(DUMMY_COLUMN.eq(0))))
