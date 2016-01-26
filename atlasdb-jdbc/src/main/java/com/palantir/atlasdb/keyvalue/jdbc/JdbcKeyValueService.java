@@ -15,10 +15,10 @@
  */
 package com.palantir.atlasdb.keyvalue.jdbc;
 
+import static org.jooq.Clause.TABLE_VALUES;
 import static org.jooq.impl.DSL.field;
 import static org.jooq.impl.DSL.row;
 import static org.jooq.impl.DSL.table;
-import static org.jooq.impl.DSL.values;
 import static org.jooq.impl.SQLDataType.BIGINT;
 import static org.jooq.impl.SQLDataType.BLOB;
 import static org.jooq.impl.SQLDataType.VARBINARY;
@@ -72,13 +72,17 @@ import org.jooq.InsertValuesStep4;
 import org.jooq.Query;
 import org.jooq.Record;
 import org.jooq.Record1;
+import org.jooq.RenderContext;
 import org.jooq.Result;
+import org.jooq.Row;
 import org.jooq.Row3;
 import org.jooq.RowN;
 import org.jooq.SQLDialect;
 import org.jooq.Select;
+import org.jooq.SelectField;
 import org.jooq.SelectOffsetStep;
 import org.jooq.Table;
+import org.jooq.TableLike;
 import org.jooq.TransactionalCallable;
 import org.jooq.conf.RenderNameStyle;
 import org.jooq.conf.Settings;
@@ -312,7 +316,7 @@ public class JdbcKeyValueService implements KeyValueService {
                 Result<? extends Record> records = ctx
                         .select(A_ROW_NAME, A_COL_NAME, A_TIMESTAMP)
                         .from(atlasTable(tableName).as(ATLAS_TABLE))
-                        .join(values(toRows(cells)).as(TEMP_TABLE_1, ROW_NAME, COL_NAME))
+                        .join(values(ctx, toRows(cells), TEMP_TABLE_1, ROW_NAME, COL_NAME))
                         .on(A_ROW_NAME.eq(T1_ROW_NAME)
                                 .and(A_COL_NAME.eq(T1_COL_NAME)))
                         .where(A_TIMESTAMP.lessThan(timestamp))
@@ -421,7 +425,7 @@ public class JdbcKeyValueService implements KeyValueService {
                                                                            RowN[] rows) {
         return ctx.select(A_ROW_NAME, A_COL_NAME, DSL.max(A_TIMESTAMP).as(MAX_TIMESTAMP))
                 .from(atlasTable(tableName).as(ATLAS_TABLE))
-                .join(values(rows).as(TEMP_TABLE_1, ROW_NAME, COL_NAME, TIMESTAMP))
+                .join(values(ctx, rows, TEMP_TABLE_1, ROW_NAME, COL_NAME, TIMESTAMP))
                 .on(A_ROW_NAME.eq(T1_ROW_NAME)
                         .and(A_COL_NAME.eq(T1_COL_NAME)))
                 .where(A_TIMESTAMP.lessThan(T1_TIMESTAMP))
@@ -525,7 +529,7 @@ public class JdbcKeyValueService implements KeyValueService {
                         field(TIMESTAMP, Long.class),
                         field(VALUE, byte[].class))
                 .select(ctx.select(T1_ROW_NAME, T1_COL_NAME, T1_TIMESTAMP, T1_VALUE)
-                        .from(DSL.values(rows).as(TEMP_TABLE_1, ROW_NAME, COL_NAME, TIMESTAMP, VALUE))
+                        .from(values(ctx, rows, TEMP_TABLE_1, ROW_NAME, COL_NAME, TIMESTAMP, VALUE))
                         .whereNotExists(ctx.selectOne()
                                 .from(atlasTable(tableName).as(ATLAS_TABLE))
                                 .where(A_ROW_NAME.eq(T1_ROW_NAME)
@@ -535,6 +539,37 @@ public class JdbcKeyValueService implements KeyValueService {
                 return null;
             }
         });
+    }
+
+    TableLike<?> values(DSLContext ctx, RowN[] rows, String tableName, String... fieldNames) {
+        switch (sqlDialect.family()) {
+        case H2:
+            List<SelectField<?>> fields = Lists.newArrayListWithCapacity(fieldNames.length);
+            for (int i = 1; i <= fieldNames.length; i++) {
+                fields.add(DSL.field("C" + i).as(fieldNames[i-1]));
+            }
+            RenderContext context = ctx.renderContext();
+            context.start(TABLE_VALUES)
+                .keyword("values")
+                .formatIndentLockStart();
+
+            boolean firstRow = true;
+            for (Row row : rows) {
+                if (!firstRow) {
+                    context.sql(',').formatSeparator();
+                }
+
+                context.sql(row.toString());
+                firstRow = false;
+            }
+
+            context.formatIndentLockEnd()
+                .end(TABLE_VALUES);
+            String valuesClause = context.render();
+            return ctx.select(fields).from(valuesClause).asTable(tableName);
+        default:
+            return DSL.values(rows).as(tableName, fieldNames);
+        }
     }
 
     private void putBatch(DSLContext ctx, String tableName, PutBatch batch, boolean allowReinserts) {
