@@ -27,6 +27,9 @@ import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosRoundFailureException;
 
+/**
+ * This transaction service is a proof of concept and experimental and should not be used in production.
+ */
 public class PaxosTransactionService implements TransactionService {
     private static final Logger log = LoggerFactory.getLogger(PaxosTransactionService.class);
 

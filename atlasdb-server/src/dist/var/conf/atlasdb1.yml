@@ -17,14 +17,22 @@ atlasdb:
     port: 9160
     ssl: false
     replicationFactor: 1
+  timestampService:
+    type: paxos
+    proposer:
+      quorumSize: 2
+      endpoints:
+        - http://localhost:3828
+        - http://localhost:4828
+        - http://localhost:5828
   transactionService:
     type: paxos
-    quorumSize: 2
-    localServer: http://localhost:3828
-    endpoints:
-      - http://localhost:3828
-      - http://localhost:4828
-      - http://localhost:5828
+    proposer:
+      quorumSize: 2
+      endpoints:
+        - http://localhost:3828
+        - http://localhost:4828
+        - http://localhost:5828
   leader:
     quorumSize: 2
     learnerLogDir: var/data/paxosLog/learner1

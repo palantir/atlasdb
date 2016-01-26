@@ -37,6 +37,7 @@ public class JdbcTimestampBoundStore implements TimestampBoundStore {
     private final Table<Record> TABLE;
     private static final Field<Integer> DUMMY_COLUMN = DSL.field("dummy_column", Integer.class);
     private static final Field<Long> LATEST_TIMESTAMP = DSL.field("latest_timestamp", Long.class);
+    private static final long INITIAL_VALUE = 10000L;
 
     private JdbcTimestampBoundStore(JdbcKeyValueService kvs) {
         this.kvs = kvs;
@@ -64,7 +65,7 @@ public class JdbcTimestampBoundStore implements TimestampBoundStore {
                 }
                 ctx.insertInto(store.TABLE, DUMMY_COLUMN, LATEST_TIMESTAMP)
                     .select(ctx.select(DUMMY_COLUMN, LATEST_TIMESTAMP)
-                            .from(kvs.values(ctx, new RowN[] {(RowN) DSL.row(0, 10000L)}, "t", DUMMY_COLUMN.getName(), LATEST_TIMESTAMP.getName()))
+                            .from(kvs.values(ctx, new RowN[] {(RowN) DSL.row(0, INITIAL_VALUE)}, "t", DUMMY_COLUMN.getName(), LATEST_TIMESTAMP.getName()))
                             .whereNotExists(ctx.selectOne()
                                     .from(store.TABLE)
                                     .where(DUMMY_COLUMN.eq(0))))

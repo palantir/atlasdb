@@ -30,7 +30,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.palantir.util.Pair;
 
@@ -52,7 +51,7 @@ public final class PaxosQuorumChecker {
      * @param executor runs the requests
      * @return a list responses
      */
-    public static <SERVICE, RESPONSE extends PaxosResponse> List<RESPONSE> collectQuorumResponses(ImmutableList<SERVICE> remotes,
+    public static <SERVICE, RESPONSE extends PaxosResponse> List<RESPONSE> collectQuorumResponses(List<SERVICE> remotes,
                                                                                                   final Function<SERVICE, RESPONSE> request,
                                                                                                   int quorumSize,
                                                                                                   Executor executor,
@@ -60,7 +59,7 @@ public final class PaxosQuorumChecker {
         return collectQuorumResponses(remotes, request, quorumSize, executor, remoteRequestTimeoutInSec, false);
     }
 
-    public static <SERVICE, RESPONSE extends PaxosResponse> List<RESPONSE> collectQuorumResponses(ImmutableList<SERVICE> remotes,
+    public static <SERVICE, RESPONSE extends PaxosResponse> List<RESPONSE> collectQuorumResponses(List<SERVICE> remotes,
                                                                                                   final Function<SERVICE, RESPONSE> request,
                                                                                                   int quorumSize,
                                                                                                   Executor executor,

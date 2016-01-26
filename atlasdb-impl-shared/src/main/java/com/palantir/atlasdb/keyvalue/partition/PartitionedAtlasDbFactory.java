@@ -17,11 +17,13 @@ package com.palantir.atlasdb.keyvalue.partition;
 
 import com.google.auto.service.AutoService;
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.TimestampServiceConfig;
 import com.palantir.atlasdb.spi.TransactionServiceConfig;
+import com.palantir.atlasdb.transaction.config.PaxosTransactionServiceConfig;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.timestamp.TimestampService;
@@ -47,6 +49,7 @@ public class PartitionedAtlasDbFactory implements AtlasDbFactory {
 
     @Override
     public TransactionService createTransactionService(Optional<TransactionServiceConfig> config, KeyValueService rawKvs) {
+        Preconditions.checkArgument(config.isPresent() && config.get() instanceof PaxosTransactionServiceConfig);
         return TransactionServices.createTransactionService(config, rawKvs);
     }
 

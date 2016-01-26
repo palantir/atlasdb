@@ -15,23 +15,23 @@
  */
 package com.palantir.atlasdb.transaction.config;
 
-import java.util.Set;
-
 import org.immutables.value.Value;
-import org.immutables.value.Value.Check;
 
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.auto.service.AutoService;
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.spi.TransactionServiceConfig;
+import com.palantir.paxos.config.PaxosProposerConfig;
 
 @AutoService(TransactionServiceConfig.class)
 @JsonDeserialize(as = ImmutablePaxosTransactionServiceConfig.class)
 @JsonSerialize(as = ImmutablePaxosTransactionServiceConfig.class)
 @JsonTypeName(PaxosTransactionServiceConfig.TYPE)
 @Value.Immutable
+/**
+ * This transaction service is a proof of concept and experimental and should not be used in production.
+ */
 public abstract class PaxosTransactionServiceConfig implements TransactionServiceConfig {
     public static final String TYPE = "paxos";
 
@@ -45,16 +45,5 @@ public abstract class PaxosTransactionServiceConfig implements TransactionServic
         return "transaction";
     }
 
-    public abstract Set<String> getEndpoints();
-    public abstract String localServer();
-
-    public abstract int getQuorumSize();
-
-    @Check
-    protected final void check() {
-        Preconditions.checkArgument(getEndpoints().contains(localServer()),
-                "The localServer '%s' must included in the entries %s.", localServer(), getEndpoints());
-        Preconditions.checkArgument(getQuorumSize() > getEndpoints().size() / 2,
-                "Quorum must be a majority.");
-    }
+    public abstract PaxosProposerConfig proposer();
 }
