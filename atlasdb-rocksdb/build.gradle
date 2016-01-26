@@ -7,7 +7,7 @@ dependencies {
   compile project(":atlasdb-spi")
   compile project(':timestamp-impl')
 
-  compile "org.rocksdb:rocksdbjni:3.10.1"
+  compile "org.rocksdb:rocksdbjni:4.1.0"
 
   processor 'org.immutables:value:2.0.21'
 }
