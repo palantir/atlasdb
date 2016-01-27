@@ -34,9 +34,9 @@ atlasdb:
         - http://localhost:4828
         - http://localhost:5828
   additionalServiceResources:
-    type: rocksdb
-    config:
-      dataDir: var/data/rocksdb3
+    - type: rocksdb
+      config:
+        dataDir: var/data/rocksdb3
   leader:
     quorumSize: 2
     learnerLogDir: var/data/paxosLog/learner3

@@ -5,6 +5,7 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.auto.service.AutoService;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.remoting.RemotingKeyValueService;
 import com.palantir.atlasdb.spi.AtlasDbServerEnvironment;
@@ -14,6 +15,7 @@ import com.palantir.atlasdb.spi.AtlasDbServicePlugin;
 @JsonSerialize(as = ImmutableRocksDbServicePlugin.class)
 @JsonTypeName(RocksDbKeyValueServiceConfig.TYPE)
 @Value.Immutable
+@AutoService(AtlasDbServicePlugin.class)
 public abstract class RocksDbServicePlugin implements AtlasDbServicePlugin {
     @Override
     public String type() {

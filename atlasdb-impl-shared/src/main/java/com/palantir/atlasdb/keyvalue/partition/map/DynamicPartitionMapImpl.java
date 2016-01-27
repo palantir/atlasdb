@@ -237,8 +237,10 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
                 Future<?> future = execSvc.take();
                 future.get();
                 futures.remove(future);
-            } catch (InterruptedException | ExecutionException e) {
+            } catch (InterruptedException e) {
                 Throwables.throwUncheckedException(e);
+            } catch (ExecutionException e) {
+                Throwables.rewrapAndThrowUncheckedException(e.getCause());
             }
         }
     }
@@ -651,8 +653,6 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
             return false;
         }
 
-        // First push current map version so that we can actually re-create tables etc.
-        kve.partitionMapService().updateMap(this);
         kve.registerPartitionMapVersion(versionSupplier);
 
         ImmutableList<PartitionMapService> mapServices = ImmutableList.<PartitionMapService> of(InMemoryPartitionMapService.create(this));
@@ -665,21 +665,6 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         ring.put(key, new EndpointWithJoiningStatus(kve));
         version.increment();
         operationsInProgress = 1;
-
-        // Push the map to crucial endpoints
-        try {
-            ring.get(key).get().partitionMapService().updateMap(this);
-            byte[] otherKey = key;
-            for (int i = 0; i < quorumParameters.getReplicationFactor(); ++i) {
-                otherKey = ring.nextKey(otherKey);
-                ring.get(otherKey).get().partitionMapService().updateMap(this);
-            }
-        } catch (RuntimeException e) {
-            ring.remove(key);
-            version.decrement();
-            operationsInProgress = 0;
-            throw e;
-        }
 
         // Delegates are transient
         delegates.add(kve.keyValueService());
@@ -762,41 +747,9 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         EndpointWithJoiningStatus ews = (EndpointWithJoiningStatus) ring.get(key);
         Preconditions.checkArgument(ews.backfilled());
 
-        byte[] nextKey = ring.nextKey(key);
-        List<RangeRequest> ranges = getRangesOperatedByKvs(key, false);
-
-        // First push the map to crucial endpoints
-        // This is to ensure that no garbage is left behind
         ring.put(key,  ring.get(key).asNormal());
         version.increment();
         operationsInProgress = 0;
-
-        try {
-            byte[] otherKey = key;
-            for (int i=0; i<quorumParameters.getReplicationFactor(); ++i) {
-                otherKey = ring.nextKey(otherKey);
-                ring.get(otherKey).get().partitionMapService().updateMap(this);
-            }
-        } catch (RuntimeException e) {
-            ring.put(key, ews);
-            version.decrement();
-            operationsInProgress = 1;
-            throw e;
-        }
-
-        // Now we can remove the farthest
-        // ranges from the endpoints following this one.
-        byte[] keyToRemove = nextKey;
-        // TODO: Is the last range not a special case?
-        for (int i = 0; i < ranges.size(); ++i) {
-            deleteData(ring.get(keyToRemove).get().keyValueService(), ranges.get(i));
-            if (ranges.get(i).getEndExclusive().length > 0) {
-                keyToRemove = ring.nextKey(keyToRemove);
-            } else {
-                assert i + 1 < ranges.size();
-                assert ranges.get(i+1).getStartInclusive().length == 0;
-            }
-        }
     }
 
     /**
@@ -830,20 +783,6 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         ring.put(key, ring.get(key).asLeaving());
         operationsInProgress = 1;
         version.increment();
-
-        // Push the map to crucial endpoints
-        try {
-            byte[] otherKey = key;
-            for (int i = 0; i < quorumParameters.getReplicationFactor(); ++i) {
-                otherKey = ring.nextKey(otherKey);
-                ring.get(otherKey).get().partitionMapService().updateMap(this);
-            }
-        } catch (RuntimeException e) {
-            ring.put(key, ring.get(key).asNormal());
-            version.decrement();
-            operationsInProgress = 0;
-            throw e;
-        }
 
         // The operation has succeeded
         return true;
@@ -937,34 +876,8 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         version.increment();
         operationsInProgress = 0;
 
-        byte[] otherKey = key;
-        try {
-            // TODO: Shouldn't this be +1, or filter based on normal status?
-            for (int i=0; i<quorumParameters.getReplicationFactor(); ++i) {
-                otherKey = ring.nextKey(otherKey);
-                ring.get(otherKey).get().partitionMapService().updateMap(this);
-            }
-        } catch (RuntimeException e) {
-            ring.put(key, ews);
-            version.decrement();
-            operationsInProgress = 1;
-            throw e;
-        }
-
         // Delegates are transient
         delegates.remove(kvs);
-
-        // Now we can safely remove data from the endpoint.
-        // If this fails... I don't care.
-        try {
-            kve.partitionMapService().updateMap(this);
-            for (String table : kvs.getAllTableNames()) {
-                kvs.dropTable(table);
-            }
-        } catch (RuntimeException e) {
-            log.warn("Error while removing data from removed endpoint. Ignoring.");
-            e.printStackTrace(System.out);
-        }
     }
 
     @Override
