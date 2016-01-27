@@ -77,7 +77,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
         keyValueService.createTable(namespacedTableName, definition.toTableMetadata().persistToBytes());
         keyValueService.putMetadataForTable(namespacedTableName, definition.toTableMetadata().persistToBytes());
 
-        TableMappingService tableMap = StaticTableMappingService.create(keyValueService);
+        TableMappingService tableMap = StaticTableMappingService.create();
         final String shortTableName = tableMap.getShortTableName(TableReference.create(Namespace.create("namespace"), tableName));
 
         final Cell theCell = Cell.create(PtBytes.toBytes("r1"), PtBytes.toBytes("c"));

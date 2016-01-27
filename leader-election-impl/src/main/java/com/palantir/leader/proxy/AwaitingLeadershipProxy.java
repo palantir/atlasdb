@@ -138,8 +138,25 @@ public final class AwaitingLeadershipProxy implements InvocationHandler {
         }
     }
 
+    private static Method getObjectMethod(String name, Class<?>... types) {
+        try {
+            return Object.class.getMethod(name, types);
+        } catch (NoSuchMethodException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+    private static final Method EQUALS_METHOD = getObjectMethod("equals", Object.class);
+    private static final Method HASHCODE_METHOD = getObjectMethod("hashCode");
+
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+        if (EQUALS_METHOD.equals(method)) {
+            return proxy == args[0];
+        }
+
+        if (HASHCODE_METHOD.equals(method)) {
+            return System.identityHashCode(proxy);
+        }
         final LeadershipToken leadershipToken = leadershipTokenRef.get();
 
         if (leadershipToken == null) {

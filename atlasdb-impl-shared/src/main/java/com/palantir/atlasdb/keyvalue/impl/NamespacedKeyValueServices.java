@@ -24,7 +24,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
  */
 public class NamespacedKeyValueServices {
     public static KeyValueService wrapWithStaticNamespaceMappingKvs(KeyValueService keyValueService) {
-        TableMappingService tableMap = StaticTableMappingService.create(keyValueService);
+        TableMappingService tableMap = StaticTableMappingService.create();
         NamespacedKeyValueService namespacedKeyValueService = TableRemappingKeyValueService.create(
                 keyValueService,
                 tableMap);

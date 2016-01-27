@@ -15,25 +15,35 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.TableMappingService;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.schema.TableReference;
 
-public class StaticTableMappingService extends AbstractTableMappingService {
-    private final KeyValueService kv;
+public class StaticTableMappingService implements TableMappingService {
 
-    public static TableMappingService create(KeyValueService kv) {
-        StaticTableMappingService ret = new StaticTableMappingService(kv);
-        ret.updateTableMap();
+    public static TableMappingService create() {
+        StaticTableMappingService ret = new StaticTableMappingService();
         return ret;
     }
 
-    private StaticTableMappingService(KeyValueService kv) {
-        this.kv = kv;
+    private StaticTableMappingService() {
+        //
+    }
+
+    @Override
+    public Set<TableReference> mapToFullTableNames(Set<String> tableNames) {
+        Set<TableReference> newMap = Sets.newHashSet();
+        for (String table : tableNames) {
+            newMap.add(getTableReference(table));
+        }
+        return newMap;
     }
 
     @Override
@@ -50,19 +60,29 @@ public class StaticTableMappingService extends AbstractTableMappingService {
     }
 
     @Override
-    protected BiMap<TableReference, String> readTableMap() {
-        Set<String> tables = kv.getAllTableNames();
-        BiMap<TableReference, String> ret = HashBiMap.create();
-        for (String table : tables) {
-            ret.put(getTableReference(table), table);
-        }
-
-        return ret;
+    public String getShortTableName(TableReference tableRef) {
+        return addTable(tableRef);
     }
 
     @Override
-    protected void validateShortName(TableReference tableRef, String shortName) {
-        // any name is ok for the static mapper
+    public <T> Map<String, T> mapToShortTableNames(Map<TableReference, T> toMap) {
+        Map<String, T> newMap = Maps.newHashMap();
+        for (Entry<TableReference, T> e : toMap.entrySet()) {
+            newMap.put(getShortTableName(e.getKey()), e.getValue());
+        }
+        return newMap;
     }
 
+    private static final String PERIOD = ".";
+
+    @Override
+    public TableReference getTableReference(String tableName) {
+        if (tableName.contains(PERIOD)) {
+            return TableReference.createFromFullyQualifiedName(tableName);
+        }
+        if (AtlasDbConstants.hiddenTables.contains(tableName)) {
+            return TableReference.createWithEmptyNamespace(tableName);
+        }
+        return TableReference.create(Namespace.DEFAULT_NAMESPACE, tableName);
+    }
 }

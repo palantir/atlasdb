@@ -36,6 +36,7 @@ atlasdb:
   additionalServiceResources:
     - type: rocksdb
       config:
+        type: rocksdb
         dataDir: var/data/rocksdb1
   leader:
     quorumSize: 2

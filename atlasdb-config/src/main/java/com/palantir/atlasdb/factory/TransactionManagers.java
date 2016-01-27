@@ -95,6 +95,12 @@ public class TransactionManagers {
                                                         Optional<SSLSocketFactory> sslSocketFactory,
                                                         Set<Schema> schemas,
                                                         AtlasDbServerEnvironment env) {
+        if (!config.additionalServiceResources().isEmpty()) {
+            for (AtlasDbServicePlugin plugin : config.additionalServiceResources()) {
+                plugin.registerServices(env);
+            }
+        }
+
         final AtlasDbFactory kvsFactory = getKeyValueServiceFactory(config.getType());
         final KeyValueService rawKvs = kvsFactory.createRawKeyValueService(config.keyValueService());
 
@@ -212,12 +218,6 @@ public class TransactionManagers {
             AtlasDbServerEnvironment env,
             Supplier<RemoteLockService> lock,
             Supplier<TimestampService> time) {
-        if (!config.additionalServiceResources().isEmpty()) {
-            for (AtlasDbServicePlugin plugin : config.additionalServiceResources()) {
-                plugin.registerServices(env);
-            }
-        }
-
         if (config.leader().isPresent()) {
             LeaderConfig leaderConfig = config.leader().get();
             if (!leaderConfig.additionalPaxosEndpointsToLogDir().isEmpty()) {

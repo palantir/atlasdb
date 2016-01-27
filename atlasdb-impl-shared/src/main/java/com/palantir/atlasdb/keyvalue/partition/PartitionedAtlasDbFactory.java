@@ -23,15 +23,18 @@ import com.google.auto.service.AutoService;
 import com.google.common.base.Charsets;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.partition.endpoint.InMemoryKeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
-import com.palantir.atlasdb.keyvalue.partition.endpoint.SimpleKeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.map.DynamicPartitionMapImpl;
+import com.palantir.atlasdb.keyvalue.partition.map.InMemoryPartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
+import com.palantir.atlasdb.keyvalue.remoting.RemotingKeyValueService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.TimestampServiceConfig;
@@ -61,7 +64,10 @@ public class PartitionedAtlasDbFactory implements AtlasDbFactory {
             ExecutorService exec = PTExecutors.newCachedThreadPool();
             NavigableMap<byte[], KeyValueEndpoint> ring = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
             for (String url : endpoints) {
-                SimpleKeyValueEndpoint endpoint = SimpleKeyValueEndpoint.create(url, url);
+                KeyValueService kv = RemotingKeyValueService.createClientSide(url, Suppliers.ofInstance(0L));
+                InMemoryPartitionMapService mapService = InMemoryPartitionMapService.createEmpty();
+                KeyValueEndpoint endpoint = InMemoryKeyValueEndpoint.create(kv, mapService);
+//                KeyValueEndpoint endpoint = SimpleKeyValueEndpoint.create(url, url);
                 ring.put(Sha256Hash.computeHash(url.getBytes(Charsets.UTF_8)).getBytes(), endpoint);
             }
             DynamicPartitionMapImpl paritionMap = DynamicPartitionMapImpl.create(quorum, ring, exec);
