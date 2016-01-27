@@ -45,6 +45,7 @@ import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.AtlasDbServerEnvironment;
+import com.palantir.atlasdb.spi.AtlasDbServicePlugin;
 import com.palantir.atlasdb.sweep.BackgroundSweeper;
 import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
@@ -211,6 +212,11 @@ public class TransactionManagers {
             AtlasDbServerEnvironment env,
             Supplier<RemoteLockService> lock,
             Supplier<TimestampService> time) {
+        if (!config.additionalServiceResources().isEmpty()) {
+            for (AtlasDbServicePlugin plugin : config.additionalServiceResources()) {
+                plugin.registerServices(env);
+            }
+        }
 
         if (config.leader().isPresent()) {
             LeaderConfig leaderConfig = config.leader().get();

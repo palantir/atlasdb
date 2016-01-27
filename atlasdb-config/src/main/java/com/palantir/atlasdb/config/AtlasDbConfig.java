@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.config;
 
+import java.util.List;
+
 import org.immutables.value.Value;
 import org.immutables.value.Value.Check;
 
@@ -24,6 +26,7 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
+import com.palantir.atlasdb.spi.AtlasDbServicePlugin;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.TimestampServiceConfig;
 import com.palantir.atlasdb.spi.TransactionServiceConfig;
@@ -70,6 +73,8 @@ public abstract class AtlasDbConfig {
      * Client config to connect to a running timestamp server.
      */
     public abstract Optional<ServerListConfig> timestamp();
+
+    public abstract List<AtlasDbServicePlugin> additionalServiceResources();
 
     /**
      * An {@link AtlasDbFactory} of this type will be constructed to create each
