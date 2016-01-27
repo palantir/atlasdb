@@ -15,20 +15,21 @@
  */
 package com.palantir.atlasdb.keyvalue.partition.map;
 
+import java.io.IOException;
 import java.util.Map;
-import java.util.Map.Entry;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Maps;
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.RangeRequest;
-import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
-import com.palantir.common.base.ClosableIterator;
+import com.palantir.common.base.Throwables;
 
 /**
  * Only instances of {@code DynamicPartitionMapImpl} are supported by this implementation!
@@ -41,6 +42,7 @@ public final class InKvsPartitionMapService implements PartitionMapService {
     private final KeyValueService storage;
 
     public static final String PARTITION_MAP_TABLE = AtlasDbConstants.PARTITION_MAP_TABLE;
+    public static final Cell PARTITION_MAP_CELL  = Cell.create(PtBytes.toBytes("map"), PtBytes.toBytes("map"));
 
     private InKvsPartitionMapService(DynamicPartitionMapImpl partitionMap, KeyValueService storage) {
     	this.storage = storage;
@@ -100,22 +102,26 @@ public final class InKvsPartitionMapService implements PartitionMapService {
 
     @Override
     public synchronized DynamicPartitionMapImpl getMap() {
-        ClosableIterator<RowResult<Value>> iterator = storage.getRange(PARTITION_MAP_TABLE, RangeRequest.all(), Long.MAX_VALUE);
-        Map<Cell, byte[]> cells = Maps.newHashMap();
-        while (iterator.hasNext()) {
-            RowResult<Value> row = iterator.next();
-            for (Entry<Cell, Value> entry : row.getCells()) {
-                assert !cells.containsKey(entry.getKey());
-                cells.put(entry.getKey(), entry.getValue().getContents());
-            }
+        Map<Cell, Value> result = storage.get(PARTITION_MAP_TABLE, ImmutableMap.of(PARTITION_MAP_CELL, Long.MAX_VALUE));
+        if (result.isEmpty()) {
+            return null;
         }
-        iterator.close();
-        return DynamicPartitionMapImpl.fromTable(cells);
+        Value value = result.values().iterator().next();
+        try {
+            DynamicPartitionMap map = new ObjectMapper().readValue(value.getContents(), DynamicPartitionMap.class);
+            return (DynamicPartitionMapImpl) map;
+        } catch (IOException e) {
+            throw Throwables.throwUncheckedException(e);
+        }
     }
 
     @Override
     public synchronized long getMapVersion() {
-        return getMap().getVersion();
+        DynamicPartitionMapImpl map = getMap();
+        if (map == null) {
+            return -1;
+        }
+        return map.getVersion();
     }
 
     /**
@@ -130,8 +136,12 @@ public final class InKvsPartitionMapService implements PartitionMapService {
         }
 
         DynamicPartitionMapImpl dpmi = (DynamicPartitionMapImpl) partitionMap;
-        storage.createTable(PARTITION_MAP_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
-        storage.put(PARTITION_MAP_TABLE, dpmi.toTable(), partitionMap.getVersion());
+        try {
+            byte[] bytes = new ObjectMapper().writeValueAsBytes(dpmi);
+            storage.put(PARTITION_MAP_TABLE, ImmutableMap.of(PARTITION_MAP_CELL, bytes), dpmi.getVersion());
+        } catch (JsonProcessingException e) {
+            throw Throwables.throwUncheckedException(e);
+        }
     }
 
     /**
@@ -139,28 +149,13 @@ public final class InKvsPartitionMapService implements PartitionMapService {
      */
     @Override
     public synchronized long updateMapIfNewer(DynamicPartitionMap partitionMap) {
-        final long originalVersion;
-
-        if (hasValidMap()) {
-            originalVersion = getMap().getVersion();
-        } else {
-            originalVersion = -1L;
-        }
+        final long originalVersion = getMapVersion();
 
         if (partitionMap.getVersion() > originalVersion) {
             updateMap(partitionMap);
         }
 
         return originalVersion;
-    }
-
-    private boolean hasValidMap() {
-        try {
-            getMap().getVersion();
-            return true;
-        } catch (RuntimeException e) {
-            return false;
-        }
     }
 
 }
