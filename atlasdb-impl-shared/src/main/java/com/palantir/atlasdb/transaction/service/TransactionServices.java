@@ -68,7 +68,7 @@ public class TransactionServices {
         ExecutorService executor = Executors.newCachedThreadPool();
         InMemoryPaxosLearner localLearner = new InMemoryPaxosLearner();
         PaxosProposer proposer = PaxosProposerImpl.newProposer(localLearner, acceptors, learners, config.proposer().getQuorumSize(), executor);
-        PersistentTimestampService.create(PaxosBoundStore.create(proposer, acceptors, localLearner, executor));
+        return PersistentTimestampService.create(PaxosBoundStore.create(proposer, acceptors, localLearner, executor));
     }
 
     public static PaxosProposer createProposer(final String logName, final PaxosProposerConfig config) {

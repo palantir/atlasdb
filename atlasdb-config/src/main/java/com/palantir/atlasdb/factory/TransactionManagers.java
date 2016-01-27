@@ -44,6 +44,7 @@ import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
+import com.palantir.atlasdb.spi.AtlasDbServerEnvironment;
 import com.palantir.atlasdb.sweep.BackgroundSweeper;
 import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
@@ -81,7 +82,7 @@ public class TransactionManagers {
     public static SerializableTransactionManager create(AtlasDbConfig config,
                                                         Optional<SSLSocketFactory> sslSocketFactory,
                                                         Schema schema,
-                                                        Environment env) {
+                                                        AtlasDbServerEnvironment env) {
         return create(config, sslSocketFactory, ImmutableSet.of(schema), env);
     }
 
@@ -92,7 +93,7 @@ public class TransactionManagers {
     public static SerializableTransactionManager create(final AtlasDbConfig config,
                                                         Optional<SSLSocketFactory> sslSocketFactory,
                                                         Set<Schema> schemas,
-                                                        Environment env) {
+                                                        AtlasDbServerEnvironment env) {
         final AtlasDbFactory kvsFactory = getKeyValueServiceFactory(config.getFactoryType());
         final KeyValueService rawKvs = kvsFactory.createRawKeyValueService(config.keyValueService());
 
@@ -207,14 +208,14 @@ public class TransactionManagers {
     private static LockAndTimestampServices createLockAndTimestampServices(
             AtlasDbConfig config,
             Optional<SSLSocketFactory> sslSocketFactory,
-            Environment env,
+            AtlasDbServerEnvironment env,
             Supplier<RemoteLockService> lock,
             Supplier<TimestampService> time) {
 
         if (config.leader().isPresent()) {
             LeaderConfig leaderConfig = config.leader().get();
-            if (leaderConfig.additionalPaxosEndpointsToLogDir().isPresent()) {
-                env.register(PaxosManyLogImpl.create(leaderConfig.additionalPaxosEndpointsToLogDir().get()));
+            if (!leaderConfig.additionalPaxosEndpointsToLogDir().isEmpty()) {
+                env.register(PaxosManyLogImpl.create(leaderConfig.additionalPaxosEndpointsToLogDir()));
             }
             LeaderElectionService leader = Leaders.create(sslSocketFactory, env, leaderConfig);
             env.register(AwaitingLeadershipProxy.newProxyInstance(RemoteLockService.class, lock, leader));
@@ -266,9 +267,5 @@ public class TransactionManagers {
     interface LockAndTimestampServices {
         RemoteLockService lock();
         TimestampService time();
-    }
-
-    public interface Environment {
-        void register(Object resource);
     }
 }

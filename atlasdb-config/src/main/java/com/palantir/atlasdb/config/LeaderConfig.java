@@ -26,7 +26,6 @@ import org.immutables.value.Value.Check;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 
 @JsonDeserialize(as = ImmutableLeaderConfig.class)
@@ -66,7 +65,7 @@ public abstract class LeaderConfig {
         return 5000l;
     }
 
-    public abstract Optional<Map<String, String>> additionalPaxosEndpointsToLogDir();
+    public abstract Map<String, String> additionalPaxosEndpointsToLogDir();
 
     @Check
     protected final void check() {

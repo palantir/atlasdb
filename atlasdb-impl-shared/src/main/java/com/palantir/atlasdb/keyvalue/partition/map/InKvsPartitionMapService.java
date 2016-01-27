@@ -100,8 +100,7 @@ public final class InKvsPartitionMapService implements PartitionMapService {
 
     @Override
     public synchronized DynamicPartitionMapImpl getMap() {
-        ClosableIterator<RowResult<Value>> iterator =
-                storage.getRange(PARTITION_MAP_TABLE, RangeRequest.all(), 1L);
+        ClosableIterator<RowResult<Value>> iterator = storage.getRange(PARTITION_MAP_TABLE, RangeRequest.all(), Long.MAX_VALUE);
         Map<Cell, byte[]> cells = Maps.newHashMap();
         while (iterator.hasNext()) {
             RowResult<Value> row = iterator.next();
@@ -132,8 +131,7 @@ public final class InKvsPartitionMapService implements PartitionMapService {
 
         DynamicPartitionMapImpl dpmi = (DynamicPartitionMapImpl) partitionMap;
         storage.createTable(PARTITION_MAP_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
-        storage.truncateTable(PARTITION_MAP_TABLE);
-        storage.put(PARTITION_MAP_TABLE, dpmi.toTable(), 0L);
+        storage.put(PARTITION_MAP_TABLE, dpmi.toTable(), partitionMap.getVersion());
     }
 
     /**

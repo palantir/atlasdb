@@ -17,12 +17,14 @@ package com.palantir.atlasdb.server;
 
 import javax.net.ssl.SSLSocketFactory;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.impl.AtlasDbServiceImpl;
 import com.palantir.atlasdb.impl.TableMetadataCache;
 import com.palantir.atlasdb.jackson.AtlasJacksonModule;
+import com.palantir.atlasdb.spi.AtlasDbServerEnvironment;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 
@@ -38,10 +40,14 @@ public class AtlasDbServer extends Application<AtlasDbServerConfiguration> {
     @Override
     public void run(AtlasDbServerConfiguration config, final Environment environment) throws Exception {
         SerializableTransactionManager tm = TransactionManagers.create(config.getConfig(), Optional.<SSLSocketFactory>absent(), ImmutableSet.<Schema>of(),
-                new com.palantir.atlasdb.factory.TransactionManagers.Environment() {
+                new AtlasDbServerEnvironment() {
                     @Override
                     public void register(Object resource) {
                         environment.jersey().register(resource);
+                    }
+                    @Override
+                    public ObjectMapper getObjectMapper() {
+                        return environment.getObjectMapper();
                     }
                 });
 

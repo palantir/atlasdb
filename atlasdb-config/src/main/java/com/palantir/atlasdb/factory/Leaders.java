@@ -30,9 +30,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 import com.palantir.atlasdb.config.LeaderConfig;
-import com.palantir.atlasdb.factory.TransactionManagers.Environment;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
+import com.palantir.atlasdb.spi.AtlasDbServerEnvironment;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.leader.PingableLeader;
@@ -51,7 +51,7 @@ public class Leaders {
      */
     public static LeaderElectionService create(
             Optional<SSLSocketFactory> sslSocketFactory,
-            Environment env,
+            AtlasDbServerEnvironment env,
             LeaderConfig config) {
 
         PaxosAcceptor ourAcceptor = PaxosAcceptorImpl.newAcceptor(config.acceptorLogDir().getPath());
