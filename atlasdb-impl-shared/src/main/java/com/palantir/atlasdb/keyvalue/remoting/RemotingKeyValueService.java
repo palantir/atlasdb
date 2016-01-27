@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.remoting;
 
+import java.lang.reflect.Proxy;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -36,10 +37,14 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.map.DynamicPartitionMapImpl;
+import com.palantir.atlasdb.keyvalue.partition.map.InKvsPartitionMapService;
+import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
+import com.palantir.atlasdb.keyvalue.partition.server.EndpointServer;
 import com.palantir.atlasdb.keyvalue.remoting.iterators.HistoryRangeIterator;
 import com.palantir.atlasdb.keyvalue.remoting.iterators.RangeIterator;
 import com.palantir.atlasdb.keyvalue.remoting.iterators.TimestampsRangeIterator;
 import com.palantir.atlasdb.keyvalue.remoting.iterators.ValueRangeIterator;
+import com.palantir.atlasdb.keyvalue.remoting.outofband.InboxPopulatingContainerRequestFilter;
 import com.palantir.atlasdb.keyvalue.remoting.outofband.OutboxShippingInterceptor;
 import com.palantir.atlasdb.keyvalue.remoting.proxy.VersionCheckProxy;
 import com.palantir.atlasdb.keyvalue.remoting.serialization.BytesAsKeyDeserializer;
@@ -47,7 +52,9 @@ import com.palantir.atlasdb.keyvalue.remoting.serialization.CellAsKeyDeserialize
 import com.palantir.atlasdb.keyvalue.remoting.serialization.RowResultDeserializer;
 import com.palantir.atlasdb.keyvalue.remoting.serialization.RowResultSerializer;
 import com.palantir.atlasdb.keyvalue.remoting.serialization.SaneAsKeySerializer;
+import com.palantir.atlasdb.spi.AtlasDbServerEnvironment;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.common.proxy.AbstractDelegatingInvocationHandler;
 import com.palantir.common.supplier.ExecutorInheritableServiceContext;
 import com.palantir.common.supplier.PopulateServiceContextProxy;
 import com.palantir.common.supplier.RemoteContextHolder;
@@ -68,6 +75,47 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
 
     public static ServiceContext<KeyValueService> getServiceContext() {
         return serviceContext;
+    }
+
+    public static void registerKeyValueWithEnvironment(KeyValueService kvs, AtlasDbServerEnvironment environment) {
+        final InKvsPartitionMapService pms = InKvsPartitionMapService.create(kvs);
+
+        final EndpointServer server = new EndpointServer(RemotingKeyValueService.createServerSide(kvs, new Supplier<Long>() {
+            @Override
+            public Long get() {
+                return pms.getMapVersion();
+            }
+        }), pms);
+
+        // Wrap server with two proxies.
+        // Otherwise Jersey will not handle properly a single
+        // object that implements two annotated interfaces.
+        KeyValueService kvsProxy = identityProxy(server, KeyValueService.class);
+        PartitionMapService pmsProxy = identityProxy(server, PartitionMapService.class);
+
+        environment.register(new InboxPopulatingContainerRequestFilter(kvsMapper));
+        environment.register(KeyAlreadyExistsExceptionMapper.instance());
+        environment.register(InsufficientConsistencyExceptionMapper.instance());
+        environment.register(ClientVersionTooOldExceptionMapper.instance());
+        environment.register(EndpointVersionTooOldExceptionMapper.instance());
+        environment.getObjectMapper().registerModule(RemotingKeyValueService.kvsModule());
+        environment.getObjectMapper().registerModule(new GuavaModule());
+        environment.register(kvsProxy);
+        environment.register(pmsProxy);
+
+    }
+
+    @SuppressWarnings("unchecked")
+    static <T> T identityProxy(final T delegate, Class<T> delegateClass) {
+        return (T) Proxy.newProxyInstance(
+                delegateClass.getClassLoader(),
+                new Class<?>[] { delegateClass },
+                new AbstractDelegatingInvocationHandler() {
+            @Override
+            public Object getDelegate() {
+                return delegate;
+            }
+        });
     }
 
     /**

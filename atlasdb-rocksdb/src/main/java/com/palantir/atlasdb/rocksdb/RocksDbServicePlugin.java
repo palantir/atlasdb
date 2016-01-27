@@ -1,4 +1,4 @@
-package com.palantir.atlasdb.keyvalue.jdbc;
+package com.palantir.atlasdb.rocksdb;
 
 import org.immutables.value.Value;
 
@@ -10,23 +10,23 @@ import com.palantir.atlasdb.keyvalue.remoting.RemotingKeyValueService;
 import com.palantir.atlasdb.spi.AtlasDbServerEnvironment;
 import com.palantir.atlasdb.spi.AtlasDbServicePlugin;
 
-@JsonDeserialize(as = ImmutableJdbcServicePlugin.class)
-@JsonSerialize(as = ImmutableJdbcServicePlugin.class)
-@JsonTypeName(JdbcKeyValueConfiguration.TYPE)
+@JsonDeserialize(as = ImmutableRocksDbServicePlugin.class)
+@JsonSerialize(as = ImmutableRocksDbServicePlugin.class)
+@JsonTypeName(RocksDbKeyValueServiceConfig.TYPE)
 @Value.Immutable
-public abstract class JdbcServicePlugin implements AtlasDbServicePlugin {
+public abstract class RocksDbServicePlugin implements AtlasDbServicePlugin {
     @Override
     public String type() {
-        return JdbcKeyValueConfiguration.TYPE;
+        return RocksDbKeyValueServiceConfig.TYPE;
     }
 
     @Override
     public void registerServices(AtlasDbServerEnvironment environment) {
-        KeyValueService kvs = new JdbcAtlasDbFactory().createRawKeyValueService(getConfig());
+        KeyValueService kvs = new RocksDbAtlasDbFactory().createRawKeyValueService(getConfig());
         kvs.initializeFromFreshInstance();
         RemotingKeyValueService.registerKeyValueWithEnvironment(kvs, environment);
     }
 
-    public abstract JdbcKeyValueConfiguration getConfig();
+    public abstract RocksDbKeyValueServiceConfig getConfig();
 
 }
