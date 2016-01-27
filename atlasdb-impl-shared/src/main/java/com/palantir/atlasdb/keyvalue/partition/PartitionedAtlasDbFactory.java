@@ -15,10 +15,23 @@
  */
 package com.palantir.atlasdb.keyvalue.partition;
 
+import java.util.List;
+import java.util.NavigableMap;
+import java.util.concurrent.ExecutorService;
+
 import com.google.auto.service.AutoService;
+import com.google.common.base.Charsets;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
+import com.palantir.atlasdb.keyvalue.partition.endpoint.SimpleKeyValueEndpoint;
+import com.palantir.atlasdb.keyvalue.partition.map.DynamicPartitionMapImpl;
+import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
+import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.TimestampServiceConfig;
@@ -27,7 +40,9 @@ import com.palantir.atlasdb.timestamp.config.PaxosTimestampServiceConfig;
 import com.palantir.atlasdb.transaction.config.PaxosTransactionServiceConfig;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.timestamp.TimestampService;
+import com.palantir.util.crypto.Sha256Hash;
 
 @AutoService(AtlasDbFactory.class)
 public class PartitionedAtlasDbFactory implements AtlasDbFactory {
@@ -39,6 +54,24 @@ public class PartitionedAtlasDbFactory implements AtlasDbFactory {
 
     @Override
     public PartitionedKeyValueService createRawKeyValueService(KeyValueServiceConfig kvc) {
+        if (kvc instanceof StaticPartitionedKeyValueConfiguration) {
+            StaticPartitionedKeyValueConfiguration config = (StaticPartitionedKeyValueConfiguration) kvc;
+            List<String> endpoints = config.getKeyValueEndpoints();
+            QuorumParameters quorum = new QuorumParameters(endpoints.size(), (endpoints.size()+1)/2, endpoints.size()/2 + 1);
+            ExecutorService exec = PTExecutors.newCachedThreadPool();
+            NavigableMap<byte[], KeyValueEndpoint> ring = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
+            for (String url : endpoints) {
+                SimpleKeyValueEndpoint endpoint = SimpleKeyValueEndpoint.create(url, url);
+                ring.put(Sha256Hash.computeHash(url.getBytes(Charsets.UTF_8)).getBytes(), endpoint);
+            }
+            DynamicPartitionMapImpl paritionMap = DynamicPartitionMapImpl.create(quorum, ring, exec);
+            List<PartitionMapService> mapServices = Lists.newArrayList();
+            for (KeyValueEndpoint endpoint : ring.values()) {
+                mapServices.add(endpoint.partitionMapService());
+                endpoint.partitionMapService().updateMap(paritionMap);
+            }
+            return PartitionedKeyValueService.create(quorum, mapServices);
+        }
         PartitionedKeyValueConfiguration config = (PartitionedKeyValueConfiguration) kvc;
         return PartitionedKeyValueService.create(config);
     }

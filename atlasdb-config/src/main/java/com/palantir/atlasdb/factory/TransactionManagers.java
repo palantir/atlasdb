@@ -95,7 +95,7 @@ public class TransactionManagers {
                                                         Optional<SSLSocketFactory> sslSocketFactory,
                                                         Set<Schema> schemas,
                                                         AtlasDbServerEnvironment env) {
-        final AtlasDbFactory kvsFactory = getKeyValueServiceFactory(config.getFactoryType());
+        final AtlasDbFactory kvsFactory = getKeyValueServiceFactory(config.getType());
         final KeyValueService rawKvs = kvsFactory.createRawKeyValueService(config.keyValueService());
 
         LockAndTimestampServices lts = createLockAndTimestampServices(config, sslSocketFactory, env,

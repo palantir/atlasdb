@@ -81,7 +81,7 @@ public abstract class AtlasDbConfig {
      * component.
      */
     @Value.Default
-    public String getFactoryType() {
+    public String getType() {
         return keyValueService().type();
     }
 

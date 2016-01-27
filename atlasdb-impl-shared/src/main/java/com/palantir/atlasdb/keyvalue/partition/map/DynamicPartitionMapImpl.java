@@ -162,9 +162,7 @@ import com.palantir.util.Pair;
  *
  */
 public class DynamicPartitionMapImpl implements DynamicPartitionMap {
-
     private static final Logger log = LoggerFactory.getLogger(DynamicPartitionMapImpl.class);
-    private static final int MAX_VALUE_SIZE = 1024 * 1024 * 1024;
 
     private final QuorumParameters quorumParameters;
     private final CycleMap<byte[], EndpointWithStatus> ring;
@@ -212,6 +210,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
 
     private DynamicPartitionMapImpl(QuorumParameters quorumParameters, NavigableMap<byte[], KeyValueEndpoint> ring, ExecutorService executor) {
         this(quorumParameters, toRing(ring), 0L, 0, executor);
+        Preconditions.checkArgument(UnsignedBytes.lexicographicalComparator().equals(ring.comparator()), "comparator for the map must be the bytes comparator");
     }
 
     public static DynamicPartitionMapImpl create(QuorumParameters quorumParameters, NavigableMap<byte[], KeyValueEndpoint> ring, ExecutorService executor) {

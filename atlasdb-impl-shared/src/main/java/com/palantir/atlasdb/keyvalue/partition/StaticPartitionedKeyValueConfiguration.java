@@ -1,15 +1,16 @@
 package com.palantir.atlasdb.keyvalue.partition;
 
-import java.util.Set;
+import java.util.List;
 
 import org.immutables.value.Value;
+import org.immutables.value.Value.Check;
 
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.auto.service.AutoService;
-import com.google.common.base.Optional;
-import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
 @AutoService(KeyValueServiceConfig.class)
@@ -25,7 +26,11 @@ public abstract class StaticPartitionedKeyValueConfiguration implements KeyValue
         return TYPE;
     }
 
-    public abstract Optional<QuorumParameters> getQuorumParameters();
-    public abstract Optional<KeyValueServiceConfig> keyValueService();
-    public abstract Set<String> getEndpoints();
+    public abstract List<String> getKeyValueEndpoints();
+
+    @Check
+    protected void check() {
+        Preconditions.checkArgument(!getKeyValueEndpoints().isEmpty());
+        Preconditions.checkArgument(Sets.newHashSet(getKeyValueEndpoints()).size() == getKeyValueEndpoints().size());
+    }
 }

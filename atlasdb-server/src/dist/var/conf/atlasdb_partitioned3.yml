@@ -36,16 +36,16 @@ atlasdb:
   additionalServiceResources:
     type: rocksdb
     config:
-      dataDir: var/data/rocksdb1
+      dataDir: var/data/rocksdb3
   leader:
     quorumSize: 2
-    learnerLogDir: var/data/paxosLog/learner1
-    acceptorLogDir: var/data/paxosLog/acceptor1
-    localServer: http://localhost:3828
+    learnerLogDir: var/data/paxosLog/learner3
+    acceptorLogDir: var/data/paxosLog/acceptor3
+    localServer: http://localhost:5828
     leaders:
       - http://localhost:3828
       - http://localhost:4828
       - http://localhost:5828
     additionalPaxosEndpointsToLogDir:
-      timestamp: var/data/extraPaxos1/timestamp
-      transaction: var/data/extraPaxos1/transaction
+      timestamp: var/data/extraPaxos3/timestamp
+      transaction: var/data/extraPaxos3/transaction
