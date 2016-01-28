@@ -34,7 +34,9 @@ public interface ScrubberStore {
     void markCellsAsScrubbed(Multimap<Cell, Long> cellToScrubTimestamp, int batchSize);
 
     public BatchingVisitable<SortedMap<Long, Multimap<String, Cell>>> getBatchingVisitableScrubQueue(int cellsToScrubBatchSize,
-                                                                                                     long maxScrubTimestamp /* exclusive */);
+                                                                                                     long maxScrubTimestamp /* exclusive */,
+                                                                                                     byte[] startRow,
+                                                                                                     byte[] endRow);
 
     int getNumberRemainingScrubCells(int maxCellsToScan);
 

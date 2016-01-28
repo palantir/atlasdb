@@ -23,7 +23,6 @@ import java.util.SortedMap;
 
 import org.apache.commons.lang.StringUtils;
 
-import com.google.common.base.Function;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -46,9 +45,11 @@ import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.common.base.AbortingVisitor;
+import com.palantir.common.base.AbstractBatchingVisitable;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitableFromIterable;
-import com.palantir.common.base.BatchingVisitables;
+import com.palantir.common.base.BatchingVisitableView;
 import com.palantir.common.base.ClosableIterator;
 
 /**
@@ -118,46 +119,64 @@ public class KeyValueServiceScrubberStore implements ScrubberStore {
     }
 
     @Override
-    public BatchingVisitable<SortedMap<Long, Multimap<String, Cell>>> getBatchingVisitableScrubQueue(int cellsToScrubBatchSize,
-                                                                                                     long maxScrubTimestamp) {
-        // This hides the Closeable part of CloseableIterator, but the close actually does nothing in all of our KVS implementations.
-        BatchingVisitable<RowResult<Value>> results = BatchingVisitableFromIterable.create(getIteratorToScrub(cellsToScrubBatchSize, maxScrubTimestamp));
-        return BatchingVisitables.transformBatch(results, new Function<List<RowResult<Value>>, List<SortedMap<Long, Multimap<String, Cell>>>>() {
+    public BatchingVisitable<SortedMap<Long, Multimap<String, Cell>>> getBatchingVisitableScrubQueue(final int cellsToScrubBatchSize,
+                                                                                                     long maxScrubTimestamp /* exclusive */,
+                                                                                                     byte[] startRow,
+                                                                                                     byte[] endRow) {
+        ClosableIterator<RowResult<Value>> iterator = getIteratorToScrub(cellsToScrubBatchSize, maxScrubTimestamp, startRow, endRow);
+        final BatchingVisitable<RowResult<Value>> results = BatchingVisitableFromIterable.create(iterator);
+        return BatchingVisitableView.of(new AbstractBatchingVisitable<SortedMap<Long, Multimap<String, Cell>>>() {
             @Override
-            public List<SortedMap<Long, Multimap<String, Cell>>> apply(List<RowResult<Value>> input) {
-                SortedMap<Long, Multimap<String, Cell>> scrubTimestampToTableNameToCell = Maps.newTreeMap();
-                for (RowResult<Value> rowResult : input) {
-                    for (Map.Entry<Cell, Value> entry : rowResult.getCells()) {
-                        Cell cell = entry.getKey();
-                        Value value = entry.getValue();
-                        long scrubTimestamp = value.getTimestamp();
-                        String[] tableNames = StringUtils.split(
-                                PtBytes.toString(value.getContents()),
-                                AtlasDbConstants.SCRUB_TABLE_SEPARATOR_CHAR);
-                        if (!scrubTimestampToTableNameToCell.containsKey(scrubTimestamp)) {
-                            scrubTimestampToTableNameToCell.put(scrubTimestamp, HashMultimap.<String, Cell>create());
-                        }
-                        for (String tableName : tableNames) {
-                            scrubTimestampToTableNameToCell.get(scrubTimestamp).put(tableName, cell);
-                        }
+            protected <K extends Exception> void batchAcceptSizeHint(int batchSizeHint,
+                                                                        final ConsistentVisitor<SortedMap<Long, Multimap<String, Cell>>, K> v) throws K {
+                results.batchAccept(cellsToScrubBatchSize, new AbortingVisitor<List<RowResult<Value>>, K>() {
+                    @Override
+                    public boolean visit(List<RowResult<Value>> batch) throws K {
+                        return v.visit(ImmutableList.of(transformRows(batch)));
                     }
-                }
-                return ImmutableList.of(scrubTimestampToTableNameToCell);
-            }});
+                });
+            }
+        });
     }
 
-    private ClosableIterator<RowResult<Value>> getIteratorToScrub(final int maxCellsToScrub,
-                                                                  long maxScrubTimestamp) {
-        ClosableIterator<RowResult<Value>> iterator = keyValueService.getRange(
+    private ClosableIterator<RowResult<Value>> getIteratorToScrub(int cellsToScrubBatchSize, long maxScrubTimestamp, byte[] startRow, byte[] endRow) {
+        RangeRequest.Builder range = RangeRequest.builder();
+        if (startRow != null) {
+            range = range.startRowInclusive(startRow);
+        }
+        if (endRow != null) {
+            range = range.endRowExclusive(endRow);
+        }
+        return keyValueService.getRange(
                 AtlasDbConstants.SCRUB_TABLE,
-                RangeRequest.builder().batchHint(maxCellsToScrub).build(),
+                range.batchHint(cellsToScrubBatchSize).build(),
                 maxScrubTimestamp);
-        return iterator;
+    }
+
+    private SortedMap<Long, Multimap<String, Cell>> transformRows(List<RowResult<Value>> input) {
+        SortedMap<Long, Multimap<String, Cell>> scrubTimestampToTableNameToCell = Maps.newTreeMap();
+        for (RowResult<Value> rowResult : input) {
+            for (Map.Entry<Cell, Value> entry : rowResult.getCells()) {
+                Cell cell = entry.getKey();
+                Value value = entry.getValue();
+                long scrubTimestamp = value.getTimestamp();
+                String[] tableNames = StringUtils.split(
+                        PtBytes.toString(value.getContents()),
+                        AtlasDbConstants.SCRUB_TABLE_SEPARATOR_CHAR);
+                if (!scrubTimestampToTableNameToCell.containsKey(scrubTimestamp)) {
+                    scrubTimestampToTableNameToCell.put(scrubTimestamp, HashMultimap.<String, Cell>create());
+                }
+                for (String tableName : tableNames) {
+                    scrubTimestampToTableNameToCell.get(scrubTimestamp).put(tableName, cell);
+                }
+            }
+        }
+        return scrubTimestampToTableNameToCell;
     }
 
     @Override
     public int getNumberRemainingScrubCells(int maxCellsToScan) {
-        ClosableIterator<RowResult<Value>> iterator = getIteratorToScrub(maxCellsToScan, Long.MAX_VALUE);
+        ClosableIterator<RowResult<Value>> iterator = getIteratorToScrub(maxCellsToScan, Long.MAX_VALUE, null, null);
         try {
             return Iterators.size(Iterators.limit(iterator, maxCellsToScan));
         } finally {
