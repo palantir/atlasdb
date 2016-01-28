@@ -810,7 +810,11 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
             @Override
             public Void apply(@Nullable DynamicPartitionMap input) {
                 for (KeyValueService kvs : input.getDelegates()) {
-                    kvs.initializeFromFreshInstance();
+                    try {
+                        kvs.initializeFromFreshInstance();
+                    } catch (Exception e) {
+                        log.info("failed to initialize kv store", e);
+                    }
                 }
                 return null;
             }

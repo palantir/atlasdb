@@ -147,6 +147,7 @@ public final class AwaitingLeadershipProxy implements InvocationHandler {
     }
     private static final Method EQUALS_METHOD = getObjectMethod("equals", Object.class);
     private static final Method HASHCODE_METHOD = getObjectMethod("hashCode");
+    private static final Method TOSTRING_METHOD = getObjectMethod("toString");
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
@@ -156,6 +157,10 @@ public final class AwaitingLeadershipProxy implements InvocationHandler {
 
         if (HASHCODE_METHOD.equals(method)) {
             return System.identityHashCode(proxy);
+        }
+
+        if (TOSTRING_METHOD.equals(method)) {
+            return toString();
         }
         final LeadershipToken leadershipToken = leadershipTokenRef.get();
 
@@ -222,5 +227,14 @@ public final class AwaitingLeadershipProxy implements InvocationHandler {
         }
         throw notCurrentLeaderException("method invoked on a non-leader (leadership lost)", cause);
     }
+
+    @Override
+    public String toString() {
+        return "AwaitingLeadershipProxy [delegateSupplier=" + delegateSupplier
+                + ", leaderElectionService=" + leaderElectionService + ", executor=" + executor
+                + ", leadershipTokenRef=" + leadershipTokenRef + ", delegateRef=" + delegateRef
+                + ", interfaceClass=" + interfaceClass + ", isClosed=" + isClosed + "]";
+    }
+
 
 }

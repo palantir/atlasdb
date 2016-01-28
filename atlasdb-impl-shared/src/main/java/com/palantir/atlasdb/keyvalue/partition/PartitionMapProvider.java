@@ -55,6 +55,9 @@ public class PartitionMapProvider {
     private final int partitionMapProvidersReadFactor;
     private final PartitionMapService localService = InMemoryPartitionMapService.createEmpty();
 
+    /**
+     * This allows retry if our version of the map it out of date or the remote version is out of date.
+     */
     protected <T> T runWithPartitionMapRetryable(Function<? super DynamicPartitionMap, T> task) {
         while (true) {
             try {

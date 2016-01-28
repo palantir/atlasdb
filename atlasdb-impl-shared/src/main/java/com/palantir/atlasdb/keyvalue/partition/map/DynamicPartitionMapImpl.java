@@ -462,7 +462,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         return result;
     }
 
-    private static <T> void apply(final Entry<KeyValueEndpoint, ? extends T> entry, final Function<Pair<KeyValueService, T>, Void> task) {
+    private static <T> void apply(String tableName, final Entry<KeyValueEndpoint, ? extends T> entry, final Function<Pair<KeyValueService, T>, Void> task) {
         task.apply(Pair.<KeyValueService, T>create(entry.getKey().keyValueService(), entry.getValue()));
     }
 
@@ -470,7 +470,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     public void runForRowsRead(String tableName, Iterable<byte[]> rows,
                                final Function<Pair<KeyValueService, Iterable<byte[]>>, Void> task) {
         for (final Entry<KeyValueEndpoint, NavigableSet<byte[]>> e : getServicesForRowsRead(tableName, rows).entrySet()) {
-            apply(e, task);
+            apply(tableName, e, task);
         }
     }
 
@@ -478,7 +478,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     public void runForCellsRead(String tableName, Set<Cell> cells,
                                 final Function<Pair<KeyValueService, Set<Cell>>, Void> task) {
         for (final Entry<KeyValueEndpoint, Set<Cell>> e : getServicesForCellsSet(tableName, cells, false).entrySet()) {
-            apply(e, task);
+            apply(tableName, e, task);
         }
     }
 
@@ -486,7 +486,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     public <T> void runForCellsRead(String tableName, Map<Cell, T> cells,
                                     final Function<Pair<KeyValueService, Map<Cell, T>>, Void> task) {
         for (final Entry<KeyValueEndpoint, Map<Cell, T>> e : getServicesForCellsMap(tableName, cells, false).entrySet()) {
-            apply(e, task);
+            apply(tableName, e, task);
         }
     }
 
@@ -494,7 +494,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     public void runForCellsWrite(String tableName, Set<Cell> cells,
                                  final Function<Pair<KeyValueService, Set<Cell>>, Void> task) {
         for (final Entry<KeyValueEndpoint, Set<Cell>> e : getServicesForCellsSet(tableName, cells, true).entrySet()) {
-            apply(e, task);
+            apply(tableName, e, task);
         }
     }
 
@@ -502,7 +502,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     public <T> void runForCellsWrite(String tableName, Multimap<Cell, T> cells,
                                      final Function<Pair<KeyValueService, Multimap<Cell, T>>, Void> task) {
         for (final Entry<KeyValueEndpoint, Multimap<Cell, T>> e : getServicesForCellsMultimap(tableName, cells, true).entrySet()) {
-            apply(e, task);
+            apply(tableName, e, task);
         }
     }
 
@@ -510,7 +510,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     public <T> void runForCellsWrite(String tableName, Map<Cell, T> cells,
                                      Function<Pair<KeyValueService, Map<Cell, T>>, Void> task) {
         for (Entry<KeyValueEndpoint, Map<Cell, T>> e : getServicesForCellsMap(tableName, cells, true).entrySet()) {
-            apply(e, task);
+            apply(tableName, e, task);
         }
     }
 

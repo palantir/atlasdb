@@ -560,4 +560,17 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
 
         return learned;
     }
+
+    @Override
+    public String toString() {
+        return "PaxosLeaderElectionService [lock=" + lock + ", proposer=" + proposer
+                + ", knowledge=" + knowledge + ", potentialLeadersToHosts="
+                + potentialLeadersToHosts + ", acceptors=" + acceptors + ", learners=" + learners
+                + ", updatePollingRateInMs=" + updatePollingRateInMs
+                + ", randomWaitBeforeProposingLeadership=" + randomWaitBeforeProposingLeadership
+                + ", leaderPingResponseWaitMs=" + leaderPingResponseWaitMs + ", executor="
+                + executor + ", uuidToServiceCache=" + uuidToServiceCache
+                + ", currentIsStillLeadingCall=" + currentIsStillLeadingCall + "]";
+    }
+
 }

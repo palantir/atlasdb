@@ -182,4 +182,16 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
             }
         };
     }
+
+    @Override
+    public String toString() {
+        return "FailoverFeignTarget [servers=" + servers + ", type=" + type + ", failoverCount="
+                + failoverCount + ", failuresBeforeSwitching=" + failuresBeforeSwitching
+                + ", numServersToTryBeforeFailing=" + numServersToTryBeforeFailing
+                + ", fastFailoverTimeoutMillis=" + fastFailoverTimeoutMillis + ", maxBackoffMillis="
+                + maxBackoffMillis + ", failuresSinceLastSwitch=" + failuresSinceLastSwitch
+                + ", numSwitches=" + numSwitches + ", startTimeOfFastFailover="
+                + startTimeOfFastFailover + ", mostRecentServerIndex=" + mostRecentServerIndex
+                + "]";
+    }
 }

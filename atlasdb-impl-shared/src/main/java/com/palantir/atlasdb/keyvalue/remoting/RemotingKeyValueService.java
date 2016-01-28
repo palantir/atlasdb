@@ -266,6 +266,16 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
             });
     }
 
+    @Override
+    public void close() {
+        // no-op.  Remote users should not be able to close our KV store.
+    }
+
+    @Override
+    public void teardown() {
+        // no-op.  Remote users should not be able to tear down our KV store.
+    }
+
     private static final SimpleModule kvsModule = new SimpleModule(); static {
         kvsModule.addKeyDeserializer(Cell.class, CellAsKeyDeserializer.instance());
         kvsModule.addKeyDeserializer(byte[].class, BytesAsKeyDeserializer.instance());

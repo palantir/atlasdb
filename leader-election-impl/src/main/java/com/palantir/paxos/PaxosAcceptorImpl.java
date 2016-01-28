@@ -156,4 +156,10 @@ public class PaxosAcceptorImpl implements PaxosAcceptor, Closeable {
         log.close();
     }
 
+    @Override
+    public String toString() {
+        return "PaxosAcceptorImpl [state=" + state + ", log=" + log + ", greatestInLogAtStartup="
+                + greatestInLogAtStartup + "]";
+    }
+
 }

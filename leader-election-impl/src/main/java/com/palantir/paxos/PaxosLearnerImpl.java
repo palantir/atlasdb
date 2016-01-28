@@ -115,4 +115,10 @@ public class PaxosLearnerImpl implements PaxosLearner, Closeable {
     public void close() {
         log.close();
     }
+
+    @Override
+    public String toString() {
+        return "PaxosLearnerImpl [state=" + state + ", log=" + log + "]";
+    }
+
 }
