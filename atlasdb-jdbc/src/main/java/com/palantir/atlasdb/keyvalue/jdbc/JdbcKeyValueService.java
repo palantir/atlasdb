@@ -15,10 +15,10 @@
  */
 package com.palantir.atlasdb.keyvalue.jdbc;
 
+import static org.jooq.Clause.TABLE_VALUES;
 import static org.jooq.impl.DSL.field;
 import static org.jooq.impl.DSL.row;
 import static org.jooq.impl.DSL.table;
-import static org.jooq.impl.DSL.values;
 import static org.jooq.impl.SQLDataType.BIGINT;
 import static org.jooq.impl.SQLDataType.BLOB;
 import static org.jooq.impl.SQLDataType.VARBINARY;
@@ -32,7 +32,10 @@ import static com.palantir.atlasdb.keyvalue.jdbc.impl.JdbcConstants.A_VALUE;
 import static com.palantir.atlasdb.keyvalue.jdbc.impl.JdbcConstants.COL_NAME;
 import static com.palantir.atlasdb.keyvalue.jdbc.impl.JdbcConstants.MAX_TIMESTAMP;
 import static com.palantir.atlasdb.keyvalue.jdbc.impl.JdbcConstants.METADATA;
+import static com.palantir.atlasdb.keyvalue.jdbc.impl.JdbcConstants.RANGE_TABLE;
 import static com.palantir.atlasdb.keyvalue.jdbc.impl.JdbcConstants.ROW_NAME;
+import static com.palantir.atlasdb.keyvalue.jdbc.impl.JdbcConstants.R_ROW_NAME;
+import static com.palantir.atlasdb.keyvalue.jdbc.impl.JdbcConstants.R_TIMESTAMP;
 import static com.palantir.atlasdb.keyvalue.jdbc.impl.JdbcConstants.T1_COL_NAME;
 import static com.palantir.atlasdb.keyvalue.jdbc.impl.JdbcConstants.T1_ROW_NAME;
 import static com.palantir.atlasdb.keyvalue.jdbc.impl.JdbcConstants.T1_TIMESTAMP;
@@ -69,13 +72,17 @@ import org.jooq.InsertValuesStep4;
 import org.jooq.Query;
 import org.jooq.Record;
 import org.jooq.Record1;
+import org.jooq.RenderContext;
 import org.jooq.Result;
+import org.jooq.Row;
 import org.jooq.Row3;
 import org.jooq.RowN;
 import org.jooq.SQLDialect;
 import org.jooq.Select;
+import org.jooq.SelectField;
 import org.jooq.SelectOffsetStep;
 import org.jooq.Table;
+import org.jooq.TableLike;
 import org.jooq.TransactionalCallable;
 import org.jooq.conf.RenderNameStyle;
 import org.jooq.conf.Settings;
@@ -88,6 +95,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -160,7 +168,7 @@ public class JdbcKeyValueService implements KeyValueService {
                 try {
                     ctx.execute(fullSql);
                 } catch (DataAccessException e) {
-                    // TODO: check if it's because the table already exists.
+                    kvs.handleTableCreationException(e);
                 }
                 return null;
             }
@@ -194,6 +202,9 @@ public class JdbcKeyValueService implements KeyValueService {
     private Map<Cell, Value> getRowsAllColumns(final String tableName,
                                                final Iterable<byte[]> rows,
                                                final long timestamp) {
+        if (Iterables.isEmpty(rows)) {
+            return ImmutableMap.of();
+        }
         return run(new Function<DSLContext, Map<Cell, Value>>() {
             @Override
             public Map<Cell, Value> apply(DSLContext ctx) {
@@ -218,6 +229,9 @@ public class JdbcKeyValueService implements KeyValueService {
                                                 final Iterable<byte[]> rows,
                                                 final ColumnSelection columnSelection,
                                                 final long timestamp) {
+        if (Iterables.isEmpty(rows)) {
+            return ImmutableMap.of();
+        }
         return run(new Function<DSLContext, Map<Cell, Value>>() {
             @Override
             public Map<Cell, Value> apply(DSLContext ctx) {
@@ -242,6 +256,9 @@ public class JdbcKeyValueService implements KeyValueService {
     @Override
     public Map<Cell, Value> get(final String tableName,
                                 final Map<Cell, Long> timestampByCell) {
+        if (timestampByCell.isEmpty()) {
+            return ImmutableMap.of();
+        }
         return run(new Function<DSLContext, Map<Cell, Value>>() {
             @Override
             public Map<Cell, Value> apply(DSLContext ctx) {
@@ -264,6 +281,9 @@ public class JdbcKeyValueService implements KeyValueService {
     @Override
     public Map<Cell, Long> getLatestTimestamps(final String tableName,
                                                final Map<Cell, Long> timestampByCell) {
+        if (timestampByCell.isEmpty()) {
+            return ImmutableMap.of();
+        }
         return run(new Function<DSLContext, Map<Cell, Long>>() {
             @Override
             public Map<Cell, Long> apply(DSLContext ctx) {
@@ -287,13 +307,16 @@ public class JdbcKeyValueService implements KeyValueService {
     public Multimap<Cell, Long> getAllTimestamps(final String tableName,
                                                  final Set<Cell> cells,
                                                  final long timestamp) throws InsufficientConsistencyException {
+        if (cells.isEmpty()) {
+            return ImmutableMultimap.of();
+        }
         return run(new Function<DSLContext, Multimap<Cell, Long>>() {
             @Override
             public Multimap<Cell, Long> apply(DSLContext ctx) {
                 Result<? extends Record> records = ctx
                         .select(A_ROW_NAME, A_COL_NAME, A_TIMESTAMP)
-                        .from(atlasTable(tableName))
-                        .join(values(toRows(cells)).as(TEMP_TABLE_1, ROW_NAME, COL_NAME))
+                        .from(atlasTable(tableName).as(ATLAS_TABLE))
+                        .join(values(ctx, toRows(cells), TEMP_TABLE_1, ROW_NAME, COL_NAME))
                         .on(A_ROW_NAME.eq(T1_ROW_NAME)
                                 .and(A_COL_NAME.eq(T1_COL_NAME)))
                         .where(A_TIMESTAMP.lessThan(timestamp))
@@ -332,9 +355,33 @@ public class JdbcKeyValueService implements KeyValueService {
                                                                        Collection<byte[]> rows,
                                                                        long timestamp) {
         return ctx.select(A_ROW_NAME, A_COL_NAME, DSL.max(A_TIMESTAMP).as(MAX_TIMESTAMP))
-                .from(atlasTable(tableName))
+                .from(atlasTable(tableName).as(ATLAS_TABLE))
                 .where(A_ROW_NAME.in(rows)
                         .and(A_TIMESTAMP.lessThan(timestamp)))
+                .groupBy(A_ROW_NAME, A_COL_NAME);
+    }
+
+    private Select<? extends Record> getLatestTimestampQueryAllColumnsSubQuery(DSLContext ctx,
+                                                                               String tableName,
+                                                                               Select<Record1<byte[]>> subQuery,
+                                                                               long timestamp) {
+        return ctx.select(A_ROW_NAME, A_COL_NAME, DSL.max(A_TIMESTAMP).as(MAX_TIMESTAMP))
+                .from(atlasTable(tableName).as(ATLAS_TABLE))
+                .where(A_ROW_NAME.in(subQuery)
+                        .and(A_TIMESTAMP.lessThan(timestamp)))
+                .groupBy(A_ROW_NAME, A_COL_NAME);
+    }
+
+    private Select<? extends Record> getLatestTimestampQuerySomeColumnsSubQuery(DSLContext ctx,
+                                                                                String tableName,
+                                                                                Select<Record1<byte[]>> subQuery,
+                                                                                Collection<byte[]> cols,
+                                                                                long timestamp) {
+        return ctx.select(A_ROW_NAME, A_COL_NAME, DSL.max(A_TIMESTAMP).as(MAX_TIMESTAMP))
+                .from(atlasTable(tableName).as(ATLAS_TABLE))
+                .where(A_ROW_NAME.in(subQuery)
+                        .and(A_COL_NAME.in(cols)))
+                        .and(A_TIMESTAMP.lessThan(timestamp))
                 .groupBy(A_ROW_NAME, A_COL_NAME);
     }
 
@@ -344,7 +391,7 @@ public class JdbcKeyValueService implements KeyValueService {
                                                                         Collection<byte[]> cols,
                                                                         long timestamp) {
         return ctx.select(A_ROW_NAME, A_COL_NAME, DSL.max(A_TIMESTAMP).as(MAX_TIMESTAMP))
-                .from(atlasTable(tableName))
+                .from(atlasTable(tableName).as(ATLAS_TABLE))
                 .where(A_ROW_NAME.in(rows)
                         .and(A_COL_NAME.in(cols)))
                         .and(A_TIMESTAMP.lessThan(timestamp))
@@ -353,22 +400,22 @@ public class JdbcKeyValueService implements KeyValueService {
 
     private Select<? extends Record> getAllTimestampsQueryAllColumns(DSLContext ctx,
                                                                      String tableName,
-                                                                     Collection<byte[]> rows,
+                                                                     Select<Record1<byte[]>> subQuery,
                                                                      long timestamp) {
         return ctx.select(A_ROW_NAME, A_COL_NAME, A_TIMESTAMP)
-                .from(atlasTable(tableName))
-                .where(A_ROW_NAME.in(rows)
+                .from(atlasTable(tableName).as(ATLAS_TABLE))
+                .where(A_ROW_NAME.in(subQuery)
                         .and(A_TIMESTAMP.lessThan(timestamp)));
     }
 
     private Select<? extends Record> getAllTimestampsQuerySomeColumns(DSLContext ctx,
                                                                       String tableName,
-                                                                      Collection<byte[]> rows,
+                                                                      Select<Record1<byte[]>> subQuery,
                                                                       Collection<byte[]> cols,
                                                                       long timestamp) {
         return ctx.select(A_ROW_NAME, A_COL_NAME, A_TIMESTAMP)
-                .from(atlasTable(tableName))
-                .where(A_ROW_NAME.in(rows)
+                .from(atlasTable(tableName).as(ATLAS_TABLE))
+                .where(A_ROW_NAME.in(subQuery)
                         .and(A_COL_NAME.in(cols)))
                         .and(A_TIMESTAMP.lessThan(timestamp));
     }
@@ -377,8 +424,8 @@ public class JdbcKeyValueService implements KeyValueService {
                                                                            String tableName,
                                                                            RowN[] rows) {
         return ctx.select(A_ROW_NAME, A_COL_NAME, DSL.max(A_TIMESTAMP).as(MAX_TIMESTAMP))
-                .from(atlasTable(tableName))
-                .join(values(rows).as(TEMP_TABLE_1, ROW_NAME, COL_NAME, TIMESTAMP))
+                .from(atlasTable(tableName).as(ATLAS_TABLE))
+                .join(values(ctx, rows, TEMP_TABLE_1, ROW_NAME, COL_NAME, TIMESTAMP))
                 .on(A_ROW_NAME.eq(T1_ROW_NAME)
                         .and(A_COL_NAME.eq(T1_COL_NAME)))
                 .where(A_TIMESTAMP.lessThan(T1_TIMESTAMP))
@@ -389,7 +436,7 @@ public class JdbcKeyValueService implements KeyValueService {
                                                  String tableName,
                                                  Select<? extends Record> subQuery) {
         return ctx.select(A_ROW_NAME, A_COL_NAME, A_TIMESTAMP, A_VALUE)
-                .from(atlasTable(tableName))
+                .from(atlasTable(tableName).as(ATLAS_TABLE))
                 .join(subQuery.asTable(TEMP_TABLE_2))
                 .on(A_ROW_NAME.eq(T2_ROW_NAME)
                         .and(A_COL_NAME.eq(T2_COL_NAME))
@@ -401,6 +448,9 @@ public class JdbcKeyValueService implements KeyValueService {
     public void put(final String tableName,
                     final Map<Cell, byte[]> values,
                     final long timestamp) throws KeyAlreadyExistsException {
+        if (values.isEmpty()) {
+            return;
+        }
         run(new Function<DSLContext, Void>() {
             @Override
             public Void apply(DSLContext ctx) {
@@ -419,7 +469,9 @@ public class JdbcKeyValueService implements KeyValueService {
                 for (Entry<String, ? extends Map<Cell, byte[]>> entry : valuesByTable.entrySet()) {
                     String tableName = entry.getKey();
                     Map<Cell, byte[]> values = entry.getValue();
-                    putBatch(ctx, tableName, new SingleTimestampPutBatch(values, timestamp), true);
+                    if (!values.isEmpty()) {
+                        putBatch(ctx, tableName, new SingleTimestampPutBatch(values, timestamp), true);
+                    }
                 }
                 return null;
             }
@@ -429,6 +481,9 @@ public class JdbcKeyValueService implements KeyValueService {
     @Override
     public void putWithTimestamps(final String tableName,
                                   final Multimap<Cell, Value> values) throws KeyAlreadyExistsException {
+        if (values.isEmpty()) {
+            return;
+        }
         run(new Function<DSLContext, Void>() {
             @Override
             public Void apply(DSLContext ctx) {
@@ -441,6 +496,9 @@ public class JdbcKeyValueService implements KeyValueService {
     @Override
     public void putUnlessExists(final String tableName,
                                 final Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
+        if (values.isEmpty()) {
+            return;
+        }
         run(new Function<DSLContext, Void>() {
             @Override
             public Void apply(DSLContext ctx) {
@@ -452,6 +510,9 @@ public class JdbcKeyValueService implements KeyValueService {
 
     @Override
     public void addGarbageCollectionSentinelValues(final String tableName, Set<Cell> cells) {
+        if (cells.isEmpty()) {
+            return;
+        }
         Long timestamp = Value.INVALID_VALUE_TIMESTAMP;
         byte[] value = new byte[0];
         final RowN[] rows = new RowN[cells.size()];
@@ -468,9 +529,9 @@ public class JdbcKeyValueService implements KeyValueService {
                         field(TIMESTAMP, Long.class),
                         field(VALUE, byte[].class))
                 .select(ctx.select(T1_ROW_NAME, T1_COL_NAME, T1_TIMESTAMP, T1_VALUE)
-                        .from(DSL.values(rows).as(TEMP_TABLE_1, ROW_NAME, COL_NAME, TIMESTAMP, VALUE))
+                        .from(values(ctx, rows, TEMP_TABLE_1, ROW_NAME, COL_NAME, TIMESTAMP, VALUE))
                         .whereNotExists(ctx.selectOne()
-                                .from(atlasTable(tableName))
+                                .from(atlasTable(tableName).as(ATLAS_TABLE))
                                 .where(A_ROW_NAME.eq(T1_ROW_NAME)
                                         .and(A_COL_NAME.eq(T1_COL_NAME))
                                         .and(A_TIMESTAMP.eq(T1_TIMESTAMP)))))
@@ -478,6 +539,37 @@ public class JdbcKeyValueService implements KeyValueService {
                 return null;
             }
         });
+    }
+
+    TableLike<?> values(DSLContext ctx, RowN[] rows, String tableName, String... fieldNames) {
+        switch (sqlDialect.family()) {
+        case H2:
+            List<SelectField<?>> fields = Lists.newArrayListWithCapacity(fieldNames.length);
+            for (int i = 1; i <= fieldNames.length; i++) {
+                fields.add(DSL.field("C" + i).as(fieldNames[i-1]));
+            }
+            RenderContext context = ctx.renderContext();
+            context.start(TABLE_VALUES)
+                .keyword("values")
+                .formatIndentLockStart();
+
+            boolean firstRow = true;
+            for (Row row : rows) {
+                if (!firstRow) {
+                    context.sql(',').formatSeparator();
+                }
+
+                context.sql(row.toString());
+                firstRow = false;
+            }
+
+            context.formatIndentLockEnd()
+                .end(TABLE_VALUES);
+            String valuesClause = context.render();
+            return ctx.select(fields).from(valuesClause).asTable(tableName);
+        default:
+            return DSL.values(rows).as(tableName, fieldNames);
+        }
     }
 
     private void putBatch(DSLContext ctx, String tableName, PutBatch batch, boolean allowReinserts) {
@@ -494,7 +586,7 @@ public class JdbcKeyValueService implements KeyValueService {
             if (allowReinserts) {
                 Result<? extends Record> records = ctx
                         .select(A_ROW_NAME, A_COL_NAME, A_TIMESTAMP, A_VALUE)
-                        .from(atlasTable(tableName))
+                        .from(atlasTable(tableName).as(ATLAS_TABLE))
                         .where(row(A_ROW_NAME, A_COL_NAME, A_TIMESTAMP).in(batch.getRowsForSelect()))
                         .fetch();
                 if (records.isEmpty()) {
@@ -512,6 +604,9 @@ public class JdbcKeyValueService implements KeyValueService {
 
     @Override
     public void delete(final String tableName, final Multimap<Cell, Long> keys) {
+        if (keys.isEmpty()) {
+            return;
+        }
         run(new Function<DSLContext, Void>() {
             @Override
             public Void apply(DSLContext ctx) {
@@ -519,7 +614,7 @@ public class JdbcKeyValueService implements KeyValueService {
                 for (Entry<Cell, Long> entry : keys.entries()) {
                     rows.add(row(entry.getKey().getRowName(), entry.getKey().getColumnName(), entry.getValue()));
                 }
-                ctx.deleteFrom(atlasTable(tableName))
+                ctx.deleteFrom(atlasTable(tableName).as(ATLAS_TABLE))
                     .where(row(A_ROW_NAME, A_COL_NAME, A_TIMESTAMP).in(rows))
                     .execute();
                 return null;
@@ -534,6 +629,9 @@ public class JdbcKeyValueService implements KeyValueService {
 
     @Override
     public void truncateTables(final Set<String> tableNames) throws InsufficientConsistencyException {
+        if (tableNames.isEmpty()) {
+            return;
+        }
         run(new Function<DSLContext, Void>() {
             @Override
             public Void apply(DSLContext ctx) {
@@ -606,17 +704,17 @@ public class JdbcKeyValueService implements KeyValueService {
             @Override
             public TokenBackedBasicResultsPage<RowResult<Value>, byte[]> apply(DSLContext ctx) {
                 int maxRows = rangeRequest.getBatchHint() == null ? 100 : (int) (1.1 * rangeRequest.getBatchHint());
-                List<byte[]> rows = getRangeQuery(ctx, tableName, rangeRequest, timestamp, maxRows).fetch(A_ROW_NAME);
-                if (rows.isEmpty()) {
-                    return SimpleTokenBackedResultsPage.create(null, ImmutableList.<RowResult<Value>>of(), false);
-                }
+                Select<Record1<byte[]>> rangeQuery = getRangeQuery(ctx, tableName, rangeRequest, timestamp, maxRows);
                 Select<? extends Record> query;
                 if (rangeRequest.getColumnNames().isEmpty()) {
-                    query = getLatestTimestampQueryAllColumns(ctx, tableName, rows, timestamp);
+                    query = getLatestTimestampQueryAllColumnsSubQuery(ctx, tableName, rangeQuery, timestamp);
                 } else {
-                    query = getLatestTimestampQuerySomeColumns(ctx, tableName, rows, rangeRequest.getColumnNames(), timestamp);
+                    query = getLatestTimestampQuerySomeColumnsSubQuery(ctx, tableName, rangeQuery, rangeRequest.getColumnNames(), timestamp);
                 }
                 Result<? extends Record> records = fetchValues(ctx, tableName, query);
+                if (records.isEmpty()) {
+                    return SimpleTokenBackedResultsPage.create(null, ImmutableList.<RowResult<Value>>of(), false);
+                }
                 NavigableMap<byte[], SortedMap<byte[], Value>> valuesByRow = breakUpValuesByRow(records);
                 if (rangeRequest.isReverse()) {
                     valuesByRow = valuesByRow.descendingMap();
@@ -627,10 +725,10 @@ public class JdbcKeyValueService implements KeyValueService {
                 }
                 byte[] nextRow = null;
                 boolean mayHaveMoreResults = false;
-                byte[] lastRow = Iterables.getLast(rows);
+                byte[] lastRow = Iterables.getLast(finalResults).getRowName();
                 if (!RangeRequests.isTerminalRow(rangeRequest.isReverse(), lastRow)) {
                     nextRow = RangeRequests.getNextStartRow(rangeRequest.isReverse(), lastRow);
-                    mayHaveMoreResults = rows.size() == maxRows;
+                    mayHaveMoreResults = finalResults.size() == maxRows;
                 }
                 return SimpleTokenBackedResultsPage.create(nextRow, finalResults, mayHaveMoreResults);
             }
@@ -658,17 +756,17 @@ public class JdbcKeyValueService implements KeyValueService {
             @Override
             public TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]> apply(DSLContext ctx) {
                 int maxRows = rangeRequest.getBatchHint() == null ? 100 : (int) (1.1 * rangeRequest.getBatchHint());
-                List<byte[]> rows = getRangeQuery(ctx, tableName, rangeRequest, timestamp, maxRows).fetch(A_ROW_NAME);
-                if (rows.isEmpty()) {
-                    return SimpleTokenBackedResultsPage.create(null, ImmutableList.<RowResult<Set<Long>>>of(), false);
-                }
+                Select<Record1<byte[]>> rangeQuery = getRangeQuery(ctx, tableName, rangeRequest, timestamp, maxRows);
                 Select<? extends Record> query;
                 if (rangeRequest.getColumnNames().isEmpty()) {
-                    query = getAllTimestampsQueryAllColumns(ctx, tableName, rows, timestamp);
+                    query = getAllTimestampsQueryAllColumns(ctx, tableName, rangeQuery, timestamp);
                 } else {
-                    query = getAllTimestampsQuerySomeColumns(ctx, tableName, rows, rangeRequest.getColumnNames(), timestamp);
+                    query = getAllTimestampsQuerySomeColumns(ctx, tableName, rangeQuery, rangeRequest.getColumnNames(), timestamp);
                 }
                 Result<? extends Record> records = query.fetch();
+                if (records.isEmpty()) {
+                    return SimpleTokenBackedResultsPage.create(null, ImmutableList.<RowResult<Set<Long>>>of(), false);
+                }
                 NavigableMap<byte[], SortedMap<byte[], Set<Long>>> timestampsByRow = breakUpTimestampsByRow(records);
                 if (rangeRequest.isReverse()) {
                     timestampsByRow = timestampsByRow.descendingMap();
@@ -679,10 +777,10 @@ public class JdbcKeyValueService implements KeyValueService {
                 }
                 byte[] nextRow = null;
                 boolean mayHaveMoreResults = false;
-                byte[] lastRow = Iterables.getLast(rows);
+                byte[] lastRow = Iterables.getLast(finalResults).getRowName();
                 if (!RangeRequests.isTerminalRow(rangeRequest.isReverse(), lastRow)) {
                     nextRow = RangeRequests.getNextStartRow(rangeRequest.isReverse(), lastRow);
-                    mayHaveMoreResults = rows.size() == maxRows;
+                    mayHaveMoreResults = finalResults.size() == maxRows;
                 }
                 return SimpleTokenBackedResultsPage.create(nextRow, finalResults, mayHaveMoreResults);
             }
@@ -717,17 +815,17 @@ public class JdbcKeyValueService implements KeyValueService {
         boolean reverse = rangeRequest.isReverse();
         byte[] start = rangeRequest.getStartInclusive();
         byte[] end = rangeRequest.getEndExclusive();
-        Condition cond = A_TIMESTAMP.lessThan(timestamp);
+        Condition cond = R_TIMESTAMP.lessThan(timestamp);
         if (start.length > 0) {
-            cond = cond.and(reverse ? A_ROW_NAME.lessOrEqual(start) : A_ROW_NAME.greaterOrEqual(start));
+            cond = cond.and(reverse ? R_ROW_NAME.lessOrEqual(start) : R_ROW_NAME.greaterOrEqual(start));
         }
         if (end.length > 0) {
-            cond = cond.and(reverse ? A_ROW_NAME.greaterThan(end) : A_ROW_NAME.lessThan(end));
+            cond = cond.and(reverse ? R_ROW_NAME.greaterThan(end) : R_ROW_NAME.lessThan(end));
         }
-        return ctx.selectDistinct(A_ROW_NAME)
-                .from(atlasTable(tableName))
+        return ctx.selectDistinct(R_ROW_NAME)
+                .from(atlasTable(tableName).as(RANGE_TABLE))
                 .where(cond)
-                .orderBy(reverse ? A_ROW_NAME.desc() : A_ROW_NAME.asc())
+                .orderBy(reverse ? R_ROW_NAME.desc() : R_ROW_NAME.asc())
                 .limit(maxRows);
     }
 
@@ -738,6 +836,9 @@ public class JdbcKeyValueService implements KeyValueService {
 
     @Override
     public void dropTables(final Set<String> tableNames) throws InsufficientConsistencyException {
+        if (tableNames.isEmpty()) {
+            return;
+        }
         run(new Function<DSLContext, Void>() {
             @Override
             public Void apply(DSLContext ctx) {
@@ -759,8 +860,10 @@ public class JdbcKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void createTables(final Map<String, byte[]> tableNameToTableMetadata)
-            throws InsufficientConsistencyException {
+    public void createTables(final Map<String, byte[]> tableNameToTableMetadata) {
+        if (tableNameToTableMetadata.isEmpty()) {
+            return;
+        }
         run(new Function<DSLContext, Void>() {
             @Override
             public Void apply(DSLContext ctx) {
@@ -778,7 +881,11 @@ public class JdbcKeyValueService implements KeyValueService {
                             " CONSTRAINT " + primaryKey(tableName) +
                             " PRIMARY KEY (" + ROW_NAME + ", " + COL_NAME + ", " + TIMESTAMP + ")" +
                             partialSql.substring(endIndex);
-                    ctx.execute(fullSql);
+                    try {
+                        ctx.execute(fullSql);
+                    } catch (DataAccessException e) {
+                        handleTableCreationException(e);
+                    }
                     ctx.insertInto(METADATA_TABLE, TABLE_NAME, METADATA)
                         .values(tableName, metadata)
                         .execute();
@@ -850,6 +957,9 @@ public class JdbcKeyValueService implements KeyValueService {
 
     @Override
     public void putMetadataForTables(final Map<String, byte[]> tableNameToMetadata) {
+        if (tableNameToMetadata.isEmpty()) {
+            return;
+        }
         run(new Function<DSLContext, Void>() {
             @Override
             public Void apply(DSLContext ctx) {
@@ -919,6 +1029,16 @@ public class JdbcKeyValueService implements KeyValueService {
         }
     }
 
+    void handleTableCreationException(DataAccessException e) {
+        if (e.getMessage().contains("already exists")) {
+            return;
+        }
+        if (e.getMessage().contains("already used")) {
+            return;
+        }
+        throw e;
+    }
+
     /**
      * Take a given table name of arbitrary length and reduce it to a fixed
      * length (30 characters) for portability across rdbms impls that have
@@ -939,7 +1059,7 @@ public class JdbcKeyValueService implements KeyValueService {
     }
 
     Table<Record> atlasTable(String tableName) {
-        return table(tableName(tableName)).as(ATLAS_TABLE);
+        return table(tableName(tableName));
     }
 
     String primaryKey(String rawName) {

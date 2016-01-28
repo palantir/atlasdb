@@ -21,6 +21,7 @@ import static org.jooq.impl.SQLDataType.INTEGER;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.Record;
+import org.jooq.RowN;
 import org.jooq.Table;
 import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
@@ -39,10 +40,10 @@ public class JdbcTimestampBoundStore implements TimestampBoundStore {
 
     private JdbcTimestampBoundStore(JdbcKeyValueService kvs) {
         this.kvs = kvs;
-        TABLE = kvs.atlasTable("_timestamp");
+        TABLE = DSL.table(kvs.tableName("_timestamp"));
     }
 
-    public static JdbcTimestampBoundStore create(JdbcKeyValueService kvs) {
+    public static JdbcTimestampBoundStore create(final JdbcKeyValueService kvs) {
         final JdbcTimestampBoundStore store = new JdbcTimestampBoundStore(kvs);
         kvs.run(new Function<DSLContext, Void>() {
             @Override
@@ -53,17 +54,20 @@ public class JdbcTimestampBoundStore implements TimestampBoundStore {
                         .getSQL();
                 int endIndex = partialSql.lastIndexOf(')');
                 String fullSql = partialSql.substring(0, endIndex) + "," +
-                        " CONSTRAINT pk_timestamp" +
+                        " CONSTRAINT " + kvs.primaryKey("_timestamp") +
                         " PRIMARY KEY (" + DUMMY_COLUMN.getName() + ")" +
                         partialSql.substring(endIndex);
                 try {
                     ctx.execute(fullSql);
                 } catch (DataAccessException e) {
-                    // TODO: check if it's because the table already exists.
+                    kvs.handleTableCreationException(e);
                 }
                 ctx.insertInto(store.TABLE, DUMMY_COLUMN, LATEST_TIMESTAMP)
-                    .values(0, 10000L)
-                    .onDuplicateKeyIgnore()
+                    .select(ctx.select(DUMMY_COLUMN, LATEST_TIMESTAMP)
+                            .from(kvs.values(ctx, new RowN[] {(RowN) DSL.row(0, 10000L)}, "t", DUMMY_COLUMN.getName(), LATEST_TIMESTAMP.getName()))
+                            .whereNotExists(ctx.selectOne()
+                                    .from(store.TABLE)
+                                    .where(DUMMY_COLUMN.eq(0))))
                     .execute();
                 return null;
             }
@@ -76,10 +80,7 @@ public class JdbcTimestampBoundStore implements TimestampBoundStore {
         return kvs.run(new Function<DSLContext, Long>() {
             @Override
             public Long apply(DSLContext ctx) {
-                return latestTimestamp = ctx.select(LATEST_TIMESTAMP)
-                        .from(TABLE)
-                        .where(DUMMY_COLUMN.eq(0))
-                        .fetchOne(LATEST_TIMESTAMP);
+                return latestTimestamp = getLatestTimestamp(ctx);
             }
         });
     }
@@ -89,23 +90,26 @@ public class JdbcTimestampBoundStore implements TimestampBoundStore {
         kvs.runInTransaction(new Function<DSLContext, Void>() {
             @Override
             public Void apply(DSLContext ctx) {
-                long actualLatestTimestamp = ctx.select(LATEST_TIMESTAMP)
-                        .from(TABLE)
-                        .where(DUMMY_COLUMN.eq(0))
-                        .forUpdate()
-                        .fetchOne(LATEST_TIMESTAMP);
-                if (latestTimestamp != actualLatestTimestamp) {
+                int rowsUpdated = ctx.update(TABLE)
+                    .set(LATEST_TIMESTAMP, limit)
+                    .where(DUMMY_COLUMN.eq(0).and(LATEST_TIMESTAMP.eq(latestTimestamp)))
+                    .execute();
+                if (rowsUpdated != 1) {
+                    long actualLatestTimestamp = getLatestTimestamp(ctx);
                     throw new MultipleRunningTimestampServiceError("Timestamp limit changed underneath " +
                             "us (limit in memory: " + latestTimestamp + ", limit in db: " + actualLatestTimestamp +
                             "). This may indicate that another timestamp service is running against this db!");
                 }
                 latestTimestamp = limit;
-                ctx.update(TABLE)
-                    .set(LATEST_TIMESTAMP, limit)
-                    .where(DUMMY_COLUMN.eq(0))
-                    .execute();
                 return null;
             }
         });
+    }
+
+    private long getLatestTimestamp(DSLContext ctx) {
+        return ctx.select(LATEST_TIMESTAMP)
+                .from(TABLE)
+                .where(DUMMY_COLUMN.eq(0))
+                .fetchOne(LATEST_TIMESTAMP);
     }
 }
