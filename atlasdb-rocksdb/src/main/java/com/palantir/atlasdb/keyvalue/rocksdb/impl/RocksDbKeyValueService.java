@@ -239,7 +239,7 @@ public class RocksDbKeyValueService implements KeyValueService {
     public void close() {
         if (!closed) {
             closed = true;
-            getDb().close();
+            db.close();
             lockedDir.unlock();
         }
     }
