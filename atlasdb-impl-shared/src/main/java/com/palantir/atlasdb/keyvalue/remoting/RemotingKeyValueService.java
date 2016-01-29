@@ -158,6 +158,21 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
                                                                                long timestamp) {
                 return withKvs(super.getRangeOfTimestamps(tableName, rangeRequest, timestamp));
             }
+
+            @Override
+            public void initializeFromFreshInstance() {
+                // We don't need to make remote calls for this.
+            }
+
+            @Override
+            public void close() {
+                // We don't need to make remote calls for this.
+            }
+
+            @Override
+            public void teardown() {
+                // We don't need to make remote calls for this.
+            }
         };
     }
 
@@ -264,6 +279,11 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
                     return new TimestampsRangeIterator(tableName, rangeRequest, timestamp, input.lhSide, input.rhSide);
                 }
             });
+    }
+
+    @Override
+    public void initializeFromFreshInstance() {
+        // no-op.  Remote users should not be able to init our KV store.
     }
 
     @Override
