@@ -83,19 +83,19 @@ public class PaxosBoundStore implements TimestampBoundStore {
 
     static private long determineValueForSeq(PaxosProposer proposer, long seq) throws PaxosRoundFailureException {
         try {
-            return PtBytes.toLong(proposer.propose(seq, PtBytes.toBytes(-1L)));
+            return PtBytes.toLong(proposer.propose(seq, PtBytes.toBytes(-1L)).getData());
         } catch (PaxosRoundFailureException e) {
-            // We catch the first one so our proposer can catch up to the right proposal id.
+            // We catch the first one so our proposer can catch up to the current proposal id.
         }
-        return PtBytes.toLong(proposer.propose(seq, PtBytes.toBytes(-1L)));
+        return PtBytes.toLong(proposer.propose(seq, PtBytes.toBytes(-1L)).getData());
     }
 
     static TimestampBoundStore createStoreWithStartingPoint(PaxosProposer proposer, PaxosLearner learner, long seqToTake, long valueToStore) throws PaxosRoundFailureException {
-        long agreedValue = PtBytes.toLong(proposer.propose(seqToTake, PtBytes.toBytes(valueToStore)));
+        PaxosValue learnedValue =  proposer.propose(seqToTake, PtBytes.toBytes(valueToStore));
+        long agreedValue = PtBytes.toLong(learnedValue.getData());
         if (agreedValue != valueToStore) {
             throw new NotCurrentLeaderException("not leading");
         }
-        PaxosValue learnedValue = learner.getLearnedValue(seqToTake);
         if (!learnedValue.getLeaderUUID().equals(proposer.getUUID())) {
             throw new NotCurrentLeaderException("not leading");
         }
@@ -147,11 +147,11 @@ public class PaxosBoundStore implements TimestampBoundStore {
     @Override
     public synchronized void storeUpperLimit(long limit) throws MultipleRunningTimestampServiceException {
         try {
-            long agreed = PtBytes.toLong(proposer.propose(currentOwnedSeq + 1, PtBytes.toBytes(limit)));
+            PaxosValue learned = proposer.propose(currentOwnedSeq + 1, PtBytes.toBytes(limit));
+            long agreed = PtBytes.toLong(learned.getData());
             if (agreed != limit) {
                 throw new MultipleRunningTimestampServiceException("Another server has changed the value out from under us.");
             }
-            PaxosValue learned = localLearner.getLearnedValue(currentOwnedSeq + 1);
             if (!learned.getLeaderUUID().equals(proposer.getUUID())) {
                 throw new MultipleRunningTimestampServiceException("Another server has changed the value out from under us.");
             }

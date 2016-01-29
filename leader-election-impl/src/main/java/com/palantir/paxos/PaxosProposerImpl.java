@@ -82,7 +82,10 @@ public class PaxosProposerImpl implements PaxosProposer {
     }
 
     @Override
-    public byte[] propose(final long seq, @Nullable byte[] bytes) throws PaxosRoundFailureException {
+    public PaxosValue propose(final long seq, @Nullable byte[] bytes) throws PaxosRoundFailureException {
+        if (localLearner.getLearnedValue(seq) != null) {
+            return localLearner.getLearnedValue(seq);
+        }
         final PaxosProposalId proposalID = new PaxosProposalId(proposalNum.incrementAndGet(), uuid);
         PaxosValue toPropose = new PaxosValue(uuid, seq, bytes);
 
@@ -114,7 +117,7 @@ public class PaxosProposerImpl implements PaxosProposer {
         // force local learner to update
         localLearner.learn(seq, finalValue);
 
-        return finalValue.getData();
+        return finalValue;
     }
 
     /**

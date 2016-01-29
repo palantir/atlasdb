@@ -58,8 +58,7 @@ public class PaxosTransactionService implements TransactionService {
     @Override
     public void putUnlessExists(long startTimestamp, long commitTimestamp) throws KeyAlreadyExistsException {
         try {
-            byte[] finalValue = proposer.propose(startTimestamp, PtBytes.toBytes(commitTimestamp));
-            long finalCommitTs = PtBytes.toLong(finalValue);
+            long finalCommitTs = getFinalCommitTs(startTimestamp, commitTimestamp);
             try {
                 // Make sure we do this put before we return because we want #get to succeed.
                 kvStore.putAll(ImmutableMap.of(startTimestamp, finalCommitTs));
@@ -73,6 +72,19 @@ public class PaxosTransactionService implements TransactionService {
         } catch (PaxosRoundFailureException e) {
             throw new ServiceNotAvailableException("Could not store trascaction");
         }
+    }
+
+    private long getFinalCommitTs(long startTimestamp, long commitTimestamp) throws PaxosRoundFailureException {
+        try {
+            proposer.propose(startTimestamp, PtBytes.toBytes(commitTimestamp)).getData();
+        } catch (PaxosRoundFailureException e) {
+            // Allow first proposal to fail to ensure our proposal id is caught up.
+        }
+        // If the previous propose was successful, this will be fast because we will have already
+        // learned the value.
+        byte[] finalValue = proposer.propose(startTimestamp, PtBytes.toBytes(commitTimestamp)).getData();
+        long finalCommitTs = PtBytes.toLong(finalValue);
+        return finalCommitTs;
     }
 
 }
