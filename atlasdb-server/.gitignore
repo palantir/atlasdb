@@ -4,3 +4,5 @@
 /rocksdb/
 /.pt_kv_lock_rocksdb
 /var
+/.pt_kv_lock_acceptor-log
+/.pt_kv_lock_learner-log

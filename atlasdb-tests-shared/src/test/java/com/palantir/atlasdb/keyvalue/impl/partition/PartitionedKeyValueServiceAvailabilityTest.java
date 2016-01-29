@@ -59,4 +59,11 @@ public class PartitionedKeyValueServiceAvailabilityTest extends AbstractAtlasDbK
         // ignore
     }
 
+    @Ignore
+    @Override
+    public void testKeyAlreadyExists() {
+        // putUnlessExists is explicitly disabled for partitions
+    }
+
+
 }
