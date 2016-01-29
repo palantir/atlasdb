@@ -738,7 +738,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
             @Override
             public Set<String> apply(@Nullable DynamicPartitionMap input) {
                 return tryEachUntilSuccess(
-                        kvWithTablesUpToDate.iterator(),
+                        Sets.intersection(input.getDelegates(), kvWithTablesUpToDate).iterator(),
                         new Function<KeyValueService, Set<String>>() {
                             @Override
                             @Nullable
@@ -760,7 +760,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
             @Override
             public byte[] apply(@Nullable DynamicPartitionMap input) {
                 return tryEachUntilSuccess(
-                        input.getDelegates().iterator(),
+                        Sets.intersection(input.getDelegates(), kvWithTablesUpToDate).iterator(),
                         new Function<KeyValueService, byte[]>() {
                             @Override
                             public byte[] apply(@Nullable KeyValueService kvs) {
@@ -786,7 +786,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
             @Override
             public Map<String, byte[]> apply(@Nullable DynamicPartitionMap input) {
                 return tryEachUntilSuccess(
-                        input.getDelegates().iterator(),
+                        Sets.intersection(input.getDelegates(), kvWithTablesUpToDate).iterator(),
                         new Function<KeyValueService, Map<String, byte[]>>() {
                             @Override
                             public Map<String, byte[]> apply(KeyValueService kvs) {

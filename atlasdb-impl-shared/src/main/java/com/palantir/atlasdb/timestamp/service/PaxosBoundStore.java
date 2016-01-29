@@ -69,7 +69,7 @@ public class PaxosBoundStore implements TimestampBoundStore {
             long maxDiscussedSeq = Ordering.natural().max(Iterables.transform(responses.getResponses(), PaxosConstant.getValueFun()));
             long seqToCheck = maxDiscussedSeq;
             while (seqToCheck >= 0) {
-                long seqValue = PtBytes.toLong(proposer.propose(seqToCheck, PtBytes.toBytes(-1)));
+                long seqValue = determineValueForSeq(proposer, seqToCheck);
                 if (seqValue >= 0) {
                     return createStoreWithStartingPoint(proposer, localLearner, maxDiscussedSeq + 1, seqValue);
                 }
@@ -79,6 +79,15 @@ public class PaxosBoundStore implements TimestampBoundStore {
         } catch (PaxosRoundFailureException e) {
             throw new ServiceNotAvailableException("failed to get a quorum", e);
         }
+    }
+
+    static private long determineValueForSeq(PaxosProposer proposer, long seq) throws PaxosRoundFailureException {
+        try {
+            return PtBytes.toLong(proposer.propose(seq, PtBytes.toBytes(-1L)));
+        } catch (PaxosRoundFailureException e) {
+            // We catch the first one so our proposer can catch up to the right proposal id.
+        }
+        return PtBytes.toLong(proposer.propose(seq, PtBytes.toBytes(-1L)));
     }
 
     static TimestampBoundStore createStoreWithStartingPoint(PaxosProposer proposer, PaxosLearner learner, long seqToTake, long valueToStore) throws PaxosRoundFailureException {

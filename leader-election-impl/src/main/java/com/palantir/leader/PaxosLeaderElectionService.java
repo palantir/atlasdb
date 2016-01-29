@@ -171,7 +171,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         } catch (InterruptedException e) {
             return false;
         } catch (ExecutionException e) {
-            log.warn("cannot ping leader", e);
+            log.info("cannot ping current leader.", e);
             return false;
         }
     }
@@ -247,11 +247,11 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                         return Optional.of(cacheEntry.getValue());
                     }
                 } catch (InterruptedException e) {
-                    log.warn("uuid request interrupted", e);
+                    log.info("uuid request interrupted", e);
                     interrupted = true;
                     break;
                 } catch (ExecutionException e) {
-                    log.warn("unable to get uuid from server", e);
+                    log.info("unable to get uuid from server", e);
                 }
             }
 
