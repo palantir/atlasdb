@@ -39,6 +39,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.common.collect.Maps2;
 
@@ -106,11 +107,14 @@ public class CassandraVerifier {
 
     static Set<String> sanityCheckDatacenters(Cassandra.Client client, int desiredRf, boolean safetyDisabled) throws InvalidRequestException, TException {
         ensureTestKeyspaceExists(client);
+        Set<String> hosts = Sets.newHashSet();
+
         Multimap<String, String> dataCenterToRack = HashMultimap.create();
         List<TokenRange> ring = client.describe_ring(CassandraConstants.SIMPLE_RF_TEST_KEYSPACE);
         for (TokenRange tokenRange : ring) {
             for (EndpointDetails details : tokenRange.getEndpoint_details()) {
                 dataCenterToRack.put(details.datacenter, details.rack);
+                hosts.add(details.host);
             }
         }
 
@@ -122,6 +126,12 @@ public class CassandraVerifier {
                 logErrorOrThrow("The cassandra cluster is not set up to be datacenter and rack aware.  " +
                         "Please set this up before running with a replication factor higher than 1.", safetyDisabled);
 
+            }
+            if (dataCenterToRack.values().size() < desiredRf && hosts.size() > desiredRf) {
+                logErrorOrThrow("The cassandra cluster only has one DC, " +
+                        "and is set up with less racks than the desired number of replicas, " +
+                        "and there are more hosts than the replication factor. " +
+                        "It is very likely that your rack configuration is incorrect and replicas would not be placed correctly for the failure tolerance you want.", safetyDisabled);
             }
         }
 
@@ -177,7 +187,7 @@ public class CassandraVerifier {
         final Set<String> dcs;
         if (CassandraConstants.SIMPLE_STRATEGY.equals(ks.getStrategy_class())) {
             int currentRF = Integer.parseInt(ks.getStrategy_options().get(CassandraConstants.REPLICATION_FACTOR_OPTION));
-           String errorMessage = "This cassandra cluster is running using the simple partitioning stragegy.  " +
+            String errorMessage = "This cassandra cluster is running using the simple partitioning strategy.  " +
                     "This partitioner is not rack aware and is not intended for use on prod.  " +
                     "This will have to be fixed by manually configuring to the network partitioner " +
                     "and running the appropriate repairs.  " +
