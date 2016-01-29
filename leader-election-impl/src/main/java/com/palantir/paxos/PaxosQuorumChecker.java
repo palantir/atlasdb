@@ -30,6 +30,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.palantir.util.Pair;
 
@@ -42,6 +44,59 @@ public final class PaxosQuorumChecker {
         // Private constructor. Disallow instantiation.
     }
 
+    public static class PaxosQuorumResponse<T extends PaxosResponse> {
+        final List<T> responses;
+        final int numRequests;
+        final int quorumSize;
+        final boolean timedOut;
+        final List<Throwable> failures;
+
+        public PaxosQuorumResponse(List<T> responses,
+                                   int numRequests,
+                                   int quorumSize,
+                                   boolean timedOut,
+                                   List<Throwable> failures) {
+            this.responses = ImmutableList.copyOf(responses);
+            this.numRequests = numRequests;
+            this.quorumSize = quorumSize;
+            this.timedOut = timedOut;
+            this.failures = ImmutableList.copyOf(failures);
+        }
+
+        public List<T> getResponses() {
+            return responses;
+        }
+
+        public List<Throwable> getFailures() {
+            return failures;
+        }
+
+        /**
+         * @return true if we stopped waiting for quorum because we reached our time limit
+         */
+        public boolean hasTimedOut() {
+            return timedOut;
+        }
+
+        public boolean hasQuorum() {
+            return PaxosQuorumChecker.hasQuorum(responses, quorumSize);
+        }
+
+        public PaxosRoundFailureException createException(String msg) {
+            if (timedOut) {
+                msg = msg + " and some acceptors timed out.";
+            }
+            return new PaxosRoundFailureException(msg, Iterables.getFirst(failures, null));
+        }
+
+        @Override
+        public String toString() {
+            return "PaxosQuorumResponse [responses=" + responses + ", quorumSize=" + quorumSize
+                    + ", timedOut=" + timedOut + ", failures=" + failures + "]";
+        }
+
+    }
+
     /**
      * Collects a list of responses from a quorum of remote services.
      *
@@ -51,20 +106,11 @@ public final class PaxosQuorumChecker {
      * @param executor runs the requests
      * @return a list responses
      */
-    public static <SERVICE, RESPONSE extends PaxosResponse> List<RESPONSE> collectQuorumResponses(List<SERVICE> remotes,
+    public static <SERVICE, RESPONSE extends PaxosResponse> PaxosQuorumResponse<RESPONSE> collectQuorumResponses(List<SERVICE> remotes,
                                                                                                   final Function<SERVICE, RESPONSE> request,
                                                                                                   int quorumSize,
                                                                                                   Executor executor,
                                                                                                   long remoteRequestTimeoutInSec) {
-        return collectQuorumResponses(remotes, request, quorumSize, executor, remoteRequestTimeoutInSec, false);
-    }
-
-    public static <SERVICE, RESPONSE extends PaxosResponse> List<RESPONSE> collectQuorumResponses(List<SERVICE> remotes,
-                                                                                                  final Function<SERVICE, RESPONSE> request,
-                                                                                                  int quorumSize,
-                                                                                                  Executor executor,
-                                                                                                  long remoteRequestTimeoutInSec,
-                                                                                                  boolean onlyLogOnQuorumFailure) {
         CompletionService<RESPONSE> responseCompletionService = new ExecutorCompletionService<RESPONSE>(executor);
 
         // kick off all the requests
@@ -97,9 +143,9 @@ public final class PaxosQuorumChecker {
                     Future<RESPONSE> responseFuture = responseCompletionService.poll(
                             deadline - System.nanoTime(),
                             TimeUnit.NANOSECONDS);
-                    // check if out of responses (no quorum failure)
+                    // We are done waiting
                     if (responseFuture == null) {
-                        return receivedResponses;
+                        return new PaxosQuorumResponse<>(receivedResponses, remotes.size(), quorumSize, true, Lists.transform(toLog, Pair.<String, Throwable>getRightFunc()));
                     }
 
                     // reject invalid or repeat promises
@@ -119,11 +165,7 @@ public final class PaxosQuorumChecker {
                 } catch (ExecutionException e) {
                     nacksRecieved++;
                     String msg = "error requesting paxos message";
-                    if (onlyLogOnQuorumFailure) {
-                        toLog.add(Pair.create(msg, e.getCause()));
-                    } else {
-                        log.warn(msg, e.getCause());
-                    }
+                    toLog.add(Pair.create(msg, e.getCause()));
                 }
             }
 
@@ -137,7 +179,8 @@ public final class PaxosQuorumChecker {
                     interrupted = true;
                     break;
                 } catch (ExecutionException e) {
-                    log.warn("error requesting paxos message", e.getCause());
+                    String msg = "error requesting paxos message";
+                    toLog.add(Pair.create(msg, e.getCause()));
                 }
             }
 
@@ -151,15 +194,9 @@ public final class PaxosQuorumChecker {
             if (interrupted) {
                 Thread.currentThread().interrupt();
             }
-
-            if (onlyLogOnQuorumFailure && acksRecieved < quorumSize) {
-                for (Pair<String, Throwable> p : toLog) {
-                    log.warn(p.lhSide, p.rhSide);
-                }
-            }
         }
 
-        return receivedResponses;
+        return new PaxosQuorumResponse<>(receivedResponses, remotes.size(), quorumSize, false, Lists.transform(toLog, Pair.<String, Throwable>getRightFunc()));
     }
 
     public static boolean hasQuorum(List<? extends PaxosResponse> responses, int quorumSize) {

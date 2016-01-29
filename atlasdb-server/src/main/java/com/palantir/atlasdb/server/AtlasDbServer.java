@@ -17,6 +17,9 @@ package com.palantir.atlasdb.server;
 
 import javax.net.ssl.SSLSocketFactory;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
@@ -32,9 +35,15 @@ import io.dropwizard.Application;
 import io.dropwizard.setup.Environment;
 
 public class AtlasDbServer extends Application<AtlasDbServerConfiguration> {
+    private static final Logger log = LoggerFactory.getLogger(AtlasDbServer.class);
 
     public static void main(String[] args) throws Exception {
-        new AtlasDbServer().run(args);
+        try {
+            new AtlasDbServer().run(args);
+        } catch (Throwable t) {
+            log.error("failed to start server", t);
+            System.exit(1);
+        }
     }
 
     @Override

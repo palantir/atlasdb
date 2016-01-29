@@ -30,6 +30,7 @@ import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosQuorumChecker;
+import com.palantir.paxos.PaxosQuorumChecker.PaxosQuorumResponse;
 import com.palantir.paxos.PaxosResponse;
 import com.palantir.paxos.PaxosRoundFailureException;
 import com.palantir.paxos.PaxosValue;
@@ -48,7 +49,7 @@ public class PaxosBoundStore implements TimestampBoundStore {
                                              List<PaxosAcceptor> acceptors,
                                              PaxosLearner localLearner,
                                              Executor executor) {
-        List<PaxosConstant> responses = PaxosQuorumChecker.<PaxosAcceptor, PaxosConstant> collectQuorumResponses(
+        PaxosQuorumResponse<PaxosConstant> responses = PaxosQuorumChecker.<PaxosAcceptor, PaxosConstant> collectQuorumResponses(
                 acceptors,
                 new Function<PaxosAcceptor, PaxosConstant>() {
                     @Override
@@ -60,13 +61,12 @@ public class PaxosBoundStore implements TimestampBoundStore {
                 },
                 proposer.getQuorumSize(),
                 executor,
-                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT_IN_SECONDS,
-                true);
-        if (!PaxosQuorumChecker.hasQuorum(responses, proposer.getQuorumSize())) {
+                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT_IN_SECONDS);
+        if (!responses.hasQuorum()) {
             throw new ServiceNotAvailableException("failed to get a quorum");
         }
         try {
-            long maxDiscussedSeq = Ordering.natural().max(Iterables.transform(responses, PaxosConstant.getValueFun()));
+            long maxDiscussedSeq = Ordering.natural().max(Iterables.transform(responses.getResponses(), PaxosConstant.getValueFun()));
             long seqToCheck = maxDiscussedSeq;
             while (seqToCheck >= 0) {
                 long seqValue = PtBytes.toLong(proposer.propose(seqToCheck, PtBytes.toBytes(-1)));

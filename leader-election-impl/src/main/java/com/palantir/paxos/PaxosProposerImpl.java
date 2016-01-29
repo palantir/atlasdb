@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.palantir.paxos.PaxosQuorumChecker.PaxosQuorumResponse;
 
 /**
  * Implementation of a paxos proposer than can be a designated proposer (leader) and designated
@@ -129,7 +130,7 @@ public class PaxosProposerImpl implements PaxosProposer {
      */
     private PaxosValue phaseOne(final long seq, final PaxosProposalId pid, PaxosValue value)
             throws PaxosRoundFailureException {
-        List<PaxosPromise> receivedPromises = PaxosQuorumChecker.<PaxosAcceptor, PaxosPromise> collectQuorumResponses(
+        PaxosQuorumResponse<PaxosPromise> receivedPromises = PaxosQuorumChecker.<PaxosAcceptor, PaxosPromise> collectQuorumResponses(
                 allAcceptors,
                 new Function<PaxosAcceptor, PaxosPromise>() {
                     @Override
@@ -142,9 +143,9 @@ public class PaxosProposerImpl implements PaxosProposer {
                 executor,
                 PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT_IN_SECONDS);
 
-        if (!PaxosQuorumChecker.hasQuorum(receivedPromises, quorumSize)) {
+        if (!receivedPromises.hasQuorum()) {
             // update proposal number on failure
-            for (PaxosPromise promise : receivedPromises) {
+            for (PaxosPromise promise : receivedPromises.getResponses()) {
                 while (true) {
                     long curNum = proposalNum.get();
                     if (promise.promisedId.number <= curNum) {
@@ -155,10 +156,10 @@ public class PaxosProposerImpl implements PaxosProposer {
                     }
                 }
             }
-            throw new PaxosRoundFailureException("failed to acquire quorum in paxos phase one");
+            throw receivedPromises.createException("failed to acquire quorum in paxos phase one");
         }
 
-        PaxosPromise greatestPromise = Collections.max(receivedPromises);
+        PaxosPromise greatestPromise = Collections.max(receivedPromises.getResponses());
         if (greatestPromise.lastAcceptedValue != null) {
             return greatestPromise.lastAcceptedValue;
         }
@@ -178,7 +179,7 @@ public class PaxosProposerImpl implements PaxosProposer {
     private void phaseTwo(final long seq, PaxosProposalId pid, PaxosValue val)
             throws PaxosRoundFailureException {
         final PaxosProposal proposal = new PaxosProposal(pid, val);
-        List<PaxosResponse> responses = PaxosQuorumChecker.<PaxosAcceptor, PaxosResponse> collectQuorumResponses(
+        PaxosQuorumResponse<PaxosResponse> responses = PaxosQuorumChecker.<PaxosAcceptor, PaxosResponse> collectQuorumResponses(
                 allAcceptors,
                 new Function<PaxosAcceptor, PaxosResponse>() {
                     @Override
@@ -190,8 +191,8 @@ public class PaxosProposerImpl implements PaxosProposer {
                 quorumSize,
                 executor,
                 PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT_IN_SECONDS);
-        if (!PaxosQuorumChecker.hasQuorum(responses, quorumSize)) {
-            throw new PaxosRoundFailureException("failed to acquire quorum in paxos phase two");
+        if (!responses.hasQuorum()) {
+            throw responses.createException("failed to acquire quorum in paxos phase two");
         }
     }
 

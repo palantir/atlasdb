@@ -99,7 +99,6 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
     private final ExecutorService executor;
 
     private final ConcurrentMap<String, byte[]> currentCreatedTables = Maps.newConcurrentMap();
-
     private final Set<KeyValueService> kvWithTablesUpToDate = Sets.newConcurrentHashSet();
 
     // *** Read requests *************************************************************************
@@ -694,15 +693,6 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
         return (DynamicPartitionMap) Proxy.newProxyInstance(DynamicPartitionMap.class.getClassLoader(), new Class<?>[] {DynamicPartitionMap.class}, new PopulateMissingTables(map));
     }
 
-    private static Method getDynamicMapMethod(String name, Class<?>... types) {
-        try {
-            return Object.class.getMethod(name, types);
-        } catch (NoSuchMethodException e) {
-            throw new IllegalArgumentException(e);
-        }
-    }
-
-    private static final Method DELEGATES_METHOD = getDynamicMapMethod("getDelegates");
     class PopulateMissingTables extends AbstractDelegatingInvocationHandler {
         final DynamicPartitionMap map;
 
@@ -717,16 +707,17 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-            if (DELEGATES_METHOD.equals(method)) {
+            int allowedFailures = quorumParameters.getReplicationFactor() - quorumParameters.getWriteFactor();
+            if (map.getDelegates().size() > kvWithTablesUpToDate.size() + allowedFailures) {
                 for (KeyValueService keyValueService : map.getDelegates()) {
-                    updateKeyValueIfTablesOutOfDate(keyValueService);
+                    updateTablesIfOutOfDate(keyValueService);
                 }
             }
             return super.invoke(proxy, method, args);
         }
     }
 
-    private void updateKeyValueIfTablesOutOfDate(KeyValueService kvs) {
+    private void updateTablesIfOutOfDate(KeyValueService kvs) {
         try {
             if (!kvWithTablesUpToDate.contains(kvs)) {
                 kvs.createTables(currentCreatedTables);

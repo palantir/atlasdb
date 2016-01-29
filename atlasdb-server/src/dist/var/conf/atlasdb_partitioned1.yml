@@ -50,3 +50,17 @@ atlasdb:
     additionalPaxosEndpointsToLogDir:
       timestamp: var/data/extraPaxos1/timestamp
       transaction: var/data/extraPaxos1/transaction
+
+logging:
+  level: INFO
+  loggers:
+    com.palantir: WARN
+    leadership: WARN
+  appenders:
+    - type: console
+    - type: file
+      logFormat: "%-6level [%d{HH:mm:ss.SSS}] [%t] %logger{5} - %X{code} %msg %n"
+      currentLogFilename: var/log/partitioned1.log
+      archivedLogFilenamePattern: var/log/partitioned1-%d{yyyy-MM-dd}-%i.log.gz
+      archivedFileCount: 7
+      timeZone: UTC
