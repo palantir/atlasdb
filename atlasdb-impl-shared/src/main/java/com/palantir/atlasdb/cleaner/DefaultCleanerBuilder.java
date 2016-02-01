@@ -78,6 +78,11 @@ public class DefaultCleanerBuilder {
         return this;
     }
 
+    public DefaultCleanerBuilder setBackgroundScrubReadThreads(int backgroundScrubReadThreads) {
+        this.backgroundScrubReadThreads = backgroundScrubReadThreads;
+        return this;
+    }
+
     public DefaultCleanerBuilder setBackgroundScrubFrequencyMillis(long backgroundScrubFrequencyMillis) {
         this.backgroundScrubFrequencyMillis = backgroundScrubFrequencyMillis;
         return this;
