@@ -1,5 +1,0 @@
-These are the markdown text files displayed by the "help" command from
-inside AtlasDB Shell. If you add one, you have to update _toc. Use
-valid Markdown in all files and test any updates with the GUI client
-help window; the bare "help" command itself does not process the
-markdown, so it won't catch any problems with it.
