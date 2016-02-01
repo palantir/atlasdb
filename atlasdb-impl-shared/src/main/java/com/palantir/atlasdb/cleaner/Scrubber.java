@@ -27,6 +27,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.concurrent.GuardedBy;
 
@@ -42,19 +43,27 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
+import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
+import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.table.description.UniformRowNamePartitioner;
+import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.Transaction.TransactionType;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.common.base.AbortingVisitor;
+import com.palantir.common.base.BatchingVisitable;
+import com.palantir.common.base.BatchingVisitableView;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.Maps2;
 import com.palantir.common.concurrent.ExecutorInheritableThreadLocal;
@@ -81,6 +90,7 @@ public final class Scrubber {
     private final KeyValueService keyValueService;
     private final ScrubberStore scrubberStore;
     private final Supplier<Long> backgroundScrubFrequencyMillisSupplier;
+    private final Supplier<Boolean> isScrubEnabled;
 
     private final Supplier<Long> immutableTimestampSupplier;
     private final Supplier<Long> unreadableTimestampSupplier;
@@ -89,6 +99,8 @@ public final class Scrubber {
     private final boolean aggressiveScrub;
     private final Supplier<Integer> batchSizeSupplier;
     private final int threadCount;
+    private final int readThreadCount;
+    private final ExecutorService readerExec;
     private final ExecutorService exec;
 
     private static final String SCRUBBER_THREAD_PREFIX = "AtlasScrubber";
@@ -105,23 +117,27 @@ public final class Scrubber {
     public static Scrubber create(KeyValueService keyValueService,
                                   ScrubberStore scrubberStore,
                                   Supplier<Long> backgroundScrubFrequencyMillisSupplier,
+                                  Supplier<Boolean> isScrubEnabled,
                                   Supplier<Long> unreadableTimestampSupplier,
                                   Supplier<Long> immutableTimestampSupplier,
                                   TransactionService transactionService,
                                   boolean aggressiveScrub,
                                   Supplier<Integer> batchSizeSupplier,
                                   int threadCount,
+                                  int readThreadCount,
                                   Collection<Follower> followers) {
         Scrubber scrubber = new Scrubber(
                 keyValueService,
                 scrubberStore,
                 backgroundScrubFrequencyMillisSupplier,
+                isScrubEnabled,
                 unreadableTimestampSupplier,
                 immutableTimestampSupplier,
                 transactionService,
                 aggressiveScrub,
                 batchSizeSupplier,
                 threadCount,
+                readThreadCount,
                 followers);
         return scrubber;
     }
@@ -129,24 +145,29 @@ public final class Scrubber {
     private Scrubber(KeyValueService keyValueService,
                      ScrubberStore scrubberStore,
                      Supplier<Long> backgroundScrubFrequencyMillisSupplier,
+                     Supplier<Boolean> isScrubEnabled,
                      Supplier<Long> unreadableTimestampSupplier,
                      Supplier<Long> immutableTimestampSupplier,
                      TransactionService transactionService,
                      final boolean aggressiveScrub,
                      Supplier<Integer> batchSizeSupplier,
                      int threadCount,
+                     int readThreadCount,
                      Collection<Follower> followers) {
         this.keyValueService = keyValueService;
         this.scrubberStore = scrubberStore;
         this.backgroundScrubFrequencyMillisSupplier = backgroundScrubFrequencyMillisSupplier;
+        this.isScrubEnabled = isScrubEnabled;
         this.immutableTimestampSupplier = immutableTimestampSupplier;
         this.unreadableTimestampSupplier = unreadableTimestampSupplier;
         this.transactionService = transactionService;
         this.aggressiveScrub = aggressiveScrub;
         this.batchSizeSupplier = batchSizeSupplier;
         this.threadCount = threadCount;
+        this.readThreadCount = readThreadCount;
         this.followers = followers;
         NamedThreadFactory threadFactory = new NamedThreadFactory(SCRUBBER_THREAD_PREFIX, true);
+        this.readerExec = PTExecutors.newFixedThreadPool(readThreadCount, threadFactory);
         this.exec = PTExecutors.newFixedThreadPool(threadCount, threadFactory);
     }
 
@@ -166,33 +187,7 @@ public final class Scrubber {
                 int numberOfAttempts = 0;
                 while (numberOfAttempts < MAX_RETRY_ATTEMPTS) {
                     try {
-                        log.info("Starting scrub task");
-                        while (true) {
-                            // Warning: Let T be the hard delete transaction that triggered a scrub, and let S be its
-                            // start timestamp.  If the locks for T happen to time out right after T checks that its
-                            // locks are held but right before T writes its commit timestamp (extremely rare case), AND
-                            // the unreadable timestamp is greater than S, then the scrub task could actually roll back
-                            // the hard delete transaction (forcing it to abort or retry).  Note that this doesn't affect
-                            // correctness, but could be an annoying edge cause that causes hard delete to take longer
-                            // than it otherwise would have.
-                            Long immutableTimestamp = immutableTimestampSupplier.get();
-                            Long unreadableTimestamp = unreadableTimestampSupplier.get();
-                            final long maxScrubTimestamp = aggressiveScrub ? immutableTimestamp :
-                                    Math.min(unreadableTimestamp, immutableTimestamp);
-                            if (log.isInfoEnabled()) {
-                                log.info("Scrub task immutableTimestamp: " + immutableTimestamp
-                                        + ", unreadableTimestamp: " + unreadableTimestamp
-                                        + ", min: " + maxScrubTimestamp);
-                            }
-                            int numCellsReadFromScrubTable = scrubSomeCells(txManager, threadCount * batchSizeSupplier.get(), maxScrubTimestamp);
-                            if (numCellsReadFromScrubTable == 0) {
-                                break;
-                            }
-                            if (log.isInfoEnabled()) {
-                                log.info("Scrub task scrubbed " + numCellsReadFromScrubTable + " cells");
-                            }
-                        }
-                        log.info("Finished scrub task");
+                        runBackgroundScrubTask(txManager);
 
                         long sleepDuration = backgroundScrubFrequencyMillisSupplier.get();
                         log.info(String.format("Sleeping %d millis until next execution of scrub task", sleepDuration));
@@ -219,6 +214,79 @@ public final class Scrubber {
         };
         service.schedule(scrubTask, 0, TimeUnit.MILLISECONDS);
         scrubTaskLaunched = true;
+    }
+
+    private void runBackgroundScrubTask(final TransactionManager txManager) {
+        log.info("Starting scrub task");
+
+        // Warning: Let T be the hard delete transaction that triggered a scrub, and let S be its
+        // start timestamp.  If the locks for T happen to time out right after T checks that its
+        // locks are held but right before T writes its commit timestamp (extremely rare case), AND
+        // the unreadable timestamp is greater than S, then the scrub task could actually roll back
+        // the hard delete transaction (forcing it to abort or retry).  Note that this doesn't affect
+        // correctness, but could be an annoying edge cause that causes hard delete to take longer
+        // than it otherwise would have.
+        Long immutableTimestamp = immutableTimestampSupplier.get();
+        Long unreadableTimestamp = unreadableTimestampSupplier.get();
+        final long maxScrubTimestamp = aggressiveScrub ? immutableTimestamp :
+                Math.min(unreadableTimestamp, immutableTimestamp);
+        if (log.isInfoEnabled()) {
+            log.info("Scrub task immutableTimestamp: " + immutableTimestamp
+                    + ", unreadableTimestamp: " + unreadableTimestamp
+                    + ", min: " + maxScrubTimestamp);
+        }
+        final int batchSize = ((int) Math.ceil(batchSizeSupplier.get() * ((double) threadCount / readThreadCount)));
+
+        List<byte[]> rangeBoundaries = Lists.newArrayList();
+        rangeBoundaries.add(PtBytes.EMPTY_BYTE_ARRAY);
+        if (readThreadCount > 1) {
+            // This will actually partition into the closest higher power of 2 number of ranges.
+            rangeBoundaries.addAll(Ordering.from(UnsignedBytes.lexicographicalComparator())
+                    .sortedCopy(new UniformRowNamePartitioner(ValueType.BLOB).getPartitions(readThreadCount - 1)));
+        }
+        rangeBoundaries.add(PtBytes.EMPTY_BYTE_ARRAY);
+
+        List<Future<Void>> readerFutures = Lists.newArrayList();
+        final AtomicInteger totalCellsRead = new AtomicInteger(0);
+        for (int i = 0; i < rangeBoundaries.size() - 1; i++) {
+            final byte[] startRow = rangeBoundaries.get(i);
+            final byte[] endRow = rangeBoundaries.get(i + 1);
+            readerFutures.add(readerExec.submit(new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    BatchingVisitable<SortedMap<Long, Multimap<String, Cell>>> scrubQueue =
+                            scrubberStore.getBatchingVisitableScrubQueue(batchSize, maxScrubTimestamp, startRow, endRow);
+                    // Take one at a time since we already batched them together in KeyValueServiceScrubberStore.
+                    BatchingVisitableView.of(scrubQueue).batchAccept(1, new AbortingVisitor<List<SortedMap<Long, Multimap<String, Cell>>>, RuntimeException>() {
+                        @Override
+                        public boolean visit(List<SortedMap<Long, Multimap<String, Cell>>> batch) {
+                            for (SortedMap<Long, Multimap<String, Cell>> cells : batch) {
+                                // We may actually get more cells than the batch size. The batch size is used for pulling off the scrub queue,
+                                // and a single entry in the scrub queue may match multiple tables.
+                                // These will get broken down into smaller batches later on when we actually do deletes.
+                                int numCellsRead = scrubSomeCells(cells, txManager, maxScrubTimestamp);
+                                int totalRead = totalCellsRead.addAndGet(numCellsRead);
+                                if (log.isInfoEnabled()) {
+                                    log.info("Scrub task processed " + numCellsRead + " cells in a batch, total " + totalRead + " processed so far.");
+                                }
+                                if (!isScrubEnabled.get()) {
+                                    log.info("Stopping scrub for banned hours.");
+                                    break;
+                                }
+                            }
+                            return isScrubEnabled.get();
+                        }});
+                    return null;
+                }}));
+        }
+
+        for (Future<Void> readerFuture : readerFutures) {
+            Futures.getUnchecked(readerFuture);
+        }
+
+        log.info("Scrub background task running at timestamp " + maxScrubTimestamp + " processed a total of " + totalCellsRead.get() + " cells");
+
+        log.info("Finished scrub task");
     }
 
     /* package */ void scrubImmediately(final TransactionManager txManager,
@@ -311,11 +379,11 @@ public final class Scrubber {
     // Warning: scrubTimestamp MUST be the start timestamp of the hard delete transaction that triggers
     // the scrubbing; we need this start timestamp to check whether the hard delete transaction was
     // actually committed before we do any scrubbing
-    /* package */ void queueCellsForScrubbing(Multimap<String, Cell> tableNameToCell, long scrubTimestamp) {
-        if (tableNameToCell.isEmpty()) {
+    /* package */ void queueCellsForScrubbing(Multimap<Cell, String> cellToTableNames, long scrubTimestamp) {
+        if (cellToTableNames.isEmpty()) {
             return;
         }
-        scrubberStore.queueCellsForScrubbing(tableNameToCell, scrubTimestamp, batchSizeSupplier.get());
+        scrubberStore.queueCellsForScrubbing(cellToTableNames, scrubTimestamp, batchSizeSupplier.get());
     }
 
     private long getCommitTimestampRollBackIfNecessary(long startTimestamp,
@@ -350,9 +418,7 @@ public final class Scrubber {
     /**
      * @return number of cells read from _scrub table
      */
-    private int scrubSomeCells(final TransactionManager txManager, int maxCellsToScrub, long maxScrubTimestamp) {
-        SortedMap<Long, Multimap<String, Cell>> scrubTimestampToTableNameToCell =
-            scrubberStore.getCellsToScrub(maxCellsToScrub, maxScrubTimestamp);
+    private int scrubSomeCells(SortedMap<Long, Multimap<String, Cell>> scrubTimestampToTableNameToCell, final TransactionManager txManager, long maxScrubTimestamp) {
 
 
         // Don't call expensive toString() if trace logging is off
@@ -375,6 +441,7 @@ public final class Scrubber {
         Multimap<Long, Cell> toRemoveFromScrubQueue = HashMultimap.create();
 
         int numCellsReadFromScrubTable = 0;
+        List<Future<Void>> scrubFutures = Lists.newArrayList();
         for (Map.Entry<Long, Multimap<String, Cell>> entry : scrubTimestampToTableNameToCell.entrySet()) {
             final long scrubTimestamp = entry.getKey();
             final Multimap<String, Cell> tableNameToCell = entry.getValue();
@@ -390,7 +457,6 @@ public final class Scrubber {
                 // (we still remove it from the _scrub table with the call to markCellsAsScrubbed though),
                 // or else we could cause permanent data loss if the hard delete transaction failed after
                 // queuing cells to scrub but before successfully committing
-                List<Future<Void>> scrubFutures = Lists.newArrayList();
                 for (final List<Entry<String, Cell>> batch : Iterables.partition(tableNameToCell.entries(), batchSizeSupplier.get())) {
                     final Multimap<String, Cell> batchMultimap = HashMultimap.create();
                     for (Entry<String, Cell> e : batch) {
@@ -405,11 +471,12 @@ public final class Scrubber {
                             return null;
                         }}));
                 }
-                for (Future<Void> future : scrubFutures) {
-                    Futures.getUnchecked(future);
-                }
             }
             toRemoveFromScrubQueue.putAll(scrubTimestamp, tableNameToCell.values());
+        }
+
+        for (Future<Void> future : scrubFutures) {
+            Futures.getUnchecked(future);
         }
 
         Multimap<Cell, Long> cellToScrubTimestamp = HashMultimap.create();
@@ -480,6 +547,8 @@ public final class Scrubber {
     }
 
     public void shutdown() {
+        exec.shutdown();
+        readerExec.shutdown();
         service.shutdownNow();
         boolean shutdown = false;
         try {

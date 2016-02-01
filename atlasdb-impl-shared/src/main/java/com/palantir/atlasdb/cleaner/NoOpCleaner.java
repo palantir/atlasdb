@@ -23,7 +23,7 @@ final public class NoOpCleaner implements Cleaner {
     public static final NoOpCleaner INSTANCE = new NoOpCleaner();
 
     @Override
-    public void queueCellsForScrubbing(Multimap<String, Cell> tableNameToCell,
+    public void queueCellsForScrubbing(Multimap<Cell, String> cellToTableNames,
                                        long scrubTimestamp) {
         throw new UnsupportedOperationException("This cleaner does not support scrubbing");
     }
