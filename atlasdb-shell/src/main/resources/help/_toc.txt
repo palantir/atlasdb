@@ -1,9 +1,0 @@
-
-
-You can try the following help commands for more help:
- help :main
- help :connection
- help :transaction
- help :table
- help :row
- help :debugging
