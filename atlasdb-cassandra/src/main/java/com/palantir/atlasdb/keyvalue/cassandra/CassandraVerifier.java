@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
+
+import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -51,21 +53,21 @@ public class CassandraVerifier {
     // consistent ring across all of it's nodes.  One node will think it owns more than the others
     // think it does and they will not send writes to it, but it will respond to requests
     // acting like it does.
-    protected static void sanityCheckRingConsistency(Set<String> currentHosts, int port, String keyspace, boolean isSsl, boolean safetyDisabled, int socketTimeoutMillis, int socketQueryTimeoutMillis) {
-        Multimap<Set<TokenRange>, String> tokenRangesToHost = HashMultimap.create();
-        for (String host : currentHosts) {
+    protected static void sanityCheckRingConsistency(Set<InetSocketAddress> currentAddrs, String keyspace, boolean isSsl, boolean safetyDisabled, int socketTimeoutMillis, int socketQueryTimeoutMillis) {
+        Multimap<Set<TokenRange>, InetSocketAddress> tokenRangesToHost = HashMultimap.create();
+        for (InetSocketAddress addr : currentAddrs) {
             Cassandra.Client client = null;
             try {
-                client = CassandraClientFactory.getClientInternal(host, port, isSsl, socketTimeoutMillis, socketQueryTimeoutMillis);
+                client = CassandraClientFactory.getClientInternal(addr, isSsl, socketTimeoutMillis, socketQueryTimeoutMillis);
                 try {
                     client.describe_keyspace(keyspace);
                 } catch (NotFoundException e) {
-                    log.info("Tried to check ring consistency for node " + host + " before keyspace was fully setup; aborting check for now.", e);
+                    log.info("Tried to check ring consistency for node {} before keyspace was fully setup; aborting check for now.", addr, e);
                     return;
                 }
-                tokenRangesToHost.put(ImmutableSet.copyOf(client.describe_ring(keyspace)), host);
+                tokenRangesToHost.put(ImmutableSet.copyOf(client.describe_ring(keyspace)), addr);
             } catch (Exception e) {
-                log.warn("failed to get ring info from host: {}", host, e);
+                log.warn("failed to get ring info from host: {}", addr, e);
             } finally {
                 if (client != null) {
                     client.getOutputProtocol().getTransport().close();
@@ -74,7 +76,7 @@ public class CassandraVerifier {
         }
 
         if (tokenRangesToHost.isEmpty()) {
-            log.error("Failed to get ring info for entire Cassandra cluster (" + keyspace + "); ring could not be checked for consistency.");
+            log.error("Failed to get ring info for entire Cassandra cluster ({}); ring could not be checked for consistency.", keyspace);
             return;
         }
 
@@ -86,7 +88,7 @@ public class CassandraVerifier {
         log.error("QA-86204 " + e.getMessage() + tokenRangesToHost, e);
 
         if (tokenRangesToHost.size() > 2) {
-            for (Entry<Set<TokenRange>, Collection<String>> entry : tokenRangesToHost.asMap().entrySet()) {
+            for (Entry<Set<TokenRange>, Collection<InetSocketAddress>> entry : tokenRangesToHost.asMap().entrySet()) {
                 if (entry.getValue().size() == 1) {
                     log.error("Host: " + entry.getValue().iterator().next() +
                             " disagrees with the other nodes about the ring state.");

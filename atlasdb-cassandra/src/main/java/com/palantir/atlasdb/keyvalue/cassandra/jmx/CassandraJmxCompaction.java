@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra.jmx;
 
 import java.io.File;
+import java.net.InetSocketAddress;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -93,10 +94,10 @@ public class CassandraJmxCompaction {
      */
     private ImmutableSet<CassandraJmxCompactionClient> createCompactionClients(CassandraJmxCompactionConfig jmxConfig) {
         Set<CassandraJmxCompactionClient> clients = Sets.newHashSet();
-        Set<String> servers = config.servers();
+        Set<InetSocketAddress> servers = config.servers();
         int jmxPort = jmxConfig.port();
-        for (String host : servers) {
-            CassandraJmxCompactionClient client = createCompactionClient(host, jmxPort, jmxConfig.username(), jmxConfig.password());
+        for (InetSocketAddress addr : servers) {
+            CassandraJmxCompactionClient client = createCompactionClient(addr.getHostString(), jmxPort, jmxConfig.username(), jmxConfig.password());
             clients.add(client);
         }
 

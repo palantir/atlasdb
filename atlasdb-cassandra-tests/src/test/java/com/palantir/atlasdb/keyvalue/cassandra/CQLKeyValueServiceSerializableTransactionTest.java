@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.net.InetSocketAddress;
+
 import org.junit.Ignore;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
@@ -30,8 +32,7 @@ public class CQLKeyValueServiceSerializableTransactionTest extends
         return CQLKeyValueService.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(
                         ImmutableCassandraKeyValueServiceConfig.builder()
-                                .addServers("localhost")
-                                .port(9160)
+                                .addServers(new InetSocketAddress("localhost", 9160))
                                 .poolSize(20)
                                 .keyspace("atlasdb")
                                 .ssl(false)
