@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.net.InetSocketAddress;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -83,11 +84,11 @@ public class CassandraClientPoolingManager {
         });
     }
 
-    public void setHostsToCurrentHostNames(Set<String> hosts) {
-        containerPoolToUpdate.setNewHosts(ImmutableCassandraKeyValueServiceConfig.copyOf(configManager.getConfig()).withServers(hosts));
+    public void setHostsToCurrentHostNames(Set<InetSocketAddress> addrs) {
+        containerPoolToUpdate.setNewHosts(ImmutableCassandraKeyValueServiceConfig.copyOf(configManager.getConfig()).withServers(addrs));
     }
 
-    public Set<String> getCurrentHostsFromServer(Client c) throws TException {
+    public Set<InetSocketAddress> getCurrentHostsFromServer(Client c) throws TException {
         Map<String, String> tokenMap;
         try {
             tokenMap = c.describe_token_map();
@@ -95,9 +96,9 @@ public class CassandraClientPoolingManager {
             throw Throwables.throwUncheckedException(e);
         }
 
-        Set<String> currentHosts = new HashSet<String>();
+        Set<InetSocketAddress> currentHosts = new HashSet<InetSocketAddress>();
         for (String host : tokenMap.values()) {
-            currentHosts.add(host);
+            currentHosts.add(new InetSocketAddress(host, CassandraConstants.DEFAULT_THRIFT_PORT));
         }
 
         return currentHosts;

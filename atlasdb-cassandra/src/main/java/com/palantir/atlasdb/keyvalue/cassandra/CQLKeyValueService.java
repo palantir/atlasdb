@@ -19,7 +19,6 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -145,14 +144,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
 
     protected void initializeConnectionPool() {
         final CassandraKeyValueServiceConfig config = configManager.getConfig();
-        HashSet<InetSocketAddress> configuredHosts = Sets.newHashSet(Iterables.transform(config.servers(),
-                        new Function<String, InetSocketAddress>() {
-                            @Override
-                            public InetSocketAddress apply(String host) {
-                                return new InetSocketAddress(host, config.port());
-                            }
-                        })
-        );
+        Collection<InetSocketAddress> configuredHosts = config.servers();
         Cluster.Builder clusterBuilder = Cluster.builder();
         clusterBuilder.addContactPointsWithPorts(configuredHosts);
         clusterBuilder.withClusterName("atlas_cassandra_cluster_" + config.keyspace()); // for JMX metrics

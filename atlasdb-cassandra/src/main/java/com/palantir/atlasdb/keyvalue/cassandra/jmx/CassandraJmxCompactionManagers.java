@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra.jmx;
 
 import java.io.File;
+import java.net.InetSocketAddress;
 import java.util.Collections;
 import java.util.Set;
 
@@ -71,13 +72,13 @@ public class CassandraJmxCompactionManagers {
         setJmxSslProperty(jmxConfig);
 
         Set<CassandraJmxCompactionClient> clients = Sets.newHashSet();
-        Set<String> thriftEndPoints = config.servers();
+        Set<InetSocketAddress> thriftEndPoints = config.servers();
         Preconditions.checkState(!thriftEndPoints.isEmpty(), "address_list should not be empty.");
 
         // jmxEndPoints are using different ports specified in address_list
         int jmxPort = jmxConfig.port();
-        for (String endPointHost : thriftEndPoints) {
-            Optional<CassandraJmxCompactionClient> client = new CassandraJmxCompactionClient.Builder(endPointHost, jmxPort)
+        for (InetSocketAddress addr : thriftEndPoints) {
+            Optional<CassandraJmxCompactionClient> client = new CassandraJmxCompactionClient.Builder(addr.getHostString(), jmxPort)
                         .username(jmxConfig.username())
                         .password(jmxConfig.password())
                         .build();
