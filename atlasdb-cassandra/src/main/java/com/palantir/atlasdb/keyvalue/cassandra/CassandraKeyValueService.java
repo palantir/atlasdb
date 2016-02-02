@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.Arrays;
@@ -215,25 +216,24 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         // we already did our init in our factory method
     }
 
-    protected void initializeFromFreshInstance(List<String> addrList, int replicationFactor) {
+    protected void initializeFromFreshInstance(List<InetSocketAddress> addrList, int replicationFactor) {
         Map<String, Throwable> errorsByHost = Maps.newHashMap();
 
         final CassandraKeyValueServiceConfig config = configManager.getConfig();
-        int port = config.port();
         boolean safetyDisabled = config.safetyDisabled();
         String keyspace = config.keyspace();
         boolean ssl = config.ssl();
         int socketTimeoutMillis = config.socketTimeoutMillis();
         int socketQueryTimeoutMillis = config.socketQueryTimeoutMillis();
 
-        for (String addr : addrList) {
+        for (InetSocketAddress addr : addrList) {
             Cassandra.Client client = null;
             try {
-                client = CassandraClientFactory.getClientInternal(addr, port, ssl, socketTimeoutMillis, socketQueryTimeoutMillis);
+                client = CassandraClientFactory.getClientInternal(addr, ssl, socketTimeoutMillis, socketQueryTimeoutMillis);
 
                 validatePartitioner(client);
 
-                Set<String> currentHosts = cassandraClientPoolingManager.getCurrentHostsFromServer(client);
+                Set<InetSocketAddress> currentHosts = cassandraClientPoolingManager.getCurrentHostsFromServer(client);
                 cassandraClientPoolingManager.setHostsToCurrentHostNames(currentHosts);
 
                 ensureKeyspaceExistsAndIsUpToDate(replicationFactor, safetyDisabled, keyspace, client);
@@ -241,7 +241,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
                 tokenAwareMapper = TokenAwareMapper.create(configManager, clientPool);
                 createTableInternal(client, CassandraConstants.METADATA_TABLE);
-                CassandraVerifier.sanityCheckRingConsistency(currentHosts, port, keyspace, ssl, safetyDisabled, socketTimeoutMillis, socketQueryTimeoutMillis);
+                CassandraVerifier.sanityCheckRingConsistency(currentHosts, keyspace, ssl, safetyDisabled, socketTimeoutMillis, socketQueryTimeoutMillis);
                 upgradeFromOlderInternalSchema(client);
                 CassandraKeyValueServices.failQuickInInitializationIfClusterAlreadyInInconsistentState(client, config.safetyDisabled(), configManager.getConfig().schemaMutationTimeoutMillis());
                 return;

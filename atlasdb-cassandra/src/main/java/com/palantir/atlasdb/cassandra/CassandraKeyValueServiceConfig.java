@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.cassandra;
 
+import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
 import java.util.Set;
 
@@ -35,9 +36,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
 
     public static final String TYPE = "cassandra";
 
-    public abstract Set<String> servers();
-
-    public abstract int port();
+    public abstract Set<InetSocketAddress> servers();
 
     @Value.Default
     public int poolSize() {
@@ -120,5 +119,8 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     @Value.Check
     protected final void check() {
         Preconditions.checkState(!servers().isEmpty(), "'servers' must have at least one entry");
+        for (InetSocketAddress addr : servers()) {
+            Preconditions.checkState(addr.getPort() != 0, "each server must specify a port ([host]:[port])");
+        }
     }
 }
