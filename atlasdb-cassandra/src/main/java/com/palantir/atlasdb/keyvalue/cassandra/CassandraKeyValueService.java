@@ -1397,7 +1397,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                             CassandraKeyValueServices.waitForSchemaVersions(client, "(all tables in a call to putMetadataForTables)");
                         }
                         // Done with actual schema mutation, push the metadata
-                        put(CassandraConstants.METADATA_TABLE, newMetadata, 0L);
+                        put(CassandraConstants.METADATA_TABLE, newMetadata, System.currentTimeMillis());
                         return null;
                     }
                 });
@@ -1412,7 +1412,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     private void putMetadataWithoutChangingSettings(final String tableName, final byte[] meta) {
-        put(CassandraConstants.METADATA_TABLE, ImmutableMap.of(getMetadataCell(tableName), meta), 0L);
+        put(CassandraConstants.METADATA_TABLE, ImmutableMap.of(getMetadataCell(tableName), meta), System.currentTimeMillis());
     }
 
     @Override

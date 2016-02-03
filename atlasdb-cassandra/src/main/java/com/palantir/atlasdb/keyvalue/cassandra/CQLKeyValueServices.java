@@ -349,7 +349,7 @@ public class CQLKeyValueServices {
     }
 
 
-    static interface ThreadSafeCQLResultVisitor extends Visitor<Map<Cell, Value>> {
+    static interface ThreadSafeCQLResultVisitor extends Visitor<Multimap<Cell, Value>> {
         // marker
     }
 
@@ -363,8 +363,13 @@ public class CQLKeyValueServices {
         }
 
         @Override
-        public void visit(Map<Cell, Value> results) {
-            collectedResults.putAll(results);
+        public void visit(Multimap<Cell, Value> results) {
+            for (Entry<Cell, Value> e : results.entries()) {
+                if (results.get(e.getKey()).size() > 1) {
+                    throw new IllegalStateException("Too many results retrieved for cell " + e.getKey());
+                }
+                collectedResults.put(e.getKey(), e.getValue());
+            }
         }
     }
 
@@ -372,8 +377,8 @@ public class CQLKeyValueServices {
         final Multimap<Cell, Long> collectedResults = HashMultimap.create();
 
         @Override
-        public synchronized void visit(Map<Cell, Value> results) {
-            for (Entry<Cell, Value> e : results.entrySet()) {
+        public synchronized void visit(Multimap<Cell, Value> results) {
+            for (Entry<Cell, Value> e : results.entries()) {
                 collectedResults.put(e.getKey(), e.getValue().getTimestamp());
             }
         }
