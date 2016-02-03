@@ -61,7 +61,10 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -1152,6 +1155,21 @@ public abstract class AbstractTransactionTest {
         byte[] bytes = new TableMetadata().persistToBytes();
         keyValueService.putMetadataForTable(TEST_TABLE, bytes);
         byte[] bytesRead = keyValueService.getMetadataForTable(TEST_TABLE);
+        assertTrue(Arrays.equals(bytes, bytesRead));
+        bytes = new TableDefinition() {{
+            rowName();
+            rowComponent("row", ValueType.FIXED_LONG);
+            columns();
+            column("col", "c", ValueType.VAR_STRING);
+            conflictHandler(ConflictHandler.RETRY_ON_VALUE_CHANGED);
+            negativeLookups();
+            rangeScanAllowed();
+            sweepStrategy(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
+            explicitCompressionRequested();
+            explicitCompressionBlockSizeKB(100);
+        }}.toTableMetadata().persistToBytes();
+        keyValueService.putMetadataForTable(TEST_TABLE, bytes);
+        bytesRead = keyValueService.getMetadataForTable(TEST_TABLE);
         assertTrue(Arrays.equals(bytes, bytesRead));
     }
 
