@@ -82,8 +82,6 @@ import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
@@ -323,7 +321,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
             }
             try {
                 StartTsResultsCollector collector = new StartTsResultsCollector(startTs);
-                loadWithTs(tableName, cells, startTs, collector, readConsistency);
+                loadWithTs(tableName, cells, startTs, false, collector, readConsistency);
                 return collector.collectedResults;
             } catch (Throwable t) {
                 throw Throwables.throwUncheckedException(t);
@@ -387,7 +385,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
             long firstTs = timestampByCell.values().iterator().next();
             if (Iterables.all(timestampByCell.values(), Predicates.equalTo(firstTs))) {
                 StartTsResultsCollector collector = new StartTsResultsCollector(firstTs);
-                loadWithTs(tableName, timestampByCell.keySet(), firstTs, collector, readConsistency);
+                loadWithTs(tableName, timestampByCell.keySet(), firstTs, false, collector, readConsistency);
                 return collector.collectedResults;
             }
 
@@ -396,7 +394,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
             Builder<Cell, Value> builder = ImmutableMap.builder();
             for (long ts : cellsByTs.keySet()) {
                 StartTsResultsCollector collector = new StartTsResultsCollector(ts);
-                loadWithTs(tableName, cellsByTs.get(ts), ts, collector, readConsistency);
+                loadWithTs(tableName, cellsByTs.get(ts), ts, false, collector, readConsistency);
                 builder.putAll(collector.collectedResults);
             }
             return builder.build();
@@ -408,11 +406,12 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     private void loadWithTs(final String tableName,
                             final Set<Cell> cells,
                             final long startTs,
-                            final Visitor<Map<Cell, Value>> v,
+                            boolean loadAllTs,
+                            final Visitor<Multimap<Cell, Value>> v,
                             final ConsistencyLevel consistency) throws Exception {
         final String loadWithTsQuery = "SELECT * FROM " + getFullTableName(tableName) + " "
                 + "WHERE " + CassandraConstants.ROW_NAME + " = ? AND " + CassandraConstants.COL_NAME_COL + " = ? AND " + CassandraConstants.TS_COL
-                + " > ? LIMIT 1";
+                + " > ?" + (!loadAllTs ? " LIMIT 1" : "");
         final CassandraKeyValueServiceConfig config = configManager.getConfig();
         if (cells.size() > config.fetchBatchCount()) {
             log.warn("A call to " + tableName
@@ -428,13 +427,12 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                     preparedStatement.bind(
                             ByteBuffer.wrap(cell.getRowName()),
                             ByteBuffer.wrap(cell.getColumnName()),
-                            startTs));
+                            ~startTs));
             resultSetFutures.add(resultSetFuture);
-            Futures.addCallback(resultSetFuture, getCallback(v, loadWithTsQuery));
         }
 
         for (ResultSetFuture rsf : resultSetFutures) {
-            rsf.getUninterruptibly();
+            visitResults(rsf.getUninterruptibly(), v, loadWithTsQuery, loadAllTs);
         }
     }
 
@@ -443,26 +441,20 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         return Multimaps.asMap(Multimaps.index(cells, Cells.getRowFunction()));
     }
 
-    private FutureCallback<ResultSet> getCallback(final Visitor<Map<Cell, Value>> v, final String query) {
-        return new FutureCallback<ResultSet>() {
-            @Override
-            public void onSuccess(ResultSet resultSet) {
-                List<Row> rows = resultSet.all();
-                Map<Cell, Value> res = Maps.newHashMapWithExpectedSize(rows.size());
-                for (Row row : rows) {
-                    res.put(
-                            Cell.create(CQLKeyValueServices.getRowName(row), CQLKeyValueServices.getColName(row)),
-                            Value.create(CQLKeyValueServices.getValue(row), CQLKeyValueServices.getTs(row)));
-                }
-                CQLKeyValueServices.logTracedQuery(query, resultSet, session, cqlStatementCache.NORMAL_QUERY);
-                v.visit(res);
-            }
-            @Override
-            public void onFailure(Throwable throwable) {
-                log.error("Failed CQL query: {}, threw {}", query, throwable);
-                throw Throwables.throwUncheckedException(throwable);
-            }
-        };
+    private void visitResults(ResultSet resultSet, Visitor<Multimap<Cell, Value>> v, String query, boolean loadAllTs) {
+        List<Row> rows = resultSet.all();
+        Multimap<Cell, Value> res;
+        if (loadAllTs) {
+            res = HashMultimap.create();
+        } else {
+            res = HashMultimap.create(rows.size(), 1);
+        }
+        for (Row row : rows) {
+            res.put(Cell.create(CQLKeyValueServices.getRowName(row), CQLKeyValueServices.getColName(row)),
+                    Value.create(CQLKeyValueServices.getValue(row), CQLKeyValueServices.getTs(row)));
+        }
+        CQLKeyValueServices.logTracedQuery(query, resultSet, session, cqlStatementCache.NORMAL_QUERY);
+        v.visit(res);
     }
 
     @Override
@@ -1066,7 +1058,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
             }
         }
         if (!cellToMetadata.isEmpty()) {
-            put(CassandraConstants.METADATA_TABLE, cellToMetadata, 0L);
+            put(CassandraConstants.METADATA_TABLE, cellToMetadata, System.currentTimeMillis());
             if (possiblyNeedToPerformSettingsChanges) {
                 CQLKeyValueServices.waitForSchemaVersionsToCoalesce("putMetadataForTables(" + tableNameToMetadata.size() +" tables)", this);
             }
@@ -1093,7 +1085,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     public Multimap<Cell, Long> getAllTimestamps(String tableName, Set<Cell> cells, long ts) {
         AllTimestampsCollector collector = new AllTimestampsCollector();
         try {
-            loadWithTs(tableName, cells, ts, collector, deleteConsistency);
+            loadWithTs(tableName, cells, ts, true, collector, deleteConsistency);
         } catch (com.datastax.driver.core.exceptions.UnavailableException e) {
             throw new InsufficientConsistencyException("Get all timestamps requires all Cassandra nodes to be up and available.", e);
         } catch (Throwable t) {
