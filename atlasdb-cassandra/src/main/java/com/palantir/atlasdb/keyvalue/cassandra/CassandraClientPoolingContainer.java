@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -83,7 +84,8 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
             return f.apply(resource);
         } catch (Exception e) {
             if (e instanceof TTransportException
-                    || e instanceof TProtocolException) {
+                    || e instanceof TProtocolException
+                    || e instanceof NoSuchElementException) {
                 log.warn("Not reusing resource {} due to {}", resource, e);
                 shouldReuse = false;
             }
@@ -187,6 +189,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
             config.setTimeBetweenEvictionRunsMillis(TimeUnit.MILLISECONDS.convert(1, TimeUnit.MINUTES));
             config.setNumTestsPerEvictionRun(-1); // Test all idle objects for eviction
             config.setJmxNamePrefix(host);
+            config.setMaxWaitMillis(socketTimeoutMillis);
             return new GenericObjectPool<Client>(cassandraClientFactory, config);
         }
 
