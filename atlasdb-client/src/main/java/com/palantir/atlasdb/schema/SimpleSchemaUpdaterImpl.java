@@ -94,7 +94,8 @@ public class SimpleSchemaUpdaterImpl implements SimpleSchemaUpdater {
 
     @Override
     public void initializeSchema(final AtlasSchema schema) {
-        Preconditions.checkArgument(schema.getNamespace().equals(namespace), "Refusing to initialize namespace " + schema.getNamespace() + ", which doesn't match given Atlas namespace of " + namespace + ".");
+        Preconditions.checkArgument(namespace.equals(Namespace.EMPTY_NAMESPACE) || schema.getNamespace().equals(namespace),
+                "Refusing to initialize namespace " + schema.getNamespace() + ", which doesn't match given Atlas namespace of " + namespace + ".");
         Schemas.createTablesAndIndexes(schema.getLatestSchema(), kvs);
     }
 
