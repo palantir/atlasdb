@@ -37,7 +37,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CQLKeyValueServices.TransactionType;
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionManager;
-import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionModule;
+import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompaction;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.common.base.Throwables;
 
@@ -47,7 +47,7 @@ public class CQLExpiringKeyValueService extends CQLKeyValueService implements Ex
     public static CQLExpiringKeyValueService create(CassandraKeyValueServiceConfigManager configManager) {
         Preconditions.checkState(!configManager.getConfig().servers().isEmpty(), "address list was empty");
 
-        Optional<CassandraJmxCompactionManager> compactionManager = new CassandraJmxCompactionModule().createCompactionManager(configManager);
+        Optional<CassandraJmxCompactionManager> compactionManager = CassandraJmxCompaction.createJmxCompactionManager(configManager);
         CQLExpiringKeyValueService kvs = new CQLExpiringKeyValueService(configManager, compactionManager);
         kvs.initializeConnectionPool();
         kvs.performInitialSetup();

@@ -36,7 +36,7 @@ import com.palantir.atlasdb.keyvalue.api.ExpiringKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionManager;
-import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionModule;
+import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompaction;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.common.base.Throwables;
@@ -47,7 +47,7 @@ public class CassandraExpiringKeyValueService extends CassandraKeyValueService i
     public static CassandraExpiringKeyValueService create(CassandraKeyValueServiceConfigManager configManager) {
         Preconditions.checkState(!configManager.getConfig().servers().isEmpty(), "address list was empty");
 
-        Optional<CassandraJmxCompactionManager> compactionManager = new CassandraJmxCompactionModule().createCompactionManager(configManager);
+        Optional<CassandraJmxCompactionManager> compactionManager = CassandraJmxCompaction.createJmxCompactionManager(configManager);
         CassandraExpiringKeyValueService kvs = new CassandraExpiringKeyValueService(configManager, compactionManager);
         kvs.init();
         return kvs;

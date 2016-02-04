@@ -98,7 +98,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.CQLKeyValueServices.Peer;
 import com.palantir.atlasdb.keyvalue.cassandra.CQLKeyValueServices.StartTsResultsCollector;
 import com.palantir.atlasdb.keyvalue.cassandra.CQLKeyValueServices.TransactionType;
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionManager;
-import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionModule;
+import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompaction;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
@@ -129,7 +129,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     private boolean limitBatchSizesToServerDefaults = false;
 
     public static CQLKeyValueService create(CassandraKeyValueServiceConfigManager configManager) {
-        Optional<CassandraJmxCompactionManager> compactionManager = new CassandraJmxCompactionModule().createCompactionManager(configManager);
+        Optional<CassandraJmxCompactionManager> compactionManager = CassandraJmxCompaction.createJmxCompactionManager(configManager);
         final CQLKeyValueService ret = new CQLKeyValueService(configManager, compactionManager);
         ret.initializeConnectionPool();
         ret.performInitialSetup();
@@ -1114,8 +1114,8 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     @Override
     public void compactInternally(String tableName) {
         Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName), "tableName:[%s] should not be null or empty", tableName);
-        final CassandraKeyValueServiceConfig config = configManager.getConfig();
-        if(!compactionManager.isPresent() || !config.jmx().isPresent()){
+        CassandraKeyValueServiceConfig config = configManager.getConfig();
+        if (!compactionManager.isPresent() || !config.jmx().isPresent()) {
             log.warn("No compaction client was configured, but compact was called. If you actually want to clear deleted data immediately " +
                     "from Cassandra, lower your gc_grace_seconds setting and run `nodetool compact {} {}`.", config.keyspace(), tableName);
             return;

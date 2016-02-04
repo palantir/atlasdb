@@ -1,12 +1,12 @@
 /**
  * Copyright 2015 Palantir Technologies
- *
+ * <p>
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * <p>
  * http://opensource.org/licenses/BSD-3-Clause
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,21 +16,11 @@
 package com.palantir.atlasdb.keyvalue.cassandra.jmx;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
-import javax.management.JMX;
-import javax.management.MBeanServerConnection;
-import javax.management.MalformedObjectNameException;
-import javax.management.ObjectName;
 import javax.management.remote.JMXConnector;
-import javax.management.remote.JMXConnectorFactory;
-import javax.management.remote.JMXServiceURL;
 
 import org.apache.cassandra.db.HintedHandOffManagerMBean;
 import org.apache.cassandra.db.compaction.CompactionManagerMBean;
@@ -40,184 +30,103 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Strings;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
-import com.palantir.common.base.Throwables;
+import com.google.common.base.Throwables;
 
 /**
  * Maintains a JMX client for each node in C* cluster
  */
 public class CassandraJmxCompactionClient {
     private static final Logger log = LoggerFactory.getLogger(CassandraJmxCompactionClient.class);
-    private static final int RETRY_TIMES = 3;
-    private static final long RETRY_INTERVAL_IN_SECONDS = 5;
-
     private final String host;
     private final int port;
-    private final String username;
-    private final String password;
+    private final JMXConnector jmxConnector;
+    private final StorageServiceMBean storageServiceProxy;
+    private final HintedHandOffManagerMBean hintedHandoffProxy;
+    private final CompactionManagerMBean compactionManagerProxy;
 
-    private JMXConnector jmxConnector;
-    private CompactionManagerMBean compactionManagerProxy;
-    private StorageServiceMBean storageServiceProxy;
-    private HintedHandOffManagerMBean hintedHandoffProxy;
-
-    private CassandraJmxCompactionClient(Builder builder) {
-        this.host = builder.host;
-        this.port = builder.port;
-        this.username = builder.username;
-        this.password = builder.password;
+    private CassandraJmxCompactionClient(String host,
+                                         int port,
+                                         JMXConnector jmxConnector,
+                                         StorageServiceMBean storageServiceProxy,
+                                         HintedHandOffManagerMBean hintedHandoffProxy,
+                                         CompactionManagerMBean compactionManagerProxy) {
+        Preconditions.checkArgument(!Strings.isNullOrEmpty(host));
+        Preconditions.checkArgument(port > 0);
+        this.host = host;
+        this.port = port;
+        this.jmxConnector = Preconditions.checkNotNull(jmxConnector);
+        this.storageServiceProxy = Preconditions.checkNotNull(storageServiceProxy);
+        this.hintedHandoffProxy = Preconditions.checkNotNull(hintedHandoffProxy);
+        this.compactionManagerProxy = Preconditions.checkNotNull(compactionManagerProxy);
     }
 
-    public static class Builder {
-        private String host;
-        private int port;
-        private String username = "";
-        private String password = "";
-
-        public Builder(String host, int port) {
-            this.host = host;
-            this.port = port;
-        }
-
-        public Builder username(String val) {
-            Preconditions.checkArgument(!Strings.isNullOrEmpty(val), "username:[%s] should not be empty or null.", val);
-            this.username = val;
-            return this;
-        }
-
-        public Builder password(String val) {
-            Preconditions.checkArgument(!Strings.isNullOrEmpty(val), "password:[%s] should not be empty or null.", val);
-            this.password = val;
-            return this;
-        }
-
-        public Optional<CassandraJmxCompactionClient> build() {
-            CassandraJmxCompactionClient client = new CassandraJmxCompactionClient(this);
-            boolean status = client.connect();
-            int retries = 0;
-            while (status == false && retries < RETRY_TIMES) {
-                retries++;
-                log.info("Failed to connect to JMX, retrying in {} seconds for {} time(s)", RETRY_INTERVAL_IN_SECONDS, retries);
-                try {
-                    TimeUnit.SECONDS.sleep(RETRY_INTERVAL_IN_SECONDS);
-                } catch (InterruptedException e) {
-                    log.error("Sleep interupted while trying to connect to JMX server", e);
-                }
-                status = client.connect();
-            }
-            if (status == false) {
-                log.error("Failed to connect to JMX after {} retries on node {}:{}!", RETRY_TIMES, host, port);
-                return Optional.absent();
-            }
-            return Optional.of(client);
-        }
+    public static CassandraJmxCompactionClient create(String host,
+                                                      int port,
+                                                      JMXConnector jmxConnector,
+                                                      StorageServiceMBean storageServiceProxy,
+                                                      HintedHandOffManagerMBean hintedHandoffProxy,
+                                                      CompactionManagerMBean compactionManagerProxy) {
+        return new CassandraJmxCompactionClient(host, port, jmxConnector, storageServiceProxy, hintedHandoffProxy, compactionManagerProxy);
     }
 
-    /**
-     * Create a connection to the JMX agent and setup the M[X]Bean proxies.
-     */
-    private boolean connect() {
-        Map<String, Object> env = new HashMap<String, Object>();
-        String[] creds = { username, password };
-        env.put(JMXConnector.CREDENTIALS, creds);
-
-        JMXServiceURL jmxServiceUrl = null;
-        MBeanServerConnection mbeanServerConn = null;
-        try {
-            jmxServiceUrl = new JMXServiceURL(String.format(CassandraConstants.JMX_RMI, host, port));
-            jmxConnector = JMXConnectorFactory.connect(jmxServiceUrl, env);
-            mbeanServerConn = jmxConnector.getMBeanServerConnection();
-
-            ObjectName name = new ObjectName(CassandraConstants.STORAGE_SERVICE_OBJECT_NAME);
-            storageServiceProxy = JMX.newMBeanProxy(mbeanServerConn, name, StorageServiceMBean.class);
-
-            name = new ObjectName(CassandraConstants.COMPACTION_MANAGER_OBJECT_NAME);
-            compactionManagerProxy = JMX.newMBeanProxy(mbeanServerConn, name, CompactionManagerMBean.class);
-
-            name = new ObjectName(CassandraConstants.HINTED_HANDOFF_MANAGER_OBJECT_NAME);
-            hintedHandoffProxy = JMX.newMBeanProxy(mbeanServerConn, name, HintedHandOffManagerMBean.class);
-        } catch (MalformedURLException e) {
-            log.error("Wrong JMX service URL.", e);
-            return false;
-        } catch (IOException e) {
-            log.error("JMXConnectorFactory cannot connect to the JMX service URL.", e);
-            return false;
-        } catch (MalformedObjectNameException e) {
-            log.error("JMX ObjectName has wrong fomat.", e);
-            return false;
-        }
-        return true;
-    }
-
-    public void close() {
-        try {
-            if (jmxConnector != null) {
-                jmxConnector.close();
-            }
-        } catch (IOException e) {
-            log.error("Error in closing Cassandra JMX compaction connection.", e);
-        }
-    }
-
-    public void deleteLocalHints() {
-        // hintedHandoff needs to be deleted to make sure data will not reappear later
-        hintedHandoffProxy.deleteHintsForEndpoint(host);
-        log.trace("hintedhandoff on node {}:{} was deleted for tombstone compaction.", host, port);
+    public void truncateAllHints() throws ExecutionException, InterruptedException {
+        // hintedHandoff needs to be deleted to make sure data will resurrect.
+        hintedHandoffProxy.truncateAllHints();
     }
 
     public void forceTableFlush(String keyspace, String tableName) {
-        log.trace("flushing {}.{} on node {}:{} for tombstone compaction!", keyspace, tableName, host, port);
+        log.trace("flushing {}.{} for tombstone compaction!", keyspace, tableName);
         try {
             storageServiceProxy.forceKeyspaceFlush(keyspace, tableName);
         } catch (IOException e) {
             log.error("forceTableFlush IOException: {}", e.getMessage());
-            Throwables.throwUncheckedException(e);
+            Throwables.propagate(e);
         } catch (ExecutionException e) {
             log.error("forceTableFlush ExecutionException: {}", e.getMessage());
-            Throwables.throwUncheckedException(e);
+            Throwables.propagate(e);
         } catch (InterruptedException e) {
             log.error("forceTableFlush InterruptedException: {}", e.getMessage());
-            Throwables.throwUncheckedException(e);
+            Throwables.propagate(e);
         }
     }
+
+    private static final int RETRY_TIMES = 3;
+    private static final long RETRY_INTERVAL_IN_SECONDS = 5;
 
     /**
      * retry for a number of times. The reason why we need to retry compaction is:
      * during a node's coming back process, the keyspace is not ready to be compacted
      * even the JMX connection can be established.
-     * @param keyspace
-     * @param tableName
      */
     public boolean forceTableCompaction(String keyspace, String tableName) {
-        boolean status = tryTableCompaction(keyspace, tableName);
+        boolean status = tryTableCompactionInternal(keyspace, tableName);
         int retries = 0;
         while (status == false && retries < RETRY_TIMES) {
             retries++;
-            log.info("Failed to compact, retrying in {} seconds for {} time(s) on node {}:{}", RETRY_INTERVAL_IN_SECONDS, retries, host, port);
+            log.info("Failed to compact, retrying in {} seconds for {} time(s)", RETRY_INTERVAL_IN_SECONDS, retries);
             try {
                 TimeUnit.SECONDS.sleep(RETRY_INTERVAL_IN_SECONDS);
             } catch (InterruptedException e) {
-                log.error("Sleep interupted while trying to compact", e);
+                log.error("Sleep interrupted while trying to compact", e);
             }
-            status = tryTableCompaction(keyspace, tableName);
+            status = tryTableCompactionInternal(keyspace, tableName);
         }
         if (status == false) {
-            log.error("Failed to compact after {} retries on node {}:{}.", RETRY_INTERVAL_IN_SECONDS, host, port);
+            log.error("Failed to compact after {} retries.", RETRY_INTERVAL_IN_SECONDS);
         }
         return status;
     }
 
-    private boolean tryTableCompaction(String keyspace, String tableName) {
+    private boolean tryTableCompactionInternal(String keyspace, String tableName) {
         try {
             Stopwatch stopWatch = Stopwatch.createStarted();
             storageServiceProxy.forceKeyspaceCompaction(true, keyspace, tableName);
-            log.info("Compaction for {}.{} completed on node {}:{} in {}", keyspace, Arrays.asList(tableName), host, port, stopWatch.stop());
+            log.info("Compaction for {}.{} completed in {}", keyspace, tableName, stopWatch.stop());
         } catch (IOException e) {
-            log.error("Invalid keyspace or tableNames specified for forceTableCompaction()", e);
+            log.error("Invalid keyspace or tableName specified for forceTableCompaction()", e);
             return false;
         } catch (ExecutionException e) {
             log.error("ExecutionException in forceTableCompaction()", e);
@@ -229,16 +138,28 @@ public class CassandraJmxCompactionClient {
         return true;
     }
 
-    public List<Map<String, String>> getCompactionStatus() {
-        return compactionManagerProxy.getCompactions();
+    public List<String> getCompactionStatus() {
+        return compactionManagerProxy.getCompactionSummary();
     }
 
-    public List<String> getLiveNodes() {
-        return storageServiceProxy.getLiveNodes();
+    public void close() {
+        if (jmxConnector == null) {
+            return;
+        }
+
+        try {
+            jmxConnector.close();
+        } catch (IOException e) {
+            log.error("Error in closing Cassandra JMX compaction connection.", e);
+        }
     }
 
     public String getHost() {
         return host;
+    }
+
+    public int getPort() {
+        return port;
     }
 
     @Override
@@ -248,19 +169,19 @@ public class CassandraJmxCompactionClient {
 
     @Override
     public boolean equals(Object obj) {
-        if (obj == null) {
-            return false;
-        }
+        if (this == obj) return true;
         if (!(obj instanceof CassandraJmxCompactionClient)) {
             return false;
         }
-
         CassandraJmxCompactionClient rhs = (CassandraJmxCompactionClient) obj;
-        return Objects.equal(this.host, rhs.host) && this.port == rhs.port;
+        return Objects.equal(this.host, rhs.host) && Objects.equal(this.port, rhs.port);
     }
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this).add("host", host).add("port", port).toString();
+        return MoreObjects.toStringHelper(this)
+                .add("host", host)
+                .add("port", port)
+                .toString();
     }
 }
