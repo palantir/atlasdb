@@ -30,9 +30,10 @@ import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
-import com.palantir.atlasdb.transaction.impl.SnapshotTransactionManager;
+import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
+import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockServerOptions;
@@ -55,8 +56,8 @@ public class JdbcSweeperTest extends AbstractSweeperTest {
         ConflictDetectionManager cdm = ConflictDetectionManagers.createDefault(kvs);
         SweepStrategyManager ssm = SweepStrategyManagers.createDefault(kvs);
         Cleaner cleaner = new NoOpCleaner();
-        LockAwareTransactionManager txManager = new SnapshotTransactionManager(kvs, tsService, lockClient, lockService, txService, constraints, cdm, ssm, cleaner, false);
-        SnapshotTransactionManager.createTables(kvs);
+        LockAwareTransactionManager txManager = new SerializableTransactionManager(kvs, tsService, lockClient, lockService, txService, constraints, cdm, ssm, cleaner, false);
+        TransactionTables.createTables(kvs);
         Supplier<Long> tsSupplier = new Supplier<Long>() { @Override public Long get() { return sweepTimestamp.get(); }};
         sweepRunner = new SweepTaskRunnerImpl(txManager, kvs, tsSupplier, tsSupplier, txService, ssm, ImmutableList.<Follower>of());
     }
