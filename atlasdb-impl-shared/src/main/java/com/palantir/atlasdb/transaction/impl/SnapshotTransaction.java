@@ -190,7 +190,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      *                             to commit.  If these locks have expired then the commit will fail.
      * @param transactionTimeoutMillis
      */
-    public SnapshotTransaction(KeyValueService keyValueService,
+    /* package */ SnapshotTransaction(KeyValueService keyValueService,
                                RemoteLockService lockService,
                                TimestampService timestampService,
                                TransactionService transactionService,
@@ -244,21 +244,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.transactionReadTimeoutMillis = null;
         this.readSentinelBehavior = readSentinelBehavior;
         this.allowHiddenTableAccess = false;
-    }
-
-    @Deprecated
-    public static SnapshotTransaction createReadOnly(KeyValueService keyValueService,
-                                                     TransactionService transactionService,
-                                                     RemoteLockService lockService,
-                                                     long startTimeStamp,
-                                                     AtlasDbConstraintCheckingMode constraintCheckingEnabled) {
-        return new SnapshotTransaction(
-                keyValueService,
-                transactionService,
-                lockService,
-                startTimeStamp,
-                constraintCheckingEnabled,
-                TransactionReadSentinelBehavior.THROW_EXCEPTION);
     }
 
     /**
