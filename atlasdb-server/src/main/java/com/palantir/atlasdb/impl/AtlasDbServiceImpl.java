@@ -50,7 +50,7 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.RuntimeTransactionTask;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.impl.RawTransaction;
-import com.palantir.atlasdb.transaction.impl.SnapshotTransactionManager;
+import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitables;
@@ -65,14 +65,14 @@ public class AtlasDbServiceImpl implements AtlasDbService {
             ConflictHandler.SERIALIZABLE);
 
     private final KeyValueService kvs;
-    private final SnapshotTransactionManager txManager;
+    private final SerializableTransactionManager txManager;
     private final Cache<TransactionToken, RawTransaction> transactions =
             CacheBuilder.newBuilder().expireAfterAccess(12, TimeUnit.HOURS).build();
     private final TableMetadataCache metadataCache;
 
 
     public AtlasDbServiceImpl(KeyValueService kvs,
-                              SnapshotTransactionManager txManager,
+                              SerializableTransactionManager txManager,
                               TableMetadataCache metadataCache) {
         this.kvs = kvs;
         this.txManager = txManager;
