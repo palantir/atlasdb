@@ -169,7 +169,7 @@ public class TableSplittingKeyValueService implements KeyValueService {
         if (delegate == null) { // no explicit table mapping
             if (TableReference.isFullyQualifiedName(tableName)) { // try for a namespace mapping
                 TableReference tableRef = TableReference.createFromFullyQualifiedName(tableName);
-                delegate = delegateByNamespace.get(tableRef.getNamespace());
+                delegate = delegateByNamespace.get(tableRef.getNamespace().getName());
                 if (delegate == null) { // namespace mapping did not cover this particular namespace
                     delegate = delegates.get(0);
                 }
