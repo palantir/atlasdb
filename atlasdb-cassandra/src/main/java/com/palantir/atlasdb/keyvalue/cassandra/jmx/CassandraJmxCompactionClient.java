@@ -17,7 +17,6 @@ package com.palantir.atlasdb.keyvalue.cassandra.jmx;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import javax.management.remote.JMXConnector;
@@ -72,24 +71,18 @@ public class CassandraJmxCompactionClient {
         return new CassandraJmxCompactionClient(host, port, jmxConnector, storageServiceProxy, hintedHandoffProxy, compactionManagerProxy);
     }
 
-    public void truncateAllHints() throws ExecutionException, InterruptedException {
-        // hintedHandoff needs to be deleted to make sure data will resurrect.
-        hintedHandoffProxy.truncateAllHints();
+    public void deleteLocalHints() {
+        // hintedHandoff needs to be deleted to make sure data will not resurrect.
+        hintedHandoffProxy.deleteHintsForEndpoint(host);
     }
 
     public void forceTableFlush(String keyspace, String tableName) {
         log.trace("flushing {}.{} for tombstone compaction!", keyspace, tableName);
         try {
             storageServiceProxy.forceKeyspaceFlush(keyspace, tableName);
-        } catch (IOException e) {
-            log.error("forceTableFlush IOException: {}", e.getMessage());
-            Throwables.propagate(e);
-        } catch (ExecutionException e) {
-            log.error("forceTableFlush ExecutionException: {}", e.getMessage());
-            Throwables.propagate(e);
-        } catch (InterruptedException e) {
-            log.error("forceTableFlush InterruptedException: {}", e.getMessage());
-            Throwables.propagate(e);
+        } catch (Exception e) {
+            log.error("Failed to flush table {}.{}.", keyspace, tableName, e);
+            Throwables.propagateIfPossible(e);
         }
     }
 
@@ -125,14 +118,9 @@ public class CassandraJmxCompactionClient {
             Stopwatch stopWatch = Stopwatch.createStarted();
             storageServiceProxy.forceKeyspaceCompaction(true, keyspace, tableName);
             log.info("Compaction for {}.{} completed in {}", keyspace, tableName, stopWatch.stop());
-        } catch (IOException e) {
-            log.error("Invalid keyspace or tableName specified for forceTableCompaction()", e);
-            return false;
-        } catch (ExecutionException e) {
-            log.error("ExecutionException in forceTableCompaction()", e);
-            return false;
-        } catch (InterruptedException e) {
-            log.error("InterruptedException in forceTableCompaction()", e);
+        } catch (Exception e) {
+            log.error("Failed to compaction {}.{}.", keyspace, tableName, e);
+            Throwables.propagateIfPossible(e);
             return false;
         }
         return true;
@@ -143,14 +131,12 @@ public class CassandraJmxCompactionClient {
     }
 
     public void close() {
-        if (jmxConnector == null) {
-            return;
-        }
-
-        try {
-            jmxConnector.close();
-        } catch (IOException e) {
-            log.error("Error in closing Cassandra JMX compaction connection.", e);
+        if (jmxConnector != null) {
+            try {
+                jmxConnector.close();
+            } catch (IOException e) {
+                log.error("Error in closing Cassandra JMX compaction connection.", e);
+            }
         }
     }
 

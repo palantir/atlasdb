@@ -18,28 +18,18 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
-import static com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager.createSimpleManager;
-
-import static junit.framework.TestCase.fail;
-
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeoutException;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.UnmodifiableIterator;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
-import com.palantir.atlasdb.cassandra.ImmutableCassandraJmxCompactionConfig;
-import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompaction;
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionClient;
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionManager;
 
@@ -58,12 +48,19 @@ public class CassandraJmxCompactionManagerTest {
         CassandraJmxCompactionClient jmxCompactionClient = mock(CassandraJmxCompactionClient.class);
         mockedClients = ImmutableSet.of(jmxCompactionClient);
         exec = Executors.newFixedThreadPool(
-                1, new ThreadFactoryBuilder().setDaemon(true).setNameFormat("test-Cassandra-Compaction-ThreadPool-%d").build());
+                1, new ThreadFactoryBuilder().setNameFormat("test-Cassandra-Compaction-ThreadPool-%d").build());
+    }
+
+    @After
+    public void tearDown() {
+        if (exec != null) {
+            exec.shutdownNow();
+        }
     }
 
     @Test
     public void createShouldWorkWithEmptyClients() {
-        CassandraJmxCompactionManager.create(ImmutableSet.of(), exec);
+        CassandraJmxCompactionManager.create(ImmutableSet.<CassandraJmxCompactionClient>of(), exec);
     }
 
     @Test(expected = NullPointerException.class)
@@ -72,12 +69,12 @@ public class CassandraJmxCompactionManagerTest {
     }
 
     @Test
-    public void verifyTombStoneCompactionTask() throws InterruptedException, TimeoutException, ExecutionException {
+    public void verifyTombstoneCompactionTask() throws InterruptedException, TimeoutException, ExecutionException {
         CassandraJmxCompactionManager clientManager = CassandraJmxCompactionManager.create(mockedClients, exec);
         clientManager.performTombstoneCompaction(10, TEST_KEY_SPACE, TEST_TABLE_NAME);
         CassandraJmxCompactionClient client = Iterables.get(mockedClients, 0);
 
-        verify(client).truncateAllHints();
+        verify(client).deleteLocalHints();
         verify(client).forceTableFlush(TEST_KEY_SPACE, TEST_TABLE_NAME);
         verify(client).forceTableCompaction(TEST_KEY_SPACE, TEST_TABLE_NAME);
     }

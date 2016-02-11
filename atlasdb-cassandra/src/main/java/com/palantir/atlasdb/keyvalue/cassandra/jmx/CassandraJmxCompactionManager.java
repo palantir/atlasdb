@@ -30,7 +30,6 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 /**
@@ -55,47 +54,70 @@ public class CassandraJmxCompactionManager {
                                            String keyspace,
                                            String tableName) throws InterruptedException, TimeoutException {
         Stopwatch stopWatch = Stopwatch.createStarted();
-        removeHintedHandoff();
-        long remainingTimeoutSeconds = timeoutInSeconds - stopWatch.elapsed(TimeUnit.SECONDS);
-
-        // ALL hinted handoffs need to be deleted before moving to tombstone compaction task
-        deleteTombStone(keyspace, tableName, remainingTimeoutSeconds);
-    }
-
-    private void removeHintedHandoff() throws InterruptedException {
-        CassandraJmxCompactionClient client = Iterables.get(clients, 0);
-        try {
-            client.truncateAllHints();
-        } catch (ExecutionException e) {
-            log.error("Failed to remove hinted handoff.", e);
+        if (!removeHintedHandoff(timeoutInSeconds)) {
             return;
         }
-        log.info("All hinted handoffs are deleted.");
-    }
+        log.info("All hinted handoff deletion tasks are completed.");
 
-    private void deleteTombStone(String keyspace, String tableName, long timeoutInSeconds) throws InterruptedException, TimeoutException {
-        List<TombStoneCompactionTask> compactionTasks = Lists.newArrayListWithExpectedSize(clients.size());
-        for (CassandraJmxCompactionClient client : clients) {
-            compactionTasks.add(new TombStoneCompactionTask(client, keyspace, tableName));
+        long elapsedSeconds = stopWatch.elapsed(TimeUnit.SECONDS);
+        long remainingTimeoutSeconds = timeoutInSeconds - elapsedSeconds;
+        if (remainingTimeoutSeconds <= 0) {
+            throw new TimeoutException(String.format("Task execution timeout in {} seconds. Timeout seconds:{}.",
+                    elapsedSeconds, timeoutInSeconds));
         }
-        executeParallel(exec, compactionTasks, timeoutInSeconds);
+
+        // ALL HINTED HANDOFFS NEED TO BE DELETED BEFORE MOVING TO TOMBSTONE COMPACTION TASK
+        if (!deleteTombstone(keyspace, tableName, remainingTimeoutSeconds)) {
+            return;
+        }
         log.info("All compaction tasks are completed.");
     }
 
-    private void executeParallel(ExecutorService exec, List<? extends Callable<Boolean>> tasks, long timeoutInSeconds)
+    private boolean removeHintedHandoff(long timeoutInSeconds) throws InterruptedException, TimeoutException {
+        List<HintedHandOffDeletionTask> hintedHandoffDeletionTasks = Lists.newArrayListWithExpectedSize(clients.size());
+        for (CassandraJmxCompactionClient client : clients) {
+            hintedHandoffDeletionTasks.add(new HintedHandOffDeletionTask(client));
+        }
+
+        return executeInParallel(exec, hintedHandoffDeletionTasks, timeoutInSeconds);
+    }
+
+    private boolean deleteTombstone(String keyspace, String tableName, long timeoutInSeconds) throws InterruptedException, TimeoutException {
+        List<TombstoneCompactionTask> compactionTasks = Lists.newArrayListWithExpectedSize(clients.size());
+        for (CassandraJmxCompactionClient client : clients) {
+            compactionTasks.add(new TombstoneCompactionTask(client, keyspace, tableName));
+        }
+
+        return executeInParallel(exec, compactionTasks, timeoutInSeconds);
+    }
+
+    private boolean executeInParallel(ExecutorService exec, List<? extends Callable<Boolean>> tasks, long timeoutInSeconds)
             throws InterruptedException, TimeoutException {
         Stopwatch stopWatch = Stopwatch.createStarted();
         List<Future<Boolean>> futures = exec.invokeAll(tasks, timeoutInSeconds, TimeUnit.SECONDS);
 
         for (Future<Boolean> f : futures) {
             if (f.isCancelled()) {
-                log.error("Task execution timeout in {} seconds. Timeout seconds:{}.", stopWatch.stop(), timeoutInSeconds);
-                throw new TimeoutException(String.format("Task execution timeout in {} seconds. Timeout seconds:{}.",
+                log.error("Task execution timeouts in {} seconds. Timeout seconds:{}.", stopWatch.stop(), timeoutInSeconds);
+                throw new TimeoutException(String.format("Task execution timeouts in {} seconds. Timeout seconds:{}.",
                         stopWatch.stop(), timeoutInSeconds));
+            }
 
+            boolean taskCompleted;
+            try {
+                taskCompleted = f.get();
+            } catch (ExecutionException e) {
+                log.error("Failed to complete tasks.", e);
+                return false;
+            }
+            if (!taskCompleted) {
+                log.error("Failed to complete tasks.");
+                return false;
             }
         }
+
         log.info("All tasks completed in {}.", stopWatch.stop());
+        return true;
     }
 
     public String getCompactionStatus() {

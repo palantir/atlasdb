@@ -54,9 +54,9 @@ public class CassandraJmxCompactionClientTest {
     }
 
     @Test
-    public void verifyTruncateAllHints() throws ExecutionException, InterruptedException {
-        jmxClient.truncateAllHints();
-        verify(mockedHHProxy).truncateAllHints();
+    public void verifyDeleteLocalHints() {
+        jmxClient.deleteLocalHints();
+        verify(mockedHHProxy).deleteHintsForEndpoint(FAKE_HOST);
     }
 
     @Test
