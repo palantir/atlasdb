@@ -61,7 +61,7 @@ public class CassandraJmxCompaction {
         jmxCompaction.setJmxSslProperty(jmxConfig.get());
         ImmutableSet<CassandraJmxCompactionClient> clients = jmxCompaction.createCompactionClients(jmxConfig.get());
         ExecutorService exec = Executors.newFixedThreadPool(clients.size(),
-                new ThreadFactoryBuilder().setDaemon(true).setNameFormat("Cassandra-Jmx-Compaction-ThreadPool-%d").build());
+                new ThreadFactoryBuilder().setNameFormat("Cassandra-Jmx-Compaction-ThreadPool-%d").build());
 
         return Optional.of(CassandraJmxCompactionManager.create(clients, exec));
     }

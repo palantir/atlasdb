@@ -133,6 +133,8 @@ public class CassandraJmxCompactionManager {
      * close all the JMX compaction connection
      */
     public void close() {
+        log.info("shutting down...");
+        exec.shutdown();
         log.info("closing {} JMX clients.", clients.size());
         for (CassandraJmxCompactionClient client : clients) {
             client.close();
