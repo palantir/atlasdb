@@ -109,7 +109,9 @@ public class CassandraJmxCompactionManager {
             } catch (ExecutionException e) {
                 Throwable t = e.getCause();
                 if (t instanceof UndeclaredThrowableException) {
-                    log.error("Major LCS compactions are only supported against C* 2.2+; " + "you will need to manually re-arrange SSTables into L0 " + "if you want all deleted data immediately removed from the cluster.");
+                    log.error("Major LCS compactions are only supported against C* 2.2+; "
+                            + "you will need to manually re-arrange SSTables into L0 "
+                            + "if you want all deleted data immediately removed from the cluster.");
                 }
                 log.error("Failed to complete tasks.", e);
                 return false;
