@@ -31,6 +31,7 @@ public class HintedHandOffDeletionTask implements Callable<Void> {
     @Override
     public Void call() throws Exception {
         client.deleteLocalHints();
+        log.info("Deleted local hints.");
         return null;
     }
 }

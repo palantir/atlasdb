@@ -42,7 +42,10 @@ public class TombstoneCompactionTask implements Callable<Void> {
     public Void call() throws Exception {
         // table flush will make sure tombstone is persisted on disk for tombstone compaction
         client.forceTableFlush(keyspace, tableName);
+        log.info("Completed table flush.");
+
         client.forceTableCompaction(keyspace, tableName);
+        log.info("Completed table compaction.");
         return null;
     }
 }
