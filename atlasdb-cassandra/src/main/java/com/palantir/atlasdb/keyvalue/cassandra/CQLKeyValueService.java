@@ -1115,8 +1115,8 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     public void compactInternally(String tableName) {
         Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName), "tableName:[%s] should not be null or empty", tableName);
         CassandraKeyValueServiceConfig config = configManager.getConfig();
-        if (!compactionManager.isPresent() || !config.jmx().isPresent()) {
-            log.warn("No compaction client was configured, but compact was called. If you actually want to clear deleted data immediately " +
+        if (!compactionManager.isPresent()) {
+            log.error("No compaction client was configured, but compact was called. If you actually want to clear deleted data immediately " +
                     "from Cassandra, lower your gc_grace_seconds setting and run `nodetool compact {} {}`.", config.keyspace(), tableName);
             return;
         }
@@ -1130,7 +1130,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
             log.error("Compaction could not finish in {} seconds. {}", compactionTimeoutSeconds, e.getMessage());
             log.error(compactionManager.get().getCompactionStatus());
         } catch (InterruptedException e) {
-            log.error("Compaction for {}.{} was interupted.", config.keyspace(), tableName);
+            log.error("Compaction for {}.{} was interrupted.", config.keyspace(), tableName);
         } finally {
             alterTableForCompaction(tableName, CassandraConstants.GC_GRACE_SECONDS, CassandraConstants.TOMBSTONE_THRESHOLD_RATIO);
             CQLKeyValueServices.waitForSchemaVersionsToCoalesce("setting up tables post-compaction", this);
