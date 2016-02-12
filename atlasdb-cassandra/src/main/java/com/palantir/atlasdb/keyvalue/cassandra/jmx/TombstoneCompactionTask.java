@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.jmx;
 
-import java.lang.reflect.UndeclaredThrowableException;
 import java.util.concurrent.Callable;
 
 import org.slf4j.Logger;
@@ -24,7 +23,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 
-public class TombstoneCompactionTask implements Callable<Boolean> {
+public class TombstoneCompactionTask implements Callable<Void> {
     private static final Logger log = LoggerFactory.getLogger(TombstoneCompactionTask.class);
     private final CassandraJmxCompactionClient client;
     private final String keyspace;
@@ -40,21 +39,10 @@ public class TombstoneCompactionTask implements Callable<Boolean> {
     }
 
     @Override
-    public Boolean call() {
-        try {
-            // table flush will make sure tombstone is persisted on disk for tombstone compaction
-            client.forceTableFlush(keyspace, tableName);
-            client.forceTableCompaction(keyspace, tableName);
-        } catch (Exception e) {
-            if (e instanceof UndeclaredThrowableException) {
-                log.error("Major LCS compactions are only supported against C* 2.2+; " +
-                        "you will need to manually re-arrange SSTables into L0 " +
-                        "if you want all deleted data immediately removed from the cluster.", e);
-                return false;
-            }
-            log.error("Failed to complete TombstoneCompactionTask.", e);
-            return false;
-        }
-        return true;
+    public Void call() throws Exception {
+        // table flush will make sure tombstone is persisted on disk for tombstone compaction
+        client.forceTableFlush(keyspace, tableName);
+        client.forceTableCompaction(keyspace, tableName);
+        return null;
     }
 }

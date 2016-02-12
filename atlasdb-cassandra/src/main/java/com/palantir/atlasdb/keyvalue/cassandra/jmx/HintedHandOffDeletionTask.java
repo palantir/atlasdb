@@ -20,7 +20,7 @@ import java.util.concurrent.Callable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class HintedHandOffDeletionTask implements Callable<Boolean> {
+public class HintedHandOffDeletionTask implements Callable<Void> {
     private static final Logger log = LoggerFactory.getLogger(HintedHandOffDeletionTask.class);
     private final CassandraJmxCompactionClient client;
 
@@ -29,13 +29,8 @@ public class HintedHandOffDeletionTask implements Callable<Boolean> {
     }
 
     @Override
-    public Boolean call() {
-        try {
-            client.deleteLocalHints();
-        } catch (Exception e) {
-            log.error("Failed to complete HintedHandOffDeletionTask.", e);
-            return false;
-        }
-        return true;
+    public Void call() throws Exception {
+        client.deleteLocalHints();
+        return null;
     }
 }

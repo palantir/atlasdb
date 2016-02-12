@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.jmx;
 
+import java.lang.reflect.UndeclaredThrowableException;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -91,27 +92,26 @@ public class CassandraJmxCompactionManager {
         return executeInParallel(exec, compactionTasks, timeoutInSeconds);
     }
 
-    private boolean executeInParallel(ExecutorService exec, List<? extends Callable<Boolean>> tasks, long timeoutInSeconds)
+    private boolean executeInParallel(ExecutorService exec, List<? extends Callable<Void>> tasks, long timeoutInSeconds)
             throws InterruptedException, TimeoutException {
         Stopwatch stopWatch = Stopwatch.createStarted();
-        List<Future<Boolean>> futures = exec.invokeAll(tasks, timeoutInSeconds, TimeUnit.SECONDS);
+        List<Future<Void>> futures = exec.invokeAll(tasks, timeoutInSeconds, TimeUnit.SECONDS);
 
-        for (Future<Boolean> f : futures) {
+        for (Future<Void> f : futures) {
             if (f.isCancelled()) {
                 log.error("Task execution timeouts in {} seconds. Timeout seconds:{}.", stopWatch.stop(), timeoutInSeconds);
                 throw new TimeoutException(String.format("Task execution timeouts in {} seconds. Timeout seconds:{}.",
                         stopWatch.stop(), timeoutInSeconds));
             }
 
-            boolean taskCompleted;
             try {
-                taskCompleted = f.get();
+                f.get();
             } catch (ExecutionException e) {
+                Throwable t = e.getCause();
+                if (t instanceof UndeclaredThrowableException) {
+                    log.error("Major LCS compactions are only supported against C* 2.2+; " + "you will need to manually re-arrange SSTables into L0 " + "if you want all deleted data immediately removed from the cluster.");
+                }
                 log.error("Failed to complete tasks.", e);
-                return false;
-            }
-            if (!taskCompleted) {
-                log.error("Failed to complete tasks.");
                 return false;
             }
         }
