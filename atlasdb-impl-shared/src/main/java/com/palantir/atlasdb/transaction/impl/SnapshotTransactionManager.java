@@ -49,7 +49,7 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.timestamp.TimestampService;
 
-/* package */ class SnapshotTransactionManager extends AbstractLockAwareTransactionManager {
+public class SnapshotTransactionManager extends AbstractLockAwareTransactionManager {
     private final static int NUM_RETRIES = 10;
 
     final KeyValueService keyValueService;
@@ -64,7 +64,7 @@ import com.palantir.timestamp.TimestampService;
     final Cleaner cleaner;
     final boolean allowHiddenTableAccess;
 
-    protected SnapshotTransactionManager(KeyValueService keyValueService,
+    public SnapshotTransactionManager(KeyValueService keyValueService,
                                       TimestampService timestampService,
                                       LockClient lockClient,
                                       RemoteLockService lockService,
@@ -77,7 +77,7 @@ import com.palantir.timestamp.TimestampService;
                 constraintModeSupplier, conflictDetectionManager, sweepStrategyManager, cleaner, false);
     }
 
-    protected SnapshotTransactionManager(KeyValueService keyValueService,
+    public SnapshotTransactionManager(KeyValueService keyValueService,
                                       TimestampService timestampService,
                                       LockClient lockClient,
                                       RemoteLockService lockService,
@@ -221,6 +221,14 @@ import com.palantir.timestamp.TimestampService;
     @Override
     public RemoteLockService getLockService() {
         return lockService;
+    }
+
+    public static void createTables(KeyValueService keyValueService) {
+        keyValueService.createTable(TransactionConstants.TRANSACTION_TABLE, TransactionConstants.TRANSACTION_TABLE_METADATA.persistToBytes());
+    }
+
+    public static void deleteTables(KeyValueService keyValueService) {
+        keyValueService.dropTable(TransactionConstants.TRANSACTION_TABLE);
     }
 
     /**

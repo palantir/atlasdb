@@ -38,7 +38,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                                           ConflictDetectionManager conflictDetectionManager,
                                           SweepStrategyManager sweepStrategyManager,
                                           Cleaner cleaner) {
-        this(keyValueService,
+        super(
+                keyValueService,
                 timestampService,
                 lockClient,
                 lockService,
@@ -46,30 +47,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 constraintModeSupplier,
                 conflictDetectionManager,
                 sweepStrategyManager,
-                cleaner,
-                false);
-    }
-
-    public SerializableTransactionManager(KeyValueService keyValueService,
-                                          TimestampService timestampService,
-                                          LockClient lockClient,
-                                          RemoteLockService lockService,
-                                          TransactionService transactionService,
-                                          Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
-                                          ConflictDetectionManager conflictDetectionManager,
-                                          SweepStrategyManager sweepStrategyManager,
-                                          Cleaner cleaner,
-                                          boolean allowHiddenTableAccess) {
-        super(keyValueService,
-                timestampService,
-                lockClient,
-                lockService,
-                transactionService,
-                constraintModeSupplier,
-                conflictDetectionManager,
-                sweepStrategyManager,
-                cleaner,
-                allowHiddenTableAccess);
+                cleaner);
     }
 
     @Override
@@ -90,7 +68,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 constraintModeSupplier.get(),
                 cleaner.getTransactionReadTimeoutMillis(),
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                allowHiddenTableAccess);
+                false);
     }
 
     public TimestampService getTimestampService() {

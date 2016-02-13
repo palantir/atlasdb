@@ -27,7 +27,7 @@ import com.palantir.lock.LockClient;
 import com.palantir.lock.LockService;
 import com.palantir.timestamp.TimestampService;
 
-public class TestTransactionManagerImpl extends SerializableTransactionManager implements TestTransactionManager {
+public class TestTransactionManagerImpl extends SnapshotTransactionManager implements TestTransactionManager {
     public TestTransactionManagerImpl(KeyValueService keyValueService,
                                       TimestampService timestampService,
                                       LockClient lockClient,
