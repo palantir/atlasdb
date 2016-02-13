@@ -97,8 +97,8 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.AllTimestampsCollector;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.StartTsResultsCollector;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.ThreadSafeResultVisitor;
+import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompaction;
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionManager;
-import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionModule;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
@@ -159,7 +159,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     private TokenAwareMapper tokenAwareMapper;
 
     public static CassandraKeyValueService create(CassandraKeyValueServiceConfigManager configManager) {
-        Optional<CassandraJmxCompactionManager> compactionManager = new CassandraJmxCompactionModule().createCompactionManager(configManager);
+        Optional<CassandraJmxCompactionManager> compactionManager = CassandraJmxCompaction.createJmxCompactionManager(configManager);
         CassandraKeyValueService ret = new CassandraKeyValueService(configManager, compactionManager);
         ret.init();
         return ret;
@@ -1513,8 +1513,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     public void compactInternally(String tableName) {
         Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName), "tableName:[%s] should not be null or empty.", tableName);
         CassandraKeyValueServiceConfig config = configManager.getConfig();
-        if (!compactionManager.isPresent() || !config.jmx().isPresent()) {
-            log.warn("No compaction client was configured, but compact was called. If you actually want to clear deleted data immediately " +
+        if (!compactionManager.isPresent()) {
+            log.error("No compaction client was configured, but compact was called. If you actually want to clear deleted data immediately " +
                     "from Cassandra, lower your gc_grace_seconds setting and run `nodetool compact {} {}`.", config.keyspace(), tableName);
             return;
         }
@@ -1527,7 +1527,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             log.error("Compaction for {}.{} could not finish in {} seconds.", keyspace, tableName, timeoutInSeconds, e);
             log.error(compactionManager.get().getCompactionStatus());
         } catch (InterruptedException e) {
-            log.error("Compaction for {}.{} was interupted.", keyspace, tableName);
+            log.error("Compaction for {}.{} was interrupted.", keyspace, tableName);
         } finally {
             alterGcAndTombstone(keyspace, tableName, CassandraConstants.GC_GRACE_SECONDS, CassandraConstants.TOMBSTONE_THRESHOLD_RATIO);
         }
