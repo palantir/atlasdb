@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.cleaner;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -427,11 +428,13 @@ public final class Scrubber {
         }
 
         if (log.isInfoEnabled()) {
+            int numCells = 0;
             Set<String> tables = Sets.newHashSet();
             for (Multimap<String, Cell> v : scrubTimestampToTableNameToCell.values()) {
                 tables.addAll(v.keySet());
+                numCells += v.size();
             }
-            log.info("Attempting to scrub " + scrubTimestampToTableNameToCell.size() + " cells from tables " + tables);
+            log.info("Attempting to scrub " + numCells + " cells from tables " + tables);
         }
 
         if (scrubTimestampToTableNameToCell.size() == 0) {
@@ -491,7 +494,11 @@ public final class Scrubber {
             for (Multimap<String, Cell> v : scrubTimestampToTableNameToCell.values()) {
                 tables.addAll(v.keySet());
             }
-            log.info("Finished scrubbing " + scrubTimestampToTableNameToCell.size() + " cells from tables " + tables);
+            long minTimestamp = Collections.min(scrubTimestampToTableNameToCell.keySet());
+            long maxTimestamp = Collections.max(scrubTimestampToTableNameToCell.keySet());
+            log.info("Finished scrubbing " + numCellsReadFromScrubTable + " cells at " +
+                    scrubTimestampToTableNameToCell.size() + " timestamps (" + minTimestamp + "..." +
+                    maxTimestamp + ") from tables " + tables);
         }
 
         return numCellsReadFromScrubTable;
