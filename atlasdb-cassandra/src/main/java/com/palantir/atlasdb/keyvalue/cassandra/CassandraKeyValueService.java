@@ -849,41 +849,74 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     @Override
     public void truncateTables(final Set<String> tableNames) {
-        try {
-            trySchemaMutationLock();
-            clientPool.runWithPooledResource(new FunctionCheckedException<Client, Void, Exception>() {
-                @Override
-                public Void apply(Client client) throws Exception {
-                    for (String tableName : tableNames) {
-                        if (shouldTraceQuery(tableName)) {
-                            ByteBuffer recv_trace = client.trace_next_query();
-                            Stopwatch stopwatch = Stopwatch.createStarted();
-                            client.truncate(internalTableName(tableName));
-                            long duration = stopwatch.elapsed(TimeUnit.MILLISECONDS);
-                            if (duration > getMinimumDurationToTraceMillis()) {
-                                log.error("Traced a call to " + tableName + " that took " + duration + " ms."
-                                        + " It will appear in system_traces with UUID=" + CassandraKeyValueServices.convertCassandraByteBufferUUIDtoString(recv_trace));
+        final Set<String> tablesToTruncate = filterOutTrulyEmptyTables(tableNames);
+        if (!tablesToTruncate.isEmpty()) {
+            try {
+                trySchemaMutationLock();
+                clientPool.runWithPooledResource(new FunctionCheckedException<Client, Void, Exception>() {
+                    @Override
+                    public Void apply(Client client) throws Exception {
+                        for (String tableName : tablesToTruncate) {
+                            if (shouldTraceQuery(tableName)) {
+                                ByteBuffer recv_trace = client.trace_next_query();
+                                Stopwatch stopwatch = Stopwatch.createStarted();
+                                client.truncate(internalTableName(tableName));
+                                long duration = stopwatch.elapsed(TimeUnit.MILLISECONDS);
+                                if (duration > getMinimumDurationToTraceMillis()) {
+                                    log.error("Traced a call to " + tableName + " that took " + duration + " ms."
+                                            + " It will appear in system_traces with UUID=" + CassandraKeyValueServices.convertCassandraByteBufferUUIDtoString(recv_trace));
+                                }
+                            } else {
+                                client.truncate(internalTableName(tableName));
                             }
-                        } else {
-                            client.truncate(internalTableName(tableName));
                         }
+                        CassandraKeyValueServices.waitForSchemaVersions(client, "(" + tablesToTruncate.size() + " tables in a call to truncateTables)");
+                        return null;
                     }
-                    CassandraKeyValueServices.waitForSchemaVersions(client, "(" + tableNames.size() + " tables in a call to truncateTables)");
-                    return null;
-                }
 
-                @Override
-                public String toString() {
-                    return "truncateTables(" + tableNames.size() + " tables)";
-                }
-            });
-        } catch (UnavailableException e) {
-            throw new PalantirRuntimeException("Creating tables requires all Cassandra nodes to be up and available.");
-        } catch (Exception e) {
-            throw Throwables.throwUncheckedException(e);
-        } finally {
-            schemaMutationLock.unlock();
+                    @Override
+                    public String toString() {
+                        return "truncateTables(" + tablesToTruncate.size() + " tables)";
+                    }
+                });
+            } catch (UnavailableException e) {
+                throw new PalantirRuntimeException("Creating tables requires all Cassandra nodes to be up and available.");
+            } catch (Exception e) {
+                throw Throwables.throwUncheckedException(e);
+            } finally {
+                schemaMutationLock.unlock();
+            }
         }
+    }
+
+    private Set<String> filterOutTrulyEmptyTables(Set<String> tableNames) {
+        final Set<String> nonEmptyTables = Sets.newHashSet();
+        SliceRange slice = new SliceRange(ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY), ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY), false, Integer.MAX_VALUE);
+        final SlicePredicate predicate = new SlicePredicate();
+        predicate.setSlice_range(slice);
+
+        for (final String tableName : tableNames) {
+            int results = 1;
+            try {
+                results = clientPool.runWithPooledResource(new FunctionCheckedException<Client, Integer, Exception>() {
+                    @Override
+                    public Integer apply(Client client) throws Exception {
+                        List<KeySlice> range_slices = client.get_range_slices(new ColumnParent(internalTableName(tableName)), predicate, new KeyRange(1), deleteConsistency);
+                        return range_slices.size();
+                    }
+                });
+            } catch (Exception e) {
+                log.error("Table " + tableName + " could not be checked for emptiness. Proceeding with requested operation without optimization.");
+            }
+
+            if (results != 0) {
+                nonEmptyTables.add(tableName);
+            } else {
+                log.info("Table " + tableName + " is empty and the requested operation will be skipped.");
+            }
+        }
+
+        return nonEmptyTables;
     }
 
     @Override
@@ -1146,7 +1179,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                         if (cf.getName().equalsIgnoreCase(internalTableName(tableName))) {
                             client.system_drop_column_family(internalTableName(tableName));
                             putMetadataWithoutChangingSettings(tableName, PtBytes.EMPTY_BYTE_ARRAY);
-                            CassandraKeyValueServices.waitForSchemaVersions(client, tableName);
+                            CassandraKeyValueServices.waitForSchemaVersions(client, tableName, configManager.getConfig().schemaMutationTimeoutMillis());
                             return null;
                         }
                     }
@@ -1194,7 +1227,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                             log.warn(String.format("Ignored call to drop a table (%s) that already existed.", table));
                         }
                     }
-                    CassandraKeyValueServices.waitForSchemaVersions(client, "(all tables in a call to dropTables)");
+                    CassandraKeyValueServices.waitForSchemaVersions(client, "(all tables in a call to dropTables)", configManager.getConfig().schemaMutationTimeoutMillis());
                     return null;
                 }
             });
@@ -1223,7 +1256,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         }
         CfDef cf = CassandraConstants.getStandardCfDef(config.keyspace(), internalTableName(tableName));
         client.system_add_column_family(cf);
-        CassandraKeyValueServices.waitForSchemaVersions(client, tableName);
+        CassandraKeyValueServices.waitForSchemaVersions(client, tableName, configManager.getConfig().schemaMutationTimeoutMillis());
         return;
     }
 
@@ -1259,7 +1292,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                         }
                     }
                     if (!tablesToCreate.isEmpty()) {
-                        CassandraKeyValueServices.waitForSchemaVersions(client, "(all tables in a call to createTables)");
+                        CassandraKeyValueServices.waitForSchemaVersions(client, "(all tables in a call to createTables)", configManager.getConfig().schemaMutationTimeoutMillis());
                     }
                     return null;
                 }
@@ -1394,7 +1427,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                                 client.system_update_column_family(cf);
                             }
 
-                            CassandraKeyValueServices.waitForSchemaVersions(client, "(all tables in a call to putMetadataForTables)");
+                            CassandraKeyValueServices.waitForSchemaVersions(client, "(all tables in a call to putMetadataForTables)", configManager.getConfig().schemaMutationTimeoutMillis());
                         }
                         // Done with actual schema mutation, push the metadata
                         put(CassandraConstants.METADATA_TABLE, newMetadata, System.currentTimeMillis());
@@ -1552,7 +1585,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                             cf.setGc_grace_seconds(gcGraceSeconds);
                             cf.setCompaction_strategy_options(ImmutableMap.of("tombstone_threshold", String.valueOf(tombstoneThresholdRatio)));
                             client.system_update_column_family(cf);
-                            CassandraKeyValueServices.waitForSchemaVersions(client, tableName);
+                            CassandraKeyValueServices.waitForSchemaVersions(client, tableName, configManager.getConfig().schemaMutationTimeoutMillis());
                             log.trace("gc_grace_seconds is set to {} for {}.{}", gcGraceSeconds, keyspace, tableName);
                             log.trace("tombstone_threshold_ratio is set to {} for {}.{}", tombstoneThresholdRatio, keyspace, tableName);
                         }
