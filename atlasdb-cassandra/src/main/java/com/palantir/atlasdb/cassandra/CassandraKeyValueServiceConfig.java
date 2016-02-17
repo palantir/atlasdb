@@ -64,9 +64,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     }
 
     @Value.Default
-    public int fetchBatchCount() {
-        return 5000;
-    }
+    public int fetchBatchCount() { return 5000; }
 
     @Value.Default
     public boolean safetyDisabled() {
@@ -85,7 +83,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
      */
     @Value.Default
     public int socketTimeoutMillis() {
-        return 2000;
+        return 2 * 1000;
     }
 
     /**
@@ -96,13 +94,16 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
      */
     @Value.Default
     public int socketQueryTimeoutMillis() {
-        return 62000;
+        return 62 * 1000;
     }
 
     @Value.Default
     public int cqlPoolTimeoutMillis() {
-        return 5000;
+        return 5 * 1000;
     }
+
+    @Value.Default
+    public int schemaMutationTimeoutMillis() { return 60 * 1000; }
 
     @Value.Default
     public int rangesConcurrency() {

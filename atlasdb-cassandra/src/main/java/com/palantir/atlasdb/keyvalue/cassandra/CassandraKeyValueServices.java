@@ -54,7 +54,7 @@ public class CassandraKeyValueServices {
 
     private static long INITIAL_SLEEP_TIME = 100;
     private static long MAX_SLEEP_TIME = 5000;
-    static void waitForSchemaVersions(Cassandra.Client client, String tableName) throws InvalidRequestException, TException {
+    static void waitForSchemaVersions(Cassandra.Client client, String tableName, int schemaTimeoutMillis) throws InvalidRequestException, TException {
         long start = System.currentTimeMillis();
         long sleepTime = INITIAL_SLEEP_TIME;
         Map<String, List<String>> versions;
@@ -69,7 +69,7 @@ public class CassandraKeyValueServices {
                 throw Throwables.throwUncheckedException(e);
             }
             sleepTime = Math.min(sleepTime * 2, MAX_SLEEP_TIME);
-        } while (System.currentTimeMillis() < start + CassandraConstants.SECONDS_WAIT_FOR_VERSIONS*1000);
+        } while (System.currentTimeMillis() < start + schemaTimeoutMillis);
         StringBuilder sb = new StringBuilder();
         sb.append(String.format("Cassandra cluster cannot come to agreement on schema versions, after attempting to modify table %s.", tableName));
         for ( Entry<String, List<String>> version : versions.entrySet()) {
@@ -88,7 +88,7 @@ public class CassandraKeyValueServices {
     /**
      * This is a request from pbrown / FDEs; basically it's a pain to do DB surgery to get out of failed patch upgrades, the majority of which requires schema mutations; they would find it preferable to stop before starting the actual patch upgrade / setting APPLYING state.
      */
-    static void failQuickInInitializationIfClusterAlreadyInInconsistentState(Cassandra.Client client, boolean safetyDisabled) {
+    static void failQuickInInitializationIfClusterAlreadyInInconsistentState(Cassandra.Client client, boolean safetyDisabled, int schemaTimeoutMillis) {
         if (safetyDisabled) {
             log.error("Skipped checking the cassandra cluster during initialization, because safety checks are disabled. Please re-enable safety checks when you are outside of your unusual migration period.");
             return;
@@ -96,7 +96,7 @@ public class CassandraKeyValueServices {
         String errorMessage = "While checking the cassandra cluster during initialization, we noticed schema versions could not settle. Failing quickly to avoid getting into harder to fix states (i.e. partially applied patch upgrades, etc). " +
                 "This state is in rare cases the correct one to be in; for instance schema versions will be incapable of settling in a cluster of heterogenous Cassandra 1.2/2.0 nodes. If that is the case, disable safety checks in your Cassandra KVS preferences.";
         try {
-            waitForSchemaVersions(client, "(none, just an initialization check)");
+            waitForSchemaVersions(client, "(none, just an initialization check)", schemaTimeoutMillis);
         } catch (TException e) {
             throw new RuntimeException(errorMessage, e);
         } catch (IllegalStateException e) {
