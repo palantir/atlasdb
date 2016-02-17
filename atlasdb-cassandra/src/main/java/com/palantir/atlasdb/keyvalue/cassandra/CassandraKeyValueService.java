@@ -243,7 +243,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 createTableInternal(client, CassandraConstants.METADATA_TABLE);
                 CassandraVerifier.sanityCheckRingConsistency(currentHosts, keyspace, ssl, safetyDisabled, socketTimeoutMillis, socketQueryTimeoutMillis);
                 upgradeFromOlderInternalSchema(client);
-                CassandraKeyValueServices.failQuickInInitializationIfClusterAlreadyInInconsistentState(client, config.safetyDisabled());
+                CassandraKeyValueServices.failQuickInInitializationIfClusterAlreadyInInconsistentState(client, config.safetyDisabled(), configManager.getConfig().schemaMutationTimeoutMillis());
                 return;
             } catch (TException e) {
                 log.warn("failed to connect to host: " + addr, e);
@@ -282,7 +282,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             if (!modifiedKsDef.equals(originalKsDef)) {
                 modifiedKsDef.setCf_defs(ImmutableList.<CfDef>of()); // Can't call system_update_keyspace to update replication factor if CfDefs are set
                 client.system_update_keyspace(modifiedKsDef);
-                CassandraKeyValueServices.waitForSchemaVersions(client, "(updating the existing keyspace)");
+                CassandraKeyValueServices.waitForSchemaVersions(client, "(updating the existing keyspace)", configManager.getConfig().schemaMutationTimeoutMillis());
             }
         } catch (NotFoundException e) {
             createKeyspace(replicationFactor, safetyDisabled, keyspace, client);
@@ -296,7 +296,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         lowerConsistencyWhenSafe(client, ks, replicationFactor);
         ks.setDurable_writes(true);
         client.system_add_keyspace(ks);
-        CassandraKeyValueServices.waitForSchemaVersions(client, "(adding the initial empty keyspace)");
+        CassandraKeyValueServices.waitForSchemaVersions(client, "(adding the initial empty keyspace)", configManager.getConfig().schemaMutationTimeoutMillis());
     }
 
     private void upgradeFromOlderInternalSchema(Client client) throws NotFoundException, InvalidRequestException, TException {
@@ -870,7 +870,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                                 client.truncate(internalTableName(tableName));
                             }
                         }
-                        CassandraKeyValueServices.waitForSchemaVersions(client, "(" + tablesToTruncate.size() + " tables in a call to truncateTables)");
+                        CassandraKeyValueServices.waitForSchemaVersions(client, "(" + tablesToTruncate.size() + " tables in a call to truncateTables)", configManager.getConfig().schemaMutationTimeoutMillis());
                         return null;
                     }
 
@@ -1537,7 +1537,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     private void trySchemaMutationLock() throws InterruptedException, TimeoutException {
-        if (!schemaMutationLock.tryLock(CassandraConstants.SECONDS_TO_WAIT_FOR_SCHEMA_MUTATION_LOCK, TimeUnit.SECONDS)) {
+        if (!schemaMutationLock.tryLock(configManager.getConfig().schemaMutationTimeoutMillis(), TimeUnit.MILLISECONDS)) {
             throw new TimeoutException("AtlasDB was unable to get a lock on Cassandra system schema mutations for your cluster. Likely cause: Service(s) performing heavy schema mutations in parallel, or extremely heavy Cassandra cluster load.");
         }
     }
