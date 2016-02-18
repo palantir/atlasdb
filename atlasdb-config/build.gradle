@@ -12,7 +12,10 @@ dependencies {
     compile('com.netflix.feign:feign-jaxrs:8.6.1') {
         exclude module: 'jsr311-api'
     }
-    compile "com.netflix.feign:feign-okhttp:8.6.1"
+    // versions below 8.10.0 have a bug where POST requets must have a body
+    compile('com.netflix.feign:feign-okhttp:8.10.1') {
+        exclude module: 'feign-core'
+    }
     compile 'javax.validation:validation-api:1.1.0.Final'
 
     processor 'org.immutables:value:2.0.21'
