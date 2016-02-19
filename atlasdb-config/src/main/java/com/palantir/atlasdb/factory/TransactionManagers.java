@@ -80,8 +80,9 @@ public class TransactionManagers {
     public static SerializableTransactionManager create(AtlasDbConfig config,
                                                         Optional<SSLSocketFactory> sslSocketFactory,
                                                         Schema schema,
-                                                        Environment env) {
-        return create(config, sslSocketFactory, ImmutableSet.of(schema), env);
+                                                        Environment env,
+                                                        boolean allowHiddenTableAccess) {
+        return create(config, sslSocketFactory, ImmutableSet.of(schema), env, allowHiddenTableAccess);
     }
 
     /**
@@ -91,7 +92,8 @@ public class TransactionManagers {
     public static SerializableTransactionManager create(AtlasDbConfig config,
                                                         Optional<SSLSocketFactory> sslSocketFactory,
                                                         Set<Schema> schemas,
-                                                        Environment env) {
+                                                        Environment env,
+                                                        boolean allowHiddenTableAccess) {
         final AtlasDbFactory kvsFactory = getKeyValueServiceFactory(config.keyValueService().type());
         final KeyValueService rawKvs = kvsFactory.createRawKeyValueService(config.keyValueService());
 
@@ -153,7 +155,8 @@ public class TransactionManagers {
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
                 conflictManager,
                 sweepStrategyManager,
-                cleaner);
+                cleaner,
+                allowHiddenTableAccess);
 
         SweepTaskRunner sweepRunner = new SweepTaskRunnerImpl(
                 transactionManager,

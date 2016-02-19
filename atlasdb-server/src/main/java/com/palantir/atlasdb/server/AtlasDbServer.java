@@ -43,7 +43,7 @@ public class AtlasDbServer extends Application<AtlasDbServerConfiguration> {
                     public void register(Object resource) {
                         environment.jersey().register(resource);
                     }
-                });
+                }, false);
 
         TableMetadataCache cache = new TableMetadataCache(tm.getKeyValueService());
 
