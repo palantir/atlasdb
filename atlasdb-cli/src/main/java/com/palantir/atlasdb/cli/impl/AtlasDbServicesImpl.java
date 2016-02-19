@@ -33,7 +33,7 @@ public class AtlasDbServicesImpl implements AtlasDbServices {
                     @Override
                     public void register(Object resource) {
                     }
-                });
+                }, false);
         return new AtlasDbServicesImpl(tm);
     }
 

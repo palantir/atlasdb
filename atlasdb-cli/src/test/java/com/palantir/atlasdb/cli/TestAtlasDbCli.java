@@ -60,17 +60,21 @@ public class TestAtlasDbCli extends AbstractAtlasDbCli<TestAtlasDbCli.TestAtlasD
 
     @Test
     public void testRun() {
-        Preconditions.checkArgument(new TestAtlasDbCli().run(new String[] { "--config", TEST_CONFIG_FILE, "-r"}, TestAtlasDbCliOptions.class) == 0);
+        assertSuccessful(new TestAtlasDbCli().run(new String[] { "--config", TEST_CONFIG_FILE, "-r"}, TestAtlasDbCliOptions.class));
     }
 
     @Test
     public void testFlag1Run() {
-        Preconditions.checkArgument(new TestAtlasDbCli().run(new String[] { "--config", TEST_CONFIG_FILE, "--flag1"}, TestAtlasDbCliOptions.class) == 0);
+        assertSuccessful(new TestAtlasDbCli().run(new String[] { "--config", TEST_CONFIG_FILE, "--flag1"}, TestAtlasDbCliOptions.class));
     }
 
     @Test
     public void testFlag2Run() {
-        Preconditions.checkArgument(new TestAtlasDbCli().run(new String[] { "-c", TEST_CONFIG_FILE, "--flag2", "test.new_table"}, TestAtlasDbCliOptions.class) == 0);
+        assertSuccessful(new TestAtlasDbCli().run(new String[] { "-c", TEST_CONFIG_FILE, "--flag2", "test.new_table"}, TestAtlasDbCliOptions.class));
+    }
+
+    private void assertSuccessful(int returnVal) {
+        Preconditions.checkArgument(returnVal == 0, "CLI exited with non-zero exit code.");
     }
 
 }

@@ -13,4 +13,3 @@ configurations.matching({ it.name in ['compile', 'runtime'] }).all {
           force 'org.apache.commons:commons-lang3:3.1'
       }
 }
-
