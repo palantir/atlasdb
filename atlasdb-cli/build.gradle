@@ -1,0 +1,16 @@
+apply from: '../gradle/shared.gradle'
+
+dependencies {
+  compile project(':atlasdb-server')
+  compile project(':atlasdb-impl-shared')
+  compile 'com.lexicalscope.jewelcli:jewelcli:0.8.3'
+}
+
+configurations.matching({ it.name in ['compile', 'runtime'] }).all {
+      resolutionStrategy {
+          force 'com.google.code.findbugs:jsr305:' + libVersions.jsr305
+          force 'org.slf4j:slf4j-api:' + libVersions.slf4j
+          force 'org.apache.commons:commons-lang3:3.1'
+      }
+}
+
