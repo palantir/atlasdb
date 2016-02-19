@@ -15,14 +15,24 @@
  */
 package com.palantir.paxos;
 
+import java.io.Closeable;
+import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class PaxosAcceptorImpl implements PaxosAcceptor {
+public class PaxosAcceptorImpl implements PaxosAcceptor, Closeable {
     private static final Logger logger = LoggerFactory.getLogger(PaxosAcceptorImpl.class);
+
+    public static PaxosAcceptor newAcceptor(File logDir) {
+        PaxosStateLog<PaxosAcceptorState> log = PaxosStateLogImpl.create(logDir);
+        return new PaxosAcceptorImpl(
+                new ConcurrentSkipListMap<Long, PaxosAcceptorState>(),
+                log,
+                log.getGreatestLogEntry());
+    }
 
     /**
      * @param logDir string path for directory to place durable logs
@@ -30,11 +40,7 @@ public class PaxosAcceptorImpl implements PaxosAcceptor {
      * @return a new acceptor
      */
     public static PaxosAcceptor newAcceptor(String logDir) {
-        PaxosStateLog<PaxosAcceptorState> log = new PaxosStateLogImpl<PaxosAcceptorState>(logDir);
-        return new PaxosAcceptorImpl(
-                new ConcurrentSkipListMap<Long, PaxosAcceptorState>(),
-                log,
-                log.getGreatestLogEntry());
+        return newAcceptor(new File(logDir));
     }
 
     final ConcurrentSkipListMap<Long, PaxosAcceptorState> state;
@@ -143,6 +149,17 @@ public class PaxosAcceptorImpl implements PaxosAcceptor {
                 state.put(seq, PaxosAcceptorState.BYTES_HYDRATOR.hydrateFromBytes(bytes));
             }
         }
+    }
+
+    @Override
+    public void close() {
+        log.close();
+    }
+
+    @Override
+    public String toString() {
+        return "PaxosAcceptorImpl [state=" + state + ", log=" + log + ", greatestInLogAtStartup="
+                + greatestInLogAtStartup + "]";
     }
 
 }

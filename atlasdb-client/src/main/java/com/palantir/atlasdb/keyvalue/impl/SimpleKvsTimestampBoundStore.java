@@ -35,9 +35,15 @@ import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
-import com.palantir.timestamp.MultipleRunningTimestampServiceError;
+import com.palantir.timestamp.MultipleRunningTimestampServiceException;
 import com.palantir.timestamp.TimestampBoundStore;
 
+/**
+ * This stores the latest timestamp bounds into the KV store directly.
+ * This class is NOT THREAD SAFE and DOES NOT support leader election.
+ * <p>
+ * The key value service used must allow put to be called to overwrite data.
+ */
 public class SimpleKvsTimestampBoundStore implements TimestampBoundStore {
     private static final String ROW_AND_COLUMN_NAME = "ts";
     private static final long KV_TS = 0L;
@@ -77,14 +83,14 @@ public class SimpleKvsTimestampBoundStore implements TimestampBoundStore {
     }
 
     @Override
-    public synchronized void storeUpperLimit(long limit) throws MultipleRunningTimestampServiceError {
+    public synchronized void storeUpperLimit(long limit) throws MultipleRunningTimestampServiceException {
         Map<Cell, Value> result = kv.get(AtlasDbConstants.TIMESTAMP_TABLE, ImmutableMap.of(TS_CELL, KV_TS+1));
         long oldValue = getValueFromResult(result);
         if (oldValue != currentLimit) {
             String msg = "Timestamp limit changed underneath us (limit in memory: " + currentLimit
                     + "). This may indicate that "
                     + "another timestamp service is running against this key value store!";
-            throw new MultipleRunningTimestampServiceError(msg);
+            throw new MultipleRunningTimestampServiceException(msg);
         }
         putValue(limit);
         currentLimit = limit;

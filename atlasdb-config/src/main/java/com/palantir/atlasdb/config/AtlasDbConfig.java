@@ -15,13 +15,22 @@
  */
 package com.palantir.atlasdb.config;
 
+import java.util.List;
+
 import org.immutables.value.Value;
+import org.immutables.value.Value.Check;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.spi.AtlasDbFactory;
+import com.palantir.atlasdb.spi.AtlasDbServicePlugin;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.spi.TimestampServiceConfig;
+import com.palantir.atlasdb.spi.TransactionServiceConfig;
+import com.palantir.leader.NotCurrentLeaderException;
 
 @JsonDeserialize(as = ImmutableAtlasDbConfig.class)
 @JsonSerialize(as = ImmutableAtlasDbConfig.class)
@@ -30,11 +39,51 @@ public abstract class AtlasDbConfig {
 
     public abstract KeyValueServiceConfig keyValueService();
 
+    /**
+     * This is server config that will determine how a timestamp service is created.
+     * This config object will be passed to {@link AtlasDbFactory#createTimestampService(Optional, com.palantir.atlasdb.keyvalue.api.KeyValueService)}
+     */
+    public abstract Optional<TimestampServiceConfig> timestampService();
+
+    /**
+     * This is server config that will determine how a transaction service is created.
+     * This config object will be passed to {@link AtlasDbFactory#createTransactionService(Optional, com.palantir.atlasdb.keyvalue.api.KeyValueService)}
+     */
+    public abstract Optional<TransactionServiceConfig> transactionService();
+
+    /**
+     * Server config to start a leader node.
+     * <p>
+     * A leader server also exposes a lock server and timestamp server that block
+     * on leadership.  Only one of the servers will be active at one time.  The rest
+     * will throw {@link NotCurrentLeaderException}.
+     * <p>
+     * If leader is specified {@link #timestamp()} and {@link #lock()} are not
+     * needed and will just be set to the server list from
+     * <code>leader().get().leaders()</code>
+     */
     public abstract Optional<LeaderConfig> leader();
 
+    /**
+     * Client config to connect to a running lock server.
+     */
     public abstract Optional<ServerListConfig> lock();
 
+    /**
+     * Client config to connect to a running timestamp server.
+     */
     public abstract Optional<ServerListConfig> timestamp();
+
+    public abstract List<AtlasDbServicePlugin> additionalServiceResources();
+
+    /**
+     * An {@link AtlasDbFactory} of this type will be constructed to create each
+     * component.
+     */
+    @Value.Default
+    public String getType() {
+        return keyValueService().type();
+    }
 
     /**
      * The transaction read timeout is the maximum amount of
@@ -147,5 +196,13 @@ public abstract class AtlasDbConfig {
     @Value.Default
     public int getSweepBatchSize() {
         return AtlasDbConstants.DEFAULT_SWEEP_BATCH_SIZE;
+    }
+
+    @Check
+    final void check() {
+        if (leader().isPresent()) {
+            Preconditions.checkArgument(!lock().isPresent(), "If leader is specified, lock will be set to the leader settings and may not be specified.");
+            Preconditions.checkArgument(!timestamp().isPresent(), "If leader is specified, timestamp will be set to the leader settings and may not be specified.");
+        }
     }
 }

@@ -16,9 +16,14 @@
 package com.palantir.atlasdb.keyvalue.jdbc;
 
 import com.google.auto.service.AutoService;
+import com.google.common.base.Optional;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.spi.TimestampServiceConfig;
+import com.palantir.atlasdb.spi.TransactionServiceConfig;
+import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.TimestampService;
 
@@ -36,7 +41,12 @@ public class JdbcAtlasDbFactory implements AtlasDbFactory {
     }
 
     @Override
-    public TimestampService createTimestampService(KeyValueService rawKvs) {
+    public TimestampService createTimestampService(Optional<TimestampServiceConfig> config, KeyValueService rawKvs) {
         return PersistentTimestampService.create(JdbcTimestampBoundStore.create((JdbcKeyValueService) rawKvs));
+    }
+
+    @Override
+    public TransactionService createTransactionService(Optional<TransactionServiceConfig> config, KeyValueService rawKvs) {
+        return TransactionServices.createTransactionService(config, rawKvs);
     }
 }

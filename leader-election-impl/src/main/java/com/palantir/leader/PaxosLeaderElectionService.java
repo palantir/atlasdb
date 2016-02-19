@@ -50,6 +50,7 @@ import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosQuorumChecker;
+import com.palantir.paxos.PaxosQuorumChecker.PaxosQuorumResponse;
 import com.palantir.paxos.PaxosResponse;
 import com.palantir.paxos.PaxosResponseImpl;
 import com.palantir.paxos.PaxosRoundFailureException;
@@ -116,7 +117,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                 if (leadingStatus == StillLeadingStatus.LEADING) {
                     return token;
                 } else if (leadingStatus == StillLeadingStatus.NO_QUORUM) {
-                    leaderLog.warn("The most recent known information says this server is the leader, but there is no quorum right now");
+                    leaderLog.info("The most recent known information says this server is the leader, but there is no quorum right now");
                     // If we don't have quorum we should just retry our calls.
                     continue;
                 }
@@ -170,7 +171,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         } catch (InterruptedException e) {
             return false;
         } catch (ExecutionException e) {
-            log.warn("cannot ping leader", e);
+            log.info("cannot ping current leader.", e);
             return false;
         }
     }
@@ -246,11 +247,11 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                         return Optional.of(cacheEntry.getValue());
                     }
                 } catch (InterruptedException e) {
-                    log.warn("uuid request interrupted", e);
+                    log.info("uuid request interrupted", e);
                     interrupted = true;
                     break;
                 } catch (ExecutionException e) {
-                    log.warn("unable to get uuid from server", e);
+                    log.info("unable to get uuid from server", e);
                 }
             }
 
@@ -342,7 +343,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
             proposer.propose(seq, null);
         } catch (PaxosRoundFailureException e) {
             // We have failed trying to become the leader.
-            leaderLog.warn("Leadership was not gained", e);
+            leaderLog.info("Leadership was not gained", e);
             return;
         } finally {
             lock.unlock();
@@ -476,7 +477,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         }
 
         // check if node still has quorum
-        List<PaxosResponse> responses = PaxosQuorumChecker.<PaxosAcceptor, PaxosResponse> collectQuorumResponses(
+        PaxosQuorumResponse<PaxosResponse> responses = PaxosQuorumChecker.<PaxosAcceptor, PaxosResponse> collectQuorumResponses(
                 acceptors,
                 new Function<PaxosAcceptor, PaxosResponse>() {
                     @Override
@@ -487,20 +488,20 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                 },
                 proposer.getQuorumSize(),
                 executor,
-                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT_IN_SECONDS,
-                true);
-        if (PaxosQuorumChecker.hasQuorum(responses, proposer.getQuorumSize())) {
+                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT_IN_SECONDS);
+        if (responses.hasQuorum()) {
             // If we have a quorum we are good to go
             return StillLeadingStatus.LEADING;
         }
 
-        for (PaxosResponse paxosResponse : responses) {
+        for (PaxosResponse paxosResponse : responses.getResponses()) {
             if (paxosResponse != null && !paxosResponse.isSuccessful()) {
                 // If we have a nack then someone has prepared or accepted a new seq.
                 // In this case we are most likely not the leader
                 return StillLeadingStatus.NOT_LEADING;
             }
         }
+        log.info("failed to determine if we are the leader. " + responses);
         return StillLeadingStatus.NO_QUORUM;
     }
 
@@ -531,7 +532,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
      */
     public boolean updateLearnedStateFromPeers(PaxosValue greatestLearned) {
         final long nextToLearnSeq = greatestLearned != null ? greatestLearned.getRound() + 1 : Defaults.defaultValue(long.class);
-        List<PaxosUpdate> updates = PaxosQuorumChecker.<PaxosLearner, PaxosUpdate> collectQuorumResponses(
+        PaxosQuorumResponse<PaxosUpdate> updates = PaxosQuorumChecker.<PaxosLearner, PaxosUpdate> collectQuorumResponses(
                 learners,
                 new Function<PaxosLearner, PaxosUpdate>() {
                     @Override
@@ -547,7 +548,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
 
         // learn the state accumulated from peers
         boolean learned = false;
-        for (PaxosUpdate update : updates) {
+        for (PaxosUpdate update : updates.getResponses()) {
             ImmutableCollection<PaxosValue> values = update.getValues();
             for (PaxosValue value : values) {
                 PaxosValue currentLearnedValue = knowledge.getLearnedValue(value.getRound());
@@ -560,4 +561,17 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
 
         return learned;
     }
+
+    @Override
+    public String toString() {
+        return "PaxosLeaderElectionService [lock=" + lock + ", proposer=" + proposer
+                + ", knowledge=" + knowledge + ", potentialLeadersToHosts="
+                + potentialLeadersToHosts + ", acceptors=" + acceptors + ", learners=" + learners
+                + ", updatePollingRateInMs=" + updatePollingRateInMs
+                + ", randomWaitBeforeProposingLeadership=" + randomWaitBeforeProposingLeadership
+                + ", leaderPingResponseWaitMs=" + leaderPingResponseWaitMs + ", executor="
+                + executor + ", uuidToServiceCache=" + uuidToServiceCache
+                + ", currentIsStillLeadingCall=" + currentIsStillLeadingCall + "]";
+    }
+
 }

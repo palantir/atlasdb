@@ -162,9 +162,7 @@ import com.palantir.util.Pair;
  *
  */
 public class DynamicPartitionMapImpl implements DynamicPartitionMap {
-
     private static final Logger log = LoggerFactory.getLogger(DynamicPartitionMapImpl.class);
-    private static final int MAX_VALUE_SIZE = 1024 * 1024 * 1024;
 
     private final QuorumParameters quorumParameters;
     private final CycleMap<byte[], EndpointWithStatus> ring;
@@ -212,6 +210,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
 
     private DynamicPartitionMapImpl(QuorumParameters quorumParameters, NavigableMap<byte[], KeyValueEndpoint> ring, ExecutorService executor) {
         this(quorumParameters, toRing(ring), 0L, 0, executor);
+        Preconditions.checkArgument(UnsignedBytes.lexicographicalComparator().equals(ring.comparator()), "comparator for the map must be the bytes comparator");
     }
 
     public static DynamicPartitionMapImpl create(QuorumParameters quorumParameters, NavigableMap<byte[], KeyValueEndpoint> ring, ExecutorService executor) {
@@ -238,8 +237,10 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
                 Future<?> future = execSvc.take();
                 future.get();
                 futures.remove(future);
-            } catch (InterruptedException | ExecutionException e) {
+            } catch (InterruptedException e) {
                 Throwables.throwUncheckedException(e);
+            } catch (ExecutionException e) {
+                Throwables.rewrapAndThrowUncheckedException(e.getCause());
             }
         }
     }
@@ -461,7 +462,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         return result;
     }
 
-    private static <T> void apply(final Entry<KeyValueEndpoint, ? extends T> entry, final Function<Pair<KeyValueService, T>, Void> task) {
+    private static <T> void apply(String tableName, final Entry<KeyValueEndpoint, ? extends T> entry, final Function<Pair<KeyValueService, T>, Void> task) {
         task.apply(Pair.<KeyValueService, T>create(entry.getKey().keyValueService(), entry.getValue()));
     }
 
@@ -469,7 +470,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     public void runForRowsRead(String tableName, Iterable<byte[]> rows,
                                final Function<Pair<KeyValueService, Iterable<byte[]>>, Void> task) {
         for (final Entry<KeyValueEndpoint, NavigableSet<byte[]>> e : getServicesForRowsRead(tableName, rows).entrySet()) {
-            apply(e, task);
+            apply(tableName, e, task);
         }
     }
 
@@ -477,7 +478,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     public void runForCellsRead(String tableName, Set<Cell> cells,
                                 final Function<Pair<KeyValueService, Set<Cell>>, Void> task) {
         for (final Entry<KeyValueEndpoint, Set<Cell>> e : getServicesForCellsSet(tableName, cells, false).entrySet()) {
-            apply(e, task);
+            apply(tableName, e, task);
         }
     }
 
@@ -485,7 +486,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     public <T> void runForCellsRead(String tableName, Map<Cell, T> cells,
                                     final Function<Pair<KeyValueService, Map<Cell, T>>, Void> task) {
         for (final Entry<KeyValueEndpoint, Map<Cell, T>> e : getServicesForCellsMap(tableName, cells, false).entrySet()) {
-            apply(e, task);
+            apply(tableName, e, task);
         }
     }
 
@@ -493,7 +494,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     public void runForCellsWrite(String tableName, Set<Cell> cells,
                                  final Function<Pair<KeyValueService, Set<Cell>>, Void> task) {
         for (final Entry<KeyValueEndpoint, Set<Cell>> e : getServicesForCellsSet(tableName, cells, true).entrySet()) {
-            apply(e, task);
+            apply(tableName, e, task);
         }
     }
 
@@ -501,7 +502,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     public <T> void runForCellsWrite(String tableName, Multimap<Cell, T> cells,
                                      final Function<Pair<KeyValueService, Multimap<Cell, T>>, Void> task) {
         for (final Entry<KeyValueEndpoint, Multimap<Cell, T>> e : getServicesForCellsMultimap(tableName, cells, true).entrySet()) {
-            apply(e, task);
+            apply(tableName, e, task);
         }
     }
 
@@ -509,7 +510,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     public <T> void runForCellsWrite(String tableName, Map<Cell, T> cells,
                                      Function<Pair<KeyValueService, Map<Cell, T>>, Void> task) {
         for (Entry<KeyValueEndpoint, Map<Cell, T>> e : getServicesForCellsMap(tableName, cells, true).entrySet()) {
-            apply(e, task);
+            apply(tableName, e, task);
         }
     }
 
@@ -652,8 +653,6 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
             return false;
         }
 
-        // First push current map version so that we can actually re-create tables etc.
-        kve.partitionMapService().updateMap(this);
         kve.registerPartitionMapVersion(versionSupplier);
 
         ImmutableList<PartitionMapService> mapServices = ImmutableList.<PartitionMapService> of(InMemoryPartitionMapService.create(this));
@@ -666,21 +665,6 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         ring.put(key, new EndpointWithJoiningStatus(kve));
         version.increment();
         operationsInProgress = 1;
-
-        // Push the map to crucial endpoints
-        try {
-            ring.get(key).get().partitionMapService().updateMap(this);
-            byte[] otherKey = key;
-            for (int i = 0; i < quorumParameters.getReplicationFactor(); ++i) {
-                otherKey = ring.nextKey(otherKey);
-                ring.get(otherKey).get().partitionMapService().updateMap(this);
-            }
-        } catch (RuntimeException e) {
-            ring.remove(key);
-            version.decrement();
-            operationsInProgress = 0;
-            throw e;
-        }
 
         // Delegates are transient
         delegates.add(kve.keyValueService());
@@ -763,41 +747,9 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         EndpointWithJoiningStatus ews = (EndpointWithJoiningStatus) ring.get(key);
         Preconditions.checkArgument(ews.backfilled());
 
-        byte[] nextKey = ring.nextKey(key);
-        List<RangeRequest> ranges = getRangesOperatedByKvs(key, false);
-
-        // First push the map to crucial endpoints
-        // This is to ensure that no garbage is left behind
         ring.put(key,  ring.get(key).asNormal());
         version.increment();
         operationsInProgress = 0;
-
-        try {
-            byte[] otherKey = key;
-            for (int i=0; i<quorumParameters.getReplicationFactor(); ++i) {
-                otherKey = ring.nextKey(otherKey);
-                ring.get(otherKey).get().partitionMapService().updateMap(this);
-            }
-        } catch (RuntimeException e) {
-            ring.put(key, ews);
-            version.decrement();
-            operationsInProgress = 1;
-            throw e;
-        }
-
-        // Now we can remove the farthest
-        // ranges from the endpoints following this one.
-        byte[] keyToRemove = nextKey;
-        // TODO: Is the last range not a special case?
-        for (int i = 0; i < ranges.size(); ++i) {
-            deleteData(ring.get(keyToRemove).get().keyValueService(), ranges.get(i));
-            if (ranges.get(i).getEndExclusive().length > 0) {
-                keyToRemove = ring.nextKey(keyToRemove);
-            } else {
-                assert i + 1 < ranges.size();
-                assert ranges.get(i+1).getStartInclusive().length == 0;
-            }
-        }
     }
 
     /**
@@ -831,20 +783,6 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         ring.put(key, ring.get(key).asLeaving());
         operationsInProgress = 1;
         version.increment();
-
-        // Push the map to crucial endpoints
-        try {
-            byte[] otherKey = key;
-            for (int i = 0; i < quorumParameters.getReplicationFactor(); ++i) {
-                otherKey = ring.nextKey(otherKey);
-                ring.get(otherKey).get().partitionMapService().updateMap(this);
-            }
-        } catch (RuntimeException e) {
-            ring.put(key, ring.get(key).asNormal());
-            version.decrement();
-            operationsInProgress = 0;
-            throw e;
-        }
 
         // The operation has succeeded
         return true;
@@ -938,34 +876,8 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         version.increment();
         operationsInProgress = 0;
 
-        byte[] otherKey = key;
-        try {
-            // TODO: Shouldn't this be +1, or filter based on normal status?
-            for (int i=0; i<quorumParameters.getReplicationFactor(); ++i) {
-                otherKey = ring.nextKey(otherKey);
-                ring.get(otherKey).get().partitionMapService().updateMap(this);
-            }
-        } catch (RuntimeException e) {
-            ring.put(key, ews);
-            version.decrement();
-            operationsInProgress = 1;
-            throw e;
-        }
-
         // Delegates are transient
         delegates.remove(kvs);
-
-        // Now we can safely remove data from the endpoint.
-        // If this fails... I don't care.
-        try {
-            kve.partitionMapService().updateMap(this);
-            for (String table : kvs.getAllTableNames()) {
-                kvs.dropTable(table);
-            }
-        } catch (RuntimeException e) {
-            log.warn("Error while removing data from removed endpoint. Ignoring.");
-            e.printStackTrace(System.out);
-        }
     }
 
     @Override
@@ -1124,74 +1036,6 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
 
             return new DynamicPartitionMapImpl(parameters, CycleMap.wrap(ring),
                     version, operationsInProgress, PTExecutors.newCachedThreadPool());
-        }
-    }
-
-    private static final Cell REPF_CELL = Cell.create("quorumParameters".getBytes(), "repf".getBytes());
-    private static final Cell READF_CELL = Cell.create("quorumParameters".getBytes(), "readf".getBytes());
-    private static final Cell WRITEF_CELL = Cell.create("quorumParameters".getBytes(), "writef".getBytes());
-    private static final Cell VERSION_CELL = Cell.create("version".getBytes(), "version".getBytes());
-    private static final Cell OPS_IN_PROGRESS_CELL = Cell.create("operations".getBytes(), "inProgress".getBytes());
-
-    public Map<Cell, byte[]> toTable() {
-        try {
-            Map<Cell, byte[]> result = Maps.newHashMap();
-
-            // Store the quorum parameters
-            result.put(REPF_CELL, Integer.toString(quorumParameters.getReplicationFactor()).getBytes());
-            result.put(READF_CELL, Integer.toString(quorumParameters.getReadFactor()).getBytes());
-            result.put(WRITEF_CELL, Integer.toString(quorumParameters.getWriteFactor()).getBytes());
-
-            // Store the map version
-            result.put(VERSION_CELL, Long.toString(version.longValue()).getBytes());
-
-            // Store no of operations in progress
-            result.put(OPS_IN_PROGRESS_CELL, Long.toString(operationsInProgress).getBytes());
-
-            // Store the map
-            for (Entry<byte[], EndpointWithStatus> entry : ring.entrySet()) {
-                byte[] row = "map".getBytes();
-                byte[] col = entry.getKey();
-                if (!(entry.getValue().get() instanceof SimpleKeyValueEndpoint)) {
-                    throw new IllegalArgumentException("DynamicPartitionMapImpl serialization is only supported with SimplKeyValueEndpoint endpoints!");
-                }
-                byte[] value = RemotingKeyValueService.kvsMapper().writeValueAsBytes(entry.getValue());
-                result.put(Cell.create(row, col), value);
-            }
-
-            return result;
-
-        } catch (JsonProcessingException e) {
-            throw Throwables.throwUncheckedException(e);
-        }
-    }
-
-    public static DynamicPartitionMapImpl fromTable(Map<Cell, byte[]> table) {
-        try {
-
-            int repf = Integer.parseInt(new String(table.get(REPF_CELL)));
-            int readf = Integer.parseInt(new String(table.get(READF_CELL)));
-            int writef = Integer.parseInt(new String(table.get(WRITEF_CELL)));
-            long version = Long.parseLong(new String(table.get(VERSION_CELL)));
-            long operationsInProgress = Long.parseLong(new String(table.get(OPS_IN_PROGRESS_CELL)));
-            QuorumParameters parameters = new QuorumParameters(repf, readf, writef);
-            NavigableMap<byte[], EndpointWithStatus> ring =
-                    Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
-
-            for (Entry<Cell, byte[]> entry : table.entrySet()) {
-                if (!Arrays.equals(entry.getKey().getRowName(), "map".getBytes())) {
-                    continue;
-                }
-                byte[] key = entry.getKey().getColumnName();
-                EndpointWithStatus ews = RemotingKeyValueService.kvsMapper().readValue(entry.getValue(), EndpointWithStatus.class);
-                ring.put(key, ews);
-            }
-
-            return new DynamicPartitionMapImpl(parameters, CycleMap.wrap(ring),
-                    version, operationsInProgress, PTExecutors.newCachedThreadPool());
-
-        } catch (IOException e) {
-            throw Throwables.throwUncheckedException(e);
         }
     }
 

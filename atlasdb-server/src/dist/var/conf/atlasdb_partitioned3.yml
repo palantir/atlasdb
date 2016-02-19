@@ -1,0 +1,66 @@
+server:
+  #rootPath: /api/*
+  #applicationContextPath: /
+  #adminContextPath: /
+  applicationConnectors:
+    - type: http
+      port: 5828
+  adminConnectors:
+    - type: http
+      port: 5829
+
+atlasdb:
+  type: partitioned
+  keyValueService:
+    type: static_partitioned
+    keyValueEndpoints:
+        - http://localhost:3828
+        - http://localhost:4828
+        - http://localhost:5828
+  timestampService:
+    type: paxos
+    proposer:
+      quorumSize: 2
+      endpoints:
+        - http://localhost:3828
+        - http://localhost:4828
+        - http://localhost:5828
+  transactionService:
+    type: paxos
+    proposer:
+      quorumSize: 2
+      endpoints:
+        - http://localhost:3828
+        - http://localhost:4828
+        - http://localhost:5828
+  additionalServiceResources:
+    - type: rocksdb
+      config:
+        type: rocksdb
+        dataDir: var/data/rocksdb3
+  leader:
+    quorumSize: 2
+    learnerLogDir: var/data/paxosLog/learner3
+    acceptorLogDir: var/data/paxosLog/acceptor3
+    localServer: http://localhost:5828
+    leaders:
+      - http://localhost:3828
+      - http://localhost:4828
+      - http://localhost:5828
+    additionalPaxosEndpointsToLogDir:
+      timestamp: var/data/extraPaxos3/timestamp
+      transaction: var/data/extraPaxos3/transaction
+
+logging:
+  level: INFO
+  loggers:
+    com.palantir: WARN
+    leadership: WARN
+  appenders:
+    - type: console
+    - type: file
+      logFormat: "%-6level [%d{HH:mm:ss.SSS}] [%t] %logger{5} - %X{code} %msg %n"
+      currentLogFilename: var/log/partitioned3.log
+      archivedLogFilenamePattern: var/log/partitioned3-%d{yyyy-MM-dd}-%i.log.gz
+      archivedFileCount: 7
+      timeZone: UTC

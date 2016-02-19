@@ -47,8 +47,8 @@ import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SnapshotTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
+import com.palantir.atlasdb.transaction.service.KVSBasedTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
-import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.impl.LockServiceImpl;
@@ -72,7 +72,7 @@ public class TableTasksTest {
                 return false;
             }
         });
-        TransactionService txService = TransactionServices.createTransactionService(kvs);
+        TransactionService txService = new KVSBasedTransactionService(kvs);
         Supplier<AtlasDbConstraintCheckingMode> constraints = Suppliers.ofInstance(AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING);
         ConflictDetectionManager cdm = ConflictDetectionManagers.createDefault(kvs);
         SweepStrategyManager ssm = SweepStrategyManagers.createDefault(kvs);
@@ -109,7 +109,7 @@ public class TableTasksTest {
                 key++;
             }
         }
-        TransactionServices.createTransactionService(kvs).putUnlessExists(1, 1);
+        new KVSBasedTransactionService(kvs).putUnlessExists(1, 1);
         AtomicLong rowsOnlyInSource = new AtomicLong();
         AtomicLong rowsPartiallyInCommon = new AtomicLong();
         AtomicLong rowsCompletelyInCommon = new AtomicLong();

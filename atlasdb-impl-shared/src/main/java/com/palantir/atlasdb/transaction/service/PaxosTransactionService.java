@@ -17,6 +17,9 @@ package com.palantir.atlasdb.transaction.service;
 
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
@@ -24,7 +27,12 @@ import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosRoundFailureException;
 
+/**
+ * This transaction service is a proof of concept and experimental and should not be used in production.
+ */
 public class PaxosTransactionService implements TransactionService {
+    private static final Logger log = LoggerFactory.getLogger(PaxosTransactionService.class);
+
     private final PaxosProposer proposer;
     private final TransactionKVSWrapper kvStore;
 
@@ -50,13 +58,13 @@ public class PaxosTransactionService implements TransactionService {
     @Override
     public void putUnlessExists(long startTimestamp, long commitTimestamp) throws KeyAlreadyExistsException {
         try {
-            byte[] finalValue = proposer.propose(startTimestamp, PtBytes.toBytes(commitTimestamp));
-            long finalCommitTs = PtBytes.toLong(finalValue);
+            long finalCommitTs = getFinalCommitTs(startTimestamp, commitTimestamp);
             try {
                 // Make sure we do this put before we return because we want #get to succeed.
                 kvStore.putAll(ImmutableMap.of(startTimestamp, finalCommitTs));
             } catch (KeyAlreadyExistsException e) {
-                // this case isn't worrisome
+                // This case is worrisome because KV is required to not throw on an idempotent put.
+                log.error("KV threw on put.  This is likely a bug in the KV store because it shouldn't throw in this case", e);
             }
             if (commitTimestamp != finalCommitTs) {
                 throw new KeyAlreadyExistsException("Key " + startTimestamp + " already exists and is mapped to " + finalCommitTs);
@@ -64,6 +72,19 @@ public class PaxosTransactionService implements TransactionService {
         } catch (PaxosRoundFailureException e) {
             throw new ServiceNotAvailableException("Could not store trascaction");
         }
+    }
+
+    private long getFinalCommitTs(long startTimestamp, long commitTimestamp) throws PaxosRoundFailureException {
+        try {
+            proposer.propose(startTimestamp, PtBytes.toBytes(commitTimestamp)).getData();
+        } catch (PaxosRoundFailureException e) {
+            // Allow first proposal to fail to ensure our proposal id is caught up.
+        }
+        // If the previous propose was successful, this will be fast because we will have already
+        // learned the value.
+        byte[] finalValue = proposer.propose(startTimestamp, PtBytes.toBytes(commitTimestamp)).getData();
+        long finalCommitTs = PtBytes.toLong(finalValue);
+        return finalCommitTs;
     }
 
 }

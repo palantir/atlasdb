@@ -35,6 +35,7 @@ import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.config.AtlasDbConfig;
+import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -43,6 +44,8 @@ import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
+import com.palantir.atlasdb.spi.AtlasDbServerEnvironment;
+import com.palantir.atlasdb.spi.AtlasDbServicePlugin;
 import com.palantir.atlasdb.sweep.BackgroundSweeper;
 import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
@@ -58,13 +61,13 @@ import com.palantir.atlasdb.transaction.impl.SnapshotTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.service.TransactionService;
-import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.client.LockRefreshingRemoteLockService;
 import com.palantir.lock.impl.LockServiceImpl;
+import com.palantir.paxos.PaxosManyLogImpl;
 import com.palantir.timestamp.TimestampService;
 
 public class TransactionManagers {
@@ -80,7 +83,7 @@ public class TransactionManagers {
     public static SerializableTransactionManager create(AtlasDbConfig config,
                                                         Optional<SSLSocketFactory> sslSocketFactory,
                                                         Schema schema,
-                                                        Environment env) {
+                                                        AtlasDbServerEnvironment env) {
         return create(config, sslSocketFactory, ImmutableSet.of(schema), env);
     }
 
@@ -88,11 +91,17 @@ public class TransactionManagers {
      * Create a {@link SerializableTransactionManager} with provided configuration, {@link SSLSocketFactory}, a set of
      * {@link Schema}s, and an environment in which to register HTTP server endpoints.
      */
-    public static SerializableTransactionManager create(AtlasDbConfig config,
+    public static SerializableTransactionManager create(final AtlasDbConfig config,
                                                         Optional<SSLSocketFactory> sslSocketFactory,
                                                         Set<Schema> schemas,
-                                                        Environment env) {
-        final AtlasDbFactory kvsFactory = getKeyValueServiceFactory(config.keyValueService().type());
+                                                        AtlasDbServerEnvironment env) {
+        if (!config.additionalServiceResources().isEmpty()) {
+            for (AtlasDbServicePlugin plugin : config.additionalServiceResources()) {
+                plugin.registerServices(env);
+            }
+        }
+
+        final AtlasDbFactory kvsFactory = getKeyValueServiceFactory(config.getType());
         final KeyValueService rawKvs = kvsFactory.createRawKeyValueService(config.keyValueService());
 
         LockAndTimestampServices lts = createLockAndTimestampServices(config, sslSocketFactory, env,
@@ -105,7 +114,7 @@ public class TransactionManagers {
                 new Supplier<TimestampService>() {
                     @Override
                     public TimestampService get() {
-                        return kvsFactory.createTimestampService(rawKvs);
+                        return kvsFactory.createTimestampService(config.timestampService(), rawKvs);
                     }
                 });
         lts = ImmutableLockAndTimestampServices.builder()
@@ -120,7 +129,7 @@ public class TransactionManagers {
 
         LockClient lockClient = LockClient.of("atlas instance");
 
-        TransactionService transactionService = TransactionServices.createTransactionService(kvs);
+        TransactionService transactionService = kvsFactory.createTransactionService(config.transactionService(), kvs);
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.createDefault(kvs);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(kvs);
 
@@ -206,12 +215,15 @@ public class TransactionManagers {
     private static LockAndTimestampServices createLockAndTimestampServices(
             AtlasDbConfig config,
             Optional<SSLSocketFactory> sslSocketFactory,
-            Environment env,
+            AtlasDbServerEnvironment env,
             Supplier<RemoteLockService> lock,
             Supplier<TimestampService> time) {
-
         if (config.leader().isPresent()) {
-            LeaderElectionService leader = Leaders.create(sslSocketFactory, env, config.leader().get());
+            LeaderConfig leaderConfig = config.leader().get();
+            if (!leaderConfig.additionalPaxosEndpointsToLogDir().isEmpty()) {
+                env.register(PaxosManyLogImpl.create(leaderConfig.additionalPaxosEndpointsToLogDir()));
+            }
+            LeaderElectionService leader = Leaders.create(sslSocketFactory, env, leaderConfig);
             env.register(AwaitingLeadershipProxy.newProxyInstance(RemoteLockService.class, lock, leader));
             env.register(AwaitingLeadershipProxy.newProxyInstance(TimestampService.class, time, leader));
 
@@ -219,8 +231,8 @@ public class TransactionManagers {
             warnIf(config.timestamp().isPresent(), "Ignoring timestamp server configuration because leadership election is enabled");
 
             return ImmutableLockAndTimestampServices.builder()
-                    .lock(createService(sslSocketFactory, config.leader().get().leaders(), RemoteLockService.class))
-                    .time(createService(sslSocketFactory, config.leader().get().leaders(), TimestampService.class))
+                    .lock(createRemoteServiceWithFailover(sslSocketFactory, leaderConfig.leaders(), RemoteLockService.class))
+                    .time(createRemoteServiceWithFailover(sslSocketFactory, leaderConfig.leaders(), TimestampService.class))
                     .build();
         } else {
             warnIf(config.lock().isPresent() != config.timestamp().isPresent(), "Using embedded instances for one (but not both) of lock and timestamp services");
@@ -238,8 +250,8 @@ public class TransactionManagers {
         }
     }
 
-    private static <T> T createService(Optional<SSLSocketFactory> sslSocketFactory, Set<String> uris, Class<T> serviceClass) {
-        return AtlasDbHttpClients.createProxyWithFailover(sslSocketFactory, uris, serviceClass);
+    private static <T> T createRemoteServiceWithFailover(Optional<SSLSocketFactory> sslSocketFactory, Set<String> uris, Class<T> serviceClass) {
+        return AtlasDbHttpClients.createRemoteProxyWithFailover(sslSocketFactory, uris, serviceClass);
     }
 
     private static class ServiceCreator<T> implements Function<ServerListConfig, T> {
@@ -253,7 +265,7 @@ public class TransactionManagers {
 
         @Override
         public T apply(ServerListConfig input) {
-            return createService(sslSocketFactory, input.servers(), serviceClass);
+            return createRemoteServiceWithFailover(sslSocketFactory, input.servers(), serviceClass);
         }
     }
 
@@ -261,9 +273,5 @@ public class TransactionManagers {
     interface LockAndTimestampServices {
         RemoteLockService lock();
         TimestampService time();
-    }
-
-    public interface Environment {
-        void register(Object resource);
     }
 }

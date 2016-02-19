@@ -38,8 +38,8 @@ import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.TestTransactionManager;
 import com.palantir.atlasdb.transaction.impl.TestTransactionManagerImpl;
+import com.palantir.atlasdb.transaction.service.KVSBasedTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
-import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockServerOptions;
@@ -97,7 +97,7 @@ public class AtlasDbTestCase {
         keyValueService.initializeFromFreshInstance();
         SnapshotTransactionManager.createTables(kvs);
         Schemas.createTablesAndIndexes(UpgradeSchema.INSTANCE.getLatestSchema(), kvs);
-        transactionService = TransactionServices.createTransactionService(kvs);
+        transactionService = new KVSBasedTransactionService(kvs);
 
         conflictDetectionManager = ConflictDetectionManagers.createDefault(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);

@@ -17,12 +17,17 @@ package com.palantir.atlasdb.server;
 
 import javax.net.ssl.SSLSocketFactory;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.impl.AtlasDbServiceImpl;
 import com.palantir.atlasdb.impl.TableMetadataCache;
 import com.palantir.atlasdb.jackson.AtlasJacksonModule;
+import com.palantir.atlasdb.spi.AtlasDbServerEnvironment;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 
@@ -30,18 +35,28 @@ import io.dropwizard.Application;
 import io.dropwizard.setup.Environment;
 
 public class AtlasDbServer extends Application<AtlasDbServerConfiguration> {
+    private static final Logger log = LoggerFactory.getLogger(AtlasDbServer.class);
 
     public static void main(String[] args) throws Exception {
-        new AtlasDbServer().run(args);
+        try {
+            new AtlasDbServer().run(args);
+        } catch (Throwable t) {
+            log.error("failed to start server", t);
+            System.exit(1);
+        }
     }
 
     @Override
     public void run(AtlasDbServerConfiguration config, final Environment environment) throws Exception {
         SerializableTransactionManager tm = TransactionManagers.create(config.getConfig(), Optional.<SSLSocketFactory>absent(), ImmutableSet.<Schema>of(),
-                new com.palantir.atlasdb.factory.TransactionManagers.Environment() {
+                new AtlasDbServerEnvironment() {
                     @Override
                     public void register(Object resource) {
                         environment.jersey().register(resource);
+                    }
+                    @Override
+                    public ObjectMapper getObjectMapper() {
+                        return environment.getObjectMapper();
                     }
                 });
 

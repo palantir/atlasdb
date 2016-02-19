@@ -17,13 +17,17 @@ package com.palantir.atlasdb.keyvalue.partition;
 
 import static com.palantir.atlasdb.keyvalue.partition.util.RequestCompletions.completeReadRequest;
 import static com.palantir.atlasdb.keyvalue.partition.util.RequestCompletions.completeWriteRequest;
-import static com.palantir.atlasdb.keyvalue.partition.util.RequestCompletions.retryUntilSuccess;
+import static com.palantir.atlasdb.keyvalue.partition.util.RequestCompletions.tryEachUntilSuccess;
 
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
@@ -39,6 +43,8 @@ import com.google.common.base.Supplier;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
@@ -54,6 +60,7 @@ import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.exception.ClientVersionTooOldException;
+import com.palantir.atlasdb.keyvalue.partition.exception.EndpointVersionTooOldException;
 import com.palantir.atlasdb.keyvalue.partition.map.DynamicPartitionMapImpl;
 import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
@@ -72,6 +79,7 @@ import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.NonIdempotent;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.common.proxy.AbstractDelegatingInvocationHandler;
 import com.palantir.util.Pair;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
@@ -89,6 +97,9 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
     private static final Logger log = LoggerFactory.getLogger(PartitionedKeyValueService.class);
     private final QuorumParameters quorumParameters;
     private final ExecutorService executor;
+
+    private final ConcurrentMap<String, byte[]> currentCreatedTables = Maps.newConcurrentMap();
+    private final Set<KeyValueService> kvWithTablesUpToDate = Sets.newConcurrentHashSet();
 
     // *** Read requests *************************************************************************
     @Override
@@ -439,7 +450,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
     // *** Write requests *************************************************************************
     @Override
     public void put(final String tableName, final Map<Cell, byte[]> values, final long timestamp) {
-        runWithPartitionMap(new Function<DynamicPartitionMap, Void>() {
+        runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Void>() {
             @Override
             public Void apply(DynamicPartitionMap input) {
                 final EndpointRequestCompletionService<Void> writeService = EndpointRequestExecutor.newService(executor);
@@ -472,7 +483,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
     public void putWithTimestamps(final String tableName, final Multimap<Cell, Value> cellValues)
             throws KeyAlreadyExistsException {
 
-        runWithPartitionMap(new Function<DynamicPartitionMap, Void>() {
+        runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Void>() {
             @Override
             public Void apply(final DynamicPartitionMap input) {
                 final EndpointRequestCompletionService<Void> execSvc = EndpointRequestExecutor.newService(executor);
@@ -505,38 +516,8 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
      *
      */
     @Override
-    @Deprecated
-    public void putUnlessExists(final String tableName, final Map<Cell, byte[]> values)
-            throws KeyAlreadyExistsException {
-        // TODO: This should eventually throw new UnsupportedOperationException().
-        // For some testing purposes it does not do it now and calls putUnlessExists
-        // on all relevant delegates which is NOT a correct solution!
-        runWithPartitionMap(new Function<DynamicPartitionMap, Void>() {
-            @Override
-            public Void apply(DynamicPartitionMap input) {
-                final EndpointRequestCompletionService<Void> writeService = EndpointRequestExecutor.newService(executor);
-                final QuorumTracker<Void, Cell> tracker = QuorumTracker.of(
-                        values.keySet(), quorumParameters.getWriteRequestParameters());
-
-                input.runForCellsWrite(tableName, values, new Function<Pair<KeyValueService, Map<Cell, byte[]>>, Void>() {
-                    @Override
-                    public Void apply(final Pair<KeyValueService, Map<Cell, byte[]>> e) {
-                        Future<Void> future = writeService.submit(new Callable<Void>() {
-                            @Override
-                            public Void call() throws Exception {
-                                e.lhSide.putUnlessExists(tableName, e.rhSide);
-                                return null;
-                            }
-                        }, e.lhSide);
-                        tracker.registerRef(future, e.rhSide.keySet());
-                        return null;
-                    }
-                });
-
-                completeWriteRequest(tracker, writeService);
-                return null;
-            }
-        });
+    public void putUnlessExists(final String tableName, final Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
+        throw new UnsupportedOperationException("Paritioned KV stores are not able to handle putUnlessExists.");
     }
 
     @Override
@@ -616,15 +597,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
     @Override
     @Idempotent
     public void dropTable(final String tableName) throws InsufficientConsistencyException {
-        runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Void>() {
-            @Override
-            public Void apply(@Nullable DynamicPartitionMap input) {
-                for (KeyValueService kvs : input.getDelegates()) {
-                    kvs.dropTable(tableName);
-                }
-                return null;
-            }
-        });
+        dropTables(ImmutableSet.of(tableName));
     }
 
     @Override
@@ -638,21 +611,10 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                 return null;
             }
         });
-    }
 
-    @Override
-    @Idempotent
-    public void createTable(final String tableName, final byte[] tableMetadata)
-            throws InsufficientConsistencyException {
-        runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Void>() {
-            @Override
-            public Void apply(@Nullable DynamicPartitionMap input) {
-                for (KeyValueService kvs : input.getDelegates()) {
-                    kvs.createTable(tableName, tableMetadata);
-                }
-                return null;
-            }
-        });
+        for (String tableName : tableNames) {
+            currentCreatedTables.remove(tableName);
+        }
     }
 
     @Override
@@ -685,17 +647,88 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 
     @Override
     @Idempotent
-    public void createTables(final Map<String, byte[]> tableNameToTableMetadata)
-            throws InsufficientConsistencyException {
+    public void createTable(final String tableName, final byte[] tableMetadata) throws InsufficientConsistencyException {
+        Map<String, byte[]> map = Maps.newHashMap();
+        map.put(tableName, tableMetadata);
+        createTables(map);
+    }
+
+    @Override
+    @Idempotent
+    public void createTables(final Map<String, byte[]> tableNameToTableMetadata) throws InsufficientConsistencyException {
+        for (Map.Entry<String, byte[]> e : tableNameToTableMetadata.entrySet()) {
+            currentCreatedTables.putIfAbsent(e.getKey(), e.getValue());
+        }
         runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Void>() {
             @Override
             public Void apply(@Nullable DynamicPartitionMap input) {
                 for (KeyValueService kvs : input.getDelegates()) {
-                    kvs.createTables(tableNameToTableMetadata);
+                    try {
+                        if (kvWithTablesUpToDate.contains(kvs) && !tableNameToTableMetadata.isEmpty()) {
+                            kvs.createTables(tableNameToTableMetadata);
+                        }
+                    } catch (ClientVersionTooOldException | EndpointVersionTooOldException e) {
+                        throw e;
+                    } catch (Exception e) {
+                        kvWithTablesUpToDate.remove(kvs);
+                        log.info("failed to create tables", e);
+                    }
                 }
                 return null;
             }
         });
+    }
+
+    @Override
+    protected <T> T runWithPartitionMap(final Function<? super DynamicPartitionMap, T> task) {
+        return super.runWithPartitionMap(new Function<DynamicPartitionMap, T>() {
+            @Override
+            public T apply(DynamicPartitionMap input) {
+                return task.apply(wrapMapWithTableUpdate(input));
+            }
+        });
+    }
+
+    DynamicPartitionMap wrapMapWithTableUpdate(DynamicPartitionMap map) {
+        return (DynamicPartitionMap) Proxy.newProxyInstance(DynamicPartitionMap.class.getClassLoader(), new Class<?>[] {DynamicPartitionMap.class}, new PopulateMissingTables(map));
+    }
+
+    class PopulateMissingTables extends AbstractDelegatingInvocationHandler {
+        final DynamicPartitionMap map;
+
+        public PopulateMissingTables(DynamicPartitionMap map) {
+            this.map = map;
+        }
+
+        @Override
+        public DynamicPartitionMap getDelegate() {
+            return map;
+        }
+
+        @Override
+        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+            int allowedFailures = quorumParameters.getReplicationFactor() - quorumParameters.getWriteFactor();
+            if (map.getDelegates().size() > kvWithTablesUpToDate.size() + allowedFailures) {
+                for (KeyValueService keyValueService : map.getDelegates()) {
+                    updateTablesIfOutOfDate(keyValueService);
+                }
+            }
+            return super.invoke(proxy, method, args);
+        }
+    }
+
+    private void updateTablesIfOutOfDate(KeyValueService kvs) {
+        try {
+            if (!kvWithTablesUpToDate.contains(kvs)) {
+                kvs.createTables(currentCreatedTables);
+                kvWithTablesUpToDate.add(kvs);
+            }
+        } catch (ClientVersionTooOldException | EndpointVersionTooOldException e) {
+            throw e;
+        } catch (Exception e) {
+            kvWithTablesUpToDate.remove(kvs);
+            log.info("failed to create tables", e);
+        }
     }
 
     @Override
@@ -704,15 +737,15 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
         return runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Set<String>>() {
             @Override
             public Set<String> apply(@Nullable DynamicPartitionMap input) {
-                return retryUntilSuccess(
-                        input.getDelegates().iterator(),
+                return tryEachUntilSuccess(
+                        Sets.intersection(input.getDelegates(), kvWithTablesUpToDate).iterator(),
                         new Function<KeyValueService, Set<String>>() {
                             @Override
                             @Nullable
                             public Set<String> apply(@Nullable KeyValueService kvs) {
                                 return kvs.getAllTableNames();
                             }
-                        });
+                        }, ImmutableSet.copyOf(currentCreatedTables.keySet()));
                     }
         });
     }
@@ -722,17 +755,18 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
     @Override
     @Idempotent
     public byte[] getMetadataForTable(final String tableName) {
+        final byte[] defaultValue = currentCreatedTables.get(tableName);
         return runWithPartitionMapRetryable(new Function<DynamicPartitionMap, byte[]>() {
             @Override
             public byte[] apply(@Nullable DynamicPartitionMap input) {
-                return retryUntilSuccess(
-                        input.getDelegates().iterator(),
+                return tryEachUntilSuccess(
+                        Sets.intersection(input.getDelegates(), kvWithTablesUpToDate).iterator(),
                         new Function<KeyValueService, byte[]>() {
                             @Override
                             public byte[] apply(@Nullable KeyValueService kvs) {
                                 return kvs.getMetadataForTable(tableName);
                             }
-                        });
+                        }, defaultValue);
             }
         });
     }
@@ -740,15 +774,9 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
     @Override
     @Idempotent
     public void putMetadataForTable(final String tableName, final byte[] metadata) {
-        runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Void>() {
-            @Override
-            public Void apply(@Nullable DynamicPartitionMap input) {
-                for (KeyValueService kvs : input.getDelegates()) {
-                    kvs.putMetadataForTable(tableName, metadata);
-                }
-                return null;
-            }
-        });
+        HashMap<String, byte[]> map = Maps.newHashMap();
+        map.put(tableName, metadata);
+        putMetadataForTables(map);
     }
 
     @Override
@@ -757,14 +785,14 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
         return runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Map<String, byte[]>>() {
             @Override
             public Map<String, byte[]> apply(@Nullable DynamicPartitionMap input) {
-                return retryUntilSuccess(
-                        input.getDelegates().iterator(),
+                return tryEachUntilSuccess(
+                        Sets.intersection(input.getDelegates(), kvWithTablesUpToDate).iterator(),
                         new Function<KeyValueService, Map<String, byte[]>>() {
                             @Override
                             public Map<String, byte[]> apply(KeyValueService kvs) {
                                 return kvs.getMetadataForTables();
                             }
-                        });
+                        }, ImmutableMap.copyOf(currentCreatedTables));
                     }
         });
     }
@@ -772,11 +800,21 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
     @Override
     @Idempotent
     public void putMetadataForTables(final Map<String, byte[]> tableNameToMetadata) {
+        for (Map.Entry<String, byte[]> e : tableNameToMetadata.entrySet()) {
+            if (currentCreatedTables.containsKey(e.getKey())) {
+                currentCreatedTables.put(e.getKey(), e.getValue());
+            }
+        }
         runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Void>() {
             @Override
             public Void apply(@Nullable DynamicPartitionMap input) {
                 for (KeyValueService kvs : input.getDelegates()) {
-                    kvs.putMetadataForTables(tableNameToMetadata);
+                    try {
+                        kvs.putMetadataForTables(tableNameToMetadata);
+                    } catch (Exception e) {
+                        kvWithTablesUpToDate.remove(kvs);
+                        log.info("failed to put metadata", e);
+                    }
                 }
                 return null;
             }
@@ -799,11 +837,15 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 
     @Override
     public void close() {
-        runWithPartitionMap(new Function<DynamicPartitionMap, Void>() {
+        runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Void>() {
             @Override
             public Void apply(@Nullable DynamicPartitionMap input) {
                 for (KeyValueService kvs : input.getDelegates()) {
-                    kvs.close();
+                    try {
+                        kvs.close();
+                    } catch (Exception e) {
+                        log.info("failed to close", e);
+                    }
                 }
                 return null;
             }
@@ -812,11 +854,15 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 
     @Override
     public void teardown() {
-        runWithPartitionMap(new Function<DynamicPartitionMap, Void>() {
+        runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Void>() {
             @Override
             public Void apply(@Nullable DynamicPartitionMap input) {
                 for (KeyValueService kvs : input.getDelegates()) {
-                    kvs.teardown();
+                    try {
+                        kvs.teardown();
+                    } catch (Exception e) {
+                        log.info("failed to teardown", e);
+                    }
                 }
                 return null;
             }
@@ -840,7 +886,11 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
             @Override
             public Void apply(@Nullable DynamicPartitionMap input) {
                 for (KeyValueService kvs : input.getDelegates()) {
-                    kvs.initializeFromFreshInstance();
+                    try {
+                        kvs.initializeFromFreshInstance();
+                    } catch (Exception e) {
+                        log.info("failed to initialize kv store", e);
+                    }
                 }
                 return null;
             }

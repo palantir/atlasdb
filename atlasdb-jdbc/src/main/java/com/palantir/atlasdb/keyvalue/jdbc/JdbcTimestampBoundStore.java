@@ -27,7 +27,7 @@ import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
 
 import com.google.common.base.Function;
-import com.palantir.timestamp.MultipleRunningTimestampServiceError;
+import com.palantir.timestamp.MultipleRunningTimestampServiceException;
 import com.palantir.timestamp.TimestampBoundStore;
 
 public class JdbcTimestampBoundStore implements TimestampBoundStore {
@@ -37,6 +37,7 @@ public class JdbcTimestampBoundStore implements TimestampBoundStore {
     private final Table<Record> TABLE;
     private static final Field<Integer> DUMMY_COLUMN = DSL.field("dummy_column", Integer.class);
     private static final Field<Long> LATEST_TIMESTAMP = DSL.field("latest_timestamp", Long.class);
+    private static final long INITIAL_VALUE = 10000L;
 
     private JdbcTimestampBoundStore(JdbcKeyValueService kvs) {
         this.kvs = kvs;
@@ -64,7 +65,7 @@ public class JdbcTimestampBoundStore implements TimestampBoundStore {
                 }
                 ctx.insertInto(store.TABLE, DUMMY_COLUMN, LATEST_TIMESTAMP)
                     .select(ctx.select(DUMMY_COLUMN, LATEST_TIMESTAMP)
-                            .from(kvs.values(ctx, new RowN[] {(RowN) DSL.row(0, 10000L)}, "t", DUMMY_COLUMN.getName(), LATEST_TIMESTAMP.getName()))
+                            .from(kvs.values(ctx, new RowN[] {(RowN) DSL.row(0, INITIAL_VALUE)}, "t", DUMMY_COLUMN.getName(), LATEST_TIMESTAMP.getName()))
                             .whereNotExists(ctx.selectOne()
                                     .from(store.TABLE)
                                     .where(DUMMY_COLUMN.eq(0))))
@@ -86,7 +87,7 @@ public class JdbcTimestampBoundStore implements TimestampBoundStore {
     }
 
     @Override
-    public synchronized void storeUpperLimit(final long limit) throws MultipleRunningTimestampServiceError {
+    public synchronized void storeUpperLimit(final long limit) throws MultipleRunningTimestampServiceException {
         kvs.runInTransaction(new Function<DSLContext, Void>() {
             @Override
             public Void apply(DSLContext ctx) {
@@ -96,7 +97,7 @@ public class JdbcTimestampBoundStore implements TimestampBoundStore {
                     .execute();
                 if (rowsUpdated != 1) {
                     long actualLatestTimestamp = getLatestTimestamp(ctx);
-                    throw new MultipleRunningTimestampServiceError("Timestamp limit changed underneath " +
+                    throw new MultipleRunningTimestampServiceException("Timestamp limit changed underneath " +
                             "us (limit in memory: " + latestTimestamp + ", limit in db: " + actualLatestTimestamp +
                             "). This may indicate that another timestamp service is running against this db!");
                 }

@@ -45,7 +45,7 @@ public class AtlasDbHttpClients {
      * Constructs a dynamic proxy for the specified type, using the supplied SSL factory if is present, and feign {@link
      * feign.Client.Default} HTTP client.
      */
-    public static <T> T createProxy(Optional<SSLSocketFactory> sslSocketFactory, String uri, Class<T> type) {
+    public static <T> T createRemoteProxy(Optional<SSLSocketFactory> sslSocketFactory, String uri, Class<T> type) {
         return Feign.builder()
                 .contract(contract)
                 .encoder(encoder)
@@ -58,11 +58,11 @@ public class AtlasDbHttpClients {
      * Constructs a list, corresponding to the iteration order of the supplied endpoints, of dynamic proxies for the
      * specified type, using the supplied SSL factory if it is present.
      */
-    public static <T> List<T> createProxies(
+    public static <T> List<T> createRemoteProxies(
             Optional<SSLSocketFactory> sslSocketFactory, Collection<String> endpointUris, Class<T> type) {
         List<T> ret = Lists.newArrayListWithCapacity(endpointUris.size());
         for (String uri : endpointUris) {
-            ret.add(createProxy(sslSocketFactory, uri, type));
+            ret.add(createRemoteProxy(sslSocketFactory, uri, type));
         }
         return ret;
     }
@@ -74,7 +74,7 @@ public class AtlasDbHttpClients {
      * <p>
      * Failover will continue to cycle through the supplied endpoint list indefinitely.
      */
-    public static <T> T createProxyWithFailover(
+    public static <T> T createRemoteProxyWithFailover(
             Optional<SSLSocketFactory> sslSocketFactory, Collection<String> endpointUris, Class<T> type) {
         FailoverFeignTarget<T> failoverFeignTarget = new FailoverFeignTarget<>(endpointUris, type);
         Client client = failoverFeignTarget.wrapClient(newOkHttpClient(sslSocketFactory));

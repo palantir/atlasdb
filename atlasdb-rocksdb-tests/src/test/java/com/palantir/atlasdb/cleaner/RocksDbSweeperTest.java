@@ -33,7 +33,7 @@ import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SnapshotTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
-import com.palantir.atlasdb.transaction.service.TransactionServices;
+import com.palantir.atlasdb.transaction.service.KVSBasedTransactionService;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.impl.LockServiceImpl;
@@ -52,7 +52,7 @@ public class RocksDbSweeperTest extends AbstractSweeperTest {
         TimestampService tsService = new InMemoryTimestampService();
         LockClient lockClient = LockClient.of("sweep client");
         lockService = LockServiceImpl.create(new LockServerOptions() { @Override public boolean isStandaloneServer() { return false; }});
-        txService = TransactionServices.createTransactionService(kvs);
+        txService = new KVSBasedTransactionService(kvs);
         Supplier<AtlasDbConstraintCheckingMode> constraints = Suppliers.ofInstance(AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING);
         ConflictDetectionManager cdm = ConflictDetectionManagers.createDefault(kvs);
         SweepStrategyManager ssm = SweepStrategyManagers.createDefault(kvs);

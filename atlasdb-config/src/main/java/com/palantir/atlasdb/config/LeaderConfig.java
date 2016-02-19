@@ -16,11 +16,13 @@
 package com.palantir.atlasdb.config;
 
 import java.io.File;
+import java.util.Map;
 import java.util.Set;
 
 import javax.validation.constraints.Size;
 
 import org.immutables.value.Value;
+import org.immutables.value.Value.Check;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -63,6 +65,9 @@ public abstract class LeaderConfig {
         return 5000l;
     }
 
+    public abstract Map<String, String> additionalPaxosEndpointsToLogDir();
+
+    @Check
     protected final void check() {
         Preconditions.checkArgument(leaders().contains(localServer()),
                 "The localServer '%s' must included in the leader entries %s.", localServer(), leaders());
@@ -70,6 +75,8 @@ public abstract class LeaderConfig {
                 "Learner log directory '%s' does not exist and cannot be created.", learnerLogDir());
         Preconditions.checkArgument(acceptorLogDir().exists() || acceptorLogDir().mkdirs(),
                 "Acceptor log directory '%s' does not exist and cannot be created.", acceptorLogDir());
+        Preconditions.checkArgument(quorumSize() > leaders().size() / 2,
+                "Quorum must be a majority.");
     }
 
 }

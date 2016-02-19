@@ -6,9 +6,11 @@ dependencies {
   compile project(":atlasdb-client")
   compile project(":atlasdb-spi")
   compile project(':timestamp-impl')
+  compile project(':atlasdb-impl-shared')
 
   compile "org.rocksdb:rocksdbjni:4.1.0"
 
   processor 'org.immutables:value:2.0.21'
+  processor "com.google.auto.service:auto-service:1.0-rc2"
 }
 

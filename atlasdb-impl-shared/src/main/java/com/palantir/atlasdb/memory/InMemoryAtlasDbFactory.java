@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.memory;
 
 import com.google.auto.service.AutoService;
+import com.google.common.base.Optional;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cleaner.Cleaner;
@@ -33,6 +34,8 @@ import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.schema.SchemaReference;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.spi.TimestampServiceConfig;
+import com.palantir.atlasdb.spi.TransactionServiceConfig;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -42,6 +45,7 @@ import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SnapshotTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
+import com.palantir.atlasdb.transaction.service.KVSBasedTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.lock.LockClient;
@@ -73,8 +77,13 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
     }
 
     @Override
-    public TimestampService createTimestampService(KeyValueService rawKvs) {
+    public TimestampService createTimestampService(Optional<TimestampServiceConfig> config, KeyValueService rawKvs) {
         return new InMemoryTimestampService();
+    }
+
+    @Override
+    public TransactionService createTransactionService(Optional<TransactionServiceConfig> config, KeyValueService rawKvs) {
+        return TransactionServices.createTransactionService(config, rawKvs);
     }
 
     public static SerializableTransactionManager createInMemoryTransactionManager(Schema schema) {
@@ -96,7 +105,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
         Schemas.createTablesAndIndexes(schema, keyValueService);
         SnapshotTransactionManager.createTables(keyValueService);
 
-        TransactionService transactionService = TransactionServices.createTransactionService(keyValueService);
+        TransactionService transactionService = new KVSBasedTransactionService(keyValueService);
         RemoteLockService lock = LockRefreshingLockService.create(LockServiceImpl.create(new LockServerOptions() {
             private static final long serialVersionUID = 1L;
 
@@ -132,6 +141,6 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
     }
 
     private static TableMappingService getMapper(KeyValueService kv) {
-        return StaticTableMappingService.create(kv);
+        return StaticTableMappingService.create();
     }
 }

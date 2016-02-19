@@ -16,23 +16,13 @@ atlasdb:
        - localhost
     port: 9160
     ssl: false
-    replicationFactory: 1
+    replicationFactor: 1
   leader:
     quorumSize: 2
     learnerLogDir: var/data/paxosLog/learner3
     acceptorLogDir: var/data/paxosLog/acceptor3
     localServer: http://localhost:5828
     leaders:
-      - http://localhost:3828
-      - http://localhost:4828
-      - http://localhost:5828
-  lock:
-    servers:
-      - http://localhost:3828
-      - http://localhost:4828
-      - http://localhost:5828
-  timestamp:
-    servers:
       - http://localhost:3828
       - http://localhost:4828
       - http://localhost:5828

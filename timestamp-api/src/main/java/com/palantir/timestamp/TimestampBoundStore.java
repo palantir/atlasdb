@@ -15,9 +15,16 @@
  */
 package com.palantir.timestamp;
 
+/**
+ * This class is used to create persistent timestamp services.
+ * @author carrino
+ *
+ */
 public interface TimestampBoundStore {
     /**
      * This will be called when the timestamp server is first created.
+     * <p>
+     * This is guarenteed to be called before the first call to {@link #storeUpperLimit(long)}
      *
      * @return the current timestamp upper limit that is persisted
      */
@@ -25,9 +32,14 @@ public interface TimestampBoundStore {
 
     /**
      * Persists a new timestamp upper limit.
+     * <p>
+     * This method must be atomic and ensure that the value has not changed since the last
+     * call to {@link #storeUpperLimit(long)} or {@link #getUpperLimit()}
+     * <p>
+     * If the limit has changed out from under us then this method MUST throw MultipleRunningTimestampServiceException.
      *
      * @param limit the new upper limit to be stored
-     * @throws MultipleRunningTimestampServiceError if the timestamp has changed out from under us.
+     * @throws MultipleRunningTimestampServiceException if the timestamp has changed out from under us.
      */
-    void storeUpperLimit(long limit) throws MultipleRunningTimestampServiceError;
+    void storeUpperLimit(long limit) throws MultipleRunningTimestampServiceException;
 }

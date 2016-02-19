@@ -31,6 +31,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.FileUtils;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -157,23 +158,38 @@ public class PaxosConsensusFastTest {
         long seq = 0;
 
         // write to log
-        PaxosStateLog<PaxosValue> log = new PaxosStateLogImpl<PaxosValue>(dir);
-        log.writeRound(seq, new PaxosValue(leaderUUID, 0, null));
+        try (PaxosStateLog<PaxosValue> log = PaxosStateLogImpl.create(dir)) {
+            log.writeRound(seq, new PaxosValue(leaderUUID, 0, null));
 
-        // read back from log
-        try {
-            byte[] bytes = log.readRound(seq);
-            assertNotNull(bytes);
-            PaxosValue p = PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(bytes);
-            assertTrue(p.getLeaderUUID().equals(leaderUUID));
-        } catch (IOException e1) {
-            fail("IO exception when reading log");
+            // read back from log
+            try {
+                byte[] bytes = log.readRound(seq);
+                assertNotNull(bytes);
+                PaxosValue p = PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(bytes);
+                assertTrue(p.getLeaderUUID().equals(leaderUUID));
+            } catch (IOException e1) {
+                fail("IO exception when reading log");
+            }
+
+            // cleanup
+            try {
+                FileUtils.deleteDirectory(new File(dir));
+            } catch (Exception e) {}
         }
+    }
 
-        // cleanup
-        try {
-            FileUtils.deleteDirectory(new File(dir));
-        } catch (Exception e) {}
+    @Test
+    public void twoLogsToSameDirFail() {
+        String dir = "log-test";
+        // write to log
+        try (PaxosStateLog<PaxosValue> log = PaxosStateLogImpl.create(dir)) {
+            try {
+                PaxosStateLog<PaxosValue> log2 = PaxosStateLogImpl.create(dir);
+                Assert.fail("we should throw if we try to create 2 logs with the same dir");
+            } catch (Exception e) {
+                // expected
+            }
+        }
     }
 
     @Test
@@ -181,13 +197,14 @@ public class PaxosConsensusFastTest {
         for (int i = 0; i < NUM_POTENTIAL_LEADERS * 3; i++) {
             state.gainLeadership(i % NUM_POTENTIAL_LEADERS);
         }
-        PaxosLearnerImpl learner = (PaxosLearnerImpl)
-                ((DelegatingInvocationHandler) Proxy.getInvocationHandler(state.learner(0))).getDelegate();
-        PaxosStateLog<PaxosValue> log = learner.log;
-        SortedMap<Long, PaxosValue> cache = learner.state;
-        log.truncate(log.getGreatestLogEntry());
-        cache.clear();
-        state.gainLeadership(0);
+        try (PaxosLearnerImpl learner = (PaxosLearnerImpl)
+                ((DelegatingInvocationHandler) Proxy.getInvocationHandler(state.learner(0))).getDelegate()) {
+            PaxosStateLog<PaxosValue> log = learner.log;
+            SortedMap<Long, PaxosValue> cache = learner.state;
+            log.truncate(log.getGreatestLogEntry());
+            cache.clear();
+            state.gainLeadership(0);
+        }
     }
 }
 

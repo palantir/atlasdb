@@ -4,10 +4,10 @@ server:
   #adminContextPath: /
   applicationConnectors:
     - type: http
-      port: 3828
+      port: 4828
   adminConnectors:
     - type: http
-      port: 3829
+      port: 4829
 
 atlasdb:
   keyValueService:
@@ -16,23 +16,13 @@ atlasdb:
        - localhost
     port: 9160
     ssl: false
-    replicationFactory: 1
+    replicationFactor: 1
   leader:
     quorumSize: 2
     learnerLogDir: var/data/paxosLog/learner1
     acceptorLogDir: var/data/paxosLog/acceptor1
     localServer: http://localhost:3828
     leaders:
-      - http://localhost:3828
-      - http://localhost:4828
-      - http://localhost:5828
-  lock:
-    servers:
-      - http://localhost:3828
-      - http://localhost:4828
-      - http://localhost:5828
-  timestamp:
-    servers:
       - http://localhost:3828
       - http://localhost:4828
       - http://localhost:5828

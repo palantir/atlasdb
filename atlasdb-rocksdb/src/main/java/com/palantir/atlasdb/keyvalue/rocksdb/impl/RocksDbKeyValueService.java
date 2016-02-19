@@ -17,11 +17,8 @@ package com.palantir.atlasdb.keyvalue.rocksdb.impl;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.lang.management.ManagementFactory;
 import java.lang.reflect.Method;
-import java.nio.channels.FileChannel;
-import java.nio.channels.FileLock;
 import java.nio.channels.OverlappingFileLockException;
 import java.util.Collection;
 import java.util.List;
@@ -70,20 +67,18 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.rocksdb.impl.ColumnFamilyMap.ColumnFamily;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.common.concurrent.FileLockBasedLock;
 import com.palantir.util.MutuallyExclusiveSetLock;
 import com.palantir.util.MutuallyExclusiveSetLock.LockState;
-import com.palantir.util.file.TempFileUtils;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 public class RocksDbKeyValueService implements KeyValueService {
     private static final Logger log = LoggerFactory.getLogger(RocksDbKeyValueService.class);
     private static final String METADATA_TABLE_NAME = "_metadata";
     private static final long PUT_UNLESS_EXISTS_TS = 0L;
-    private static final String LOCK_FILE_PREFIX = ".pt_kv_lock";
     final RocksDB db;
     final ColumnFamilyMap columnFamilies;
-    private final FileLock lock;
-    private final RandomAccessFile lockFile;
+    private final FileLockBasedLock lockedDir;
     private final WriteOpts writeOptions;
     private final MutuallyExclusiveSetLock<Cell> lockSet = MutuallyExclusiveSetLock.<Cell>create(false);
     private volatile boolean closed = false;
@@ -181,30 +176,9 @@ public class RocksDbKeyValueService implements KeyValueService {
                                                           final ColumnFamilyOptions cfMetadataOptions,
                                                           final ColumnFamilyOptions cfCommonOptions,
                                                           final WriteOpts writeOpts) throws IOException, RocksDBException {
-        TempFileUtils.mkdirsWithRetry(dbDir);
-        Preconditions.checkArgument(dbDir.exists() && dbDir.isDirectory(), "DB file must be a directory: " + dbDir);
-        final RandomAccessFile randomAccessFile =
-            new RandomAccessFile(
-                /* NB: We cannot write files into the LevelDB database directory. Upon opening a database, LevelDB
-                       audits the files present in the directory, and if it runs into any that don't conform to its
-                       expected name patterns, it fails with a NullPointerException. Rather than trying to trick it into
-                       accepting our lock file name as valid, write the file as a sibling to the database directory,
-                       constructing its name to include the name of the database directory as a suffix.
-
-                   NB: The documentation for File#deleteOnExit() advises against using it in concert with file locking,
-                       so we'll allow this file to remain in place after the program exits.
-                       See http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4676183
-                 */
-                new File(dbDir.getParentFile(),
-                         String.format("%s_%s", LOCK_FILE_PREFIX, dbDir.getName())),
-                "rws");
-        final FileChannel channel = randomAccessFile.getChannel();
+        FileLockBasedLock lockedDir = FileLockBasedLock.lockDirectory(dbDir);
         boolean success = false;
         try {
-            final FileLock lock = channel.tryLock();
-            if (lock == null) {
-                throw new IOException("Cannot lock. Someone already has this database open: " + dbDir);
-            }
             List<byte[]> initialCfs = MoreObjects.firstNonNull(
                     RocksDB.listColumnFamilies(new Options(dbOptions, cfMetadataOptions), dbDir.getAbsolutePath()), ImmutableList.<byte[]>of());
             List<ColumnFamilyDescriptor> cfDescriptors = Lists.newArrayListWithCapacity(initialCfs.size());
@@ -223,7 +197,7 @@ public class RocksDbKeyValueService implements KeyValueService {
                 }
             }, db);
             columnFamilies.initialize(cfDescriptors, cfHandles);
-            RocksDbKeyValueService ret = new RocksDbKeyValueService(db, columnFamilies, lock, randomAccessFile, writeOpts);
+            RocksDbKeyValueService ret = new RocksDbKeyValueService(db, columnFamilies, lockedDir, writeOpts);
             ret.createTable(METADATA_TABLE_NAME, AtlasDbConstants.EMPTY_TABLE_METADATA);
             success = true;
             return ret;
@@ -231,7 +205,7 @@ public class RocksDbKeyValueService implements KeyValueService {
             throw new IOException("Cannot lock. This jvm already has this database open: " + dbDir);
         } finally {
             if (!success) {
-                randomAccessFile.close();
+                lockedDir.unlock();
             }
         }
     }
@@ -248,13 +222,11 @@ public class RocksDbKeyValueService implements KeyValueService {
 
     private RocksDbKeyValueService(RocksDB db,
                                    ColumnFamilyMap columnFamilies,
-                                   FileLock lock,
-                                   RandomAccessFile file,
+                                   FileLockBasedLock lockedDir,
                                    WriteOpts writeOptions) {
         this.db = db;
         this.columnFamilies = columnFamilies;
-        this.lock = lock;
-        this.lockFile = file;
+        this.lockedDir = lockedDir;
         this.writeOptions = writeOptions;
     }
 
@@ -266,15 +238,9 @@ public class RocksDbKeyValueService implements KeyValueService {
     @Override
     public void close() {
         if (!closed) {
-            try {
-                getDb().close();
-                lock.release();
-                lockFile.close();
-            } catch (IOException e) {
-                throw Throwables.propagate(e);
-            } finally {
-                closed = true;
-            }
+            closed = true;
+            db.close();
+            lockedDir.unlock();
         }
     }
 

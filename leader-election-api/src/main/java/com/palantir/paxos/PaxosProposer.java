@@ -26,6 +26,8 @@ public interface PaxosProposer {
      * @param seq the number identifying this instance of paxos
      * @param proposalValue default value to propose to the quorum
      * @return the value accepted by the quorum.  This may not be the value you have proposed.
+     *         compare the UUID of the value to this proposers UUID to see if this proposers
+     *         value was the one that was accepted.
      * @throws PaxosRoundFailureException if the proposal round fails. The primary reasons a round
      *         will fail are (1) the proposer cannot reach a quorum of acceptors and (2) the
      *         sequence number is too old (acceptor logs have been truncated). We do not place
@@ -34,7 +36,7 @@ public interface PaxosProposer {
      *         equipped to handle this case. PaxosProposerImpl will not throw in this case,
      *         but requires it be enforced on a higher level.
      */
-    public byte[] propose(long seq, @Nullable byte[] proposalValue)
+    public PaxosValue propose(long seq, @Nullable byte[] proposalValue)
             throws PaxosRoundFailureException;
 
     /**

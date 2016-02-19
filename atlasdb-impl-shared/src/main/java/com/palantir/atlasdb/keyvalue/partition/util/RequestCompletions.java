@@ -24,7 +24,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.partition.exception.ClientVersionTooOldException;
 import com.palantir.atlasdb.keyvalue.partition.exception.EndpointVersionTooOldException;
@@ -128,10 +127,7 @@ public class RequestCompletions {
      * @param fun
      * @return
      */
-    public static <T, U, V extends Iterator<? extends U>> T retryUntilSuccess(V iterator, Function<U, T> fun) {
-
-        Preconditions.checkArgument(iterator.hasNext());
-
+    public static <T, U, V extends Iterator<? extends U>> T tryEachUntilSuccess(V iterator, Function<U, T> fun, T defaultValue) {
         while (iterator.hasNext()) {
             U service = iterator.next();
             try {
@@ -145,13 +141,9 @@ public class RequestCompletions {
                     Throwables.rewrapAndThrowUncheckedException(e);
                 }
 
-                if (!iterator.hasNext()) {
-                    Throwables.rewrapAndThrowUncheckedException("retryUntilSuccess", e);
-                }
             }
         }
-
-        throw new RuntimeException("This should never happen!");
+        return defaultValue;
     }
 
 }

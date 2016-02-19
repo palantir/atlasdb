@@ -15,8 +15,6 @@
  */
 package com.palantir.leader.proxy;
 
-import java.io.Closeable;
-import java.io.IOException;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -57,7 +55,7 @@ public final class AwaitingLeadershipProxy implements InvocationHandler {
                 interfaceClass);
         proxy.tryToGainLeadership();
         return (T) Proxy.newProxyInstance(interfaceClass.getClassLoader(), new Class<?>[] {
-                interfaceClass, Closeable.class }, proxy);
+                interfaceClass, AutoCloseable.class }, proxy);
     }
 
     final Supplier<?> delegateSupplier;
@@ -103,10 +101,12 @@ public final class AwaitingLeadershipProxy implements InvocationHandler {
 
     private void gainLeadership() {
         try {
-            LeadershipToken leadershipToken = leaderElectionService.blockOnBecomingLeader();
-            // We are now the leader, we should create a delegate so we can service calls
+            LeadershipToken leadershipToken = null;
             Object delegate = null;
             while (delegate == null) {
+                leadershipToken = leaderElectionService.blockOnBecomingLeader();
+                // We are now the leader, we should create a delegate so we can service calls
+                Preconditions.checkNotNull(leadershipToken);
                 try {
                     delegate = delegateSupplier.get();
                 } catch (Throwable t) {
@@ -124,7 +124,7 @@ public final class AwaitingLeadershipProxy implements InvocationHandler {
                 clearDelegate();
             } else {
                 leadershipTokenRef.set(leadershipToken);
-                leaderLog.warn("Gained leadership for {}", leadershipToken);
+                leaderLog.info("Gained leadership for {}", leadershipToken);
             }
         } catch (InterruptedException e) {
             log.warn("attempt to gain leadership interrupted", e);
@@ -133,15 +133,37 @@ public final class AwaitingLeadershipProxy implements InvocationHandler {
         }
     }
 
-    private void clearDelegate() throws IOException {
+    private void clearDelegate() throws Exception {
         Object delegate = delegateRef.getAndSet(null);
-        if (delegate instanceof Closeable) {
-            ((Closeable) delegate).close();
+        if (delegate instanceof AutoCloseable) {
+            ((AutoCloseable) delegate).close();
         }
     }
 
+    private static Method getObjectMethod(String name, Class<?>... types) {
+        try {
+            return Object.class.getMethod(name, types);
+        } catch (NoSuchMethodException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+    private static final Method EQUALS_METHOD = getObjectMethod("equals", Object.class);
+    private static final Method HASHCODE_METHOD = getObjectMethod("hashCode");
+    private static final Method TOSTRING_METHOD = getObjectMethod("toString");
+
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+        if (EQUALS_METHOD.equals(method)) {
+            return proxy == args[0];
+        }
+
+        if (HASHCODE_METHOD.equals(method)) {
+            return System.identityHashCode(proxy);
+        }
+
+        if (TOSTRING_METHOD.equals(method)) {
+            return toString();
+        }
         final LeadershipToken leadershipToken = leadershipTokenRef.get();
 
         if (leadershipToken == null) {
@@ -207,5 +229,14 @@ public final class AwaitingLeadershipProxy implements InvocationHandler {
         }
         throw notCurrentLeaderException("method invoked on a non-leader (leadership lost)", cause);
     }
+
+    @Override
+    public String toString() {
+        return "AwaitingLeadershipProxy [delegateSupplier=" + delegateSupplier
+                + ", leaderElectionService=" + leaderElectionService + ", executor=" + executor
+                + ", leadershipTokenRef=" + leadershipTokenRef + ", delegateRef=" + delegateRef
+                + ", interfaceClass=" + interfaceClass + ", isClosed=" + isClosed + "]";
+    }
+
 
 }

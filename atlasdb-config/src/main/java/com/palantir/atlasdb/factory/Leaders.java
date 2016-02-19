@@ -30,9 +30,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 import com.palantir.atlasdb.config.LeaderConfig;
-import com.palantir.atlasdb.factory.TransactionManagers.Environment;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
+import com.palantir.atlasdb.spi.AtlasDbServerEnvironment;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.leader.PingableLeader;
@@ -51,7 +51,7 @@ public class Leaders {
      */
     public static LeaderElectionService create(
             Optional<SSLSocketFactory> sslSocketFactory,
-            Environment env,
+            AtlasDbServerEnvironment env,
             LeaderConfig config) {
 
         PaxosAcceptor ourAcceptor = PaxosAcceptorImpl.newAcceptor(config.acceptorLogDir().getPath());
@@ -61,11 +61,11 @@ public class Leaders {
         remoteLeaderUris.remove(config.localServer());
 
         List<PaxosLearner> learners =
-                AtlasDbHttpClients.createProxies(sslSocketFactory, remoteLeaderUris, PaxosLearner.class);
+                AtlasDbHttpClients.createRemoteProxies(sslSocketFactory, remoteLeaderUris, PaxosLearner.class);
         learners.add(ourLearner);
 
         List<PaxosAcceptor> acceptors =
-                AtlasDbHttpClients.createProxies(sslSocketFactory, remoteLeaderUris, PaxosAcceptor.class);
+                AtlasDbHttpClients.createRemoteProxies(sslSocketFactory, remoteLeaderUris, PaxosAcceptor.class);
         acceptors.add(ourAcceptor);
 
         Map<PingableLeader, HostAndPort> otherLeaders = generatePingables(remoteLeaderUris, sslSocketFactory);
@@ -106,7 +106,7 @@ public class Leaders {
          */
         Map<PingableLeader, HostAndPort> pingables = new IdentityHashMap<PingableLeader, HostAndPort>();
         for (String endpoint : remoteEndpoints) {
-            PingableLeader remoteInterface = AtlasDbHttpClients.createProxy(sslSocketFactory, endpoint, PingableLeader.class);
+            PingableLeader remoteInterface = AtlasDbHttpClients.createRemoteProxy(sslSocketFactory, endpoint, PingableLeader.class);
             HostAndPort hostAndPort = HostAndPort.fromString(endpoint);
             pingables.put(remoteInterface, hostAndPort);
         }

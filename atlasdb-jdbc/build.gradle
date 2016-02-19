@@ -6,6 +6,7 @@ dependencies {
   compile project(":atlasdb-client")
   compile project(":atlasdb-spi")
   compile project(":timestamp-impl")
+  compile project(":atlasdb-impl-shared")
 
   compile "io.dropwizard:dropwizard-jackson:" + libVersions.dropwizard
   compile "org.jooq:jooq:3.6.4"

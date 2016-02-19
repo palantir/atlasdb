@@ -23,6 +23,7 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.auto.service.AutoService;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.rocksdb.impl.ImmutableWriteOpts;
@@ -34,6 +35,7 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 @JsonSerialize(as = ImmutableRocksDbKeyValueServiceConfig.class)
 @JsonTypeName(RocksDbKeyValueServiceConfig.TYPE)
 @Value.Immutable
+@AutoService(KeyValueServiceConfig.class)
 public abstract class RocksDbKeyValueServiceConfig implements KeyValueServiceConfig {
 
     public static final String TYPE = "rocksdb";
