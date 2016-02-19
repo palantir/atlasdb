@@ -20,23 +20,28 @@ import java.nio.file.Paths;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.kohsuke.args4j.Option;
 
 import com.google.common.base.Preconditions;
-import com.lexicalscope.jewel.cli.Option;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cli.api.AbstractAtlasDbCli;
-import com.palantir.atlasdb.cli.api.AtlasDbCliOptions;
 import com.palantir.atlasdb.cli.api.AtlasDbServices;
 
-public class TestAtlasDbCli extends AbstractAtlasDbCli<TestAtlasDbCli.TestAtlasDbCliOptions> {
+public class TestAtlasDbCli extends AbstractAtlasDbCli {
 
     private static String TEST_CONFIG_FILE;
 
+    @Option(name = "--flag1", aliases = { "-f1" })
+    Boolean flag1;
+
+    @Option(name = "--flag2", aliases = { "-f2" })
+    String flag2;
+
     @Override
-    public int execute(AtlasDbServices services, TestAtlasDbCliOptions opts) {
+    public int execute(AtlasDbServices services) {
         try {
             // test a method on each of the services
-            if (opts.getFlag1()) {
+            if (flag1 != null) {
                 services.getKeyValueService().getAllTableNames();
                 services.getTimestampService().getFreshTimestamp();
                 services.getLockSerivce().getMinLockedInVersionId("test-client");
@@ -44,28 +49,16 @@ public class TestAtlasDbCli extends AbstractAtlasDbCli<TestAtlasDbCli.TestAtlasD
             }
 
             // test kvs create table
-            if (opts.isFlag2()) {
-                services.getKeyValueService().createTable(opts.getFlag2(), AtlasDbConstants.GENERIC_TABLE_METADATA);
-                Preconditions.checkArgument(services.getKeyValueService().getAllTableNames().contains(opts.getFlag2()),
-                        "kvs contains tables %s, but not table %s", services.getKeyValueService().getAllTableNames(), opts.getFlag2());
-                services.getKeyValueService().dropTable(opts.getFlag2());
+            if (flag2 != null) {
+                services.getKeyValueService().createTable(flag2, AtlasDbConstants.GENERIC_TABLE_METADATA);
+                Preconditions.checkArgument(services.getKeyValueService().getAllTableNames().contains(flag2),
+                        "kvs contains tables %s, but not table %s", services.getKeyValueService().getAllTableNames(), flag2);
+                services.getKeyValueService().dropTable(flag2);
             }
             return 0;
         } finally {
             services.getKeyValueService().teardown();
         }
-    }
-
-    public interface TestAtlasDbCliOptions extends AtlasDbCliOptions {
-        @Option(longName = "required", shortName = "r")
-        boolean getRequired();
-
-        @Option(longName = "flag1", shortName = "f1", defaultValue = "false")
-        boolean getFlag1();
-
-        @Option(longName = "flag2", shortName = "f2")
-        String getFlag2();
-        boolean isFlag2();
     }
 
     @BeforeClass
@@ -74,22 +67,36 @@ public class TestAtlasDbCli extends AbstractAtlasDbCli<TestAtlasDbCli.TestAtlasD
     }
 
     @Test
+    public void testFailure() {
+        assertFailure(new TestAtlasDbCli().run(new String[] { }));
+    }
+
+    @Test
+    public void testRunHelp() {
+        assertSuccessful(new TestAtlasDbCli().run(new String[] { "--help" }));
+    }
+
+    @Test
     public void testRun() {
-        assertSuccessful(new TestAtlasDbCli().run(new String[] { "--config", TEST_CONFIG_FILE, "-r"}, TestAtlasDbCliOptions.class));
+        assertSuccessful(new TestAtlasDbCli().run(new String[] { "--config", TEST_CONFIG_FILE }));
     }
 
     @Test
     public void testFlag1Run() {
-        assertSuccessful(new TestAtlasDbCli().run(new String[] { "--config", TEST_CONFIG_FILE, "--flag1"}, TestAtlasDbCliOptions.class));
+        assertSuccessful(new TestAtlasDbCli().run(new String[] { "--config", TEST_CONFIG_FILE, "--flag1"}));
     }
 
     @Test
     public void testFlag2Run() {
-        assertSuccessful(new TestAtlasDbCli().run(new String[] { "-c", TEST_CONFIG_FILE, "--flag2", "test.new_table"}, TestAtlasDbCliOptions.class));
+        assertSuccessful(new TestAtlasDbCli().run(new String[] { "-c", TEST_CONFIG_FILE, "--flag2", "test.new_table"}));
     }
 
     private void assertSuccessful(int returnVal) {
         Preconditions.checkArgument(returnVal == 0, "CLI exited with non-zero exit code.");
+    }
+
+    private void assertFailure(int returnVal) {
+        Preconditions.checkArgument(returnVal == 1, "CLI exited with exit code zero.");
     }
 
 }
