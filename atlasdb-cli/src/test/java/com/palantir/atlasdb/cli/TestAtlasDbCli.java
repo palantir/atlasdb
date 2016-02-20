@@ -29,13 +29,18 @@ import com.palantir.atlasdb.cli.api.AtlasDbServices;
 
 public class TestAtlasDbCli extends AbstractAtlasDbCli {
 
-    private static String TEST_CONFIG_FILE;
+    private static String SIMPLE_CONFIG_FILE;
+    private static String NESTED_CONFIG_FILE;
 
     @Option(name = "--flag1", aliases = { "-f1" })
     Boolean flag1;
 
     @Option(name = "--flag2", aliases = { "-f2" })
     String flag2;
+
+    public TestAtlasDbCli() {
+        super(SIMPLE_CONFIG_FILE);
+    }
 
     @Override
     public int execute(AtlasDbServices services) {
@@ -63,12 +68,13 @@ public class TestAtlasDbCli extends AbstractAtlasDbCli {
 
     @BeforeClass
     public static void setup() throws URISyntaxException {
-        TEST_CONFIG_FILE = Paths.get(TestAtlasDbCli.class.getClassLoader().getResource("test_atlasdb_config.yml").toURI()).toString();
+        SIMPLE_CONFIG_FILE = Paths.get(TestAtlasDbCli.class.getClassLoader().getResource("simple_atlasdb_config.yml").toURI()).toString();
+        NESTED_CONFIG_FILE = Paths.get(TestAtlasDbCli.class.getClassLoader().getResource("nested_atlasdb_config.yml").toURI()).toString();
     }
 
     @Test
     public void testFailure() {
-        assertFailure(new TestAtlasDbCli().run(new String[] { }));
+        assertFailure(new TestAtlasDbCli().run(new String[] { "-noopt" }));
     }
 
     @Test
@@ -78,17 +84,27 @@ public class TestAtlasDbCli extends AbstractAtlasDbCli {
 
     @Test
     public void testRun() {
-        assertSuccessful(new TestAtlasDbCli().run(new String[] { "--config", TEST_CONFIG_FILE }));
+        assertSuccessful(new TestAtlasDbCli().run(new String[] { "--config", SIMPLE_CONFIG_FILE}));
     }
 
     @Test
     public void testFlag1Run() {
-        assertSuccessful(new TestAtlasDbCli().run(new String[] { "--config", TEST_CONFIG_FILE, "--flag1"}));
+        assertSuccessful(new TestAtlasDbCli().run(new String[] { "--config", SIMPLE_CONFIG_FILE, "--flag1"}));
     }
 
     @Test
     public void testFlag2Run() {
-        assertSuccessful(new TestAtlasDbCli().run(new String[] { "-c", TEST_CONFIG_FILE, "--flag2", "test.new_table"}));
+        assertSuccessful(new TestAtlasDbCli().run(new String[] { "-c", SIMPLE_CONFIG_FILE, "--flag2", "test.new_table"}));
+    }
+
+    @Test
+    public void testRunNestedConfig() {
+        assertSuccessful(new TestAtlasDbCli().run(new String[] { "-c", NESTED_CONFIG_FILE, "-f1", "-n", "config", "dropwizardConfig", "-f2", "test.new_table"}));
+    }
+
+    @Test
+    public void testDefaultConfig() {
+        assertSuccessful(new TestAtlasDbCli().run(new String[] { }));
     }
 
     private void assertSuccessful(int returnVal) {
