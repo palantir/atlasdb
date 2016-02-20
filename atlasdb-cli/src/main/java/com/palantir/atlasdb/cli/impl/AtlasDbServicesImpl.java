@@ -17,9 +17,11 @@ package com.palantir.atlasdb.cli.impl;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
 import javax.net.ssl.SSLSocketFactory;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.common.base.Optional;
@@ -39,9 +41,10 @@ public class AtlasDbServicesImpl implements AtlasDbServices {
 
     private SerializableTransactionManager tm;
 
-    public static AtlasDbServices connect(String configFileName) throws IOException {
+    public static AtlasDbServices connect(String configFileName, List<String> pathInConfig) throws IOException {
         ObjectMapper configMapper = Jackson.newObjectMapper(new YAMLFactory());
-        AtlasDbServerConfiguration config = configMapper.readValue(new File(configFileName), AtlasDbServerConfiguration.class);
+        JsonNode node = getConfigNode(configMapper, configFileName, pathInConfig);
+        AtlasDbServerConfiguration config = configMapper.treeToValue(node, AtlasDbServerConfiguration.class);
         SerializableTransactionManager tm = TransactionManagers.create(config.getConfig(), Optional.<SSLSocketFactory>absent(), ImmutableSet.<Schema>of(),
                 new TransactionManagers.Environment() {
                     @Override
@@ -49,6 +52,14 @@ public class AtlasDbServicesImpl implements AtlasDbServices {
                     }
                 }, false);
         return new AtlasDbServicesImpl(tm);
+    }
+
+    private static JsonNode getConfigNode(ObjectMapper configMapper, String configFileName, List<String> pathInConfig) throws IOException {
+        JsonNode node = configMapper.readTree(new File(configFileName));
+        for (String entry : pathInConfig) {
+            node = node.get(entry);
+        }
+        return node;
     }
 
     private AtlasDbServicesImpl(SerializableTransactionManager tm) {
