@@ -15,21 +15,45 @@
  */
 package com.palantir.atlasdb.cli.api;
 
-import com.lexicalscope.jewel.cli.CliFactory;
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
+import org.kohsuke.args4j.Option;
+
 import com.palantir.atlasdb.cli.impl.AtlasDbServicesImpl;
 
-public abstract class AbstractAtlasDbCli<T extends AtlasDbCliOptions> {
+public abstract class AbstractAtlasDbCli {
 
-    public int run(String[] args, Class<T> optionsClass) {
+    @Option(name = "--help", aliases = { "-h" }, usage = "this help information", help = true)
+    boolean help = false;
+
+    @Option(name = "--config", aliases = { "-c" }, required = true, usage = "path to yaml configuration file for atlasdb")
+    String configFileName;
+
+    public int run(String[] args) {
+        CmdLineParser parser = new CmdLineParser(this);
         try {
-            T opts = CliFactory.parseArguments(optionsClass, args);
-            return execute(AtlasDbServicesImpl.connect(opts.getConfigFileName()), opts);
+            parser.parseArgument(args);
+            if (help) {
+                printUsage(parser);
+                return 0;
+            } else {
+                return execute(AtlasDbServicesImpl.connect(this.configFileName));
+            }
+        } catch (CmdLineException e) {
+            e.printStackTrace();
+            printUsage(parser);
+            return 1;
         } catch (Exception e) {
             e.printStackTrace();
             return 1;
         }
     }
 
-    public abstract int execute(AtlasDbServices services, T opts);
+    private void printUsage(CmdLineParser parser) {
+        System.out.println(this.getClass().getSimpleName() + " Usage:");
+        parser.printUsage(System.out);
+    }
+
+    public abstract int execute(AtlasDbServices services);
 
 }
