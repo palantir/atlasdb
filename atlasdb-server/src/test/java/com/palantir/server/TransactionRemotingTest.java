@@ -49,11 +49,12 @@ import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbFactory;
 import com.palantir.atlasdb.schema.AtlasSchema;
-import com.palantir.atlasdb.schema.UpgradeSchema;
-import com.palantir.atlasdb.schema.generated.UpgradeMetadataTable;
-import com.palantir.atlasdb.schema.generated.UpgradeMetadataTable.Status;
+import com.palantir.atlasdb.schema.SweepSchema;
+import com.palantir.atlasdb.schema.generated.SweepPriorityTable;
+import com.palantir.atlasdb.schema.generated.SweepPriorityTable.CellsExamined;
+import com.palantir.atlasdb.schema.generated.SweepPriorityTable.SweepPriorityRow;
+import com.palantir.atlasdb.schema.generated.SweepPriorityTable.SweepPriorityRowResult;
 import com.palantir.atlasdb.schema.generated.UpgradeMetadataTable.UpgradeMetadataRow;
-import com.palantir.atlasdb.schema.generated.UpgradeMetadataTable.UpgradeMetadataRowResult;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 
@@ -66,7 +67,7 @@ import io.dropwizard.testing.DropwizardTestSupport;
 import io.dropwizard.testing.junit.DropwizardClientRule;
 
 public class TransactionRemotingTest {
-    public final static AtlasSchema schema = UpgradeSchema.INSTANCE;
+    public final static AtlasSchema schema = SweepSchema.INSTANCE;
     public final SerializableTransactionManager txMgr = InMemoryAtlasDbFactory.createInMemoryTransactionManager(schema);
     public final KeyValueService kvs = txMgr.getKeyValueService();
     public final TableMetadataCache cache = new TableMetadataCache(kvs);
@@ -110,16 +111,16 @@ public class TransactionRemotingTest {
 
     @Test
     public void testGetTableMetadata() {
-        TableMetadata metadata = service.getTableMetadata("upgrade.upgrade_metadata");
+        TableMetadata metadata = service.getTableMetadata("sweep.priority");
         Assert.assertFalse(metadata.getColumns().hasDynamicColumns());
     }
 
     @Test
     public void testGetRowsNone() {
-        setupFooStatus1("upgrade.upgrade_metadata");
+        setupFooStatus1("sweep.priority");
         TransactionToken txId = TransactionToken.autoCommit();
         TableRowResult badResults = service.getRows(txId, new TableRowSelection(
-                "upgrade.upgrade_metadata",
+                "sweep.priority",
                 ImmutableList.of(new byte[1]),
                 ColumnSelection.all()));
         Assert.assertTrue(Iterables.isEmpty(badResults.getResults()));
@@ -127,33 +128,33 @@ public class TransactionRemotingTest {
 
     @Test
     public void testGetRowsSome() {
-        setupFooStatus1("upgrade.upgrade_metadata");
+        setupFooStatus1("sweep.priority");
         TransactionToken txId = TransactionToken.autoCommit();
         TableRowResult goodResults = service.getRows(txId, new TableRowSelection(
-                "upgrade.upgrade_metadata",
+                "sweep.priority",
                 ImmutableList.of(UpgradeMetadataRow.of("foo").persistToBytes()),
                 ColumnSelection.all()));
-        UpgradeMetadataRowResult result = UpgradeMetadataRowResult.of(Iterables.getOnlyElement(goodResults.getResults()));
-        Assert.assertEquals(1L, result.getStatus().longValue());
+        SweepPriorityRowResult result = SweepPriorityRowResult.of(Iterables.getOnlyElement(goodResults.getResults()));
+        Assert.assertEquals(1L, result.getCellsExamined().longValue());
     }
 
     @Test
     public void testGetCellsNone() {
-        setupFooStatus1("upgrade.upgrade_metadata");
+        setupFooStatus1("sweep.priority");
         TransactionToken txId = service.startTransaction();
         TableCellVal badCells = service.getCells(txId, new TableCell(
-                "upgrade.upgrade_metadata",
-                ImmutableList.of(Cell.create(new byte[1], UpgradeMetadataTable.UpgradeMetadataNamedColumn.STATUS.getShortName()))));
+                "sweep.priority",
+                ImmutableList.of(Cell.create(new byte[1], SweepPriorityTable.SweepPriorityNamedColumn.CELLS_EXAMINED.getShortName()))));
         Assert.assertTrue(badCells.getResults().isEmpty());
     }
 
     @Test
     public void testGetCellsSome() {
-        setupFooStatus1("upgrade.upgrade_metadata");
+        setupFooStatus1("sweep.priority");
         TransactionToken txId = service.startTransaction();
-        Map<Cell, byte[]> contents = getUpgradeMetadataTableContents();
+        Map<Cell, byte[]> contents = getSweepPriorityTableContents();
         TableCellVal goodCells = service.getCells(txId, new TableCell(
-                "upgrade.upgrade_metadata",
+                "sweep.priority",
                 contents.keySet()));
         Assert.assertEquals(contents.keySet(), goodCells.getResults().keySet());
         Assert.assertArrayEquals(Iterables.getOnlyElement(contents.values()), Iterables.getOnlyElement(goodCells.getResults().values()));
@@ -162,10 +163,10 @@ public class TransactionRemotingTest {
 
     @Test
     public void testGetRangeNone() {
-        setupFooStatus1("upgrade.upgrade_metadata");
+        setupFooStatus1("sweep.priority");
         TransactionToken token = TransactionToken.autoCommit();
         RangeToken range = service.getRange(token, new TableRange(
-                "upgrade.upgrade_metadata",
+                "sweep.priority",
                 new byte[1],
                 new byte[2],
                 ImmutableList.<byte[]>of(),
@@ -176,29 +177,29 @@ public class TransactionRemotingTest {
 
     @Test
     public void testGetRangeSome() {
-        setupFooStatus1("upgrade.upgrade_metadata");
+        setupFooStatus1("sweep.priority");
         TransactionToken token = TransactionToken.autoCommit();
         RangeToken range = service.getRange(token, new TableRange(
-                "upgrade.upgrade_metadata",
+                "sweep.priority",
                 new byte[0],
                 new byte[0],
                 ImmutableList.<byte[]>of(),
                 10));
-        UpgradeMetadataRowResult result = UpgradeMetadataRowResult.of(Iterables.getOnlyElement(range.getResults().getResults()));
-        Assert.assertEquals(1L, result.getStatus().longValue());
+        SweepPriorityRowResult result = SweepPriorityRowResult.of(Iterables.getOnlyElement(range.getResults().getResults()));
+        Assert.assertEquals(1L, result.getCellsExamined().longValue());
         Assert.assertNull(range.getNextRange());
     }
 
     @Test
     public void testDelete() {
-        setupFooStatus1("upgrade.upgrade_metadata");
-        Map<Cell, byte[]> contents = getUpgradeMetadataTableContents();
+        setupFooStatus1("sweep.priority");
+        Map<Cell, byte[]> contents = getSweepPriorityTableContents();
         TransactionToken token = TransactionToken.autoCommit();
         service.delete(token, new TableCell(
-                "upgrade.upgrade_metadata",
+                "sweep.priority",
                 contents.keySet()));
         RangeToken range = service.getRange(token, new TableRange(
-                "upgrade.upgrade_metadata",
+                "sweep.priority",
                 new byte[0],
                 new byte[0],
                 ImmutableList.<byte[]>of(),
@@ -210,12 +211,12 @@ public class TransactionRemotingTest {
     @Test
     public void testAbort() {
         TransactionToken txId = service.startTransaction();
-        service.put(txId, new TableCellVal("upgrade.upgrade_metadata", getUpgradeMetadataTableContents()));
+        service.put(txId, new TableCellVal("sweep.priority", getSweepPriorityTableContents()));
         service.abort(txId);
         service.commit(txId);
         txId = TransactionToken.autoCommit();
         RangeToken range = service.getRange(txId, new TableRange(
-                "upgrade.upgrade_metadata",
+                "sweep.priority",
                 new byte[0],
                 new byte[0],
                 ImmutableList.<byte[]>of(),
@@ -229,7 +230,7 @@ public class TransactionRemotingTest {
         String tableName = "ns.my_table";
         service.createTable(tableName);
         TransactionToken txId = service.startTransaction();
-        TableCellVal putArg = new TableCellVal(tableName, getUpgradeMetadataTableContents());
+        TableCellVal putArg = new TableCellVal(tableName, getSweepPriorityTableContents());
         String str = mapper.writeValueAsString(putArg);
         System.out.println(str);
         service.put(txId, putArg);
@@ -251,13 +252,13 @@ public class TransactionRemotingTest {
 
     private void setupFooStatus1(String table) {
         TransactionToken txId = service.startTransaction();
-        service.put(txId, new TableCellVal(table, getUpgradeMetadataTableContents()));
+        service.put(txId, new TableCellVal(table, getSweepPriorityTableContents()));
         service.commit(txId);
     }
 
-    private Map<Cell, byte[]> getUpgradeMetadataTableContents() {
-        byte[] row = UpgradeMetadataRow.of("foo").persistToBytes();
-        Status status = UpgradeMetadataTable.Status.of(1L);
+    private Map<Cell, byte[]> getSweepPriorityTableContents() {
+        byte[] row = SweepPriorityRow.of("foo").persistToBytes();
+        CellsExamined status = CellsExamined.of(1L);
         Cell cell = Cell.create(row, status.persistColumnName());
         return ImmutableMap.of(cell, status.persistValue());
     }

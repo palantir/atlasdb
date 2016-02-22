@@ -30,7 +30,6 @@ import com.palantir.atlasdb.keyvalue.impl.StaticTableMappingService;
 import com.palantir.atlasdb.keyvalue.impl.TableRemappingKeyValueService;
 import com.palantir.atlasdb.schema.AtlasSchema;
 import com.palantir.atlasdb.schema.Namespace;
-import com.palantir.atlasdb.schema.SchemaReference;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.table.description.Schema;
@@ -75,14 +74,6 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
     @Override
     public TimestampService createTimestampService(KeyValueService rawKvs) {
         return new InMemoryTimestampService();
-    }
-
-    public static SerializableTransactionManager createInMemoryTransactionManager(Schema schema) {
-        return createInMemoryTransactionManagerInternal(schema, null);
-    }
-
-    public static SerializableTransactionManager createInMemoryTransactionManager(SchemaReference schemaRef) {
-        return createInMemoryTransactionManagerInternal(schemaRef.getSchema(), schemaRef.getNamespace());
     }
 
     public static SerializableTransactionManager createInMemoryTransactionManager(AtlasSchema schema) {
