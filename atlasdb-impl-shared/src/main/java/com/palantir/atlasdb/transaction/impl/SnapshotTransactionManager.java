@@ -49,7 +49,7 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.timestamp.TimestampService;
 
-public class SnapshotTransactionManager extends AbstractLockAwareTransactionManager {
+/* package */ class SnapshotTransactionManager extends AbstractLockAwareTransactionManager {
     private final static int NUM_RETRIES = 10;
 
     final KeyValueService keyValueService;
@@ -64,7 +64,7 @@ public class SnapshotTransactionManager extends AbstractLockAwareTransactionMana
     final Cleaner cleaner;
     final boolean allowHiddenTableAccess;
 
-    public SnapshotTransactionManager(KeyValueService keyValueService,
+    protected SnapshotTransactionManager(KeyValueService keyValueService,
                                       TimestampService timestampService,
                                       LockClient lockClient,
                                       RemoteLockService lockService,
@@ -77,7 +77,7 @@ public class SnapshotTransactionManager extends AbstractLockAwareTransactionMana
                 constraintModeSupplier, conflictDetectionManager, sweepStrategyManager, cleaner, false);
     }
 
-    public SnapshotTransactionManager(KeyValueService keyValueService,
+    protected SnapshotTransactionManager(KeyValueService keyValueService,
                                       TimestampService timestampService,
                                       LockClient lockClient,
                                       RemoteLockService lockService,
@@ -221,14 +221,6 @@ public class SnapshotTransactionManager extends AbstractLockAwareTransactionMana
     @Override
     public RemoteLockService getLockService() {
         return lockService;
-    }
-
-    public static void createTables(KeyValueService keyValueService) {
-        keyValueService.createTable(TransactionConstants.TRANSACTION_TABLE, TransactionConstants.TRANSACTION_TABLE_METADATA.persistToBytes());
-    }
-
-    public static void deleteTables(KeyValueService keyValueService) {
-        keyValueService.dropTable(TransactionConstants.TRANSACTION_TABLE);
     }
 
     /**
