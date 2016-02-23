@@ -30,7 +30,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.server.AtlasDbServerConfiguration;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
-import com.palantir.atlasdb.transaction.impl.SnapshotTransactionManager;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.timestamp.TimestampService;
 
@@ -72,7 +71,7 @@ public class AtlasDbServicesImpl implements AtlasDbServices {
     }
 
     @Override
-    public SnapshotTransactionManager getTransactionManager() {
+    public SerializableTransactionManager getTransactionManager() {
         return tm;
     }
 }

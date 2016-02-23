@@ -13,19 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.cli.api;
+package com.palantir.atlasdb.transaction.impl;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
-import com.palantir.lock.RemoteLockService;
-import com.palantir.timestamp.TimestampService;
 
-public interface AtlasDbServices {
-    TimestampService getTimestampService();
+public class TransactionTables {
+    public static void createTables(KeyValueService keyValueService) {
+        keyValueService.createTable(TransactionConstants.TRANSACTION_TABLE, TransactionConstants.TRANSACTION_TABLE_METADATA.persistToBytes());
+    }
 
-    RemoteLockService getLockSerivce();
-
-    KeyValueService getKeyValueService();
-
-    SerializableTransactionManager getTransactionManager();
+    public static void deleteTables(KeyValueService keyValueService) {
+        keyValueService.dropTable(TransactionConstants.TRANSACTION_TABLE);
+    }
 }

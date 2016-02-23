@@ -38,8 +38,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                                           ConflictDetectionManager conflictDetectionManager,
                                           SweepStrategyManager sweepStrategyManager,
                                           Cleaner cleaner) {
-        super(
-                keyValueService,
+        this(keyValueService,
                 timestampService,
                 lockClient,
                 lockService,
@@ -47,7 +46,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 constraintModeSupplier,
                 conflictDetectionManager,
                 sweepStrategyManager,
-                cleaner);
+                cleaner,
+                false);
     }
 
     public SerializableTransactionManager(KeyValueService keyValueService,
