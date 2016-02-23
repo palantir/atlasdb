@@ -60,28 +60,6 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                                           SweepStrategyManager sweepStrategyManager,
                                           Cleaner cleaner,
                                           boolean allowHiddenTableAccess) {
-        super(keyValueService,
-                timestampService,
-                lockClient,
-                lockService,
-                transactionService,
-                constraintModeSupplier,
-                conflictDetectionManager,
-                sweepStrategyManager,
-                cleaner,
-                allowHiddenTableAccess);
-    }
-
-    public SerializableTransactionManager(KeyValueService keyValueService,
-                                          TimestampService timestampService,
-                                          LockClient lockClient,
-                                          RemoteLockService lockService,
-                                          TransactionService transactionService,
-                                          Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
-                                          ConflictDetectionManager conflictDetectionManager,
-                                          SweepStrategyManager sweepStrategyManager,
-                                          Cleaner cleaner,
-                                          boolean allowHiddenTableAccess) {
         super(
                 keyValueService,
                 timestampService,
