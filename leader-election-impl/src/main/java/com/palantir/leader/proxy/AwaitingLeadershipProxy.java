@@ -17,7 +17,6 @@ package com.palantir.leader.proxy;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -35,6 +34,7 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.net.HostAndPort;
+import com.google.common.reflect.AbstractInvocationHandler;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.LeaderElectionService;
@@ -42,7 +42,7 @@ import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 import com.palantir.leader.NotCurrentLeaderException;
 
-public final class AwaitingLeadershipProxy implements InvocationHandler {
+public final class AwaitingLeadershipProxy extends AbstractInvocationHandler {
 
     private static final Logger log = LoggerFactory.getLogger(AwaitingLeadershipProxy.class);
     private static final Logger leaderLog = LoggerFactory.getLogger("leadership");
@@ -141,7 +141,7 @@ public final class AwaitingLeadershipProxy implements InvocationHandler {
     }
 
     @Override
-    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+    protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
         final LeadershipToken leadershipToken = leadershipTokenRef.get();
 
         if (leadershipToken == null) {
