@@ -15,11 +15,11 @@
  */
 package com.palantir.atlasdb;
 
-import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 
 import com.google.common.base.Function;
+import com.google.common.reflect.AbstractInvocationHandler;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
@@ -28,7 +28,7 @@ import com.palantir.atlasdb.transaction.api.TransactionTask;
  * Proxy which automatically wraps all calls to target interface in
  * transactions.
  */
-public class AtlasDbAutoCommitProxy<T> implements InvocationHandler {
+public class AtlasDbAutoCommitProxy<T> extends AbstractInvocationHandler {
     @SuppressWarnings("unchecked")
     public static <T> T newProxyInstance(Class<T> interfaceClass,
                                          TransactionManager txManager,
@@ -49,7 +49,7 @@ public class AtlasDbAutoCommitProxy<T> implements InvocationHandler {
     }
 
     @Override
-    public Object invoke(Object proxy, final Method method, final Object[] args) throws Throwable {
+    protected Object handleInvocation(Object proxy, final Method method, final Object[] args) throws Throwable {
         return txManager.runTaskWithRetry(new TransactionTask<Object, Exception>() {
             @Override
             public Object execute(Transaction t) throws Exception {
