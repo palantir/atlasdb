@@ -1,3 +1,3 @@
-## Jekyll Documentation theme
+## Contributing to AtlasDB Docs
 
-This is the readme page of the Jekyll documentation theme.
+Detailed how-to coming soon...
