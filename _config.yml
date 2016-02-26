@@ -12,7 +12,6 @@ site_title: AtlasDB Docs
 project_folder: atlasdb
 company_name: Palantir
 footer_image_location: ../../common_images/company_logo.png
-github_editme_path: palantir/atlasdb/tree/gh-pages
 # variables
 
 
