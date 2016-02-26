@@ -1,0 +1,4 @@
+home:
+  title: "Introduction"
+  url: "../atlasdb/home.html"
+  link: "<a href='../mydoc/home.html'>Introduction</a>"

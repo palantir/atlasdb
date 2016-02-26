@@ -63,12 +63,15 @@
 
                 <!-- special insertion -->
 
-               {% if site.project == "mydoc_designers" or site.project == "mydoc_writers" %}
-                {% comment %}
-                {% include custom/mydoc/custom_menu.html %}
-                {% endcomment %}
+                {% if site.project == "mydoc_designers" or site.project == "mydoc_writers" %}
+                  {% comment %}
+                    {% include custom/mydoc/custom_menu.html %}
+                  {% endcomment %}
                 {% endif %}
-                {% include feedback.html %}
+
+                {% comment %}
+                  {% include feedback.html %}
+                {% endcomment %}
 
                 <!--uncomment this block if you want simple search instead of algolia-->
                 <li>
@@ -92,8 +95,8 @@
                      <!--end search-->
                 </li>
 
-            {% comment %}
-                {% include frameescape.html %}
+                {% comment %}
+                  {% include frameescape.html %}
                 {% endcomment %}
         </div>
         <!-- /.container -->

@@ -1,0 +1,79 @@
+# project definitions
+project: atlasdb
+audience: all
+product: doc
+platform: all
+version: all
+output: web
+destination: ../doc_outputs/atlasdb
+topnav_title: AtlasDB
+homepage_title: Transactional Distributed Database Layer
+site_title: AtlasDB Docs
+project_folder: atlasdb
+company_name: Palantir
+footer_image_location: ../../common_images/company_logo.png
+github_editme_path: palantir/atlasdb/tree/gh-pages
+# variables
+
+
+sidebar_tagline: Docs
+sidebar_version: Version 0.1
+theme_file: theme-blue.css
+
+# the algolia entries here are experimental only.
+
+#gems:
+#  - algoliasearch-jekyll
+#algolia:
+#  application_id: 'HXUBJERYYB'
+#  index_name:     'documentation_theme_jekyll_designers'
+port: 4009
+
+exclude:
+  - _site
+  - _drafts
+  - configs/
+  - doc/mydoc_writers*
+
+# same for all
+host: 127.0.0.1
+
+# these settings should work, but they don't seem to apply the right highlighting
+
+#highlighter: rouge
+#markdown: kramdown
+#kramdown:
+#  input: GFM
+#  auto_ids: true
+#  hard_wrap: false
+#  syntax_highlighter: rouge
+
+highlighter: pygments
+markdown: redcarpet
+redcarpet:
+  extensions: ["no_intra_emphasis", "fenced_code_blocks", "tables", "with_toc_data"]
+
+
+collections:
+  tooltips:
+    output: false
+
+defaults:
+  -
+    scope:
+      path: ""
+      type: "pages"
+    values:
+      layout: "page"
+      comments: true
+      search: true
+  -
+    scope:
+      path: ""
+      type: "tooltips"
+    values:
+      layout: "page"
+      comments: true
+      search: true
+      tooltip: true
+

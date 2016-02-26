@@ -1,4 +1,3 @@
-
 {% comment %}
 __        __    _ _
 \ \      / / __(_) |_ ___ _ __ ___
@@ -39,4 +38,22 @@ ____            _
 {% assign platform = "all" %}
 {% assign projectTags = site.data.mydoc.mydoc_tags.allowed-tags %}
 {% assign projectFolder = "mydoc" %}
+{% endif %}
+
+{% comment %}
+
+AtlasDB
+
+{% endcomment %}
+
+{% if site.project == "atlasdb" %}
+{% assign audience = "all" %}
+{% assign sidebar = site.data.atlasdb.sidebar.entries %}
+{% assign topnav = site.data.atlasdb.topnav.topnav %}
+{% assign topnav_dropdowns = site.data.atlasdb.topnav.topnav_dropdowns %}
+{% assign version = "all" %}
+{% assign product = "all" %}
+{% assign platform = "all" %}
+{% assign projectTags = site.data.atlasdb.tags.allowed-tags %}
+{% assign projectFolder = "atlasdb" %}
 {% endif %}
