@@ -33,7 +33,7 @@ exclude:
   - _site
   - _drafts
   - configs/
-  - doc/mydoc_writers*
+  - doc/atlasdb*
 
 # same for all
 host: 127.0.0.1

@@ -1,28 +1,24 @@
-# this is simply copied over from config/config_designers.yml
-
 # project definitions
-project: mydoc_designers
-audience: designers
+project: atlasdb
+audience: all
 product: doc
 platform: all
 version: all
 output: web
-destination: ../doc_outputs/mydoc/designers
-topnav_title: Jekyll Documentation Theme
-homepage_title: Jekyll doc theme for designers
-site_title: Jekyll theme for designers
-project_folder: mydoc
-company_name: Your company
+destination: ../doc_outputs/atlasdb
+topnav_title: AtlasDB
+homepage_title: Transactional Distributed Database Layer
+site_title: AtlasDB Docs
+project_folder: atlasdb
+company_name: Palantir
 footer_image_location: ../../common_images/company_logo.png
-github_editme_path: tomjohnson1492/documentation-theme-jekyll/edit/reviews
-disqus_shortname: idrbwjekyll
+github_editme_path: palantir/atlasdb/tree/gh-pages
 # variables
 
 
-sidebar_tagline: Designers
-sidebar_version: Version 4.0
+sidebar_tagline: Docs
+sidebar_version: Version 0.1
 theme_file: theme-blue.css
-pdf_file_name: mydoc_designers_pdf.pdf
 
 # the algolia entries here are experimental only.
 
@@ -37,11 +33,10 @@ exclude:
   - _site
   - _drafts
   - configs/
-  - doc/mydoc_writers*
+  - doc/atlasdb*
 
 # same for all
 host: 127.0.0.1
-feedback_email: tomjohnson1492@gmail.com
 
 # these settings should work, but they don't seem to apply the right highlighting
 
