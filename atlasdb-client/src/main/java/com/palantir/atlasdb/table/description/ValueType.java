@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.table.description;
 
+import java.util.UUID;
+
 import org.json.simple.JSONValue;
 
 import com.google.common.base.Preconditions;
@@ -840,6 +842,77 @@ public enum ValueType {
             return Long.class;
         }
     },
+    UUID {
+        @Override
+        public UUID convertToJava(byte[] value, int offset) {
+            Preconditions.checkArgument(offset + 16 <= value.length, "Field does not contain enough remaining bytes to hold a UUID");
+            return EncodingUtils.decodeUUID(value, offset);
+        }
+
+        @Override
+        public byte[] convertFromJava(Object value) {
+            Preconditions.checkArgument(value == null || value instanceof UUID);
+            return EncodingUtils.encodeUUID((UUID) value);
+        }
+
+        @Override
+        public Pair<String, Integer> convertToString(byte[] value, int offset) {
+            return Pair.create(convertToJava(value, offset).toString(), 16);
+        }
+
+        @Override
+        public byte[] convertFromString(String strValue) {
+            return convertFromJava(java.util.UUID.fromString(strValue));
+        }
+
+        @Override
+        public Pair<String, Integer> convertToJson(byte[] value, int offset) {
+            return Pair.create(JSONValue.toJSONString(convertToJava(value, offset).toString()), 16);
+        }
+
+        @Override
+        public byte[] convertFromJson(String jsonValue) {
+            Object s = JSONValue.parse(jsonValue);
+            Preconditions.checkArgument(s instanceof String, "%s must be a json string", jsonValue);
+            return convertFromString((String) s);
+        }
+
+        @Override
+        public int sizeOf(Object value) {
+            return 16;
+        }
+
+        @Override
+        public String getPersistCode(String variableName) {
+            return String.format("EncodingUtils.encodeUUID(%s)", variableName);
+        }
+
+        @Override
+        public String getHydrateCode(String inputName, String indexName) {
+            return String.format("EncodingUtils.decodeUUID(%s, %s)", inputName, indexName);
+        }
+
+        @Override
+        public String getFlippedHydrateCode(String inputName, String indexName) {
+            return String.format("EncodingUtils.decodeFlippedUUID(%s, %s)", inputName, indexName);
+        }
+
+        @Override
+        public String getHydrateSizeCode(String variableName) {
+            return "16";
+        }
+
+        @Override
+        public String getJavaClassName() {
+            return UUID.class.getName();
+        }
+
+        @Override
+        public Class<?> getTypeClass() {
+            return UUID.class;
+        }
+
+    }
     ;
 
     public abstract Object convertToJava(byte[] value, int offset);

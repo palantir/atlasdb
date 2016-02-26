@@ -74,6 +74,7 @@ enum ValueType {
     VAR_STRING = 8;
     NULLABLE_FIXED_LONG = 9;
     SIZED_BLOB = 10;
+    UUID = 11;
 }
 
 enum Compression {

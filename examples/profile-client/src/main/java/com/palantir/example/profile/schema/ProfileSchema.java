@@ -43,7 +43,7 @@ public class ProfileSchema implements AtlasSchema {
 
         schema.addTableDefinition("user_profile", new TableDefinition() {{
             rowName();
-                rowComponent("id", ValueType.FIXED_LONG);
+                rowComponent("id", ValueType.UUID);
             columns();
                 column("metadata", "m", ProfilePersistence.UserProfile.class);
                 column("create", "c", CreationData.Persister.class);
@@ -56,7 +56,7 @@ public class ProfileSchema implements AtlasSchema {
             rowName();
                 componentFromColumn("birthday", ValueType.VAR_SIGNED_LONG, "metadata", "_value.getBirthEpochDay()");
             dynamicColumns();
-                componentFromRow("id", ValueType.FIXED_LONG);
+                componentFromRow("id", ValueType.UUID);
             rangeScanAllowed();
         }});
 
@@ -65,7 +65,7 @@ public class ProfileSchema implements AtlasSchema {
             rowName();
                 componentFromColumn("time", ValueType.VAR_LONG, "create", "_value.getTimeCreated()");
             dynamicColumns();
-                componentFromRow("id", ValueType.FIXED_LONG);
+                componentFromRow("id", ValueType.UUID);
             rangeScanAllowed();
         }});
 
@@ -74,7 +74,7 @@ public class ProfileSchema implements AtlasSchema {
             rowName();
                 componentFromIterableColumn("cookie", ValueType.STRING, ValueByteOrder.ASCENDING, "json", "com.palantir.example.profile.schema.ProfileSchema.getCookies(_value)");
             dynamicColumns();
-                componentFromRow("id", ValueType.FIXED_LONG);
+                componentFromRow("id", ValueType.UUID);
             rangeScanAllowed();
         }});
 

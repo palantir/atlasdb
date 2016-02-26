@@ -15,14 +15,18 @@
  */
 package com.palantir.atlasdb.ptobject;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
 import org.apache.commons.lang.ArrayUtils;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.Bytes;
+import com.google.common.primitives.Longs;
 import com.google.protobuf.CodedOutputStream;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
@@ -253,6 +257,29 @@ public class EncodingUtils {
     public static byte[] encodeSizedBytes(byte[] bytes) {
         byte[] len = encodeVarLong(bytes.length);
         return Bytes.concat(len, bytes);
+    }
+
+    public static byte[] encodeUUID(UUID uuid) {
+        return ByteBuffer
+                .allocate(2 * Longs.BYTES)
+                .order(ByteOrder.BIG_ENDIAN)
+                .putLong(uuid.getMostSignificantBits())
+                .putLong(uuid.getLeastSignificantBits())
+                .array();
+    }
+
+    public static UUID decodeUUID(byte[] bytes, int offset) {
+        ByteBuffer buf = ByteBuffer.wrap(bytes, offset, 2 * Longs.BYTES).order(ByteOrder.BIG_ENDIAN);
+        long mostSigBits = buf.getLong();
+        long leastSigBits = buf.getLong();
+        return new UUID(mostSigBits, leastSigBits);
+    }
+
+    public static UUID decodeFlippedUUID(byte[] bytes, int offset) {
+        ByteBuffer buf = ByteBuffer.wrap(bytes, offset, 2 * Longs.BYTES).order(ByteOrder.BIG_ENDIAN);
+        long mostSigBits = -1L ^ buf.getLong();
+        long leastSigBits = -1L ^ buf.getLong();
+        return new UUID(mostSigBits, leastSigBits);
     }
 
     public static byte[] flipAllBits(byte[] bytes) {
