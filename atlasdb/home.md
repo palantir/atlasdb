@@ -1,7 +1,6 @@
 ---
 title: Introduction
-tags: [getting_started]
-audience: add
+audience: all
 type: first_page
 homepage: true
 ---
