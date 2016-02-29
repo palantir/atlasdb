@@ -130,8 +130,8 @@ PLATFORMS
 DEPENDENCIES
   github-pages
   jekyll
+  kramdown
   pygments.rb
-  redcarpet
 
 BUNDLED WITH
-   1.10.6
+   1.11.2
