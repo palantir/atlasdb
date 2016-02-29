@@ -1,6 +1,6 @@
 source 'https://rubygems.org'
 
 gem 'github-pages'
-gem 'pygments.rb'
+gem 'rouge'
 gem 'kramdown'
 gem 'jekyll'

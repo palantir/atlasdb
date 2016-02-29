@@ -47,7 +47,7 @@ host: 127.0.0.1
 #  hard_wrap: false
 #  syntax_highlighter: rouge
 
-highlighter: pygments
+highlighter: rouge
 markdown: kramdown
 redcarpet:
   extensions: ["no_intra_emphasis", "fenced_code_blocks", "tables", "with_toc_data"]
