@@ -5,7 +5,7 @@ title: Contributing
 ## Contributing to AtlasDB
 
 Start by getting a [local development
-setup](/docs/getting_started.html#running-from-source) working.  We are happy
+setup](/atlasdb/docs/getting_started.html#running-from-source) working.  We are happy
 to accept pull requests and could use help implementing the AtlasDB API for
 more underlying physical stores.
 

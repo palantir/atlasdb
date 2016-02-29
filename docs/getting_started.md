@@ -44,4 +44,4 @@ AtlasDbServer server src/dist/atlasdb_standalone.yml
 
 This is dropwizard service that runs all the needed parts and doesn't force you
 to use the java client to get the benefits of atlas. See the [AtlasDB Server
-Api](/docs/atlas_server_api.html) for more details.
+Api](/atlasdb/docs/atlas_server_api.html) for more details.
