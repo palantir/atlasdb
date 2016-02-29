@@ -35,6 +35,9 @@ atlasdb`.
 adding a markdown file to `docs/` and then adding the appropriate navigation
 configuration in `_data/atlasdb/sidebar.yml`.
 
+You can generate and view the docs locally by running `jekyll serve
+--config configs/atlasdb/config.yml` and opening `http://127.0.0.1:4009/`.
+
 The docs are a fork of the [jekyll documentation
 theme](https://github.com/tomjohnson1492/documentation-theme-jekyll).  See [the
 theme
