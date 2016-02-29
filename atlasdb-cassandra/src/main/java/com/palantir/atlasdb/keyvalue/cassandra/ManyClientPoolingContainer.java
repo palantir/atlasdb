@@ -134,7 +134,8 @@ public class ManyClientPoolingContainer extends ForwardingPoolingContainer<Clien
 
     private PoolingContainer<Client> delegateForHost(InetAddress host) {
         for (Map.Entry<InetSocketAddress, PoolingContainer<Client>> entry : containerMap.entrySet()) {
-            if (entry.getKey().equals(host)) {
+            InetAddress knownHost = entry.getKey().getAddress();
+            if (knownHost != null && knownHost.equals(host)) {
                 return entry.getValue();
             }
         }
