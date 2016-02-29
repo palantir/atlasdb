@@ -9,12 +9,128 @@ entries:
     platform: all
     product: all
     version: all
-    output: web, pdf
+    output: web
     items:
     - title: Introduction
-      url: /atlasdb/home.html
+      url: /docs/home.html
       audience: all
       platform: all
       product: all
       version: all
-      output: web, pdf
+      output: web
+    - title: Getting Started
+      url: /docs/getting_started.html
+      audience: all
+      platform: all
+      product: all
+      version: all
+      output: web
+    - title: AtlasDB Server
+      url: /docs/atlas_server_api.html
+      audience: all
+      platform: all
+      product: all
+      version: all
+      output: web
+
+  - title: Schemas
+    audience: all
+    platform: all
+    product: all
+    version: all
+    output: web
+    items:
+    - title: Overview
+      url: /docs/schemas.html
+      audience: all
+      platform: all
+      product: all
+      version: all
+      output: web
+    - title: Tables and Indices
+      url: /docs/tables_and_indices.html
+      audience: all
+      platform: all
+      product: all
+      version: all
+      output: web
+    - title: Stream Stores
+      url: /docs/streams.html
+      audience: all
+      platform: all
+      product: all
+      version: all
+      output: web
+    - title: Cleanup Tasks
+      url: /docs/cleanup_tasks.html
+      audience: all
+      platform: all
+      product: all
+      version: all
+      output: web
+    - title: Physical Storage Cleanup
+      url: /docs/physical_cleanup.html
+      audience: all
+      platform: all
+      product: all
+      version: all
+      output: web
+
+  - title: Transactions
+    audience: all
+    platform: all
+    product: all
+    version: all
+    output: web
+    items:
+    - title: Isolation Levels
+      url: /docs/isolation_levels.html
+      audience: all
+      platform: all
+      product: all
+      version: all
+      output: web
+    - title: Performance Ideas
+      url: /docs/performance_ideas.html
+      audience: all
+      platform: all
+      product: all
+      version: all
+      output: web
+    - title: Transaction Protocol
+      url: /docs/transaction_protocol.html
+      audience: all
+      platform: all
+      product: all
+      version: all
+      output: web
+
+  - title: Configuration
+    audience: all
+    platform: all
+    product: all
+    version: all
+    output: web
+    items:
+    - title: Cassandra
+      url: /docs/cassandra_config.html
+      audience: all
+      platform: all
+      product: all
+      version: all
+      output: web
+
+  - title: Miscellaneous
+    audience: all
+    platform: all
+    product: all
+    version: all
+    output: web
+    items:
+    - title: Contributing
+      url: /docs/contributing.html
+      audience: all
+      platform: all
+      product: all
+      version: all
+      output: web

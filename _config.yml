@@ -6,11 +6,11 @@ platform: all
 version: all
 output: web
 destination: ../doc_outputs/atlasdb
-topnav_title: AtlasDB
-homepage_title: Transactional Distributed Database Layer
+topnav_title: AtlasDB - Transactional Distributed Database Layer
+homepage_title: Introduction to AtlasDB
 site_title: AtlasDB Docs
 project_folder: atlasdb
-company_name: Palantir
+company_name: Palantir Technologies Inc
 footer_image_location: ../../common_images/company_logo.png
 # variables
 
