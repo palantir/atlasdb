@@ -35,6 +35,7 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -44,6 +45,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.common.collect.Maps2;
+import com.palantir.remoting.ssl.SslConfiguration;
 
 
 public class CassandraVerifier {
@@ -53,12 +55,19 @@ public class CassandraVerifier {
     // consistent ring across all of it's nodes.  One node will think it owns more than the others
     // think it does and they will not send writes to it, but it will respond to requests
     // acting like it does.
-    protected static void sanityCheckRingConsistency(Set<InetSocketAddress> currentAddrs, String keyspace, boolean isSsl, boolean safetyDisabled, int socketTimeoutMillis, int socketQueryTimeoutMillis) {
+    protected static void sanityCheckRingConsistency(
+            Set<InetSocketAddress> currentAddrs,
+            String keyspace,
+            boolean isSsl,
+            Optional<SslConfiguration> sslConfiguration,
+            boolean safetyDisabled,
+            int socketTimeoutMillis,
+            int socketQueryTimeoutMillis) {
         Multimap<Set<TokenRange>, InetSocketAddress> tokenRangesToHost = HashMultimap.create();
         for (InetSocketAddress addr : currentAddrs) {
             Cassandra.Client client = null;
             try {
-                client = CassandraClientFactory.getClientInternal(addr, isSsl, socketTimeoutMillis, socketQueryTimeoutMillis);
+                client = CassandraClientFactory.getClientInternal(addr, isSsl, sslConfiguration, socketTimeoutMillis, socketQueryTimeoutMillis);
                 try {
                     client.describe_keyspace(keyspace);
                 } catch (NotFoundException e) {

@@ -32,8 +32,10 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Optional;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.pooling.PoolingContainer;
+import com.palantir.remoting.ssl.SslConfiguration;
 
 public class CassandraClientPoolingContainer implements PoolingContainer<Client> {
     private static final Logger log = LoggerFactory.getLogger(CassandraClientPoolingContainer.class);
@@ -133,6 +135,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
         private int poolSize = 20;
         private String keyspace = "atlasdb";
         private boolean isSsl = false;
+        private Optional<SslConfiguration> sslConfiguration = Optional.absent();
         private int socketTimeoutMillis = 2000;
         private int socketQueryTimeoutMillis = 62000;
 
@@ -157,6 +160,11 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
             return this;
         }
 
+        public Builder sslConfiguration(SslConfiguration val) {
+            sslConfiguration = Optional.of(val);
+            return this;
+        }
+
         public Builder socketTimeout(int val){
             socketTimeoutMillis = val;
             return this;
@@ -172,6 +180,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
                     new CassandraClientFactory(addr,
                             keyspace,
                             isSsl,
+                            sslConfiguration,
                             socketTimeoutMillis,
                             socketQueryTimeoutMillis);
             GenericObjectPoolConfig config = new GenericObjectPoolConfig();

@@ -37,9 +37,12 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Optional;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.palantir.remoting.ssl.SslConfiguration;
+import com.palantir.remoting.ssl.SslSocketFactories;
 
 public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
     private static final Logger log = LoggerFactory.getLogger(CassandraClientFactory.class);
@@ -59,17 +62,20 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
     private final InetSocketAddress addr;
     private final String keyspace;
     private final boolean isSsl;
+    private final Optional<SslConfiguration> sslConfiguration;
     private final int socketTimeoutMillis;
     private final int socketQueryTimeoutMillis;
 
     public CassandraClientFactory(InetSocketAddress addr,
                                   String keyspace,
                                   boolean isSsl,
+                                  Optional<SslConfiguration> sslConfiguration,
                                   int socketTimeoutMillis,
                                   int socketQueryTimeoutMillis) {
         this.addr = addr;
         this.keyspace = keyspace;
         this.isSsl = isSsl;
+        this.sslConfiguration = sslConfiguration;
         this.socketTimeoutMillis = socketTimeoutMillis;
         this.socketQueryTimeoutMillis = socketQueryTimeoutMillis;
     }
@@ -77,7 +83,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
     @Override
     public Client create() throws Exception {
         try {
-            return getClient(addr, keyspace, isSsl, socketTimeoutMillis, socketQueryTimeoutMillis);
+            return getClient(addr, keyspace, isSsl, sslConfiguration, socketTimeoutMillis, socketQueryTimeoutMillis);
         } catch (Exception e) {
             String message = String.format("Failed to construct client for %s/%s", addr, keyspace);
             if (isSsl) {
@@ -90,9 +96,10 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
     private static Cassandra.Client getClient(InetSocketAddress addr,
                                               String keyspace,
                                               boolean isSsl,
+                                              Optional<SslConfiguration> sslConfiguration,
                                               int socketTimeoutMillis,
                                               int socketQueryTimeoutMillis) throws Exception {
-        Client ret = getClientInternal(addr, isSsl, socketTimeoutMillis, socketQueryTimeoutMillis);
+        Client ret = getClientInternal(addr, isSsl, sslConfiguration, socketTimeoutMillis, socketQueryTimeoutMillis);
         try {
             ret.set_keyspace(keyspace);
             log.info("Created new client for {}/{} {}", addr, keyspace, (isSsl ? "over SSL" : ""));
@@ -105,6 +112,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
 
     public static Cassandra.Client getClientInternal(InetSocketAddress addr,
                                                      boolean isSsl,
+                                                     Optional<SslConfiguration> sslConfiguration,
                                                      int socketTimeoutMillis,
                                                      int socketQueryTimeoutMillis) throws TTransportException {
         TSocket tSocket = new TSocket(addr.getHostString(), addr.getPort(), socketTimeoutMillis);
@@ -119,7 +127,12 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
         if (isSsl) {
             boolean success = false;
             try {
-                SSLSocketFactory factory = sslSocketFactories.getUnchecked(addr);
+                final SSLSocketFactory factory;
+                if (sslConfiguration.isPresent()) {
+                    factory = SslSocketFactories.createSslSocketFactory(sslConfiguration.get());
+                } else {
+                    factory = sslSocketFactories.getUnchecked(addr);
+                }
                 SSLSocket socket = (SSLSocket) factory.createSocket(tSocket.getSocket(), addr.getHostString(), addr.getPort(), true);
                 tSocket = new TSocket(socket);
                 success = true;
