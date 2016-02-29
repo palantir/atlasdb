@@ -1,3 +1,3 @@
 ## Contributing to AtlasDB Docs
 
-Detailed how-to coming soon...
+See [http://palantir.github.io/atlasdb/docs/contributing.html](http://palantir.github.io/atlasdb/docs/contributing.html#contributing-docs).
