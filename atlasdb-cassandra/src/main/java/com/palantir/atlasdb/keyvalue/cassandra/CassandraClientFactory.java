@@ -48,6 +48,8 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
+import com.palantir.remoting.ssl.SslConfiguration;
+import com.palantir.remoting.ssl.SslSocketFactories;
 
 public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
     private static final Logger log = LoggerFactory.getLogger(CassandraClientFactory.class);
@@ -68,6 +70,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
     private final String keyspace;
     private final Optional<CassandraCredentialsConfig> creds;
     private final boolean isSsl;
+    private final Optional<SslConfiguration> sslConfiguration;
     private final int socketTimeoutMillis;
     private final int socketQueryTimeoutMillis;
 
@@ -75,12 +78,14 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
                                   String keyspace,
                                   Optional<CassandraCredentialsConfig> creds,
                                   boolean isSsl,
+                                  Optional<SslConfiguration> sslConfiguration,
                                   int socketTimeoutMillis,
                                   int socketQueryTimeoutMillis) {
         this.addr = addr;
         this.keyspace = keyspace;
         this.creds = creds;
         this.isSsl = isSsl;
+        this.sslConfiguration = sslConfiguration;
         this.socketTimeoutMillis = socketTimeoutMillis;
         this.socketQueryTimeoutMillis = socketQueryTimeoutMillis;
     }
@@ -88,7 +93,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
     @Override
     public Client create() throws Exception {
         try {
-            return getClient(addr, keyspace, creds, isSsl, socketTimeoutMillis, socketQueryTimeoutMillis);
+            return getClient(addr, keyspace, creds, isSsl, sslConfiguration, socketTimeoutMillis, socketQueryTimeoutMillis);
         } catch (Exception e) {
             String message = String.format("Failed to construct client for %s/%s", addr, keyspace);
             if (isSsl) {
@@ -102,9 +107,10 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
                                               String keyspace,
                                               Optional<CassandraCredentialsConfig> creds,
                                               boolean isSsl,
+                                              Optional<SslConfiguration> sslConfiguration,
                                               int socketTimeoutMillis,
                                               int socketQueryTimeoutMillis) throws Exception {
-        Client ret = getClientInternal(addr, creds, isSsl, socketTimeoutMillis, socketQueryTimeoutMillis);;
+        Client ret = getClientInternal(addr, creds, isSsl, sslConfiguration, socketTimeoutMillis, socketQueryTimeoutMillis);
         try {
             ret.set_keyspace(keyspace);
             log.debug("Created new client for {}/{} {} {}", addr, keyspace, (isSsl ? "over SSL" : ""),
@@ -117,8 +123,19 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
     }
 
     static Cassandra.Client getClientInternal(InetSocketAddress addr,
+            Optional<CassandraCredentialsConfig> creds,
+            Optional<Boolean> isSsl,
+            Optional<SslConfiguration> sslConfiguration,
+            int socketTimeoutMillis,
+            int socketQueryTimeoutMillis) throws TException {
+        boolean useSsl = (isSsl.isPresent() && isSsl.get()) || sslConfiguration.isPresent();
+        return getClientInternal(addr, creds, useSsl, sslConfiguration, socketTimeoutMillis, socketQueryTimeoutMillis);
+    }
+
+    static Cassandra.Client getClientInternal(InetSocketAddress addr,
                                                      Optional<CassandraCredentialsConfig> creds,
                                                      boolean isSsl,
+                                                     Optional<SslConfiguration> sslConfiguration,
                                                      int socketTimeoutMillis,
                                                      int socketQueryTimeoutMillis) throws TException {
         TSocket tSocket = new TSocket(addr.getHostString(), addr.getPort(), socketTimeoutMillis);
@@ -133,7 +150,12 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
         if (isSsl) {
             boolean success = false;
             try {
-                SSLSocketFactory factory = sslSocketFactories.getUnchecked(addr);
+                final SSLSocketFactory factory;
+                if (sslConfiguration.isPresent()) {
+                    factory = SslSocketFactories.createSslSocketFactory(sslConfiguration.get());
+                } else {
+                    factory = sslSocketFactories.getUnchecked(addr);
+                }
                 SSLSocket socket = (SSLSocket) factory.createSocket(tSocket.getSocket(), addr.getHostString(), addr.getPort(), true);
                 tSocket = new TSocket(socket);
                 success = true;
