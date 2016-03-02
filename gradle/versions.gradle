@@ -10,7 +10,7 @@ ext.libVersions = [
     snappy: '1.1.1.7',
     jackson: '2.5.1',
     jackson_annotation: '2.5.0',
-    cassandra: '2.2.0',
+    cassandra: '2.2.1',
     cassandra_driver_core: '2.2.0-rc3',
     hamcrest: '1.3'
 ]
