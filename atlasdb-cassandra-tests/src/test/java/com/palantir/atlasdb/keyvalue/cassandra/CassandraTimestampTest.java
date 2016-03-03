@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.net.InetSocketAddress;
 
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -52,6 +53,7 @@ public class CassandraTimestampTest {
         kv.dropTable(TIMESTAMP_TABLE);
     }
 
+    @After
     public void tearDown() {
         kv.teardown();
     }
