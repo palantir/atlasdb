@@ -58,6 +58,7 @@ import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
@@ -371,6 +372,15 @@ public abstract class AbstractTransactionTest {
         assertEquals(1, list.size());
         row = list.iterator().next();
         assertEquals(1, row.getColumns().size());
+    }
+
+    @Test
+    public void testKeyValueEmptyRange() {
+        putDirect("row1", "col1", "v1", 0);
+
+        byte[] rowBytes = PtBytes.toBytes("row1");
+        ImmutableList<RowResult<Value>> list = ImmutableList.copyOf(keyValueService.getRange(TEST_TABLE, RangeRequest.builder().startRowInclusive(rowBytes).endRowExclusive(rowBytes).build(), 1));
+        assertTrue(list.isEmpty());
     }
 
     @Test
@@ -1146,6 +1156,45 @@ public abstract class AbstractTransactionTest {
         } catch (TransactionConflictException e) {
             // expected
         }
+    }
+
+    @Test
+    public void testGetRanges() {
+        Transaction t = startTransaction();
+        byte[] row1Bytes = PtBytes.toBytes("row1");
+        Cell k = Cell.create(row1Bytes, PtBytes.toBytes("col"));
+        byte[] v = PtBytes.toBytes("v");
+        t.put(TEST_TABLE, ImmutableMap.of(k, v));
+        t.commit();
+
+        t = startTransaction();
+        List<RangeRequest> ranges = ImmutableList.of(RangeRequest.builder().prefixRange(row1Bytes).build());
+        assertEquals(1, BatchingVisitables.concat(t.getRanges(TEST_TABLE, ranges)).count());
+    }
+
+    @Test
+    public void testGetRangesPaging() {
+        Transaction t = startTransaction();
+        byte[] row0Bytes = PtBytes.toBytes("row0");
+        byte[] row00Bytes = PtBytes.toBytes("row00");
+        byte[] colBytes = PtBytes.toBytes("col");
+        Cell k1 = Cell.create(row00Bytes, colBytes);
+        byte[] row1Bytes = PtBytes.toBytes("row1");
+        Cell k2 = Cell.create(row1Bytes, colBytes);
+        byte[] v = PtBytes.toBytes("v");
+        t.put(TEST_TABLE, ImmutableMap.of(Cell.create(row0Bytes, colBytes), v));
+        t.put(TEST_TABLE, ImmutableMap.of(k1, v));
+        t.put(TEST_TABLE, ImmutableMap.of(k2, v));
+        t.commit();
+
+        t = startTransaction();
+        t.delete(TEST_TABLE, ImmutableSet.of(k1));
+        t.commit();
+
+        t = startTransaction();
+        byte[] rangeEnd = RangeRequests.nextLexicographicName(row00Bytes);
+        List<RangeRequest> ranges = ImmutableList.of(RangeRequest.builder().prefixRange(row0Bytes).endRowExclusive(rangeEnd).batchHint(1).build());
+        assertEquals(1, BatchingVisitables.concat(t.getRanges(TEST_TABLE, ranges)).count());
     }
 
     @Test

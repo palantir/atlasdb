@@ -466,7 +466,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
                         List<BatchingVisitable<RowResult<byte[]>>> ret = Lists.newArrayListWithCapacity(input.size());
                         for (final RangeRequest rangeRequest : input) {
-                            TokenBackedBasicResultsPage<RowResult<Value>, byte[]> prePostFilter = firstPages.get(rangeRequest);
+                            final TokenBackedBasicResultsPage<RowResult<Value>, byte[]> prePostFilter = firstPages.get(rangeRequest);
                             final byte[] nextStartRowName = getNextStartRowName(
                                     rangeRequest,
                                     prePostFilter);
@@ -488,7 +488,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                             return;
                                         }
                                     }
-                                    if (nextStartRowName.length == 0) {
+                                    if ((nextStartRowName.length == 0) || !prePostFilter.moreResultsAvailable()) {
                                         return;
                                     }
                                     RangeRequest newRange = rangeRequest.getBuilder()
@@ -732,8 +732,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             int bestBatchSize = getBestBatchSize();
             // Only close and throw away our old iterator if the batch size has changed by a factor of 2 or more.
             if (bestBatchSize >= lastBatchSize*2 || bestBatchSize <= lastBatchSize/2) {
+                byte[] nextStartRow = RangeRequests.getNextStartRow(range.isReverse(), lastRow);
+                if (Arrays.equals(nextStartRow, range.getEndExclusive())) {
+                    results = ClosableIterators.wrap(ImmutableList.<RowResult<Value>>of().iterator());
+                    return;
+                }
                 RangeRequest.Builder newRange = range.getBuilder();
-                newRange.startRowInclusive(RangeRequests.getNextStartRow(range.isReverse(), lastRow));
+                newRange.startRowInclusive(nextStartRow);
                 newRange.batchHint(bestBatchSize);
                 results.close();
                 results = keyValueService.getRange(tableName, newRange.build(), getStartTimestamp());
