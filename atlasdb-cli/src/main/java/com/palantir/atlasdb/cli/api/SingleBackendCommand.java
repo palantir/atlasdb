@@ -13,19 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.cli;
+package com.palantir.atlasdb.cli.api;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.Callable;
 
-import com.palantir.atlasdb.cli.api.AtlasDbServices;
 import com.palantir.atlasdb.cli.impl.AtlasDbServicesImpl;
 import com.palantir.common.base.Throwables;
 
 import io.airlift.airline.Option;
 
-public abstract class TitanCommand implements Callable<Integer> {
+public abstract class SingleBackendCommand implements Callable<Integer> {
 
     @Option(name = {"-c", "--config"},
             title = "CONFIG PATH",
