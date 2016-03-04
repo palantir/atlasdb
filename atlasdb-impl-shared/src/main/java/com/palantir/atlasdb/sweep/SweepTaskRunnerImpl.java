@@ -106,6 +106,10 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
                 log.warn("The sweeper should not be run on tables passed through namespace mapping.");
                 return SweepResults.EMPTY_SWEEP;
         }
+        if (keyValueService.getMetadataForTable(tableName).length == 0) {
+            log.warn("The sweeper tried to sweep table '{}', but the table does not exist. Skipping table.", tableName);
+            return SweepResults.EMPTY_SWEEP;
+        }
 
         // Earliest start timestamp of any currently open transaction, with two caveats:
         // (1) unreadableTimestamps are calculated via wall-clock time, and so may not be correct

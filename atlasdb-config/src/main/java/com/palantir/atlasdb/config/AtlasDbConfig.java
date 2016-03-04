@@ -96,6 +96,14 @@ public abstract class AtlasDbConfig {
     }
 
     /**
+     * The number of background threads to use to read from the scrub queue.
+     */
+    @Value.Default
+    public int getBackgroundScrubReadThreads() {
+        return AtlasDbConstants.DEFAULT_BACKGROUND_SCRUB_READ_THREADS;
+    }
+
+    /**
      * The frequency with which the background sweeper runs to clean up
      * cells that have been non-aggressively scrubbed.
      */

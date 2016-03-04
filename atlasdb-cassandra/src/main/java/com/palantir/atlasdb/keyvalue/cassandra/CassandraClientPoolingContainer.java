@@ -15,8 +15,10 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.net.InetSocketAddress;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -36,9 +38,8 @@ import com.palantir.common.pooling.PoolingContainer;
 public class CassandraClientPoolingContainer implements PoolingContainer<Client> {
     private static final Logger log = LoggerFactory.getLogger(CassandraClientPoolingContainer.class);
 
-    private final String host;
+    private final InetSocketAddress addr;
     private final String keyspace;
-    private final int port;
     private final boolean isSsl;
     private final int socketTimeoutMillis;
     private final int socketQueryTimeoutMillis;
@@ -46,8 +47,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
     private final GenericObjectPool<Client> clientPool;
 
     private CassandraClientPoolingContainer(Builder builder){
-        this.host = builder.host;
-        this.port = builder.port;
+        this.addr = builder.addr;
         this.isSsl = builder.isSsl;
         this.keyspace = builder.keyspace;
         this.socketTimeoutMillis = builder.socketTimeoutMillis;
@@ -60,13 +60,13 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
             throws K {
         final String origName = Thread.currentThread().getName();
         Thread.currentThread().setName(origName
-                + " calling cassandra host " + host
+                + " calling cassandra host " + addr
                 + " started at " + new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").format(new Date())
                 + " - " + count.getAndIncrement());
         try {
             return runWithGoodResource(f);
         } catch (Throwable t) {
-            log.warn("Error occurred talking to host '{}': {}", host, t.getMessage());
+            log.warn("Error occurred talking to host '{}': {}", addr, t.getMessage());
             throw t;
         } finally {
             Thread.currentThread().setName(origName);
@@ -83,7 +83,8 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
             return f.apply(resource);
         } catch (Exception e) {
             if (e instanceof TTransportException
-                    || e instanceof TProtocolException) {
+                    || e instanceof TProtocolException
+                    || e instanceof NoSuchElementException) {
                 log.warn("Not reusing resource {} due to {}", resource, e);
                 shouldReuse = false;
             }
@@ -126,8 +127,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
     }
 
     public static class Builder{
-        private final String host;
-        private final int port;
+        private final InetSocketAddress addr;
 
         // default values are provided
         private int poolSize = 20;
@@ -138,9 +138,8 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
 
         private GenericObjectPool<Client> clientPool;
 
-        public Builder(String host, int port) {
-            this.host = host;
-            this.port = port;
+        public Builder(InetSocketAddress addr) {
+            this.addr = addr;
         }
 
         public Builder poolSize(int val){
@@ -170,9 +169,8 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
 
         private GenericObjectPool<Client> createClientPool() {
             CassandraClientFactory cassandraClientFactory =
-                    new CassandraClientFactory(host,
+                    new CassandraClientFactory(addr,
                             keyspace,
-                            port,
                             isSsl,
                             socketTimeoutMillis,
                             socketQueryTimeoutMillis);
@@ -186,7 +184,8 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
             config.setMinEvictableIdleTimeMillis(TimeUnit.MILLISECONDS.convert(1, TimeUnit.MINUTES));
             config.setTimeBetweenEvictionRunsMillis(TimeUnit.MILLISECONDS.convert(1, TimeUnit.MINUTES));
             config.setNumTestsPerEvictionRun(-1); // Test all idle objects for eviction
-            config.setJmxNamePrefix(host);
+            config.setJmxNamePrefix(addr.getHostString());
+            config.setMaxWaitMillis(socketTimeoutMillis);
             return new GenericObjectPool<Client>(cassandraClientFactory, config);
         }
 
@@ -199,8 +198,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(getClass())
-                .add("host", this.host)
-                .add("port", this.port)
+                .add("addr", this.addr)
                 .add("keyspace", this.keyspace)
                 .add("isSsl", this.isSsl)
                 .add("socketTimeoutMillis", this.socketTimeoutMillis)

@@ -1,0 +1,19 @@
+apply plugin: "org.inferred.processors"
+
+apply from: "../gradle/shared.gradle"
+
+dependencies {
+  compile project(":atlasdb-jdbc")
+
+  compile "com.zaxxer:HikariCP:2.4.3"
+
+  processor "org.immutables:value:2.0.21"
+  processor "com.google.auto.service:auto-service:1.0-rc2"
+}
+
+configurations.matching({ it.name in ['compile', 'runtime'] }).all {
+    resolutionStrategy {
+        force 'com.google.code.findbugs:jsr305:' + libVersions.jsr305
+        force 'org.slf4j:slf4j-api:' + libVersions.slf4j
+    }
+}

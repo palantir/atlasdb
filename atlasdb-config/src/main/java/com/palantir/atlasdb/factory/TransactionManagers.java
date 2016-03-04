@@ -54,9 +54,9 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
-import com.palantir.atlasdb.transaction.impl.SnapshotTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
+import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.leader.LeaderElectionService;
@@ -80,8 +80,9 @@ public class TransactionManagers {
     public static SerializableTransactionManager create(AtlasDbConfig config,
                                                         Optional<SSLSocketFactory> sslSocketFactory,
                                                         Schema schema,
-                                                        Environment env) {
-        return create(config, sslSocketFactory, ImmutableSet.of(schema), env);
+                                                        Environment env,
+                                                        boolean allowHiddenTableAccess) {
+        return create(config, sslSocketFactory, ImmutableSet.of(schema), env, allowHiddenTableAccess);
     }
 
     /**
@@ -91,7 +92,8 @@ public class TransactionManagers {
     public static SerializableTransactionManager create(AtlasDbConfig config,
                                                         Optional<SSLSocketFactory> sslSocketFactory,
                                                         Set<Schema> schemas,
-                                                        Environment env) {
+                                                        Environment env,
+                                                        boolean allowHiddenTableAccess) {
         final AtlasDbFactory kvsFactory = getKeyValueServiceFactory(config.keyValueService().type());
         final KeyValueService rawKvs = kvsFactory.createRawKeyValueService(config.keyValueService());
 
@@ -116,7 +118,7 @@ public class TransactionManagers {
         KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs);
         kvs = new SweepStatsKeyValueService(kvs, lts.time());
 
-        SnapshotTransactionManager.createTables(kvs);
+        TransactionTables.createTables(kvs);
 
         LockClient lockClient = LockClient.of("atlas instance");
 
@@ -153,7 +155,8 @@ public class TransactionManagers {
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
                 conflictManager,
                 sweepStrategyManager,
-                cleaner);
+                cleaner,
+                allowHiddenTableAccess);
 
         SweepTaskRunner sweepRunner = new SweepTaskRunnerImpl(
                 transactionManager,

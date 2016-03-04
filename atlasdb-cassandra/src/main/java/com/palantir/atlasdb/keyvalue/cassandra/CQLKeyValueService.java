@@ -19,7 +19,6 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -82,8 +81,6 @@ import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
@@ -99,8 +96,8 @@ import com.palantir.atlasdb.keyvalue.cassandra.CQLKeyValueServices.AllTimestamps
 import com.palantir.atlasdb.keyvalue.cassandra.CQLKeyValueServices.Peer;
 import com.palantir.atlasdb.keyvalue.cassandra.CQLKeyValueServices.StartTsResultsCollector;
 import com.palantir.atlasdb.keyvalue.cassandra.CQLKeyValueServices.TransactionType;
+import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompaction;
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionManager;
-import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionModule;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
@@ -131,7 +128,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     private boolean limitBatchSizesToServerDefaults = false;
 
     public static CQLKeyValueService create(CassandraKeyValueServiceConfigManager configManager) {
-        Optional<CassandraJmxCompactionManager> compactionManager = new CassandraJmxCompactionModule().createCompactionManager(configManager);
+        Optional<CassandraJmxCompactionManager> compactionManager = CassandraJmxCompaction.createJmxCompactionManager(configManager);
         final CQLKeyValueService ret = new CQLKeyValueService(configManager, compactionManager);
         ret.initializeConnectionPool();
         ret.performInitialSetup();
@@ -147,14 +144,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
 
     protected void initializeConnectionPool() {
         final CassandraKeyValueServiceConfig config = configManager.getConfig();
-        HashSet<InetSocketAddress> configuredHosts = Sets.newHashSet(Iterables.transform(config.servers(),
-                        new Function<String, InetSocketAddress>() {
-                            @Override
-                            public InetSocketAddress apply(String host) {
-                                return new InetSocketAddress(host, config.port());
-                            }
-                        })
-        );
+        Collection<InetSocketAddress> configuredHosts = config.servers();
         Cluster.Builder clusterBuilder = Cluster.builder();
         clusterBuilder.addContactPointsWithPorts(configuredHosts);
         clusterBuilder.withClusterName("atlas_cassandra_cluster_" + config.keyspace()); // for JMX metrics
@@ -323,7 +313,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
             }
             try {
                 StartTsResultsCollector collector = new StartTsResultsCollector(startTs);
-                loadWithTs(tableName, cells, startTs, collector, readConsistency);
+                loadWithTs(tableName, cells, startTs, false, collector, readConsistency);
                 return collector.collectedResults;
             } catch (Throwable t) {
                 throw Throwables.throwUncheckedException(t);
@@ -387,7 +377,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
             long firstTs = timestampByCell.values().iterator().next();
             if (Iterables.all(timestampByCell.values(), Predicates.equalTo(firstTs))) {
                 StartTsResultsCollector collector = new StartTsResultsCollector(firstTs);
-                loadWithTs(tableName, timestampByCell.keySet(), firstTs, collector, readConsistency);
+                loadWithTs(tableName, timestampByCell.keySet(), firstTs, false, collector, readConsistency);
                 return collector.collectedResults;
             }
 
@@ -396,7 +386,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
             Builder<Cell, Value> builder = ImmutableMap.builder();
             for (long ts : cellsByTs.keySet()) {
                 StartTsResultsCollector collector = new StartTsResultsCollector(ts);
-                loadWithTs(tableName, cellsByTs.get(ts), ts, collector, readConsistency);
+                loadWithTs(tableName, cellsByTs.get(ts), ts, false, collector, readConsistency);
                 builder.putAll(collector.collectedResults);
             }
             return builder.build();
@@ -408,11 +398,12 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     private void loadWithTs(final String tableName,
                             final Set<Cell> cells,
                             final long startTs,
-                            final Visitor<Map<Cell, Value>> v,
+                            boolean loadAllTs,
+                            final Visitor<Multimap<Cell, Value>> v,
                             final ConsistencyLevel consistency) throws Exception {
         final String loadWithTsQuery = "SELECT * FROM " + getFullTableName(tableName) + " "
                 + "WHERE " + CassandraConstants.ROW_NAME + " = ? AND " + CassandraConstants.COL_NAME_COL + " = ? AND " + CassandraConstants.TS_COL
-                + " > ? LIMIT 1";
+                + " > ?" + (!loadAllTs ? " LIMIT 1" : "");
         final CassandraKeyValueServiceConfig config = configManager.getConfig();
         if (cells.size() > config.fetchBatchCount()) {
             log.warn("A call to " + tableName
@@ -428,13 +419,12 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                     preparedStatement.bind(
                             ByteBuffer.wrap(cell.getRowName()),
                             ByteBuffer.wrap(cell.getColumnName()),
-                            startTs));
+                            ~startTs));
             resultSetFutures.add(resultSetFuture);
-            Futures.addCallback(resultSetFuture, getCallback(v, loadWithTsQuery));
         }
 
         for (ResultSetFuture rsf : resultSetFutures) {
-            rsf.getUninterruptibly();
+            visitResults(rsf.getUninterruptibly(), v, loadWithTsQuery, loadAllTs);
         }
     }
 
@@ -443,26 +433,20 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         return Multimaps.asMap(Multimaps.index(cells, Cells.getRowFunction()));
     }
 
-    private FutureCallback<ResultSet> getCallback(final Visitor<Map<Cell, Value>> v, final String query) {
-        return new FutureCallback<ResultSet>() {
-            @Override
-            public void onSuccess(ResultSet resultSet) {
-                List<Row> rows = resultSet.all();
-                Map<Cell, Value> res = Maps.newHashMapWithExpectedSize(rows.size());
-                for (Row row : rows) {
-                    res.put(
-                            Cell.create(CQLKeyValueServices.getRowName(row), CQLKeyValueServices.getColName(row)),
-                            Value.create(CQLKeyValueServices.getValue(row), CQLKeyValueServices.getTs(row)));
-                }
-                CQLKeyValueServices.logTracedQuery(query, resultSet, session, cqlStatementCache.NORMAL_QUERY);
-                v.visit(res);
-            }
-            @Override
-            public void onFailure(Throwable throwable) {
-                log.error("Failed CQL query: {}, threw {}", query, throwable);
-                throw Throwables.throwUncheckedException(throwable);
-            }
-        };
+    private void visitResults(ResultSet resultSet, Visitor<Multimap<Cell, Value>> v, String query, boolean loadAllTs) {
+        List<Row> rows = resultSet.all();
+        Multimap<Cell, Value> res;
+        if (loadAllTs) {
+            res = HashMultimap.create();
+        } else {
+            res = HashMultimap.create(rows.size(), 1);
+        }
+        for (Row row : rows) {
+            res.put(Cell.create(CQLKeyValueServices.getRowName(row), CQLKeyValueServices.getColName(row)),
+                    Value.create(CQLKeyValueServices.getValue(row), CQLKeyValueServices.getTs(row)));
+        }
+        CQLKeyValueServices.logTracedQuery(query, resultSet, session, cqlStatementCache.NORMAL_QUERY);
+        v.visit(res);
     }
 
     @Override
@@ -1066,7 +1050,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
             }
         }
         if (!cellToMetadata.isEmpty()) {
-            put(CassandraConstants.METADATA_TABLE, cellToMetadata, 0L);
+            put(CassandraConstants.METADATA_TABLE, cellToMetadata, System.currentTimeMillis());
             if (possiblyNeedToPerformSettingsChanges) {
                 CQLKeyValueServices.waitForSchemaVersionsToCoalesce("putMetadataForTables(" + tableNameToMetadata.size() +" tables)", this);
             }
@@ -1093,7 +1077,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     public Multimap<Cell, Long> getAllTimestamps(String tableName, Set<Cell> cells, long ts) {
         AllTimestampsCollector collector = new AllTimestampsCollector();
         try {
-            loadWithTs(tableName, cells, ts, collector, deleteConsistency);
+            loadWithTs(tableName, cells, ts, true, collector, deleteConsistency);
         } catch (com.datastax.driver.core.exceptions.UnavailableException e) {
             throw new InsufficientConsistencyException("Get all timestamps requires all Cassandra nodes to be up and available.", e);
         } catch (Throwable t) {
@@ -1122,9 +1106,9 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     @Override
     public void compactInternally(String tableName) {
         Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName), "tableName:[%s] should not be null or empty", tableName);
-        final CassandraKeyValueServiceConfig config = configManager.getConfig();
-        if(!compactionManager.isPresent() || !config.jmx().isPresent()){
-            log.warn("No compaction client was configured, but compact was called. If you actually want to clear deleted data immediately " +
+        CassandraKeyValueServiceConfig config = configManager.getConfig();
+        if (!compactionManager.isPresent()) {
+            log.error("No compaction client was configured, but compact was called. If you actually want to clear deleted data immediately " +
                     "from Cassandra, lower your gc_grace_seconds setting and run `nodetool compact {} {}`.", config.keyspace(), tableName);
             return;
         }
@@ -1138,7 +1122,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
             log.error("Compaction could not finish in {} seconds. {}", compactionTimeoutSeconds, e.getMessage());
             log.error(compactionManager.get().getCompactionStatus());
         } catch (InterruptedException e) {
-            log.error("Compaction for {}.{} was interupted.", config.keyspace(), tableName);
+            log.error("Compaction for {}.{} was interrupted.", config.keyspace(), tableName);
         } finally {
             alterTableForCompaction(tableName, CassandraConstants.GC_GRACE_SECONDS, CassandraConstants.TOMBSTONE_THRESHOLD_RATIO);
             CQLKeyValueServices.waitForSchemaVersionsToCoalesce("setting up tables post-compaction", this);

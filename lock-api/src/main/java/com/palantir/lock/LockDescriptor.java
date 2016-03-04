@@ -36,7 +36,10 @@ import com.google.common.primitives.UnsignedBytes;
  */
 @Immutable
 public class LockDescriptor implements Comparable<LockDescriptor>, Serializable {
+
     private static final long serialVersionUID = 1L;
+    private static final CharMatcher BASIC_PRINTABLE_ASCII = CharMatcher.inRange(' ', '~');
+
     private final byte[] bytes;
 
     @JsonCreator
@@ -56,11 +59,12 @@ public class LockDescriptor implements Comparable<LockDescriptor>, Serializable 
 
     @Override
     public String toString() {
+        String lockIdAsString = getLockIdAsString();
         return getClass().getSimpleName() + " [" +
-                (CharMatcher.ASCII.matchesAllOf(getLockIdAsString()) ?
-                        getLockIdAsString():
+                (BASIC_PRINTABLE_ASCII.matchesAllOf(lockIdAsString) ?
+                        lockIdAsString :
                         BaseEncoding.base16().encode(bytes))
-                +"]";
+                + "]";
     }
 
     public byte[] getBytes() {

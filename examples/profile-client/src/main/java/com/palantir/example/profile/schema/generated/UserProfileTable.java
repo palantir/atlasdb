@@ -131,38 +131,38 @@ public final class UserProfileTable implements
     /**
      * <pre>
      * UserProfileRow {
-     *   {@literal Long id};
+     *   {@literal java.util.UUID id};
      * }
      * </pre>
      */
     public static final class UserProfileRow implements Persistable, Comparable<UserProfileRow> {
-        private final long id;
+        private final java.util.UUID id;
 
-        public static UserProfileRow of(long id) {
+        public static UserProfileRow of(java.util.UUID id) {
             return new UserProfileRow(id);
         }
 
-        private UserProfileRow(long id) {
+        private UserProfileRow(java.util.UUID id) {
             this.id = id;
         }
 
-        public long getId() {
+        public java.util.UUID getId() {
             return id;
         }
 
-        public static Function<UserProfileRow, Long> getIdFun() {
-            return new Function<UserProfileRow, Long>() {
+        public static Function<UserProfileRow, java.util.UUID> getIdFun() {
+            return new Function<UserProfileRow, java.util.UUID>() {
                 @Override
-                public Long apply(UserProfileRow row) {
+                public java.util.UUID apply(UserProfileRow row) {
                     return row.id;
                 }
             };
         }
 
-        public static Function<Long, UserProfileRow> fromIdFun() {
-            return new Function<Long, UserProfileRow>() {
+        public static Function<java.util.UUID, UserProfileRow> fromIdFun() {
+            return new Function<java.util.UUID, UserProfileRow>() {
                 @Override
-                public UserProfileRow apply(Long row) {
+                public UserProfileRow apply(java.util.UUID row) {
                     return UserProfileRow.of(row);
                 }
             };
@@ -170,7 +170,7 @@ public final class UserProfileTable implements
 
         @Override
         public byte[] persistToBytes() {
-            byte[] idBytes = PtBytes.toBytes(Long.MIN_VALUE ^ id);
+            byte[] idBytes = EncodingUtils.encodeUUID(id);
             return EncodingUtils.add(idBytes);
         }
 
@@ -178,8 +178,8 @@ public final class UserProfileTable implements
             @Override
             public UserProfileRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
-                __index += 8;
+                java.util.UUID id = EncodingUtils.decodeUUID(__input, __index);
+                __index += 16;
                 return new UserProfileRow(id);
             }
         };
@@ -837,7 +837,7 @@ public final class UserProfileTable implements
                     UserProfileRow row = e.getKey();
                     CookiesIdxTable table = CookiesIdxTable.of(this);
                     Iterable<String> cookieIterable = com.palantir.example.profile.schema.ProfileSchema.getCookies(col.getValue());
-                    long id = row.getId();
+                    java.util.UUID id = row.getId();
                     for (String cookie : cookieIterable) {
                         CookiesIdxTable.CookiesIdxRow indexRow = CookiesIdxTable.CookiesIdxRow.of(cookie);
                         CookiesIdxTable.CookiesIdxColumn indexCol = CookiesIdxTable.CookiesIdxColumn.of(row.persistToBytes(), e.getValue().persistColumnName(), id);
@@ -853,7 +853,7 @@ public final class UserProfileTable implements
                     UserProfileRow row = e.getKey();
                     CreatedIdxTable table = CreatedIdxTable.of(this);
                     long time = col.getValue().getTimeCreated();
-                    long id = row.getId();
+                    java.util.UUID id = row.getId();
                     CreatedIdxTable.CreatedIdxRow indexRow = CreatedIdxTable.CreatedIdxRow.of(time);
                     CreatedIdxTable.CreatedIdxColumn indexCol = CreatedIdxTable.CreatedIdxColumn.of(row.persistToBytes(), e.getValue().persistColumnName(), id);
                     CreatedIdxTable.CreatedIdxColumnValue indexColVal = CreatedIdxTable.CreatedIdxColumnValue.of(indexCol, 0L);
@@ -867,7 +867,7 @@ public final class UserProfileTable implements
                     UserProfileRow row = e.getKey();
                     UserBirthdaysIdxTable table = UserBirthdaysIdxTable.of(this);
                     long birthday = col.getValue().getBirthEpochDay();
-                    long id = row.getId();
+                    java.util.UUID id = row.getId();
                     UserBirthdaysIdxTable.UserBirthdaysIdxRow indexRow = UserBirthdaysIdxTable.UserBirthdaysIdxRow.of(birthday);
                     UserBirthdaysIdxTable.UserBirthdaysIdxColumn indexCol = UserBirthdaysIdxTable.UserBirthdaysIdxColumn.of(row.persistToBytes(), e.getValue().persistColumnName(), id);
                     UserBirthdaysIdxTable.UserBirthdaysIdxColumnValue indexColVal = UserBirthdaysIdxTable.UserBirthdaysIdxColumnValue.of(indexCol, 0L);
@@ -911,7 +911,7 @@ public final class UserProfileTable implements
             Metadata col = (Metadata) shortNameToHydrator.get("m").hydrateFromBytes(result.getValue());
             UserProfileRow row = UserProfileRow.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getRowName());
             long birthday = col.getValue().getBirthEpochDay();
-            long id = row.getId();
+            java.util.UUID id = row.getId();
             UserBirthdaysIdxTable.UserBirthdaysIdxRow indexRow = UserBirthdaysIdxTable.UserBirthdaysIdxRow.of(birthday);
             UserBirthdaysIdxTable.UserBirthdaysIdxColumn indexCol = UserBirthdaysIdxTable.UserBirthdaysIdxColumn.of(row.persistToBytes(), col.persistColumnName(), id);
             indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
@@ -937,7 +937,7 @@ public final class UserProfileTable implements
             Create col = (Create) shortNameToHydrator.get("c").hydrateFromBytes(result.getValue());
             UserProfileRow row = UserProfileRow.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getRowName());
             long time = col.getValue().getTimeCreated();
-            long id = row.getId();
+            java.util.UUID id = row.getId();
             CreatedIdxTable.CreatedIdxRow indexRow = CreatedIdxTable.CreatedIdxRow.of(time);
             CreatedIdxTable.CreatedIdxColumn indexCol = CreatedIdxTable.CreatedIdxColumn.of(row.persistToBytes(), col.persistColumnName(), id);
             indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
@@ -963,7 +963,7 @@ public final class UserProfileTable implements
             Json col = (Json) shortNameToHydrator.get("j").hydrateFromBytes(result.getValue());
             UserProfileRow row = UserProfileRow.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getRowName());
             Iterable<String> cookieIterable = com.palantir.example.profile.schema.ProfileSchema.getCookies(col.getValue());
-            long id = row.getId();
+            java.util.UUID id = row.getId();
             for (String cookie : cookieIterable) {
                 CookiesIdxTable.CookiesIdxRow indexRow = CookiesIdxTable.CookiesIdxRow.of(cookie);
                 CookiesIdxTable.CookiesIdxColumn indexCol = CookiesIdxTable.CookiesIdxColumn.of(row.persistToBytes(), col.persistColumnName(), id);
@@ -1138,7 +1138,7 @@ public final class UserProfileTable implements
                 Json col = (Json) e.getValue();{
                     UserProfileRow row = e.getKey();
                     Iterable<String> cookieIterable = com.palantir.example.profile.schema.ProfileSchema.getCookies(col.getValue());
-                    long id = row.getId();
+                    java.util.UUID id = row.getId();
                     for (String cookie : cookieIterable) {
                         CookiesIdxTable.CookiesIdxRow indexRow = CookiesIdxTable.CookiesIdxRow.of(cookie);
                         CookiesIdxTable.CookiesIdxColumn indexCol = CookiesIdxTable.CookiesIdxColumn.of(row.persistToBytes(), e.getValue().persistColumnName(), id);
@@ -1157,7 +1157,7 @@ public final class UserProfileTable implements
                 Create col = (Create) e.getValue();{
                     UserProfileRow row = e.getKey();
                     long time = col.getValue().getTimeCreated();
-                    long id = row.getId();
+                    java.util.UUID id = row.getId();
                     CreatedIdxTable.CreatedIdxRow indexRow = CreatedIdxTable.CreatedIdxRow.of(time);
                     CreatedIdxTable.CreatedIdxColumn indexCol = CreatedIdxTable.CreatedIdxColumn.of(row.persistToBytes(), e.getValue().persistColumnName(), id);
                     indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
@@ -1174,7 +1174,7 @@ public final class UserProfileTable implements
                 Metadata col = (Metadata) e.getValue();{
                     UserProfileRow row = e.getKey();
                     long birthday = col.getValue().getBirthEpochDay();
-                    long id = row.getId();
+                    java.util.UUID id = row.getId();
                     UserBirthdaysIdxTable.UserBirthdaysIdxRow indexRow = UserBirthdaysIdxTable.UserBirthdaysIdxRow.of(birthday);
                     UserBirthdaysIdxTable.UserBirthdaysIdxColumn indexCol = UserBirthdaysIdxTable.UserBirthdaysIdxColumn.of(row.persistToBytes(), e.getValue().persistColumnName(), id);
                     indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
@@ -1350,20 +1350,20 @@ public final class UserProfileTable implements
          * CookiesIdxColumn {
          *   {@literal byte[] rowName};
          *   {@literal byte[] columnName};
-         *   {@literal Long id};
+         *   {@literal java.util.UUID id};
          * }
          * </pre>
          */
         public static final class CookiesIdxColumn implements Persistable, Comparable<CookiesIdxColumn> {
             private final byte[] rowName;
             private final byte[] columnName;
-            private final long id;
+            private final java.util.UUID id;
 
-            public static CookiesIdxColumn of(byte[] rowName, byte[] columnName, long id) {
+            public static CookiesIdxColumn of(byte[] rowName, byte[] columnName, java.util.UUID id) {
                 return new CookiesIdxColumn(rowName, columnName, id);
             }
 
-            private CookiesIdxColumn(byte[] rowName, byte[] columnName, long id) {
+            private CookiesIdxColumn(byte[] rowName, byte[] columnName, java.util.UUID id) {
                 this.rowName = rowName;
                 this.columnName = columnName;
                 this.id = id;
@@ -1377,7 +1377,7 @@ public final class UserProfileTable implements
                 return columnName;
             }
 
-            public long getId() {
+            public java.util.UUID getId() {
                 return id;
             }
 
@@ -1399,10 +1399,10 @@ public final class UserProfileTable implements
                 };
             }
 
-            public static Function<CookiesIdxColumn, Long> getIdFun() {
-                return new Function<CookiesIdxColumn, Long>() {
+            public static Function<CookiesIdxColumn, java.util.UUID> getIdFun() {
+                return new Function<CookiesIdxColumn, java.util.UUID>() {
                     @Override
-                    public Long apply(CookiesIdxColumn row) {
+                    public java.util.UUID apply(CookiesIdxColumn row) {
                         return row.id;
                     }
                 };
@@ -1412,7 +1412,7 @@ public final class UserProfileTable implements
             public byte[] persistToBytes() {
                 byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
                 byte[] columnNameBytes = EncodingUtils.encodeSizedBytes(columnName);
-                byte[] idBytes = PtBytes.toBytes(Long.MIN_VALUE ^ id);
+                byte[] idBytes = EncodingUtils.encodeUUID(id);
                 return EncodingUtils.add(rowNameBytes, columnNameBytes, idBytes);
             }
 
@@ -1424,8 +1424,8 @@ public final class UserProfileTable implements
                     __index += EncodingUtils.sizeOfSizedBytes(rowName);
                     byte[] columnName = EncodingUtils.decodeSizedBytes(__input, __index);
                     __index += EncodingUtils.sizeOfSizedBytes(columnName);
-                    Long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
-                    __index += 8;
+                    java.util.UUID id = EncodingUtils.decodeUUID(__input, __index);
+                    __index += 16;
                     return new CookiesIdxColumn(rowName, columnName, id);
                 }
             };
@@ -1478,7 +1478,7 @@ public final class UserProfileTable implements
          * Column name description {
          *   {@literal byte[] rowName};
          *   {@literal byte[] columnName};
-         *   {@literal Long id};
+         *   {@literal java.util.UUID id};
          * }
          * Column value description {
          *   type: Long;
@@ -1984,20 +1984,20 @@ public final class UserProfileTable implements
          * CreatedIdxColumn {
          *   {@literal byte[] rowName};
          *   {@literal byte[] columnName};
-         *   {@literal Long id};
+         *   {@literal java.util.UUID id};
          * }
          * </pre>
          */
         public static final class CreatedIdxColumn implements Persistable, Comparable<CreatedIdxColumn> {
             private final byte[] rowName;
             private final byte[] columnName;
-            private final long id;
+            private final java.util.UUID id;
 
-            public static CreatedIdxColumn of(byte[] rowName, byte[] columnName, long id) {
+            public static CreatedIdxColumn of(byte[] rowName, byte[] columnName, java.util.UUID id) {
                 return new CreatedIdxColumn(rowName, columnName, id);
             }
 
-            private CreatedIdxColumn(byte[] rowName, byte[] columnName, long id) {
+            private CreatedIdxColumn(byte[] rowName, byte[] columnName, java.util.UUID id) {
                 this.rowName = rowName;
                 this.columnName = columnName;
                 this.id = id;
@@ -2011,7 +2011,7 @@ public final class UserProfileTable implements
                 return columnName;
             }
 
-            public long getId() {
+            public java.util.UUID getId() {
                 return id;
             }
 
@@ -2033,10 +2033,10 @@ public final class UserProfileTable implements
                 };
             }
 
-            public static Function<CreatedIdxColumn, Long> getIdFun() {
-                return new Function<CreatedIdxColumn, Long>() {
+            public static Function<CreatedIdxColumn, java.util.UUID> getIdFun() {
+                return new Function<CreatedIdxColumn, java.util.UUID>() {
                     @Override
-                    public Long apply(CreatedIdxColumn row) {
+                    public java.util.UUID apply(CreatedIdxColumn row) {
                         return row.id;
                     }
                 };
@@ -2046,7 +2046,7 @@ public final class UserProfileTable implements
             public byte[] persistToBytes() {
                 byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
                 byte[] columnNameBytes = EncodingUtils.encodeSizedBytes(columnName);
-                byte[] idBytes = PtBytes.toBytes(Long.MIN_VALUE ^ id);
+                byte[] idBytes = EncodingUtils.encodeUUID(id);
                 return EncodingUtils.add(rowNameBytes, columnNameBytes, idBytes);
             }
 
@@ -2058,8 +2058,8 @@ public final class UserProfileTable implements
                     __index += EncodingUtils.sizeOfSizedBytes(rowName);
                     byte[] columnName = EncodingUtils.decodeSizedBytes(__input, __index);
                     __index += EncodingUtils.sizeOfSizedBytes(columnName);
-                    Long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
-                    __index += 8;
+                    java.util.UUID id = EncodingUtils.decodeUUID(__input, __index);
+                    __index += 16;
                     return new CreatedIdxColumn(rowName, columnName, id);
                 }
             };
@@ -2112,7 +2112,7 @@ public final class UserProfileTable implements
          * Column name description {
          *   {@literal byte[] rowName};
          *   {@literal byte[] columnName};
-         *   {@literal Long id};
+         *   {@literal java.util.UUID id};
          * }
          * Column value description {
          *   type: Long;
@@ -2618,20 +2618,20 @@ public final class UserProfileTable implements
          * UserBirthdaysIdxColumn {
          *   {@literal byte[] rowName};
          *   {@literal byte[] columnName};
-         *   {@literal Long id};
+         *   {@literal java.util.UUID id};
          * }
          * </pre>
          */
         public static final class UserBirthdaysIdxColumn implements Persistable, Comparable<UserBirthdaysIdxColumn> {
             private final byte[] rowName;
             private final byte[] columnName;
-            private final long id;
+            private final java.util.UUID id;
 
-            public static UserBirthdaysIdxColumn of(byte[] rowName, byte[] columnName, long id) {
+            public static UserBirthdaysIdxColumn of(byte[] rowName, byte[] columnName, java.util.UUID id) {
                 return new UserBirthdaysIdxColumn(rowName, columnName, id);
             }
 
-            private UserBirthdaysIdxColumn(byte[] rowName, byte[] columnName, long id) {
+            private UserBirthdaysIdxColumn(byte[] rowName, byte[] columnName, java.util.UUID id) {
                 this.rowName = rowName;
                 this.columnName = columnName;
                 this.id = id;
@@ -2645,7 +2645,7 @@ public final class UserProfileTable implements
                 return columnName;
             }
 
-            public long getId() {
+            public java.util.UUID getId() {
                 return id;
             }
 
@@ -2667,10 +2667,10 @@ public final class UserProfileTable implements
                 };
             }
 
-            public static Function<UserBirthdaysIdxColumn, Long> getIdFun() {
-                return new Function<UserBirthdaysIdxColumn, Long>() {
+            public static Function<UserBirthdaysIdxColumn, java.util.UUID> getIdFun() {
+                return new Function<UserBirthdaysIdxColumn, java.util.UUID>() {
                     @Override
-                    public Long apply(UserBirthdaysIdxColumn row) {
+                    public java.util.UUID apply(UserBirthdaysIdxColumn row) {
                         return row.id;
                     }
                 };
@@ -2680,7 +2680,7 @@ public final class UserProfileTable implements
             public byte[] persistToBytes() {
                 byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
                 byte[] columnNameBytes = EncodingUtils.encodeSizedBytes(columnName);
-                byte[] idBytes = PtBytes.toBytes(Long.MIN_VALUE ^ id);
+                byte[] idBytes = EncodingUtils.encodeUUID(id);
                 return EncodingUtils.add(rowNameBytes, columnNameBytes, idBytes);
             }
 
@@ -2692,8 +2692,8 @@ public final class UserProfileTable implements
                     __index += EncodingUtils.sizeOfSizedBytes(rowName);
                     byte[] columnName = EncodingUtils.decodeSizedBytes(__input, __index);
                     __index += EncodingUtils.sizeOfSizedBytes(columnName);
-                    Long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
-                    __index += 8;
+                    java.util.UUID id = EncodingUtils.decodeUUID(__input, __index);
+                    __index += 16;
                     return new UserBirthdaysIdxColumn(rowName, columnName, id);
                 }
             };
@@ -2746,7 +2746,7 @@ public final class UserProfileTable implements
          * Column name description {
          *   {@literal byte[] rowName};
          *   {@literal byte[] columnName};
-         *   {@literal Long id};
+         *   {@literal java.util.UUID id};
          * }
          * Column value description {
          *   type: Long;
@@ -3194,5 +3194,5 @@ public final class UserProfileTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "rdMgcZO4bfOQ7uoK3qFyew==";
+    static String __CLASS_HASH = "H6aTI37mwLQ2Z3aoKzdQfA==";
 }

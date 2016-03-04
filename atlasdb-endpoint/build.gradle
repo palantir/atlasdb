@@ -2,7 +2,6 @@ apply from: "../gradle/shared.gradle"
 
 dependencies {
     compile project(':atlasdb-impl-shared')
-    compile project(':atlasdb-rdbms')
     compile project(':atlasdb-config')
     compile 'com.netflix.feign:feign-jackson:8.6.1'
     compile('com.netflix.feign:feign-jaxrs:8.6.1') {

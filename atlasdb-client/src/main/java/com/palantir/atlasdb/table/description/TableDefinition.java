@@ -160,13 +160,13 @@ public class TableDefinition extends AbstractDefinition {
         dynamicColumnNameComponents.add(new NameComponentDescription(componentName, valueType, valueByteOrder));
     }
 
-    public void value(Class<? extends GeneratedMessage> proto) {
-        value(proto, Compression.NONE);
+    public void value(Class<?> protoOrPersistable) {
+        value(protoOrPersistable, Compression.NONE);
     }
 
-    public void value(Class<? extends GeneratedMessage> proto, Compression compression) {
+    public void value(Class<?> protoOrPersistable, Compression compression) {
         Preconditions.checkState(state == State.DEFINING_DYNAMIC_COLUMN);
-        dynamicColumnValue = getColumnValueDescription(proto, compression);
+        dynamicColumnValue = getColumnValueDescription(protoOrPersistable, compression);
     }
 
     public void value(ValueType valueType) {

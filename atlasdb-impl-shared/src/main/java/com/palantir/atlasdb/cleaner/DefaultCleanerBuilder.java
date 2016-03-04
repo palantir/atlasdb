@@ -40,6 +40,7 @@ public class DefaultCleanerBuilder {
     private long punchIntervalMillis = AtlasDbConstants.DEFAULT_PUNCH_INTERVAL_MILLIS;
     private boolean backgroundScrubAggressively = AtlasDbConstants.DEFAULT_BACKGROUND_SCRUB_AGGRESSIVELY;
     private int backgroundScrubThreads = AtlasDbConstants.DEFAULT_BACKGROUND_SCRUB_THREADS;
+    private int backgroundScrubReadThreads = AtlasDbConstants.DEFAULT_BACKGROUND_SCRUB_READ_THREADS;
     private long backgroundScrubFrequencyMillis = AtlasDbConstants.DEFAULT_BACKGROUND_SCRUB_FREQUENCY_MILLIS;
     private int backgroundScrubBatchSize = AtlasDbConstants.DEFAULT_BACKGROUND_SCRUB_BATCH_SIZE;
 
@@ -77,6 +78,11 @@ public class DefaultCleanerBuilder {
         return this;
     }
 
+    public DefaultCleanerBuilder setBackgroundScrubReadThreads(int backgroundScrubReadThreads) {
+        this.backgroundScrubReadThreads = backgroundScrubReadThreads;
+        return this;
+    }
+
     public DefaultCleanerBuilder setBackgroundScrubFrequencyMillis(long backgroundScrubFrequencyMillis) {
         this.backgroundScrubFrequencyMillis = backgroundScrubFrequencyMillis;
         return this;
@@ -107,12 +113,14 @@ public class DefaultCleanerBuilder {
                 keyValueService,
                 scrubberStore,
                 Suppliers.ofInstance(backgroundScrubFrequencyMillis),
+                Suppliers.ofInstance(true),
                 unreadableTimestampSupplier,
                 immutableTimestampSupplier,
                 transactionService,
                 backgroundScrubAggressively,
                 Suppliers.ofInstance(backgroundScrubBatchSize),
                 backgroundScrubThreads,
+                backgroundScrubReadThreads,
                 followerList);
     }
 

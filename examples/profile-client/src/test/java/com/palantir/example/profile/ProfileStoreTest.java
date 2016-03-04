@@ -19,6 +19,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Set;
+import java.util.UUID;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -53,10 +54,10 @@ public class ProfileStoreTest {
 
     @Test
     public void testStore() {
-        final long userId = storeUser();
-        runWithRetry(new ProfileStoreTask<Long>() {
+        final UUID userId = storeUser();
+        runWithRetry(new ProfileStoreTask<UUID>() {
             @Override
-            public Long execute(ProfileStore store) {
+            public UUID execute(ProfileStore store) {
                 UserProfile storedData = store.getUserData(userId);
                 Assert.assertEquals(user, storedData);
                 return userId;
@@ -66,7 +67,7 @@ public class ProfileStoreTest {
 
     @Test
     public void testStoreImage() {
-        final long userId = storeUser();
+        final UUID userId = storeUser();
         storeImage(userId);
         runWithRetry(new ProfileStoreTask<Void>() {
             @Override
@@ -85,27 +86,26 @@ public class ProfileStoreTest {
         });
     }
 
-    private long storeImage(final long userId) {
-        long streamId = runWithRetry(new ProfileStoreTask<Long>() {
+    private void storeImage(final UUID userId) {
+        runWithRetry(new ProfileStoreTask<Void>() {
             @Override
-            public Long execute(ProfileStore store) {
+            public Void execute(ProfileStore store) {
                 Sha256Hash imageHash = Sha256Hash.computeHash(IMAGE);
                 store.updateImage(userId, imageHash, new ByteArrayInputStream(IMAGE));
                 UserProfile storedData = store.getUserData(userId);
                 Assert.assertEquals(user, storedData);
-                return userId;
+                return null;
             }
         });
-        return streamId;
     }
 
     @Test
     public void testDeleteImage() {
-        final long userId = storeUser();
+        final UUID userId = storeUser();
         storeImage(userId);
-        runWithRetry(Transaction.TransactionType.AGGRESSIVE_HARD_DELETE, new ProfileStoreTask<Long>() {
+        runWithRetry(Transaction.TransactionType.AGGRESSIVE_HARD_DELETE, new ProfileStoreTask<UUID>() {
             @Override
-            public Long execute(ProfileStore store) {
+            public UUID execute(ProfileStore store) {
                 store.deleteImage(userId);
                 return userId;
             }
@@ -123,22 +123,22 @@ public class ProfileStoreTest {
 
     @Test
     public void testBirthdayIndex() {
-        final long userId = storeUser();
-        runWithRetry(new ProfileStoreTask<Long>() {
+        final UUID userId = storeUser();
+        runWithRetry(new ProfileStoreTask<UUID>() {
             @Override
-            public Long execute(ProfileStore store) {
-                Set<Long> usersWithBirthday = store.getUsersWithBirthday(user.getBirthEpochDay());
+            public UUID execute(ProfileStore store) {
+                Set<UUID> usersWithBirthday = store.getUsersWithBirthday(user.getBirthEpochDay());
                 Assert.assertEquals(ImmutableSet.of(userId), usersWithBirthday);
                 return userId;
             }
         });
     }
 
-    private Long storeUser() {
-        return runWithRetry(new ProfileStoreTask<Long>() {
+    private UUID storeUser() {
+        return runWithRetry(new ProfileStoreTask<UUID>() {
             @Override
-            public Long execute(ProfileStore store) {
-                long userId = store.storeNewUser(user);
+            public UUID execute(ProfileStore store) {
+                UUID userId = store.storeNewUser(user);
                 UserProfile storedData = store.getUserData(userId);
                 Assert.assertEquals(user, storedData);
                 return userId;

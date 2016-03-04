@@ -15,6 +15,9 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.net.InetSocketAddress;
+
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -35,8 +38,7 @@ public class CassandraTimestampTest {
         kv = CassandraKeyValueService.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(
                         ImmutableCassandraKeyValueServiceConfig.builder()
-                                .addServers("localhost")
-                                .port(9160)
+                                .addServers(new InetSocketAddress("localhost", 9160))
                                 .poolSize(20)
                                 .keyspace("atlasdb")
                                 .ssl(false)
@@ -51,6 +53,7 @@ public class CassandraTimestampTest {
         kv.dropTable(TIMESTAMP_TABLE);
     }
 
+    @After
     public void tearDown() {
         kv.teardown();
     }

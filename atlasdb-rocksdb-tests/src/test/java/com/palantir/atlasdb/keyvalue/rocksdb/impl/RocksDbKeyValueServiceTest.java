@@ -1,12 +1,12 @@
 /**
  * Copyright 2015 Palantir Technologies
- *
+ * <p>
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * <p>
  * http://opensource.org/licenses/BSD-3-Clause
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,6 +19,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -75,7 +76,7 @@ public final class RocksDbKeyValueServiceTest {
         db.createTable("yodog", AtlasDbConstants.EMPTY_TABLE_METADATA);
         db.createTable(TRANSACTION_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA);
         assertEquals(ImmutableSet.of("yo", "yodog", TRANSACTION_TABLE),
-                     db.getAllTableNames());
+                db.getAllTableNames());
     }
 
 
@@ -118,7 +119,7 @@ public final class RocksDbKeyValueServiceTest {
         db.put("yo", ImmutableMap.of(cell, "v1".getBytes()), Long.MAX_VALUE - 3);
         final Map<Cell, Value> res = db.get("yo", ImmutableMap.of(cell, Long.MAX_VALUE - 2));
         final Value value = res.get(cell);
-        assertEquals(Long.MAX_VALUE-3, value.getTimestamp());
+        assertEquals(Long.MAX_VALUE - 3, value.getTimestamp());
         assertEquals("v1", new String(value.getContents()));
     }
 
@@ -272,21 +273,10 @@ public final class RocksDbKeyValueServiceTest {
 
 
     @Test
-    public void testDoubleOpen() {
-        try {
-            RocksDbKeyValueService.create("testdb");
-            fail("should have thrown");
-        } catch (Exception e) {
-            //expected
-        }
-    }
-
-
-    @Test
     public void testMetadata() {
         db.putMetadataForTable("yo", "yoyo".getBytes());
         final byte[] meta = db.getMetadataForTable("yo");
-        assertEquals("yoyo", new String (meta));
+        assertEquals("yoyo", new String(meta));
     }
 
 
@@ -294,9 +284,18 @@ public final class RocksDbKeyValueServiceTest {
     public void testCreateTables() {
         db.putMetadataForTable("yo", "yoyo".getBytes());
         final byte[] meta = db.getMetadataForTable("yo");
-        assertEquals("yoyo", new String (meta));
+        assertEquals("yoyo", new String(meta));
     }
 
+    @Test
+    public void testLockFile() {
+        try {
+            RocksDbKeyValueService db2 = RocksDbKeyValueService.create("testdb"); // tempted to make IBM DB2 joke
+            assertTrue("RocksDBKVS should protect against concurrent instances with a lock", false);
+        } catch (RuntimeException e) {
+            assertTrue("Unknown exception type thrown; expected IOException when two RocksDBs are pointed at same directory", e.getCause() instanceof IOException);
+        }
+    }
 
     private static <K, V> Map<K, V> putAll(Map<K, V> map, Iterable<? extends Map.Entry<? extends K, ? extends V>> it) {
         for (Map.Entry<? extends K, ? extends V> e : it) {

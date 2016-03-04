@@ -44,7 +44,7 @@ import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
-import com.palantir.atlasdb.transaction.impl.SnapshotTransactionManager;
+import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -77,8 +77,8 @@ public class TableTasksTest {
         ConflictDetectionManager cdm = ConflictDetectionManagers.createDefault(kvs);
         SweepStrategyManager ssm = SweepStrategyManagers.createDefault(kvs);
         Cleaner cleaner = new NoOpCleaner();
-        SnapshotTransactionManager snapshotTransactionManager = new SnapshotTransactionManager(kvs, tsService, lockClient, lockService, txService, constraints, cdm, ssm, cleaner, false);
-        txManager = snapshotTransactionManager;
+        SerializableTransactionManager transactionManager = new SerializableTransactionManager(kvs, tsService, lockClient, lockService, txService, constraints, cdm, ssm, cleaner, false);
+        txManager = transactionManager;
     }
 
     @After

@@ -9,7 +9,6 @@ repositories {
 
 schemas = [
     'com.palantir.atlasdb.schema.SweepSchema',
-    'com.palantir.atlasdb.schema.UpgradeSchema'
 ]
 
 libsDirName = file('build/artifacts')

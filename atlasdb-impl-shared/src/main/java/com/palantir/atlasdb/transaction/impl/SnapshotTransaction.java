@@ -190,7 +190,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      *                             to commit.  If these locks have expired then the commit will fail.
      * @param transactionTimeoutMillis
      */
-    public SnapshotTransaction(KeyValueService keyValueService,
+    /* package */ SnapshotTransaction(KeyValueService keyValueService,
                                RemoteLockService lockService,
                                TimestampService timestampService,
                                TransactionService transactionService,
@@ -244,21 +244,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.transactionReadTimeoutMillis = null;
         this.readSentinelBehavior = readSentinelBehavior;
         this.allowHiddenTableAccess = false;
-    }
-
-    @Deprecated
-    public static SnapshotTransaction createReadOnly(KeyValueService keyValueService,
-                                                     TransactionService transactionService,
-                                                     RemoteLockService lockService,
-                                                     long startTimeStamp,
-                                                     AtlasDbConstraintCheckingMode constraintCheckingEnabled) {
-        return new SnapshotTransaction(
-                keyValueService,
-                transactionService,
-                lockService,
-                startTimeStamp,
-                constraintCheckingEnabled,
-                TransactionReadSentinelBehavior.THROW_EXCEPTION);
     }
 
     /**
@@ -1671,28 +1656,47 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return keyValueService;
     }
 
-    private Multimap<String, Cell> getCellsToQueueForScrubbing() {
-        return getCellsToScrub(State.COMMITTING);
+    private Multimap<Cell, String> getCellsToQueueForScrubbing() {
+        return getCellsToScrubByCell(State.COMMITTING);
     }
 
     Multimap<String, Cell> getCellsToScrubImmediately() {
-        return getCellsToScrub(State.COMMITTED);
+        return getCellsToScrubByTable(State.COMMITTED);
     }
 
-    private Multimap<String, Cell> getCellsToScrub(State expectedState) {
-        Multimap<String, Cell> tableNameToCell = HashMultimap.create();
+    private Multimap<Cell, String> getCellsToScrubByCell(State expectedState) {
+        Multimap<Cell, String> cellToTableName = HashMultimap.create();
         State actualState = state.get();
         if (expectedState == actualState) {
             for (Entry<String, ConcurrentNavigableMap<Cell, byte[]>> entry : writesByTable.entrySet()) {
                 String table = entry.getKey();
                 Set<Cell> cells = entry.getValue().keySet();
-                tableNameToCell.putAll(table, cells);
+                for (Cell c : cells) {
+                    cellToTableName.put(c, table);
+                }
             }
         } else {
             AssertUtils.assertAndLog(false, "Expected state: " + expectedState + "; actual state: " + actualState);
         }
-        return tableNameToCell;
+        return cellToTableName;
     }
+
+
+    private Multimap<String, Cell> getCellsToScrubByTable(State expectedState) {
+        Multimap<String, Cell> tableNameToCells = HashMultimap.create();
+        State actualState = state.get();
+        if (expectedState == actualState) {
+            for (Entry<String, ConcurrentNavigableMap<Cell, byte[]>> entry : writesByTable.entrySet()) {
+                String table = entry.getKey();
+                Set<Cell> cells = entry.getValue().keySet();
+                tableNameToCells.putAll(table, cells);
+            }
+        } else {
+            AssertUtils.assertAndLog(false, "Expected state: " + expectedState + "; actual state: " + actualState);
+        }
+        return tableNameToCells;
+    }
+
 }
 
 

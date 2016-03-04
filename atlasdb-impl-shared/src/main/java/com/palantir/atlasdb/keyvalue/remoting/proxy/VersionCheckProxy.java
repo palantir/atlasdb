@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.remoting.proxy;
 
-import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -28,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
+import com.google.common.reflect.AbstractInvocationHandler;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -56,7 +56,7 @@ import com.palantir.common.supplier.ServiceContext;
  * @author htarasiuk
  *
  */
-public class VersionCheckProxy<T> implements InvocationHandler {
+public class VersionCheckProxy<T> extends AbstractInvocationHandler {
     private static final Logger log = LoggerFactory.getLogger(VersionCheckProxy.class);
     private final Supplier<Long> serverVersionProvider;
     private final Supplier<Long> clientVersionProvider;
@@ -68,15 +68,14 @@ public class VersionCheckProxy<T> implements InvocationHandler {
         this.delegate = delegate;
     }
 
-    private static final boolean isMethodVersionExempt(Method method) {
+    private static boolean isMethodVersionExempt(Method method) {
         return method.getDeclaringClass() != KeyValueService.class
                 && method.getDeclaringClass() != ClosableIterator.class
                 && method.getDeclaringClass() != Iterator.class;
     }
 
     @Override
-    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-
+    protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
         // Only check the version for appropriate methods
         if (!isMethodVersionExempt(method)) {
             Long clientVersion = clientVersionProvider.get();
@@ -107,10 +106,10 @@ public class VersionCheckProxy<T> implements InvocationHandler {
     /**
      * This proxy checks the client version based on the out-of-band data that came with this request.
      *
-     * @param delegate
+     * @param delegate key value service delegate
      * @param serverVersionProvider Use <code>Suppliers.<Long>ofInstance(-1L)</code> to disable version check. In
      * such case this proxy is just a no-op.
-     * @return
+     * @return proxied key value service
      */
     public static KeyValueService newProxyInstance(KeyValueService delegate, Supplier<Long> serverVersionProvider) {
         ServiceContext<Long> remoteVersionClientCtx = RemoteContextHolder.INBOX.getProviderForKey(LONG_HOLDER.PM_VERSION);
@@ -125,9 +124,9 @@ public class VersionCheckProxy<T> implements InvocationHandler {
      * invoke-time version is different (must be greater) than the creation-time
      * version.
      *
-     * @param delegate
-     * @param currentVersionProvider
-     * @return
+     * @param delegate closeable iterator delegate
+     * @param currentVersionProvider current version provider
+     * @return proxied closeable iterator
      */
     @SuppressWarnings("unchecked")
     public static <T> ClosableIterator<RowResult<T>> invalidateOnVersionChangeProxy(ClosableIterator<RowResult<T>> delegate, Supplier<Long> currentVersionProvider) {
