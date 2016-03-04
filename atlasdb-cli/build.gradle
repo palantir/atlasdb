@@ -1,9 +1,13 @@
 apply from: '../gradle/shared.gradle'
 
+apply plugin: 'application'
+mainClassName = 'com.palantir.atlasdb.cli.TitanCli'
+applicationName = 'titan'
+
 dependencies {
   compile project(':atlasdb-server')
   compile project(':atlasdb-impl-shared')
-  compile 'args4j:args4j:2.0.31'
+  compile 'io.airlift:airline:0.7'
 }
 
 configurations.matching({ it.name in ['compile', 'runtime'] }).all {

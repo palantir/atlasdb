@@ -17,12 +17,15 @@ package com.palantir.atlasdb.cli.impl;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Iterator;
 
 import javax.net.ssl.SSLSocketFactory;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.common.base.Optional;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cli.api.AtlasDbServices;
 import com.palantir.atlasdb.factory.TransactionManagers;
@@ -39,16 +42,49 @@ public class AtlasDbServicesImpl implements AtlasDbServices {
 
     private SerializableTransactionManager tm;
 
-    public static AtlasDbServices connect(String configFileName) throws IOException {
+    public static AtlasDbServices connect(File configFile, String configRoot) throws IOException {
         ObjectMapper configMapper = Jackson.newObjectMapper(new YAMLFactory());
-        AtlasDbServerConfiguration config = configMapper.readValue(new File(configFileName), AtlasDbServerConfiguration.class);
-        SerializableTransactionManager tm = TransactionManagers.create(config.getConfig(), Optional.<SSLSocketFactory>absent(), ImmutableSet.<Schema>of(),
+        JsonNode node = getConfigNode(configMapper, configFile, configRoot);
+        AtlasDbServerConfiguration config = configMapper.treeToValue(node, AtlasDbServerConfiguration.class);
+        SerializableTransactionManager tm = TransactionManagers.create(
+                config.getConfig(),
+                Optional.<SSLSocketFactory>absent(),
+                ImmutableSet.<Schema>of(),
                 new TransactionManagers.Environment() {
                     @Override
                     public void register(Object resource) {
                     }
-                }, false);
+                },
+                true);
         return new AtlasDbServicesImpl(tm);
+    }
+
+    private static JsonNode getConfigNode(ObjectMapper configMapper, File configFile, String configRoot) throws IOException {
+        JsonNode node = configMapper.readTree(configFile);
+        if (Strings.isNullOrEmpty(configRoot)) {
+            return node;
+        } else {
+            JsonNode rootNode = findRoot(node, configRoot);
+            if (rootNode != null) {
+                return rootNode;
+            }
+            throw new IllegalArgumentException("Could not find " + configRoot + " in yaml file " + configFile);
+        }
+    }
+
+    private static JsonNode findRoot(JsonNode node, String configRoot) {
+        if (node.has(configRoot)) {
+            return node.get(configRoot);
+        } else {
+            Iterator<String> iter = node.fieldNames();
+            while (iter.hasNext()) {
+                JsonNode root = findRoot(node.get(iter.next()), configRoot);
+                if (root != null) {
+                    return root;
+                }
+            }
+            return null;
+        }
     }
 
     private AtlasDbServicesImpl(SerializableTransactionManager tm) {
