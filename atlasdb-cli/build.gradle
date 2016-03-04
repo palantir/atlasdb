@@ -8,7 +8,6 @@ dependencies {
   compile project(':atlasdb-server')
   compile project(':atlasdb-impl-shared')
   compile 'io.airlift:airline:0.7'
-  compile 'com.github.rvesse:airline:2.1.1'
 }
 
 configurations.matching({ it.name in ['compile', 'runtime'] }).all {
