@@ -815,6 +815,9 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         if (rangeRequest.isReverse()) {
             throw new UnsupportedOperationException();
         }
+        if (rangeRequest.isEmptyRange()) {
+            return ClosableIterators.wrap(ImmutableList.<RowResult<U>>of().iterator());
+        }
         final int batchHint = rangeRequest.getBatchHint() == null ? 100 : rangeRequest.getBatchHint();
         final ColumnSelection selection = rangeRequest.getColumnNames().isEmpty() ? ColumnSelection.all() : ColumnSelection.create(rangeRequest.getColumnNames());
         final byte[] endExclusive = rangeRequest.getEndExclusive();
