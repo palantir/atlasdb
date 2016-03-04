@@ -1,5 +1,9 @@
 apply from: '../gradle/shared.gradle'
 
+apply plugin: 'application'
+mainClassName = 'com.palantir.atlasdb.cli.TitanCli'
+applicationName = 'titan'
+
 dependencies {
   compile project(':atlasdb-server')
   compile project(':atlasdb-impl-shared')
