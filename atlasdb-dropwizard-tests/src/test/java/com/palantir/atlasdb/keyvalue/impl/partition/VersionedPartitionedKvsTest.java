@@ -69,7 +69,7 @@ import jersey.repackaged.com.google.common.collect.Iterators;
  *
  */
 @Ignore
-public class VersionedPartiotionedKvsTest extends AbstractAtlasDbKeyValueServiceTest {
+public class VersionedPartitionedKvsTest extends AbstractAtlasDbKeyValueServiceTest {
 
     /**
      * RemoteKVS - InMemoryKeyValueService          RemotePMS - PartitionMapServiceImpl
