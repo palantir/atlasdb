@@ -25,19 +25,20 @@ import org.junit.Test;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cli.api.AtlasDbServices;
+import com.palantir.atlasdb.cli.api.SingleBackendCommand;
 
 import io.airlift.airline.Cli;
 import io.airlift.airline.Command;
 import io.airlift.airline.Help;
 import io.airlift.airline.Option;
 
-public class TestTitanCommand {
+public class TestSingleBackendCommand {
 
     private static String SIMPLE_CONFIG_FILE;
     private static String NESTED_CONFIG_FILE;
 
     @Command(name = "test", description = "test functionality")
-    public static class TestCommand extends TitanCommand {
+    public static class TestCommand extends SingleBackendCommand {
 
         @Option(name = {"-f1", "--flag1"}, description = "flag 1")
         Boolean flag1;
@@ -73,8 +74,8 @@ public class TestTitanCommand {
 
     @BeforeClass
     public static void setup() throws URISyntaxException {
-        SIMPLE_CONFIG_FILE = Paths.get(TestTitanCommand.class.getClassLoader().getResource("simple_atlasdb_config.yml").toURI()).toString();
-        NESTED_CONFIG_FILE = Paths.get(TestTitanCommand.class.getClassLoader().getResource("nested_atlasdb_config.yml").toURI()).toString();
+        SIMPLE_CONFIG_FILE = Paths.get(TestSingleBackendCommand.class.getClassLoader().getResource("simple_atlasdb_config.yml").toURI()).toString();
+        NESTED_CONFIG_FILE = Paths.get(TestSingleBackendCommand.class.getClassLoader().getResource("nested_atlasdb_config.yml").toURI()).toString();
     }
 
     @Test
