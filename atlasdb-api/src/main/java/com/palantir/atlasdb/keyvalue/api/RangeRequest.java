@@ -361,9 +361,9 @@ import com.palantir.util.Pair;
                 return false;
             }
             if (reverse) {
-                return UnsignedBytes.lexicographicalComparator().compare(startInclusive, endExclusive) <= 0;
+                return UnsignedBytes.lexicographicalComparator().compare(startInclusive, endExclusive) < 0;
             } else {
-                return UnsignedBytes.lexicographicalComparator().compare(startInclusive, endExclusive) >= 0;
+                return UnsignedBytes.lexicographicalComparator().compare(startInclusive, endExclusive) > 0;
             }
         }
 
