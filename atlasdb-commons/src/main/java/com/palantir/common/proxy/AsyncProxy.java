@@ -15,12 +15,13 @@
  */
 package com.palantir.common.proxy;
 
-import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.concurrent.Future;
 
-public class AsyncProxy<T> implements InvocationHandler {
+import com.google.common.reflect.AbstractInvocationHandler;
+
+public class AsyncProxy<T> extends AbstractInvocationHandler {
 
     private final Future<T> futureResult;
 
@@ -35,7 +36,7 @@ public class AsyncProxy<T> implements InvocationHandler {
     }
 
     @Override
-    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+    protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
         return method.invoke(futureResult.get(), args);
     }
 }

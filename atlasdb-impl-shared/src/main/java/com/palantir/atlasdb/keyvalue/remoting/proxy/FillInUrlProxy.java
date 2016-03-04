@@ -15,12 +15,12 @@
  */
 package com.palantir.atlasdb.keyvalue.remoting.proxy;
 
-import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Set;
 
+import com.google.common.reflect.AbstractInvocationHandler;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -44,7 +44,7 @@ import com.palantir.common.base.ClosableIterator;
  * @author htarasiuk
  *
  */
-public class FillInUrlProxy<T> implements InvocationHandler {
+public class FillInUrlProxy<T> extends AbstractInvocationHandler {
 
     final T delegate;
     final String pmsUri;
@@ -59,9 +59,9 @@ public class FillInUrlProxy<T> implements InvocationHandler {
      * case of an exception. Futhermore the iterators returned by this KVS will have
      * all their methods fill in the pmsUri as well.
      *
-     * @param delegate
-     * @param pmsUri
-     * @return
+     * @param delegate key value service delegate
+     * @param pmsUri partition map service URI
+     * @return proxied key value service
      */
     public static KeyValueService newFillInUrlProxy(KeyValueService delegate, String pmsUri) {
         // First make the kvs iterators fill in the pmsUri
@@ -80,7 +80,7 @@ public class FillInUrlProxy<T> implements InvocationHandler {
     }
 
     @Override
-    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+    protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
         try {
             return method.invoke(delegate, args);
         } catch (InvocationTargetException e) {

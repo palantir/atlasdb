@@ -27,17 +27,15 @@ import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.NamespacedKeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.StatsTrackingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TrackingKeyValueService;
-import com.palantir.atlasdb.schema.UpgradeSchema;
-import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.impl.CachingTestTransactionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
-import com.palantir.atlasdb.transaction.impl.SnapshotTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.TestTransactionManager;
 import com.palantir.atlasdb.transaction.impl.TestTransactionManagerImpl;
+import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.common.concurrent.PTExecutors;
@@ -91,12 +89,11 @@ public class AtlasDbTestCase {
     @Before
     public void setUp() throws Exception {
         timestampService = new InMemoryTimestampService();
-        KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(getBaseKeyValueService());
+        KeyValueService kvs = getBaseKeyValueService();
         keyValueServiceWithStats = new StatsTrackingKeyValueService(kvs);
         keyValueService = new TrackingKeyValueService(keyValueServiceWithStats);
         keyValueService.initializeFromFreshInstance();
-        SnapshotTransactionManager.createTables(kvs);
-        Schemas.createTablesAndIndexes(UpgradeSchema.INSTANCE.getLatestSchema(), kvs);
+        TransactionTables.createTables(kvs);
         transactionService = TransactionServices.createTransactionService(kvs);
 
         conflictDetectionManager = ConflictDetectionManagers.createDefault(keyValueService);
@@ -114,7 +111,8 @@ public class AtlasDbTestCase {
     }
 
     protected KeyValueService getBaseKeyValueService() {
-        return new InMemoryKeyValueService(false, PTExecutors.newSingleThreadExecutor(PTExecutors.newNamedThreadFactory(true)));
+        return NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(
+                new InMemoryKeyValueService(false, PTExecutors.newSingleThreadExecutor(PTExecutors.newNamedThreadFactory(true))));
     }
 
     @After

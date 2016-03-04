@@ -77,6 +77,10 @@ public class Schema {
     // for code generation purposes.
     private final ListMultimap<String, String> indexesByTable = ArrayListMultimap.create();
 
+    public Schema(Namespace namespace) {
+        this(null, null, namespace);
+    }
+
     public Schema() {
         this(null, null, Namespace.DEFAULT_NAMESPACE);
     }

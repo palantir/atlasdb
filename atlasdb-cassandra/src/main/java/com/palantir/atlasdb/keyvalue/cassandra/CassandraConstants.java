@@ -28,11 +28,12 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.AtlasDbConstants;
 
-
 public class CassandraConstants {
     static final int LONG_RUNNING_QUERY_SOCKET_TIMEOUT_MILLIS = 62000;
     public static final String METADATA_TABLE = "_metadata";
     public static final int DEFAULT_REPLICATION_FACTOR = 3;
+    public static final int DEFAULT_THRIFT_PORT = 9160;
+    public static final int DEFAULT_CQL_PORT = 9042;
     static final int SECONDS_BETWEEN_GETTING_HOST_LIST = 600; // 10 min
     static final int SECONDS_WAIT_FOR_VERSIONS = 60;
 
@@ -63,7 +64,6 @@ public class CassandraConstants {
     static final String DEFAULT_RACK = "rack1";
     static final String SIMPLE_RF_TEST_KEYSPACE = "__simple_rf_test_keyspace__";
     static final String REPLICATION_FACTOR_OPTION = "replication_factor";
-    static final long SECONDS_TO_WAIT_FOR_SCHEMA_MUTATION_LOCK = 60;
     static final int GC_GRACE_SECONDS = 4 * 24 * 60 * 60; // 4 days; Hinted-Handoffs MUST expire well within this period for delete correctness (I believe we will be expiring hints in half this period)
     static final float TOMBSTONE_THRESHOLD_RATIO = 0.2f;
 

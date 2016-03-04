@@ -30,7 +30,6 @@ import com.palantir.atlasdb.keyvalue.impl.StaticTableMappingService;
 import com.palantir.atlasdb.keyvalue.impl.TableRemappingKeyValueService;
 import com.palantir.atlasdb.schema.AtlasSchema;
 import com.palantir.atlasdb.schema.Namespace;
-import com.palantir.atlasdb.schema.SchemaReference;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.table.description.Schema;
@@ -39,9 +38,9 @@ import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
-import com.palantir.atlasdb.transaction.impl.SnapshotTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
+import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.lock.LockClient;
@@ -77,14 +76,6 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
         return new InMemoryTimestampService();
     }
 
-    public static SerializableTransactionManager createInMemoryTransactionManager(Schema schema) {
-        return createInMemoryTransactionManagerInternal(schema, null);
-    }
-
-    public static SerializableTransactionManager createInMemoryTransactionManager(SchemaReference schemaRef) {
-        return createInMemoryTransactionManagerInternal(schemaRef.getSchema(), schemaRef.getNamespace());
-    }
-
     public static SerializableTransactionManager createInMemoryTransactionManager(AtlasSchema schema) {
         return createInMemoryTransactionManagerInternal(schema.getLatestSchema(), schema.getNamespace());
     }
@@ -94,7 +85,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
         KeyValueService keyValueService = createTableMappingKv(ts);
 
         Schemas.createTablesAndIndexes(schema, keyValueService);
-        SnapshotTransactionManager.createTables(keyValueService);
+        TransactionTables.createTables(keyValueService);
 
         TransactionService transactionService = TransactionServices.createTransactionService(keyValueService);
         RemoteLockService lock = LockRefreshingLockService.create(LockServiceImpl.create(new LockServerOptions() {

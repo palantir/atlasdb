@@ -19,7 +19,6 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -97,8 +96,8 @@ import com.palantir.atlasdb.keyvalue.cassandra.CQLKeyValueServices.AllTimestamps
 import com.palantir.atlasdb.keyvalue.cassandra.CQLKeyValueServices.Peer;
 import com.palantir.atlasdb.keyvalue.cassandra.CQLKeyValueServices.StartTsResultsCollector;
 import com.palantir.atlasdb.keyvalue.cassandra.CQLKeyValueServices.TransactionType;
+import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompaction;
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionManager;
-import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionModule;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
@@ -129,7 +128,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     private boolean limitBatchSizesToServerDefaults = false;
 
     public static CQLKeyValueService create(CassandraKeyValueServiceConfigManager configManager) {
-        Optional<CassandraJmxCompactionManager> compactionManager = new CassandraJmxCompactionModule().createCompactionManager(configManager);
+        Optional<CassandraJmxCompactionManager> compactionManager = CassandraJmxCompaction.createJmxCompactionManager(configManager);
         final CQLKeyValueService ret = new CQLKeyValueService(configManager, compactionManager);
         ret.initializeConnectionPool();
         ret.performInitialSetup();
@@ -145,14 +144,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
 
     protected void initializeConnectionPool() {
         final CassandraKeyValueServiceConfig config = configManager.getConfig();
-        HashSet<InetSocketAddress> configuredHosts = Sets.newHashSet(Iterables.transform(config.servers(),
-                        new Function<String, InetSocketAddress>() {
-                            @Override
-                            public InetSocketAddress apply(String host) {
-                                return new InetSocketAddress(host, config.port());
-                            }
-                        })
-        );
+        Collection<InetSocketAddress> configuredHosts = config.servers();
         Cluster.Builder clusterBuilder = Cluster.builder();
         clusterBuilder.addContactPointsWithPorts(configuredHosts);
         clusterBuilder.withClusterName("atlas_cassandra_cluster_" + config.keyspace()); // for JMX metrics
@@ -1114,9 +1106,9 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     @Override
     public void compactInternally(String tableName) {
         Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName), "tableName:[%s] should not be null or empty", tableName);
-        final CassandraKeyValueServiceConfig config = configManager.getConfig();
-        if(!compactionManager.isPresent() || !config.jmx().isPresent()){
-            log.warn("No compaction client was configured, but compact was called. If you actually want to clear deleted data immediately " +
+        CassandraKeyValueServiceConfig config = configManager.getConfig();
+        if (!compactionManager.isPresent()) {
+            log.error("No compaction client was configured, but compact was called. If you actually want to clear deleted data immediately " +
                     "from Cassandra, lower your gc_grace_seconds setting and run `nodetool compact {} {}`.", config.keyspace(), tableName);
             return;
         }
@@ -1130,7 +1122,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
             log.error("Compaction could not finish in {} seconds. {}", compactionTimeoutSeconds, e.getMessage());
             log.error(compactionManager.get().getCompactionStatus());
         } catch (InterruptedException e) {
-            log.error("Compaction for {}.{} was interupted.", config.keyspace(), tableName);
+            log.error("Compaction for {}.{} was interrupted.", config.keyspace(), tableName);
         } finally {
             alterTableForCompaction(tableName, CassandraConstants.GC_GRACE_SECONDS, CassandraConstants.TOMBSTONE_THRESHOLD_RATIO);
             CQLKeyValueServices.waitForSchemaVersionsToCoalesce("setting up tables post-compaction", this);

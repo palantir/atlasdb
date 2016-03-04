@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.cassandra;
 
+import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
 import java.util.Set;
 
@@ -35,9 +36,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
 
     public static final String TYPE = "cassandra";
 
-    public abstract Set<String> servers();
-
-    public abstract int port();
+    public abstract Set<InetSocketAddress> servers();
 
     @Value.Default
     public int poolSize() {
@@ -64,9 +63,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     }
 
     @Value.Default
-    public int fetchBatchCount() {
-        return 5000;
-    }
+    public int fetchBatchCount() { return 5000; }
 
     @Value.Default
     public boolean safetyDisabled() {
@@ -85,7 +82,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
      */
     @Value.Default
     public int socketTimeoutMillis() {
-        return 2000;
+        return 2 * 1000;
     }
 
     /**
@@ -96,13 +93,16 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
      */
     @Value.Default
     public int socketQueryTimeoutMillis() {
-        return 62000;
+        return 62 * 1000;
     }
 
     @Value.Default
     public int cqlPoolTimeoutMillis() {
-        return 5000;
+        return 5 * 1000;
     }
+
+    @Value.Default
+    public int schemaMutationTimeoutMillis() { return 60 * 1000; }
 
     @Value.Default
     public int rangesConcurrency() {
@@ -119,5 +119,8 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     @Value.Check
     protected final void check() {
         Preconditions.checkState(!servers().isEmpty(), "'servers' must have at least one entry");
+        for (InetSocketAddress addr : servers()) {
+            Preconditions.checkState(addr.getPort() > 0, "each server must specify a port ([host]:[port])");
+        }
     }
 }
