@@ -1085,6 +1085,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         if (rangeRequest.isReverse()) {
             throw new UnsupportedOperationException();
         }
+        if (rangeRequest.isEmptyRange()) {
+            return ClosableIterators.wrap(ImmutableList.<RowResult<U>>of().iterator());
+        }
         final int batchHint = rangeRequest.getBatchHint() == null ? 100 : rangeRequest.getBatchHint();
         SliceRange slice = new SliceRange(ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY), ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY), false, Integer.MAX_VALUE);
         final SlicePredicate pred = new SlicePredicate();
