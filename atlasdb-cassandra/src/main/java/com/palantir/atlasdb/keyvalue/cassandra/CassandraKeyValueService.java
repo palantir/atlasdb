@@ -1227,7 +1227,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                             client.system_drop_column_family(caseInsensitiveTable);
                             putMetadataWithoutChangingSettings(caseInsensitiveTable, PtBytes.EMPTY_BYTE_ARRAY);
                         } else {
-                            log.warn(String.format("Ignored call to drop a table (%s) that already existed.", table));
+                            log.warn(String.format("Ignored call to drop a table (%s) that did not exist.", table));
                         }
                     }
                     CassandraKeyValueServices.waitForSchemaVersions(client, "(all tables in a call to dropTables)", configManager.getConfig().schemaMutationTimeoutMillis());
