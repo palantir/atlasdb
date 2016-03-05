@@ -1506,13 +1506,32 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                         col.setName(colName);
                         col.setValue(contents);
                         col.setTimestamp(timestamp);
-                        CASResult casResult = client.cas(
-                                rowName,
-                                tableName,
-                                ImmutableList.<Column>of(),
-                                ImmutableList.of(col),
-                                ConsistencyLevel.SERIAL,
-                                writeConsistency);
+                        CASResult casResult;
+                        if (shouldTraceQuery(tableName)) {
+                            ByteBuffer recv_trace = client.trace_next_query();
+                            Stopwatch stopwatch = Stopwatch.createStarted();
+                            casResult = client.cas(
+                                    rowName,
+                                    tableName,
+                                    ImmutableList.<Column>of(),
+                                    ImmutableList.of(col),
+                                    ConsistencyLevel.SERIAL,
+                                    writeConsistency);
+                            long duration = stopwatch.elapsed(TimeUnit.MILLISECONDS);
+                            if (duration > getMinimumDurationToTraceMillis()) {
+                                log.error("Traced a call to " + tableName + " that took " + duration + " ms."
+                                        + " It will appear in system_traces with UUID="
+                                        + CassandraKeyValueServices.convertCassandraByteBufferUUIDtoString(recv_trace));
+                            }
+                        } else {
+                            casResult = client.cas(
+                                    rowName,
+                                    tableName,
+                                    ImmutableList.<Column>of(),
+                                    ImmutableList.of(col),
+                                    ConsistencyLevel.SERIAL,
+                                    writeConsistency);
+                        }
                         if (!casResult.isSuccess()) {
                             throw new KeyAlreadyExistsException("This transaction row already exists.", ImmutableList.of(e.getKey()));
                         }
