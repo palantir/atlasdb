@@ -1170,32 +1170,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     @Override
     public void dropTable(final String tableName) {
-        try {
-            trySchemaMutationLock();
-            clientPool.runWithPooledResource(new FunctionCheckedException<Client, Void, Exception>() {
-                @Override
-                public Void apply(Client client) throws Exception {
-                    String keyspace = configManager.getConfig().keyspace();
-                    KsDef ks = client.describe_keyspace(keyspace);
-
-                    for (CfDef cf : ks.getCf_defs()) {
-                        if (cf.getName().equalsIgnoreCase(internalTableName(tableName))) {
-                            client.system_drop_column_family(internalTableName(tableName));
-                            putMetadataWithoutChangingSettings(tableName, PtBytes.EMPTY_BYTE_ARRAY);
-                            CassandraKeyValueServices.waitForSchemaVersions(client, tableName, configManager.getConfig().schemaMutationTimeoutMillis());
-                            return null;
-                        }
-                    }
-                    return null;
-                }
-            });
-        } catch (UnavailableException e) {
-            throw new InsufficientConsistencyException("Drop table requires all Cassandra nodes to be up and available.", e);
-        } catch (Exception e) {
-            throw Throwables.throwUncheckedException(e);
-        } finally {
-            schemaMutationLock.unlock();
-        }
+        dropTables(ImmutableSet.of(tableName));
     }
 
     /**
@@ -1221,11 +1196,11 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
                     for (String table : tablesToDrop) {
                         CassandraVerifier.sanityCheckTableName(table);
-                        String caseInsensitiveTable = table.toLowerCase();
+                        String caseInsensitiveInternalTable = internalTableName(table.toLowerCase());
 
-                        if (existingTables.contains(caseInsensitiveTable)) {
-                            client.system_drop_column_family(caseInsensitiveTable);
-                            putMetadataWithoutChangingSettings(caseInsensitiveTable, PtBytes.EMPTY_BYTE_ARRAY);
+                        if (existingTables.contains(caseInsensitiveInternalTable)) {
+                            client.system_drop_column_family(caseInsensitiveInternalTable);
+                            putMetadataWithoutChangingSettings(caseInsensitiveInternalTable, PtBytes.EMPTY_BYTE_ARRAY);
                         } else {
                             log.warn(String.format("Ignored call to drop a table (%s) that did not exist.", table));
                         }
