@@ -82,7 +82,7 @@ public interface PersistentStreamStore extends GenericStreamStore<Long> {
      * Although this method provides performance gains by batching the relevant underlying code it can also also
      * cause the underlying transaction to be long-running.  When possible, individually add streams using
      * {@link #getByHashOrStoreStreamAndMarkAsUsed(Transaction, Sha256Hash, InputStream, byte[])} or
-     * {@line #storeStreams(InputStream)}.
+     * {@link #storeStream(InputStream)}.
      */
     Map<Long, Sha256Hash> storeStreams(Transaction t, Map<Long, InputStream> streams);
 }
