@@ -44,8 +44,8 @@ public class PaxosConsensusSlowTest {
     }
 
     @After
-    public void teardown() {
-        PaxosConsensusTestUtils.teardown();
+    public void teardown() throws Exception {
+        PaxosConsensusTestUtils.teardown(state);
     }
 
 
