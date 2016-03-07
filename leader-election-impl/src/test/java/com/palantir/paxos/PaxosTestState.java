@@ -19,6 +19,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.palantir.leader.LeaderElectionService;
@@ -30,12 +31,14 @@ public class PaxosTestState {
     private final List<PaxosAcceptor> acceptors;
     private final List<PaxosLearner> learners;
     private final List<AtomicBoolean> failureToggles;
+    private final ExecutorService executor;
 
-    public PaxosTestState(List<LeaderElectionService> leaders, List<PaxosAcceptor> acceptors, List<PaxosLearner> learners, List<AtomicBoolean> failureToggles) {
+    public PaxosTestState(List<LeaderElectionService> leaders, List<PaxosAcceptor> acceptors, List<PaxosLearner> learners, List<AtomicBoolean> failureToggles, ExecutorService executor) {
         this.leaders = leaders;
         this.acceptors = acceptors;
         this.learners = learners;
         this.failureToggles = failureToggles;
+        this.executor = executor;
     }
 
     public void goDown(int i) {
@@ -76,5 +79,9 @@ public class PaxosTestState {
 
     public PaxosLearner learner(int i) {
         return learners.get(i);
+    }
+
+    public ExecutorService getExecutor() {
+        return executor;
     }
 }

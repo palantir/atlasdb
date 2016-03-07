@@ -17,7 +17,8 @@ package com.palantir.paxos;
 
 import java.io.File;
 import java.util.List;
-import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.io.FileUtils;
@@ -49,7 +50,7 @@ public final class PaxosConsensusTestUtils {
         List<PaxosAcceptor> acceptors = Lists.newArrayList();
         List<PaxosLearner> learners = Lists.newArrayList();
         List<AtomicBoolean> failureToggles = Lists.newArrayList();
-        Executor executor = PTExecutors.newCachedThreadPool();
+        ExecutorService executor = PTExecutors.newCachedThreadPool();
 
         RuntimeException e = new RuntimeException("mock server failure");
         for (int i = 0; i < numLeaders; i++) {
@@ -92,13 +93,20 @@ public final class PaxosConsensusTestUtils {
                     failureToggles.get(i)));
         }
 
-        return new PaxosTestState(leaders, acceptors, learners, failureToggles);
+        return new PaxosTestState(leaders, acceptors, learners, failureToggles, executor);
     }
 
-    public static void teardown() {
+    public static void teardown(PaxosTestState state) throws Exception {
         try {
+            ExecutorService executor = state.getExecutor();
+            executor.shutdownNow();
+            boolean terminated = executor.awaitTermination(10, TimeUnit.SECONDS);
+            if (!terminated) {
+                throw new IllegalStateException("Some threads are still hanging around! Can't proceed or they might corrupt future tests.");
+            }
+        } finally {
             FileUtils.deleteDirectory(new File(LOG_DIR));
-        } catch (Exception e) {}
+        }
     }
 
     public static String getLearnerLogDir(int i) {
