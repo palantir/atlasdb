@@ -895,11 +895,11 @@ public final class LockServiceImplTest {
         Assert.assertNotNull(token);
         Assert.assertEquals(client, token.getClient());
         Assert.assertEquals(request.getLockDescriptors(), token.getLocks());
-        Thread.sleep(251);
-        Assert.assertTrue(token.getExpirationDateMs() - System.currentTimeMillis() < 250);
+        Thread.sleep(51);
+        Assert.assertTrue(token.getExpirationDateMs() - System.currentTimeMillis() < 450);
         HeldLocksToken nullToken = server.lock(LockClient.ANONYMOUS, request).getToken();
         Assert.assertNull(nullToken);
-        Thread.sleep(250);
+        Thread.sleep(450);
 
         token = server.lock(LockClient.ANONYMOUS, request).getToken();
         Assert.assertNotNull(token);
@@ -910,8 +910,8 @@ public final class LockServiceImplTest {
         Assert.assertNotNull(grant);
         Assert.assertNull(grant.getClient());
         Assert.assertEquals(request.getLockDescriptors(), grant.getLocks());
-        Thread.sleep(251);
-        Assert.assertTrue(grant.getExpirationDateMs() - System.currentTimeMillis() < 250);
+        Thread.sleep(51);
+        Assert.assertTrue(grant.getExpirationDateMs() - System.currentTimeMillis() < 450);
         grant = server.refreshGrant(grant);
         Assert.assertTrue(grant.getExpirationDateMs() - System.currentTimeMillis() < 500);
         nullToken = server.lock(LockClient.ANONYMOUS, request).getToken();
