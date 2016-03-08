@@ -605,6 +605,9 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                 resultSet = resultSetFuture.getUninterruptibly();
                 resultSet.all();
                 CQLKeyValueServices.logTracedQuery(putQuery, resultSet, session, cqlStatementCache.NORMAL_QUERY);
+                if (!resultSet.wasApplied()) {
+                    throw new KeyAlreadyExistsException("This transaction row already exists: " + putQuery);
+                }
             } catch (InvalidQueryException e) {
                 if (e.getMessage().contains("Batch too large") && !recursive) {
                     log.error("Attempted a put to " + tableName + " that the Cassandra server deemed to be too large to accept. Batch sizes on the Atlas-side have been artificially lowered to the Cassandra default maximum batch sizes.");
