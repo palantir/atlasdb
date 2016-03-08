@@ -983,7 +983,7 @@ public class JdbcKeyValueService implements KeyValueService {
             run(new Function<DSLContext, Void>() {
                 @Override
                 public Void apply(DSLContext ctx) {
-                    ctx.execute("VACUUM " + tableName(tableName));
+                    ctx.execute("VACUUM ANALYZE " + tableName(tableName));
                     return null;
                 }
             });
