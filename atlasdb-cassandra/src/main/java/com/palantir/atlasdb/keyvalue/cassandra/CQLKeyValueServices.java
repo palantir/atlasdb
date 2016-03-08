@@ -186,6 +186,20 @@ public class CQLKeyValueServices {
         return peers;
     }
 
+    static class Local {
+        String data_center;
+        String rack;
+    }
+    public static Local getLocal(Session session) {
+        PreparedStatement selectLocalInfo = session.prepare(
+                "select data_center, rack from system.local;");
+        Row localRow = session.execute(selectLocalInfo.bind()).one();
+        Local local = new Local();
+        local.data_center = localRow.getString("data_center");
+        local.rack = localRow.getString("rack");
+        return local;
+    }
+
     public static void waitForSchemaVersionsToCoalesce(String encapsulatingOperationDescription, CQLKeyValueService kvs) {
         PreparedStatement peerInfoQuery = kvs.getPreparedStatement(CassandraConstants.NO_TABLE, "select peer, schema_version from system.peers;", kvs.session);
         peerInfoQuery.setConsistencyLevel(ConsistencyLevel.ALL);
