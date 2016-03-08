@@ -264,7 +264,7 @@ public class CQLKeyValueServices {
             chunkLength = explicitCompressionBlockSizeKB;
         }
 
-        queryBuilder.append("CREATE TABLE " + kvs.getFullTableName(tableName) + " ( " // full table name (ks.cf)
+        queryBuilder.append("CREATE TABLE IF NOT EXISTS " + kvs.getFullTableName(tableName) + " ( " // full table name (ks.cf)
                 + CassandraConstants.ROW_NAME + " blob, "
                 + CassandraConstants.COL_NAME_COL + " blob, "
                 + CassandraConstants.TS_COL + " bigint, "
