@@ -12,6 +12,7 @@ server:
 atlasdb:
   keyValueService:
     type: cassandra
+    keyspace: atlasdb
     servers:
        - localhost
     port: 9160

@@ -43,10 +43,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
         return 20;
     }
 
-    @Value.Default
-    public String keyspace() {
-        return "atlasdb";
-    }
+    public abstract String keyspace();
 
     public abstract boolean ssl();
 
@@ -122,5 +119,6 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
         for (InetSocketAddress addr : servers()) {
             Preconditions.checkState(addr.getPort() > 0, "each server must specify a port ([host]:[port])");
         }
+        Preconditions.checkNotNull(keyspace(), "'keyspace' must be specified");
     }
 }
