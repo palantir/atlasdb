@@ -291,4 +291,19 @@ public abstract class AbstractKeyValueService implements KeyValueService {
             Futures.getUnchecked(future);
         }
     }
+
+
+    protected static String internalTableName(String tableName) {
+        if (tableName.startsWith("_")) {
+            return tableName;
+        }
+        return tableName.replaceFirst("\\.", "__");
+    }
+
+    protected String fromInternalTableName(String tableName) {
+        if (tableName.startsWith("_")) {
+            return tableName;
+        }
+        return tableName.replaceFirst("__", ".");
+    }
 }

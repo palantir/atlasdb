@@ -1519,20 +1519,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         }
     }
 
-    private static String internalTableName(String tableName) {
-        if (tableName.startsWith("_")) {
-            return tableName;
-        }
-        return tableName.replaceFirst("\\.", "__");
-    }
-
-    private String fromInternalTableName(String tableName) {
-        if (tableName.startsWith("_")) {
-            return tableName;
-        }
-        return tableName.replaceFirst("__", ".");
-    }
-
     private void trySchemaMutationLock() throws InterruptedException, TimeoutException {
         if (!schemaMutationLock.tryLock(configManager.getConfig().schemaMutationTimeoutMillis(), TimeUnit.MILLISECONDS)) {
             throw new TimeoutException("AtlasDB was unable to get a lock on Cassandra system schema mutations for your cluster. Likely cause: Service(s) performing heavy schema mutations in parallel, or extremely heavy Cassandra cluster load.");
