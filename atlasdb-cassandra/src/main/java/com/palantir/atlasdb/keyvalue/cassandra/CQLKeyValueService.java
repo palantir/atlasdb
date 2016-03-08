@@ -1005,7 +1005,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         Set<String> existingTables = Sets.newHashSet(Iterables.transform(rows, new Function<Row, String>(){
             @Override
             public String apply(Row row) {
-                return row.getString("columnfamily_name");
+                return fromInternalTableName(row.getString("columnfamily_name"));
             }}));
 
         return Sets.filter(existingTables, new Predicate<String>() {
