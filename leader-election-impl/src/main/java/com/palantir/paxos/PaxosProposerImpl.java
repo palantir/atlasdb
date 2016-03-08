@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.Nullable;
@@ -43,7 +44,7 @@ public class PaxosProposerImpl implements PaxosProposer {
                                             ImmutableList<PaxosAcceptor> allAcceptors,
                                             ImmutableList<PaxosLearner> allLearners,
                                             int quorumSize,
-                                            Executor executor) {
+                                            ExecutorService executor) {
         return new PaxosProposerImpl(
                 localLearner,
                 allAcceptors,
@@ -60,14 +61,14 @@ public class PaxosProposerImpl implements PaxosProposer {
     final String uuid;
     final AtomicLong proposalNum;
 
-    private final Executor executor;
+    private final ExecutorService executor;
 
     private PaxosProposerImpl(PaxosLearner localLearner,
                               ImmutableList<PaxosAcceptor> acceptors,
                               ImmutableList<PaxosLearner> learners,
                               int quorumSize,
                               String uuid,
-                              Executor executor) {
+                              ExecutorService executor) {
         Preconditions.checkState(
                 quorumSize > acceptors.size() / 2,
                 "quorum size needs to be at least the majority of acceptors");
