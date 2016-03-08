@@ -93,6 +93,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CQLKeyValueServices.AllTimestampsCollector;
+import com.palantir.atlasdb.keyvalue.cassandra.CQLKeyValueServices.Local;
 import com.palantir.atlasdb.keyvalue.cassandra.CQLKeyValueServices.Peer;
 import com.palantir.atlasdb.keyvalue.cassandra.CQLKeyValueServices.StartTsResultsCollector;
 import com.palantir.atlasdb.keyvalue.cassandra.CQLKeyValueServices.TransactionType;
@@ -261,13 +262,6 @@ public class CQLKeyValueService extends AbstractKeyValueService {
 
         Set<Peer> peers = CQLKeyValueServices.getPeers(session);
 
-        boolean noDatacentersPresentInCluster = Iterables.all(peers, new Predicate<Peer>() {
-            @Override
-            public boolean apply(Peer peer) {
-                return peer.data_center == null;
-            }
-        });
-
         boolean allNodesHaveSaneNumberOfVnodes = Iterables.all(peers, new Predicate<Peer>() {
             @Override
             public boolean apply(Peer peer) {
@@ -281,14 +275,13 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         }
 
         Set<String> dcsInCluster = Sets.newHashSet();
-        if (!noDatacentersPresentInCluster) {
-            for (Peer peer: peers) {
-                dcsInCluster.add(peer.data_center);
+        for (Peer peer: peers) {
+            dcsInCluster.add(peer.data_center);
                 if (peer.data_center == null) {
                     throw new IllegalStateException("Cluster should not mix datacenter-aware and non-datacenter-aware nodes.");
                 }
             }
-        }
+            dcsInCluster.add(getLocalDataCenter());
 
         if (metadata.getKeyspace(config.keyspace()) == null) { // keyspace previously didn't exist; we need to set it up
             createKeyspace(config.keyspace(), dcsInCluster);
@@ -296,6 +289,11 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         }
 
         createTables(ImmutableMap.of(CassandraConstants.METADATA_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA));
+    }
+
+    private String getLocalDataCenter() {
+        Local local = CQLKeyValueServices.getLocal(session);
+        return local.data_center;
     }
 
     @Override
