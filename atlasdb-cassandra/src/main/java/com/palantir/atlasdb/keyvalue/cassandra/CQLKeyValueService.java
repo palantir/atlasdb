@@ -1103,7 +1103,8 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     }
 
     String getFullTableName(String tableName) {
-        return configManager.getConfig().keyspace() + ".\"" + tableName + "\"";
+        String internalTableName = internalTableName(tableName);
+        return configManager.getConfig().keyspace() + ".\"" + internalTableName + "\"";
     }
 
     @Override
