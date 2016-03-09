@@ -76,17 +76,21 @@ public class CQLKeyValueServices {
         }
     };
 
+    public void shutdown() {
+        traceRetrievalExec.shutdown();
+    }
+
     static enum TransactionType {
         NONE,
         LIGHTWEIGHT_TRANSACTION_REQUIRED
     }
 
-    static final ExecutorService traceRetrievalExec = PTExecutors.newFixedThreadPool(8);
+    private final ExecutorService traceRetrievalExec = PTExecutors.newFixedThreadPool(8);
+
     private static final int MAX_TRIES = 20;
     private static final long TRACE_RETRIEVAL_MS_BETWEEN_TRIES = 500;
 
-
-    public static void logTracedQuery(final String tracedQuery, ResultSet resultSet, final Session session,  final LoadingCache<String, PreparedStatement> statementCache) {
+    public void logTracedQuery(final String tracedQuery, ResultSet resultSet, final Session session,  final LoadingCache<String, PreparedStatement> statementCache) {
         if (log.isInfoEnabled()) {
 
             List<ExecutionInfo> allExecutionInfo = Lists.newArrayList(resultSet.getAllExecutionInfo());
@@ -186,6 +190,20 @@ public class CQLKeyValueServices {
         return peers;
     }
 
+    static class Local {
+        String data_center;
+        String rack;
+    }
+    public static Local getLocal(Session session) {
+        PreparedStatement selectLocalInfo = session.prepare(
+                "select data_center, rack from system.local;");
+        Row localRow = session.execute(selectLocalInfo.bind()).one();
+        Local local = new Local();
+        local.data_center = localRow.getString("data_center");
+        local.rack = localRow.getString("rack");
+        return local;
+    }
+
     public static void waitForSchemaVersionsToCoalesce(String encapsulatingOperationDescription, CQLKeyValueService kvs) {
         PreparedStatement peerInfoQuery = kvs.getPreparedStatement(CassandraConstants.NO_TABLE, "select peer, schema_version from system.peers;", kvs.session);
         peerInfoQuery.setConsistencyLevel(ConsistencyLevel.ALL);
@@ -237,7 +255,7 @@ public class CQLKeyValueServices {
         return CassandraKeyValueServices.getBytesFromByteBuffer(row.getBytes(CassandraConstants.VALUE_COL));
     }
 
-    static void createTableWithSettings(String tableName, byte[] rawMetadata, CQLKeyValueService kvs) {
+    void createTableWithSettings(String tableName, byte[] rawMetadata, CQLKeyValueService kvs) {
         StringBuilder queryBuilder = new StringBuilder();
 
         int explicitCompressionBlockSizeKB = 0;
@@ -264,7 +282,7 @@ public class CQLKeyValueServices {
             chunkLength = explicitCompressionBlockSizeKB;
         }
 
-        queryBuilder.append("CREATE TABLE " + kvs.getFullTableName(tableName) + " ( " // full table name (ks.cf)
+        queryBuilder.append("CREATE TABLE IF NOT EXISTS " + kvs.getFullTableName(tableName) + " ( " // full table name (ks.cf)
                 + CassandraConstants.ROW_NAME + " blob, "
                 + CassandraConstants.COL_NAME_COL + " blob, "
                 + CassandraConstants.TS_COL + " bigint, "
@@ -293,7 +311,7 @@ public class CQLKeyValueServices {
                         .bind();
         try {
             ResultSet resultSet = kvs.longRunningQuerySession.execute(createTableStatement);
-            CQLKeyValueServices.logTracedQuery(queryBuilder.toString(), resultSet, kvs.session, kvs.cqlStatementCache.NORMAL_QUERY);
+            logTracedQuery(queryBuilder.toString(), resultSet, kvs.session, kvs.cqlStatementCache.NORMAL_QUERY);
         } catch (Throwable t) {
             throw Throwables.throwUncheckedException(t);
         }
