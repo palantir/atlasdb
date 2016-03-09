@@ -108,7 +108,7 @@ public class CQLExpiringKeyValueService extends CQLKeyValueService implements Ex
             } catch (Throwable t) {
                 throw Throwables.throwUncheckedException(t);
             }
-            CQLKeyValueServices.logTracedQuery(getPutQuery(result.getValue(), CassandraKeyValueServices.convertTtl(time, unit)), resultSet, session, cqlStatementCache.NORMAL_QUERY);
+            cqlKeyValueServices.logTracedQuery(getPutQuery(result.getValue(), CassandraKeyValueServices.convertTtl(time, unit)), resultSet, session, cqlStatementCache.NORMAL_QUERY);
         }
     }
 
