@@ -245,6 +245,8 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         if(compactionManager.isPresent()) {
             compactionManager.get().close();
         }
+        longRunningQuerySession.close();
+        longRunningQueryCluster.close();
         super.close();
     }
 
