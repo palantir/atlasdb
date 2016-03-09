@@ -270,8 +270,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
 
     @Override
     public void teardown() {
-        scheduledExecutor.shutdown();
-        executor.shutdown();
+        close();
     }
 
     @Override
