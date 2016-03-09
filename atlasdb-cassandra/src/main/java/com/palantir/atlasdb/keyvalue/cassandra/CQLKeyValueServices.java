@@ -76,17 +76,21 @@ public class CQLKeyValueServices {
         }
     };
 
+    public void shutdown() {
+        traceRetrievalExec.shutdown();
+    }
+
     static enum TransactionType {
         NONE,
         LIGHTWEIGHT_TRANSACTION_REQUIRED
     }
 
-    static final ExecutorService traceRetrievalExec = PTExecutors.newFixedThreadPool(8);
+    private final ExecutorService traceRetrievalExec = PTExecutors.newFixedThreadPool(8);
+
     private static final int MAX_TRIES = 20;
     private static final long TRACE_RETRIEVAL_MS_BETWEEN_TRIES = 500;
 
-
-    public static void logTracedQuery(final String tracedQuery, ResultSet resultSet, final Session session,  final LoadingCache<String, PreparedStatement> statementCache) {
+    public void logTracedQuery(final String tracedQuery, ResultSet resultSet, final Session session,  final LoadingCache<String, PreparedStatement> statementCache) {
         if (log.isInfoEnabled()) {
 
             List<ExecutionInfo> allExecutionInfo = Lists.newArrayList(resultSet.getAllExecutionInfo());
@@ -251,7 +255,7 @@ public class CQLKeyValueServices {
         return CassandraKeyValueServices.getBytesFromByteBuffer(row.getBytes(CassandraConstants.VALUE_COL));
     }
 
-    static void createTableWithSettings(String tableName, byte[] rawMetadata, CQLKeyValueService kvs) {
+    void createTableWithSettings(String tableName, byte[] rawMetadata, CQLKeyValueService kvs) {
         StringBuilder queryBuilder = new StringBuilder();
 
         int explicitCompressionBlockSizeKB = 0;
@@ -307,7 +311,7 @@ public class CQLKeyValueServices {
                         .bind();
         try {
             ResultSet resultSet = kvs.longRunningQuerySession.execute(createTableStatement);
-            CQLKeyValueServices.logTracedQuery(queryBuilder.toString(), resultSet, kvs.session, kvs.cqlStatementCache.NORMAL_QUERY);
+            logTracedQuery(queryBuilder.toString(), resultSet, kvs.session, kvs.cqlStatementCache.NORMAL_QUERY);
         } catch (Throwable t) {
             throw Throwables.throwUncheckedException(t);
         }

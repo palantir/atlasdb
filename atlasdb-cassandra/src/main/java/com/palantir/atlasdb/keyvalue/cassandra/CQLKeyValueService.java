@@ -118,6 +118,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     Session session, longRunningQuerySession;
 
     CQLStatementCache cqlStatementCache;
+    CQLKeyValueServices cqlKeyValueServices;
 
     private final CassandraKeyValueServiceConfigManager configManager;
     private final Optional<CassandraJmxCompactionManager> compactionManager;
@@ -213,6 +214,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         longRunningQuerySession = longRunningQueryCluster.connect();
 
         cqlStatementCache = new CQLStatementCache(session, longRunningQuerySession);
+        cqlKeyValueServices = new CQLKeyValueServices();
 
         if (log.isInfoEnabled()) {
             StringBuilder hostInfo = new StringBuilder();
@@ -241,7 +243,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         log.info("Closing CQLKeyValueService");
         session.close();
         cluster.close();
-        CQLKeyValueServices.traceRetrievalExec.shutdown();
+        cqlKeyValueServices.shutdown();
         if(compactionManager.isPresent()) {
             compactionManager.get().close();
         }
@@ -360,7 +362,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                                 Value.create(CQLKeyValueServices.getValue(row), CQLKeyValueServices.getTs(row)));
                     }
                 }
-                CQLKeyValueServices.logTracedQuery(getRowsQuery, resultSet, session, cqlStatementCache.NORMAL_QUERY);
+                cqlKeyValueServices.logTracedQuery(getRowsQuery, resultSet, session, cqlStatementCache.NORMAL_QUERY);
             }
         }
         if (rowCount > fetchBatchCount) {
@@ -445,7 +447,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
             res.put(Cell.create(CQLKeyValueServices.getRowName(row), CQLKeyValueServices.getColName(row)),
                     Value.create(CQLKeyValueServices.getValue(row), CQLKeyValueServices.getTs(row)));
         }
-        CQLKeyValueServices.logTracedQuery(query, resultSet, session, cqlStatementCache.NORMAL_QUERY);
+        cqlKeyValueServices.logTracedQuery(query, resultSet, session, cqlStatementCache.NORMAL_QUERY);
         v.visit(res);
     }
 
@@ -499,7 +501,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                         for (Row row : resultSet.all()) {
                             res.put(Cell.create(CQLKeyValueServices.getRowName(row), CQLKeyValueServices.getColName(row)), CQLKeyValueServices.getTs(row));
                         }
-                        CQLKeyValueServices.logTracedQuery(loadOnlyTsQuery, resultSet, session, cqlStatementCache.NORMAL_QUERY);
+                        cqlKeyValueServices.logTracedQuery(loadOnlyTsQuery, resultSet, session, cqlStatementCache.NORMAL_QUERY);
                     }
                     return res;
                 }
@@ -576,7 +578,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
             } catch (Throwable t) {
                 throw Throwables.throwUncheckedException(t);
             }
-            CQLKeyValueServices.logTracedQuery(getPutQuery(result.getValue(), CassandraConstants.NO_TTL), resultSet, session, cqlStatementCache.NORMAL_QUERY);
+            cqlKeyValueServices.logTracedQuery(getPutQuery(result.getValue(), CassandraConstants.NO_TTL), resultSet, session, cqlStatementCache.NORMAL_QUERY);
         }
     }
 
@@ -606,7 +608,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
             try {
                 resultSet = resultSetFuture.getUninterruptibly();
                 resultSet.all();
-                CQLKeyValueServices.logTracedQuery(putQuery, resultSet, session, cqlStatementCache.NORMAL_QUERY);
+                cqlKeyValueServices.logTracedQuery(putQuery, resultSet, session, cqlStatementCache.NORMAL_QUERY);
                 if (!resultSet.wasApplied()) {
                     throw new KeyAlreadyExistsException("This transaction row already exists: " + putQuery);
                 }
@@ -704,7 +706,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
 
             try {
                 ResultSet resultSet = longRunningQuerySession.execute(truncateStatement);
-                CQLKeyValueServices.logTracedQuery(truncateQuery, resultSet, session, cqlStatementCache.NORMAL_QUERY);
+                cqlKeyValueServices.logTracedQuery(truncateQuery, resultSet, session, cqlStatementCache.NORMAL_QUERY);
             } catch (com.datastax.driver.core.exceptions.UnavailableException e) {
                 throw new InsufficientConsistencyException("Truncating tables requires all Cassandra nodes to be up and available.", e);
             }
@@ -742,7 +744,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                 } catch (Throwable t) {
                     throw Throwables.throwUncheckedException(t);
                 }
-                CQLKeyValueServices.logTracedQuery(deleteQuery, resultSet, session, cqlStatementCache.NORMAL_QUERY);
+                cqlKeyValueServices.logTracedQuery(deleteQuery, resultSet, session, cqlStatementCache.NORMAL_QUERY);
             }
         }
         if (cellCount > fetchBatchCount) {
@@ -858,7 +860,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                 }
                 ResultSet resultSet = session.execute(boundStatement);
                 List<Row> rows = Lists.newArrayList(resultSet.all());
-                CQLKeyValueServices.logTracedQuery(bindQuery.toString(), resultSet, session, cqlStatementCache.NORMAL_QUERY);
+                cqlKeyValueServices.logTracedQuery(bindQuery.toString(), resultSet, session, cqlStatementCache.NORMAL_QUERY);
                 byte[] maxRow = null;
                 ResultsExtractor<T, U> extractor = resultsExtractor.get();
                 for (Row row : rows) {
@@ -885,7 +887,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                     throw new InsufficientConsistencyException("This operation requires all Cassandra nodes to be up and available.", e);
                 }
                 rows.addAll(resultSet.all());
-                CQLKeyValueServices.logTracedQuery(getLastRowQuery, resultSet, session, cqlStatementCache.NORMAL_QUERY);
+                cqlKeyValueServices.logTracedQuery(getLastRowQuery, resultSet, session, cqlStatementCache.NORMAL_QUERY);
                 for (Row row : rows) {
                     extractor.internalExtractResult(
                             timestamp,
@@ -918,7 +920,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                             .bind();
             try {
                 ResultSet resultSet = longRunningQuerySession.execute(dropStatement);
-                CQLKeyValueServices.logTracedQuery(dropQuery, resultSet, session, cqlStatementCache.NORMAL_QUERY);
+                cqlKeyValueServices.logTracedQuery(dropQuery, resultSet, session, cqlStatementCache.NORMAL_QUERY);
             } catch (com.datastax.driver.core.exceptions.UnavailableException e) {
                 throw new InsufficientConsistencyException("Dropping tables requires all Cassandra nodes to be up and available.", e);
             }
@@ -977,13 +979,13 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         }));
 
         if (!existingTables.contains(CassandraConstants.METADATA_TABLE)) { // ScrubberStore likes to call createTable before our setup gets called...
-            CQLKeyValueServices.createTableWithSettings(CassandraConstants.METADATA_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA, this);
+            cqlKeyValueServices.createTableWithSettings(CassandraConstants.METADATA_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA, this);
         }
 
         Sets.SetView<String> tablesToCreate = Sets.difference(tableNamesToTableMetadata.keySet(), existingTables);
         for (String tableName : tablesToCreate) {
             try {
-                CQLKeyValueServices.createTableWithSettings(tableName, tableNamesToTableMetadata.get(tableName), this);
+                cqlKeyValueServices.createTableWithSettings(tableName, tableNamesToTableMetadata.get(tableName), this);
             } catch (com.datastax.driver.core.exceptions.UnavailableException e) {
                 throw new InsufficientConsistencyException("Creating tables requires all Cassandra nodes to be up and available.", e);
             }
@@ -1151,8 +1153,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
-        CQLKeyValueServices.logTracedQuery(alterTableQuery, resultSet, session, cqlStatementCache.NORMAL_QUERY);
-        return;
+        cqlKeyValueServices.logTracedQuery(alterTableQuery, resultSet, session, cqlStatementCache.NORMAL_QUERY);
     }
 
     PreparedStatement getPreparedStatement(String tableName, String query, Session sessionToBeUsed) {
