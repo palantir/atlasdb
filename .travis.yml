@@ -3,7 +3,7 @@ language: java
 jdk:
 - oraclejdk7
 script:
-  - travis_wait ./gradlew check --stacktrace
+  - travis_wait ./gradlew --max-workers 1 check --stacktrace
 env:
   matrix:
   - CI=true
