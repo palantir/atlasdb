@@ -194,6 +194,7 @@ public class CQLKeyValueServices {
         String data_center;
         String rack;
     }
+
     public static Local getLocal(Session session) {
         PreparedStatement selectLocalInfo = session.prepare(
                 "select data_center, rack from system.local;");
