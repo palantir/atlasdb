@@ -2,6 +2,11 @@ sudo: false
 language: java
 jdk:
 - oraclejdk7
+
+before_script:
+- free -m
+- ps aux --sort=-%mem | awk 'NR<=10{print $0}'
+
 script:
   - travis_wait ./gradlew --max-workers 2 check --stacktrace
 env:
