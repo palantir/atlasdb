@@ -23,7 +23,7 @@ test {
         destinationFile = file("$buildDir/jacoco/jacocoTest.exec")
         classDumpFile = file("$buildDir/jacoco/classpathdumps")
     }
-    maxHeapSize = "512m"
+    maxHeapSize = "1024m"
     include '**/*Suite.class'
 }
 
