@@ -26,7 +26,7 @@ public class TitanCli {
         Cli.CliBuilder<Callable> builder = Cli.<Callable>builder("titan")
                 .withDescription("Perform common AtlasDB tasks")
                 .withDefaultCommand(Help.class)
-                .withCommands(Help.class);
+                .withCommands(Help.class, AtlasTimestampCommand.class);
 
         Cli<Callable> parser = builder.build();
         try {
