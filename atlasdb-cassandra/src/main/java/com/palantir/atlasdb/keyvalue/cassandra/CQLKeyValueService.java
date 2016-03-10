@@ -118,7 +118,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     Session session, longRunningQuerySession;
 
     CQLStatementCache cqlStatementCache;
-    CQLKeyValueServices cqlKeyValueServices;
+    protected CQLKeyValueServices cqlKeyValueServices;
 
     private final CassandraKeyValueServiceConfigManager configManager;
     private final Optional<CassandraJmxCompactionManager> compactionManager;
@@ -1104,8 +1104,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     }
 
     String getFullTableName(String tableName) {
-        String internalTableName = internalTableName(tableName);
-        return configManager.getConfig().keyspace() + ".\"" + internalTableName + "\"";
+        return configManager.getConfig().keyspace() + ".\"" + internalTableName(tableName) + "\"";
     }
 
     @Override
