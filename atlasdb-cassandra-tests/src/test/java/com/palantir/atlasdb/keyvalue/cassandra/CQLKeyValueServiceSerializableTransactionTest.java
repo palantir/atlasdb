@@ -32,7 +32,7 @@ public class CQLKeyValueServiceSerializableTransactionTest extends
         return CQLKeyValueService.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(
                         ImmutableCassandraKeyValueServiceConfig.builder()
-                                .addServers(new InetSocketAddress("localhost", 9160))
+                                .addServers(new InetSocketAddress("localhost", 9042))
                                 .poolSize(20)
                                 .keyspace("atlasdb")
                                 .ssl(false)

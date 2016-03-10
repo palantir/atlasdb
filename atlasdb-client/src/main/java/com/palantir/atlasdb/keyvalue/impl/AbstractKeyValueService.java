@@ -270,8 +270,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
 
     @Override
     public void teardown() {
-        scheduledExecutor.shutdown();
-        executor.shutdown();
+        close();
     }
 
     @Override
@@ -290,5 +289,20 @@ public abstract class AbstractKeyValueService implements KeyValueService {
         for (Future<Void> future : futures) {
             Futures.getUnchecked(future);
         }
+    }
+
+
+    protected static String internalTableName(String tableName) {
+        if (tableName.startsWith("_")) {
+            return tableName;
+        }
+        return tableName.replaceFirst("\\.", "__");
+    }
+
+    protected String fromInternalTableName(String tableName) {
+        if (tableName.startsWith("_")) {
+            return tableName;
+        }
+        return tableName.replaceFirst("__", ".");
     }
 }

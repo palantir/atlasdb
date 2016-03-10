@@ -52,7 +52,7 @@ public final class CassandraService {
         System.setProperty("cassandra.config", new File(CASSANDRA_CONFIG).toURI().toString());
         System.setProperty("cassandra.storagedir", tempDir.getPath());
 
-        daemon = new CassandraDaemon();
+        daemon = new CassandraDaemon(true);
         daemon.init(null);
         daemon.start();
     }
@@ -63,7 +63,6 @@ public final class CassandraService {
             return;
         }
         daemon.deactivate();
-        daemon.stop();
         daemon = null;
     }
 }
