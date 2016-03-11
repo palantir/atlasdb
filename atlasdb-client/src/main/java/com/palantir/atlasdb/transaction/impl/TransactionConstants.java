@@ -34,8 +34,9 @@ public class TransactionConstants {
 
     public static final String TRANSACTION_TABLE = "_transactions";
     public static final String COMMIT_TS_COLUMN_STRING = "t";
-    public static final byte[] COMMIT_TS_COLUMN = PtBytes.toBytes("t");
+    public static final byte[] COMMIT_TS_COLUMN = PtBytes.toBytes(COMMIT_TS_COLUMN_STRING);
     public static final long FAILED_COMMIT_TS = -1L;
+    public static final long CLEANED_COMMIT_TS = 0L;
 
     public static final long WARN_LEVEL_FOR_QUEUED_BYTES = 10*1024*1024;
     public static final long ERROR_LEVEL_FOR_QUEUED_BYTES = 10*WARN_LEVEL_FOR_QUEUED_BYTES;
