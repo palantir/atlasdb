@@ -7,7 +7,7 @@ apply plugin: 'com.github.hierynomus.license'
 
 apply from: "${rootDir}/gradle/publish.gradle"
 
-sourceCompatibility = 1.7
+sourceCompatibility = 1.8
 
 version = rootProject.version
 group = rootProject.group
