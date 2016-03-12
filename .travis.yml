@@ -3,6 +3,11 @@ language: java
 jdk:
 - oraclejdk8
 
+addons:
+  apt:
+    packages:
+      - oracle-java8-installer
+
 before_script:
 - free -m
 - ps aux --sort=-%mem | awk 'NR<=10{print $0}'
