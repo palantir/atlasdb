@@ -38,10 +38,10 @@ Cahill 2009:
 FEKETE 2005: "Making snapshot isolation serializable"
 
 The main inspiration is that an SI transaction that has the same values it read
-at it's startTs and it's commitTs is serializable. This can be seen by making
-every read only transaction happen instantly as though it did all it's work at
-it's startTs. Every write transaction can be seen to do all it's work instantly
-at it's commitTs. We know that write SI transactions don't actually work this
+at its startTs and its commitTs is serializable. This can be seen by making
+every read only transaction happen instantly as though it did all its work at
+its startTs. Every write transaction can be seen to do all its work instantly
+at its commitTs. We know that write SI transactions don't actually work this
 way, they read values at their startTs. However if we ensure these reads are
 exactly the same at commitTs then we can act like all the work was done
 instantly at the commitTs.
@@ -49,7 +49,7 @@ instantly at the commitTs.
 So our impl is quite obvious, except for one hiccup. We do the same atlasdb
 transaction protocol but after we get our commitTs, we do a check to verify
 that none of our read set has changed. This implies that we need to keep track
-of everything we read and it's result (including ranges and also which values
+of everything we read and its result (including ranges and also which values
 were missing). The only issue with this approach is now we may have a deadlock
 where a bunch of transactions have their commitTs allocated, but are waiting to
 commit because these read only transactions are blocking waiting for each other
@@ -58,7 +58,7 @@ to decide if they want to commit or not.
 Here is where the papers come in to play. We know that any deadlock that exists
 must be composed of currently running transactions. If the cycle had one
 transaction already committed in it, then the transaction blocking on that one
-would be able to complete it's read and there would be no deadlock. Since all
+would be able to complete its read and there would be no deadlock. Since all
 the transactions are concurrent, we know at lease one dependency between them
 must be a r/w dependency (fekete2005). Ideally we would only abort one of these
 transacitions, but that may be difficult. Instead we simplify and abort any
