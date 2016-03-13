@@ -11,8 +11,9 @@ tuning parameters.
 
 There is one main way to add a table to the schema, along with two variants.
 
+{%raw%}
 ```java
-schema.addTableDefinition("table_name_here", new TableDefinition() {{{{}}}}
+schema.addTableDefinition("table_name_here", new TableDefinition() {{
     javaName("JavaTableName"); //optional
     rowName();
         ...
@@ -21,8 +22,9 @@ schema.addTableDefinition("table_name_here", new TableDefinition() {{{{}}}}
     constraints(); //optional section
         ...
     ... //behavior/perf options
-{{{{}}}});
+}});
 ```
+{%endraw%}
 
 The `addTableDefinition` method takes two arguments: the name of the table to
 be used in the key-value store itself, and a table definition. The table name
@@ -32,26 +34,30 @@ initialization will be covered in the "Table/Index Definition" section.
 If there are multiple tables which will have the same definition but will have
 different names, the first variation of the table definition can be used:
 
+{%raw%}
 ```java
-schema.addDefinitionForTables(ImmutableSet.of("table1_name", "table2_name"), new TableDefinition() {{{{}}}}
+schema.addDefinitionForTables(ImmutableSet.of("table1_name", "table2_name"), new TableDefinition() {{
     ...
-{{{{}}}});
+}});
 ```
+{%endraw%}
 
 If the table should not exist for more than a transaction and is primarily to
 conserve server memory, then a table can be explicitly declared a temp table
 using the second variation:
 
+{%raw%}
 ```java
-schema.addTempTableDefinition("temp_table_name", new TableDefinition() {{{{}}}}
+schema.addTempTableDefinition("temp_table_name", new TableDefinition() {{
     ...
-{{{{}}}});
+}});
 ```
+{%endraw%}
 
 The AtlasDB developers however strongly recommend against usage of this form,
 since they have not found it to be particularly useful in making atlasdb
 queries, and thus have never used it themselves, and thus have never tested to
-so if it actually works.
+see if it actually works.
 
 ## Indices
 
@@ -69,8 +75,9 @@ cell-referencing indices, each cell in the index is derived from a unique cell
 be defined for the index, and synchronization between the base table(s) and
 index must be done manually.
 
+{%raw%}
 ```java
-schema.addIndexDefinition("index_name_here", new IndexDefinition(IndexType.ADDITIVE /* or .CELL_REFERENCING */) {{{{}}}}
+schema.addIndexDefinition("index_name_here", new IndexDefinition(IndexType.ADDITIVE /* or .CELL_REFERENCING */) {{
     onTable("base_table_name");
     onCondition("source_column", " /* java boolean expression */ _value > 100 "); //optional
     rowName();
@@ -78,8 +85,9 @@ schema.addIndexDefinition("index_name_here", new IndexDefinition(IndexType.ADDIT
     dynamicColumns(); //or noColumns();
         ...
     ... //behavior/perf options
-{{{{}}}});
+}});
 ```
+{%endraw%}
 
 Note that, in the case where the index should only get a row from the base
 table if some condition is met, the `onCondition` clause can be added to the
@@ -89,11 +97,13 @@ by the `_value` term.
 If multiple indices should be defined for the same index definition, then the
 following variant can be used:
 
+{%raw%}
 ```java
-schema.addAdditiveIndexesForDefinition(ImmutableSet.of("index1_name", "index2_name"), new IndexDefinition(...) {{{{}}}}
+schema.addAdditiveIndexesForDefinition(ImmutableSet.of("index1_name", "index2_name"), new IndexDefinition(...) {{
     ...
-{{{{}}}});
+}});
 ```
+{%endraw%}
 
 The AtlasDB Developers however strongly recommend against usage of this form,
 since they have not found it to be particularly useful in making atlasdb

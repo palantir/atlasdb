@@ -121,8 +121,8 @@ are:
 | BLOB | byte[] | byte[] | NO** | YES |
 | SIZED_BLOB | byte[] | <len>byte[len] | YES | NO |
 
-note: * var long: the smaller the value, the less bytes used. For signed, the
-closer to zero, the less bytes used.  negative values for VAR_LONG are always
+note: * var long: the smaller the value, the fewer bytes used. For signed, the
+closer to zero, the fewer bytes used.  negative values for VAR_LONG are always
 10 bytes. 0 to 127 are 1 byte for VAR_LONG. -64 to 63 are 1 byte or
 SIGNED_VAR_LONG
 
