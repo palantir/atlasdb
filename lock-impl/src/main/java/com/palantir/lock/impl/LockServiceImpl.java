@@ -301,7 +301,7 @@ import com.palantir.util.Pair;
     public LockRefreshToken lockAnonymously(LockRequest request) throws InterruptedException {
         Preconditions.checkArgument(request.getLockGroupBehavior() == LockGroupBehavior.LOCK_ALL_OR_NONE,
                 "lockAnonymously() only supports LockGroupBehavior.LOCK_ALL_OR_NONE. Consider using lockAndGetHeldLocksAnonymously().");
-        LockResponse result = lock(LockClient.ANONYMOUS, request);
+        LockResponse result = lockWithFullLockResponse(LockClient.ANONYMOUS, request);
         return result.success() ? result.getLockRefreshToken() : null;
     }
 
@@ -310,24 +310,24 @@ import com.palantir.util.Pair;
             throws InterruptedException {
         Preconditions.checkArgument(request.getLockGroupBehavior() == LockGroupBehavior.LOCK_ALL_OR_NONE,
                 "lockWithClient() only supports LockGroupBehavior.LOCK_ALL_OR_NONE. Consider using lockAndGetHeldLocksWithClient().");
-        LockResponse result = lock(LockClient.of(client), request);
+        LockResponse result = lockWithFullLockResponse(LockClient.of(client), request);
         return result.success() ? result.getLockRefreshToken() : null;
     }
 
     @Override
     public HeldLocksToken lockAndGetHeldLocksAnonymously(LockRequest request) throws InterruptedException {
-        LockResponse result = lock(LockClient.ANONYMOUS, request);
+        LockResponse result = lockWithFullLockResponse(LockClient.ANONYMOUS, request);
         return result.getToken();
     }
 
     @Override
     public HeldLocksToken lockAndGetHeldLocksWithClient(String client, LockRequest request) throws InterruptedException {
-        LockResponse result = lock(LockClient.of(client), request);
+        LockResponse result = lockWithFullLockResponse(LockClient.of(client), request);
         return result.getToken();
     }
 
     @Override
-    public LockResponse lock(LockClient client, LockRequest request) throws InterruptedException {
+    public LockResponse lockWithFullLockResponse(LockClient client, LockRequest request) throws InterruptedException {
         Preconditions.checkNotNull(client);
         Preconditions.checkArgument(client != INTERNAL_LOCK_GRANT_CLIENT);
         Preconditions.checkArgument(request.getLockTimeout().compareTo(maxAllowedLockTimeout) <= 0,

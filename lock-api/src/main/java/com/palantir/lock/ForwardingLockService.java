@@ -54,8 +54,8 @@ public abstract class ForwardingLockService extends ForwardingObject implements 
     }
 
     @Override
-    public LockResponse lock(LockClient client, LockRequest request) throws InterruptedException {
-        return delegate().lock(client, request);
+    public LockResponse lockWithFullLockResponse(LockClient client, LockRequest request) throws InterruptedException {
+        return delegate().lockWithFullLockResponse(client, request);
     }
 
     @Override
