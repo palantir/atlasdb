@@ -29,7 +29,7 @@ public class TitanCli {
                 .withCommands(
                         Help.class,
                         AtlasTimestampCommand.class,
-                        AtlasCleanTransactionRange.class);
+                        CleanTransactionRange.class);
 
         Cli<Callable> parser = builder.build();
         try {

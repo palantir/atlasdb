@@ -36,7 +36,7 @@ import io.airlift.airline.Command;
 import io.airlift.airline.Option;
 
 @Command(name = "cleanTransactionRange", description = "Clean a recently restored backup of a transaction table from an underlying database that lacks PITR backup semantics.")
-public class AtlasCleanTransactionRange extends SingleBackendCommand {
+public class CleanTransactionRange extends SingleBackendCommand {
 
     @Option(name = {"-s", "--start"},
             title = "START_TIMESTAMP",
@@ -45,7 +45,7 @@ public class AtlasCleanTransactionRange extends SingleBackendCommand {
     long startTimestampExclusive;
 
     @Option(name = {"-d", "--delete"},
-            description = "The end of the range of transactions, inclusive")
+            description = "Actually delete the range from the transaction table; as opposed to just marking them as cleaned")
     boolean delete;
 
     final byte[] cleaned = TransactionConstants.getValueForTimestamp(TransactionConstants.CLEANED_COMMIT_TS);
