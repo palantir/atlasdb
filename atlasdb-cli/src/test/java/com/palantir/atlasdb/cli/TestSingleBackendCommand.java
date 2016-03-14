@@ -49,26 +49,22 @@ public class TestSingleBackendCommand {
 
         @Override
         protected int execute(AtlasDbServices services) {
-            try {
-                // test a method on each of the services
-                if (flag1 != null) {
-                    services.getKeyValueService().getAllTableNames();
-                    services.getTimestampService().getFreshTimestamp();
-                    services.getLockSerivce().getMinLockedInVersionId("test-client");
-                    services.getTransactionManager().getImmutableTimestamp();
-                }
-
-                // test kvs create table
-                if (flag2 != null) {
-                    services.getKeyValueService().createTable(flag2, AtlasDbConstants.GENERIC_TABLE_METADATA);
-                    Preconditions.checkArgument(services.getKeyValueService().getAllTableNames().contains(flag2),
-                            "kvs contains tables %s, but not table %s", services.getKeyValueService().getAllTableNames(), flag2);
-                    services.getKeyValueService().dropTable(flag2);
-                }
-                return 0;
-            } finally {
-                services.getKeyValueService().teardown();
+            // test a method on each of the services
+            if (flag1 != null) {
+                services.getKeyValueService().getAllTableNames();
+                services.getTimestampService().getFreshTimestamp();
+                services.getLockSerivce().getMinLockedInVersionId("test-client");
+                services.getTransactionManager().getImmutableTimestamp();
             }
+
+            // test kvs create table
+            if (flag2 != null) {
+                services.getKeyValueService().createTable(flag2, AtlasDbConstants.GENERIC_TABLE_METADATA);
+                Preconditions.checkArgument(services.getKeyValueService().getAllTableNames().contains(flag2),
+                        "kvs contains tables %s, but not table %s", services.getKeyValueService().getAllTableNames(), flag2);
+                services.getKeyValueService().dropTable(flag2);
+            }
+            return 0;
         }
 
     }
