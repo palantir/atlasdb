@@ -67,7 +67,7 @@ public class TestTimestampCommand {
             LockRequest request = LockRequest.builder(ImmutableSortedMap.of(
                     lock, LockMode.WRITE))
                     .withLockedInVersionId(lockedTs).doNotBlock().build();
-            LockRefreshToken token = rls.lockWithClient(client.getClientId(), request);
+            LockRefreshToken token = rls.lock(client.getClientId(), request);
 
             runner.run();
 

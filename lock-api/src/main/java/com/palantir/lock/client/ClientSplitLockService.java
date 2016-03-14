@@ -45,12 +45,6 @@ public class ClientSplitLockService extends ForwardingRemoteLockService {
     }
 
     @Override
-    public LockRefreshToken lock(String client, LockRequest request) throws InterruptedException {
-        LockRefreshToken result = lock(LockClient.ANONYMOUS, request);
-        return result;
-    }
-
-    @Override
     public LockRefreshToken lock(String client, LockRequest request)
             throws InterruptedException {
         LockRefreshToken result = lock(LockClient.of(client), request);

@@ -32,19 +32,9 @@ public abstract class ForwardingLockService extends ForwardingObject implements 
     protected abstract LockService delegate();
 
     @Override
-    public LockRefreshToken lock(String client, LockRequest request) throws InterruptedException {
-        return delegate().lock(LockClient.ANONYMOUS.getClientId(), request);
-    }
-
-    @Override
     public LockRefreshToken lock(String client, LockRequest request)
             throws InterruptedException {
         return delegate().lock(client, request);
-    }
-
-    @Override
-    public HeldLocksToken lockAndGetHeldLocks(String client, LockRequest request) throws InterruptedException {
-        return delegate().lockAndGetHeldLocks(LockClient.ANONYMOUS.getClientId(), request);
     }
 
     @Override

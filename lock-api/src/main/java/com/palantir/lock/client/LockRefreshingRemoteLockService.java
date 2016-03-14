@@ -87,24 +87,6 @@ public class LockRefreshingRemoteLockService extends ForwardingRemoteLockService
     }
 
     @Override
-    public LockRefreshToken lock(String client, LockRequest request) throws InterruptedException {
-        LockRefreshToken ret = super.lock(client, request);
-        if (ret != null) {
-            toRefresh.add(ret);
-        }
-        return ret;
-    }
-
-    @Override
-    public HeldLocksToken lockAndGetHeldLocks(String client, LockRequest request) throws InterruptedException {
-        HeldLocksToken ret = super.lockAndGetHeldLocks(client, request);
-        if (ret != null) {
-            toRefresh.add(ret.getLockRefreshToken());
-        }
-        return ret;
-    }
-
-    @Override
     public HeldLocksToken lockAndGetHeldLocks(String client, LockRequest request) throws InterruptedException {
         HeldLocksToken ret = super.lockAndGetHeldLocks(client, request);
         if (ret != null) {
