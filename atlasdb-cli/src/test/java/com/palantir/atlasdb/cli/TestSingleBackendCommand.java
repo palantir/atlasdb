@@ -25,6 +25,7 @@ import org.junit.Test;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cli.api.AtlasDbServices;
+import com.palantir.atlasdb.cli.api.SingleBackendCliTests;
 import com.palantir.atlasdb.cli.api.SingleBackendCommand;
 
 import io.airlift.airline.Cli;
@@ -74,8 +75,8 @@ public class TestSingleBackendCommand {
 
     @BeforeClass
     public static void setup() throws URISyntaxException {
-        SIMPLE_CONFIG_FILE = Paths.get(TestSingleBackendCommand.class.getClassLoader().getResource("simple_atlasdb_config.yml").toURI()).toString();
-        NESTED_CONFIG_FILE = Paths.get(TestSingleBackendCommand.class.getClassLoader().getResource("nested_atlasdb_config.yml").toURI()).toString();
+        SIMPLE_CONFIG_FILE = SingleBackendCliTests.getConfigPath(SingleBackendCliTests.SIMPLE_ROCKSDB_CONFIG_FILENAME);
+        NESTED_CONFIG_FILE = Paths.get(TestSingleBackendCommand.class.getClassLoader().getResource("nested_rocksdb_config.yml").toURI()).toString();
     }
 
     @Test
