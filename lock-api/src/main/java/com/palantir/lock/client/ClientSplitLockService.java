@@ -45,25 +45,14 @@ public class ClientSplitLockService extends ForwardingRemoteLockService {
     }
 
     @Override
-    public LockRefreshToken lockAnonymously(LockRequest request) throws InterruptedException {
-        LockRefreshToken result = lock(LockClient.ANONYMOUS, request);
-        return result;
-    }
-
-    @Override
-    public LockRefreshToken lockWithClient(String client, LockRequest request)
+    public LockRefreshToken lock(String client, LockRequest request)
             throws InterruptedException {
-        LockRefreshToken result = lock(LockClient.of(client), request);
-        return result;
+        return lock(LockClient.of(client), request);
     }
 
     private LockRefreshToken lock(LockClient client, LockRequest request) throws InterruptedException {
         if (request.getBlockingMode() == BlockingMode.DO_NOT_BLOCK) {
-            if (client == LockClient.ANONYMOUS) {
-                return nonBlockingClient.lockAnonymously(request);
-            } else {
-                return nonBlockingClient.lockWithClient(client.getClientId(), request);
-            }
+            return nonBlockingClient.lock(client.getClientId(), request);
         }
 
         // Let's try sending this request as a non-blocking request.
@@ -75,22 +64,13 @@ public class ClientSplitLockService extends ForwardingRemoteLockService {
             if (request.getVersionId() != null) {
                 newRequest.withLockedInVersionId(request.getVersionId());
             }
-            final LockRefreshToken response;
-            if (client == LockClient.ANONYMOUS) {
-                response = nonBlockingClient.lockAnonymously(request);
-            } else {
-                response = nonBlockingClient.lockWithClient(client.getClientId(), request);
-            }
+            final LockRefreshToken response = nonBlockingClient.lock(client.getClientId(), request);
             if (response != null) {
                 return response;
             }
         }
 
         // No choice but to send it as a blocking request.
-        if (client == LockClient.ANONYMOUS) {
-            return blockingClient.lockAnonymously(request);
-        } else {
-            return blockingClient.lockWithClient(client.getClientId(), request);
-        }
+        return blockingClient.lock(client.getClientId(), request);
     }
 }
