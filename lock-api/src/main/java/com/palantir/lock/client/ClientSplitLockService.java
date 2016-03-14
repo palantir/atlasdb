@@ -45,13 +45,13 @@ public class ClientSplitLockService extends ForwardingRemoteLockService {
     }
 
     @Override
-    public LockRefreshToken lockAnonymously(LockRequest request) throws InterruptedException {
+    public LockRefreshToken lock(String client, LockRequest request) throws InterruptedException {
         LockRefreshToken result = lock(LockClient.ANONYMOUS, request);
         return result;
     }
 
     @Override
-    public LockRefreshToken lockWithClient(String client, LockRequest request)
+    public LockRefreshToken lock(String client, LockRequest request)
             throws InterruptedException {
         LockRefreshToken result = lock(LockClient.of(client), request);
         return result;
@@ -60,9 +60,9 @@ public class ClientSplitLockService extends ForwardingRemoteLockService {
     private LockRefreshToken lock(LockClient client, LockRequest request) throws InterruptedException {
         if (request.getBlockingMode() == BlockingMode.DO_NOT_BLOCK) {
             if (client == LockClient.ANONYMOUS) {
-                return nonBlockingClient.lockAnonymously(request);
+                return nonBlockingClient.lock(LockClient.ANONYMOUS.getClientId(), request);
             } else {
-                return nonBlockingClient.lockWithClient(client.getClientId(), request);
+                return nonBlockingClient.lock(client.getClientId(), request);
             }
         }
 
@@ -77,9 +77,9 @@ public class ClientSplitLockService extends ForwardingRemoteLockService {
             }
             final LockRefreshToken response;
             if (client == LockClient.ANONYMOUS) {
-                response = nonBlockingClient.lockAnonymously(request);
+                response = nonBlockingClient.lock(LockClient.ANONYMOUS.getClientId(), request);
             } else {
-                response = nonBlockingClient.lockWithClient(client.getClientId(), request);
+                response = nonBlockingClient.lock(client.getClientId(), request);
             }
             if (response != null) {
                 return response;
@@ -88,9 +88,9 @@ public class ClientSplitLockService extends ForwardingRemoteLockService {
 
         // No choice but to send it as a blocking request.
         if (client == LockClient.ANONYMOUS) {
-            return blockingClient.lockAnonymously(request);
+            return blockingClient.lock(LockClient.ANONYMOUS.getClientId(), request);
         } else {
-            return blockingClient.lockWithClient(client.getClientId(), request);
+            return blockingClient.lock(client.getClientId(), request);
         }
     }
 }

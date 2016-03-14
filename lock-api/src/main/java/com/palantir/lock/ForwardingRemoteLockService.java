@@ -25,25 +25,25 @@ public abstract class ForwardingRemoteLockService extends ForwardingObject imple
     protected abstract RemoteLockService delegate();
 
     @Override
-    public LockRefreshToken lockAnonymously(LockRequest request) throws InterruptedException {
-        return delegate().lockAnonymously(request);
+    public LockRefreshToken lock(String client, LockRequest request) throws InterruptedException {
+        return delegate().lock(LockClient.ANONYMOUS.getClientId(), request);
     }
 
     @Override
-    public LockRefreshToken lockWithClient(String client, LockRequest request)
+    public LockRefreshToken lock(String client, LockRequest request)
             throws InterruptedException {
-        return delegate().lockWithClient(client, request);
+        return delegate().lock(client, request);
     }
 
     @Override
-    public HeldLocksToken lockAndGetHeldLocksAnonymously(LockRequest request) throws InterruptedException {
-        return delegate().lockAndGetHeldLocksAnonymously(request);
+    public HeldLocksToken lockAndGetHeldLocks(String client, LockRequest request) throws InterruptedException {
+        return delegate().lockAndGetHeldLocks(LockClient.ANONYMOUS.getClientId(), request);
     }
 
     @Override
-    public HeldLocksToken lockAndGetHeldLocksWithClient(String client, LockRequest request)
+    public HeldLocksToken lockAndGetHeldLocks(String client, LockRequest request)
             throws InterruptedException {
-        return delegate().lockAndGetHeldLocksWithClient(client, request);
+        return delegate().lockAndGetHeldLocks(client, request);
     }
 
     @Override

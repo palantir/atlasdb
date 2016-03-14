@@ -298,30 +298,15 @@ import com.palantir.util.Pair;
     }
 
     @Override
-    public LockRefreshToken lockAnonymously(LockRequest request) throws InterruptedException {
+    public LockRefreshToken lock(String client, LockRequest request) throws InterruptedException {
         Preconditions.checkArgument(request.getLockGroupBehavior() == LockGroupBehavior.LOCK_ALL_OR_NONE,
-                "lockAnonymously() only supports LockGroupBehavior.LOCK_ALL_OR_NONE. Consider using lockAndGetHeldLocksAnonymously().");
-        LockResponse result = lockWithFullLockResponse(LockClient.ANONYMOUS, request);
-        return result.success() ? result.getLockRefreshToken() : null;
-    }
-
-    @Override
-    public LockRefreshToken lockWithClient(String client, LockRequest request)
-            throws InterruptedException {
-        Preconditions.checkArgument(request.getLockGroupBehavior() == LockGroupBehavior.LOCK_ALL_OR_NONE,
-                "lockWithClient() only supports LockGroupBehavior.LOCK_ALL_OR_NONE. Consider using lockAndGetHeldLocksWithClient().");
+                "lock() only supports LockGroupBehavior.LOCK_ALL_OR_NONE. Consider using lockAndGetHeldLocks().");
         LockResponse result = lockWithFullLockResponse(LockClient.of(client), request);
         return result.success() ? result.getLockRefreshToken() : null;
     }
 
     @Override
-    public HeldLocksToken lockAndGetHeldLocksAnonymously(LockRequest request) throws InterruptedException {
-        LockResponse result = lockWithFullLockResponse(LockClient.ANONYMOUS, request);
-        return result.getToken();
-    }
-
-    @Override
-    public HeldLocksToken lockAndGetHeldLocksWithClient(String client, LockRequest request) throws InterruptedException {
+    public HeldLocksToken lockAndGetHeldLocks(String client, LockRequest request) throws InterruptedException {
         LockResponse result = lockWithFullLockResponse(LockClient.of(client), request);
         return result.getToken();
     }

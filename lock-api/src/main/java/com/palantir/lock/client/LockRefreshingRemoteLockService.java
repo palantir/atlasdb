@@ -78,8 +78,8 @@ public class LockRefreshingRemoteLockService extends ForwardingRemoteLockService
     }
 
     @Override
-    public LockRefreshToken lockAnonymously(LockRequest request) throws InterruptedException {
-        LockRefreshToken ret = super.lockAnonymously(request);
+    public LockRefreshToken lock(String client, LockRequest request) throws InterruptedException {
+        LockRefreshToken ret = super.lock(client, request);
         if (ret != null) {
             toRefresh.add(ret);
         }
@@ -87,8 +87,8 @@ public class LockRefreshingRemoteLockService extends ForwardingRemoteLockService
     }
 
     @Override
-    public LockRefreshToken lockWithClient(String client, LockRequest request) throws InterruptedException {
-        LockRefreshToken ret = super.lockWithClient(client, request);
+    public LockRefreshToken lock(String client, LockRequest request) throws InterruptedException {
+        LockRefreshToken ret = super.lock(client, request);
         if (ret != null) {
             toRefresh.add(ret);
         }
@@ -96,8 +96,8 @@ public class LockRefreshingRemoteLockService extends ForwardingRemoteLockService
     }
 
     @Override
-    public HeldLocksToken lockAndGetHeldLocksAnonymously(LockRequest request) throws InterruptedException {
-        HeldLocksToken ret = super.lockAndGetHeldLocksAnonymously(request);
+    public HeldLocksToken lockAndGetHeldLocks(String client, LockRequest request) throws InterruptedException {
+        HeldLocksToken ret = super.lockAndGetHeldLocks(client, request);
         if (ret != null) {
             toRefresh.add(ret.getLockRefreshToken());
         }
@@ -105,8 +105,8 @@ public class LockRefreshingRemoteLockService extends ForwardingRemoteLockService
     }
 
     @Override
-    public HeldLocksToken lockAndGetHeldLocksWithClient(String client, LockRequest request) throws InterruptedException {
-        HeldLocksToken ret = super.lockAndGetHeldLocksWithClient(client, request);
+    public HeldLocksToken lockAndGetHeldLocks(String client, LockRequest request) throws InterruptedException {
+        HeldLocksToken ret = super.lockAndGetHeldLocks(client, request);
         if (ret != null) {
             toRefresh.add(ret.getLockRefreshToken());
         }
