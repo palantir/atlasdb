@@ -43,27 +43,27 @@ public class TestTimestampCommand {
     @Test
     public void testBasicInvariants() throws Exception {
         SingleBackendCommand cmd = cli.parse("timestamp", "-c", configPath, "-f", "-i");
-        AtlasDbServices services = cmd.connect();
+        try (AtlasDbServices services = cmd.connect()) {
+            long initTimestamp = services.getTimestampService().getFreshTimestamp();
+            RawTransaction tx = services.getTransactionManager().setupRunTaskWithLocksThrowOnConflict(ImmutableList.<LockRefreshToken>of());
+            long afterLockTimestamp = services.getTimestampService().getFreshTimestamp();
 
-        long initTimestamp = services.getTimestampService().getFreshTimestamp();
-        RawTransaction tx = services.getTransactionManager().setupRunTaskWithLocksThrowOnConflict(ImmutableList.<LockRefreshToken>of());
-        long afterLockTimestamp = services.getTimestampService().getFreshTimestamp();
+            Scanner scanner = new Scanner(SingleBackendCliTests.captureStdOut(() -> cmd.execute(services), true));
+            final long fresh = Long.parseLong(scanner.findInLine("\\d+"));
+            final long immutable = Long.parseLong(scanner.findInLine("\\d+"));
 
-        Scanner scanner = new Scanner(SingleBackendCliTests.captureStdOut(() -> cmd.execute(services), true));
-        final long fresh = Long.parseLong(scanner.findInLine("\\d+"));
-        final long immutable = Long.parseLong(scanner.findInLine("\\d+"));
+            Preconditions.checkArgument(fresh > initTimestamp);
+            Preconditions.checkArgument(fresh > afterLockTimestamp);
+            Preconditions.checkArgument(immutable > initTimestamp);
+            Preconditions.checkArgument(immutable < afterLockTimestamp);
+            services.getTransactionManager().finishRunTaskWithLockThrowOnConflict(tx, (TransactionTask<Void, Exception>) t -> null);
 
-        Preconditions.checkArgument(fresh > initTimestamp);
-        Preconditions.checkArgument(fresh > afterLockTimestamp);
-        Preconditions.checkArgument(immutable > initTimestamp);
-        Preconditions.checkArgument(immutable < afterLockTimestamp);
-        services.getTransactionManager().finishRunTaskWithLockThrowOnConflict(tx, (TransactionTask<Void, Exception>) t -> null);
-
-        scanner = new Scanner(SingleBackendCliTests.captureStdOut(() -> cmd.execute(services), true));
-        final long newFresh = Long.parseLong(scanner.findInLine("\\d+"));
-        final long newImmutable = Long.parseLong(scanner.findInLine("\\d+"));
-        Preconditions.checkArgument(newFresh > fresh);
-        Preconditions.checkArgument(newImmutable > afterLockTimestamp);
+            scanner = new Scanner(SingleBackendCliTests.captureStdOut(() -> cmd.execute(services), true));
+            final long newFresh = Long.parseLong(scanner.findInLine("\\d+"));
+            final long newImmutable = Long.parseLong(scanner.findInLine("\\d+"));
+            Preconditions.checkArgument(newFresh > fresh);
+            Preconditions.checkArgument(newImmutable > afterLockTimestamp);
+        }
     }
 
 }

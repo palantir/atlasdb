@@ -42,8 +42,11 @@ public class SingleBackendCliTests {
         PrintStream ps = System.out;
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         System.setOut(new PrintStream(baos));
-        runnable.run();
-        System.setOut(ps);
+        try {
+            runnable.run();
+        } finally {
+            System.setOut(ps);
+        }
         return singleLine ? baos.toString().replace("\n", " ").replace("\r", " ") : baos.toString();
     }
 

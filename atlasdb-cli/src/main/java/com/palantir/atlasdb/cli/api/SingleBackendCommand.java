@@ -40,9 +40,9 @@ public abstract class SingleBackendCommand implements Callable<Integer> {
 
     @Override
     public Integer call() {
-        try {
-            return execute(connect());
-        } catch (IOException e) {
+        try (AtlasDbServices services = connect()) {
+            return execute(services);
+        } catch (Exception e) {
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }
     }

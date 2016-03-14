@@ -110,4 +110,9 @@ public class AtlasDbServicesImpl implements AtlasDbServices {
     public SerializableTransactionManager getTransactionManager() {
         return tm;
     }
+
+    @Override
+    public void close() throws Exception {
+        tm.getKeyValueService().close();
+    }
 }
