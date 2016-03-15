@@ -20,7 +20,7 @@ import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.timestamp.TimestampService;
 
-public interface AtlasDbServices {
+public interface AtlasDbServices extends AutoCloseable {
     TimestampService getTimestampService();
 
     RemoteLockService getLockSerivce();
