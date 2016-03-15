@@ -50,21 +50,21 @@ public class CleanTransactionRange extends SingleBackendCommand {
 
     final byte[] cleaned = TransactionConstants.getValueForTimestamp(TransactionConstants.CLEANED_COMMIT_TS);
 
-	@Override
-	protected int execute(AtlasDbServices services) {
+    @Override
+    protected int execute(AtlasDbServices services) {
         long immutable = services.getTransactionManager().getImmutableTimestamp();
-		if(!isValid(immutable)) {
-			return 1;
-		}
+        if(!isValid(immutable)) {
+            return 1;
+        }
 
-		KeyValueService kvs = services.getKeyValueService();
+        KeyValueService kvs = services.getKeyValueService();
 
         byte[] startRowInclusive = RangeRequests.nextLexicographicName(TransactionConstants.getValueForTimestamp(startTimestampExclusive));
         ClosableIterator<RowResult<Value>> range = kvs.getRange(
                 TransactionConstants.TRANSACTION_TABLE,
                 RangeRequest.builder()
-                        .startRowInclusive(startRowInclusive)
-                        .build(),
+                    .startRowInclusive(startRowInclusive)
+                    .build(),
                 Long.MAX_VALUE);
 
         Map<Cell, byte[]> toClean = Maps.newHashMap();
@@ -95,8 +95,8 @@ public class CleanTransactionRange extends SingleBackendCommand {
                         return TransactionConstants.getTimestampForValue(in);
                     }
                 });
-	            kvs.delete(TransactionConstants.TRANSACTION_TABLE, toDelete);
-	            System.out.println("\nDelete completed.");
+                kvs.delete(TransactionConstants.TRANSACTION_TABLE, toDelete);
+                System.out.println("\nDelete completed.");
             } else {
                 kvs.putUnlessExists(TransactionConstants.TRANSACTION_TABLE, toClean);
                 System.out.println("\nClean completed.");
@@ -108,15 +108,15 @@ public class CleanTransactionRange extends SingleBackendCommand {
         return 0;
     }
 
-	private boolean isValid(long immutableTimestamp) {
-		boolean isValid = true;
+    private boolean isValid(long immutableTimestamp) {
+        boolean isValid = true;
 
-		if (isValid &= immutableTimestamp <= startTimestampExclusive) {
-			System.err.println("Error: There are no commited transactions in this range");
-			return false;
-		}
+        if (isValid &= immutableTimestamp <= startTimestampExclusive) {
+            System.err.println("Error: There are no commited transactions in this range");
+            return false;
+        }
 
-		return isValid;
-	}
+        return isValid;
+    }
 
 }
