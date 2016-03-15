@@ -9,7 +9,7 @@ disagrees, read below) and batch commit.  Without batch commit, your durability
 and transactional guarantees are non-existent and you may as well just light
 your data on fire.  When you enable batch commit, you must also bump up the
 `concurrent_writes` param.  Cassandra holds every single row being written on
-it's own thread until the batch sync.  This means you effectively need 1K
+its own thread until the batch sync.  This means you effectively need 1K
 threads to get any write throughput.  
 
 Again, you should edit `conf/cassandra.yaml`:
@@ -18,7 +18,7 @@ Again, you should edit `conf/cassandra.yaml`:
 partitioner: ByteOrderedPartitioner
 commitlog_sync: batch
 commitlog_sync_batch_window_in_ms: .1  # .1 is only appropriate for SSDs.  Use 5 for HDDs.
-# If you use HDDs, make sure the commit log has it's own disk because it will thrash it.
+# If you use HDDs, make sure the commit log has its own disk because it will thrash it.
 concurrent_writes: 1024
 ```
 

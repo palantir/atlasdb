@@ -74,7 +74,7 @@ Immutable_TS, but just a relatively modern one.
 
 Tricky points regarding the immutable timestamp:
 
-*   A transaction with start_ts < immutable_ts may be stuck on the putUnlessExists part of its commit (it's locks are timed out, otherwise immutable_ts < start_ts). This is ok because if we read any of it's values we will try to roll back their transaction and we will either see it as committed or failed, but either way it will be complete.
+*   A transaction with start_ts < immutable_ts may be stuck on the putUnlessExists part of its commit (its locks are timed out, otherwise immutable_ts < start_ts). This is ok because if we read any of its values we will try to roll back their transaction and we will either see it as committed or failed, but either way it will be complete.
 *   The immutable timestamp is not guaranteed to be strictly increasing. This is because the action of grabbing PRE_START_TS and the action of locking it are not performed together atomically. This doesn't cause correctness issues, though, since we wait until we have locked PRE_START_TS before grabbing our start timestamp. For example, if the current immutable timestamp is immutable_ts_1 and transaction T locks in a lower value immutable_ts_0, then T's start_ts must be greater than immutable_ts_1, so any readers who grabbed immutable_ts_1 will still grab locks when trying to read rows written by T.
 
 ### Cleaning Up Old Values
@@ -240,7 +240,7 @@ are a few proofs that removing this read-write conflict is sufficient to
 achieve serializability. The simplest proof is from "A Critique of Snapshot
 Isolation" and basically states that if you remove all writes that could commit
 between your start and commitTs, then you can make a serial ordering by just
-compressing down all the actions of a transaction to happen right before it's
+compressing down all the actions of a transaction to happen right before its
 commit timestamp. This works because all reads you do will be the same at the
 startTs as they are at the commitTs.
 
@@ -252,7 +252,7 @@ transactions.
 
 One of the best features of Serializable Isolation is that you get true
 Linearizability. Each transaction can be treated like it is just happened
-instantaneously at it's commit timestamp and all invariants hold at all times.
+instantaneously at its commit timestamp and all invariants hold at all times.
 
 The main downside to this approach is that all the reads need to be done after
 the commit timestamp is allocated and therefore after all the writes are done

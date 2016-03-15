@@ -36,7 +36,7 @@ instead of having to fix all the code that might change the input, we can just
 use advisory locking to ensure that we won't need to roll back this
 transaction.
 
-AtlasDB has lock checking built into it's
+AtlasDB has lock checking built into its
 [protocol](AtlasDB-Transaction-Protocol). This means that you can do your own
 locking, then pass those locks to
 `LockAwareTransactionManager.runTaskWithLock(...)`. If your transaction commits
@@ -88,7 +88,7 @@ you can avoid this extra I/O.
 This isn't a performance consideration, but is worth noting that snapshot
 isolation only detects and throws on WRITE/WRITE conflicts. This means that if
 you need to ensure that a value has not changed, you have to "touch"it.
-Basically read it's value and write it back. This is called "materializing" the
+Basically read its value and write it back. This is called "materializing" the
 conflict.
 
 This also means that you can't detect someone adding a cell. Let's say you are
