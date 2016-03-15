@@ -150,7 +150,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     private final Optional<CassandraJmxCompactionManager> compactionManager;
     protected final ManyClientPoolingContainer containerPoolToUpdate;
     protected final ManyHostPoolingContainer<Client> clientPool;
-    private final ScheduledExecutorService hostRefreshExecutor = PTExecutors.newScheduledThreadPool(1);
     private final ReentrantLock schemaMutationLock = new ReentrantLock(true);
 
     private ConsistencyLevel readConsistency = ConsistencyLevel.LOCAL_QUORUM;
@@ -1429,7 +1428,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     @Override
     public void close() {
         clientPool.shutdownPooling();
-        hostRefreshExecutor.shutdown();
         if (compactionManager.isPresent()) {
             compactionManager.get().close();
         }
