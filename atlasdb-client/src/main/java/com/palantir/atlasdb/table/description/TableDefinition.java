@@ -18,6 +18,9 @@ package com.palantir.atlasdb.table.description;
 import java.util.List;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -40,6 +43,9 @@ import com.palantir.common.persist.Persistable;
  * Can be thought of as a builder for {@link TableMetadata} objects.
  */
 public class TableDefinition extends AbstractDefinition {
+
+    private static final ImmutableSet<ValueType> CRITICAL_ROW_TYPES = ImmutableSet.of(ValueType.VAR_LONG, ValueType.VAR_SIGNED_LONG, ValueType.SIZED_BLOB);
+    private static final Logger log = LoggerFactory.getLogger(TableDefinition.class);
 
     @Override
     protected ConflictHandler defaultConflictHandler() {
@@ -115,6 +121,10 @@ public class TableDefinition extends AbstractDefinition {
 
     public void rowComponent(String componentName, ValueType valueType, ValueByteOrder valueByteOrder) {
         Preconditions.checkState(state == State.DEFINING_ROW_NAME);
+        if (CRITICAL_ROW_TYPES.contains(valueType)) {
+            log.warn("Row component " + componentName + " of type " + valueType + ". Generating tables with leading row component of types "
+                    + CRITICAL_ROW_TYPES + " can cause issues with the partitioner.");
+        }
         rowNameComponents.add(new NameComponentDescription(componentName, valueType, valueByteOrder));
     }
 
