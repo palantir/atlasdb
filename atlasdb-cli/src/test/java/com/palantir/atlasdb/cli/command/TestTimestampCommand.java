@@ -17,53 +17,78 @@ package com.palantir.atlasdb.cli.command;
 
 import java.util.Scanner;
 
+import javax.inject.Singleton;
+
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.atlasdb.cli.SingleBackendCliTests;
 import com.palantir.atlasdb.cli.services.AtlasDbServices;
-import com.palantir.atlasdb.transaction.api.TransactionTask;
-import com.palantir.atlasdb.transaction.impl.RawTransaction;
+import com.palantir.atlasdb.cli.services.AtlasDbServicesModule;
+import com.palantir.atlasdb.cli.services.AtlasDbServicesModuleFactory;
+import com.palantir.lock.LockClient;
+import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
+import com.palantir.lock.LockRequest;
+import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.StringLockDescriptor;
+import com.palantir.timestamp.TimestampService;
 
+import dagger.Provides;
 import io.airlift.airline.Cli;
 
 public class TestTimestampCommand {
 
     private static String configPath;
     private static Cli<SingleBackendCommand> cli;
+    private static LockDescriptor lock;
+    private static LockClient client;
+    private static AtlasDbServicesModuleFactory moduleFactory;
 
     @BeforeClass
     public static void setup() throws Exception {
         configPath = SingleBackendCliTests.getConfigPath(SingleBackendCliTests.SIMPLE_ROCKSDB_CONFIG_FILENAME);
         cli = SingleBackendCliTests.build(TimestampCommand.class);
+        lock = StringLockDescriptor.of("lock");
+        client = LockClient.of("test lock client");
+        moduleFactory = config -> new AtlasDbServicesModule(config) {
+            @Override @Provides @Singleton
+            public LockClient provideLockClient() {
+                return client;
+            }
+        };
     }
 
     @Test
     public void testBasicInvariants() throws Exception {
         SingleBackendCommand cmd = cli.parse("timestamp", "-c", configPath, "-f", "-i");
-        try (AtlasDbServices services = cmd.connect()) {
-            long initTimestamp = services.getTimestampService().getFreshTimestamp();
-            RawTransaction tx = services.getTransactionManager().setupRunTaskWithLocksThrowOnConflict(ImmutableList.<LockRefreshToken>of());
-            long afterLockTimestamp = services.getTimestampService().getFreshTimestamp();
+        try (AtlasDbServices services = cmd.connect(moduleFactory)) {
+            RemoteLockService rls = services.getLockSerivce();
+            TimestampService tss = services.getTimestampService();
+
+            long lockedTs = tss.getFreshTimestamp();
+            LockRequest request = LockRequest.builder(ImmutableSortedMap.of(
+                    lock, LockMode.WRITE))
+                    .withLockedInVersionId(lockedTs).doNotBlock().build();
+            LockRefreshToken token = rls.lockWithClient(client.getClientId(), request);
 
             Scanner scanner = new Scanner(SingleBackendCliTests.captureStdOut(() -> cmd.execute(services), true));
             final long fresh = Long.parseLong(scanner.findInLine("\\d+"));
             final long immutable = Long.parseLong(scanner.findInLine("\\d+"));
+            Preconditions.checkArgument(immutable <= lockedTs);
+            Preconditions.checkArgument(fresh > lockedTs);
+            Preconditions.checkArgument(fresh < tss.getFreshTimestamp());
 
-            Preconditions.checkArgument(fresh > initTimestamp);
-            Preconditions.checkArgument(fresh > afterLockTimestamp);
-            Preconditions.checkArgument(immutable > initTimestamp);
-            Preconditions.checkArgument(immutable < afterLockTimestamp);
-            services.getTransactionManager().finishRunTaskWithLockThrowOnConflict(tx, (TransactionTask<Void, Exception>) t -> null);
+            rls.unlock(token);
 
             scanner = new Scanner(SingleBackendCliTests.captureStdOut(() -> cmd.execute(services), true));
             final long newFresh = Long.parseLong(scanner.findInLine("\\d+"));
             final long newImmutable = Long.parseLong(scanner.findInLine("\\d+"));
             Preconditions.checkArgument(newFresh > fresh);
-            Preconditions.checkArgument(newImmutable > afterLockTimestamp);
+            Preconditions.checkArgument(newImmutable > lockedTs);
         }
     }
 

@@ -21,6 +21,7 @@ import java.util.concurrent.Callable;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.cli.services.AtlasDbServices;
+import com.palantir.atlasdb.cli.services.AtlasDbServicesModuleFactory;
 import com.palantir.atlasdb.cli.services.AtlasDbServicesModules;
 import com.palantir.atlasdb.cli.services.DaggerAtlasDbServices;
 import com.palantir.common.base.Throwables;
@@ -54,6 +55,11 @@ public abstract class SingleBackendCommand implements Callable<Integer> {
     @VisibleForTesting
     protected AtlasDbServices connect() throws IOException {
         return DaggerAtlasDbServices.builder().atlasDbServicesModule(AtlasDbServicesModules.create(configFile, configRoot)).build();
+    }
+
+    @VisibleForTesting
+    protected AtlasDbServices connect(AtlasDbServicesModuleFactory factory) throws IOException {
+        return DaggerAtlasDbServices.builder().atlasDbServicesModule(AtlasDbServicesModules.create(factory, configFile, configRoot)).build();
     }
 
 }
