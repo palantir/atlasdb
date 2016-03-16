@@ -50,6 +50,7 @@ import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
+import com.palantir.atlasdb.transaction.impl.SerializableTransaction;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
@@ -68,7 +69,7 @@ import dagger.Provides;
 @Module
 public class AtlasDbServicesModule {
 
-    AtlasDbConfig config;
+    private final AtlasDbConfig config;
 
     public AtlasDbServicesModule(AtlasDbConfig config) {
         this.config = config;
@@ -76,29 +77,29 @@ public class AtlasDbServicesModule {
 
     @Provides
     @Singleton
-    AtlasDbConfig provideAtlasDbConfig() { return config; }
+    public AtlasDbConfig provideAtlasDbConfig() { return config; }
 
     @Provides
     @Singleton
-    Set<Schema> provideSchemas() {
+    public Set<Schema> provideSchemas() {
         return ImmutableSet.of();
     }
 
     @Provides
-    boolean provideAllowAccessToHiddenTables() {
+    public boolean provideAllowAccessToHiddenTables() {
         return true;
     }
 
     @Provides
     @Singleton
-    AtlasDbFactory provideAtlasDbFactory(AtlasDbConfig config) {
+    public AtlasDbFactory provideAtlasDbFactory(AtlasDbConfig config) {
         return TransactionManagers.getKeyValueServiceFactory(config.keyValueService().type());
     }
 
     @Provides
     @Singleton
     @Named("rawKvs")
-    KeyValueService provideRawKeyValueService(AtlasDbFactory kvsFactory, AtlasDbConfig config) {
+    public KeyValueService provideRawKeyValueService(AtlasDbFactory kvsFactory, AtlasDbConfig config) {
         return kvsFactory.createRawKeyValueService(config.keyValueService());
     }
 
@@ -114,7 +115,7 @@ public class AtlasDbServicesModule {
                 config,
                 sslSocketFactory,
                 resource -> {},
-                () -> LockServiceImpl.create(),
+                LockServiceImpl::create,
                 () -> kvsFactory.createTimestampService(rawKvs));
         return ImmutableLockAndTimestampServices.builder()
                 .from(lts)
@@ -228,7 +229,7 @@ public class AtlasDbServicesModule {
 
     @Provides
     @Singleton
-    SweepTaskRunner provideSweepTaskRunner(TransactionManager txm,
+    public SweepTaskRunner provideSweepTaskRunner(SerializableTransactionManager txm,
                                            @Named("kvs") KeyValueService kvs,
                                            TransactionService transactionService,
                                            SweepStrategyManager sweepStrategyManager,
@@ -236,16 +237,16 @@ public class AtlasDbServicesModule {
         return new SweepTaskRunnerImpl(
                 txm,
                 kvs,
-                () -> txm.getUnreadableTimestamp(),
-                () -> txm.getImmutableTimestamp(),
+                txm::getUnreadableTimestamp,
+                txm::getImmutableTimestamp,
                 transactionService,
                 sweepStrategyManager,
-                ImmutableList.<Follower>of(follower));
+                ImmutableList.of(follower));
     }
 
     @Provides
     @Singleton
-    BackgroundSweeper provideBackgroundSweeper(AtlasDbConfig config,
+    public BackgroundSweeper provideBackgroundSweeper(AtlasDbConfig config,
                                                LockAwareTransactionManager txm,
                                                @Named("kvs") KeyValueService kvs,
                                                SweepTaskRunner sweepRunner) {
