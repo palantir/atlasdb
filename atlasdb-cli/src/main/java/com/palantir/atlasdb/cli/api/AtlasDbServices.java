@@ -24,6 +24,7 @@ import dagger.Component;
 
 @Component(modules = { AtlasDbServicesModule.class })
 public abstract class AtlasDbServices implements AutoCloseable {
+
     public abstract TimestampService getTimestampService();
 
     public abstract RemoteLockService getLockSerivce();
