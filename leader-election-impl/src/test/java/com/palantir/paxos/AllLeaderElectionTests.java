@@ -27,5 +27,5 @@ import com.palantir.paxos.persistence.ProtobufTest;
     PaxosConsensusFastTest.class,
     PaxosConsensusSlowTest.class
 })
-public class AllTests {
+public class AllLeaderElectionTests {
 }
