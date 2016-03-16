@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.cli.command;
 
 import com.palantir.atlasdb.cli.services.AtlasDbServices;
-import com.palantir.atlasdb.cli.command.SingleBackendCommand;
 
 import io.airlift.airline.Command;
 import io.airlift.airline.Option;
