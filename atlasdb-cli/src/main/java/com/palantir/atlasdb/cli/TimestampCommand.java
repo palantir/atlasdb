@@ -22,7 +22,7 @@ import io.airlift.airline.Command;
 import io.airlift.airline.Option;
 
 @Command(name = "timestamp", description = "Get timestamp information")
-public class AtlasTimestampCommand extends SingleBackendCommand {
+public class TimestampCommand extends SingleBackendCommand {
     
     @Option(name = {"-f", "--fresh"},
             description = "Get a fresh timestamp")
