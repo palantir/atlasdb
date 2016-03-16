@@ -16,6 +16,8 @@
 package com.palantir.atlasdb.cli.api;
 
 import javax.inject.Named;
+import javax.inject.Scope;
+import javax.inject.Singleton;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
@@ -24,6 +26,7 @@ import com.palantir.timestamp.TimestampService;
 
 import dagger.Component;
 
+@Singleton
 @Component(modules = { AtlasDbServicesModule.class })
 public abstract class AtlasDbServices implements AutoCloseable {
 

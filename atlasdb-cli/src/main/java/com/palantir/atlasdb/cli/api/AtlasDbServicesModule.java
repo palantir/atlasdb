@@ -1,10 +1,9 @@
 package com.palantir.atlasdb.cli.api;
 
-import static com.palantir.atlasdb.factory.TransactionManagers.LockAndTimestampServices;
-
 import java.util.Set;
 
 import javax.inject.Named;
+import javax.inject.Singleton;
 import javax.net.ssl.SSLSocketFactory;
 
 import com.google.common.base.Optional;
@@ -18,6 +17,7 @@ import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.factory.ImmutableLockAndTimestampServices;
 import com.palantir.atlasdb.factory.TransactionManagers;
+import com.palantir.atlasdb.factory.TransactionManagers.LockAndTimestampServices;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.NamespacedKeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
@@ -60,26 +60,30 @@ public class AtlasDbServicesModule {
     }
 
     @Provides
+    @Singleton
     AtlasDbConfig provideAtlasDbConfig() { return config; }
 
     @Provides
-    public Set<Schema> provideSchemas() {
+    @Singleton
+    Set<Schema> provideSchemas() {
         return ImmutableSet.of();
     }
 
     @Provides
-    public boolean provideAllowAccessToHiddenTables() {
-        return false;
+    boolean provideAllowAccessToHiddenTables() {
+        return true;
     }
 
     @Provides
-    public AtlasDbFactory provideAtlasDbFactory(AtlasDbConfig config) {
+    @Singleton
+    AtlasDbFactory provideAtlasDbFactory(AtlasDbConfig config) {
         return TransactionManagers.getKeyValueServiceFactory(config.keyValueService().type());
     }
 
     @Provides
+    @Singleton
     @Named("rawKvs")
-    public KeyValueService provideRawKeyValueService(AtlasDbFactory kvsFactory, AtlasDbConfig config) {
+    KeyValueService provideRawKeyValueService(AtlasDbFactory kvsFactory, AtlasDbConfig config) {
         return kvsFactory.createRawKeyValueService(config.keyValueService());
     }
 
@@ -89,7 +93,8 @@ public class AtlasDbServicesModule {
     }
 
     @Provides
-    public LockAndTimestampServices provideLockAndTimestampServices(@Named("rawKvs") KeyValueService rawKvs, AtlasDbFactory kvsFactory, Optional<SSLSocketFactory> sslSocketFactory) {
+    @Singleton
+    public LockAndTimestampServices provideLockAndTimestampServices(AtlasDbConfig config, @Named("rawKvs") KeyValueService rawKvs, AtlasDbFactory kvsFactory, Optional<SSLSocketFactory> sslSocketFactory) {
         LockAndTimestampServices lts = TransactionManagers.createLockAndTimestampServices(
                 config,
                 sslSocketFactory,
@@ -103,16 +108,19 @@ public class AtlasDbServicesModule {
     }
 
     @Provides
+    @Singleton
     public TimestampService provideTimestampService(LockAndTimestampServices lts) {
         return lts.time();
     }
 
     @Provides
+    @Singleton
     public RemoteLockService provideLockService(LockAndTimestampServices lts) {
         return lts.lock();
     }
 
     @Provides
+    @Singleton
     @Named("kvs")
     public KeyValueService provideWrappedKeyValueService(@Named("rawKvs") KeyValueService rawKvs, LockAndTimestampServices lts, Set<Schema> schemas) {
         KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs);
@@ -126,33 +134,40 @@ public class AtlasDbServicesModule {
     }
 
     @Provides
+    @Singleton
     public LockClient provideLockClient() {
         return LockClient.of("atlas instance");
     }
 
 
     @Provides
+    @Singleton
     public TransactionService provideTransactionService(@Named("kvs") KeyValueService kvs) {
         return TransactionServices.createTransactionService(kvs);
     }
 
     @Provides
+    @Singleton
     public ConflictDetectionManager provideConflictDetectionManager(@Named("kvs") KeyValueService kvs) {
         return ConflictDetectionManagers.createDefault(kvs);
     }
 
     @Provides
+    @Singleton
     public SweepStrategyManager provideSweepStrategyManager(@Named("kvs") KeyValueService kvs) {
         return SweepStrategyManagers.createDefault(kvs);
     }
 
     @Provides
+    @Singleton
     public Follower provideCleanupFollower(Set<Schema> schemas) {
         return CleanupFollower.create(schemas);
     }
 
     @Provides
-    public Cleaner provideCleaner(@Named("kvs") KeyValueService kvs,
+    @Singleton
+    public Cleaner provideCleaner(AtlasDbConfig config,
+                                  @Named("kvs") KeyValueService kvs,
                                   LockAndTimestampServices lts,
                                   LockClient lockClient,
                                   Follower follower,
@@ -174,6 +189,7 @@ public class AtlasDbServicesModule {
     }
 
     @Provides
+    @Singleton
     public SerializableTransactionManager provideTransactionManager(@Named("kvs") KeyValueService kvs,
                                                                     LockAndTimestampServices lts,
                                                                     LockClient lockClient,
@@ -196,11 +212,12 @@ public class AtlasDbServicesModule {
     }
 
     @Provides
-    public SweepTaskRunner provideSweepTaskRunner(TransactionManager txm,
-                                                  @Named("kvs") KeyValueService kvs,
-                                                  TransactionService transactionService,
-                                                  SweepStrategyManager sweepStrategyManager,
-                                                  CleanupFollower follower) {
+    @Singleton
+    SweepTaskRunner provideSweepTaskRunner(TransactionManager txm,
+                                           @Named("kvs") KeyValueService kvs,
+                                           TransactionService transactionService,
+                                           SweepStrategyManager sweepStrategyManager,
+                                           CleanupFollower follower) {
         return new SweepTaskRunnerImpl(
                 txm,
                 kvs,
@@ -212,7 +229,11 @@ public class AtlasDbServicesModule {
     }
 
     @Provides
-    BackgroundSweeper provideBackgroundSweeper(LockAwareTransactionManager txm, @Named("kvs") KeyValueService kvs, SweepTaskRunner sweepRunner) {
+    @Singleton
+    BackgroundSweeper provideBackgroundSweeper(AtlasDbConfig config,
+                                               LockAwareTransactionManager txm,
+                                               @Named("kvs") KeyValueService kvs,
+                                               SweepTaskRunner sweepRunner) {
         BackgroundSweeper backgroundSweeper = new BackgroundSweeperImpl(
                 txm,
                 kvs,

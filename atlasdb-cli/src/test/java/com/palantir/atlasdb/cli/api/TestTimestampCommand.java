@@ -43,7 +43,7 @@ public class TestTimestampCommand {
     @Test
     public void testBasicInvariants() throws Exception {
         SingleBackendCommand cmd = cli.parse("timestamp", "-c", configPath, "-f", "-i");
-        try (OldAtlasDbServices services = cmd.connect()) {
+        try (AtlasDbServices services = cmd.connect()) {
             long initTimestamp = services.getTimestampService().getFreshTimestamp();
             RawTransaction tx = services.getTransactionManager().setupRunTaskWithLocksThrowOnConflict(ImmutableList.<LockRefreshToken>of());
             long afterLockTimestamp = services.getTimestampService().getFreshTimestamp();

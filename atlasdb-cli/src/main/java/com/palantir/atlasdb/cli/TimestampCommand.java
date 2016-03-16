@@ -15,7 +15,7 @@
  */
 package com.palantir.atlasdb.cli;
 
-import com.palantir.atlasdb.cli.api.OldAtlasDbServices;
+import com.palantir.atlasdb.cli.api.AtlasDbServices;
 import com.palantir.atlasdb.cli.api.SingleBackendCommand;
 
 import io.airlift.airline.Command;
@@ -33,7 +33,7 @@ public class TimestampCommand extends SingleBackendCommand {
     private boolean immutable;
     
 	@Override
-	protected int execute(OldAtlasDbServices services) {
+	protected int execute(AtlasDbServices services) {
 		long latestTimestamp = services.getTimestampService().getFreshTimestamp();
 
         if (fresh || !(fresh || immutable)) {

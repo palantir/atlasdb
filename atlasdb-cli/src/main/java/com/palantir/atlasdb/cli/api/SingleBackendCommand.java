@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.util.concurrent.Callable;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.palantir.atlasdb.cli.impl.OldAtlasDbServicesImpl;
 import com.palantir.common.base.Throwables;
 
 import io.airlift.airline.Option;
@@ -40,18 +39,18 @@ public abstract class SingleBackendCommand implements Callable<Integer> {
 
     @Override
     public Integer call() {
-        try (OldAtlasDbServices services = connect()) {
+        try (AtlasDbServices services = connect()) {
             return execute(services);
         } catch (Exception e) {
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }
     }
 
-    protected abstract int execute(OldAtlasDbServices services);
+    protected abstract int execute(AtlasDbServices services);
 
     @VisibleForTesting
-    protected OldAtlasDbServices connect() throws IOException {
-        return OldAtlasDbServicesImpl.connect(configFile, configRoot);
+    protected AtlasDbServices connect() throws IOException {
+        return DaggerAtlasDbServices.builder().atlasDbServicesModule(AtlasDbServicesModules.create(configFile, configRoot)).build();
     }
 
 }
