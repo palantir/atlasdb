@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.cli;
+package com.palantir.atlasdb.cli.command;
 
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
@@ -24,9 +24,8 @@ import org.junit.Test;
 
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cli.api.AtlasDbServices;
-import com.palantir.atlasdb.cli.api.SingleBackendCliTests;
-import com.palantir.atlasdb.cli.api.SingleBackendCommand;
+import com.palantir.atlasdb.cli.SingleBackendCliTests;
+import com.palantir.atlasdb.cli.services.AtlasDbServices;
 
 import io.airlift.airline.Cli;
 import io.airlift.airline.Command;
@@ -121,6 +120,7 @@ public class TestSingleBackendCommand {
             parser.parse(args).call();
             return 0;
         } catch (Exception e) {
+            e.printStackTrace();
             return 1;
         }
     }

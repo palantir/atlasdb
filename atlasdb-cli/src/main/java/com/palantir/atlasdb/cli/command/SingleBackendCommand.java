@@ -13,14 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.cli.api;
+package com.palantir.atlasdb.cli.command;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.Callable;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.palantir.atlasdb.cli.impl.AtlasDbServicesImpl;
+import com.palantir.atlasdb.cli.services.AtlasDbServices;
+import com.palantir.atlasdb.cli.services.AtlasDbServicesModuleFactory;
+import com.palantir.atlasdb.cli.services.AtlasDbServicesModules;
+import com.palantir.atlasdb.cli.services.DaggerAtlasDbServices;
 import com.palantir.common.base.Throwables;
 
 import io.airlift.airline.Option;
@@ -51,7 +54,12 @@ public abstract class SingleBackendCommand implements Callable<Integer> {
 
     @VisibleForTesting
     protected AtlasDbServices connect() throws IOException {
-        return AtlasDbServicesImpl.connect(configFile, configRoot);
+        return DaggerAtlasDbServices.builder().atlasDbServicesModule(AtlasDbServicesModules.create(configFile, configRoot)).build();
+    }
+
+    @VisibleForTesting
+    protected AtlasDbServices connect(AtlasDbServicesModuleFactory factory) throws IOException {
+        return DaggerAtlasDbServices.builder().atlasDbServicesModule(AtlasDbServicesModules.create(factory, configFile, configRoot)).build();
     }
 
 }

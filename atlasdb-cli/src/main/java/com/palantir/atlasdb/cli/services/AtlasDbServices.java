@@ -13,19 +13,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.cli.api;
+package com.palantir.atlasdb.cli.services;
+
+import javax.inject.Named;
+import javax.inject.Singleton;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.timestamp.TimestampService;
 
-public interface AtlasDbServices extends AutoCloseable {
-    TimestampService getTimestampService();
+import dagger.Component;
 
-    RemoteLockService getLockSerivce();
+@Singleton
+@Component(modules = { AtlasDbServicesModule.class })
+public abstract class AtlasDbServices implements AutoCloseable {
 
-    KeyValueService getKeyValueService();
+    public abstract TimestampService getTimestampService();
 
-    SerializableTransactionManager getTransactionManager();
+    public abstract RemoteLockService getLockSerivce();
+
+    @Named("kvs")
+    public abstract KeyValueService getKeyValueService();
+
+    public abstract SerializableTransactionManager getTransactionManager();
+
+    @Override
+    public void close() {
+        getKeyValueService().close();
+    }
 }

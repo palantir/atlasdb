@@ -13,10 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.cli;
+package com.palantir.atlasdb.cli.command;
 
-import com.palantir.atlasdb.cli.api.AtlasDbServices;
-import com.palantir.atlasdb.cli.api.SingleBackendCommand;
+import com.palantir.atlasdb.cli.services.AtlasDbServices;
 
 import io.airlift.airline.Command;
 import io.airlift.airline.Option;
