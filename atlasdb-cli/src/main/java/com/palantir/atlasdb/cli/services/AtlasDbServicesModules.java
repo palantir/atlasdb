@@ -19,10 +19,16 @@ public final class AtlasDbServicesModules {
     private AtlasDbServicesModules() { }
 
     public static AtlasDbServicesModule create(File configFile, String configRoot) throws IOException {
+        return create(config -> new AtlasDbServicesModule(config), configFile, configRoot);
+    }
+
+    public static AtlasDbServicesModule create(AtlasDbServicesModuleFactory factory,
+                                               File configFile,
+                                               String configRoot) throws IOException {
         ObjectMapper configMapper = Jackson.newObjectMapper(new YAMLFactory());
         JsonNode node = getConfigNode(configMapper, configFile, configRoot);
         AtlasDbServerConfiguration config = configMapper.treeToValue(node, AtlasDbServerConfiguration.class);
-        return new AtlasDbServicesModule(config.getConfig());
+        return factory.createModule(config.getConfig());
     }
 
     private static JsonNode getConfigNode(ObjectMapper configMapper, File configFile, String configRoot) throws IOException {
