@@ -121,9 +121,8 @@ public class TableDefinition extends AbstractDefinition {
 
     public void rowComponent(String componentName, ValueType valueType, ValueByteOrder valueByteOrder) {
         Preconditions.checkState(state == State.DEFINING_ROW_NAME);
-        if (CRITICAL_ROW_TYPES.contains(valueType)) {
-            log.warn("Row component " + componentName + " of type " + valueType + ". Generating tables with leading row component of types "
-                    + CRITICAL_ROW_TYPES + " can cause issues with the partitioner.");
+        if (rowNameComponents.isEmpty() && CRITICAL_ROW_TYPES.contains(valueType)) {
+            log.error("First row component {} of type {} is an antipattern.", componentName, valueType);
         }
         rowNameComponents.add(new NameComponentDescription(componentName, valueType, valueByteOrder));
     }
