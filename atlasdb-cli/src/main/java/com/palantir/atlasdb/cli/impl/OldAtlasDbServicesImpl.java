@@ -27,7 +27,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.cli.api.AtlasDbServices;
+import com.palantir.atlasdb.cli.api.OldAtlasDbServices;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.server.AtlasDbServerConfiguration;
@@ -38,11 +38,11 @@ import com.palantir.timestamp.TimestampService;
 
 import io.dropwizard.jackson.Jackson;
 
-public class AtlasDbServicesImpl implements AtlasDbServices {
+public class OldAtlasDbServicesImpl implements OldAtlasDbServices {
 
     private SerializableTransactionManager tm;
 
-    public static AtlasDbServices connect(File configFile, String configRoot) throws IOException {
+    public static OldAtlasDbServices connect(File configFile, String configRoot) throws IOException {
         ObjectMapper configMapper = Jackson.newObjectMapper(new YAMLFactory());
         JsonNode node = getConfigNode(configMapper, configFile, configRoot);
         AtlasDbServerConfiguration config = configMapper.treeToValue(node, AtlasDbServerConfiguration.class);
@@ -56,7 +56,7 @@ public class AtlasDbServicesImpl implements AtlasDbServices {
                     }
                 },
                 true);
-        return new AtlasDbServicesImpl(tm);
+        return new OldAtlasDbServicesImpl(tm);
     }
 
     private static JsonNode getConfigNode(ObjectMapper configMapper, File configFile, String configRoot) throws IOException {
@@ -87,7 +87,7 @@ public class AtlasDbServicesImpl implements AtlasDbServices {
         }
     }
 
-    private AtlasDbServicesImpl(SerializableTransactionManager tm) {
+    private OldAtlasDbServicesImpl(SerializableTransactionManager tm) {
         this.tm = tm;
     }
 

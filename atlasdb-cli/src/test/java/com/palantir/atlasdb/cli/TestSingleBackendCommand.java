@@ -24,7 +24,7 @@ import org.junit.Test;
 
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cli.api.AtlasDbServices;
+import com.palantir.atlasdb.cli.api.OldAtlasDbServices;
 import com.palantir.atlasdb.cli.api.SingleBackendCliTests;
 import com.palantir.atlasdb.cli.api.SingleBackendCommand;
 
@@ -48,7 +48,7 @@ public class TestSingleBackendCommand {
         String flag2;
 
         @Override
-        protected int execute(AtlasDbServices services) {
+        protected int execute(OldAtlasDbServices services) {
             // test a method on each of the services
             if (flag1 != null) {
                 services.getKeyValueService().getAllTableNames();
