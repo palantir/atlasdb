@@ -28,7 +28,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -110,7 +109,6 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
-import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.common.pooling.PoolingContainer;
 import com.palantir.util.paging.AbstractPagingIterable;
@@ -150,7 +148,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     private final Optional<CassandraJmxCompactionManager> compactionManager;
     protected final ManyClientPoolingContainer containerPoolToUpdate;
     protected final ManyHostPoolingContainer<Client> clientPool;
-    private final ScheduledExecutorService hostRefreshExecutor = PTExecutors.newScheduledThreadPool(1);
     private final ReentrantLock schemaMutationLock = new ReentrantLock(true);
 
     private ConsistencyLevel readConsistency = ConsistencyLevel.LOCAL_QUORUM;
@@ -1429,7 +1426,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     @Override
     public void close() {
         clientPool.shutdownPooling();
-        hostRefreshExecutor.shutdown();
         if (compactionManager.isPresent()) {
             compactionManager.get().close();
         }

@@ -197,7 +197,7 @@ public class TransactionManagers {
         };
     }
 
-    private static AtlasDbFactory getKeyValueServiceFactory(String type) {
+    public static AtlasDbFactory getKeyValueServiceFactory(String type) {
         for (AtlasDbFactory factory : loader) {
             if (factory.getType().equalsIgnoreCase(type)) {
                 return factory;
@@ -206,7 +206,7 @@ public class TransactionManagers {
         throw new IllegalStateException("No atlas provider for KeyValueService type " + type + " is on your classpath.");
     }
 
-    private static LockAndTimestampServices createLockAndTimestampServices(
+    public static LockAndTimestampServices createLockAndTimestampServices(
             AtlasDbConfig config,
             Optional<SSLSocketFactory> sslSocketFactory,
             Environment env,
@@ -261,7 +261,7 @@ public class TransactionManagers {
     }
 
     @Value.Immutable
-    interface LockAndTimestampServices {
+    public interface LockAndTimestampServices {
         RemoteLockService lock();
         TimestampService time();
     }

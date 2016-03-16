@@ -17,21 +17,23 @@ package com.palantir.atlasdb.cli;
 
 import java.util.concurrent.Callable;
 
+import com.palantir.atlasdb.cli.command.TimestampCommand;
+
 import io.airlift.airline.Cli;
 import io.airlift.airline.Help;
 
 public class TitanCli {
 
-    public static void main(String[] args) {
+    private static Cli<Callable> buildCli() {
         Cli.CliBuilder<Callable> builder = Cli.<Callable>builder("titan")
                 .withDescription("Perform common AtlasDB tasks")
                 .withDefaultCommand(Help.class)
-                .withCommands(
-                        Help.class,
-                        AtlasTimestampCommand.class,
-                        CleanTransactionRange.class);
+                .withCommands(Help.class, TimestampCommand.class, CleanTransactionRange.class);
+        return builder.build();
+    }
 
-        Cli<Callable> parser = builder.build();
+    public static void main(String[] args) {
+        Cli<Callable> parser = buildCli();
         try {
             Object ret = parser.parse(args).call();
             if (ret instanceof Integer) {
@@ -43,4 +45,5 @@ public class TitanCli {
             System.exit(1);
         }
     }
+
 }
