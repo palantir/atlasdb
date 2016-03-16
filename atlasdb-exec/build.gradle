@@ -1,0 +1,12 @@
+apply from: "../gradle/shared.gradle"
+
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+  compile(project(":atlasdb-client"))
+}
