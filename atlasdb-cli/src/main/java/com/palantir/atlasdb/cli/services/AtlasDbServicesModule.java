@@ -1,4 +1,4 @@
-package com.palantir.atlasdb.cli.api;
+package com.palantir.atlasdb.cli.services;
 
 import java.util.Set;
 

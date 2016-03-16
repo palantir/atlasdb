@@ -13,13 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.cli.api;
+package com.palantir.atlasdb.cli.command;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.Callable;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.palantir.atlasdb.cli.services.AtlasDbServices;
+import com.palantir.atlasdb.cli.services.AtlasDbServicesModules;
+import com.palantir.atlasdb.cli.services.DaggerAtlasDbServices;
 import com.palantir.common.base.Throwables;
 
 import io.airlift.airline.Option;

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.cli.api;
+package com.palantir.atlasdb.cli.command;
 
 import java.util.Scanner;
 
@@ -22,7 +22,8 @@ import org.junit.Test;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.cli.TimestampCommand;
+import com.palantir.atlasdb.cli.SingleBackendCliTests;
+import com.palantir.atlasdb.cli.services.AtlasDbServices;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.impl.RawTransaction;
 import com.palantir.lock.LockRefreshToken;

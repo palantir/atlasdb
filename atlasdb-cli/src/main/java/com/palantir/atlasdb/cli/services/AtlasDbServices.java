@@ -13,10 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.cli.api;
+package com.palantir.atlasdb.cli.services;
 
 import javax.inject.Named;
-import javax.inject.Scope;
 import javax.inject.Singleton;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
