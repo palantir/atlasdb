@@ -27,6 +27,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.cli.api.DaggerAtlasDbServices;
 import com.palantir.atlasdb.cli.api.OldAtlasDbServices;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
