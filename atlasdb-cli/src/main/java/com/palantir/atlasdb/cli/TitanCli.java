@@ -17,6 +17,7 @@ package com.palantir.atlasdb.cli;
 
 import java.util.concurrent.Callable;
 
+import com.palantir.atlasdb.cli.command.CleanTransactionRange;
 import com.palantir.atlasdb.cli.command.TimestampCommand;
 
 import io.airlift.airline.Cli;
