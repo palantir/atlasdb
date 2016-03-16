@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.cli.api;
 
+import javax.inject.Named;
+
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.lock.RemoteLockService;
@@ -29,6 +31,7 @@ public abstract class AtlasDbServices implements AutoCloseable {
 
     public abstract RemoteLockService getLockSerivce();
 
+    @Named("kvs")
     public abstract KeyValueService getKeyValueService();
 
     public abstract SerializableTransactionManager getTransactionManager();
