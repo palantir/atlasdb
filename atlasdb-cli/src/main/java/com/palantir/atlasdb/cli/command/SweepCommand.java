@@ -30,12 +30,12 @@ import com.google.common.collect.Sets;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cli.services.AtlasDbServices;
-import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.atlasdb.transaction.impl.TxTask;
+import com.palantir.common.base.Throwables;
 
 import io.airlift.airline.Command;
 import io.airlift.airline.Option;
@@ -59,9 +59,16 @@ public class SweepCommand extends SingleBackendCommand {
             description = "Sweep all tables")
     boolean sweepAllTables;
 
+    @Option(name = {"--batch-size"},
+            description = "Sweeper row batch size (default: " + AtlasDbConstants.DEFAULT_SWEEP_BATCH_SIZE + ")")
+    int batchSize = AtlasDbConstants.DEFAULT_SWEEP_BATCH_SIZE;
+
+    @Option(name = {"--sleep"},
+            description = "Time to wait in milliseconds after each sweep batch (throttles long-running sweep jobs, default: 0)")
+    long sleepTimeInMs = 0;
+
 	@Override
 	public int execute(final AtlasDbServices services) {
-        AtlasDbConfig config = services.getAtlasDbConfig();
         SweepTaskRunner sweepRunner = services.getSweepTaskRunner();
 
         if (!((namespace != null) ^ (table != null) ^ sweepAllTables)) {
@@ -103,7 +110,7 @@ public class SweepCommand extends SingleBackendCommand {
 
             while (startRow.isPresent()) {
                 Stopwatch watch = Stopwatch.createStarted();
-                SweepResults results = sweepRunner.run(table, config.getSweepBatchSize(), startRow.get());
+                SweepResults results = sweepRunner.run(table, batchSize, startRow.get());
                 System.out.println(String.format("Swept from %s to %s in table %s in %d ms, examined %d unique cells, deleted %d cells.",
                         encodeStartRow(startRow), encodeEndRow(results.getNextStartRow()),
                         table, watch.elapsed(TimeUnit.MILLISECONDS),
@@ -111,6 +118,7 @@ public class SweepCommand extends SingleBackendCommand {
                 startRow = results.getNextStartRow();
                 cellsDeleted.addAndGet(results.getCellsDeleted());
                 cellsExamined.addAndGet(results.getCellsExamined());
+                maybeSleep();
             }
 
             services.getTransactionManager().runTaskWithRetry((TxTask) t -> {
@@ -135,6 +143,16 @@ public class SweepCommand extends SingleBackendCommand {
         }
         return 0;
 	}
+
+    private void maybeSleep() {
+        if (sleepTimeInMs > 0) {
+            try {
+                Thread.sleep(sleepTimeInMs);
+            } catch (InterruptedException e) {
+                throw Throwables.rewrapAndThrowUncheckedException(e);
+            }
+        }
+    }
 
     private static final byte[] FIRST_ROW = Arrays.copyOf(new byte[0], 12);
     private static final byte[] LAST_ROW = lastRow();
