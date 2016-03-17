@@ -98,17 +98,20 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
         Preconditions.checkNotNull(tableName);
         Preconditions.checkState(!AtlasDbConstants.hiddenTables.contains(tableName));
 
+        SweepStrategy sweepStrategy = sweepStrategyManager.get().get(tableName);
+        long sweepTimestamp = getSweepTimestamp(sweepStrategy);
+
         if (tableName.startsWith(AtlasDbConstants.NAMESPACE_PREFIX)) {
                 // this happens sometimes; I think it's because some places in the code can
                 // start this sweeper without doing the full normally ordered KVSModule startup.
                 // I did check and sweep.stats did contain the FQ table name for all of the tables,
                 // so it is at least broken in some way that still allows namespaced tables to eventually be swept.
                 log.warn("The sweeper should not be run on tables passed through namespace mapping.");
-                return SweepResults.EMPTY_SWEEP;
+                return SweepResults.createEmptySweepResult(sweepTimestamp);
         }
         if (keyValueService.getMetadataForTable(tableName).length == 0) {
             log.warn("The sweeper tried to sweep table '{}', but the table does not exist. Skipping table.", tableName);
-            return SweepResults.EMPTY_SWEEP;
+            return SweepResults.createEmptySweepResult(sweepTimestamp);
         }
 
         // Earliest start timestamp of any currently open transaction, with two caveats:
@@ -122,18 +125,17 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
         // (1) force old readers to abort (if they read a garbage collection sentinel), or
         // (2) force old writers to retry (note that we must roll back any uncommitted transactions that
         //     we encounter
-        SweepStrategy sweepStrategy = sweepStrategyManager.get().get(tableName);
         if (sweepStrategy == null) {
             sweepStrategy = SweepStrategy.CONSERVATIVE;
         } else if (sweepStrategy == SweepStrategy.NOTHING) {
-            return SweepResults.EMPTY_SWEEP;
+            return SweepResults.createEmptySweepResult(sweepTimestamp);
         }
         if (startRow == null) {
             startRow = new byte[0];
         }
         RangeRequest rangeRequest = RangeRequest.builder().startRowInclusive(startRow).batchHint(batchSize).build();
 
-        long sweepTimestamp = getSweepTimestamp(sweepStrategy);
+
         ClosableIterator<RowResult<Value>> valueResults;
         if (sweepStrategy == SweepStrategy.CONSERVATIVE) {
             valueResults = ClosableIterators.wrap(ImmutableList.<RowResult<Value>>of().iterator());
@@ -153,7 +155,7 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
             sweepCells(tableName, cellTsPairsToSweep, sentinelsToAdd);
             byte[] nextRow = rowResultTimestamps.size() < batchSize ? null :
                 RangeRequests.getNextStartRow(false, Iterables.getLast(rowResultTimestamps).getRowName());
-            return new SweepResults(nextRow, rowResultTimestamps.size(), cellTsPairsToSweep.size());
+            return new SweepResults(nextRow, rowResultTimestamps.size(), cellTsPairsToSweep.size(), sweepTimestamp);
         } finally {
             rowResults.close();
             valueResults.close();
