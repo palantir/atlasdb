@@ -19,7 +19,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.base.Supplier;
@@ -68,8 +70,9 @@ public abstract class AbstractSweeperTest {
     private LockServiceImpl lockService;
     private TransactionService txService;
 
-    protected void globalTestSetup(KeyValueService keyValueService) {
-        this.kvs = keyValueService;
+    @Before
+    public void setup() {
+        this.kvs = getKeyValueService();
         TimestampService tsService = new InMemoryTimestampService();
         LockClient lockClient = LockClient.of("sweep client");
         lockService = LockServiceImpl.create(new LockServerOptions() { @Override public boolean isStandaloneServer() { return false; }});
@@ -97,10 +100,17 @@ public abstract class AbstractSweeperTest {
         backgroundSweeper = new BackgroundSweeperImpl(txManager, kvs, sweepRunner, sweepEnabledSupplier, sweepNoPause, batchSize1000, SweepTableFactory.of());
     }
 
+    @After
     public void tearDown() {
         kvs.close();
         lockService.close();
     }
+
+    /**
+     * Called once before each test
+     * @return the KVS used for testing
+     */
+    protected abstract KeyValueService getKeyValueService();
 
     @Test
     public void testSweepOneConservative() {

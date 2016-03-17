@@ -18,7 +18,6 @@ package com.palantir.atlasdb.cleaner;
 import java.util.concurrent.ExecutorService;
 
 import org.junit.After;
-import org.junit.Before;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
@@ -27,18 +26,16 @@ import com.palantir.common.concurrent.PTExecutors;
 public class InMemorySweeperTest extends AbstractSweeperTest {
     private ExecutorService exec;
 
-    @Before
-    @SuppressWarnings("serial")
-    public void setup() {
-        exec = PTExecutors.newCachedThreadPool();
-        KeyValueService kvs = new InMemoryKeyValueService(false, exec);
-        super.globalTestSetup(kvs);
-    }
-
     @Override
     @After
     public void tearDown() {
         super.tearDown();
         exec.shutdown();
+    }
+
+    @Override
+    protected KeyValueService getKeyValueService() {
+        exec = PTExecutors.newCachedThreadPool();
+        return new InMemoryKeyValueService(false, exec);
     }
 }

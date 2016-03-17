@@ -15,23 +15,12 @@
  */
 package com.palantir.atlasdb.jdbc;
 
-import org.junit.After;
-import org.junit.Before;
-
 import com.palantir.atlasdb.cleaner.AbstractSweeperTest;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 
 public class JdbcSweeperTest extends AbstractSweeperTest {
-    @Before
-    @SuppressWarnings("serial")
-    public void setup() {
-        KeyValueService kvs = JdbcTests.createEmptyKvs();
-        super.globalTestSetup(kvs);
-    }
-
     @Override
-    @After
-    public void tearDown() {
-        super.tearDown();
+    protected KeyValueService getKeyValueService() {
+        return JdbcTests.createEmptyKvs();
     }
 }
