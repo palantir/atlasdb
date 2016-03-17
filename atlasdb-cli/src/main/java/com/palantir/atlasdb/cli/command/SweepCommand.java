@@ -36,7 +36,6 @@ import com.palantir.atlasdb.schema.generated.SweepPriorityTable;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.atlasdb.transaction.impl.TxTask;
-import com.palantir.common.base.Throwables;
 
 import io.airlift.airline.Command;
 import io.airlift.airline.Option;
@@ -112,11 +111,6 @@ public class SweepCommand extends SingleBackendCommand {
                 startRow = results.getNextStartRow();
                 cellsDeleted.addAndGet(results.getCellsDeleted());
                 cellsExamined.addAndGet(results.getCellsExamined());
-                try {
-                    Thread.sleep(config.getSweepPauseMillis());
-                } catch (InterruptedException e) {
-                    throw Throwables.rewrapAndThrowUncheckedException(e);
-                }
             }
 
             services.getTransactionManager().runTaskWithRetry((TxTask) t -> {
