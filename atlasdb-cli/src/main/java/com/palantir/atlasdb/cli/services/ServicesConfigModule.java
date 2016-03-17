@@ -67,6 +67,10 @@ public class ServicesConfigModule {
 
     @Provides
     @Singleton
-    public ServicesConfig provideAtlasDbConfig() { return config; }
+    public ServicesConfig provideServicesConfig() { return config; }
+
+    @Provides
+    @Singleton
+    public AtlasDbConfig provideAtlasDbConfig() { return config.atlasDbConfig(); }
 
 }

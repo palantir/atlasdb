@@ -18,6 +18,7 @@ package com.palantir.atlasdb.cli.services;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
+import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.lock.RemoteLockService;
@@ -29,6 +30,8 @@ import dagger.Component;
 @Component(modules = { ServicesConfigModule.class, KeyValueServiceModule.class, RawKeyValueServiceModule.class,
         LockAndTimestampModule.class, SweeperModule.class, TransactionManagerModule.class })
 public abstract class AtlasDbServices implements AutoCloseable {
+
+    public abstract AtlasDbConfig getAtlasDbConfig();
 
     public abstract TimestampService getTimestampService();
 

@@ -15,6 +15,17 @@
  */
 package com.palantir.atlasdb.cli.services;
 
-public interface AtlasDbServicesFactory {
-    <T extends AtlasDbServices> T connect(ServicesConfigModule servicesConfigModule);
+import javax.inject.Singleton;
+
+import com.palantir.lock.LockClient;
+
+import dagger.Component;
+
+@Singleton
+@Component(modules = { ServicesConfigModule.class, KeyValueServiceModule.class, RawKeyValueServiceModule.class,
+        LockAndTimestampModule.class, SweeperModule.class, TestTransactionManagerModule.class })
+public abstract class TestAtlasDbServices extends AtlasDbServices {
+
+    public abstract LockClient getTestLockClient();
+
 }

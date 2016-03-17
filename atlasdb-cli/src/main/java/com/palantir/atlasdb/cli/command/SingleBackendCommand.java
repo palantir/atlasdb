@@ -34,7 +34,7 @@ public abstract class SingleBackendCommand implements Callable<Integer> {
             title = "CONFIG PATH",
             description = "path to yaml configuration file for atlasdb",
             required = true)
-    private String configFilePath;
+    private File configFile;
 
     @Option(name = {"-r", "--config-root"},
             title = "CONFIG ROOT",
@@ -50,17 +50,17 @@ public abstract class SingleBackendCommand implements Callable<Integer> {
         }
     }
 
-    protected abstract int execute(AtlasDbServices services);
+    public abstract int execute(AtlasDbServices services);
 
-    @VisibleForTesting
-    protected AtlasDbServices connect() throws IOException {
-        ServicesConfigModule scm = ServicesConfigModule.create(new File(configFilePath), configRoot);
+    private AtlasDbServices connect() throws IOException {
+        ServicesConfigModule scm = ServicesConfigModule.create(configFile, configRoot);
         return DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
     }
 
     @VisibleForTesting
-    protected AtlasDbServices connect(AtlasDbServicesFactory factory) throws IOException {
-        return factory.connect(configFilePath, configRoot);
+    public <T extends AtlasDbServices> T connect(AtlasDbServicesFactory factory) throws IOException {
+        ServicesConfigModule scm = ServicesConfigModule.create(configFile, configRoot);
+        return factory.connect(scm);
     }
 
 }
