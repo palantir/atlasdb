@@ -37,7 +37,8 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 
 public class TableSplittingKeyValueServiceTest {
-    private static final String TABLE = "some table";
+    private static final String TABLE = "namespace.table";
+    private static final String NAMESPACE = "namespace";
     private static final Cell CELL = Cell.create("row".getBytes(), "column".getBytes());
     private static final byte[] VALUE = "value".getBytes();
     private static final long TIMESTAMP = 123l;
@@ -48,10 +49,25 @@ public class TableSplittingKeyValueServiceTest {
     private final KeyValueService otherKvs = mockery.mock(KeyValueService.class, "otherKvs");
 
     @Test
-    public void shouldDelegatePutToAnExplicitlyDelegatedTableToThatTable() {
+    public void delegatesMethodsToTheKvsAssociatedWithTheTable() {
         TableSplittingKeyValueService splittingKvs = TableSplittingKeyValueService.create(
-                ImmutableList.of(kvs, otherKvs),
+                ImmutableList.of(otherKvs, kvs),
                 ImmutableMap.of(TABLE, kvs)
+        );
+
+        mockery.checking(new Expectations() {{
+            oneOf(kvs).put(TABLE, VALUES, TIMESTAMP);
+        }});
+
+        splittingKvs.put(TABLE, VALUES, TIMESTAMP);
+    }
+
+    @Test
+    public void delegatesMethodsToTheKvsAssociatedWithTheNamespaceIfNoTableMappingExists() {
+        TableSplittingKeyValueService splittingKvs = TableSplittingKeyValueService.create(
+                ImmutableList.of(otherKvs, kvs),
+                ImmutableMap.<String, KeyValueService>of(),
+                ImmutableMap.of(NAMESPACE, kvs)
         );
 
         mockery.checking(new Expectations() {{
