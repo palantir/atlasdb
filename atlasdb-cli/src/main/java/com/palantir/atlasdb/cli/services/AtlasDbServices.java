@@ -26,7 +26,8 @@ import com.palantir.timestamp.TimestampService;
 import dagger.Component;
 
 @Singleton
-@Component(modules = { AtlasDbServicesModule.class })
+@Component(modules = { ConfigModule.class, KeyValueServiceModule.class, RawKeyValueServiceModule.class,
+        LockAndTimestampModule.class, SweeperModule.class, TransactionManagerModule.class })
 public abstract class AtlasDbServices implements AutoCloseable {
 
     public abstract TimestampService getTimestampService();

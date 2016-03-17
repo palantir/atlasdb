@@ -27,7 +27,7 @@ import com.palantir.timestamp.TimestampService;
 import dagger.Module;
 import dagger.Provides;
 
-@Module(includes = { ConfigModule.class, LockAndTimestampModule.class })
+@Module
 public class TransactionManagerModule {
 
     @Provides

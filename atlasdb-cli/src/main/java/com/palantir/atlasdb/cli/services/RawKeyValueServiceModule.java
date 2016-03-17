@@ -10,7 +10,7 @@ import com.palantir.atlasdb.spi.AtlasDbFactory;
 import dagger.Module;
 import dagger.Provides;
 
-@Module(includes = { ConfigModule.class })
+@Module
 public class RawKeyValueServiceModule {
 
     @Provides

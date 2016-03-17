@@ -20,7 +20,7 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import dagger.Module;
 import dagger.Provides;
 
-@Module(includes = { ConfigModule.class, KeyValueServiceModule.class, TransactionManagerModule.class })
+@Module
 public class SweeperModule {
 
     @Provides

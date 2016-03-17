@@ -24,7 +24,7 @@ import com.palantir.timestamp.TimestampService;
 import dagger.Module;
 import dagger.Provides;
 
-@Module(includes = { ConfigModule.class, RawKeyValueServiceModule.class, LockAndTimestampModule.class })
+@Module
 public class KeyValueServiceModule {
 
     @Provides

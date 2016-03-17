@@ -17,8 +17,6 @@ package com.palantir.atlasdb.cli.command;
 
 import java.util.Scanner;
 
-import javax.inject.Singleton;
-
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -26,8 +24,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.atlasdb.cli.SingleBackendCliTests;
 import com.palantir.atlasdb.cli.services.AtlasDbServices;
-import com.palantir.atlasdb.cli.services.AtlasDbServicesModule;
 import com.palantir.atlasdb.cli.services.AtlasDbServicesModuleFactory;
+import com.palantir.atlasdb.cli.services.ConfigModule;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
@@ -37,7 +35,6 @@ import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.timestamp.TimestampService;
 
-import dagger.Provides;
 import io.airlift.airline.Cli;
 
 public class TestTimestampCommand {
@@ -54,12 +51,7 @@ public class TestTimestampCommand {
         cli = SingleBackendCliTests.build(TimestampCommand.class);
         lock = StringLockDescriptor.of("lock");
         client = LockClient.of("test lock client");
-        moduleFactory = config -> new AtlasDbServicesModule(config) {
-            @Override @Provides @Singleton
-            public LockClient provideLockClient() {
-                return client;
-            }
-        };
+        moduleFactory = config -> new ConfigModule(config) {};
     }
 
     @Test

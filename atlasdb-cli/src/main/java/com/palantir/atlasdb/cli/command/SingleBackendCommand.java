@@ -54,12 +54,12 @@ public abstract class SingleBackendCommand implements Callable<Integer> {
 
     @VisibleForTesting
     protected AtlasDbServices connect() throws IOException {
-        return DaggerAtlasDbServices.builder().atlasDbServicesModule(AtlasDbServicesModules.create(configFile, configRoot)).build();
+        return DaggerAtlasDbServices.builder().configModule(AtlasDbServicesModules.create(configFile, configRoot)).build();
     }
 
     @VisibleForTesting
     protected AtlasDbServices connect(AtlasDbServicesModuleFactory factory) throws IOException {
-        return DaggerAtlasDbServices.builder().atlasDbServicesModule(AtlasDbServicesModules.create(factory, configFile, configRoot)).build();
+        return DaggerAtlasDbServices.builder().configModule(AtlasDbServicesModules.create(factory, configFile, configRoot)).build();
     }
 
 }
