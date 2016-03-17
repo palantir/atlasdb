@@ -1,7 +1,5 @@
 package com.palantir.atlasdb.cli.services;
 
-import java.util.Set;
-
 import javax.inject.Named;
 import javax.inject.Singleton;
 
@@ -14,7 +12,6 @@ import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
@@ -38,19 +35,20 @@ public class TransactionManagerModule {
 
     @Provides
     @Singleton
-    public Follower provideCleanupFollower(Set<Schema> schemas) {
-        return CleanupFollower.create(schemas);
+    public Follower provideCleanupFollower(ServicesConfig atlasDbConfig) {
+        return CleanupFollower.create(atlasDbConfig.schemas());
     }
 
     @Provides
     @Singleton
-    public Cleaner provideCleaner(AtlasDbConfig config,
+    public Cleaner provideCleaner(ServicesConfig config,
                                   @Named("kvs") KeyValueService kvs,
                                   RemoteLockService rlc,
                                   TimestampService tss,
                                   LockClient lockClient,
                                   Follower follower,
                                   TransactionService transactionService) {
+        AtlasDbConfig atlasDbConfig = config.atlasDbConfig();
         return new DefaultCleanerBuilder(
                 kvs,
                 rlc,
@@ -58,25 +56,25 @@ public class TransactionManagerModule {
                 lockClient,
                 ImmutableList.of(follower),
                 transactionService)
-                .setBackgroundScrubAggressively(config.backgroundScrubAggressively())
-                .setBackgroundScrubBatchSize(config.getBackgroundScrubBatchSize())
-                .setBackgroundScrubFrequencyMillis(config.getBackgroundScrubFrequencyMillis())
-                .setBackgroundScrubThreads(config.getBackgroundScrubThreads())
-                .setPunchIntervalMillis(config.getPunchIntervalMillis())
-                .setTransactionReadTimeout(config.getTransactionReadTimeoutMillis())
+                .setBackgroundScrubAggressively(atlasDbConfig.backgroundScrubAggressively())
+                .setBackgroundScrubBatchSize(atlasDbConfig.getBackgroundScrubBatchSize())
+                .setBackgroundScrubFrequencyMillis(atlasDbConfig.getBackgroundScrubFrequencyMillis())
+                .setBackgroundScrubThreads(atlasDbConfig.getBackgroundScrubThreads())
+                .setPunchIntervalMillis(atlasDbConfig.getPunchIntervalMillis())
+                .setTransactionReadTimeout(atlasDbConfig.getTransactionReadTimeoutMillis())
                 .buildCleaner();
     }
 
     @Provides
     @Singleton
-    public SerializableTransactionManager provideTransactionManager(@Named("kvs") KeyValueService kvs,
+    public SerializableTransactionManager provideTransactionManager(ServicesConfig config,
+                                                                    @Named("kvs") KeyValueService kvs,
                                                                     TransactionManagers.LockAndTimestampServices lts,
                                                                     LockClient lockClient,
                                                                     TransactionService transactionService,
                                                                     ConflictDetectionManager conflictManager,
                                                                     SweepStrategyManager sweepStrategyManager,
-                                                                    Cleaner cleaner,
-                                                                    boolean allowHiddenTableAccess) {
+                                                                    Cleaner cleaner) {
         return new SerializableTransactionManager(
                 kvs,
                 lts.time(),
@@ -87,7 +85,7 @@ public class TransactionManagerModule {
                 conflictManager,
                 sweepStrategyManager,
                 cleaner,
-                allowHiddenTableAccess);
+                config.allowAccessToHiddenTables());
     }
 
 }

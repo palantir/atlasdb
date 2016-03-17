@@ -34,7 +34,7 @@ public final class AtlasDbServicesModules {
     private AtlasDbServicesModules() { }
 
     public static ServicesConfigModule create(File configFile, String configRoot) throws IOException {
-        return create(config -> new ServicesConfigModule(config), configFile, configRoot);
+        return create(config -> ServicesConfigModule.create(config), configFile, configRoot);
     }
 
     public static ServicesConfigModule create(AtlasDbServicesModuleFactory factory,

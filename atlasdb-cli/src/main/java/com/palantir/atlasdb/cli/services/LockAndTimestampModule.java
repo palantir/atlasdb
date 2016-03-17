@@ -5,13 +5,9 @@ import static com.palantir.atlasdb.factory.TransactionManagers.createLockAndTime
 
 import javax.inject.Named;
 import javax.inject.Singleton;
-import javax.net.ssl.SSLSocketFactory;
 
-import com.google.common.base.Optional;
-import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.factory.ImmutableLockAndTimestampServices;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.client.LockRefreshingRemoteLockService;
 import com.palantir.lock.impl.LockServiceImpl;
@@ -25,13 +21,13 @@ public class LockAndTimestampModule {
 
     @Provides
     @Singleton
-    public LockAndTimestampServices provideLockAndTimestampServices(AtlasDbConfig config, @Named("rawKvs") KeyValueService rawKvs, AtlasDbFactory kvsFactory, Optional<SSLSocketFactory> sslSocketFactory) {
+    public LockAndTimestampServices provideLockAndTimestampServices(ServicesConfig config, @Named("rawKvs") KeyValueService rawKvs) {
         LockAndTimestampServices lts = createLockAndTimestampServices(
-                config,
-                sslSocketFactory,
+                config.atlasDbConfig(),
+                config.sslSocketFactory(),
                 resource -> {},
                 LockServiceImpl::create,
-                () -> kvsFactory.createTimestampService(rawKvs));
+                () -> config.atlasDbFactory().createTimestampService(rawKvs));
         return ImmutableLockAndTimestampServices.builder()
                 .from(lts)
                 .lock(LockRefreshingRemoteLockService.create(lts.lock()))

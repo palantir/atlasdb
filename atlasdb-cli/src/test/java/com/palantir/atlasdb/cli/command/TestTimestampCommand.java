@@ -51,7 +51,7 @@ public class TestTimestampCommand {
         cli = SingleBackendCliTests.build(TimestampCommand.class);
         lock = StringLockDescriptor.of("lock");
         client = LockClient.of("test lock client");
-        moduleFactory = config -> new ServicesConfigModule(config) {};
+        moduleFactory = config -> ServicesConfigModule.create(config);
     }
 
     @Test

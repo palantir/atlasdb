@@ -1,7 +1,5 @@
 package com.palantir.atlasdb.cli.services;
 
-import java.util.Set;
-
 import javax.inject.Named;
 import javax.inject.Singleton;
 
@@ -30,12 +28,12 @@ public class KeyValueServiceModule {
     @Provides
     @Singleton
     @Named("kvs")
-    public KeyValueService provideWrappedKeyValueService(@Named("rawKvs") KeyValueService rawKvs, TimestampService tss, Set<Schema> schemas) {
+    public KeyValueService provideWrappedKeyValueService(@Named("rawKvs") KeyValueService rawKvs, TimestampService tss, ServicesConfig config) {
         KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs);
         kvs = new SweepStatsKeyValueService(kvs, tss);
         TransactionTables.createTables(kvs);
 
-        for (Schema schema : ImmutableSet.<Schema>builder().add(SweepSchema.INSTANCE.getLatestSchema()).addAll(schemas).build()) {
+        for (Schema schema : ImmutableSet.<Schema>builder().add(SweepSchema.INSTANCE.getLatestSchema()).addAll(config.schemas()).build()) {
             Schemas.createTablesAndIndexes(schema, kvs);
         }
         return kvs;

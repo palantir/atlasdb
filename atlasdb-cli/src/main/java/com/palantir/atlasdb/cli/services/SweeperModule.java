@@ -40,22 +40,4 @@ public class SweeperModule {
                 ImmutableList.of(follower));
     }
 
-    @Provides
-    @Singleton
-    public BackgroundSweeper provideBackgroundSweeper(AtlasDbConfig config,
-                                                      SerializableTransactionManager txm,
-                                                      @Named("kvs") KeyValueService kvs,
-                                                      SweepTaskRunner sweepRunner) {
-        BackgroundSweeper backgroundSweeper = new BackgroundSweeperImpl(
-                txm,
-                kvs,
-                sweepRunner,
-                Suppliers.ofInstance(config.enableSweep()),
-                Suppliers.ofInstance(config.getSweepPauseMillis()),
-                Suppliers.ofInstance(config.getSweepBatchSize()),
-                SweepTableFactory.of());
-        backgroundSweeper.runInBackground();
-        return backgroundSweeper;
-    }
-
 }
