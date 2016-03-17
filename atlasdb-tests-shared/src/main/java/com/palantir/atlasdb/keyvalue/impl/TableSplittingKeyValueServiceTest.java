@@ -91,4 +91,18 @@ public class TableSplittingKeyValueServiceTest {
 
         splittingKvs.put(TABLE, VALUES, TIMESTAMP);
     }
+
+    @Test
+    public void defaultsToTheFirstKvsInTheListIfNoMappingsMatch() {
+        TableSplittingKeyValueService splittingKvs = TableSplittingKeyValueService.create(
+                ImmutableList.of(otherKvs, kvs),
+                ImmutableMap.of("not-this", kvs)
+        );
+
+        mockery.checking(new Expectations() {{
+            oneOf(otherKvs).put(TABLE, VALUES, TIMESTAMP);
+        }});
+
+        splittingKvs.put(TABLE, VALUES, TIMESTAMP);
+    }
 }
