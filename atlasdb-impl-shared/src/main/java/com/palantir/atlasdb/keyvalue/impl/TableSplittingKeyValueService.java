@@ -15,28 +15,14 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-import java.util.Collection;
-import java.util.IdentityHashMap;
-import java.util.List;
-import java.util.Map;
+import static com.palantir.atlasdb.schema.TableReference.isFullyQualifiedName;
+
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.SetMultimap;
-import com.google.common.collect.Sets;
-import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
-import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.RangeRequest;
-import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.Value;
+import com.google.common.collect.*;
+import com.palantir.atlasdb.keyvalue.api.*;
 import com.palantir.atlasdb.schema.TableReference;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -165,23 +151,23 @@ public class TableSplittingKeyValueService implements KeyValueService {
     }
 
     private KeyValueService getDelegate(String tableName) {
-        KeyValueService delegate = delegateByTable.get(tableName);
+        if(delegateByTable.containsKey(tableName)) {
+            return delegateByTable.get(tableName);
+        } else {
+            return namespaceDelegateFor(tableName)
+                    .orElse(delegates.get(0));
+        }
+    }
 
-        if(delegate != null) {
-            return delegate;
+    private Optional<KeyValueService> namespaceDelegateFor(String tableName) {
+        if (!isFullyQualifiedName(tableName)) {
+            return Optional.empty();
         }
 
-        if (TableReference.isFullyQualifiedName(tableName)) { // try for a namespace mapping
-            TableReference tableRef = TableReference.createFromFullyQualifiedName(tableName);
-            delegate = delegateByNamespace.get(tableRef.getNamespace().getName());
-            if (delegate == null) { // namespace mapping did not cover this particular namespace
-                delegate = delegates.get(0);
-            }
-        } else { // not table-mapped and not a namespaced table, default back to primary split
-            delegate = delegates.get(0);
-        }
+        TableReference tableRef = TableReference.createFromFullyQualifiedName(tableName);
+        KeyValueService delegate = delegateByNamespace.get(tableRef.getNamespace().getName());
 
-        return delegate;
+        return Optional.ofNullable(delegate);
     }
 
     @Override
