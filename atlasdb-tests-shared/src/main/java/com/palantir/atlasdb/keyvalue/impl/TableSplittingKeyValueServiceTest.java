@@ -76,4 +76,19 @@ public class TableSplittingKeyValueServiceTest {
 
         splittingKvs.put(TABLE, VALUES, TIMESTAMP);
     }
+
+    @Test
+    public void prioritisesTableDelegatesOverNamespaceDelegates() {
+        TableSplittingKeyValueService splittingKvs = TableSplittingKeyValueService.create(
+                ImmutableList.of(otherKvs, kvs),
+                ImmutableMap.of(TABLE, kvs),
+                ImmutableMap.of(NAMESPACE, otherKvs)
+        );
+
+        mockery.checking(new Expectations() {{
+            oneOf(kvs).put(TABLE, VALUES, TIMESTAMP);
+        }});
+
+        splittingKvs.put(TABLE, VALUES, TIMESTAMP);
+    }
 }
