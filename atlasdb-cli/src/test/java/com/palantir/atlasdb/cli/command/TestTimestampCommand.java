@@ -25,7 +25,7 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.atlasdb.cli.SingleBackendCliTests;
 import com.palantir.atlasdb.cli.services.AtlasDbServices;
 import com.palantir.atlasdb.cli.services.AtlasDbServicesModuleFactory;
-import com.palantir.atlasdb.cli.services.ConfigModule;
+import com.palantir.atlasdb.cli.services.ServicesConfigModule;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
@@ -51,7 +51,7 @@ public class TestTimestampCommand {
         cli = SingleBackendCliTests.build(TimestampCommand.class);
         lock = StringLockDescriptor.of("lock");
         client = LockClient.of("test lock client");
-        moduleFactory = config -> new ConfigModule(config) {};
+        moduleFactory = config -> new ServicesConfigModule(config) {};
     }
 
     @Test

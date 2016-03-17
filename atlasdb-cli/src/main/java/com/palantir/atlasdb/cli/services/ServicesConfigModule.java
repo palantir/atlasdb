@@ -16,11 +16,11 @@ import dagger.Module;
 import dagger.Provides;
 
 @Module
-public class ConfigModule {
+public class ServicesConfigModule {
 
     private final AtlasDbConfig config;
 
-    public ConfigModule(AtlasDbConfig config) {
+    public ServicesConfigModule(AtlasDbConfig config) {
         this.config = config;
     }
 

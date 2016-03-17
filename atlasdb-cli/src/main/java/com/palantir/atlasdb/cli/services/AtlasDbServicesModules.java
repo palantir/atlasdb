@@ -33,11 +33,11 @@ public final class AtlasDbServicesModules {
 
     private AtlasDbServicesModules() { }
 
-    public static ConfigModule create(File configFile, String configRoot) throws IOException {
-        return create(config -> new ConfigModule(config), configFile, configRoot);
+    public static ServicesConfigModule create(File configFile, String configRoot) throws IOException {
+        return create(config -> new ServicesConfigModule(config), configFile, configRoot);
     }
 
-    public static ConfigModule create(AtlasDbServicesModuleFactory factory,
+    public static ServicesConfigModule create(AtlasDbServicesModuleFactory factory,
                                                File configFile,
                                                String configRoot) throws IOException {
         ObjectMapper configMapper = Jackson.newObjectMapper(new YAMLFactory());

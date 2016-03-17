@@ -18,5 +18,5 @@ package com.palantir.atlasdb.cli.services;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 
 public interface AtlasDbServicesModuleFactory {
-    ConfigModule createModule(AtlasDbConfig config);
+    ServicesConfigModule createModule(AtlasDbConfig config);
 }
