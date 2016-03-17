@@ -20,52 +20,26 @@ import java.io.File;
 import org.junit.After;
 import org.junit.Before;
 
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
-import com.google.common.collect.ImmutableList;
 import com.google.common.io.Files;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.rocksdb.impl.RocksDbKeyValueService;
-import com.palantir.atlasdb.schema.SweepSchema;
-import com.palantir.atlasdb.sweep.SweepTaskRunnerImpl;
-import com.palantir.atlasdb.table.description.Schemas;
-import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
-import com.palantir.atlasdb.transaction.impl.*;
-import com.palantir.atlasdb.transaction.service.TransactionServices;
-import com.palantir.lock.LockClient;
-import com.palantir.lock.LockServerOptions;
-import com.palantir.lock.impl.LockServiceImpl;
-import com.palantir.timestamp.InMemoryTimestampService;
-import com.palantir.timestamp.TimestampService;
 
 public class RocksDbSweeperTest extends AbstractSweeperTest {
     private File tempDir;
-    private LockServiceImpl lockService;
 
     @Before
     @SuppressWarnings("serial")
     public void setup() {
         tempDir = Files.createTempDir();
-        kvs = RocksDbKeyValueService.create(tempDir.getAbsolutePath());
-        TimestampService tsService = new InMemoryTimestampService();
-        LockClient lockClient = LockClient.of("sweep client");
-        lockService = LockServiceImpl.create(new LockServerOptions() { @Override public boolean isStandaloneServer() { return false; }});
-        txService = TransactionServices.createTransactionService(kvs);
-        Supplier<AtlasDbConstraintCheckingMode> constraints = Suppliers.ofInstance(AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING);
-        ConflictDetectionManager cdm = ConflictDetectionManagers.createDefault(kvs);
-        SweepStrategyManager ssm = SweepStrategyManagers.createDefault(kvs);
-        Cleaner cleaner = new NoOpCleaner();
-        txManager = new SerializableTransactionManager(kvs, tsService, lockClient, lockService, txService, constraints, cdm, ssm, cleaner, false);
-        TransactionTables.createTables(kvs);
-        Schemas.createTablesAndIndexes(SweepSchema.INSTANCE.getLatestSchema(), kvs);
-        Supplier<Long> tsSupplier = new Supplier<Long>() { @Override public Long get() { return sweepTimestamp.get(); }};
-        sweepRunner = new SweepTaskRunnerImpl(txManager, kvs, tsSupplier, tsSupplier, txService, ssm, ImmutableList.<Follower>of());
-        super.setupBackgroundSweeper();
+        KeyValueService kvs = RocksDbKeyValueService.create(tempDir.getAbsolutePath());
+        super.globalTestSetup(kvs);
     }
 
+
+    @Override
     @After
-    public void teardown() {
-        lockService.close();
-        kvs.close();
+    public void tearDown() {
+        super.tearDown();
         for (File file : Files.fileTreeTraverser().postOrderTraversal(tempDir)) {
             file.delete();
         }

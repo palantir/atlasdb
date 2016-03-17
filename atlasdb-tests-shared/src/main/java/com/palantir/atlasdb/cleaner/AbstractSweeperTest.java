@@ -23,6 +23,8 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -30,35 +32,74 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
+import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable.SweepPriorityRowResult;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
+import com.palantir.atlasdb.sweep.SweepTaskRunnerImpl;
+import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
+import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
+import com.palantir.atlasdb.transaction.impl.*;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.common.base.BatchingVisitables;
+import com.palantir.lock.LockClient;
+import com.palantir.lock.LockServerOptions;
+import com.palantir.lock.impl.LockServiceImpl;
+import com.palantir.timestamp.InMemoryTimestampService;
+import com.palantir.timestamp.TimestampService;
 
 public abstract class AbstractSweeperTest {
-
-    protected static final String TABLE_NAME = "table";
+    private static final String TABLE_NAME = "table";
     private static final String COL = "c";
-    protected KeyValueService kvs;
-    protected TransactionService txService;
-    protected final AtomicLong sweepTimestamp = new AtomicLong();
-    protected SweepTaskRunner sweepRunner;
-    protected LockAwareTransactionManager txManager;
-    protected BackgroundSweeperImpl backgroundSweeper;
 
-    protected void setupBackgroundSweeper() {
+    private KeyValueService kvs;
+    private final AtomicLong sweepTimestamp = new AtomicLong();
+    private SweepTaskRunner sweepRunner;
+    private LockAwareTransactionManager txManager;
+    private BackgroundSweeperImpl backgroundSweeper;
+    private LockServiceImpl lockService;
+    private TransactionService txService;
+
+    protected void globalTestSetup(KeyValueService keyValueService) {
+        this.kvs = keyValueService;
+        TimestampService tsService = new InMemoryTimestampService();
+        LockClient lockClient = LockClient.of("sweep client");
+        lockService = LockServiceImpl.create(new LockServerOptions() { @Override public boolean isStandaloneServer() { return false; }});
+        txService = TransactionServices.createTransactionService(kvs);
+        Supplier<AtlasDbConstraintCheckingMode> constraints = Suppliers.ofInstance(AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING);
+        ConflictDetectionManager cdm = ConflictDetectionManagers.createDefault(kvs);
+        SweepStrategyManager ssm = SweepStrategyManagers.createDefault(kvs);
+        Cleaner cleaner = new NoOpCleaner();
+        txManager = new SerializableTransactionManager(kvs, tsService, lockClient, lockService, txService, constraints, cdm, ssm, cleaner, false);
+        setupTables(kvs);
+        Supplier<Long> tsSupplier = sweepTimestamp::get;
+        sweepRunner = new SweepTaskRunnerImpl(txManager, kvs, tsSupplier, tsSupplier, txService, ssm, ImmutableList.<Follower>of());
+        setupBackgroundSweeper();
+    }
+
+    private static void setupTables(KeyValueService kvs) {
+        TransactionTables.createTables(kvs);
+        Schemas.createTablesAndIndexes(SweepSchema.INSTANCE.getLatestSchema(), kvs);
+    }
+
+    private void setupBackgroundSweeper() {
         Supplier<Boolean> sweepEnabledSupplier = () -> true;
         Supplier<Long> sweepNoPause = () -> 0L;
         Supplier<Integer> batchSize1000 = () -> 1000;
         backgroundSweeper = new BackgroundSweeperImpl(txManager, kvs, sweepRunner, sweepEnabledSupplier, sweepNoPause, batchSize1000, SweepTableFactory.of());
+    }
+
+    public void tearDown() {
+        kvs.close();
+        lockService.close();
     }
 
     @Test
