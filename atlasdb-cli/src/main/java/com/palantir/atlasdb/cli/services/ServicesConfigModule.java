@@ -13,50 +13,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.cli.impl;
+package com.palantir.atlasdb.cli.services;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
 
-import javax.net.ssl.SSLSocketFactory;
+import javax.inject.Singleton;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.google.common.base.Optional;
 import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.cli.api.AtlasDbServices;
-import com.palantir.atlasdb.factory.TransactionManagers;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.server.AtlasDbServerConfiguration;
-import com.palantir.atlasdb.table.description.Schema;
-import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
-import com.palantir.lock.RemoteLockService;
-import com.palantir.timestamp.TimestampService;
 
+import dagger.Module;
+import dagger.Provides;
 import io.dropwizard.jackson.Jackson;
 
-public class AtlasDbServicesImpl implements AtlasDbServices {
+@Module
+public class ServicesConfigModule {
 
-    private SerializableTransactionManager tm;
+    private final ServicesConfig config;
 
-    public static AtlasDbServices connect(File configFile, String configRoot) throws IOException {
+    public static ServicesConfigModule create(File configFile, String configRoot) throws IOException {
         ObjectMapper configMapper = Jackson.newObjectMapper(new YAMLFactory());
         JsonNode node = getConfigNode(configMapper, configFile, configRoot);
         AtlasDbServerConfiguration config = configMapper.treeToValue(node, AtlasDbServerConfiguration.class);
-        SerializableTransactionManager tm = TransactionManagers.create(
-                config.getConfig(),
-                Optional.<SSLSocketFactory>absent(),
-                ImmutableSet.<Schema>of(),
-                new TransactionManagers.Environment() {
-                    @Override
-                    public void register(Object resource) {
-                    }
-                },
-                true);
-        return new AtlasDbServicesImpl(tm);
+        return ServicesConfigModule.create(config.getConfig());
     }
 
     private static JsonNode getConfigNode(ObjectMapper configMapper, File configFile, String configRoot) throws IOException {
@@ -87,32 +72,20 @@ public class AtlasDbServicesImpl implements AtlasDbServices {
         }
     }
 
-    private AtlasDbServicesImpl(SerializableTransactionManager tm) {
-        this.tm = tm;
+    public static ServicesConfigModule create(AtlasDbConfig atlasDbConfig) {
+        return new ServicesConfigModule(ImmutableServicesConfig.builder().atlasDbConfig(atlasDbConfig).build());
     }
 
-    @Override
-    public TimestampService getTimestampService() {
-        return tm.getTimestampService();
+    public ServicesConfigModule(ServicesConfig config) {
+        this.config = config;
     }
 
-    @Override
-    public RemoteLockService getLockSerivce() {
-        return tm.getLockService();
-    }
+    @Provides
+    @Singleton
+    public ServicesConfig provideServicesConfig() { return config; }
 
-    @Override
-    public KeyValueService getKeyValueService() {
-        return tm.getKeyValueService();
-    }
+    @Provides
+    @Singleton
+    public AtlasDbConfig provideAtlasDbConfig() { return config.atlasDbConfig(); }
 
-    @Override
-    public SerializableTransactionManager getTransactionManager() {
-        return tm;
-    }
-
-    @Override
-    public void close() throws Exception {
-        tm.getKeyValueService().close();
-    }
 }

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.cli;
+package com.palantir.atlasdb.cli.command;
 
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
@@ -24,9 +24,9 @@ import org.junit.Test;
 
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cli.api.AtlasDbServices;
-import com.palantir.atlasdb.cli.api.SingleBackendCliTests;
-import com.palantir.atlasdb.cli.api.SingleBackendCommand;
+import com.palantir.atlasdb.cli.runner.AbstractTestRunner;
+import com.palantir.atlasdb.cli.runner.RocksDbTestRunner;
+import com.palantir.atlasdb.cli.services.AtlasDbServices;
 
 import io.airlift.airline.Cli;
 import io.airlift.airline.Command;
@@ -48,7 +48,7 @@ public class TestSingleBackendCommand {
         String flag2;
 
         @Override
-        protected int execute(AtlasDbServices services) {
+        public int execute(AtlasDbServices services) {
             // test a method on each of the services
             if (flag1 != null) {
                 services.getKeyValueService().getAllTableNames();
@@ -71,7 +71,7 @@ public class TestSingleBackendCommand {
 
     @BeforeClass
     public static void setup() throws URISyntaxException {
-        SIMPLE_CONFIG_FILE = SingleBackendCliTests.getConfigPath(SingleBackendCliTests.SIMPLE_ROCKSDB_CONFIG_FILENAME);
+        SIMPLE_CONFIG_FILE = AbstractTestRunner.getResourcePath(RocksDbTestRunner.SIMPLE_ROCKSDB_CONFIG_FILENAME);
         NESTED_CONFIG_FILE = Paths.get(TestSingleBackendCommand.class.getClassLoader().getResource("nested_rocksdb_config.yml").toURI()).toString();
     }
 
@@ -121,6 +121,7 @@ public class TestSingleBackendCommand {
             parser.parse(args).call();
             return 0;
         } catch (Exception e) {
+            e.printStackTrace();
             return 1;
         }
     }
