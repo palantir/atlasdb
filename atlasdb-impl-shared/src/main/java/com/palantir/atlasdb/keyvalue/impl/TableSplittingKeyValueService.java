@@ -166,17 +166,21 @@ public class TableSplittingKeyValueService implements KeyValueService {
 
     private KeyValueService getDelegate(String tableName) {
         KeyValueService delegate = delegateByTable.get(tableName);
-        if (delegate == null) { // no explicit table mapping
-            if (TableReference.isFullyQualifiedName(tableName)) { // try for a namespace mapping
-                TableReference tableRef = TableReference.createFromFullyQualifiedName(tableName);
-                delegate = delegateByNamespace.get(tableRef.getNamespace().getName());
-                if (delegate == null) { // namespace mapping did not cover this particular namespace
-                    delegate = delegates.get(0);
-                }
-            } else { // not table-mapped and not a namespaced table, default back to primary split
+
+        if(delegate != null) {
+            return delegate;
+        }
+
+        if (TableReference.isFullyQualifiedName(tableName)) { // try for a namespace mapping
+            TableReference tableRef = TableReference.createFromFullyQualifiedName(tableName);
+            delegate = delegateByNamespace.get(tableRef.getNamespace().getName());
+            if (delegate == null) { // namespace mapping did not cover this particular namespace
                 delegate = delegates.get(0);
             }
+        } else { // not table-mapped and not a namespaced table, default back to primary split
+            delegate = delegates.get(0);
         }
+
         return delegate;
     }
 
