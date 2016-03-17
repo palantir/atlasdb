@@ -24,7 +24,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.atlasdb.cli.SingleBackendCliTests;
 import com.palantir.atlasdb.cli.services.AtlasDbServices;
-import com.palantir.atlasdb.cli.services.AtlasDbServicesModuleFactory;
+import com.palantir.atlasdb.cli.services.AtlasDbServicesFactory;
 import com.palantir.atlasdb.cli.services.ServicesConfigModule;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
@@ -43,7 +43,7 @@ public class TestTimestampCommand {
     private static Cli<SingleBackendCommand> cli;
     private static LockDescriptor lock;
     private static LockClient client;
-    private static AtlasDbServicesModuleFactory moduleFactory;
+    private static AtlasDbServicesFactory moduleFactory;
 
     @BeforeClass
     public static void setup() throws Exception {
@@ -51,7 +51,7 @@ public class TestTimestampCommand {
         cli = SingleBackendCliTests.build(TimestampCommand.class);
         lock = StringLockDescriptor.of("lock");
         client = LockClient.of("test lock client");
-        moduleFactory = config -> ServicesConfigModule.create(config);
+//        moduleFactory = config -> ServicesConfigModule.create(config);
     }
 
     @Test

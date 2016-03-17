@@ -21,9 +21,9 @@ import java.util.concurrent.Callable;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.cli.services.AtlasDbServices;
-import com.palantir.atlasdb.cli.services.AtlasDbServicesModuleFactory;
-import com.palantir.atlasdb.cli.services.AtlasDbServicesModules;
+import com.palantir.atlasdb.cli.services.AtlasDbServicesFactory;
 import com.palantir.atlasdb.cli.services.DaggerAtlasDbServices;
+import com.palantir.atlasdb.cli.services.ServicesConfigModule;
 import com.palantir.common.base.Throwables;
 
 import io.airlift.airline.Option;
@@ -34,7 +34,7 @@ public abstract class SingleBackendCommand implements Callable<Integer> {
             title = "CONFIG PATH",
             description = "path to yaml configuration file for atlasdb",
             required = true)
-    private File configFile;
+    private String configFilePath;
 
     @Option(name = {"-r", "--config-root"},
             title = "CONFIG ROOT",
@@ -54,12 +54,13 @@ public abstract class SingleBackendCommand implements Callable<Integer> {
 
     @VisibleForTesting
     protected AtlasDbServices connect() throws IOException {
-        return DaggerAtlasDbServices.builder().servicesConfigModule(AtlasDbServicesModules.create(configFile, configRoot)).build();
+        ServicesConfigModule scm = ServicesConfigModule.create(new File(configFilePath), configRoot);
+        return DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
     }
 
     @VisibleForTesting
-    protected AtlasDbServices connect(AtlasDbServicesModuleFactory factory) throws IOException {
-        return DaggerAtlasDbServices.builder().servicesConfigModule(AtlasDbServicesModules.create(factory, configFile, configRoot)).build();
+    protected AtlasDbServices connect(AtlasDbServicesFactory factory) throws IOException {
+        return factory.connect(configFilePath, configRoot);
     }
 
 }
