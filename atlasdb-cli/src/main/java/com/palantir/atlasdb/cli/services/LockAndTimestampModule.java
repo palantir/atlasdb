@@ -29,8 +29,7 @@ public class LockAndTimestampModule {
         LockAndTimestampServices lts = createLockAndTimestampServices(
                 config,
                 sslSocketFactory,
-                resource -> {
-                },
+                resource -> {},
                 LockServiceImpl::create,
                 () -> kvsFactory.createTimestampService(rawKvs));
         return ImmutableLockAndTimestampServices.builder()
