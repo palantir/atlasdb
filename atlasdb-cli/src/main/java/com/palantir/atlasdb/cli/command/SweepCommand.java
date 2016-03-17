@@ -152,15 +152,12 @@ public class SweepCommand extends SingleBackendCommand {
     }
 
     private String encodeStartRow(Optional<byte[]> rowBytes) {
-        if (rowBytes.isPresent()) {
-            return BaseEncoding.base16().encode(Arrays.copyOf(rowBytes.get(), 12));
-        }
-        return BaseEncoding.base16().encode(FIRST_ROW);
+        return BaseEncoding.base16().encode(rowBytes.or(FIRST_ROW));
     }
 
     private String encodeEndRow(Optional<byte[]> rowBytes) {
         if (rowBytes.isPresent() && !rowBytes.equals(FIRST_ROW)) {
-            return BaseEncoding.base16().encode(Arrays.copyOf(rowBytes.get(), 12));
+            return BaseEncoding.base16().encode(rowBytes.get());
         } else {
             return BaseEncoding.base16().encode(LAST_ROW);
         }
