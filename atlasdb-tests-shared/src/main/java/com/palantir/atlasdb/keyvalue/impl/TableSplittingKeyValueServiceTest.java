@@ -43,7 +43,6 @@ public class TableSplittingKeyValueServiceTest {
 
     @Test
     public void delegatesMethodsToTheKvsAssociatedWithTheTable() {
-
         TableSplittingKeyValueService splittingKvs = TableSplittingKeyValueService.create(
                 ImmutableList.of(defaultKvs, tableDelegate),
                 ImmutableMap.of(TABLE, tableDelegate)
