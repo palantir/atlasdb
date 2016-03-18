@@ -122,7 +122,7 @@ public class TableDefinition extends AbstractDefinition {
     public void rowComponent(String componentName, ValueType valueType, ValueByteOrder valueByteOrder) {
         Preconditions.checkState(state == State.DEFINING_ROW_NAME);
         if (rowNameComponents.isEmpty() && CRITICAL_ROW_TYPES.contains(valueType)) {
-            log.error("First row component {} of type {} is an antipattern.", componentName, valueType);
+            log.error("First row component {} of type {} might cause hot-spotting with the partitioner in Cassandra.", componentName, valueType);
         }
         rowNameComponents.add(new NameComponentDescription(componentName, valueType, valueByteOrder));
     }
