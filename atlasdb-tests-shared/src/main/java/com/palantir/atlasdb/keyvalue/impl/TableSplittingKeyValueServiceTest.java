@@ -27,6 +27,8 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
+import java.util.Map;
+
 import org.jmock.Expectations;
 import org.jmock.Mockery;
 import org.junit.Test;
@@ -45,18 +47,21 @@ public class TableSplittingKeyValueServiceTest {
     public static final ImmutableMap<Cell, byte[]> VALUES = ImmutableMap.of(CELL, VALUE);
 
     private final Mockery mockery = new Mockery();
-    private final KeyValueService kvs = mockery.mock(KeyValueService.class, "kvs");
-    private final KeyValueService otherKvs = mockery.mock(KeyValueService.class, "otherKvs");
+    private final KeyValueService tableDelegate = mockery.mock(KeyValueService.class, "table delegate");
+    private final KeyValueService otherTableDelegate = mockery.mock(KeyValueService.class, "other table delegate");
+    private final KeyValueService namespaceDelegate = mockery.mock(KeyValueService.class, "namespace delegate");
+    private final KeyValueService defaultKvs = mockery.mock(KeyValueService.class, "default kvs");
 
     @Test
     public void delegatesMethodsToTheKvsAssociatedWithTheTable() {
+
         TableSplittingKeyValueService splittingKvs = TableSplittingKeyValueService.create(
-                ImmutableList.of(otherKvs, kvs),
-                ImmutableMap.of(TABLE, kvs)
+                ImmutableList.of(defaultKvs, tableDelegate),
+                ImmutableMap.of(TABLE, tableDelegate)
         );
 
         mockery.checking(new Expectations() {{
-            oneOf(kvs).put(TABLE, VALUES, TIMESTAMP);
+            oneOf(tableDelegate).put(TABLE, VALUES, TIMESTAMP);
         }});
 
         splittingKvs.put(TABLE, VALUES, TIMESTAMP);
@@ -65,13 +70,13 @@ public class TableSplittingKeyValueServiceTest {
     @Test
     public void delegatesMethodsToTheKvsAssociatedWithTheNamespaceIfNoTableMappingExists() {
         TableSplittingKeyValueService splittingKvs = TableSplittingKeyValueService.create(
-                ImmutableList.of(otherKvs, kvs),
+                ImmutableList.of(tableDelegate, namespaceDelegate),
                 ImmutableMap.<String, KeyValueService>of(),
-                ImmutableMap.of(NAMESPACE, kvs)
+                ImmutableMap.of(NAMESPACE, namespaceDelegate)
         );
 
         mockery.checking(new Expectations() {{
-            oneOf(kvs).put(TABLE, VALUES, TIMESTAMP);
+            oneOf(namespaceDelegate).put(TABLE, VALUES, TIMESTAMP);
         }});
 
         splittingKvs.put(TABLE, VALUES, TIMESTAMP);
@@ -80,13 +85,13 @@ public class TableSplittingKeyValueServiceTest {
     @Test
     public void prioritisesTableDelegatesOverNamespaceDelegates() {
         TableSplittingKeyValueService splittingKvs = TableSplittingKeyValueService.create(
-                ImmutableList.of(otherKvs, kvs),
-                ImmutableMap.of(TABLE, kvs),
-                ImmutableMap.of(NAMESPACE, otherKvs)
+                ImmutableList.of(tableDelegate, namespaceDelegate),
+                ImmutableMap.of(TABLE, tableDelegate),
+                ImmutableMap.of(NAMESPACE, namespaceDelegate)
         );
 
         mockery.checking(new Expectations() {{
-            oneOf(kvs).put(TABLE, VALUES, TIMESTAMP);
+            oneOf(tableDelegate).put(TABLE, VALUES, TIMESTAMP);
         }});
 
         splittingKvs.put(TABLE, VALUES, TIMESTAMP);
@@ -95,12 +100,12 @@ public class TableSplittingKeyValueServiceTest {
     @Test
     public void defaultsToTheFirstKvsInTheListIfNoMappingsMatch() {
         TableSplittingKeyValueService splittingKvs = TableSplittingKeyValueService.create(
-                ImmutableList.of(otherKvs, kvs),
-                ImmutableMap.of("not-this", kvs)
+                ImmutableList.of(defaultKvs, tableDelegate),
+                ImmutableMap.of("not-this", tableDelegate)
         );
 
         mockery.checking(new Expectations() {{
-            oneOf(otherKvs).put(TABLE, VALUES, TIMESTAMP);
+            oneOf(defaultKvs).put(TABLE, VALUES, TIMESTAMP);
         }});
 
         splittingKvs.put(TABLE, VALUES, TIMESTAMP);
@@ -109,29 +114,33 @@ public class TableSplittingKeyValueServiceTest {
     @Test
     public void splitsTableMetadataIntoTheCorrectTables() {
         TableSplittingKeyValueService splittingKvs = TableSplittingKeyValueService.create(
-                ImmutableList.of(otherKvs, kvs),
+                ImmutableList.of(tableDelegate, otherTableDelegate),
                 ImmutableMap.of(
-                        "table1", kvs,
-                        "table2", otherKvs,
-                        "table3", otherKvs)
+                        "table1", tableDelegate,
+                        "table2", otherTableDelegate,
+                        "table3", otherTableDelegate)
         );
 
-        final byte[] metadata1 = "1".getBytes();
-        final byte[] metadata2 = "2".getBytes();
-        final byte[] metadata3 = "3".getBytes();
+        final ImmutableMap<String, byte[]> tableSpec1 = ImmutableMap.of(
+                "table1", "1".getBytes()
+        );
+        final ImmutableMap<String, byte[]> tableSpec2 = ImmutableMap.of(
+                "table2", "2".getBytes(),
+                "table3", "3".getBytes()
+        );
 
         mockery.checking(new Expectations() {{
-            oneOf(kvs).createTables(ImmutableMap.of("table1", metadata1));
-            oneOf(otherKvs).createTables(ImmutableMap.of(
-                    "table2", metadata2,
-                    "table3", metadata3
-            ));
+            oneOf(tableDelegate).createTables(tableSpec1);
+            oneOf(otherTableDelegate).createTables(tableSpec2);
         }});
 
-        splittingKvs.createTables(ImmutableMap.of(
-                "table1", metadata1,
-                "table2", metadata2,
-                "table3", metadata3
-        ));
+        splittingKvs.createTables(merge(tableSpec1, tableSpec2));
+    }
+
+    private Map<String,byte[]> merge(ImmutableMap<String, byte[]> left, ImmutableMap<String, byte[]> right) {
+        return ImmutableMap.<String, byte[]>builder()
+                .putAll(left)
+                .putAll(right)
+                .build();
     }
 }
