@@ -13,19 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.paxos;
+package com.palantir.atlasdb.cli.services;
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
-import org.junit.runners.Suite.SuiteClasses;
+import javax.inject.Named;
+import javax.inject.Singleton;
 
-import com.palantir.paxos.persistence.ProtobufTest;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 
-@RunWith(Suite.class)
-@SuiteClasses({
-    ProtobufTest.class,
-    PaxosConsensusFastTest.class,
-    PaxosConsensusSlowTest.class
-})
-public class AllTests {
+import dagger.Module;
+import dagger.Provides;
+
+@Module
+public class RawKeyValueServiceModule {
+
+    @Provides
+    @Singleton
+    @Named("rawKvs")
+    public KeyValueService provideRawKeyValueService(ServicesConfig config) {
+        return config.atlasDbFactory().createRawKeyValueService(config.atlasDbConfig().keyValueService());
+    }
+
 }

@@ -22,5 +22,6 @@ build/
 bin/
 userdict.txt
 generated_src/
+generated_testSrc/
 .factorypath
 out/

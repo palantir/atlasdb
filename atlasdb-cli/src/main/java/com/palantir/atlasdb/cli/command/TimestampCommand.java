@@ -13,16 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.cli;
+package com.palantir.atlasdb.cli.command;
 
-import com.palantir.atlasdb.cli.api.AtlasDbServices;
-import com.palantir.atlasdb.cli.api.SingleBackendCommand;
+import com.palantir.atlasdb.cli.services.AtlasDbServices;
 
 import io.airlift.airline.Command;
 import io.airlift.airline.Option;
 
 @Command(name = "timestamp", description = "Get timestamp information")
-public class AtlasTimestampCommand extends SingleBackendCommand {
+public class TimestampCommand extends SingleBackendCommand {
     
     @Option(name = {"-f", "--fresh"},
             description = "Get a fresh timestamp")
@@ -33,7 +32,7 @@ public class AtlasTimestampCommand extends SingleBackendCommand {
     private boolean immutable;
     
 	@Override
-	protected int execute(AtlasDbServices services) {
+	public int execute(AtlasDbServices services) {
 		long latestTimestamp = services.getTimestampService().getFreshTimestamp();
 
         if (fresh || !(fresh || immutable)) {

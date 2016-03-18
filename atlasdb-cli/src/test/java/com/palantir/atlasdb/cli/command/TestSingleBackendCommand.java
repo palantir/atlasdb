@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.cli;
+package com.palantir.atlasdb.cli.command;
 
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
@@ -24,8 +24,9 @@ import org.junit.Test;
 
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cli.api.AtlasDbServices;
-import com.palantir.atlasdb.cli.api.SingleBackendCommand;
+import com.palantir.atlasdb.cli.runner.AbstractTestRunner;
+import com.palantir.atlasdb.cli.runner.RocksDbTestRunner;
+import com.palantir.atlasdb.cli.services.AtlasDbServices;
 
 import io.airlift.airline.Cli;
 import io.airlift.airline.Command;
@@ -47,35 +48,31 @@ public class TestSingleBackendCommand {
         String flag2;
 
         @Override
-        protected int execute(AtlasDbServices services) {
-            try {
-                // test a method on each of the services
-                if (flag1 != null) {
-                    services.getKeyValueService().getAllTableNames();
-                    services.getTimestampService().getFreshTimestamp();
-                    services.getLockSerivce().getMinLockedInVersionId("test-client");
-                    services.getTransactionManager().getImmutableTimestamp();
-                }
-
-                // test kvs create table
-                if (flag2 != null) {
-                    services.getKeyValueService().createTable(flag2, AtlasDbConstants.GENERIC_TABLE_METADATA);
-                    Preconditions.checkArgument(services.getKeyValueService().getAllTableNames().contains(flag2),
-                            "kvs contains tables %s, but not table %s", services.getKeyValueService().getAllTableNames(), flag2);
-                    services.getKeyValueService().dropTable(flag2);
-                }
-                return 0;
-            } finally {
-                services.getKeyValueService().teardown();
+        public int execute(AtlasDbServices services) {
+            // test a method on each of the services
+            if (flag1 != null) {
+                services.getKeyValueService().getAllTableNames();
+                services.getTimestampService().getFreshTimestamp();
+                services.getLockSerivce().getMinLockedInVersionId("test-client");
+                services.getTransactionManager().getImmutableTimestamp();
             }
+
+            // test kvs create table
+            if (flag2 != null) {
+                services.getKeyValueService().createTable(flag2, AtlasDbConstants.GENERIC_TABLE_METADATA);
+                Preconditions.checkArgument(services.getKeyValueService().getAllTableNames().contains(flag2),
+                        "kvs contains tables %s, but not table %s", services.getKeyValueService().getAllTableNames(), flag2);
+                services.getKeyValueService().dropTable(flag2);
+            }
+            return 0;
         }
 
     }
 
     @BeforeClass
     public static void setup() throws URISyntaxException {
-        SIMPLE_CONFIG_FILE = Paths.get(TestSingleBackendCommand.class.getClassLoader().getResource("simple_atlasdb_config.yml").toURI()).toString();
-        NESTED_CONFIG_FILE = Paths.get(TestSingleBackendCommand.class.getClassLoader().getResource("nested_atlasdb_config.yml").toURI()).toString();
+        SIMPLE_CONFIG_FILE = AbstractTestRunner.getResourcePath(RocksDbTestRunner.SIMPLE_ROCKSDB_CONFIG_FILENAME);
+        NESTED_CONFIG_FILE = Paths.get(TestSingleBackendCommand.class.getClassLoader().getResource("nested_rocksdb_config.yml").toURI()).toString();
     }
 
     @Test
@@ -124,6 +121,7 @@ public class TestSingleBackendCommand {
             parser.parse(args).call();
             return 0;
         } catch (Exception e) {
+            e.printStackTrace();
             return 1;
         }
     }

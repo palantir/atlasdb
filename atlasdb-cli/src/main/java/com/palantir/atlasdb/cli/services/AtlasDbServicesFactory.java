@@ -13,19 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.cli.api;
+package com.palantir.atlasdb.cli.services;
 
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
-import com.palantir.lock.RemoteLockService;
-import com.palantir.timestamp.TimestampService;
-
-public interface AtlasDbServices {
-    TimestampService getTimestampService();
-
-    RemoteLockService getLockSerivce();
-
-    KeyValueService getKeyValueService();
-
-    SerializableTransactionManager getTransactionManager();
+public interface AtlasDbServicesFactory {
+    <T extends AtlasDbServices> T connect(ServicesConfigModule servicesConfigModule);
 }
