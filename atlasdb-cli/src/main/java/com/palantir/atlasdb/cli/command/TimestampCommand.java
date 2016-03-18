@@ -32,7 +32,7 @@ public class TimestampCommand extends SingleBackendCommand {
     private boolean immutable;
     
 	@Override
-	protected int execute(AtlasDbServices services) {
+	public int execute(AtlasDbServices services) {
 		long latestTimestamp = services.getTimestampService().getFreshTimestamp();
 
         if (fresh || !(fresh || immutable)) {
