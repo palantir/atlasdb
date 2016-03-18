@@ -17,12 +17,29 @@ package com.palantir.atlasdb.keyvalue.impl;
 
 import static com.palantir.atlasdb.schema.TableReference.isFullyQualifiedName;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.*;
-import com.palantir.atlasdb.keyvalue.api.*;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.SetMultimap;
+import com.google.common.collect.Sets;
+import com.google.common.base.Optional;
+import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.schema.TableReference;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -75,6 +92,13 @@ public class TableSplittingKeyValueService implements KeyValueService {
 
     @Override
     public void createTables(Map<String, byte[]> tableNamesToTableMetadata) {
+        Map<KeyValueService, Map<String, byte[]>> splitTableNamesToTableMetadata = groupByDelegate(tableNamesToTableMetadata);
+        for (KeyValueService delegate : splitTableNamesToTableMetadata.keySet()) {
+            delegate.createTables(splitTableNamesToTableMetadata.get(delegate));
+        }
+    }
+
+    private Map<KeyValueService, Map<String, byte[]>> groupByDelegate(Map<String, byte[]> tableNamesToTableMetadata) {
         Map<KeyValueService, Map<String, byte[]>> splitTableNamesToTableMetadata = Maps.newHashMap();
         for (Entry<String, byte[]> tableEntry : tableNamesToTableMetadata.entrySet()) {
             String tableName = tableEntry.getKey();
@@ -89,9 +113,7 @@ public class TableSplittingKeyValueService implements KeyValueService {
                 splitTableNamesToTableMetadata.put(delegate, mapTableToMaxValue);
             }
         }
-        for (KeyValueService delegate : splitTableNamesToTableMetadata.keySet()) {
-            delegate.createTables(splitTableNamesToTableMetadata.get(delegate));
-        }
+        return splitTableNamesToTableMetadata;
     }
 
     @Override
@@ -155,19 +177,19 @@ public class TableSplittingKeyValueService implements KeyValueService {
             return delegateByTable.get(tableName);
         } else {
             return namespaceDelegateFor(tableName)
-                    .orElse(delegates.get(0));
+                    .or(delegates.get(0));
         }
     }
 
     private Optional<KeyValueService> namespaceDelegateFor(String tableName) {
         if (!isFullyQualifiedName(tableName)) {
-            return Optional.empty();
+            return Optional.absent();
         }
 
         TableReference tableRef = TableReference.createFromFullyQualifiedName(tableName);
         KeyValueService delegate = delegateByNamespace.get(tableRef.getNamespace().getName());
 
-        return Optional.ofNullable(delegate);
+        return Optional.fromNullable(delegate);
     }
 
     @Override
@@ -266,20 +288,7 @@ public class TableSplittingKeyValueService implements KeyValueService {
 
     @Override
     public void putMetadataForTables(Map<String, byte[]> tableNameToMetadata) {
-        Map<KeyValueService, Map<String, byte[]>> splitTableNameToMetadata = Maps.newHashMap();
-        for (Entry<String, byte[]> tableEntry : tableNameToMetadata.entrySet()) {
-            String tableName = tableEntry.getKey();
-            byte[] metadata = tableEntry.getValue();
-
-            KeyValueService delegate = getDelegate(tableName);
-            if (splitTableNameToMetadata.containsKey(delegate)) {
-                splitTableNameToMetadata.get(delegate).put(tableName, metadata);
-            } else {
-                Map<String, byte[]> mapTableToMetadata = Maps.newHashMap();
-                mapTableToMetadata.put(tableName, metadata);
-                splitTableNameToMetadata.put(delegate, mapTableToMetadata);
-            }
-        }
+        Map<KeyValueService, Map<String, byte[]>> splitTableNameToMetadata = groupByDelegate(tableNameToMetadata);
         for (KeyValueService delegate : splitTableNameToMetadata.keySet()) {
             delegate.putMetadataForTables(splitTableNameToMetadata.get(delegate));
         }

@@ -105,4 +105,33 @@ public class TableSplittingKeyValueServiceTest {
 
         splittingKvs.put(TABLE, VALUES, TIMESTAMP);
     }
+
+    @Test
+    public void splitsTableMetadataIntoTheCorrectTables() {
+        TableSplittingKeyValueService splittingKvs = TableSplittingKeyValueService.create(
+                ImmutableList.of(otherKvs, kvs),
+                ImmutableMap.of(
+                        "table1", kvs,
+                        "table2", otherKvs,
+                        "table3", otherKvs)
+        );
+
+        final byte[] metadata1 = "1".getBytes();
+        final byte[] metadata2 = "2".getBytes();
+        final byte[] metadata3 = "3".getBytes();
+
+        mockery.checking(new Expectations() {{
+            oneOf(kvs).createTables(ImmutableMap.of("table1", metadata1));
+            oneOf(otherKvs).createTables(ImmutableMap.of(
+                    "table2", metadata2,
+                    "table3", metadata3
+            ));
+        }});
+
+        splittingKvs.createTables(ImmutableMap.of(
+                "table1", metadata1,
+                "table2", metadata2,
+                "table3", metadata3
+        ));
+    }
 }
