@@ -38,7 +38,7 @@ public class PersistentTimestampServiceTest {
         final long initialValue = 72;
         m.checking(new Expectations() {{
             oneOf(tbsMock).getUpperLimit();
-            returnValue(initialValue);
+            will(returnValue(initialValue));
             oneOf(tbsMock).storeUpperLimit(with(any(Long.class)));
         }});
         PersistentTimestampService.create(tbsMock);
@@ -52,7 +52,7 @@ public class PersistentTimestampServiceTest {
         final long initialValue = 1_234_567L;
         final long futureTimestamp = 12_345_678L;
         m.checking(new Expectations() {{
-            oneOf(tbsMock).getUpperLimit(); returnValue(initialValue);
+            oneOf(tbsMock).getUpperLimit(); will(returnValue(initialValue));
             oneOf(tbsMock).storeUpperLimit(initialValue + PersistentTimestampService.ALLOCATION_BUFFER_SIZE);
             oneOf(tbsMock).storeUpperLimit(futureTimestamp + PersistentTimestampService.ALLOCATION_BUFFER_SIZE);
         }});
@@ -74,9 +74,9 @@ public class PersistentTimestampServiceTest {
     public void testLimit() throws InterruptedException {
         Mockery m = new Mockery();
         final TimestampBoundStore tbsMock = m.mock(TimestampBoundStore.class);
-        final long initialValue = 0;
+        final long initialValue = 72;
         m.checking(new Expectations() {{
-            oneOf(tbsMock).getUpperLimit(); returnValue(initialValue);
+            oneOf(tbsMock).getUpperLimit(); will(returnValue(initialValue));
             oneOf(tbsMock).storeUpperLimit(with(any(Long.class)));
             // Throws exceptions after here, which will prevent allocating more timestamps.
         }});
@@ -84,7 +84,7 @@ public class PersistentTimestampServiceTest {
         // Use up all initially-allocated timestamps.
         final TimestampService tsService = PersistentTimestampService.create(tbsMock);
         for (int i = 1; i <= PersistentTimestampService.ALLOCATION_BUFFER_SIZE; ++i) {
-            assertEquals(i, tsService.getFreshTimestamp());
+            assertEquals(initialValue+i, tsService.getFreshTimestamp());
         }
 
         ExecutorService exec = PTExecutors.newSingleThreadExecutor();
