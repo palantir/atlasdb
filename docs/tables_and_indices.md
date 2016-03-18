@@ -265,7 +265,7 @@ range requests are not needed, then perhaps
 `partitionStrategy(PartitionStrategy.HASH)` is a better idea for your table.
 
 {{site.data.alerts.important}}
-The first defined rowComponent of any table is used by the partitioner to distribute
+The most significant component of any table is used by the partitioner to distribute
 data across the cluster. To avoid hot-spotting, the type of the first row component
 should NOT be a VAR_LONG, a VAR_SIGNED_LONG, or a SIZED_BLOB.
 {{site.data.alerts.end}}
