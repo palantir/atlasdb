@@ -173,12 +173,13 @@ public class TableSplittingKeyValueService implements KeyValueService {
     }
 
     private KeyValueService getDelegate(String tableName) {
-        if(delegateByTable.containsKey(tableName)) {
-            return delegateByTable.get(tableName);
-        } else {
-            return namespaceDelegateFor(tableName)
-                    .or(delegates.get(0));
-        }
+        return tableDelegateFor(tableName)
+                .or(namespaceDelegateFor(tableName))
+                .or(delegates.get(0));
+    }
+
+    private Optional<KeyValueService> tableDelegateFor(String tableName) {
+        return Optional.fromNullable(delegateByTable.get(tableName));
     }
 
     private Optional<KeyValueService> namespaceDelegateFor(String tableName) {
