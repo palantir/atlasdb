@@ -30,6 +30,8 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.timestamp.PersistentTimestampService;
+import com.palantir.timestamp.TimestampService;
 
 import io.airlift.airline.Command;
 import io.airlift.airline.Option;
@@ -50,30 +52,35 @@ public class CleanTransactionRange extends SingleBackendCommand {
     final byte[] cleaned = TransactionConstants.getValueForTimestamp(TransactionConstants.CLEANED_COMMIT_TS);
 
     @Override
-    protected int execute(AtlasDbServices services) {
+    public int execute(AtlasDbServices services) {
         long immutable = services.getTransactionManager().getImmutableTimestamp();
-        if(!isValid(immutable)) {
+        TimestampService ts = services.getTimestampService();
+        if(!isValid(immutable, ts)) {
             return 1;
         }
 
+        PersistentTimestampService pts = (PersistentTimestampService) ts;
         KeyValueService kvs = services.getKeyValueService();
 
         byte[] startRowInclusive = RangeRequests.nextLexicographicName(TransactionConstants.getValueForTimestamp(startTimestampExclusive));
         ClosableIterator<RowResult<Value>> range = kvs.getRange(
                 TransactionConstants.TRANSACTION_TABLE,
                 RangeRequest.builder()
-                    .startRowInclusive(startRowInclusive)
-                    .build(),
+                .startRowInclusive(startRowInclusive)
+                .build(),
                 Long.MAX_VALUE);
 
         Map<Cell, byte[]> toClean = Maps.newHashMap();
 
+        long maxTimestamp = startTimestampExclusive;
         while (range.hasNext()) {
             RowResult<Value> row = range.next();
             long startResult = TransactionConstants.getTimestampForValue(row.getRowName());
+            maxTimestamp = Math.max(maxTimestamp, startResult);
             long endResult = 0L;
             if (row.getOnlyColumnValue() != null) {
                 endResult = TransactionConstants.getTimestampForValue(row.getOnlyColumnValue().getContents());
+                maxTimestamp = Math.max(maxTimestamp, endResult);
             } else {
                 //this should never happen
                 System.out.printf("Error: Found a row in the transactions table that didn't have 1 and only 1 column value: start=%d", startResult);
@@ -104,15 +111,24 @@ public class CleanTransactionRange extends SingleBackendCommand {
             System.out.println("Found no transactions inside the given range to clean up or delete.");
         }
 
+        pts.fastForwardTimestamp(maxTimestamp);
+        System.out.printf("Timestamp succesfully forwarded past all cleaned/deleted transactions to {}", maxTimestamp);
+
         return 0;
     }
 
-    private boolean isValid(long immutableTimestamp) {
+    private boolean isValid(long immutableTimestamp, TimestampService ts) {
         boolean isValid = true;
 
-        if (isValid &= immutableTimestamp <= startTimestampExclusive) {
+        if (immutableTimestamp <= startTimestampExclusive) {
             System.err.println("Error: There are no commited transactions in this range");
-            return false;
+            isValid &= false;
+        }
+
+        if (!(ts instanceof PersistentTimestampService)) {
+            System.err.printf("Error: Restoring timestamp service must be of type {}, but yours is {}",
+                    PersistentTimestampService.class.toString(), ts.getClass().toString());
+            isValid &= false;
         }
 
         return isValid;
