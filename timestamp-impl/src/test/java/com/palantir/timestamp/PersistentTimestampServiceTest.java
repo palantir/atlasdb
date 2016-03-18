@@ -44,6 +44,31 @@ public class PersistentTimestampServiceTest {
         PersistentTimestampService.create(tbsMock);
         m.assertIsSatisfied();
     }
+    
+    @Test
+    public void testFastForward() {
+        Mockery m = new Mockery();
+        final TimestampBoundStore tbsMock = m.mock(TimestampBoundStore.class);
+        final long initialValue = 1_234_567L;
+        final long futureTimestamp = 12_345_678L;
+        m.checking(new Expectations() {{
+            oneOf(tbsMock).getUpperLimit(); returnValue(initialValue);
+            oneOf(tbsMock).storeUpperLimit(initialValue + PersistentTimestampService.ALLOCATION_BUFFER_SIZE);
+            oneOf(tbsMock).storeUpperLimit(futureTimestamp + PersistentTimestampService.ALLOCATION_BUFFER_SIZE);
+        }});
+
+        final PersistentTimestampService ptsService = PersistentTimestampService.create(tbsMock);
+        for (int i = 1; i <= 1000; i++) {
+            assertEquals(initialValue+i, ptsService.getFreshTimestamp());
+        }
+        
+        ptsService.fastForwardTimestamp(futureTimestamp);
+        for (int i = 1; i <= 1000; i++) {
+            assertEquals(futureTimestamp+i, ptsService.getFreshTimestamp());
+        }
+        
+        m.assertIsSatisfied();
+    }
 
     @Test
     public void testLimit() throws InterruptedException {

@@ -206,10 +206,10 @@ public class PersistentTimestampService implements TimestampService {
      * @param timestamp
      */
     public synchronized void fastForwardTimestamp(long timestamp) {
-        store.storeUpperLimit(timestamp);
-
+        long upperLimit = timestamp + ALLOCATION_BUFFER_SIZE;
+        store.storeUpperLimit(upperLimit);
         // Prevent upper limit from falling behind stored upper limit.
-        advanceAtomicLongToValue(upperLimitToHandOutInclusive, timestamp);
+        advanceAtomicLongToValue(upperLimitToHandOutInclusive, upperLimit);
 
         // Prevent ourselves from serving any of the bad (read: pre-fastForward) timestamps
         advanceAtomicLongToValue(lastReturnedTimestamp, timestamp);
