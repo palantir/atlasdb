@@ -41,7 +41,7 @@ import com.palantir.common.annotation.NonIdempotent;
      */
     @CancelableServerCall
     @NonIdempotent
-    LockResponse lock(LockClient client, LockRequest request) throws InterruptedException;
+    LockResponse lockWithFullLockResponse(LockClient client, LockRequest request) throws InterruptedException;
 
     /**
      * @deprecated use {@link #unlockSimple(SimpleHeldLocksToken)} instead

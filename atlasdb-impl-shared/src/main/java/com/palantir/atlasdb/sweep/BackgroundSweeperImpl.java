@@ -59,6 +59,7 @@ import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.atlasdb.transaction.impl.UnmodifiableTransaction;
 import com.palantir.common.base.Throwables;
+import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
@@ -391,7 +392,7 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
         } else {
             LockDescriptor lock = StringLockDescriptor.of("atlas sweep");
             LockRequest request = LockRequest.builder(ImmutableSortedMap.of(lock, LockMode.WRITE)).doNotBlock().build();
-            LockRefreshToken token = txManager.getLockService().lockAnonymously(request);
+            LockRefreshToken token = txManager.getLockService().lock(LockClient.ANONYMOUS.getClientId(), request);
             return Optional.fromNullable(token);
         }
     }
