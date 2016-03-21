@@ -81,8 +81,8 @@ public class LockRefreshingLockService extends ForwardingLockService {
     }
 
     @Override
-    public LockResponse lock(LockClient client, LockRequest request) throws InterruptedException {
-        LockResponse lock = super.lock(client, request);
+    public LockResponse lockWithFullLockResponse(LockClient client, LockRequest request) throws InterruptedException {
+        LockResponse lock = super.lockWithFullLockResponse(client, request);
         if (lock.getToken() != null) {
             toRefresh.add(lock.getToken().getLockRefreshToken());
         }
@@ -90,18 +90,9 @@ public class LockRefreshingLockService extends ForwardingLockService {
     }
 
     @Override
-    public LockRefreshToken lockAnonymously(LockRequest request) throws InterruptedException {
-        LockRefreshToken ret = super.lockAnonymously(request);
-        if (ret != null) {
-            toRefresh.add(ret);
-        }
-        return ret;
-    }
-
-    @Override
-    public LockRefreshToken lockWithClient(String client, LockRequest request)
+    public LockRefreshToken lock(String client, LockRequest request)
             throws InterruptedException {
-        LockRefreshToken ret = super.lockWithClient(client, request);
+        LockRefreshToken ret = super.lock(client, request);
         if (ret != null) {
             toRefresh.add(ret);
         }
