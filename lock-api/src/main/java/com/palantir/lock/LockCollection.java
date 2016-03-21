@@ -87,8 +87,6 @@ public class LockCollection<T> extends AbstractCollection<T> implements Serializ
                         LockMode mode = values.get(index) ? LockMode.WRITE : LockMode.READ;
                         return Maps.immutableEntry(keys[index++], mode);
                     }
-
-
                 };
             }
         };

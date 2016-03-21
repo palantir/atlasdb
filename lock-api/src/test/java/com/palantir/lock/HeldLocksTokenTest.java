@@ -42,5 +42,15 @@ public class HeldLocksTokenTest {
 		HeldLocksToken deserialized = mapper.readValue(serialized, HeldLocksToken.class);
 		
 		assertThat(deserialized, is(heldLocksToken));
+		
+		// manually assert each field is equal, because equality in HeldLocksToken is just comparing the token id
+		assertThat(deserialized.getClient(), is(heldLocksToken.getClient()));
+		assertThat(deserialized.getCreationDateMs(), is(heldLocksToken.getCreationDateMs()));
+		assertThat(deserialized.getExpirationDateMs(), is(heldLocksToken.getExpirationDateMs()));
+		assertThat(deserialized.getLockRefreshToken(), is(heldLocksToken.getLockRefreshToken()));
+		assertThat(deserialized.getLocks(), is(heldLocksToken.getLocks()));
+		assertThat(deserialized.getLockTimeout(), is(heldLocksToken.getLockTimeout()));
+		assertThat(deserialized.getTokenId(), is(heldLocksToken.getTokenId()));
+		assertThat(deserialized.getVersionId(), is(heldLocksToken.getVersionId()));
 	}
 }
