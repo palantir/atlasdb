@@ -250,7 +250,7 @@ across all partitions.
 
 ```java
 public void partition(RowNamePartitioner... partitioners);
- 
+
 public ExplicitRowNamePartitioner explicit(String... componentValues);
 public ExplicitRowNamePartitioner explicit(long... componentValues);
 public UniformRowNamePartitioner uniform();
@@ -263,6 +263,20 @@ specifying `explicit(...)`. Note that use of `partition()` assumes the order
 storage of rows; if there is no good way to partition the rows uniformly and
 range requests are not needed, then perhaps
 `partitionStrategy(PartitionStrategy.HASH)` is a better idea for your table.
+
+{{site.data.alerts.important}}
+The most significant component of any table is used by the partitioner to distribute
+data across the cluster. To avoid hot-spotting, the type of the first row component
+should NOT be a VAR_LONG, a VAR_SIGNED_LONG, or a SIZED_BLOB.
+{{site.data.alerts.end}}
+
+For a safe data distribution it is suggested the usage of `hashFirstRowComponent()`:
+
+```java
+rowName();
+    hashFirstRowComponent()
+    rowComponent("secondary_row_component_of_any_type", ValueType.VAR_LONG);
+```
 
 ### Table Named Columns
 
@@ -331,20 +345,20 @@ Both the `rowName()` and `dynamicColumns()` sections use the same methods to
 define their components:
 
 ```java
-public void componentFromRow(String componentName, 
-                             ValueType valueType, 
-                             ValueByteOrder byteOrder = ValueByteOrder.ASCENDING, 
+public void componentFromRow(String componentName,
+                             ValueType valueType,
+                             ValueByteOrder byteOrder = ValueByteOrder.ASCENDING,
                              String sourceComponentName = componentName);
 
-public void componentFromColumn(String componentName, 
-                                ValueType valueType, 
-                                ValueByteOrder byteOrder = ValueByteOrder.ASCENDING, 
-                                String sourceColumnName = componentName, 
+public void componentFromColumn(String componentName,
+                                ValueType valueType,
+                                ValueByteOrder byteOrder = ValueByteOrder.ASCENDING,
+                                String sourceColumnName = componentName,
                                 String codeToAccessValue);
 
-public void componentFromDynamicColumn(String componentName, 
-                                       ValueType valueType, 
-                                       ValueByteOrder byteOrder = ValueByteOrder.ASCENDING, 
+public void componentFromDynamicColumn(String componentName,
+                                       ValueType valueType,
+                                       ValueByteOrder byteOrder = ValueByteOrder.ASCENDING,
                                        String sourceComponentName = componentName);
 ```
 
