@@ -47,7 +47,6 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
-import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
@@ -94,8 +93,17 @@ public abstract class AbstractSweeperTest {
     }
 
     private static void setupTables(KeyValueService kvs) {
+        tearDownTables(kvs);
+        Set<String> allTableNames = kvs.getAllTableNames();
+        System.out.println(allTableNames);
         TransactionTables.createTables(kvs);
         Schemas.createTablesAndIndexes(SweepSchema.INSTANCE.getLatestSchema(), kvs);
+    }
+
+    private static void tearDownTables(KeyValueService kvs) {
+        kvs.dropTable(TABLE_NAME);
+        TransactionTables.deleteTables(kvs);
+        Schemas.deleteTablesAndIndexes(SweepSchema.INSTANCE.getLatestSchema(), kvs);
     }
 
     private void setupBackgroundSweeper() {
@@ -107,7 +115,7 @@ public abstract class AbstractSweeperTest {
 
     @After
     public void tearDown() {
-        kvs.close();
+        kvs.teardown();
         lockService.close();
     }
 
@@ -323,8 +331,7 @@ public abstract class AbstractSweeperTest {
         put("foo", "baz", 100);
         put("foo", "buzz", 125);
         runBackgroundSweep(120, 3);
-        List<SweepPriorityRowResult> results = txManager.runTaskReadOnly(
-                (TransactionTask<List<SweepPriorityRowResult>, RuntimeException>) t -> {
+        List<SweepPriorityRowResult> results = txManager.runTaskReadOnly(t -> {
                     SweepPriorityTable priorityTable = SweepTableFactory.of().getSweepPriorityTable(t);
                     return BatchingVisitables.copyToList(priorityTable.getAllRowsUnordered());
                 });

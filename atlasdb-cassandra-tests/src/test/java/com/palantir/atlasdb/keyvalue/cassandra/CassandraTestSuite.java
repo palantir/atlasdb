@@ -25,11 +25,12 @@ import org.junit.runners.Suite.SuiteClasses;
 
 @RunWith(Suite.class)
 @SuiteClasses({
-    CassandraKeyValueServiceSerializableTransactionTest.class,
-    CassandraKeyValueServiceTransactionTest.class,
-    CQLKeyValueServiceSerializableTransactionTest.class,
-    CQLKeyValueServiceTransactionTest.class,
-    CassandraTimestampTest.class,
+        CassandraKeyValueServiceSweeperTest.class,
+        CassandraKeyValueServiceSerializableTransactionTest.class,
+        CassandraKeyValueServiceTransactionTest.class,
+        CQLKeyValueServiceSerializableTransactionTest.class,
+        CQLKeyValueServiceTransactionTest.class,
+        CassandraTimestampTest.class
 })
 public class CassandraTestSuite {
 
