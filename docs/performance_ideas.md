@@ -13,13 +13,11 @@ out of AtlasDB.
 
 A long lived writing transaction may cause problems in the following cases
 
-*   Consistent backups cannot advance past the start time of this transaction *
-If we do any sort of cross data center replication it can't advance past this
-open transaction *   We may be doing a bunch of work that will be rolled back
-at commit time due to a write/write conflict *   If you grabbed locks before
-starting the transaction, other users could be blocking on these locks *   Our
-locks may have timed out and we won't find out until commit time and have to
-retry all this work
+*   Consistent backups cannot advance past the start time of this transaction
+*   If we do any sort of cross data center replication it can't advance past this open transaction
+*   We may be doing a bunch of work that will be rolled back at commit time due to a write/write conflict
+*   If you grabbed locks before starting the transaction, other users could be blocking on these locks
+*   Our locks may have timed out and we won't find out until commit time and have to retry all this work
 
 The general theme here is that you are blocking others and you may have to be
 rolled back and redo all the work. AtlasDB just buffers up writes and doesn't

@@ -44,7 +44,7 @@ Lets assume we are reading Cell c.
 c.startTs is less than immutatableTs) This is to wait to make sure the
 transaction that wrote it is done.
 3. Read the transaction table for the commitTs.
-4.
+4. &nbsp;
   * If commitTs doesn't exists try to roll back this transaction and start
 over. If it is -1 (been rolled back) delete the associated data and start over.
   * If c.commitTs greater than your startTs skip it and move on to the next highest
@@ -118,7 +118,7 @@ scans really slow if the whole table is full of these nonce values.
 
 For specific tables we allow these old nonce values to be removed from the KV
 store, but at the cost of never being able to read this table in a read-only
-transaction. This seems like a good trade-off and let's us build indexes with
+transaction. This seems like a good trade-off and lets us build indexes with
 status variables and be able to delete old values completely and still support
 range scans.
 
