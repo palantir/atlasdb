@@ -15,6 +15,8 @@
  */
 package com.palantir.lock;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
@@ -24,6 +26,8 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 
@@ -48,12 +52,17 @@ import com.google.common.base.Preconditions;
     /**
      * This should only be created by the Lock Service
      */
-    public HeldLocksToken(BigInteger tokenId, LockClient client, long createionDateMs,
-            long expirationDateMs, SortedLockCollection<LockDescriptor> lockMap,
-            TimeDuration lockTimeout, @Nullable Long versionId) {
-        this.tokenId = Preconditions.checkNotNull(tokenId);
-        this.client = Preconditions.checkNotNull(client);
-        this.creationDateMs = createionDateMs;
+    public HeldLocksToken(
+    		@JsonProperty("tokenId") BigInteger tokenId,
+    		@JsonProperty("client") LockClient client,
+    		@JsonProperty("creationDateMs") long creationDateMs,
+            @JsonProperty("expirationDateMs") long expirationDateMs,
+            @JsonProperty("locks") SortedLockCollection<LockDescriptor> lockMap,
+            @JsonProperty("lockTimeout") TimeDuration lockTimeout, 
+            @JsonProperty("versionId") @Nullable Long versionId) {
+        this.tokenId = checkNotNull(tokenId);
+        this.client = checkNotNull(client);
+        this.creationDateMs = creationDateMs;
         this.expirationDateMs = expirationDateMs;
         this.lockMap = lockMap;
         this.lockTimeout = SimpleTimeDuration.of(lockTimeout);
@@ -68,6 +77,7 @@ import com.google.common.base.Preconditions;
         return tokenId;
     }
 
+    @JsonIgnore
     public LockRefreshToken getLockRefreshToken() {
         return new LockRefreshToken(tokenId, expirationDateMs);
     }

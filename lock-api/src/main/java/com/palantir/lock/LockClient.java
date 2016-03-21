@@ -22,6 +22,8 @@ import java.io.Serializable;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
@@ -66,6 +68,11 @@ import com.google.common.base.Strings;
         Preconditions.checkArgument(!clientId.equals(INTERNAL_LOCK_GRANT_CLIENT_ID));
         return new LockClient(clientId);
     }
+    
+    @JsonCreator
+    public static LockClient valueOf(String clientId) {
+    	return of(clientId);
+    }
 
     // XXX ONLY use this for deserialization!
     public LockClient(@Nullable String clientId) {
@@ -78,6 +85,7 @@ import com.google.common.base.Strings;
     }
 
     /** Returns the client ID, or the empty string if this is an anonymous client. */
+    @JsonValue
     public String getClientId() {
         return clientId;
     }

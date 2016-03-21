@@ -26,6 +26,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
@@ -42,6 +44,7 @@ public class LockCollection<T> extends AbstractCollection<T> implements Serializ
     protected final BitSet values;
 
     @SuppressWarnings("unchecked")
+    @JsonCreator
     LockCollection(Collection<Map.Entry<T, LockMode>> locks) {
         this.keys = (T[]) new Object[locks.size()];
         this.values = new BitSet(locks.size());
@@ -68,6 +71,7 @@ public class LockCollection<T> extends AbstractCollection<T> implements Serializ
         return values.nextClearBit(0) < keys.length;
     }
 
+    @JsonValue
     public Iterable<Map.Entry<T, LockMode>> entries() {
         return new Iterable<Map.Entry<T,LockMode>>() {
             @Override
