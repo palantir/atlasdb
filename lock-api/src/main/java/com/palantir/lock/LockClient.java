@@ -41,7 +41,7 @@ import com.google.common.base.Strings;
      * locks reentrantly, because the server has no way to know whether the
      * current client is the same one who already holds the lock.
      */
-    public static final LockClient ANONYMOUS = new LockClient(null);
+    public static final LockClient ANONYMOUS = new LockClient("");
 
     private static final String INTERNAL_LOCK_GRANT_CLIENT_ID = "(internal lock grant client)";
 
@@ -60,7 +60,9 @@ import com.google.common.base.Strings;
      *         the empty string
      */
     public static LockClient of(String clientId) {
-        Preconditions.checkArgument(!Strings.isNullOrEmpty(clientId));
+        if (Strings.isNullOrEmpty(clientId)) {
+            return ANONYMOUS;
+        }
         Preconditions.checkArgument(!clientId.equals(INTERNAL_LOCK_GRANT_CLIENT_ID));
         return new LockClient(clientId);
     }
@@ -72,11 +74,11 @@ import com.google.common.base.Strings;
 
     /** Returns {@code true} if this is an anonymous lock client. */
     public boolean isAnonymous() {
-        return clientId == null;
+        return clientId.isEmpty();
     }
 
-    /** Returns the client ID, or {@code null} if this is an anonymous client. */
-    @Nullable public String getClientId() {
+    /** Returns the client ID, or the empty string if this is an anonymous client. */
+    public String getClientId() {
         return clientId;
     }
 
@@ -115,7 +117,7 @@ import com.google.common.base.Strings;
         }
 
         Object readResolve() {
-            if (clientId == null) return ANONYMOUS;
+            if (Strings.isNullOrEmpty(clientId)) return ANONYMOUS;
             if (clientId.equals(INTERNAL_LOCK_GRANT_CLIENT_ID)) return INTERNAL_LOCK_GRANT_CLIENT;
             return of(clientId);
         }

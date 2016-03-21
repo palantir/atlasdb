@@ -27,6 +27,7 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.common.collect.IterableUtils;
 import com.palantir.lock.HeldLocksToken;
+import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRequest;
 
 public abstract class AbstractLockAwareTransactionManager extends AbstractTransactionManager implements LockAwareTransactionManager {
@@ -41,7 +42,7 @@ public abstract class AbstractLockAwareTransactionManager extends AbstractTransa
             HeldLocksToken lockToken = null;
             if (lockRequest != null) {
                 Validate.isTrue(lockRequest.getVersionId() == null, "Using a version id is not allowed");
-                HeldLocksToken response = getLockService().lockAndGetHeldLocksAnonymously(lockRequest);
+                HeldLocksToken response = getLockService().lockAndGetHeldLocks(LockClient.ANONYMOUS.getClientId(), lockRequest);
                 if (response == null) {
                     RuntimeException e = new LockAcquisitionException("Failed to lock using the provided lock request: " + lockRequest);
                     log.warn("Could not lock successfullly", e);

@@ -252,7 +252,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         m.checking(new Expectations() {{
             oneOf(kvMock).get(TABLE, ImmutableMap.of(cell, transactionTs)); will(throwException(new RuntimeException()));
-            never(lockMock).lock(with(LockClient.ANONYMOUS), with(any(LockRequest.class)));
+            never(lockMock).lockWithFullLockResponse(with(LockClient.ANONYMOUS), with(any(LockRequest.class)));
         }});
 
         SnapshotTransaction snapshot = new SnapshotTransaction(
