@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.google.common.collect.Iterables;
 
 /**
@@ -30,6 +31,7 @@ import com.google.common.collect.Iterables;
 public class SortedLockCollection<T> extends LockCollection<T> implements Set<T> {
     private static final long serialVersionUID = 1L;
 
+    @JsonCreator
     SortedLockCollection(Collection<Map.Entry<T, LockMode>> locks) {
         super(locks);
     }
