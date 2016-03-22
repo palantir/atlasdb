@@ -79,29 +79,50 @@ public class PuncherTest {
     }
 
     long timeMillis = 0;
+    
+    final long firstPunchTimestamp = 33L;
+    final long secondPunchTimestamp = 35L;
+    final long thirdPunchTimestamp = 37L;
+    
+    final long firstTimestampToGetMillis = 34L;
+    final long secondTimestampToGetMillis = 35L;
+    final long thirdTimestampToGetMillis = 36L;
 
     @Test
     public void test() {
         Puncher puncher = SimplePuncher.create(puncherStore, clock, Suppliers.ofInstance(10000L));
         Supplier<Long> timestampSupplier = puncher.getTimestampSupplier();
+        
         timeMillis += 60000L;
         assertEquals(Long.MIN_VALUE, (long) timestampSupplier.get());
         timeMillis += 60000L;
         assertEquals(Long.MIN_VALUE, (long) timestampSupplier.get());
         timeMillis += 60000L;
-        puncher.punch(34L);
+        
+        final long firstExpectedMillis = timeMillis;
+        puncher.punch(firstPunchTimestamp);
+        
         timeMillis += 60000L;
-        assertEquals(34L, (long) timestampSupplier.get());
-        puncher.punch(35L);
-        assertEquals(34L, (long) timestampSupplier.get());
+        assertEquals(firstPunchTimestamp, (long) timestampSupplier.get());
+        
+        final long secondExpectedMillis = timeMillis;
+        puncher.punch(secondPunchTimestamp);
+        
+        assertEquals(firstPunchTimestamp, (long) timestampSupplier.get());
         timeMillis += 60000L;
-        assertEquals(35L, (long) timestampSupplier.get());
+        assertEquals(secondPunchTimestamp, (long) timestampSupplier.get());
         timeMillis += 10L;
-        assertEquals(35L, (long) timestampSupplier.get());
-        puncher.punch(36L);
-        assertEquals(35L, (long) timestampSupplier.get());
+        assertEquals(secondPunchTimestamp, (long) timestampSupplier.get());
+        
+        puncher.punch(thirdPunchTimestamp);
+        
+        assertEquals(secondPunchTimestamp, (long) timestampSupplier.get());
         timeMillis += 60000L;
-        assertEquals(36L, (long) timestampSupplier.get());
+        assertEquals(thirdPunchTimestamp, (long) timestampSupplier.get());
+        
+        assertEquals(firstExpectedMillis, KeyValueServicePuncherStore.getMillisForTimestamp(kvs, firstTimestampToGetMillis));
+        assertEquals(secondExpectedMillis, KeyValueServicePuncherStore.getMillisForTimestamp(kvs, secondTimestampToGetMillis));
+        assertEquals(secondExpectedMillis, KeyValueServicePuncherStore.getMillisForTimestamp(kvs, thirdTimestampToGetMillis));
     }
 
     @Test

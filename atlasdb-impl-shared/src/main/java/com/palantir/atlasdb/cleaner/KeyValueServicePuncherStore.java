@@ -85,4 +85,29 @@ public class KeyValueServicePuncherStore implements PuncherStore {
             result.close();
         }
     }
+    
+    public static long getMillisForTimestamp(KeyValueService kvs, long timestamp) {
+        long timestampExclusive = timestamp + 1;
+        // punch table is keyed by the real value we're trying to find so we have to do a whole table
+        // scan, which is fine because this table should be really small
+        byte[] startRow = EncodingUtils.encodeUnsignedVarLong(Long.MAX_VALUE);
+        EncodingUtils.flipAllBitsInPlace(startRow);
+        RangeRequest rangeRequest = 
+                RangeRequest.builder().startRowInclusive(startRow).batchHint(1).build();
+        ClosableIterator<RowResult<Value>> result = 
+                kvs.getRange(AtlasDbConstants.PUNCH_TABLE, rangeRequest, timestampExclusive);
+        
+        try {
+            if (result.hasNext()) {
+                byte[] encodedMillis = result.next().getRowName();
+                EncodingUtils.flipAllBitsInPlace(encodedMillis);
+                return EncodingUtils.decodeUnsignedVarLong(encodedMillis);
+            } else {
+                return 0L;
+            }
+        } finally {
+            result.close();
+        }
+    }
+
 }

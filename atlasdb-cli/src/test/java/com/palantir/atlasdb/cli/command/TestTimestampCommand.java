@@ -57,7 +57,7 @@ public class TestTimestampCommand {
 
     @Test
     public void testBasicInvariants() throws Exception {
-        try (SingleBackendCliTestRunner runner = makeRunner("-f", "-i")) {
+        try (SingleBackendCliTestRunner runner = makeRunner("-f", "-i", "-d")) {
             TestAtlasDbServices services = runner.connect(moduleFactory);
             RemoteLockService rls = services.getLockSerivce();
             TimestampService tss = services.getTimestampService();
@@ -74,6 +74,8 @@ public class TestTimestampCommand {
             Scanner scanner = new Scanner(runner.run());
             final long fresh = Long.parseLong(scanner.findInLine("\\d+"));
             final long immutable = Long.parseLong(scanner.findInLine("\\d+"));
+            final String immutableDateTime = scanner.findInLine("(?:\\:\\s).*");
+            System.out.println("TESTING " + immutableDateTime);
             Preconditions.checkArgument(immutable <= lockedTs);
             Preconditions.checkArgument(fresh > lockedTs);
             Preconditions.checkArgument(fresh < tss.getFreshTimestamp());

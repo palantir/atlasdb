@@ -15,6 +15,10 @@
  */
 package com.palantir.atlasdb.cli.command;
 
+import org.joda.time.DateTime;
+import org.joda.time.format.ISODateTimeFormat;
+
+import com.palantir.atlasdb.cleaner.KeyValueServicePuncherStore;
 import com.palantir.atlasdb.cli.services.AtlasDbServices;
 
 import io.airlift.airline.Command;
@@ -31,17 +35,35 @@ public class TimestampCommand extends SingleBackendCommand {
     		description = "Get the current immutable timestamp")
     private boolean immutable;
     
+    @Option(name = {"-d", "--date-time"},
+            description = "Return the earliest real point in time at which the immutable timestamp" +
+                    " could have been used in a transaction.  Requires --immutable to be set")
+    private boolean dateTime;
+    
 	@Override
 	public int execute(AtlasDbServices services) {
-		long latestTimestamp = services.getTimestampService().getFreshTimestamp();
+	    if(dateTime && !immutable) {
+	        System.err.println("You can't use --date-time without also using --immutable");
+	        return 1;
+	    }
+	    
+	    long latestTimestamp = services.getTimestampService().getFreshTimestamp();
 
         if (fresh || !(fresh || immutable)) {
-            System.out.println("Current timestamp is: " + latestTimestamp); // (authorized)
+            System.out.println("Fresh timestamp is: " + latestTimestamp);
         }
 
         if (immutable) {
         	long immutableTimestamp = services.getTransactionManager().getImmutableTimestamp();
-            System.out.println("Current immutable timestamp is: " + immutableTimestamp); // (authorized)
+            System.out.println("Current immutable timestamp is: " + immutableTimestamp);
+            
+            if (dateTime) {
+                long timeMillis = KeyValueServicePuncherStore.getMillisForTimestamp(
+                        services.getKeyValueService(), immutableTimestamp);
+                DateTime dt = new DateTime(timeMillis);
+                String stringTime = dt.toString(ISODateTimeFormat.dateTimeNoMillis());
+                System.out.printf("Real date time of immutable timestamp is: {}", stringTime);
+            }
         }
 
         return 0;
