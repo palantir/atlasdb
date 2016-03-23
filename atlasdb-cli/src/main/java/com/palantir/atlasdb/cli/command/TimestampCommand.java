@@ -61,8 +61,8 @@ public class TimestampCommand extends SingleBackendCommand {
                 long timeMillis = KeyValueServicePuncherStore.getMillisForTimestamp(
                         services.getKeyValueService(), immutableTimestamp);
                 DateTime dt = new DateTime(timeMillis);
-                String stringTime = dt.toString(ISODateTimeFormat.dateTimeNoMillis());
-                System.out.printf("Real date time of immutable timestamp is: {}", stringTime);
+                String stringTime = ISODateTimeFormat.dateTimeNoMillis().print(dt);
+                System.out.printf("Real date time of immutable timestamp is: " + stringTime);
             }
         }
 

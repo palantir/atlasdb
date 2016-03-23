@@ -120,9 +120,9 @@ public class PuncherTest {
         timeMillis += 60000L;
         assertEquals(thirdPunchTimestamp, (long) timestampSupplier.get());
         
-        assertEquals(firstExpectedMillis, KeyValueServicePuncherStore.getMillisForTimestamp(kvs, firstTimestampToGetMillis));
-        assertEquals(secondExpectedMillis, KeyValueServicePuncherStore.getMillisForTimestamp(kvs, secondTimestampToGetMillis));
-        assertEquals(secondExpectedMillis, KeyValueServicePuncherStore.getMillisForTimestamp(kvs, thirdTimestampToGetMillis));
+        assertEquals(firstExpectedMillis, puncherStore.getMillisForTimestamp(firstTimestampToGetMillis));
+        assertEquals(secondExpectedMillis, puncherStore.getMillisForTimestamp(secondTimestampToGetMillis));
+        assertEquals(secondExpectedMillis, puncherStore.getMillisForTimestamp(thirdTimestampToGetMillis));
     }
 
     @Test

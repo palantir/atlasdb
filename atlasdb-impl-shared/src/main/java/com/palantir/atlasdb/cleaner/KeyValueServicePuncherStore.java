@@ -86,6 +86,11 @@ public class KeyValueServicePuncherStore implements PuncherStore {
         }
     }
     
+    @Override
+    public long getMillisForTimestamp(long timestamp) {
+        return getMillisForTimestamp(keyValueService, timestamp);
+    }
+
     public static long getMillisForTimestamp(KeyValueService kvs, long timestamp) {
         long timestampExclusive = timestamp + 1;
         // punch table is keyed by the real value we're trying to find so we have to do a whole table
