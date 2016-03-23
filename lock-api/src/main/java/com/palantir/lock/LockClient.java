@@ -22,6 +22,8 @@ import java.io.Serializable;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
@@ -68,7 +70,8 @@ import com.google.common.base.Strings;
     }
 
     // XXX ONLY use this for deserialization!
-    public LockClient(@Nullable String clientId) {
+    @JsonCreator
+    public LockClient(@JsonProperty("clientId") @Nullable String clientId) {
         this.clientId = clientId;
     }
 
