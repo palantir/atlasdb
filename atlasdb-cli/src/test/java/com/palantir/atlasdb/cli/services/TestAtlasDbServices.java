@@ -23,7 +23,7 @@ import dagger.Component;
 
 @Singleton
 @Component(modules = { ServicesConfigModule.class, KeyValueServiceModule.class, RawKeyValueServiceModule.class,
-        LockAndTimestampModule.class, SweeperModule.class, TestTransactionManagerModule.class })
+        LockAndTimestampModule.class, TestSweeperModule.class, TestTransactionManagerModule.class })
 public abstract class TestAtlasDbServices extends AtlasDbServices {
 
     public abstract LockClient getTestLockClient();

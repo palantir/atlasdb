@@ -22,6 +22,8 @@ public interface SingleBackendCliTestRunner extends AutoCloseable {
 
     <T extends AtlasDbServices> T connect(AtlasDbServicesFactory factory) throws Exception;
 
+    void parse(String... args);
+
     String run();
 
     String run(boolean failOnNonZeroExit, boolean singleLine);
