@@ -49,9 +49,6 @@ public enum SweepSchema implements AtlasSchema {
             columns();
                 // The name of the table being swept.
                 column("full_table_name", "n", ValueType.STRING);
-                // The minimum swept timestamp, used to determine min
-                // timestamp for transaction table sweep
-                column("minimum_swept_timestamp", "m", ValueType.VAR_LONG);
                 // The row to start sweeping from if sweeping
                 // is paused and resumed.
                 column("start_row", "s", ValueType.BLOB);

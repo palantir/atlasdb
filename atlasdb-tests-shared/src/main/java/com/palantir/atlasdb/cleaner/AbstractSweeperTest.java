@@ -33,6 +33,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable;
@@ -76,8 +77,8 @@ public abstract class AbstractSweeperTest {
 
     @Before
     public void setup() {
-        this.kvs = getKeyValueService();
         TimestampService tsService = new InMemoryTimestampService();
+        this.kvs = new SweepStatsKeyValueService(getKeyValueService(), tsService);
         LockClient lockClient = LockClient.of("sweep client");
         lockService = LockServiceImpl.create(new LockServerOptions() { @Override public boolean isStandaloneServer() { return false; }});
         txService = TransactionServices.createTransactionService(kvs);
@@ -95,7 +96,6 @@ public abstract class AbstractSweeperTest {
     private static void setupTables(KeyValueService kvs) {
         tearDownTables(kvs);
         Set<String> allTableNames = kvs.getAllTableNames();
-        System.out.println(allTableNames);
         TransactionTables.createTables(kvs);
         Schemas.createTablesAndIndexes(SweepSchema.INSTANCE.getLatestSchema(), kvs);
     }
@@ -347,7 +347,7 @@ public abstract class AbstractSweeperTest {
         put("foo", "bar", 50);
         put("foo", "baz", 100);
         put("foo", "buzz", 125);
-        // the expectation is that the sweep tables will be choosen first
+        // the expectation is that the sweep tables will be chosen first
         runBackgroundSweep(110, 2);
         runBackgroundSweep(120, 1);
         List<SweepPriorityRowResult> results = txManager.runTaskReadOnly(t -> {
@@ -356,7 +356,7 @@ public abstract class AbstractSweeperTest {
                 });
         for (SweepPriorityRowResult result : results) {
             switch (result.getRowName().getFullTableName()) {
-                case "sweep.priorites":
+                case "sweep.priority":
                     Assert.assertEquals(new Long(110), result.getMinimumSweptTimestamp());
                     Assert.assertEquals(new Long(0), result.getCellsDeleted());
                     Assert.assertEquals(new Long(1), result.getCellsExamined());
