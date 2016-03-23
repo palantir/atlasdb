@@ -316,8 +316,8 @@ public final class ClientAwareLockTest {
         }
         futureToCancel.cancel(true);
         anonymousWriteLock.unlock();
-        futureToSucceed.get(100, TimeUnit.MILLISECONDS);
-        futureToCancel.get(100, TimeUnit.MILLISECONDS);
+        futureToSucceed.get(1000, TimeUnit.MILLISECONDS);
+        futureToCancel.get(1000, TimeUnit.MILLISECONDS);
         anonymousReadLock.unlock();
         Assert.assertNull(knownClientWriteLock.tryLock());
         knownClientWriteLock.unlock();
