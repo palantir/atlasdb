@@ -13,13 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.cli.api;
+package com.palantir.atlasdb.cli.command;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.Callable;
 
-import com.palantir.atlasdb.cli.impl.AtlasDbServicesImpl;
+import com.google.common.annotations.VisibleForTesting;
+import com.palantir.atlasdb.cli.services.AtlasDbServices;
+import com.palantir.atlasdb.cli.services.AtlasDbServicesFactory;
+import com.palantir.atlasdb.cli.services.DaggerAtlasDbServices;
+import com.palantir.atlasdb.cli.services.ServicesConfigModule;
 import com.palantir.common.base.Throwables;
 
 import io.airlift.airline.Option;
@@ -39,13 +43,24 @@ public abstract class SingleBackendCommand implements Callable<Integer> {
 
     @Override
     public Integer call() {
-        try {
-            return execute(AtlasDbServicesImpl.connect(configFile, configRoot));
-        } catch (IOException e) {
+        try (AtlasDbServices services = connect()) {
+            return execute(services);
+        } catch (Exception e) {
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }
     }
 
-    protected abstract int execute(AtlasDbServices services);
+    public abstract int execute(AtlasDbServices services);
+
+    private AtlasDbServices connect() throws IOException {
+        ServicesConfigModule scm = ServicesConfigModule.create(configFile, configRoot);
+        return DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
+    }
+
+    @VisibleForTesting
+    public <T extends AtlasDbServices> T connect(AtlasDbServicesFactory factory) throws IOException {
+        ServicesConfigModule scm = ServicesConfigModule.create(configFile, configRoot);
+        return factory.connect(scm);
+    }
 
 }

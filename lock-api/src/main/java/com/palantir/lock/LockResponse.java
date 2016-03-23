@@ -32,7 +32,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedMap;
 
 /**
- * Represents the result of calling {@link LockService#lock(LockClient, LockRequest)} on
+ * Represents the result of calling {@link LockService#lockWithFullLockResponse(LockClient, LockRequest)} on
  * the lock server. If locks were successfully acquired, then {@link #success()}
  * returns <code>true</code> and {@link #getToken()} returns the token which
  * represents the held locks.

@@ -62,7 +62,7 @@ public class LockRefreshingLockServiceTest {
     public void testSimpleRefresh() throws InterruptedException {
         Builder builder = LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.WRITE));
         builder.timeoutAfter(SimpleTimeDuration.of(5, TimeUnit.SECONDS));
-        LockResponse lock = server.lock(LockClient.ANONYMOUS, builder.build());
+        LockResponse lock = server.lockWithFullLockResponse(LockClient.ANONYMOUS, builder.build());
         Thread.sleep(10000);
         Set<HeldLocksToken> refreshTokens = server.refreshTokens(ImmutableList.of(lock.getToken()));
         Assert.assertEquals(1, refreshTokens.size());
