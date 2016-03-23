@@ -36,7 +36,7 @@ public class TimestampCommand extends SingleBackendCommand {
     private boolean immutable;
     
     @Option(name = {"-d", "--date-time"},
-            description = "Return the earliest real point in time at which the immutable timestamp" +
+            description = "Return the earliest approximate wall clock time at which the immutable timestamp" +
                     " could have been used in a transaction.  Requires --immutable to be set")
     private boolean dateTime;
     

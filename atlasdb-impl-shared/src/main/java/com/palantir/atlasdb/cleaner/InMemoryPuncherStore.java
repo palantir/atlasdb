@@ -16,7 +16,7 @@
 package com.palantir.atlasdb.cleaner;
 
 import java.util.Map;
-import java.util.TreeMap;
+import java.util.NavigableMap;
 
 import com.google.common.collect.Maps;
 
@@ -37,10 +37,10 @@ class InMemoryPuncherStore implements PuncherStore {
     private InMemoryPuncherStore() {//
     }
 
-    private final TreeMap<Long, Long> map = makeMap();
+    private final NavigableMap<Long, Long> map = makeMap();
 
-    private final TreeMap<Long, Long> makeMap() {
-        TreeMap<Long, Long> map1 = Maps.newTreeMap();
+    private final NavigableMap<Long, Long> makeMap() {
+        NavigableMap<Long, Long> map1 = Maps.newTreeMap();
         map1.put(Long.MIN_VALUE, Long.MIN_VALUE);
         return map1;
     }
