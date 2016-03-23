@@ -36,6 +36,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 
@@ -92,7 +93,7 @@ import com.google.common.collect.Maps;
      * lock group behavior is set to
      * {@link LockGroupBehavior#LOCK_AS_MANY_AS_POSSIBLE}. To get the set of
      * locks which were actually acquired successfully, use
-     * {@link HeldLocksToken#getLocks()} instead.
+     * {@link HeldLocksToken#getLockDescriptors()} instead.
      */
     @JsonIgnore
     public SortedLockCollection<LockDescriptor> getLockDescriptors() {
@@ -413,11 +414,11 @@ import com.google.common.collect.Maps;
                                   @JsonProperty("blockingDuration") TimeDuration blockingDuration,
                                   @JsonProperty("versionId") Long versionId,
                                   @JsonProperty("creatingThreadName") String creatingThreadName) {
-            SortedMap<LockDescriptor, LockMode> localLockMap = Maps.newTreeMap();
+            ImmutableSortedMap.Builder<LockDescriptor, LockMode> localLockMapBuilder = ImmutableSortedMap.naturalOrder();
             for (LockWithMode lock : locks) {
-                localLockMap.put(lock.getLockDescriptor(), lock.getLockMode());
+                localLockMapBuilder.put(lock.getLockDescriptor(), lock.getLockMode());
             }
-            this.lockMap = LockCollections.of(localLockMap);
+            this.lockMap = LockCollections.of(localLockMapBuilder.build());
             this.lockTimeout = lockTimeout;
             this.lockGroupBehavior = lockGroupBehavior;
             this.blockingMode = blockingMode;
