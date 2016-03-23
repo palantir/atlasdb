@@ -36,7 +36,7 @@ public abstract class SingleBackendCommand implements Callable<Integer> {
             required = true)
     private File configFile;
 
-    @Option(name = {"-r", "--config-root"},
+    @Option(name = {"--config-root"},
             title = "CONFIG ROOT",
             description = "field in the config yaml file that contains the atlasdb configuration root")
     private String configRoot = "";

@@ -56,6 +56,10 @@ public class TestTimestampCommand {
         };
     }
 
+    private RocksDbTestRunner makeRunner(String... args) {
+        return new RocksDbTestRunner(TimestampCommand.class, args);
+    }
+
     @Test
     public void testBasicInvariants() throws Exception {
         try (SingleBackendCliTestRunner runner = makeRunner("-f", "-i", "-d")) {
@@ -95,7 +99,4 @@ public class TestTimestampCommand {
         }
     }
 
-    private RocksDbTestRunner makeRunner(String... args) {
-        return new RocksDbTestRunner(TimestampCommand.class, args);
-    }
 }
