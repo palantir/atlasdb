@@ -17,10 +17,12 @@ package com.palantir.atlasdb.transaction.api;
 
 import com.google.common.base.Supplier;
 import com.palantir.lock.HeldLocksToken;
+import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
 
 public interface LockAwareTransactionManager extends TransactionManager {
+
     /**
      * This method is basically the same as {@link #runTaskWithRetry(TransactionTask)} but it will
      * acquire locks right before the transaction is created and release them after the task is complete.
@@ -30,21 +32,43 @@ public interface LockAwareTransactionManager extends TransactionManager {
      * @throws LockAcquisitionException If the supplied lock request is not successfully acquired.
      */
     <T, E extends Exception> T runTaskWithLocksWithRetry(Supplier<LockRequest> lockSupplier,
-                                                         LockAwareTransactionTask<T, E> task) throws E, InterruptedException, LockAcquisitionException;
+                                                         TransactionTask<T, E> task) throws E, InterruptedException, LockAcquisitionException;
 
     /**
-     * This method is the same as {@link #runTaskWithLocksWithRetry(Supplier, LockAwareTransactionTask)}
+     * This method is the same as {@link #runTaskWithLocksWithRetry(Supplier, TransactionTask)}
      * but it will also ensure that the existing lock tokens passed are still valid before committing.
      * <p>
      * @throws LockAcquisitionException If the supplied lock request is not successfully acquired.
+     */
+    <T, E extends Exception> T runTaskWithLocksWithRetry(Iterable<LockRefreshToken> lockTokens,
+                                                         Supplier<LockRequest> lockSupplier,
+                                                         TransactionTask<T, E> task) throws E, InterruptedException, LockAcquisitionException;
+
+    /**
+     * This method is the same as {@link #runTaskThrowOnConflict(TransactionTask)} except the created transaction
+     * will not commit successfully if these locks are invalid by the time commit is run.
+     */
+    <T, E extends Exception> T runTaskWithLocksThrowOnConflict(Iterable<LockRefreshToken> lockTokens,
+                                                               TransactionTask<T, E> task) throws E, TransactionFailedRetriableException;
+
+    /**
+     * This method is basically the same as {@link #runTaskWithLocksWithRetry(Supplier, TransactionTask)} but it
+     * allows conditional behavior on the acquired {@link HeldLocksToken} via the {@see LockAwareTransactionTask}.
+     */
+    <T, E extends Exception> T runTaskWithLocksWithRetry(Supplier<LockRequest> lockSupplier,
+                                                         LockAwareTransactionTask<T, E> task) throws E, InterruptedException, LockAcquisitionException;
+
+    /**
+     * This method is basically the same as {@link #runTaskWithLocksWithRetry(Iterable, Supplier, TransactionTask)} but it
+     * allows conditional behavior on the acquired {@link HeldLocksToken} via the {@see LockAwareTransactionTask}.
      */
     <T, E extends Exception> T runTaskWithLocksWithRetry(Iterable<HeldLocksToken> lockTokens,
                                                          Supplier<LockRequest> lockSupplier,
                                                          LockAwareTransactionTask<T, E> task) throws E, InterruptedException, LockAcquisitionException;
 
     /**
-     * This method is the same as {@link #runTaskThrowOnConflict(TransactionTask)} except the created transaction
-     * will not commit successfully if these locks are invalid by the time commit is run.
+     * This method is basically the same as {@link #runTaskWithLocksThrowOnConflict(Iterable, TransactionTask)} but it
+     * allows conditional behavior on the acquired {@link HeldLocksToken} via the {@see LockAwareTransactionTask}.
      */
     <T, E extends Exception> T runTaskWithLocksThrowOnConflict(Iterable<HeldLocksToken> lockTokens,
                                                                LockAwareTransactionTask<T, E> task) throws E, TransactionFailedRetriableException;
