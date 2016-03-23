@@ -19,6 +19,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
+import java.util.Arrays;
 
 import org.apache.commons.lang.ArrayUtils;
 
@@ -33,8 +34,8 @@ import io.airlift.airline.Command;
 public abstract class AbstractTestRunner <S extends AtlasDbServices> implements SingleBackendCliTestRunner {
 
     private final Class<? extends SingleBackendCommand> cmdClass;
-    private final String[] args;
 
+    private String[] args;
     private SingleBackendCommand cmd;
     private S services;
 
@@ -55,6 +56,11 @@ public abstract class AbstractTestRunner <S extends AtlasDbServices> implements 
         String cmdName = cmdClass.getAnnotation(Command.class).name();
         String[] initArgs = new String[] { cmdName, "-c", filePath };
         return (String[]) ArrayUtils.addAll(initArgs, args);
+    }
+
+    @Override
+    public void parse(String... args) {
+        this.args = Arrays.copyOf(args, args.length);
     }
 
     @Override

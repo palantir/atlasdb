@@ -36,12 +36,12 @@ public class TimestampCommand extends SingleBackendCommand {
 		long latestTimestamp = services.getTimestampService().getFreshTimestamp();
 
         if (fresh || !(fresh || immutable)) {
-            System.out.println("Current timestamp is: " + latestTimestamp); // (authorized)
+            System.out.println("Current timestamp is: " + latestTimestamp);
         }
 
         if (immutable) {
         	long immutableTimestamp = services.getTransactionManager().getImmutableTimestamp();
-            System.out.println("Current immutable timestamp is: " + immutableTimestamp); // (authorized)
+            System.out.println("Current immutable timestamp is: " + immutableTimestamp);
         }
 
         return 0;

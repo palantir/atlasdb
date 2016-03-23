@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.atlasdb.http.TextDelegateDecoder;
+import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
@@ -86,5 +87,13 @@ public class LockRemotingTest {
         lock.unlock(token);
         lock.logCurrentState();
         lock.currentTimeMillis();
+
+        HeldLocksToken token1 = lock.lockAndGetHeldLocks(LockClient.ANONYMOUS.getClientId(), request);
+        HeldLocksToken token2 = lock.lockAndGetHeldLocks(LockClient.ANONYMOUS.getClientId(), request2);
+        Assert.assertNull(token2);
+        lock.unlock(token1.getLockRefreshToken());
+        token2 = lock.lockAndGetHeldLocks(LockClient.ANONYMOUS.getClientId(), request2);
+        Assert.assertNotNull(token2);
+        lock.unlock(token2.getLockRefreshToken());
     }
 }

@@ -94,8 +94,5 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 allowHiddenTableAccess);
     }
 
-    public TimestampService getTimestampService() {
-        return timestampService;
-    }
 }
 
