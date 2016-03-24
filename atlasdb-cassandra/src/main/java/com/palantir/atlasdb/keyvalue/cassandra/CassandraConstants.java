@@ -36,6 +36,7 @@ public class CassandraConstants {
     public static final int DEFAULT_CQL_PORT = 9042;
     static final int SECONDS_BETWEEN_GETTING_HOST_LIST = 600; // 10 min
     static final int SECONDS_WAIT_FOR_VERSIONS = 60;
+    static final int MAX_TRUNCATION_ATTEMPTS = 3; // tied to an exponential timeout, be careful if you change it
 
     static final int ABSOLUTE_MINIMUM_NUMBER_OF_TOKENS_PER_NODE = 32;
     static final long TS_SIZE = 4L;

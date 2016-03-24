@@ -22,6 +22,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import javax.inject.Inject;
+
 import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -70,7 +72,7 @@ public class AtlasDbServiceImpl implements AtlasDbService {
             CacheBuilder.newBuilder().expireAfterAccess(12, TimeUnit.HOURS).build();
     private final TableMetadataCache metadataCache;
 
-
+    @Inject
     public AtlasDbServiceImpl(KeyValueService kvs,
                               SerializableTransactionManager txManager,
                               TableMetadataCache metadataCache) {
