@@ -18,6 +18,7 @@ package com.palantir.atlasdb.impl;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.CheckForNull;
+import javax.inject.Inject;
 
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
@@ -29,6 +30,7 @@ public class TableMetadataCache {
     private final LoadingCache<String, TableMetadata> cache;
     private static final TableMetadata EMPTY = new TableMetadata();
 
+    @Inject
     public TableMetadataCache(final KeyValueService kvs) {
         this.cache = CacheBuilder.newBuilder()
                 .expireAfterAccess(15, TimeUnit.MINUTES)
