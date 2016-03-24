@@ -19,9 +19,13 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.google.common.base.Suppliers;
+import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
+import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
+import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -30,6 +34,8 @@ import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.lock.LockClient;
+import com.palantir.lock.RemoteLockService;
+import com.palantir.timestamp.TimestampService;
 
 import dagger.Module;
 import dagger.Provides;
@@ -51,13 +57,40 @@ public class TestTransactionManagerModule {
 
     @Provides
     @Singleton
+    public Cleaner provideCleaner(ServicesConfig config,
+                                  @Named("kvs") KeyValueService kvs,
+                                  RemoteLockService rlc,
+                                  TimestampService tss,
+                                  LockClient lockClient,
+                                  Follower follower,
+                                  TransactionService transactionService) {
+        AtlasDbConfig atlasDbConfig = config.atlasDbConfig();
+        return new DefaultCleanerBuilder(
+                kvs,
+                rlc,
+                tss,
+                lockClient,
+                ImmutableList.of(follower),
+                transactionService)
+                .setBackgroundScrubAggressively(atlasDbConfig.backgroundScrubAggressively())
+                .setBackgroundScrubBatchSize(atlasDbConfig.getBackgroundScrubBatchSize())
+                .setBackgroundScrubFrequencyMillis(atlasDbConfig.getBackgroundScrubFrequencyMillis())
+                .setBackgroundScrubThreads(atlasDbConfig.getBackgroundScrubThreads())
+                .setPunchIntervalMillis(atlasDbConfig.getPunchIntervalMillis())
+                .setTransactionReadTimeout(atlasDbConfig.getTransactionReadTimeoutMillis())
+                .buildCleaner();
+    }
+
+    @Provides
+    @Singleton
     public SerializableTransactionManager provideTransactionManager(ServicesConfig config,
                                                                     @Named("kvs") KeyValueService kvs,
                                                                     TransactionManagers.LockAndTimestampServices lts,
                                                                     LockClient lockClient,
                                                                     TransactionService transactionService,
                                                                     ConflictDetectionManager conflictManager,
-                                                                    SweepStrategyManager sweepStrategyManager) {
+                                                                    SweepStrategyManager sweepStrategyManager,
+                                                                    Cleaner cleaner) {
         return new SerializableTransactionManager(
                 kvs,
                 lts.time(),
@@ -67,9 +100,8 @@ public class TestTransactionManagerModule {
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
                 conflictManager,
                 sweepStrategyManager,
-                new NoOpCleaner(),
+                cleaner,
                 config.allowAccessToHiddenTables());
     }
-
 
 }
