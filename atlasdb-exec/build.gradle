@@ -1,0 +1,14 @@
+apply from: "../gradle/shared.gradle"
+
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+  compile(project(":atlasdb-client"))
+  
+  compile 'org.slf4j:slf4j-log4j12:' + libVersions.slf4j
+}
