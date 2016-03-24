@@ -15,18 +15,20 @@
  */
 package com.palantir.atlasdb.rocksdb;
 
+import com.google.auto.service.AutoService;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.factory.api.AtlasDbFactory;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.KeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.impl.SimpleKvsTimestampBoundStore;
 import com.palantir.atlasdb.keyvalue.rocksdb.impl.ImmutableWriteOpts;
 import com.palantir.atlasdb.keyvalue.rocksdb.impl.RocksDbKeyValueService;
-import com.palantir.atlasdb.spi.AtlasDbFactory;
-import com.palantir.atlasdb.keyvalue.api.KeyValueServiceConfig;
 import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.TimestampService;
 
+@AutoService(AtlasDbFactory.class)
 public class RocksDbAtlasDbFactory implements AtlasDbFactory {
 
     @Override

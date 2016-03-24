@@ -25,7 +25,7 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.factory.TransactionManagers;
-import com.palantir.atlasdb.spi.AtlasDbFactory;
+import com.palantir.atlasdb.factory.api.AtlasDbFactory;
 import com.palantir.atlasdb.table.description.Schema;
 
 @Value.Immutable

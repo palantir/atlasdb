@@ -4,7 +4,6 @@ apply from: "../gradle/shared.gradle"
 
 dependencies {
   compile project(":atlasdb-client")
-  compile project(":atlasdb-spi")
   compile project(':timestamp-impl')
 
   compile('org.apache.cassandra:cassandra-all:' + libVersions.cassandra) {
@@ -20,6 +19,7 @@ dependencies {
   compile 'org.apache.commons:commons-pool2:2.4.2'
 
   processor 'org.immutables:value:2.0.21'
+  processor "com.google.auto.service:auto-service:1.0-rc2"
 }
 
 configurations.matching({ it.name in ['compile', 'runtime'] }).all {

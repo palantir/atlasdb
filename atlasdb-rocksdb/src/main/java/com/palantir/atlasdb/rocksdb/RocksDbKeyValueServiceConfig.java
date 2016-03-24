@@ -25,10 +25,10 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.keyvalue.api.KeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.rocksdb.impl.ImmutableWriteOpts;
 import com.palantir.atlasdb.keyvalue.rocksdb.impl.RocksComparatorName;
 import com.palantir.atlasdb.keyvalue.rocksdb.impl.WriteOpts;
-import com.palantir.atlasdb.keyvalue.api.KeyValueServiceConfig;
 
 @JsonDeserialize(as = ImmutableRocksDbKeyValueServiceConfig.class)
 @JsonSerialize(as = ImmutableRocksDbKeyValueServiceConfig.class)
