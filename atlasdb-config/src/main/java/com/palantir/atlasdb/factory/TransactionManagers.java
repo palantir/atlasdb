@@ -101,7 +101,9 @@ public class TransactionManagers {
                 new Supplier<RemoteLockService>() {
                     @Override
                     public RemoteLockService get() {
-                        return LockServiceImpl.create();
+                        RemoteLockService lockService = LockServiceImpl.create();
+                        RemoteLockService refreshingLockService = LockRefreshingRemoteLockService.create(lockService);
+                        return refreshingLockService;
                     }
                 },
                 new Supplier<TimestampService>() {
@@ -110,10 +112,6 @@ public class TransactionManagers {
                         return kvsFactory.createTimestampService(rawKvs);
                     }
                 });
-        lts = ImmutableLockAndTimestampServices.builder()
-                .from(lts)
-                .lock(LockRefreshingRemoteLockService.create(lts.lock()))
-                .build();
 
         KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs);
         kvs = new SweepStatsKeyValueService(kvs, lts.time());
