@@ -102,9 +102,7 @@ public class TransactionManagers {
                 new Supplier<RemoteLockService>() {
                     @Override
                     public RemoteLockService get() {
-                        RemoteLockService lockService = LockServiceImpl.create();
-                        RemoteLockService refreshingLockService = LockRefreshingRemoteLockService.create(lockService);
-                        return refreshingLockService;
+                        return LockServiceImpl.create();
                     }
                 },
                 new Supplier<TimestampService>() {
@@ -210,6 +208,18 @@ public class TransactionManagers {
             Supplier<RemoteLockService> lock,
             Supplier<TimestampService> time) {
 
+        LockAndTimestampServices lockAndTimestampServices = createRawServices(config, sslSocketFactory, env, lock, time);
+        return withRefreshingLockService(lockAndTimestampServices);
+    }
+
+    private static LockAndTimestampServices withRefreshingLockService(LockAndTimestampServices lockAndTimestampServices) {
+        return ImmutableLockAndTimestampServices.builder()
+                .from(lockAndTimestampServices)
+                .lock(LockRefreshingRemoteLockService.create(lockAndTimestampServices.lock()))
+                .build();
+    }
+
+    private static LockAndTimestampServices createRawServices(AtlasDbConfig config, Optional<SSLSocketFactory> sslSocketFactory, Environment env, Supplier<RemoteLockService> lock, Supplier<TimestampService> time) {
         if (config.leader().isPresent()) {
             LeaderElectionService leader = Leaders.create(sslSocketFactory, env, config.leader().get());
             env.register(AwaitingLeadershipProxy.newProxyInstance(RemoteLockService.class, lock, leader));
