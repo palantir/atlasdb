@@ -326,10 +326,11 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
                 progressTable.putCellsExamined(row, cellsExamined);
                 if (!progress.hasStartRow()) {
                     // This is the first set of results being written for this table.
+                    progressTable.putMinimumSweptTimestamp(row, minimumSweptTimestamp);
+
                     SweepPriorityTable priorityTable = tableFactory.getSweepPriorityTable(t);
                     SweepPriorityRow priorityRow = SweepPriorityRow.of(progress.getFullTableName());
                     priorityTable.putWriteCount(priorityRow, 0L);
-                    priorityTable.putMinimumSweptTimestamp(priorityRow, minimumSweptTimestamp);
                 }
                 return null;
             }
@@ -352,6 +353,8 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
                     // This is the first (and only) set of results being written for this table.
                     priorityTable.putWriteCount(row, 0L);
                     priorityTable.putMinimumSweptTimestamp(row, minimumSweptTimestamp);
+                } else {
+                    priorityTable.putMinimumSweptTimestamp(row, fromNullable(progress.getMinimumSweptTimestamp()));
                 }
                 return null;
             }
