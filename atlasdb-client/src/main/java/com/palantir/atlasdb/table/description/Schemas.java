@@ -18,10 +18,10 @@ package com.palantir.atlasdb.table.description;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -125,12 +125,6 @@ public final class Schemas {
     public static void deleteTablesAndIndexes(Schema schema, KeyValueService kvs) {
         schema.validate();
         kvs.dropTables(getExistingTablesAlsoPresentInSchema(schema, kvs));
-        Set<String> allTables = kvs.getAllTableNames();
-        for (String n : schema.getAllTablesAndIndexMetadata().keySet()) {
-            if (allTables.contains(n)) {
-                kvs.dropTable(n);
-            }
-        }
     }
 
     /** intended for use by tests **/
@@ -138,16 +132,15 @@ public final class Schemas {
         schema.validate();
         kvs.truncateTables(getExistingTablesAlsoPresentInSchema(schema, kvs));
     }
-    
+
     private static Set<String> getExistingTablesAlsoPresentInSchema(Schema schema, KeyValueService kvs) {
         Set<String> allTables = kvs.getAllTableNames();
-        Set<String> tablesToDrop = Sets.newHashSet();
-        for (String n : Iterables.concat(schema.getIndexDefinitions().keySet(), schema.getTableDefinitions().keySet())) {
-            if (allTables.contains(n)) {
-                tablesToDrop.add(n);
-            }
-        }
-        return tablesToDrop;
+        Set<String> schemaFullTableNames = Sets.newHashSet();
+
+        schemaFullTableNames.addAll(schema.getIndexDefinitions().keySet().stream().map(indexName -> getFullTableName(indexName, schema.getNamespace())).collect(Collectors.toList()));
+        schemaFullTableNames.addAll(schema.getTableDefinitions().keySet().stream().map(tableName -> getFullTableName(tableName, schema.getNamespace())).collect(Collectors.toList()));
+
+        return schemaFullTableNames.stream().filter(allTables::contains).collect(Collectors.toSet());
     }
 
     public static void deleteTable(KeyValueService kvs, String tableName) {

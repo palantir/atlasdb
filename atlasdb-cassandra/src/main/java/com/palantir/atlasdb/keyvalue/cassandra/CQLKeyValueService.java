@@ -375,6 +375,11 @@ public class CQLKeyValueService extends AbstractKeyValueService {
 
     @Override
     public Map<Cell, Value> get(String tableName, Map<Cell, Long> timestampByCell) {
+        if (timestampByCell.isEmpty()) {
+            log.info("Attempted get on '{}' table with empty cells", tableName);
+            return ImmutableMap.of();
+        }
+
         try {
             long firstTs = timestampByCell.values().iterator().next();
             if (Iterables.all(timestampByCell.values(), Predicates.equalTo(firstTs))) {

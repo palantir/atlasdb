@@ -15,33 +15,119 @@
  */
 package com.palantir.atlasdb.cleaner;
 
+import static com.palantir.atlasdb.schema.generated.SweepProgressTable.SweepProgressRowResult;
+
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
+import com.palantir.atlasdb.schema.SweepSchema;
+import com.palantir.atlasdb.schema.generated.SweepPriorityTable;
+import com.palantir.atlasdb.schema.generated.SweepPriorityTable.SweepPriorityRowResult;
+import com.palantir.atlasdb.schema.generated.SweepProgressTable;
+import com.palantir.atlasdb.schema.generated.SweepTableFactory;
+import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
+import com.palantir.atlasdb.sweep.SweepTaskRunnerImpl;
+import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
+import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
+import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
+import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
+import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
+import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
+import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.atlasdb.transaction.service.TransactionServices;
+import com.palantir.common.base.BatchingVisitables;
+import com.palantir.lock.LockClient;
+import com.palantir.lock.LockServerOptions;
+import com.palantir.lock.impl.LockServiceImpl;
+import com.palantir.timestamp.InMemoryTimestampService;
+import com.palantir.timestamp.TimestampService;
 
 public abstract class AbstractSweeperTest {
-
-    protected static final String TABLE_NAME = "table";
+    private static final String TABLE_NAME = "table";
     private static final String COL = "c";
-    protected KeyValueService kvs;
-    protected TransactionService txService;
-    protected final AtomicLong sweepTimestamp = new AtomicLong();
-    protected SweepTaskRunner sweepRunner;
+    private static final int DEFAULT_BATCH_SIZE = 1000;
+
+    private KeyValueService kvs;
+    private final AtomicLong sweepTimestamp = new AtomicLong();
+    private SweepTaskRunner sweepRunner;
+    private LockAwareTransactionManager txManager;
+    private BackgroundSweeperImpl backgroundSweeper;
+    private LockServiceImpl lockService;
+    private TransactionService txService;
+
+    @Before
+    public void setup() {
+        TimestampService tsService = new InMemoryTimestampService();
+        this.kvs = new SweepStatsKeyValueService(getKeyValueService(), tsService);
+        LockClient lockClient = LockClient.of("sweep client");
+        lockService = LockServiceImpl.create(new LockServerOptions() { @Override public boolean isStandaloneServer() { return false; }});
+        txService = TransactionServices.createTransactionService(kvs);
+        Supplier<AtlasDbConstraintCheckingMode> constraints = Suppliers.ofInstance(AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING);
+        ConflictDetectionManager cdm = ConflictDetectionManagers.createDefault(kvs);
+        SweepStrategyManager ssm = SweepStrategyManagers.createDefault(kvs);
+        Cleaner cleaner = new NoOpCleaner();
+        txManager = new SerializableTransactionManager(kvs, tsService, lockClient, lockService, txService, constraints, cdm, ssm, cleaner, false);
+        setupTables(kvs);
+        Supplier<Long> tsSupplier = sweepTimestamp::get;
+        sweepRunner = new SweepTaskRunnerImpl(txManager, kvs, tsSupplier, tsSupplier, txService, ssm, ImmutableList.<Follower>of());
+        setupBackgroundSweeper(DEFAULT_BATCH_SIZE);
+    }
+
+    private static void setupTables(KeyValueService kvs) {
+        tearDownTables(kvs);
+        TransactionTables.createTables(kvs);
+        Schemas.createTablesAndIndexes(SweepSchema.INSTANCE.getLatestSchema(), kvs);
+    }
+
+    private static void tearDownTables(KeyValueService kvs) {
+        kvs.dropTable(TABLE_NAME);
+        TransactionTables.deleteTables(kvs);
+        Schemas.deleteTablesAndIndexes(SweepSchema.INSTANCE.getLatestSchema(), kvs);
+    }
+
+    private void setupBackgroundSweeper(int batchSize) {
+        Supplier<Boolean> sweepEnabledSupplier = () -> true;
+        Supplier<Long> sweepNoPause = () -> 0L;
+        Supplier<Integer> batchSize1000 = () -> batchSize;
+        backgroundSweeper = new BackgroundSweeperImpl(txManager, kvs, sweepRunner, sweepEnabledSupplier, sweepNoPause, batchSize1000, SweepTableFactory.of());
+    }
+
+    @After
+    public void tearDown() {
+        kvs.teardown();
+        lockService.close();
+    }
+
+    /**
+     * Called once before each test
+     * @return the KVS used for testing
+     */
+    protected abstract KeyValueService getKeyValueService();
 
     @Test
     public void testSweepOneConservative() {
@@ -233,6 +319,185 @@ public abstract class AbstractSweeperTest {
         Assert.assertEquals(0, results.getCellsDeleted());
         Assert.assertEquals(0, results.getCellsExamined());
         Assert.assertEquals(ImmutableSet.of(50L, 75L, 100L, 125L, 150L), getAllTs("foo"));
+    }
+
+    @Test
+    public void testSweepResultsIncludeMinimumTimestamp() {
+        createTable(SweepStrategy.CONSERVATIVE);
+        SweepResults results = sweep(200);
+        Assert.assertEquals(200, results.getSweptTimestamp());
+    }
+
+    @Test
+    public void testBackgroundSweepWritesPriorityTable() {
+        createTable(SweepStrategy.CONSERVATIVE);
+        put("foo", "bar", 50);
+        put("foo", "baz", 100);
+        put("foo", "buzz", 125);
+        runBackgroundSweep(120, 3);
+        List<SweepPriorityRowResult> results = txManager.runTaskReadOnly(t -> {
+                    SweepPriorityTable priorityTable = SweepTableFactory.of().getSweepPriorityTable(t);
+                    return BatchingVisitables.copyToList(priorityTable.getAllRowsUnordered());
+                });
+
+        for (SweepPriorityRowResult result : results) {
+            Assert.assertEquals(new Long(120), result.getMinimumSweptTimestamp());
+        }
+    }
+
+    @Test
+    public void testBackgroundSweepWritesPriorityTableWithDifferentTime() {
+        createTable(SweepStrategy.CONSERVATIVE);
+        put("foo", "bar", 50);
+        put("foo", "baz", 100);
+        put("foo", "buzz", 125);
+        // the expectation is that the sweep tables will be chosen first
+        runBackgroundSweep(110, 2);
+        runBackgroundSweep(120, 1);
+        List<SweepPriorityRowResult> results = getPriorityTable();
+        for (SweepPriorityRowResult result : results) {
+            switch (result.getRowName().getFullTableName()) {
+                case "sweep.priority":
+                    Assert.assertEquals(new Long(110), result.getMinimumSweptTimestamp());
+                    Assert.assertEquals(new Long(0), result.getCellsDeleted());
+                    Assert.assertEquals(new Long(1), result.getCellsExamined());
+                    break;
+                case "sweep.progress":
+                    Assert.assertEquals(new Long(110), result.getMinimumSweptTimestamp());
+                    Assert.assertEquals(new Long(0), result.getCellsDeleted());
+                    Assert.assertEquals(new Long(0), result.getCellsExamined());
+                    break;
+                case "table":
+                    Assert.assertEquals(new Long(120), result.getMinimumSweptTimestamp());
+                    Assert.assertEquals(new Long(1), result.getCellsDeleted());
+                    Assert.assertEquals(new Long(1), result.getCellsExamined());
+                    break;
+            }
+        }
+    }
+
+    @Test
+    public void testBackgroundSweeperWritesToProgressTable() {
+        setupBackgroundSweeper(2);
+        createTable(SweepStrategy.CONSERVATIVE);
+        put("foo", "bar", 50);
+        put("foo2", "bang", 75);
+        put("foo3", "baz", 100);
+        put("foo4", "buzz", 125);
+        runBackgroundSweep(150, 3);
+
+        confirmOnlyTableRowUnwritten();
+
+        List<SweepProgressTable.SweepProgressRowResult> progressResults = getProgressTable();
+
+        Assert.assertEquals(1, progressResults.size());
+        SweepProgressRowResult result = Iterables.getOnlyElement(progressResults);
+        Assert.assertEquals(new Long(150), result.getMinimumSweptTimestamp());
+        Assert.assertEquals(TABLE_NAME, result.getFullTableName());
+        Assert.assertEquals(new Long(0), result.getCellsDeleted());
+        Assert.assertEquals(new Long(2), result.getCellsExamined());
+    }
+
+    @Test
+    public void testBackgroundSweeperDoesNotOverwriteProgressMinimumTimestamp() {
+        setupBackgroundSweeper(2);
+        createTable(SweepStrategy.CONSERVATIVE);
+        put("foo", "bar", 50);
+        put("foo2", "bang", 75);
+        put("foo3", "baz", 100);
+        put("foo4", "buzz", 125);
+        put("foo5", "bing", 140);
+        runBackgroundSweep(150, 3);
+        runBackgroundSweep(175, 1);
+
+        confirmOnlyTableRowUnwritten();
+
+        List<SweepProgressTable.SweepProgressRowResult> progressResults = getProgressTable();
+        Assert.assertEquals(1, progressResults.size());
+        SweepProgressRowResult result = Iterables.getOnlyElement(progressResults);
+        Assert.assertEquals(new Long(150), result.getMinimumSweptTimestamp());
+        Assert.assertEquals(TABLE_NAME, result.getFullTableName());
+        Assert.assertEquals(new Long(0), result.getCellsDeleted());
+        Assert.assertEquals(new Long(4), result.getCellsExamined());
+    }
+
+    private void confirmOnlyTableRowUnwritten() {
+        List<SweepPriorityRowResult> results = getPriorityTable();
+        for (SweepPriorityRowResult result : results) {
+            switch (result.getRowName().getFullTableName()) {
+                case "sweep.priority":
+                    Assert.assertEquals(new Long(150), result.getMinimumSweptTimestamp());
+                    Assert.assertEquals(new Long(0), result.getCellsDeleted());
+                    Assert.assertEquals(new Long(1), result.getCellsExamined());
+                    break;
+                case "sweep.progress":
+                    Assert.assertEquals(new Long(150), result.getMinimumSweptTimestamp());
+                    Assert.assertEquals(new Long(0), result.getCellsDeleted());
+                    Assert.assertEquals(new Long(0), result.getCellsExamined());
+                    break;
+                case "table":
+                    Assert.assertNull(result.getMinimumSweptTimestamp());
+                    Assert.assertNull(result.getCellsDeleted());
+                    Assert.assertNull(result.getCellsExamined());
+                    break;
+            }
+        }
+    }
+
+    @Test
+    public void testBackgroundSweeperWritesFromProgressToPriority() {
+        setupBackgroundSweeper(3);
+        createTable(SweepStrategy.CONSERVATIVE);
+        put("foo", "bar", 50);
+        put("foo2", "bang", 75);
+        put("foo3", "baz", 100);
+        put("foo4", "buzz", 125);
+        runBackgroundSweep(150, 3);
+        runBackgroundSweep(175, 1);
+        List<SweepPriorityRowResult> results = getPriorityTable();
+        List<SweepProgressTable.SweepProgressRowResult> progressResults = getProgressTable();
+        for (SweepPriorityRowResult result : results) {
+            switch (result.getRowName().getFullTableName()) {
+                case "sweep.priority":
+                    Assert.assertEquals(new Long(150), result.getMinimumSweptTimestamp());
+                    Assert.assertEquals(new Long(0), result.getCellsDeleted());
+                    Assert.assertEquals(new Long(1), result.getCellsExamined());
+                    break;
+                case "sweep.progress":
+                    Assert.assertEquals(new Long(150), result.getMinimumSweptTimestamp());
+                    Assert.assertEquals(new Long(0), result.getCellsDeleted());
+                    Assert.assertEquals(new Long(0), result.getCellsExamined());
+                    break;
+                case "table":
+                    Assert.assertEquals(new Long(150), result.getMinimumSweptTimestamp());
+                    Assert.assertEquals(new Long(0), result.getCellsDeleted());
+                    Assert.assertEquals(new Long(4), result.getCellsExamined());
+                    break;
+            }
+        }
+
+        Assert.assertEquals(0, progressResults.size());
+    }
+
+    private List<SweepProgressRowResult> getProgressTable() {
+        return txManager.runTaskReadOnly(t -> {
+            SweepProgressTable progressTable = SweepTableFactory.of().getSweepProgressTable(t);
+            return BatchingVisitables.copyToList(progressTable.getAllRowsUnordered());
+        });
+    }
+
+    private List<SweepPriorityRowResult> getPriorityTable() {
+        return txManager.runTaskReadOnly(t -> {
+            SweepPriorityTable priorityTable = SweepTableFactory.of().getSweepPriorityTable(t);
+            return BatchingVisitables.copyToList(priorityTable.getAllRowsUnordered());
+        });
+    }
+
+    private void runBackgroundSweep(long sweepTs, int numberOfTimes) {
+        sweepTimestamp.set(sweepTs);
+        for (int i = 0; i < numberOfTimes; i++) {
+            backgroundSweeper.runOnce();
+        }
     }
 
     private SweepResults sweep(long ts) {

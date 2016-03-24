@@ -104,11 +104,11 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
                 // I did check and sweep.stats did contain the FQ table name for all of the tables,
                 // so it is at least broken in some way that still allows namespaced tables to eventually be swept.
                 log.warn("The sweeper should not be run on tables passed through namespace mapping.");
-                return SweepResults.EMPTY_SWEEP;
+                return SweepResults.createEmptySweepResult(0L);
         }
         if (keyValueService.getMetadataForTable(tableName).length == 0) {
             log.warn("The sweeper tried to sweep table '{}', but the table does not exist. Skipping table.", tableName);
-            return SweepResults.EMPTY_SWEEP;
+            return SweepResults.createEmptySweepResult(0L);
         }
 
         // Earliest start timestamp of any currently open transaction, with two caveats:
@@ -126,7 +126,8 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
         if (sweepStrategy == null) {
             sweepStrategy = SweepStrategy.CONSERVATIVE;
         } else if (sweepStrategy == SweepStrategy.NOTHING) {
-            return SweepResults.EMPTY_SWEEP;
+            // This sweep strategy makes transaction table truncation impossible
+            return SweepResults.createEmptySweepResult(0L);
         }
         if (startRow == null) {
             startRow = new byte[0];
@@ -134,6 +135,7 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
         RangeRequest rangeRequest = RangeRequest.builder().startRowInclusive(startRow).batchHint(batchSize).build();
 
         long sweepTimestamp = getSweepTimestamp(sweepStrategy);
+
         ClosableIterator<RowResult<Value>> valueResults;
         if (sweepStrategy == SweepStrategy.CONSERVATIVE) {
             valueResults = ClosableIterators.wrap(ImmutableList.<RowResult<Value>>of().iterator());
@@ -153,7 +155,7 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
             sweepCells(tableName, cellTsPairsToSweep, sentinelsToAdd);
             byte[] nextRow = rowResultTimestamps.size() < batchSize ? null :
                 RangeRequests.getNextStartRow(false, Iterables.getLast(rowResultTimestamps).getRowName());
-            return new SweepResults(nextRow, rowResultTimestamps.size(), cellTsPairsToSweep.size());
+            return new SweepResults(nextRow, rowResultTimestamps.size(), cellTsPairsToSweep.size(), sweepTimestamp);
         } finally {
             rowResults.close();
             valueResults.close();
