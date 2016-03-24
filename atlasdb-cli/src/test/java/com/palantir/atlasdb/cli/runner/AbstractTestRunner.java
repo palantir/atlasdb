@@ -26,7 +26,7 @@ import org.apache.commons.lang.ArrayUtils;
 import com.palantir.atlasdb.cli.command.SingleBackendCommand;
 import com.palantir.atlasdb.cli.services.AtlasDbServices;
 import com.palantir.atlasdb.cli.services.AtlasDbServicesFactory;
-import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.api.KeyValueServiceConfig;
 
 import io.airlift.airline.Cli;
 import io.airlift.airline.Command;

@@ -21,7 +21,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Optional;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.api.KeyValueServiceConfig;
 
 @JsonDeserialize(as = ImmutableAtlasDbConfig.class)
 @JsonSerialize(as = ImmutableAtlasDbConfig.class)

@@ -1,1 +1,1 @@
-com.palantir.atlasdb.spi.KeyValueServiceConfig
+com.palantir.atlasdb.keyvalue.api.KeyValueServiceConfig

@@ -17,7 +17,7 @@ package com.palantir.atlasdb.memory;
 
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.google.auto.service.AutoService;
-import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.api.KeyValueServiceConfig;
 
 @JsonTypeName(InMemoryAtlasDbConfig.TYPE)
 @AutoService(KeyValueServiceConfig.class)

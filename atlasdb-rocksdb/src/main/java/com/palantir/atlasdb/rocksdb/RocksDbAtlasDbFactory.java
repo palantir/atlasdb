@@ -23,7 +23,7 @@ import com.palantir.atlasdb.keyvalue.impl.SimpleKvsTimestampBoundStore;
 import com.palantir.atlasdb.keyvalue.rocksdb.impl.ImmutableWriteOpts;
 import com.palantir.atlasdb.keyvalue.rocksdb.impl.RocksDbKeyValueService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
-import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.api.KeyValueServiceConfig;
 import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.TimestampService;
 
