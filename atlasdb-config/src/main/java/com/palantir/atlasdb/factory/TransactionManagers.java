@@ -72,6 +72,7 @@ public class TransactionManagers {
     private static final Logger log = LoggerFactory.getLogger(TransactionManagers.class);
 
     private static final ServiceLoader<AtlasDbFactory> loader = ServiceLoader.load(AtlasDbFactory.class);
+    public static final LockClient LOCK_CLIENT = LockClient.of("atlas instance");
 
     /**
      * Create a {@link SerializableTransactionManager} with provided configuration, {@link SSLSocketFactory}, {@link Schema},
@@ -118,8 +119,6 @@ public class TransactionManagers {
 
         TransactionTables.createTables(kvs);
 
-        LockClient lockClient = LockClient.of("atlas instance");
-
         TransactionService transactionService = TransactionServices.createTransactionService(kvs);
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.createDefault(kvs);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(kvs);
@@ -134,7 +133,7 @@ public class TransactionManagers {
                 kvs,
                 lts.lock(),
                 lts.time(),
-                lockClient,
+                LOCK_CLIENT,
                 ImmutableList.of(follower),
                 transactionService)
                 .setBackgroundScrubAggressively(config.backgroundScrubAggressively())
@@ -147,7 +146,7 @@ public class TransactionManagers {
 
         SerializableTransactionManager transactionManager = new SerializableTransactionManager(kvs,
                 lts.time(),
-                lockClient,
+                LOCK_CLIENT,
                 lts.lock(),
                 transactionService,
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
