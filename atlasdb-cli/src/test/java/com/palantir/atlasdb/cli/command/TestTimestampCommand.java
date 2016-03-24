@@ -17,12 +17,13 @@ package com.palantir.atlasdb.cli.command;
 
 import java.util.Scanner;
 
+import org.joda.time.format.ISODateTimeFormat;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedMap;
-import com.palantir.atlasdb.cli.runner.RocksDbTestRunner;
+import com.palantir.atlasdb.cli.runner.InMemoryTestRunner;
 import com.palantir.atlasdb.cli.runner.SingleBackendCliTestRunner;
 import com.palantir.atlasdb.cli.services.AtlasDbServicesFactory;
 import com.palantir.atlasdb.cli.services.DaggerTestAtlasDbServices;
@@ -55,13 +56,13 @@ public class TestTimestampCommand {
         };
     }
 
-    private RocksDbTestRunner makeRunner(String... args) {
-        return new RocksDbTestRunner(TimestampCommand.class, args);
+    private SingleBackendCliTestRunner makeRunner(String... args) {
+        return new InMemoryTestRunner(TimestampCommand.class, args);
     }
 
     @Test
     public void testBasicInvariants() throws Exception {
-        try (SingleBackendCliTestRunner runner = makeRunner("-f", "-i")) {
+        try (SingleBackendCliTestRunner runner = makeRunner("-f", "-i", "-d")) {
             TestAtlasDbServices services = runner.connect(moduleFactory);
             RemoteLockService rls = services.getLockSerivce();
             TimestampService tss = services.getTimestampService();
@@ -78,17 +79,23 @@ public class TestTimestampCommand {
             Scanner scanner = new Scanner(runner.run());
             final long fresh = Long.parseLong(scanner.findInLine("\\d+"));
             final long immutable = Long.parseLong(scanner.findInLine("\\d+"));
+            String immutableDateTime = scanner.findInLine("\\d+.*");
+            ISODateTimeFormat.dateTimeNoMillis().parseDateTime(immutableDateTime);
             Preconditions.checkArgument(immutable <= lockedTs);
             Preconditions.checkArgument(fresh > lockedTs);
             Preconditions.checkArgument(fresh < tss.getFreshTimestamp());
-
+            scanner.close();
+            
             rls.unlock(token);
 
             scanner = new Scanner(runner.run());
             final long newFresh = Long.parseLong(scanner.findInLine("\\d+"));
             final long newImmutable = Long.parseLong(scanner.findInLine("\\d+"));
+            final String newImmutableDateTime = scanner.findInLine("\\d+.*");
+            ISODateTimeFormat.dateTimeNoMillis().parseDateTime(newImmutableDateTime);
             Preconditions.checkArgument(newFresh > fresh);
             Preconditions.checkArgument(newImmutable > lockedTs);
+            scanner.close();
         }
     }
 
