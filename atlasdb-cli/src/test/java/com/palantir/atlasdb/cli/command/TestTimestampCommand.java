@@ -23,7 +23,7 @@ import org.junit.Test;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedMap;
-import com.palantir.atlasdb.cli.runner.RocksDbTestRunner;
+import com.palantir.atlasdb.cli.runner.InMemoryTestRunner;
 import com.palantir.atlasdb.cli.runner.SingleBackendCliTestRunner;
 import com.palantir.atlasdb.cli.services.AtlasDbServicesFactory;
 import com.palantir.atlasdb.cli.services.DaggerTestAtlasDbServices;
@@ -56,8 +56,8 @@ public class TestTimestampCommand {
         };
     }
 
-    private RocksDbTestRunner makeRunner(String... args) {
-        return new RocksDbTestRunner(TimestampCommand.class, args);
+    private SingleBackendCliTestRunner makeRunner(String... args) {
+        return new InMemoryTestRunner(TimestampCommand.class, args);
     }
 
     @Test
