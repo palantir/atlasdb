@@ -23,7 +23,6 @@ import java.util.Map.Entry;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
@@ -80,8 +79,10 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     final long leaderPingResponseWaitMs;
 
     final ExecutorService executor;
+    private final PaxosRequestBatcher requestBatcher;
 
     final ConcurrentMap<String, PingableLeader> uuidToServiceCache = Maps.newConcurrentMap();
+
 
     public PaxosLeaderElectionService(PaxosProposer proposer,
                                       PaxosLearner knowledge,
@@ -99,6 +100,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         this.acceptors = acceptors;
         this.learners = learners;
         this.executor = executor;
+        this.requestBatcher = new PaxosRequestBatcher(executor, token -> isStillLeadingInternal(token));
         this.updatePollingRateInMs = updatePollingWaitInMs;
         this.randomWaitBeforeProposingLeadership = randomWaitBeforeProposingLeadership;
         this.leaderPingResponseWaitMs = leaderPingResponseWaitMs;
@@ -349,114 +351,19 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         }
     }
 
-    static class StillLeadingCall {
-        public final CountDownLatch populationLatch;
-        public volatile boolean failed;
-        /* The status must only be written by the thread that owns and created this call. They must only be read by
-         * other threads after awaiting the populationLatch.
-         */
-        public volatile StillLeadingStatus status;
-
-        public StillLeadingCall() {
-            // Counted down once by the thread that owns and created this call, after population or failure.
-            this.populationLatch = new CountDownLatch(1);
-            this.failed = false;
-        }
-
-        public void populate(StillLeadingStatus status) {
-            this.status = status;
-        }
-    }
-
-    /* The currently outstanding leadership check for a given token, if any. If it exists, it should be used, thus
-     * batching remote calls. If there is none, one should be created and installed. The creator of a call must
-     * populate it.
-     */
-    private final ConcurrentMap<LeadershipToken, StillLeadingCall> currentIsStillLeadingCall = Maps.newConcurrentMap();
-
     @Override
     public StillLeadingStatus isStillLeading(LeadershipToken token) {
         while (true) {
-            StillLeadingCallBatch callBatch = getStillLeadingCallBatch(token);
-
-            StillLeadingCall batch = callBatch.batch;
-            if (callBatch.thisThreadOwnsBatch) {
-                populateStillLeadingCall(batch, token);
-            }
-
             try {
-                batch.populationLatch.await();
+                return requestBatcher.await(token);
             } catch (InterruptedException e) {
-                log.error("Interrupted waiting for a StillLeading batch. Trying another batch.", e);
-                Thread.currentThread().interrupt();
-                continue;
-            }
-            // Now the batch is ready to be read.
-            if (!batch.failed) {
-                return batch.status;
+                log.error("Interrupted waiting for a StillLeading batch.", e);
+                throw Throwables.throwUncheckedException(e);
+            } catch (ExecutionException e) {
+                log.error("Problem waiting for a batched response. Trying again", e);
             }
         }
     }
-
-    private static class StillLeadingCallBatch {
-        public final boolean thisThreadOwnsBatch;
-        public final StillLeadingCall batch;
-        public StillLeadingCallBatch(boolean thisThreadOwnsBatch,
-                                     StillLeadingCall batch) {
-            this.thisThreadOwnsBatch = thisThreadOwnsBatch;
-            this.batch = batch;
-        }
-    }
-    private final static int MAX_INSTALL_BATCH_ATTEMPTS = 5;
-    private StillLeadingCallBatch getStillLeadingCallBatch(LeadershipToken token) {
-        boolean installedNewBatch = false;
-        boolean joinedBatch = false;
-        @Nullable StillLeadingCall batch = null;
-        for (int installBatchAttempts = 0; !(installedNewBatch || joinedBatch); installBatchAttempts++) {
-            batch = currentIsStillLeadingCall.get(token);
-            if (batch != null) {
-                joinedBatch = !batch.failed;
-            }
-            if (!joinedBatch) {
-                StillLeadingCall newBatch = new StillLeadingCall();
-                if (installBatchAttempts <= MAX_INSTALL_BATCH_ATTEMPTS) {
-                    if (batch == null) {
-                        installedNewBatch = currentIsStillLeadingCall.putIfAbsent(token, newBatch) == null;
-                    } else {
-                        installedNewBatch = currentIsStillLeadingCall.replace(token, batch, newBatch);
-                    }
-                } else {
-                    // Barge ahead in this case to prevent very unfortunate scheduling from preventing progress.
-                    log.warn("Failed to install a leadership check batch {} times; blindly installing a batch. " +
-                            "This should be rare!", MAX_INSTALL_BATCH_ATTEMPTS);
-                    currentIsStillLeadingCall.put(token, newBatch);
-                    installedNewBatch = true;
-                }
-                if (installedNewBatch) {
-                    batch = newBatch;
-                }
-            }
-        }
-        Preconditions.checkState(batch != null);
-        return new StillLeadingCallBatch(installedNewBatch, batch);
-    }
-
-    private void populateStillLeadingCall(StillLeadingCall batch, LeadershipToken token) {
-        try {
-            StillLeadingStatus status = isStillLeadingInternal(token);
-            batch.populate(status);
-        } catch (Throwable t) {
-            log.error("Something went wrong while checking leadership", t);
-            batch.failed = true;
-        } finally {
-            batch.populationLatch.countDown();
-            /* Close only the current batch. If someone else has replaced this batch
-             * already, don't close them prematurely; let them close themselves.
-             */
-            currentIsStillLeadingCall.remove(token, batch);
-        }
-    }
-
 
     private StillLeadingStatus isStillLeadingInternal(LeadershipToken token) {
         Preconditions.checkNotNull(token);

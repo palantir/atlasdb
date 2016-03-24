@@ -96,7 +96,7 @@ public final class AwaitingLeadershipProxy extends AbstractInvocationHandler {
             });
         } catch (RejectedExecutionException e) {
             if (!isClosed) {
-                throw new IllegalStateException("failed to submit task but proxy not closed", e);
+                throw new IllegalStateException("failed to await task but proxy not closed", e);
             }
         }
     }
