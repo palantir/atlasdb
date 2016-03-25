@@ -476,6 +476,23 @@ public abstract class AbstractSweeperTest {
         Assert.assertEquals(0, progressResults.size());
     }
 
+    @Test
+    public void testBackgroundSweepCanHandleNegativeImmutableTimestamp() {
+        createTable(SweepStrategy.CONSERVATIVE);
+        put("foo", "bar", 50);
+        put("foo", "baz", 100);
+        put("foo", "buzz", 125);
+        runBackgroundSweep(Long.MIN_VALUE, 3);
+        List<SweepPriorityRowResult> results = txManager.runTaskReadOnly(t -> {
+            SweepPriorityTable priorityTable = SweepTableFactory.of().getSweepPriorityTable(t);
+            return BatchingVisitables.copyToList(priorityTable.getAllRowsUnordered());
+        });
+
+        for (SweepPriorityRowResult result : results) {
+            Assert.assertEquals(new Long(Long.MIN_VALUE), result.getMinimumSweptTimestamp());
+        }
+    }
+
     private List<SweepProgressRowResult> getProgressTable() {
         return txManager.runTaskReadOnly(t -> {
             SweepProgressTable progressTable = SweepTableFactory.of().getSweepProgressTable(t);
