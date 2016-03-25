@@ -38,7 +38,7 @@ public class LockAndTimestampModule {
                 config.sslSocketFactory(),
                 resource -> {},
                 LockServiceImpl::create,
-                () -> config.atlasDbFactory().getTimestampService());
+                () -> config.atlasDbSupplier().getTimestampService());
     }
 
     @Provides

@@ -33,7 +33,7 @@ public abstract class ServicesConfig {
     public abstract AtlasDbConfig atlasDbConfig();
 
     @Value.Derived
-    public ServiceDiscoveringAtlasSupplier atlasDbFactory() {
+    public ServiceDiscoveringAtlasSupplier atlasDbSupplier() {
         return new ServiceDiscoveringAtlasSupplier(atlasDbConfig().keyValueService());
     }
 
