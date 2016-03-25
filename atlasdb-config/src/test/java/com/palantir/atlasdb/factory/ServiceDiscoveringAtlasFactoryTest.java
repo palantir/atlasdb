@@ -18,20 +18,33 @@ package com.palantir.atlasdb.factory;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsEqual.equalTo;
 
+import org.jmock.Mockery;
 import org.junit.Test;
 
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
 public class ServiceDiscoveringAtlasFactoryTest {
     private final KeyValueServiceConfig kvsConfig = () -> DummyAtlasDbFactory.TYPE;
     private final AtlasDbFactory delegate = new DummyAtlasDbFactory();
+    private Mockery context = new Mockery();
 
     @Test
-    public void delegateToFactoriesOnTheClasspath() {
+    public void delegateToFactoriesOnTheClasspathForCreatingKeyValueServices() {
         ServiceDiscoveringAtlasFactory factory = new ServiceDiscoveringAtlasFactory(kvsConfig);
 
         assertThat(factory.createKeyValueService(),
                 equalTo(delegate.createRawKeyValueService(kvsConfig)));
+    }
+
+    @Test
+    public void delegateToFactoriesOnTheClasspathForCreatingTimestampServices() {
+        KeyValueService keyValueService = context.mock(KeyValueService.class);
+
+        ServiceDiscoveringAtlasFactory factory = new ServiceDiscoveringAtlasFactory(kvsConfig);
+
+        assertThat(factory.createTimestampService(keyValueService),
+                equalTo(delegate.createTimestampService(keyValueService)));
     }
 }

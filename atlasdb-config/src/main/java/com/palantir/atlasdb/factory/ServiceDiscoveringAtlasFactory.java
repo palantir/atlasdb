@@ -29,17 +29,17 @@ public class ServiceDiscoveringAtlasFactory {
     private static final ServiceLoader<AtlasDbFactory> loader = ServiceLoader.load(AtlasDbFactory.class);
 
     private final KeyValueServiceConfig config;
+    private final AtlasDbFactory atlasFactory;
 
     public ServiceDiscoveringAtlasFactory(KeyValueServiceConfig config) {
         this.config = config;
-    }
-
-    public KeyValueService createKeyValueService() {
-        AtlasDbFactory atlasFactory = stream(loader.spliterator(), false)
+        atlasFactory = stream(loader.spliterator(), false)
                 .filter(producesCorrectType())
                 .findFirst()
                 .get();
+    }
 
+    public KeyValueService createKeyValueService() {
         return atlasFactory.createRawKeyValueService(config);
     }
 
@@ -48,6 +48,6 @@ public class ServiceDiscoveringAtlasFactory {
     }
 
     public TimestampService createTimestampService(KeyValueService rawKvs) {
-        return null;
+        return atlasFactory.createTimestampService(rawKvs);
     }
 }
