@@ -19,7 +19,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsEqual.equalTo;
 
 import org.jmock.Mockery;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
@@ -29,13 +31,18 @@ public class ServiceDiscoveringAtlasFactoryTest {
     private final Mockery context = new Mockery();
 
     private final KeyValueServiceConfig kvsConfig = () -> AutoServiceAnnotatedAtlasDbFactory.TYPE;
+    private final KeyValueServiceConfig invalidKvsConfig = () -> "should not be found kvs";
     private final AtlasDbFactory delegate = new AutoServiceAnnotatedAtlasDbFactory();
 
     private final KeyValueService keyValueService = context.mock(KeyValueService.class);
-    private final ServiceDiscoveringAtlasFactory factory = new ServiceDiscoveringAtlasFactory(kvsConfig);
+
+    @Rule
+    public final ExpectedException exception = ExpectedException.none();
 
     @Test
     public void delegateToFactoriesOnTheClasspathForCreatingKeyValueServices() {
+        ServiceDiscoveringAtlasFactory factory = new ServiceDiscoveringAtlasFactory(kvsConfig);
+
         assertThat(
                 factory.createKeyValueService(),
                 equalTo(delegate.createRawKeyValueService(kvsConfig)));
@@ -43,9 +50,20 @@ public class ServiceDiscoveringAtlasFactoryTest {
 
     @Test
     public void delegateToFactoriesOnTheClasspathForCreatingTimestampServices() {
+        ServiceDiscoveringAtlasFactory factory = new ServiceDiscoveringAtlasFactory(kvsConfig);
 
         assertThat(
                 factory.createTimestampService(keyValueService),
                 equalTo(delegate.createTimestampService(keyValueService)));
+    }
+
+    @Test
+    public void cannotBeConstructedWithoutAValidBackingFactory() {
+        exception.expect(IllegalStateException.class);
+        exception.expectMessage("No atlas provider");
+        exception.expectMessage(invalidKvsConfig.type());
+        exception.expectMessage("Have you annotated it with @AutoService(AtlasDbFactory.class)?");
+
+        new ServiceDiscoveringAtlasFactory(invalidKvsConfig);
     }
 }

@@ -36,7 +36,10 @@ public class ServiceDiscoveringAtlasFactory {
         atlasFactory = stream(loader.spliterator(), false)
                 .filter(producesCorrectType())
                 .findFirst()
-                .get();
+                .orElseThrow(() -> new IllegalStateException(
+                    "No atlas provider for KeyValueService type " + config.type() + " could be found" +
+                            "Have you annotated it with @AutoService(AtlasDbFactory.class)?"
+                ));
     }
 
     public KeyValueService createKeyValueService() {
