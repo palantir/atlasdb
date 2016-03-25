@@ -19,6 +19,11 @@ dependencies {
     compile 'javax.validation:validation-api:1.1.0.Final'
 
     processor 'org.immutables:value:2.0.21'
+    processor 'com.google.auto.service:auto-service:1.0-rc2'
+
+    testCompile(group: "org.jmock", name: "jmock", version: libVersions.jmock) {
+        exclude group: 'org.hamcrest'
+    }
 }
 
 configurations.matching({ it.name in ['compile', 'runtime'] }).all {
