@@ -30,7 +30,7 @@ public class RawKeyValueServiceModule {
     @Singleton
     @Named("rawKvs")
     public KeyValueService provideRawKeyValueService(ServicesConfig config) {
-        return config.atlasDbFactory().createKeyValueService();
+        return config.atlasDbFactory().getKeyValueService();
     }
 
 }

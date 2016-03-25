@@ -24,7 +24,7 @@ import org.immutables.value.Value;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.config.AtlasDbConfig;
-import com.palantir.atlasdb.factory.ServiceDiscoveringAtlasFactory;
+import com.palantir.atlasdb.factory.ServiceDiscoveringAtlasSupplier;
 import com.palantir.atlasdb.table.description.Schema;
 
 @Value.Immutable
@@ -33,8 +33,8 @@ public abstract class ServicesConfig {
     public abstract AtlasDbConfig atlasDbConfig();
 
     @Value.Derived
-    public ServiceDiscoveringAtlasFactory atlasDbFactory() {
-        return new ServiceDiscoveringAtlasFactory(atlasDbConfig().keyValueService());
+    public ServiceDiscoveringAtlasSupplier atlasDbFactory() {
+        return new ServiceDiscoveringAtlasSupplier(atlasDbConfig().keyValueService());
     }
 
     @Value.Default

@@ -95,8 +95,8 @@ public class TransactionManagers {
                                                         Set<Schema> schemas,
                                                         Environment env,
                                                         boolean allowHiddenTableAccess) {
-        final ServiceDiscoveringAtlasFactory atlasFactory = new ServiceDiscoveringAtlasFactory(config.keyValueService());
-        final KeyValueService rawKvs = atlasFactory.createKeyValueService();
+        final ServiceDiscoveringAtlasSupplier atlasFactory = new ServiceDiscoveringAtlasSupplier(config.keyValueService());
+        final KeyValueService rawKvs = atlasFactory.getKeyValueService();
 
         LockAndTimestampServices lts = createLockAndTimestampServices(config, sslSocketFactory, env,
                 new Supplier<RemoteLockService>() {
@@ -108,7 +108,7 @@ public class TransactionManagers {
                 new Supplier<TimestampService>() {
                     @Override
                     public TimestampService get() {
-                        return atlasFactory.createTimestampService(rawKvs);
+                        return atlasFactory.getTimestampService(rawKvs);
                     }
                 });
 

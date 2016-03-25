@@ -25,13 +25,13 @@ import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.timestamp.TimestampService;
 
-public class ServiceDiscoveringAtlasFactory {
+public class ServiceDiscoveringAtlasSupplier {
     private static final ServiceLoader<AtlasDbFactory> loader = ServiceLoader.load(AtlasDbFactory.class);
 
     private final KeyValueServiceConfig config;
     private final AtlasDbFactory atlasFactory;
 
-    public ServiceDiscoveringAtlasFactory(KeyValueServiceConfig config) {
+    public ServiceDiscoveringAtlasSupplier(KeyValueServiceConfig config) {
         this.config = config;
         atlasFactory = stream(loader.spliterator(), false)
                 .filter(producesCorrectType())
@@ -42,7 +42,7 @@ public class ServiceDiscoveringAtlasFactory {
                 ));
     }
 
-    public KeyValueService createKeyValueService() {
+    public KeyValueService getKeyValueService() {
         return atlasFactory.createRawKeyValueService(config);
     }
 
@@ -50,7 +50,7 @@ public class ServiceDiscoveringAtlasFactory {
         return factory -> config.type().equalsIgnoreCase(factory.getType());
     }
 
-    public TimestampService createTimestampService(KeyValueService rawKvs) {
+    public TimestampService getTimestampService(KeyValueService rawKvs) {
         return atlasFactory.createTimestampService(rawKvs);
     }
 }

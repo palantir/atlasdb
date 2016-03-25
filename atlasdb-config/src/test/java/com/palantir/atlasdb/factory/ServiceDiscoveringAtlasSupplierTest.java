@@ -27,7 +27,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
-public class ServiceDiscoveringAtlasFactoryTest {
+public class ServiceDiscoveringAtlasSupplierTest {
     private final Mockery context = new Mockery();
 
     private final KeyValueServiceConfig kvsConfig = () -> AutoServiceAnnotatedAtlasDbFactory.TYPE;
@@ -41,19 +41,19 @@ public class ServiceDiscoveringAtlasFactoryTest {
 
     @Test
     public void delegateToFactoriesOnTheClasspathForCreatingKeyValueServices() {
-        ServiceDiscoveringAtlasFactory factory = new ServiceDiscoveringAtlasFactory(kvsConfig);
+        ServiceDiscoveringAtlasSupplier atlasSupplier = new ServiceDiscoveringAtlasSupplier(kvsConfig);
 
         assertThat(
-                factory.createKeyValueService(),
+                atlasSupplier.getKeyValueService(),
                 equalTo(delegate.createRawKeyValueService(kvsConfig)));
     }
 
     @Test
     public void delegateToFactoriesOnTheClasspathForCreatingTimestampServices() {
-        ServiceDiscoveringAtlasFactory factory = new ServiceDiscoveringAtlasFactory(kvsConfig);
+        ServiceDiscoveringAtlasSupplier atlasSupplier = new ServiceDiscoveringAtlasSupplier(kvsConfig);
 
         assertThat(
-                factory.createTimestampService(keyValueService),
+                atlasSupplier.getTimestampService(keyValueService),
                 equalTo(delegate.createTimestampService(keyValueService)));
     }
 
@@ -64,6 +64,6 @@ public class ServiceDiscoveringAtlasFactoryTest {
         exception.expectMessage(invalidKvsConfig.type());
         exception.expectMessage("Have you annotated it with @AutoService(AtlasDbFactory.class)?");
 
-        new ServiceDiscoveringAtlasFactory(invalidKvsConfig);
+        new ServiceDiscoveringAtlasSupplier(invalidKvsConfig);
     }
 }
