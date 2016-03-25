@@ -26,25 +26,26 @@ import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
 public class ServiceDiscoveringAtlasFactoryTest {
-    private final KeyValueServiceConfig kvsConfig = () -> DummyAtlasDbFactory.TYPE;
-    private final AtlasDbFactory delegate = new DummyAtlasDbFactory();
-    private Mockery context = new Mockery();
+    private final Mockery context = new Mockery();
+
+    private final KeyValueServiceConfig kvsConfig = () -> AutoServiceAnnotatedAtlasDbFactory.TYPE;
+    private final AtlasDbFactory delegate = new AutoServiceAnnotatedAtlasDbFactory();
+
+    private final KeyValueService keyValueService = context.mock(KeyValueService.class);
+    private final ServiceDiscoveringAtlasFactory factory = new ServiceDiscoveringAtlasFactory(kvsConfig);
 
     @Test
     public void delegateToFactoriesOnTheClasspathForCreatingKeyValueServices() {
-        ServiceDiscoveringAtlasFactory factory = new ServiceDiscoveringAtlasFactory(kvsConfig);
-
-        assertThat(factory.createKeyValueService(),
+        assertThat(
+                factory.createKeyValueService(),
                 equalTo(delegate.createRawKeyValueService(kvsConfig)));
     }
 
     @Test
     public void delegateToFactoriesOnTheClasspathForCreatingTimestampServices() {
-        KeyValueService keyValueService = context.mock(KeyValueService.class);
 
-        ServiceDiscoveringAtlasFactory factory = new ServiceDiscoveringAtlasFactory(kvsConfig);
-
-        assertThat(factory.createTimestampService(keyValueService),
+        assertThat(
+                factory.createTimestampService(keyValueService),
                 equalTo(delegate.createTimestampService(keyValueService)));
     }
 }

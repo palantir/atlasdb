@@ -24,7 +24,7 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.timestamp.TimestampService;
 
 @AutoService(AtlasDbFactory.class)
-public class DummyAtlasDbFactory implements AtlasDbFactory {
+public class AutoServiceAnnotatedAtlasDbFactory implements AtlasDbFactory {
     public static final String TYPE = "not-a-real-db";
 
     private static final Mockery context = new Mockery();
