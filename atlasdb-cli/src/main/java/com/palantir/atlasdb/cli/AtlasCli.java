@@ -23,10 +23,10 @@ import com.palantir.atlasdb.cli.command.TimestampCommand;
 import io.airlift.airline.Cli;
 import io.airlift.airline.Help;
 
-public class TitanCli {
+public class AtlasCli {
 
     private static Cli<Callable> buildCli() {
-        Cli.CliBuilder<Callable> builder = Cli.<Callable>builder("titan")
+        Cli.CliBuilder<Callable> builder = Cli.<Callable>builder("atlas-cli")
                 .withDescription("Perform common AtlasDB tasks")
                 .withDefaultCommand(Help.class)
                 .withCommands(Help.class, TimestampCommand.class, CleanTransactionRange.class);
