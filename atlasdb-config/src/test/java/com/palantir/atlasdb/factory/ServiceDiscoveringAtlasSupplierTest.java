@@ -18,7 +18,6 @@ package com.palantir.atlasdb.factory;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
-import org.jmock.Mockery;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -28,13 +27,9 @@ import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
 public class ServiceDiscoveringAtlasSupplierTest {
-    private final Mockery context = new Mockery();
-
     private final KeyValueServiceConfig kvsConfig = () -> AutoServiceAnnotatedAtlasDbFactory.TYPE;
     private final KeyValueServiceConfig invalidKvsConfig = () -> "should not be found kvs";
     private final AtlasDbFactory delegate = new AutoServiceAnnotatedAtlasDbFactory();
-
-    private final KeyValueService keyValueService = context.mock(KeyValueService.class);
 
     @Rule
     public final ExpectedException exception = ExpectedException.none();
