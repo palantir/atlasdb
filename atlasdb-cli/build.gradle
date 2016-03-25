@@ -3,8 +3,8 @@ apply plugin: 'org.inferred.processors'
 apply from: '../gradle/shared.gradle'
 
 apply plugin: 'application'
-mainClassName = 'com.palantir.atlasdb.cli.TitanCli'
-applicationName = 'titan'
+mainClassName = 'com.palantir.atlasdb.cli.AtlasCli'
+applicationName = 'atlas-cli'
 
 dependencies {
   compile project(':atlasdb-server')
