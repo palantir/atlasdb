@@ -40,7 +40,7 @@ public class ServiceDiscoveringAtlasSupplierTest {
     public final ExpectedException exception = ExpectedException.none();
 
     @Test
-    public void delegateToFactoriesOnTheClasspathForCreatingKeyValueServices() {
+    public void delegateToFactoriesAnnotatedWithAutoServiceForCreatingKeyValueServices() {
         ServiceDiscoveringAtlasSupplier atlasSupplier = new ServiceDiscoveringAtlasSupplier(kvsConfig);
 
         assertThat(
@@ -49,7 +49,7 @@ public class ServiceDiscoveringAtlasSupplierTest {
     }
 
     @Test
-    public void delegateToFactoriesOnTheClasspathForCreatingTimestampServices() {
+    public void delegateToFactoriesAnnotatedWithAutoServiceForCreatingTimestampServices() {
         ServiceDiscoveringAtlasSupplier atlasSupplier = new ServiceDiscoveringAtlasSupplier(kvsConfig);
         KeyValueService delegateKeyValueService = delegate.createRawKeyValueService(kvsConfig);
 
@@ -59,7 +59,7 @@ public class ServiceDiscoveringAtlasSupplierTest {
     }
 
     @Test
-    public void cannotBeConstructedWithoutAValidBackingFactory() {
+    public void notAllowConstructionWithoutAValidBackingFactory() {
         exception.expect(IllegalStateException.class);
         exception.expectMessage("No atlas provider");
         exception.expectMessage(invalidKvsConfig.type());
