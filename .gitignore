@@ -25,3 +25,4 @@ generated_src/
 generated_testSrc/
 .factorypath
 out/
+atlasdb-cli/var/data/
