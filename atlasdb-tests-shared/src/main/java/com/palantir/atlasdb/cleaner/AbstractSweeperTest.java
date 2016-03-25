@@ -32,6 +32,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
@@ -63,22 +65,23 @@ import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.common.base.BatchingVisitables;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockServerOptions;
+import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampService;
 
 public abstract class AbstractSweeperTest {
-    private static final String TABLE_NAME = "table";
+    protected static final String TABLE_NAME = "table";
     private static final String COL = "c";
-    private static final int DEFAULT_BATCH_SIZE = 1000;
+    protected static final int DEFAULT_BATCH_SIZE = 1000;
 
-    private KeyValueService kvs;
-    private final AtomicLong sweepTimestamp = new AtomicLong();
-    private SweepTaskRunner sweepRunner;
-    private LockAwareTransactionManager txManager;
-    private BackgroundSweeperImpl backgroundSweeper;
-    private LockServiceImpl lockService;
-    private TransactionService txService;
+    protected KeyValueService kvs;
+    protected final AtomicLong sweepTimestamp = new AtomicLong();
+    protected SweepTaskRunner sweepRunner;
+    protected LockAwareTransactionManager txManager;
+    protected BackgroundSweeperImpl backgroundSweeper;
+    protected LockService lockService;
+    protected TransactionService txService;
 
     @Before
     public void setup() {
@@ -98,29 +101,35 @@ public abstract class AbstractSweeperTest {
         setupBackgroundSweeper(DEFAULT_BATCH_SIZE);
     }
 
-    private static void setupTables(KeyValueService kvs) {
+    protected static void setupTables(KeyValueService kvs) {
         tearDownTables(kvs);
         TransactionTables.createTables(kvs);
         Schemas.createTablesAndIndexes(SweepSchema.INSTANCE.getLatestSchema(), kvs);
     }
 
     private static void tearDownTables(KeyValueService kvs) {
+        Set<String> allTables = Sets.newHashSet(kvs.getAllTableNames());
+        boolean hasNamespace = allTables.remove(AtlasDbConstants.NAMESPACE_TABLE);
+        kvs.dropTables(allTables);
+
+        if (hasNamespace) {
+            kvs.truncateTable(AtlasDbConstants.NAMESPACE_TABLE);
+        }
         kvs.dropTable(TABLE_NAME);
         TransactionTables.deleteTables(kvs);
         Schemas.deleteTablesAndIndexes(SweepSchema.INSTANCE.getLatestSchema(), kvs);
     }
 
-    private void setupBackgroundSweeper(int batchSize) {
+    protected void setupBackgroundSweeper(int batchSize) {
         Supplier<Boolean> sweepEnabledSupplier = () -> true;
         Supplier<Long> sweepNoPause = () -> 0L;
-        Supplier<Integer> batchSize1000 = () -> batchSize;
-        backgroundSweeper = new BackgroundSweeperImpl(txManager, kvs, sweepRunner, sweepEnabledSupplier, sweepNoPause, batchSize1000, SweepTableFactory.of());
+        Supplier<Integer> batchSizeSupplier = () -> batchSize;
+        backgroundSweeper = new BackgroundSweeperImpl(txManager, kvs, sweepRunner, sweepEnabledSupplier, sweepNoPause, batchSizeSupplier, SweepTableFactory.of());
     }
 
     @After
     public void tearDown() {
         kvs.teardown();
-        lockService.close();
     }
 
     /**
@@ -359,13 +368,9 @@ public abstract class AbstractSweeperTest {
             switch (result.getRowName().getFullTableName()) {
                 case "sweep.priority":
                     Assert.assertEquals(new Long(110), result.getMinimumSweptTimestamp());
-                    Assert.assertEquals(new Long(0), result.getCellsDeleted());
-                    Assert.assertEquals(new Long(1), result.getCellsExamined());
                     break;
                 case "sweep.progress":
                     Assert.assertEquals(new Long(110), result.getMinimumSweptTimestamp());
-                    Assert.assertEquals(new Long(0), result.getCellsDeleted());
-                    Assert.assertEquals(new Long(0), result.getCellsExamined());
                     break;
                 case "table":
                     Assert.assertEquals(new Long(120), result.getMinimumSweptTimestamp());
@@ -427,13 +432,9 @@ public abstract class AbstractSweeperTest {
             switch (result.getRowName().getFullTableName()) {
                 case "sweep.priority":
                     Assert.assertEquals(new Long(150), result.getMinimumSweptTimestamp());
-                    Assert.assertEquals(new Long(0), result.getCellsDeleted());
-                    Assert.assertEquals(new Long(1), result.getCellsExamined());
                     break;
                 case "sweep.progress":
                     Assert.assertEquals(new Long(150), result.getMinimumSweptTimestamp());
-                    Assert.assertEquals(new Long(0), result.getCellsDeleted());
-                    Assert.assertEquals(new Long(0), result.getCellsExamined());
                     break;
                 case "table":
                     Assert.assertNull(result.getMinimumSweptTimestamp());
@@ -460,13 +461,9 @@ public abstract class AbstractSweeperTest {
             switch (result.getRowName().getFullTableName()) {
                 case "sweep.priority":
                     Assert.assertEquals(new Long(150), result.getMinimumSweptTimestamp());
-                    Assert.assertEquals(new Long(0), result.getCellsDeleted());
-                    Assert.assertEquals(new Long(1), result.getCellsExamined());
                     break;
                 case "sweep.progress":
                     Assert.assertEquals(new Long(150), result.getMinimumSweptTimestamp());
-                    Assert.assertEquals(new Long(0), result.getCellsDeleted());
-                    Assert.assertEquals(new Long(0), result.getCellsExamined());
                     break;
                 case "table":
                     Assert.assertEquals(new Long(150), result.getMinimumSweptTimestamp());
