@@ -18,10 +18,8 @@ package com.palantir.atlasdb.cli.services;
 import static com.palantir.atlasdb.factory.TransactionManagers.LockAndTimestampServices;
 import static com.palantir.atlasdb.factory.TransactionManagers.createLockAndTimestampServices;
 
-import javax.inject.Named;
 import javax.inject.Singleton;
 
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timestamp.TimestampService;
@@ -34,13 +32,13 @@ public class LockAndTimestampModule {
 
     @Provides
     @Singleton
-    public LockAndTimestampServices provideLockAndTimestampServices(ServicesConfig config, @Named("rawKvs") KeyValueService rawKvs) {
+    public LockAndTimestampServices provideLockAndTimestampServices(ServicesConfig config) {
         return createLockAndTimestampServices(
                 config.atlasDbConfig(),
                 config.sslSocketFactory(),
                 resource -> {},
                 LockServiceImpl::create,
-                () -> config.atlasDbFactory().getTimestampService(rawKvs));
+                () -> config.atlasDbFactory().getTimestampService());
     }
 
     @Provides

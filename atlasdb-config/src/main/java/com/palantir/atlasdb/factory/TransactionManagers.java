@@ -99,18 +99,9 @@ public class TransactionManagers {
         final KeyValueService rawKvs = atlasFactory.getKeyValueService();
 
         LockAndTimestampServices lts = createLockAndTimestampServices(config, sslSocketFactory, env,
-                new Supplier<RemoteLockService>() {
-                    @Override
-                    public RemoteLockService get() {
-                        return LockServiceImpl.create();
-                    }
-                },
-                new Supplier<TimestampService>() {
-                    @Override
-                    public TimestampService get() {
-                        return atlasFactory.getTimestampService(rawKvs);
-                    }
-                });
+                LockServiceImpl::create,
+                atlasFactory::getTimestampService
+        );
 
         KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs);
         kvs = new SweepStatsKeyValueService(kvs, lts.time());

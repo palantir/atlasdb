@@ -17,9 +17,12 @@ package com.palantir.atlasdb.factory;
 
 import static java.util.stream.StreamSupport.stream;
 
+import static com.google.common.base.Suppliers.memoize;
+
 import java.util.ServiceLoader;
 import java.util.function.Predicate;
 
+import com.google.common.base.Supplier;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
@@ -30,6 +33,8 @@ public class ServiceDiscoveringAtlasSupplier {
 
     private final KeyValueServiceConfig config;
     private final AtlasDbFactory atlasFactory;
+    private final Supplier<KeyValueService> keyValueService;
+    private final Supplier<TimestampService> timestampService;
 
     public ServiceDiscoveringAtlasSupplier(KeyValueServiceConfig config) {
         this.config = config;
@@ -37,20 +42,22 @@ public class ServiceDiscoveringAtlasSupplier {
                 .filter(producesCorrectType())
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException(
-                    "No atlas provider for KeyValueService type " + config.type() + " could be found" +
+                    "No atlas provider for KeyValueService type " + config.type() + " could be found. " +
                             "Have you annotated it with @AutoService(AtlasDbFactory.class)?"
                 ));
+        keyValueService = memoize(() -> atlasFactory.createRawKeyValueService(config));
+        timestampService = memoize(() -> atlasFactory.createTimestampService(getKeyValueService()));
     }
 
     public KeyValueService getKeyValueService() {
-        return atlasFactory.createRawKeyValueService(config);
+        return keyValueService.get();
+    }
+
+    public TimestampService getTimestampService() {
+        return timestampService.get();
     }
 
     private Predicate<AtlasDbFactory> producesCorrectType() {
         return factory -> config.type().equalsIgnoreCase(factory.getType());
-    }
-
-    public TimestampService getTimestampService(KeyValueService rawKvs) {
-        return atlasFactory.createTimestampService(rawKvs);
     }
 }

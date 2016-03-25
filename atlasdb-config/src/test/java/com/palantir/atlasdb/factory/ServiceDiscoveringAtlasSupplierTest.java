@@ -16,7 +16,7 @@
 package com.palantir.atlasdb.factory;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.IsEqual.equalTo;
+import static org.hamcrest.core.Is.is;
 
 import org.jmock.Mockery;
 import org.junit.Rule;
@@ -45,16 +45,17 @@ public class ServiceDiscoveringAtlasSupplierTest {
 
         assertThat(
                 atlasSupplier.getKeyValueService(),
-                equalTo(delegate.createRawKeyValueService(kvsConfig)));
+                is(delegate.createRawKeyValueService(kvsConfig)));
     }
 
     @Test
     public void delegateToFactoriesOnTheClasspathForCreatingTimestampServices() {
         ServiceDiscoveringAtlasSupplier atlasSupplier = new ServiceDiscoveringAtlasSupplier(kvsConfig);
+        KeyValueService delegateKeyValueService = delegate.createRawKeyValueService(kvsConfig);
 
         assertThat(
-                atlasSupplier.getTimestampService(keyValueService),
-                equalTo(delegate.createTimestampService(keyValueService)));
+                atlasSupplier.getTimestampService(),
+                is(delegate.createTimestampService(delegateKeyValueService)));
     }
 
     @Test
