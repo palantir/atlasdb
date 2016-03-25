@@ -38,7 +38,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
 
 /**
  * An encapsulation of all parameters needed to make a locking request to the

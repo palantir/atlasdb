@@ -157,8 +157,8 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         }
 
         PoolingOptions poolingOptions = new PoolingOptions();
-        poolingOptions.setMaxRequestsPerConnection(HostDistance.LOCAL, config.poolSize());
-        poolingOptions.setMaxRequestsPerConnection(HostDistance.REMOTE, config.poolSize());
+        poolingOptions.setMaxSimultaneousRequestsPerHostThreshold(HostDistance.LOCAL, config.poolSize());
+        poolingOptions.setMaxSimultaneousRequestsPerHostThreshold(HostDistance.REMOTE, config.poolSize());
         poolingOptions.setPoolTimeoutMillis(config.cqlPoolTimeoutMillis());
         clusterBuilder.withPoolingOptions(poolingOptions);
 
