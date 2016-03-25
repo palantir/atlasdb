@@ -20,23 +20,18 @@ import static org.hamcrest.core.IsEqual.equalTo;
 
 import org.junit.Test;
 
-import com.palantir.atlasdb.config.AtlasDbConfig;
-import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
 public class ServiceDiscoveringAtlasFactoryTest {
-    private AtlasDbFactory delegate = new DummyAtlasDbFactory();
+    private final KeyValueServiceConfig kvsConfig = () -> DummyAtlasDbFactory.TYPE;
+    private final AtlasDbFactory delegate = new DummyAtlasDbFactory();
 
     @Test
     public void delegateToFactoriesOnTheClasspath() {
-        KeyValueServiceConfig kvsConfig = () -> DummyAtlasDbFactory.TYPE;
-        AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
-                .keyValueService(kvsConfig)
-                .build();
+        ServiceDiscoveringAtlasFactory factory = new ServiceDiscoveringAtlasFactory(kvsConfig);
 
-        ServiceDiscoveringAtlasFactory factory = new ServiceDiscoveringAtlasFactory(config);
-
-        assertThat(factory.createRawKeyValueService(), equalTo(delegate.createRawKeyValueService(kvsConfig)));
+        assertThat(factory.createKeyValueService(),
+                equalTo(delegate.createRawKeyValueService(kvsConfig)));
     }
 }

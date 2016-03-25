@@ -18,27 +18,33 @@ package com.palantir.atlasdb.factory;
 import static java.util.stream.StreamSupport.stream;
 
 import java.util.ServiceLoader;
+import java.util.function.Predicate;
 
-import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
+import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.timestamp.TimestampService;
 
 public class ServiceDiscoveringAtlasFactory {
-    private final AtlasDbConfig config;
-
     private static final ServiceLoader<AtlasDbFactory> loader = ServiceLoader.load(AtlasDbFactory.class);
-    public ServiceDiscoveringAtlasFactory(AtlasDbConfig config) {
+
+    private final KeyValueServiceConfig config;
+
+    public ServiceDiscoveringAtlasFactory(KeyValueServiceConfig config) {
         this.config = config;
     }
 
-    public KeyValueService createRawKeyValueService() {
+    public KeyValueService createKeyValueService() {
         AtlasDbFactory atlasFactory = stream(loader.spliterator(), false)
-                .filter(factory -> config.keyValueService().type().equalsIgnoreCase(factory.getType()))
+                .filter(producesCorrectType())
                 .findFirst()
                 .get();
 
-        return atlasFactory.createRawKeyValueService(config.keyValueService());
+        return atlasFactory.createRawKeyValueService(config);
+    }
+
+    private Predicate<AtlasDbFactory> producesCorrectType() {
+        return factory -> config.type().equalsIgnoreCase(factory.getType());
     }
 
     public TimestampService createTimestampService(KeyValueService rawKvs) {
