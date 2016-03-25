@@ -95,8 +95,8 @@ public class TransactionManagers {
                                                         Set<Schema> schemas,
                                                         Environment env,
                                                         boolean allowHiddenTableAccess) {
-        final AtlasDbFactory kvsFactory = getKeyValueServiceFactory(config.keyValueService().type());
-        final KeyValueService rawKvs = kvsFactory.createRawKeyValueService(config.keyValueService());
+        final ServiceDiscoveringAtlasFactory atlasFactory = new ServiceDiscoveringAtlasFactory(config.keyValueService());
+        final KeyValueService rawKvs = atlasFactory.createKeyValueService();
 
         LockAndTimestampServices lts = createLockAndTimestampServices(config, sslSocketFactory, env,
                 new Supplier<RemoteLockService>() {
@@ -108,7 +108,7 @@ public class TransactionManagers {
                 new Supplier<TimestampService>() {
                     @Override
                     public TimestampService get() {
-                        return kvsFactory.createTimestampService(rawKvs);
+                        return atlasFactory.createTimestampService(rawKvs);
                     }
                 });
 
@@ -190,15 +190,6 @@ public class TransactionManagers {
                 return txManager.getUnreadableTimestamp();
             }
         };
-    }
-
-    public static AtlasDbFactory getKeyValueServiceFactory(String type) {
-        for (AtlasDbFactory factory : loader) {
-            if (factory.getType().equalsIgnoreCase(type)) {
-                return factory;
-            }
-        }
-        throw new IllegalStateException("No atlas provider for KeyValueService type " + type + " is on your classpath.");
     }
 
     public static LockAndTimestampServices createLockAndTimestampServices(
