@@ -32,13 +32,12 @@ public class ServiceDiscoveringAtlasSupplier {
     private static final ServiceLoader<AtlasDbFactory> loader = ServiceLoader.load(AtlasDbFactory.class);
 
     private final KeyValueServiceConfig config;
-    private final AtlasDbFactory atlasFactory;
     private final Supplier<KeyValueService> keyValueService;
     private final Supplier<TimestampService> timestampService;
 
     public ServiceDiscoveringAtlasSupplier(KeyValueServiceConfig config) {
         this.config = config;
-        atlasFactory = stream(loader.spliterator(), false)
+        AtlasDbFactory atlasFactory = stream(loader.spliterator(), false)
                 .filter(producesCorrectType())
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException(
