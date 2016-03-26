@@ -124,7 +124,7 @@ public class CQLKeyValueServices {
 
                                 sb.append(" requestType: ").append(sessionRow.getString("request"));
                                 sb.append(" coordinator: ").append(sessionRow.getInet("coordinator"));
-                                sb.append(" started_at: ").append(sessionRow.getDate("started_at"));
+                                sb.append(" started_at: ").append(sessionRow.getTime("started_at"));
                                 sb.append(" duration: ").append(sessionRow.getInt("duration"));
                                 if (!sessionRow.isNull("parameters")) {
                                     sb.append("\nparameters: "
