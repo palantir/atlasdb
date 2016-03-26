@@ -11,7 +11,7 @@ ext.libVersions = [
     jackson: '2.5.1',
     jackson_annotation: '2.5.0',
     cassandra: '2.2.1',
-    cassandra_driver_core: '2.1.5',
+    cassandra_driver_core: '2.2.0-rc3',
     groovy: '2.4.4',
     hamcrest: '1.3'
 ]
