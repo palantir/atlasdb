@@ -43,7 +43,6 @@ import com.palantir.timestamp.TimestampBoundStore;
 
 public class PartitionedBoundStore implements TimestampBoundStore, Closeable {
 
-    private static final String TIMESTAMP_TABLE = AtlasDbConstants.TIMESTAMP_TABLE;
     private static final String ROW_AND_COLUMN_NAME = "ts";
     private static final long KV_TS = 0L;
     private static final Cell TS_CELL = Cell.create(ROW_AND_COLUMN_NAME.getBytes(Charsets.UTF_8), ROW_AND_COLUMN_NAME.getBytes(Charsets.UTF_8));
@@ -56,7 +55,7 @@ public class PartitionedBoundStore implements TimestampBoundStore, Closeable {
     private static final long INITIAL_VALUE = 10000L;
 
     public static TimestampBoundStore create(KeyValueService kv) {
-        kv.createTable(TIMESTAMP_TABLE, TIMESTAMP_TABLE_METADATA.persistToBytes());
+        kv.createTable(AtlasDbConstants.TIMESTAMP_TABLE, TIMESTAMP_TABLE_METADATA.persistToBytes());
         return new PartitionedBoundStore(kv);
     }
 
@@ -72,18 +71,18 @@ public class PartitionedBoundStore implements TimestampBoundStore, Closeable {
 
     @Override
     public synchronized long getUpperLimit() {
-        Map<Cell, Value> result = kv.get(TIMESTAMP_TABLE, ImmutableMap.of(TS_CELL, KV_TS+1));
+        Map<Cell, Value> result = kv.get(AtlasDbConstants.TIMESTAMP_TABLE, ImmutableMap.of(TS_CELL, KV_TS+1));
         if (result.isEmpty()) {
             putValue(INITIAL_VALUE);
         }
-        result = kv.get(TIMESTAMP_TABLE, ImmutableMap.of(TS_CELL, KV_TS+1));
+        result = kv.get(AtlasDbConstants.TIMESTAMP_TABLE, ImmutableMap.of(TS_CELL, KV_TS+1));
         currentLimit = getValueFromResult(result);
         return currentLimit;
     }
 
     @Override
     public synchronized void storeUpperLimit(long limit) throws MultipleRunningTimestampServiceError {
-        Map<Cell, Value> result = kv.get(TIMESTAMP_TABLE, ImmutableMap.of(TS_CELL, KV_TS+1));
+        Map<Cell, Value> result = kv.get(AtlasDbConstants.TIMESTAMP_TABLE, ImmutableMap.of(TS_CELL, KV_TS+1));
         long oldValue = getValueFromResult(result);
         if (oldValue != currentLimit) {
             String msg = "Timestamp limit changed underneath us (limit in memory: " + currentLimit
@@ -96,8 +95,8 @@ public class PartitionedBoundStore implements TimestampBoundStore, Closeable {
     }
 
     private void putValue(long value) {
-        kv.delete(TIMESTAMP_TABLE, ImmutableMultimap.of(TS_CELL, KV_TS));
-        kv.put(TIMESTAMP_TABLE, ImmutableMap.of(TS_CELL, PtBytes.toBytes(value)), KV_TS);
+        kv.delete(AtlasDbConstants.TIMESTAMP_TABLE, ImmutableMultimap.of(TS_CELL, KV_TS));
+        kv.put(AtlasDbConstants.TIMESTAMP_TABLE, ImmutableMap.of(TS_CELL, PtBytes.toBytes(value)), KV_TS);
     }
 
     private long getValueFromResult(Map<Cell, Value> result) {

@@ -22,6 +22,7 @@ import java.util.Set;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
 public class Transactions {
@@ -41,14 +42,14 @@ public class Transactions {
      * on touch and it causes a lot of contention, we should consider implementing serializable
      * isolation.
      */
-    public static void touchCells(Transaction t, String tableName, Set<Cell> cells) {
-        Map<Cell, byte[]> results = Maps.newHashMap(t.get(tableName, cells));
+    public static void touchCells(Transaction t, TableReference tableRef, Set<Cell> cells) {
+        Map<Cell, byte[]> results = Maps.newHashMap(t.get(tableRef, cells));
         for (Cell cell : cells) {
             if (!results.containsKey(cell)) {
                 results.put(cell, PtBytes.EMPTY_BYTE_ARRAY);
             }
         }
-        t.put(tableName, results);
+        t.put(tableRef, results);
     }
 
     /**

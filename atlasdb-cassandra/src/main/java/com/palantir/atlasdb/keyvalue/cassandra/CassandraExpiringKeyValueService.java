@@ -34,6 +34,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ExpiringKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompaction;
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionManager;
@@ -59,28 +60,28 @@ public class CassandraExpiringKeyValueService extends CassandraKeyValueService i
     }
 
     @Override
-    public void put(final String tableName, final Map<Cell, byte[]> values, final long timestamp, final long time, final TimeUnit unit) {
+    public void put(final TableReference tableRef, final Map<Cell, byte[]> values, final long timestamp, final long time, final TimeUnit unit) {
         try {
-            putInternal(tableName, KeyValueServices.toConstantTimestampValues(values.entrySet(), timestamp), CassandraKeyValueServices.convertTtl(time, unit));
+            putInternal(tableRef, KeyValueServices.toConstantTimestampValues(values.entrySet(), timestamp), CassandraKeyValueServices.convertTtl(time, unit));
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
     }
 
     @Override
-    public void putWithTimestamps(String tableName, Multimap<Cell, Value> values, final long time, final TimeUnit unit) {
+    public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> values, final long time, final TimeUnit unit) {
         try {
-            putInternal(tableName, values.entries(), CassandraKeyValueServices.convertTtl(time, unit));
+            putInternal(tableRef, values.entries(), CassandraKeyValueServices.convertTtl(time, unit));
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
     }
 
     @Override
-    public void multiPut(Map<String, ? extends Map<Cell, byte[]>> valuesByTable, final long timestamp, final long time, final TimeUnit unit) throws KeyAlreadyExistsException {
+    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, final long timestamp, final long time, final TimeUnit unit) throws KeyAlreadyExistsException {
         List<Callable<Void>> callables = Lists.newArrayList();
-        for (Entry<String, ? extends Map<Cell, byte[]>> e : valuesByTable.entrySet()) {
-            final String table = e.getKey();
+        for (Entry<TableReference, ? extends Map<Cell, byte[]>> e : valuesByTable.entrySet()) {
+            final TableReference table = e.getKey();
             // We sort here because some key value stores are more efficient if you store adjacent keys together.
             NavigableMap<Cell, byte[]> sortedMap = ImmutableSortedMap.copyOf(e.getValue());
 

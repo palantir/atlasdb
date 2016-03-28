@@ -24,6 +24,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.Transaction.TransactionType;
@@ -31,9 +32,9 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 
 public class CleanupFollower implements Follower {
-    private final ImmutableMultimap<String, OnCleanupTask> cleanupTasksByTable;
+    private final ImmutableMultimap<TableReference, OnCleanupTask> cleanupTasksByTable;
     public static CleanupFollower create(Iterable<Schema> schemas) {
-        ImmutableMultimap.Builder<String, OnCleanupTask> cleanupTasksByTable = ImmutableMultimap.builder();
+        ImmutableMultimap.Builder<TableReference, OnCleanupTask> cleanupTasksByTable = ImmutableMultimap.builder();
         for (Schema schema : schemas) {
             cleanupTasksByTable.putAll(schema.getCleanupTasksByTable());
         }
@@ -44,13 +45,13 @@ public class CleanupFollower implements Follower {
         return new CleanupFollower(schema.getCleanupTasksByTable());
     }
 
-    private CleanupFollower(Multimap<String, OnCleanupTask> cleanupTasksByTable) {
+    private CleanupFollower(Multimap<TableReference, OnCleanupTask> cleanupTasksByTable) {
         this.cleanupTasksByTable = ImmutableMultimap.copyOf(cleanupTasksByTable);
     }
 
     @Override
-    public void run(TransactionManager txManager, String tableName, final Set<Cell> cells, final TransactionType transactionType) {
-        Collection<OnCleanupTask> nextTasks = cleanupTasksByTable.get(tableName);
+    public void run(TransactionManager txManager, TableReference tableRef, final Set<Cell> cells, final TransactionType transactionType) {
+        Collection<OnCleanupTask> nextTasks = cleanupTasksByTable.get(tableRef);
         while (!nextTasks.isEmpty()) {
             final Collection<OnCleanupTask> cleanupTasks = nextTasks;
             nextTasks = txManager.runTaskWithRetry(new TransactionTask<Collection<OnCleanupTask>, RuntimeException>() {

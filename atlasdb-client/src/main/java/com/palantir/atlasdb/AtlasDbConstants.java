@@ -22,21 +22,22 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
 public class AtlasDbConstants {
     public static final Logger PERF_LOG = LoggerFactory.getLogger("dualschema.perf");
 
-    public static final String PUNCH_TABLE = "_punch";
-    public static final String SCRUB_TABLE = "_scrub";
-    public static final String NAMESPACE_TABLE = "_namespace";
-    public static final String TIMESTAMP_TABLE = "_timestamp";
+    public static final TableReference PUNCH_TABLE = TableReference.createWithEmptyNamespace("_punch");
+    public static final TableReference SCRUB_TABLE = TableReference.createWithEmptyNamespace("_scrub");
+    public static final TableReference NAMESPACE_TABLE = TableReference.createWithEmptyNamespace("_namespace");
+    public static final TableReference TIMESTAMP_TABLE = TableReference.createWithEmptyNamespace("_timestamp");
     public static final String NAMESPACE_PREFIX = "_n_";
     public static final String NAMESPACE_SHORT_COLUMN_NAME = "s";
     public static final byte[] NAMESPACE_SHORT_COLUMN_BYTES = PtBytes.toBytes(NAMESPACE_SHORT_COLUMN_NAME);
 
-    public static final String PARTITION_MAP_TABLE = "_partition_map";
+    public static final TableReference PARTITION_MAP_TABLE = TableReference.createWithEmptyNamespace("_partition_map");
     public static final char SCRUB_TABLE_SEPARATOR_CHAR = '\0';
     public static final byte[] EMPTY_TABLE_METADATA = {}; // use carefully
     public static final byte[] GENERIC_TABLE_METADATA = new TableMetadata().persistToBytes();
@@ -51,23 +52,23 @@ public class AtlasDbConstants {
     public static final long TRANSACTION_TS = 0L;
 
     // TODO (ejin): Organize constants (maybe into a single class?)
-    public static final Set<String> hiddenTables = ImmutableSet.of(
+    public static final Set<TableReference> hiddenTables = ImmutableSet.of(
             TransactionConstants.TRANSACTION_TABLE,
             PUNCH_TABLE,
             SCRUB_TABLE,
             NAMESPACE_TABLE,
             PARTITION_MAP_TABLE);
-    public static final Set<String> SKIP_POSTFILTER_TABLES = ImmutableSet.of(TransactionConstants.TRANSACTION_TABLE,
+    public static final Set<TableReference> SKIP_POSTFILTER_TABLES = ImmutableSet.of(TransactionConstants.TRANSACTION_TABLE,
             NAMESPACE_TABLE);
 
     /**
      * Tables that must always be on a KVS that supports an atomic putUnlessExists operation.
      */
-    public static final Set<String> ATOMIC_TABLES = ImmutableSet.of(
+    public static final Set<TableReference> ATOMIC_TABLES = ImmutableSet.of(
             TransactionConstants.TRANSACTION_TABLE,
             NAMESPACE_TABLE);
 
-    public static final Set<String> TABLES_KNOWN_TO_BE_POORLY_DESIGNED = ImmutableSet.of("resync_object");
+    public static final Set<TableReference> TABLES_KNOWN_TO_BE_POORLY_DESIGNED = ImmutableSet.of(TableReference.createWithEmptyNamespace("resync_object"));
 
     public static final long DEFAULT_TRANSACTION_READ_TIMEOUT = 60 * 60 * 1000; // one hour
     public static final long DEFAULT_PUNCH_INTERVAL_MILLIS = 60 * 1000; // one minute

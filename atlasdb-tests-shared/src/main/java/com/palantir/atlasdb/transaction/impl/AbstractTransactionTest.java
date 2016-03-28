@@ -60,6 +60,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
@@ -91,7 +92,7 @@ import com.palantir.util.Pair;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 public abstract class AbstractTransactionTest {
-    protected static final String TEST_TABLE = "ns.table1";
+    protected static final TableReference TEST_TABLE = TableReference.createFromFullyQualifiedName("ns.table1");
 
     protected static LockClient lockClient = null;
     protected static LockServiceImpl lockService = null;
@@ -158,7 +159,7 @@ public abstract class AbstractTransactionTest {
         return true;
     }
 
-    protected Set<String> getTestTables() {
+    protected Set<TableReference> getTestTables() {
         return ImmutableSet.of(TEST_TABLE);
     }
 
@@ -192,7 +193,7 @@ public abstract class AbstractTransactionTest {
     }
 
     private void put(Transaction t,
-                     String tableName,
+                     TableReference tableRef,
                      String rowName,
                      String columnName,
                      String value) {
@@ -200,12 +201,12 @@ public abstract class AbstractTransactionTest {
         byte[] v = value == null ? null : PtBytes.toBytes(value);
         HashMap<Cell, byte[]> map = Maps.newHashMap();
         map.put(k, v);
-        t.put(tableName, map);
+        t.put(tableRef, map);
     }
 
     protected String get(Transaction t,
-                       String rowName,
-                       String columnName) {
+                         String rowName,
+                         String columnName) {
         return get(t, TEST_TABLE, rowName, columnName);
     }
 
@@ -216,26 +217,26 @@ public abstract class AbstractTransactionTest {
     }
 
     private String getCell(Transaction t,
-                           String tableName,
+                           TableReference tableRef,
                            String rowName,
                            String columnName) {
         byte[] row = PtBytes.toBytes(rowName);
         byte[] column = PtBytes.toBytes(columnName);
         Cell cell = Cell.create(row, column);
-        Map<Cell, byte[]> map = t.get(tableName, ImmutableSet.of(cell));
+        Map<Cell, byte[]> map = t.get(tableRef, ImmutableSet.of(cell));
         byte[] v = map.get(cell);
         return v != null ? PtBytes.toString(v) : null;
     }
 
     private String get(Transaction t,
-                       String tableName,
+                       TableReference tableRef,
                        String rowName,
                        String columnName) {
         byte[] row = PtBytes.toBytes(rowName);
         byte[] column = PtBytes.toBytes(columnName);
         Cell k = Cell.create(row, column);
         byte[] v = Cells.convertRowResultsToCells(
-                t.getRows(tableName,
+                t.getRows(tableRef,
                           ImmutableSet.of(row),
                           ColumnSelection.create(ImmutableSet.of(column))).values()).get(k);
         return v != null ? PtBytes.toString(v) : null;
@@ -253,13 +254,13 @@ public abstract class AbstractTransactionTest {
         return getDirect(TEST_TABLE, rowName, columnName, timestamp);
     }
 
-    private Pair<String, Long> getDirect(String tableName,
+    private Pair<String, Long> getDirect(TableReference tableRef,
                                          String rowName,
                                          String columnName,
                                          long timestamp) {
         byte[] row = PtBytes.toBytes(rowName);
         Cell k = Cell.create(row, PtBytes.toBytes(columnName));
-        Value v = keyValueService.get(tableName, ImmutableMap.of(k, timestamp)).get(k);
+        Value v = keyValueService.get(tableRef, ImmutableMap.of(k, timestamp)).get(k);
         return v != null ? Pair.create(PtBytes.toString(v.getContents()), v.getTimestamp()) : null;
     }
 
@@ -695,15 +696,16 @@ public abstract class AbstractTransactionTest {
 
     @Test
     public void testKeyValueMultiput() {
-        keyValueService.createTable("table2", AtlasDbConstants.GENERIC_TABLE_METADATA);
+        TableReference table = TableReference.createWithEmptyNamespace("table2");
+        keyValueService.createTable(table, AtlasDbConstants.GENERIC_TABLE_METADATA);
         Cell k = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("col"));
         String value = "whatever";
         byte[] v = PtBytes.toBytes(value);
         Map<Cell, byte[]> map = ImmutableMap.of(k, v);
-        keyValueService.multiPut(ImmutableMap.of(TEST_TABLE, map, "table2", map), 0);
+        keyValueService.multiPut(ImmutableMap.of(TEST_TABLE, map, table, map), 0);
         assertEquals(value, getDirect("row", "col", 1).lhSide);
-        assertEquals(value, getDirect("table2", "row", "col", 1).lhSide);
-        keyValueService.dropTable("table2");
+        assertEquals(value, getDirect(table, "row", "col", 1).lhSide);
+        keyValueService.dropTable(table);
     }
 
     @Test

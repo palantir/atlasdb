@@ -49,6 +49,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
@@ -93,7 +94,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
     // *** Read requests *************************************************************************
     @Override
     @Idempotent
-    public Map<Cell, Value> getRows(final String tableName, final Iterable<byte[]> rowsArg,
+    public Map<Cell, Value> getRows(final TableReference tableRef, final Iterable<byte[]> rowsArg,
                                     final ColumnSelection columnSelection, final long timestamp) {
         // This is necessary to ensure consistent hashes for the rows arrays
         // which is necessary for the quorum tracker.
@@ -107,13 +108,13 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                         rows, input.getReadRowsParameters(rows));
 
                 // Schedule tasks for execution
-                input.runForRowsRead(tableName, rows, new Function<Pair<KeyValueService,Iterable<byte[]>>, Void>() {
+                input.runForRowsRead(tableRef.getQualifiedName(), rows, new Function<Pair<KeyValueService,Iterable<byte[]>>, Void>() {
                     @Override
                     public Void apply(final Pair<KeyValueService, Iterable<byte[]>> e) {
                         Future<Map<Cell, Value>> future = execSvc.submit(new Callable<Map<Cell, Value>>() {
                             @Override
                             public Map<Cell, Value> call() throws Exception {
-                                return e.lhSide.getRows(tableName, e.rhSide, columnSelection, timestamp);
+                                return e.lhSide.getRows(tableRef, e.rhSide, columnSelection, timestamp);
                             }
                         }, e.lhSide);
                         tracker.registerRef(future, e.rhSide);
@@ -129,7 +130,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 
     @Override
     @Idempotent
-    public Map<Cell, Value> get(final String tableName, final Map<Cell, Long> timestampByCell) {
+    public Map<Cell, Value> get(final TableReference tableRef, final Map<Cell, Long> timestampByCell) {
         return runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Map<Cell, Value>>() {
             @Override
             public Map<Cell, Value> apply(@Nullable DynamicPartitionMap input) {
@@ -140,13 +141,13 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                 final Map<Cell, Value> globalResult = Maps.newHashMap();
 
                 // Schedule the tasks
-                input.runForCellsRead(tableName, timestampByCell, new Function<Pair<KeyValueService, Map<Cell, Long>>, Void>() {
+                input.runForCellsRead(tableRef.getQualifiedName(), timestampByCell, new Function<Pair<KeyValueService, Map<Cell, Long>>, Void>() {
                     @Override
                     public Void apply(final Pair<KeyValueService, Map<Cell, Long>> e) {
                         Future<Map<Cell, Value>> future = execSvc.submit(new Callable<Map<Cell, Value>>() {
                             @Override
                             public Map<Cell, Value> call() throws Exception {
-                                return e.lhSide.get(tableName, e.rhSide);
+                                return e.lhSide.get(tableRef, e.rhSide);
                             }
                         }, e.lhSide);
                         tracker.registerRef(future, e.rhSide.keySet());
@@ -162,7 +163,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 
     @Override
     @Idempotent
-    public Multimap<Cell, Long> getAllTimestamps(final String tableName,
+    public Multimap<Cell, Long> getAllTimestamps(final TableReference tableRef,
                                                  final Set<Cell> cells,
                                                  final long timestamp)
             throws InsufficientConsistencyException {
@@ -175,13 +176,13 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                         cells,
                         input.getReadCellsParameters(cells));
                 final Multimap<Cell, Long> globalResult = HashMultimap.create();
-                input.runForCellsRead(tableName, cells, new Function<Pair<KeyValueService, Set<Cell>>, Void>() {
+                input.runForCellsRead(tableRef.getQualifiedName(), cells, new Function<Pair<KeyValueService, Set<Cell>>, Void>() {
                     @Override @Nullable
                     public Void apply(@Nullable final Pair<KeyValueService, Set<Cell>> e) {
                         Future<Multimap<Cell, Long>> future = execSvc.submit(new Callable<Multimap<Cell, Long>>() {
                             @Override
                             public Multimap<Cell, Long> call() throws Exception {
-                                return e.lhSide.getAllTimestamps(tableName, cells, timestamp);
+                                return e.lhSide.getAllTimestamps(tableRef, cells, timestamp);
                             }
                         }, e.lhSide);
                         tracker.registerRef(future, e.rhSide);
@@ -197,7 +198,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 
     @Override
     @Idempotent
-    public Map<Cell, Long> getLatestTimestamps(final String tableName,
+    public Map<Cell, Long> getLatestTimestamps(final TableReference tableRef,
                                                final Map<Cell, Long> timestampByCell) {
         return runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Map<Cell, Long>>() {
             @Override
@@ -207,13 +208,13 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                         timestampByCell.keySet(),
                         input.getReadCellsParameters(timestampByCell.keySet()));
                 final EndpointRequestCompletionService<Map<Cell, Long>> execSvc = EndpointRequestExecutor.newService(executor);
-                input.runForCellsRead(tableName, timestampByCell, new Function<Pair<KeyValueService, Map<Cell, Long>>, Void>() {
+                input.runForCellsRead(tableRef.getQualifiedName(), timestampByCell, new Function<Pair<KeyValueService, Map<Cell, Long>>, Void>() {
                     @Override @Nullable
                     public Void apply(@Nullable final Pair<KeyValueService, Map<Cell, Long>> e) {
                         Future<Map<Cell, Long>> future = execSvc.submit(new Callable<Map<Cell, Long>>() {
                             @Override
                             public Map<Cell, Long> call() throws Exception {
-                                return e.lhSide.getLatestTimestamps(tableName, e.rhSide);
+                                return e.lhSide.getLatestTimestamps(tableRef, e.rhSide);
                             }
                         }, e.lhSide);
                         tracker.registerRef(future, e.rhSide.keySet());
@@ -229,26 +230,26 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 
     @Override
     @Idempotent
-    public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(String tableName,
+    public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(TableReference tableRef,
                                                                                                            Iterable<RangeRequest> rangeRequests,
                                                                                                            long timestamp) {
-        return KeyValueServices.getFirstBatchForRangesUsingGetRange(this, tableName, rangeRequests, timestamp);
+        return KeyValueServices.getFirstBatchForRangesUsingGetRange(this, tableRef, rangeRequests, timestamp);
     }
 
     // *** Read range requests ***
     @Override
-    public ClosableIterator<RowResult<Value>> getRange(final String tableName,
+    public ClosableIterator<RowResult<Value>> getRange(final TableReference tableRef,
             final RangeRequest rangeRequest, final long timestamp) {
         return AutoRetryingClosableIterator.of(rangeRequest, new Function<RangeRequest, ClosableIterator<RowResult<Value>>>() {
             @Override
             public ClosableIterator<RowResult<Value>> apply(
                     RangeRequest input) {
-                return invalidateOnVersionChangeIterator(getRangeInternal(tableName, input, timestamp));
+                return invalidateOnVersionChangeIterator(getRangeInternal(tableRef, input, timestamp));
             }
         });
     }
 
-    private ClosableIterator<RowResult<Value>> getRangeInternal(final String tableName,
+    private ClosableIterator<RowResult<Value>> getRangeInternal(final TableReference tableRef,
                                                        final RangeRequest rangeRequest,
                                                        final long timestamp) {
 
@@ -257,7 +258,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
             @Override
             public Multimap<ConsistentRingRangeRequest, KeyValueEndpoint> apply(
                     DynamicPartitionMap input) {
-                return input.getServicesForRangeRead(tableName, rangeRequest);
+                return input.getServicesForRangeRead(tableRef.getQualifiedName(), rangeRequest);
             }
         });
 
@@ -290,14 +291,14 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 
                         for (KeyValueEndpoint vkve : services.get(range)) {
                             try {
-                                ClosableIterator<RowResult<Value>> it = vkve.keyValueService().getRange(tableName, range.get(), timestamp);
+                                ClosableIterator<RowResult<Value>> it = vkve.keyValueService().getRange(tableRef, range.get(), timestamp);
                                 result.add(ClosablePeekingIterator.of(it));
                             } catch (ClientVersionTooOldException e) {
                                 throw e;
                             } catch (RuntimeException e) {
                                 // If this failure is fatal for the range, the exception will be thrown when
                                 // retrieving data from the iterators.
-                                log.warn("Failed to getRange in table " + tableName);
+                                log.warn("Failed to getRange in table " + tableRef.getQualifiedName());
 
                                 // The only exception is if all iterators for given range fail.
                                 // In such case it will rethrow last encountered exception immediately.
@@ -319,17 +320,17 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 
     @Override
     public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(
-            final String tableName, RangeRequest rangeRequest, final long timestamp) {
+            final TableReference tableRef, RangeRequest rangeRequest, final long timestamp) {
         return AutoRetryingClosableIterator.of(rangeRequest, new Function<RangeRequest, ClosableIterator<RowResult<Set<Value>>>>() {
             @Override
             public ClosableIterator<RowResult<Set<Value>>> apply(
                     RangeRequest input) {
-                return invalidateOnVersionChangeIterator(getRangeWithHistoryInternal(tableName, input, timestamp));
+                return invalidateOnVersionChangeIterator(getRangeWithHistoryInternal(tableRef, input, timestamp));
             }
         });
     }
 
-    private ClosableIterator<RowResult<Set<Value>>> getRangeWithHistoryInternal(final String tableName,
+    private ClosableIterator<RowResult<Set<Value>>> getRangeWithHistoryInternal(final TableReference tableRef,
                                                                        final RangeRequest rangeRequest,
                                                                        final long timestamp) {
         final Multimap<ConsistentRingRangeRequest, KeyValueEndpoint> services =
@@ -337,7 +338,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                     @Override
                     public Multimap<ConsistentRingRangeRequest, KeyValueEndpoint> apply(
                             DynamicPartitionMap input) {
-                        return input.getServicesForRangeRead(tableName, rangeRequest);
+                        return input.getServicesForRangeRead(tableRef.getQualifiedName(), rangeRequest);
                     }
                 });
 
@@ -365,7 +366,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                         // and thus must throw immediately on any failure encountered.
                         for (KeyValueEndpoint vkve : services.get(range)) {
                             ClosableIterator<RowResult<Set<Value>>> it = vkve.keyValueService().getRangeWithHistory(
-                                    tableName, range.get(), timestamp);
+                                    tableRef, range.get(), timestamp);
                             result.add(ClosablePeekingIterator.of(it));
                         }
                         return result;
@@ -377,18 +378,18 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 
     @Override
     public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(
-            final String tableName, RangeRequest rangeRequest, final long timestamp)
+            final TableReference tableRef, RangeRequest rangeRequest, final long timestamp)
                     throws InsufficientConsistencyException {
         return AutoRetryingClosableIterator.of(rangeRequest, new Function<RangeRequest, ClosableIterator<RowResult<Set<Long>>>>() {
             @Override
             public ClosableIterator<RowResult<Set<Long>>> apply(
                     RangeRequest input) {
-                return invalidateOnVersionChangeIterator(getRangeOfTimestampsInternal(tableName, input, timestamp));
+                return invalidateOnVersionChangeIterator(getRangeOfTimestampsInternal(tableRef, input, timestamp));
             }
         });
     }
 
-    private ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestampsInternal(final String tableName,
+    private ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestampsInternal(final TableReference tableRef,
                                                                        final RangeRequest rangeRequest,
                                                                        final long timestamp)
             throws InsufficientConsistencyException {
@@ -396,7 +397,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                 runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Multimap<ConsistentRingRangeRequest, KeyValueEndpoint>>() {
                     @Override
                     public Multimap<ConsistentRingRangeRequest, KeyValueEndpoint> apply(DynamicPartitionMap input) {
-                        return input.getServicesForRangeRead(tableName, rangeRequest);
+                        return input.getServicesForRangeRead(tableRef.getQualifiedName(), rangeRequest);
                     }
                 });
 
@@ -425,7 +426,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                         // and thus must throw immediately on any failure encountered.
                         for (KeyValueEndpoint vkve : services.get(range)) {
                             ClosableIterator<RowResult<Set<Long>>> it = vkve.keyValueService().getRangeOfTimestamps(
-                                    tableName, range.get(), timestamp);
+                                    tableRef, range.get(), timestamp);
                             result.add(ClosablePeekingIterator.of(it));
                         }
 
@@ -438,7 +439,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 
     // *** Write requests *************************************************************************
     @Override
-    public void put(final String tableName, final Map<Cell, byte[]> values, final long timestamp) {
+    public void put(final TableReference tableRef, final Map<Cell, byte[]> values, final long timestamp) {
         runWithPartitionMap(new Function<DynamicPartitionMap, Void>() {
             @Override
             public Void apply(DynamicPartitionMap input) {
@@ -446,13 +447,13 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                 final QuorumTracker<Void, Cell> tracker =
                         QuorumTracker.of(values.keySet(), input.getWriteCellsParameters(values.keySet()));
 
-                input.runForCellsWrite(tableName, values, new Function<Pair<KeyValueService, Map<Cell, byte[]>>, Void>() {
+                input.runForCellsWrite(tableRef.getQualifiedName(), values, new Function<Pair<KeyValueService, Map<Cell, byte[]>>, Void>() {
                     @Override
                     public Void apply(final Pair<KeyValueService, Map<Cell, byte[]>> e) {
                         Future<Void> future = writeService.submit(new Callable<Void>() {
                             @Override
                             public Void call() throws Exception {
-                                e.lhSide.put(tableName, e.rhSide, timestamp);
+                                e.lhSide.put(tableRef, e.rhSide, timestamp);
                                 return null;
                             }
                         }, e.lhSide);
@@ -469,7 +470,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 
     @Override
     @NonIdempotent
-    public void putWithTimestamps(final String tableName, final Multimap<Cell, Value> cellValues)
+    public void putWithTimestamps(final TableReference tableRef, final Multimap<Cell, Value> cellValues)
             throws KeyAlreadyExistsException {
 
         runWithPartitionMap(new Function<DynamicPartitionMap, Void>() {
@@ -479,13 +480,13 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                 final QuorumTracker<Void, Map.Entry<Cell, Value>> tracker = QuorumTracker.of(
                         cellValues.entries(), input.getWriteEntriesParameters(cellValues));
 
-                input.runForCellsWrite(tableName, cellValues, new Function<Pair<KeyValueService, Multimap<Cell, Value>>, Void>() {
+                input.runForCellsWrite(tableRef.getQualifiedName(), cellValues, new Function<Pair<KeyValueService, Multimap<Cell, Value>>, Void>() {
                     @Override
                     public Void apply(final Pair<KeyValueService, Multimap<Cell, Value>> e) {
                         Future<Void> future = execSvc.submit(new Callable<Void>() {
                             @Override
                             public Void call() throws Exception {
-                                e.lhSide.putWithTimestamps(tableName, e.rhSide);
+                                e.lhSide.putWithTimestamps(tableRef, e.rhSide);
                                 return null;
                             }
                         }, e.lhSide);
@@ -506,7 +507,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
      */
     @Override
     @Deprecated
-    public void putUnlessExists(final String tableName, final Map<Cell, byte[]> values)
+    public void putUnlessExists(final TableReference tableRef, final Map<Cell, byte[]> values)
             throws KeyAlreadyExistsException {
         // TODO: This should eventually throw new UnsupportedOperationException().
         // For some testing purposes it does not do it now and calls putUnlessExists
@@ -518,13 +519,13 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                 final QuorumTracker<Void, Cell> tracker = QuorumTracker.of(
                         values.keySet(), quorumParameters.getWriteRequestParameters());
 
-                input.runForCellsWrite(tableName, values, new Function<Pair<KeyValueService, Map<Cell, byte[]>>, Void>() {
+                input.runForCellsWrite(tableRef.getQualifiedName(), values, new Function<Pair<KeyValueService, Map<Cell, byte[]>>, Void>() {
                     @Override
                     public Void apply(final Pair<KeyValueService, Map<Cell, byte[]>> e) {
                         Future<Void> future = writeService.submit(new Callable<Void>() {
                             @Override
                             public Void call() throws Exception {
-                                e.lhSide.putUnlessExists(tableName, e.rhSide);
+                                e.lhSide.putUnlessExists(tableRef, e.rhSide);
                                 return null;
                             }
                         }, e.lhSide);
@@ -541,7 +542,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 
     @Override
     @Idempotent
-    public void delete(final String tableName, final Multimap<Cell, Long> keys) {
+    public void delete(final TableReference tableRef, final Multimap<Cell, Long> keys) {
         runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Void>() {
             @Override
             public Void apply(DynamicPartitionMap input) {
@@ -549,13 +550,13 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                 final QuorumTracker<Void, Map.Entry<Cell, Long>> tracker = QuorumTracker.of(
                         keys.entries(), input.getWriteEntriesParameters(keys));
 
-                input.runForCellsWrite(tableName, keys, new Function<Pair<KeyValueService, Multimap<Cell, Long>>, Void>() {
+                input.runForCellsWrite(tableRef.getQualifiedName(), keys, new Function<Pair<KeyValueService, Multimap<Cell, Long>>, Void>() {
                     @Override
                     public Void apply(final Pair<KeyValueService, Multimap<Cell, Long>> e) {
                         final Future<Void> future = execSvc.submit(new Callable<Void>() {
                             @Override
                             public Void call() throws Exception {
-                                e.lhSide.delete(tableName, e.rhSide);
+                                e.lhSide.delete(tableRef, e.rhSide);
                                 return null;
                             }
                         }, e.lhSide);
@@ -572,7 +573,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 
     @Override
     @Idempotent
-    public void addGarbageCollectionSentinelValues(final String tableName, final Set<Cell> cells) {
+    public void addGarbageCollectionSentinelValues(final TableReference tableRef, final Set<Cell> cells) {
         runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Void>() {
             @Override
             public Void apply(DynamicPartitionMap input) {
@@ -580,13 +581,13 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                 final QuorumTracker<Void, Cell> tracker = QuorumTracker.of(
                         cells, input.getWriteCellsParameters(cells));
 
-                input.runForCellsWrite(tableName, cells, new Function<Pair<KeyValueService, Set<Cell>>, Void>() {
+                input.runForCellsWrite(tableRef.getQualifiedName(), cells, new Function<Pair<KeyValueService, Set<Cell>>, Void>() {
                     @Override
                     public Void apply(final Pair<KeyValueService, Set<Cell>> e) {
                         Future<Void> future = execSvc.submit(new Callable<Void>() {
                             @Override
                             public Void call() throws Exception {
-                                e.lhSide.addGarbageCollectionSentinelValues(tableName, e.rhSide);
+                                e.lhSide.addGarbageCollectionSentinelValues(tableRef, e.rhSide);
                                 return null;
                             }
                         }, e.lhSide);
@@ -602,10 +603,10 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
     }
 
     @Override
-    public void multiPut(Map<String, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp)
+    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp)
             throws KeyAlreadyExistsException {
-        for (Map.Entry<String, ? extends Map<Cell, byte[]>> e : valuesByTable.entrySet()) {
-            final String tableName = e.getKey();
+        for (Map.Entry<TableReference, ? extends Map<Cell, byte[]>> e : valuesByTable.entrySet()) {
+            final TableReference tableName = e.getKey();
             final Map<Cell, byte[]> values = e.getValue();
             put(tableName, values, timestamp);
         }
@@ -615,12 +616,12 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
     // ***********************************************************************************
     @Override
     @Idempotent
-    public void dropTable(final String tableName) throws InsufficientConsistencyException {
+    public void dropTable(final TableReference tableRef) throws InsufficientConsistencyException {
         runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Void>() {
             @Override
             public Void apply(@Nullable DynamicPartitionMap input) {
                 for (KeyValueService kvs : input.getDelegates()) {
-                    kvs.dropTable(tableName);
+                    kvs.dropTable(tableRef);
                 }
                 return null;
             }
@@ -628,12 +629,12 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
     }
 
     @Override
-    public void dropTables(final Set<String> tableNames) throws InsufficientConsistencyException {
+    public void dropTables(final Set<TableReference> tableRefs) throws InsufficientConsistencyException {
         runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Void>() {
             @Override
             public Void apply(@Nullable DynamicPartitionMap input) {
                 for (KeyValueService kvs : input.getDelegates()) {
-                    kvs.dropTables(tableNames);
+                    kvs.dropTables(tableRefs);
                 }
                 return null;
             }
@@ -642,13 +643,13 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 
     @Override
     @Idempotent
-    public void createTable(final String tableName, final byte[] tableMetadata)
+    public void createTable(final TableReference tableRef, final byte[] tableMetadata)
             throws InsufficientConsistencyException {
         runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Void>() {
             @Override
             public Void apply(@Nullable DynamicPartitionMap input) {
                 for (KeyValueService kvs : input.getDelegates()) {
-                    kvs.createTable(tableName, tableMetadata);
+                    kvs.createTable(tableRef, tableMetadata);
                 }
                 return null;
             }
@@ -657,12 +658,12 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 
     @Override
     @Idempotent
-    public void truncateTable(final String tableName) throws InsufficientConsistencyException {
+    public void truncateTable(final TableReference tableRef) throws InsufficientConsistencyException {
         runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Void>() {
             @Override
             public Void apply(@Nullable DynamicPartitionMap input) {
                 for (KeyValueService kvs : input.getDelegates()) {
-                    kvs.truncateTable(tableName);
+                    kvs.truncateTable(tableRef);
                 }
                 return null;
             }
@@ -671,12 +672,12 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 
     @Override
     @Idempotent
-    public void truncateTables(final Set<String> tableNames) throws InsufficientConsistencyException {
+    public void truncateTables(final Set<TableReference> tableRefs) throws InsufficientConsistencyException {
         runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Void>() {
             @Override
             public Void apply(@Nullable DynamicPartitionMap input) {
                 for (KeyValueService kvs : input.getDelegates()) {
-                    kvs.truncateTables(tableNames);
+                    kvs.truncateTables(tableRefs);
                 }
                 return null;
             }
@@ -685,13 +686,13 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 
     @Override
     @Idempotent
-    public void createTables(final Map<String, byte[]> tableNameToTableMetadata)
+    public void createTables(final Map<TableReference, byte[]> tableRefToTableMetadata)
             throws InsufficientConsistencyException {
         runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Void>() {
             @Override
             public Void apply(@Nullable DynamicPartitionMap input) {
                 for (KeyValueService kvs : input.getDelegates()) {
-                    kvs.createTables(tableNameToTableMetadata);
+                    kvs.createTables(tableRefToTableMetadata);
                 }
                 return null;
             }
@@ -700,16 +701,16 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 
     @Override
     @Idempotent
-    public Set<String> getAllTableNames() {
-        return runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Set<String>>() {
+    public Set<TableReference> getAllTableNames() {
+        return runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Set<TableReference>>() {
             @Override
-            public Set<String> apply(@Nullable DynamicPartitionMap input) {
+            public Set<TableReference> apply(@Nullable DynamicPartitionMap input) {
                 return retryUntilSuccess(
                         input.getDelegates().iterator(),
-                        new Function<KeyValueService, Set<String>>() {
+                        new Function<KeyValueService, Set<TableReference>>() {
                             @Override
                             @Nullable
-                            public Set<String> apply(@Nullable KeyValueService kvs) {
+                            public Set<TableReference> apply(@Nullable KeyValueService kvs) {
                                 return kvs.getAllTableNames();
                             }
                         });
@@ -721,7 +722,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
     // ****************************************************************************************
     @Override
     @Idempotent
-    public byte[] getMetadataForTable(final String tableName) {
+    public byte[] getMetadataForTable(final TableReference tableRef) {
         return runWithPartitionMapRetryable(new Function<DynamicPartitionMap, byte[]>() {
             @Override
             public byte[] apply(@Nullable DynamicPartitionMap input) {
@@ -730,7 +731,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                         new Function<KeyValueService, byte[]>() {
                             @Override
                             public byte[] apply(@Nullable KeyValueService kvs) {
-                                return kvs.getMetadataForTable(tableName);
+                                return kvs.getMetadataForTable(tableRef);
                             }
                         });
             }
@@ -739,12 +740,12 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 
     @Override
     @Idempotent
-    public void putMetadataForTable(final String tableName, final byte[] metadata) {
+    public void putMetadataForTable(final TableReference tableRef, final byte[] metadata) {
         runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Void>() {
             @Override
             public Void apply(@Nullable DynamicPartitionMap input) {
                 for (KeyValueService kvs : input.getDelegates()) {
-                    kvs.putMetadataForTable(tableName, metadata);
+                    kvs.putMetadataForTable(tableRef, metadata);
                 }
                 return null;
             }
@@ -753,15 +754,15 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 
     @Override
     @Idempotent
-    public Map<String, byte[]> getMetadataForTables() {
-        return runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Map<String, byte[]>>() {
+    public Map<TableReference, byte[]> getMetadataForTables() {
+        return runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Map<TableReference, byte[]>>() {
             @Override
-            public Map<String, byte[]> apply(@Nullable DynamicPartitionMap input) {
+            public Map<TableReference, byte[]> apply(@Nullable DynamicPartitionMap input) {
                 return retryUntilSuccess(
                         input.getDelegates().iterator(),
-                        new Function<KeyValueService, Map<String, byte[]>>() {
+                        new Function<KeyValueService, Map<TableReference, byte[]>>() {
                             @Override
-                            public Map<String, byte[]> apply(KeyValueService kvs) {
+                            public Map<TableReference, byte[]> apply(KeyValueService kvs) {
                                 return kvs.getMetadataForTables();
                             }
                         });
@@ -771,12 +772,12 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 
     @Override
     @Idempotent
-    public void putMetadataForTables(final Map<String, byte[]> tableNameToMetadata) {
+    public void putMetadataForTables(final Map<TableReference, byte[]> tableRefToMetadata) {
         runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Void>() {
             @Override
             public Void apply(@Nullable DynamicPartitionMap input) {
                 for (KeyValueService kvs : input.getDelegates()) {
-                    kvs.putMetadataForTables(tableNameToMetadata);
+                    kvs.putMetadataForTables(tableRefToMetadata);
                 }
                 return null;
             }
@@ -785,12 +786,12 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
 
     // *** Simple forward methods ***************************************************************
     @Override
-    public void compactInternally(final String tableName) {
+    public void compactInternally(final TableReference tableRef) {
         runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Void>() {
             @Override
             public Void apply(@Nullable DynamicPartitionMap input) {
                 for (KeyValueService kvs : input.getDelegates()) {
-                    kvs.compactInternally(tableName);
+                    kvs.compactInternally(tableRef);
                 }
                 return null;
             }

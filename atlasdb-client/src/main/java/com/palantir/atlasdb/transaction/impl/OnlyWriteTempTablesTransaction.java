@@ -23,6 +23,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.base.BatchingVisitable;
@@ -43,33 +44,34 @@ public class OnlyWriteTempTablesTransaction extends ForwardingTransaction {
     }
 
     @Override
-    public SortedMap<byte[], RowResult<byte[]>> getRows(String tableName,
+    public SortedMap<byte[], RowResult<byte[]>> getRows(TableReference tableRef,
                                                         Iterable<byte[]> rows,
                                                         ColumnSelection columnSelection) {
-        checkTableName(tableName);
-        return delegate().getRows(tableName, rows, columnSelection);
+        checkTableName(tableRef);
+        return delegate().getRows(tableRef, rows, columnSelection);
     }
 
     @Override
-    public Map<Cell, byte[]> get(String tableName, Set<Cell> cells) {
-        checkTableName(tableName);
-        return delegate().get(tableName, cells);
+    public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
+        checkTableName(tableRef);
+        return delegate().get(tableRef, cells);
     }
 
     @Override
-    public BatchingVisitable<RowResult<byte[]>> getRange(String tableName, RangeRequest rangeRequest) {
-        checkTableName(tableName);
-        return delegate().getRange(tableName, rangeRequest);
+    public BatchingVisitable<RowResult<byte[]>> getRange(TableReference tableRef, RangeRequest rangeRequest) {
+        checkTableName(tableRef);
+        return delegate().getRange(tableRef, rangeRequest);
     }
 
     @Override
-    public Iterable<BatchingVisitable<RowResult<byte[]>>> getRanges(String tableName,
+    public Iterable<BatchingVisitable<RowResult<byte[]>>> getRanges(TableReference tableRef,
                                                                     Iterable<RangeRequest> rangeRequests) {
-        checkTableName(tableName);
-        return delegate().getRanges(tableName, rangeRequests);
+        checkTableName(tableRef);
+        return delegate().getRanges(tableRef, rangeRequests);
     }
 
-    private void checkTableName(String tableName) {
+    private void checkTableName(TableReference tableRef) {
+        String tableName = tableRef.getQualifiedName();
         SweepStrategy sweepStrategy = sweepStrategies.get().get(tableName);
         if (sweepStrategy == SweepStrategy.THOROUGH) {
             throw new IllegalStateException("Cannot read from a table with a thorough sweep strategy in a read only transaction.");
@@ -77,19 +79,19 @@ public class OnlyWriteTempTablesTransaction extends ForwardingTransaction {
     }
 
     @Override
-    public void put(String tableName, Map<Cell, byte[]> values) {
-        if (!delegate.isTempTable(tableName)) {
+    public void put(TableReference tableRef, Map<Cell, byte[]> values) {
+        if (!delegate.isTempTable(tableRef)) {
             throw new IllegalArgumentException("This is a read only transaction. You may only write to temp tables.");
         }
-        super.put(tableName, values);
+        super.put(tableRef, values);
     }
 
     @Override
-    public void delete(String tableName, Set<Cell> keys) {
-        if (!delegate.isTempTable(tableName)) {
+    public void delete(TableReference tableRef, Set<Cell> keys) {
+        if (!delegate.isTempTable(tableRef)) {
             throw new IllegalArgumentException("This is a read only transaction. You may only write to temp tables.");
         }
-        super.delete(tableName, keys);
+        super.delete(tableRef, keys);
     }
 
 }
