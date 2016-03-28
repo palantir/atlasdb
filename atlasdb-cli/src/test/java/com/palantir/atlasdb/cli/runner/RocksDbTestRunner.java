@@ -21,8 +21,8 @@ import org.apache.commons.io.FileUtils;
 
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.cli.command.SingleBackendCommand;
+import com.palantir.atlasdb.keyvalue.api.KeyValueServiceConfig;
 import com.palantir.atlasdb.rocksdb.RocksDbKeyValueServiceConfig;
-import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.common.base.Throwables;
 
 public class RocksDbTestRunner extends AbstractTestRunner {

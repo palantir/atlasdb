@@ -21,8 +21,8 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.google.auto.service.AutoService;
+import com.palantir.atlasdb.keyvalue.api.KeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
-import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
 /**
  * This class is to provide configuration for PartitionedKeyValueService.

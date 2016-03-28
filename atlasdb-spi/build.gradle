@@ -1,8 +1,0 @@
-apply from: "../gradle/shared.gradle"
-
-dependencies {
-    compile project(':atlasdb-api')
-    compile project(':timestamp-api')
-    compile 'com.fasterxml.jackson.core:jackson-databind:' + libVersions.jackson
-}
-

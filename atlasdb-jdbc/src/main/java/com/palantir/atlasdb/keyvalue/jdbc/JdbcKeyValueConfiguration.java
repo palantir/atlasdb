@@ -22,7 +22,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.auto.service.AutoService;
 import com.palantir.atlasdb.jdbc.config.JdbcDataSourceConfiguration;
-import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.api.KeyValueServiceConfig;
 
 @AutoService(KeyValueServiceConfig.class)
 @JsonDeserialize(as = ImmutableJdbcKeyValueConfiguration.class)

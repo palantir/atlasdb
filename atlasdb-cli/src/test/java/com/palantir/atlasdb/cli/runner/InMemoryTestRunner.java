@@ -16,7 +16,7 @@
 package com.palantir.atlasdb.cli.runner;
 
 import com.palantir.atlasdb.cli.command.SingleBackendCommand;
-import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.api.KeyValueServiceConfig;
 
 public class InMemoryTestRunner extends AbstractTestRunner {
 

@@ -3,7 +3,6 @@ apply plugin: 'org.inferred.processors'
 apply from: "../gradle/shared.gradle"
 
 dependencies {
-    compile project(':atlasdb-spi')
     compile project(':atlasdb-impl-shared')
     compile project(':leader-election-impl')
     compile project(':lock-impl')

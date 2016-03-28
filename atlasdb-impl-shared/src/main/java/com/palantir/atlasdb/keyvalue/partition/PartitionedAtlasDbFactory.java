@@ -16,9 +16,9 @@
 package com.palantir.atlasdb.keyvalue.partition;
 
 import com.google.auto.service.AutoService;
+import com.palantir.atlasdb.factory.api.AtlasDbFactory;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.spi.AtlasDbFactory;
-import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.api.KeyValueServiceConfig;
 import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.TimestampService;
 
