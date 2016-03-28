@@ -72,6 +72,7 @@ public class TransactionManagers {
     private static final Logger log = LoggerFactory.getLogger(TransactionManagers.class);
 
     private static final ServiceLoader<AtlasDbFactory> loader = ServiceLoader.load(AtlasDbFactory.class);
+    public static final LockClient LOCK_CLIENT = LockClient.of("atlas instance");
 
     /**
      * Create a {@link SerializableTransactionManager} with provided configuration, {@link SSLSocketFactory}, {@link Schema},
@@ -94,33 +95,18 @@ public class TransactionManagers {
                                                         Set<Schema> schemas,
                                                         Environment env,
                                                         boolean allowHiddenTableAccess) {
-        final AtlasDbFactory kvsFactory = getKeyValueServiceFactory(config.keyValueService().type());
-        final KeyValueService rawKvs = kvsFactory.createRawKeyValueService(config.keyValueService());
+        final ServiceDiscoveringAtlasSupplier atlasFactory = new ServiceDiscoveringAtlasSupplier(config.keyValueService());
+        final KeyValueService rawKvs = atlasFactory.getKeyValueService();
 
         LockAndTimestampServices lts = createLockAndTimestampServices(config, sslSocketFactory, env,
-                new Supplier<RemoteLockService>() {
-                    @Override
-                    public RemoteLockService get() {
-                        return LockServiceImpl.create();
-                    }
-                },
-                new Supplier<TimestampService>() {
-                    @Override
-                    public TimestampService get() {
-                        return kvsFactory.createTimestampService(rawKvs);
-                    }
-                });
-        lts = ImmutableLockAndTimestampServices.builder()
-                .from(lts)
-                .lock(LockRefreshingRemoteLockService.create(lts.lock()))
-                .build();
+                LockServiceImpl::create,
+                atlasFactory::getTimestampService
+        );
 
         KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs);
         kvs = new SweepStatsKeyValueService(kvs, lts.time());
 
         TransactionTables.createTables(kvs);
-
-        LockClient lockClient = LockClient.of("atlas instance");
 
         TransactionService transactionService = TransactionServices.createTransactionService(kvs);
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.createDefault(kvs);
@@ -136,7 +122,7 @@ public class TransactionManagers {
                 kvs,
                 lts.lock(),
                 lts.time(),
-                lockClient,
+                LOCK_CLIENT,
                 ImmutableList.of(follower),
                 transactionService)
                 .setBackgroundScrubAggressively(config.backgroundScrubAggressively())
@@ -149,7 +135,7 @@ public class TransactionManagers {
 
         SerializableTransactionManager transactionManager = new SerializableTransactionManager(kvs,
                 lts.time(),
-                lockClient,
+                LOCK_CLIENT,
                 lts.lock(),
                 transactionService,
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
@@ -197,15 +183,6 @@ public class TransactionManagers {
         };
     }
 
-    public static AtlasDbFactory getKeyValueServiceFactory(String type) {
-        for (AtlasDbFactory factory : loader) {
-            if (factory.getType().equalsIgnoreCase(type)) {
-                return factory;
-            }
-        }
-        throw new IllegalStateException("No atlas provider for KeyValueService type " + type + " is on your classpath.");
-    }
-
     public static LockAndTimestampServices createLockAndTimestampServices(
             AtlasDbConfig config,
             Optional<SSLSocketFactory> sslSocketFactory,
@@ -213,6 +190,18 @@ public class TransactionManagers {
             Supplier<RemoteLockService> lock,
             Supplier<TimestampService> time) {
 
+        LockAndTimestampServices lockAndTimestampServices = createRawServices(config, sslSocketFactory, env, lock, time);
+        return withRefreshingLockService(lockAndTimestampServices);
+    }
+
+    private static LockAndTimestampServices withRefreshingLockService(LockAndTimestampServices lockAndTimestampServices) {
+        return ImmutableLockAndTimestampServices.builder()
+                .from(lockAndTimestampServices)
+                .lock(LockRefreshingRemoteLockService.create(lockAndTimestampServices.lock()))
+                .build();
+    }
+
+    private static LockAndTimestampServices createRawServices(AtlasDbConfig config, Optional<SSLSocketFactory> sslSocketFactory, Environment env, Supplier<RemoteLockService> lock, Supplier<TimestampService> time) {
         if (config.leader().isPresent()) {
             LeaderElectionService leader = Leaders.create(sslSocketFactory, env, config.leader().get());
             env.register(AwaitingLeadershipProxy.newProxyInstance(RemoteLockService.class, lock, leader));
