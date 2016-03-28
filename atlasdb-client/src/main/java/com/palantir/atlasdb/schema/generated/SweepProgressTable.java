@@ -436,7 +436,7 @@ public final class SweepProgressTable implements
 
         @Override
         public byte[] persistValue() {
-            byte[] bytes = EncodingUtils.encodeUnsignedVarLong(value);
+            byte[] bytes = EncodingUtils.encodeSignedVarLong(value);
             return CompressionUtils.compress(bytes, Compression.NONE);
         }
 
@@ -449,7 +449,7 @@ public final class SweepProgressTable implements
             @Override
             public MinimumSweptTimestamp hydrateFromBytes(byte[] bytes) {
                 bytes = CompressionUtils.decompress(bytes, Compression.NONE);
-                return of(EncodingUtils.decodeUnsignedVarLong(bytes, 0));
+                return of(EncodingUtils.decodeSignedVarLong(bytes, 0));
             }
         };
 
@@ -1240,5 +1240,5 @@ public final class SweepProgressTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "6GJZx8PF7zvw2x/erpN97w==";
+    static String __CLASS_HASH = "CLjuV6d5OsaOyG0r2OiSaQ==";
 }

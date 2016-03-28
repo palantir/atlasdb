@@ -51,7 +51,7 @@ public enum SweepSchema implements AtlasSchema {
                 column("full_table_name", "n", ValueType.STRING);
                 // The minimum swept timestamp, used to determine min
                 // timestamp for transaction table sweep
-                column("minimum_swept_timestamp", "m", ValueType.VAR_LONG);
+                column("minimum_swept_timestamp", "m", ValueType.VAR_SIGNED_LONG);
                 // The row to start sweeping from if sweeping
                 // is paused and resumed.
                 column("start_row", "s", ValueType.BLOB);
@@ -77,7 +77,7 @@ public enum SweepSchema implements AtlasSchema {
                 column("last_sweep_time", "t", ValueType.VAR_LONG);
                 // The minimum swept timestamp, used to determine min
                 // timestamp for transaction table sweep
-                column("minimum_swept_timestamp", "m", ValueType.VAR_LONG);
+                column("minimum_swept_timestamp", "m", ValueType.VAR_SIGNED_LONG);
                 // The number of cells deleted when this table was
                 // last swept.
                 column("cells_deleted", "d", ValueType.VAR_LONG);
