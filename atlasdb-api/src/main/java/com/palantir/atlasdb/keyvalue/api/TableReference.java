@@ -13,8 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.schema;
+package com.palantir.atlasdb.keyvalue.api;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
 
 
@@ -36,11 +39,16 @@ public class TableReference {
         return new TableReference(Namespace.EMPTY_NAMESPACE, tablename);
     }
 
+    public static TableReference createUnsafe(String fullTableName) {
+        return fullTableName.indexOf('.') < 0 ? createWithEmptyNamespace(fullTableName) : createFromFullyQualifiedName(fullTableName);
+    }
+
     public static boolean isFullyQualifiedName(String tableName) {
         return tableName.contains(".");
     }
 
-    private TableReference(Namespace namespace, String tablename) {
+    @JsonCreator
+    private TableReference(@JsonProperty("namespace") Namespace namespace, @JsonProperty("tablename") String tablename) {
         this.namespace = namespace;
         this.tablename = tablename;
     }
@@ -51,6 +59,16 @@ public class TableReference {
 
     public String getTablename() {
         return tablename;
+    }
+
+    @JsonIgnore
+    public String getQualifiedName() {
+        return namespace.isEmptyNamespace() || namespace.getName().equals("met") ? tablename : namespace.getName() + "." + tablename;
+    }
+
+    @JsonIgnore
+    public boolean isFullyQualifiedName() {
+        return getQualifiedName().contains(".");
     }
 
     @Override

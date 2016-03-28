@@ -32,8 +32,8 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
-import com.palantir.atlasdb.schema.Namespace;
-import com.palantir.atlasdb.schema.TableReference;
+import com.palantir.atlasdb.keyvalue.api.Namespace;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
@@ -86,9 +86,9 @@ public class KVTableMappingService extends AbstractTableMappingService {
     }
 
     @Override
-    public String addTable(TableReference tableRef) {
+    public TableReference addTable(TableReference tableRef) {
         if (tableRef.getNamespace().isEmptyNamespace()) {
-            return tableRef.getTablename();
+            return tableRef;
         }
         if (tableMap.get().containsKey(tableRef)) {
             return tableMap.get().get(tableRef);
@@ -99,9 +99,9 @@ public class KVTableMappingService extends AbstractTableMappingService {
         try {
             kv.putUnlessExists(AtlasDbConstants.NAMESPACE_TABLE, ImmutableMap.of(key, value));
         } catch (KeyAlreadyExistsException e) {
-            return getShortTableName(tableRef);
+            return getMappedTableName(tableRef);
         }
-        return shortName;
+        return TableReference.createWithEmptyNamespace(shortName);
     }
 
     @Override
@@ -113,19 +113,19 @@ public class KVTableMappingService extends AbstractTableMappingService {
         // Need to invalidate the table ref in case we end up re-creating the same table
         // again. Frequently when we drop one table we end up dropping a bunch of tables,
         // so just invalidate everything.
-        tableMap.set(HashBiMap.<TableReference, String>create());
+        tableMap.set(HashBiMap.<TableReference, TableReference>create());
     }
 
     @Override
-    protected BiMap<TableReference, String> readTableMap() {
-        BiMap<TableReference, String> ret = HashBiMap.create();
+    protected BiMap<TableReference, TableReference> readTableMap() {
+        BiMap<TableReference, TableReference> ret = HashBiMap.create();
         ClosableIterator<RowResult<Value>> range = kv.getRange(AtlasDbConstants.NAMESPACE_TABLE, RangeRequest.builder().build(), Long.MAX_VALUE);
         try {
             while (range.hasNext()) {
                 RowResult<Value> row = range.next();
                 String shortName = PtBytes.toString(row.getColumns().get(AtlasDbConstants.NAMESPACE_SHORT_COLUMN_BYTES).getContents());
                 TableReference ref = getTableRefFromBytes(row.getRowName());
-                ret.put(ref, shortName);
+                ret.put(ref, TableReference.createWithEmptyNamespace(shortName));
             }
         } finally {
             range.close();

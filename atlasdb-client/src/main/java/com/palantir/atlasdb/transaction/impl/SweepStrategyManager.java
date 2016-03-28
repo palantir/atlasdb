@@ -17,16 +17,17 @@ package com.palantir.atlasdb.transaction.impl;
 
 import java.util.Map;
 
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 
 public class SweepStrategyManager {
-    private final RecomputingSupplier<Map<String, SweepStrategy>> supplier;
+    private final RecomputingSupplier<Map<TableReference, SweepStrategy>> supplier;
 
-    public SweepStrategyManager(RecomputingSupplier<Map<String, SweepStrategy>> supplier) {
+    public SweepStrategyManager(RecomputingSupplier<Map<TableReference, SweepStrategy>> supplier) {
         this.supplier = supplier;
     }
 
-    public Map<String, SweepStrategy> get() {
+    public Map<TableReference, SweepStrategy> get() {
         return supplier.get();
     }
 

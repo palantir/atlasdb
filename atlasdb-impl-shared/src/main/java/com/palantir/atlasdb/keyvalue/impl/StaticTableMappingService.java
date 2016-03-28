@@ -15,13 +15,14 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.palantir.atlasdb.keyvalue.TableMappingService;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.schema.TableReference;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public class StaticTableMappingService extends AbstractTableMappingService {
     private final KeyValueService kv;
@@ -37,11 +38,8 @@ public class StaticTableMappingService extends AbstractTableMappingService {
     }
 
     @Override
-    public String addTable(TableReference tableRef) {
-        if (tableRef.getNamespace().isEmptyNamespace()) {
-            return tableRef.getTablename();
-        }
-        return tableRef.getNamespace().getName() + "." + tableRef.getTablename();
+    public TableReference addTable(TableReference tableRef) {
+        return tableRef;
     }
 
     @Override
@@ -50,18 +48,20 @@ public class StaticTableMappingService extends AbstractTableMappingService {
     }
 
     @Override
-    protected BiMap<TableReference, String> readTableMap() {
-        Set<String> tables = kv.getAllTableNames();
-        BiMap<TableReference, String> ret = HashBiMap.create();
-        for (String table : tables) {
-            ret.put(getTableReference(table), table);
-        }
-
-        return ret;
+    protected BiMap<TableReference, TableReference> readTableMap() {
+        return HashBiMap.create(
+                kv.getAllTableNames()
+                        .stream()
+                        .collect(
+                                Collectors.toMap(
+                                        Function.identity(),
+                                        Function.identity())
+                        )
+        );
     }
 
     @Override
-    protected void validateShortName(TableReference tableRef, String shortName) {
+    protected void validateShortName(TableReference tableRef, TableReference shortName) {
         // any name is ok for the static mapper
     }
 

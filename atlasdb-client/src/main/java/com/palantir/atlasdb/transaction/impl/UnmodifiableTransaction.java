@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 
@@ -35,12 +36,12 @@ public class UnmodifiableTransaction extends ForwardingTransaction {
     }
 
     @Override
-    public void put(String tableName, Map<Cell, byte[]> values) {
+    public void put(TableReference tableRef, Map<Cell, byte[]> values) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public void delete(String tableName, Set<Cell> keys) {
+    public void delete(TableReference tableRef, Set<Cell> keys) {
         throw new UnsupportedOperationException();
     }
 

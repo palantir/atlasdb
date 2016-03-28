@@ -36,8 +36,8 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.schema.Namespace;
-import com.palantir.atlasdb.schema.TableReference;
+import com.palantir.atlasdb.keyvalue.api.Namespace;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
@@ -65,19 +65,19 @@ public class TableRemappingKeyValueService extends ForwardingObject implements
     @Override
     public void addGarbageCollectionSentinelValues(TableReference tableRef, Set<Cell> cells) {
         delegate().addGarbageCollectionSentinelValues(
-                tableMapper.getShortTableName(tableRef),
+                tableMapper.getMappedTableName(tableRef),
                 cells);
     }
 
     @Override
     public void createTable(TableReference tableRef, byte[] tableMetadata) {
-        String shortName = tableMapper.addTable(tableRef);
+        TableReference shortName = tableMapper.addTable(tableRef);
         delegate().createTable(shortName, tableMetadata);
     }
 
     @Override
     public void createTables(Map<TableReference, byte[]> tableReferencesToTableMetadata) {
-        Map<String, byte[]> tableNameToTableMetadata= Maps.newHashMapWithExpectedSize(tableReferencesToTableMetadata.size());
+        Map<TableReference, byte[]> tableNameToTableMetadata= Maps.newHashMapWithExpectedSize(tableReferencesToTableMetadata.size());
         for (Entry<TableReference, byte[]> tableEntry : tableReferencesToTableMetadata.entrySet()) {
             tableNameToTableMetadata.put(
                     tableMapper.addTable(tableEntry.getKey()),
@@ -93,7 +93,7 @@ public class TableRemappingKeyValueService extends ForwardingObject implements
 
     @Override
     public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
-        delegate().delete(tableMapper.getShortTableName(tableRef), keys);
+        delegate().delete(tableMapper.getMappedTableName(tableRef), keys);
     }
 
     @Override
@@ -103,9 +103,9 @@ public class TableRemappingKeyValueService extends ForwardingObject implements
 
     @Override
     public void dropTables(Set<TableReference> tableRefs) {
-        Set<String> tableNames = Sets.newHashSetWithExpectedSize(tableRefs.size());
+        Set<TableReference> tableNames = Sets.newHashSetWithExpectedSize(tableRefs.size());
         for (TableReference tableRef : tableRefs) {
-            tableNames.add(tableMapper.getShortTableName(tableRef));
+            tableNames.add(tableMapper.getMappedTableName(tableRef));
             delegate().dropTables(tableNames);
         }
         delegate().dropTables(tableNames);
@@ -123,7 +123,7 @@ public class TableRemappingKeyValueService extends ForwardingObject implements
 
     @Override
     public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
-        return delegate().get(tableMapper.getShortTableName(tableRef), timestampByCell);
+        return delegate().get(tableMapper.getMappedTableName(tableRef), timestampByCell);
     }
 
     @Override
@@ -135,7 +135,7 @@ public class TableRemappingKeyValueService extends ForwardingObject implements
     public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef,
                                                  Set<Cell> keys,
                                                  long timestamp) {
-        return delegate().getAllTimestamps(tableMapper.getShortTableName(tableRef), keys, timestamp);
+        return delegate().getAllTimestamps(tableMapper.getMappedTableName(tableRef), keys, timestamp);
     }
 
     @Override
@@ -148,7 +148,7 @@ public class TableRemappingKeyValueService extends ForwardingObject implements
                                                                                                            Iterable<RangeRequest> rangeRequests,
                                                                                                            long timestamp) {
         return delegate().getFirstBatchForRanges(
-                tableMapper.getShortTableName(tableRef),
+                tableMapper.getMappedTableName(tableRef),
                 rangeRequests,
                 timestamp);
     }
@@ -157,19 +157,19 @@ public class TableRemappingKeyValueService extends ForwardingObject implements
     public Map<Cell, Long> getLatestTimestamps(TableReference tableRef,
                                                Map<Cell, Long> timestampByCell) {
         return delegate().getLatestTimestamps(
-                tableMapper.getShortTableName(tableRef),
+                tableMapper.getMappedTableName(tableRef),
                 timestampByCell);
     }
 
     @Override
     public byte[] getMetadataForTable(TableReference tableRef) {
-        return delegate().getMetadataForTable(tableMapper.getShortTableName(tableRef));
+        return delegate().getMetadataForTable(tableMapper.getMappedTableName(tableRef));
     }
 
     @Override
     public Map<TableReference, byte[]> getMetadataForTables() {
         Map<TableReference, byte[]> tableRefToBytes = Maps.newHashMap();
-        for (Entry<String, byte[]> entry : delegate().getMetadataForTables().entrySet()) {
+        for (Entry<TableReference, byte[]> entry : delegate().getMetadataForTables().entrySet()) {
             tableRefToBytes.put(
                     Iterables.getOnlyElement(tableMapper.mapToFullTableNames(ImmutableSet.of(entry.getKey()))),
                     entry.getValue());
@@ -181,7 +181,7 @@ public class TableRemappingKeyValueService extends ForwardingObject implements
     public ClosableIterator<RowResult<Value>> getRange(TableReference tableRef,
                                                        RangeRequest rangeRequest,
                                                        long timestamp) {
-        return delegate().getRange(tableMapper.getShortTableName(tableRef), rangeRequest, timestamp);
+        return delegate().getRange(tableMapper.getMappedTableName(tableRef), rangeRequest, timestamp);
     }
 
     @Override
@@ -189,7 +189,7 @@ public class TableRemappingKeyValueService extends ForwardingObject implements
                                                                        RangeRequest rangeRequest,
                                                                        long timestamp) {
         return delegate().getRangeOfTimestamps(
-                tableMapper.getShortTableName(tableRef),
+                tableMapper.getMappedTableName(tableRef),
                 rangeRequest,
                 timestamp);
     }
@@ -199,7 +199,7 @@ public class TableRemappingKeyValueService extends ForwardingObject implements
                                                                        RangeRequest rangeRequest,
                                                                        long timestamp) {
         return delegate().getRangeWithHistory(
-                tableMapper.getShortTableName(tableReference),
+                tableMapper.getMappedTableName(tableReference),
                 rangeRequest,
                 timestamp);
     }
@@ -210,7 +210,7 @@ public class TableRemappingKeyValueService extends ForwardingObject implements
                                     ColumnSelection columnSelection,
                                     long timestamp) {
         return delegate().getRows(
-                tableMapper.getShortTableName(tableRef),
+                tableMapper.getMappedTableName(tableRef),
                 rows,
                 columnSelection,
                 timestamp);
@@ -229,20 +229,20 @@ public class TableRemappingKeyValueService extends ForwardingObject implements
 
     @Override
     public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp) {
-        delegate().put(tableMapper.getShortTableName(tableRef), values, timestamp);
+        delegate().put(tableMapper.getMappedTableName(tableRef), values, timestamp);
     }
 
     @Override
     public void putMetadataForTable(TableReference tableRef, byte[] metadata) {
-        delegate().putMetadataForTable(tableMapper.getShortTableName(tableRef), metadata);
+        delegate().putMetadataForTable(tableMapper.getMappedTableName(tableRef), metadata);
     }
 
     @Override
     public void putMetadataForTables(Map<TableReference, byte[]> tableReferencesToMetadata) {
-        Map<String, byte[]> tableNameToMetadata = Maps.newHashMapWithExpectedSize(tableReferencesToMetadata.size());
+        Map<TableReference, byte[]> tableNameToMetadata = Maps.newHashMapWithExpectedSize(tableReferencesToMetadata.size());
         for (Entry<TableReference, byte[]> tableEntry : tableReferencesToMetadata.entrySet()) {
             tableNameToMetadata.put(
-                    tableMapper.getShortTableName(tableEntry.getKey()),
+                    tableMapper.getMappedTableName(tableEntry.getKey()),
                     tableEntry.getValue());
         }
         delegate().putMetadataForTables(tableNameToMetadata);
@@ -251,12 +251,12 @@ public class TableRemappingKeyValueService extends ForwardingObject implements
     @Override
     public void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values)
             throws KeyAlreadyExistsException {
-        delegate().putUnlessExists(tableMapper.getShortTableName(tableRef), values);
+        delegate().putUnlessExists(tableMapper.getMappedTableName(tableRef), values);
     }
 
     @Override
     public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> values) {
-        delegate().putWithTimestamps(tableMapper.getShortTableName(tableRef), values);
+        delegate().putWithTimestamps(tableMapper.getMappedTableName(tableRef), values);
     }
 
     @Override
@@ -271,20 +271,20 @@ public class TableRemappingKeyValueService extends ForwardingObject implements
 
     @Override
     public void truncateTable(TableReference tableRef) {
-        delegate().truncateTable(tableMapper.getShortTableName(tableRef));
+        delegate().truncateTable(tableMapper.getMappedTableName(tableRef));
     }
 
     @Override
     public void truncateTables(Set<TableReference> tableRefs) {
-        Set<String> tablesToTruncate = Sets.newHashSet();
+        Set<TableReference> tablesToTruncate = Sets.newHashSet();
         for (TableReference tableRef : tableRefs) {
-            tablesToTruncate.add(tableMapper.getShortTableName(tableRef));
+            tablesToTruncate.add(tableMapper.getMappedTableName(tableRef));
         }
         delegate().truncateTables(tablesToTruncate);
     }
 
     @Override
     public void compactInternally(TableReference tableRef) {
-        delegate().compactInternally(tableMapper.getShortTableName(tableRef));
+        delegate().compactInternally(tableMapper.getMappedTableName(tableRef));
     }
 }

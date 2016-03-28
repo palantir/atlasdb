@@ -24,6 +24,7 @@ import com.google.common.reflect.AbstractInvocationHandler;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
@@ -118,21 +119,21 @@ public class FillInUrlProxy<T> extends AbstractInvocationHandler {
         }
 
         @Override
-        public ClosableIterator<RowResult<Value>> getRange(String tableName,
-                RangeRequest rangeRequest, long timestamp) {
-            return newFillInUrlProxy(super.getRange(tableName, rangeRequest, timestamp), pmsUri);
+        public ClosableIterator<RowResult<Value>> getRange(TableReference tableRef,
+                                                           RangeRequest rangeRequest, long timestamp) {
+            return newFillInUrlProxy(super.getRange(tableRef, rangeRequest, timestamp), pmsUri);
         }
 
         @Override
         public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(
-                String tableName, RangeRequest rangeRequest, long timestamp) {
-            return newFillInUrlProxy(super.getRangeWithHistory(tableName, rangeRequest, timestamp), pmsUri);
+                TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
+            return newFillInUrlProxy(super.getRangeWithHistory(tableRef, rangeRequest, timestamp), pmsUri);
         }
 
         @Override
         public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(
-                String tableName, RangeRequest rangeRequest, long timestamp) {
-            return newFillInUrlProxy(super.getRangeOfTimestamps(tableName, rangeRequest, timestamp), pmsUri);
+                TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
+            return newFillInUrlProxy(super.getRangeOfTimestamps(tableRef, rangeRequest, timestamp), pmsUri);
         }
 
     }

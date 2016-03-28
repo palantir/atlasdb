@@ -30,6 +30,7 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionClient;
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionManager;
 
@@ -41,7 +42,7 @@ public class CassandraJmxCompactionManagerTest {
     ImmutableSet<CassandraJmxCompactionClient> mockedClients;
 
     private static final String TEST_KEY_SPACE = "testKeySpace";
-    private static final String TEST_TABLE_NAME = "testTableName";
+    private static final TableReference TEST_TABLE_NAME = TableReference.createWithEmptyNamespace("testTableName");
 
     @Before
     public void setUp() {

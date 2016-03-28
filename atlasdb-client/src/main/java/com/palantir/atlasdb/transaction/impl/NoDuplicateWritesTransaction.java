@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.util.AssertUtils;
 
@@ -39,15 +40,15 @@ import com.palantir.util.AssertUtils;
  */
 public class NoDuplicateWritesTransaction extends ForwardingTransaction {
     final Transaction delegate;
-    final ImmutableSet<String> noDoubleWritesTables;
-    final LoadingCache<String, Map<Cell, byte[]>> writes = CacheBuilder.newBuilder().build(new CacheLoader<String, Map<Cell, byte[]>>() {
+    final ImmutableSet<TableReference> noDoubleWritesTables;
+    final LoadingCache<TableReference, Map<Cell, byte[]>> writes = CacheBuilder.newBuilder().build(new CacheLoader<TableReference, Map<Cell, byte[]>>() {
         @Override
-        public Map<Cell, byte[]> load(String input) {
+        public Map<Cell, byte[]> load(TableReference input) {
             return Collections.synchronizedMap(Maps.<Cell, byte[]>newHashMap());
         }
     });
 
-    public NoDuplicateWritesTransaction(Transaction delegate, Iterable<String> noDoubleWritesTables) {
+    public NoDuplicateWritesTransaction(Transaction delegate, Iterable<TableReference> noDoubleWritesTables) {
         this.delegate = delegate;
         this.noDoubleWritesTables = ImmutableSet.copyOf(noDoubleWritesTables);
     }
@@ -58,28 +59,28 @@ public class NoDuplicateWritesTransaction extends ForwardingTransaction {
     }
 
     @Override
-    public void put(String tableName, Map<Cell, byte[]> values) {
-        validateWrites(tableName, values);
-        super.put(tableName, values);
+    public void put(TableReference tableRef, Map<Cell, byte[]> values) {
+        validateWrites(tableRef, values);
+        super.put(tableRef, values);
     }
 
     @Override
-    public void delete(String tableName, Set<Cell> keys) {
+    public void delete(TableReference tableRef, Set<Cell> keys) {
         // Map deletes into writes of zero-length byte arrays (this is in
         // accordance with the semantics of our transaction API).
         Map<Cell, byte[]> values = Maps.newHashMap();
         for (Cell c : keys) {
             values.put(c, new byte[0]);
         }
-        validateWrites(tableName, values);
-        super.delete(tableName, keys);
+        validateWrites(tableRef, values);
+        super.delete(tableRef, keys);
     }
 
-    private void validateWrites(String tableName, Map<Cell, byte[]> values) {
-        if (noDoubleWritesTables.contains(tableName)) {
+    private void validateWrites(TableReference tableRef, Map<Cell, byte[]> values) {
+        if (noDoubleWritesTables.contains(tableRef)) {
             Map<Cell, byte[]> table;
             try {
-                table = writes.get(tableName);
+                table = writes.get(tableRef);
             } catch (ExecutionException e) {
                 throw new RuntimeException(e.getCause());
             }
@@ -87,7 +88,7 @@ public class NoDuplicateWritesTransaction extends ForwardingTransaction {
                 byte[] newValue = value.getValue();
                 byte[] oldValue = table.get(value.getKey());
                 if (oldValue != null && !Arrays.equals(oldValue, newValue)) {
-                    AssertUtils.assertAndLog(false, "table: " + tableName
+                    AssertUtils.assertAndLog(false, "table: " + tableRef
                             + " cell was writen to twice: " + value.getKey()
                             + " old value: " + BaseEncoding.base16().lowerCase().encode(oldValue)
                             + " new value: " + BaseEncoding.base16().lowerCase().encode(newValue));

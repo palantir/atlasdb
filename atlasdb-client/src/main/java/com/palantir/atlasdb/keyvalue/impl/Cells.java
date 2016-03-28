@@ -47,6 +47,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException.CellConflict;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
@@ -202,11 +203,11 @@ public class Cells {
     }
 
     public static CellConflict createConflictWithMetadata(KeyValueService kv,
-                                                          String tableName,
+                                                          TableReference tableRef,
                                                           Cell cell,
                                                           long theirStartTs,
                                                           long theirCommitTs) {
-        TableMetadata metadata = KeyValueServices.getTableMetadataSafe(kv, tableName);
+        TableMetadata metadata = KeyValueServices.getTableMetadataSafe(kv, tableRef);
         return new CellConflict(cell, getHumanReadableCellName(metadata, cell), theirStartTs, theirCommitTs);
     }
 

@@ -45,12 +45,13 @@ import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.Prefix;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
-import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
@@ -94,8 +95,7 @@ public final class UserPhotosStreamValueTable implements
     private final Transaction t;
     private final List<UserPhotosStreamValueTrigger> triggers;
     private final static String rawTableName = "user_photos_stream_value";
-    private final String tableName;
-    private final Namespace namespace;
+    private final TableReference tableRef;
 
     static UserPhotosStreamValueTable of(Transaction t, Namespace namespace) {
         return new UserPhotosStreamValueTable(t, namespace, ImmutableList.<UserPhotosStreamValueTrigger>of());
@@ -111,21 +111,24 @@ public final class UserPhotosStreamValueTable implements
 
     private UserPhotosStreamValueTable(Transaction t, Namespace namespace, List<UserPhotosStreamValueTrigger> triggers) {
         this.t = t;
-        this.tableName = namespace.getName().isEmpty() ? rawTableName : namespace.getName() + "." + rawTableName;
+        this.tableRef = TableReference.create(namespace, rawTableName);
         this.triggers = triggers;
-        this.namespace = namespace;
     }
 
     public static String getRawTableName() {
         return rawTableName;
     }
 
+    public TableReference getTableRef() {
+        return tableRef;
+    }
+
     public String getTableName() {
-        return tableName;
+        return tableRef.getQualifiedName();
     }
 
     public Namespace getNamespace() {
-        return namespace;
+        return tableRef.getNamespace();
     }
 
     /**
@@ -400,7 +403,7 @@ public final class UserPhotosStreamValueTable implements
         for (UserPhotosStreamValueRow row : rows) {
             cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("v")), row);
         }
-        Map<Cell, byte[]> results = t.get(tableName, cells.keySet());
+        Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<UserPhotosStreamValueRow, byte[]> ret = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> e : results.entrySet()) {
             byte[] val = Value.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
@@ -435,8 +438,8 @@ public final class UserPhotosStreamValueTable implements
 
     @Override
     public void put(Multimap<UserPhotosStreamValueRow, ? extends UserPhotosStreamValueNamedColumnValue<?>> rows) {
-        t.useTable(tableName, this);
-        t.put(tableName, ColumnValues.toCellValues(rows));
+        t.useTable(tableRef, this);
+        t.put(tableRef, ColumnValues.toCellValues(rows));
         for (UserPhotosStreamValueTrigger trigger : triggers) {
             trigger.putUserPhotosStreamValue(rows);
         }
@@ -461,7 +464,7 @@ public final class UserPhotosStreamValueTable implements
     public void deleteValue(Iterable<UserPhotosStreamValueRow> rows) {
         byte[] col = PtBytes.toCachedBytes("v");
         Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
-        t.delete(tableName, cells);
+        t.delete(tableRef, cells);
     }
 
     @Override
@@ -474,7 +477,7 @@ public final class UserPhotosStreamValueTable implements
         List<byte[]> rowBytes = Persistables.persistAll(rows);
         Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("v")));
-        t.delete(tableName, cells);
+        t.delete(tableRef, cells);
     }
 
     @Override
@@ -485,7 +488,7 @@ public final class UserPhotosStreamValueTable implements
     @Override
     public Optional<UserPhotosStreamValueRowResult> getRow(UserPhotosStreamValueRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
-        RowResult<byte[]> rowResult = t.getRows(tableName, ImmutableSet.of(bytes), columns).get(bytes);
+        RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
             return Optional.absent();
         } else {
@@ -500,7 +503,7 @@ public final class UserPhotosStreamValueTable implements
 
     @Override
     public List<UserPhotosStreamValueRowResult> getRows(Iterable<UserPhotosStreamValueRow> rows, ColumnSelection columns) {
-        SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableName, Persistables.persistAll(rows), columns);
+        SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         List<UserPhotosStreamValueRowResult> rowResults = Lists.newArrayListWithCapacity(results.size());
         for (RowResult<byte[]> row : results.values()) {
             rowResults.add(UserPhotosStreamValueRowResult.of(row));
@@ -533,7 +536,7 @@ public final class UserPhotosStreamValueTable implements
     @Override
     public List<UserPhotosStreamValueNamedColumnValue<?>> getRowColumns(UserPhotosStreamValueRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
-        RowResult<byte[]> rowResult = t.getRows(tableName, ImmutableSet.of(bytes), columns).get(bytes);
+        RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
             return ImmutableList.of();
         } else {
@@ -573,7 +576,7 @@ public final class UserPhotosStreamValueTable implements
     }
 
     private Multimap<UserPhotosStreamValueRow, UserPhotosStreamValueNamedColumnValue<?>> getRowsMultimapInternal(Iterable<UserPhotosStreamValueRow> rows, ColumnSelection columns) {
-        SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableName, Persistables.persistAll(rows), columns);
+        SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         return getRowMapFromRowResults(results.values());
     }
 
@@ -593,7 +596,7 @@ public final class UserPhotosStreamValueTable implements
     }
 
     public BatchingVisitableView<UserPhotosStreamValueRowResult> getAllRowsUnordered(ColumnSelection columns) {
-        return BatchingVisitables.transform(t.getRange(tableName, RangeRequest.builder().retainColumns(columns).build()),
+        return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder().retainColumns(columns).build()),
                 new Function<RowResult<byte[]>, UserPhotosStreamValueRowResult>() {
             @Override
             public UserPhotosStreamValueRowResult apply(RowResult<byte[]> input) {
@@ -689,6 +692,7 @@ public final class UserPhotosStreamValueTable implements
      * {@link Sha256Hash}
      * {@link SortedMap}
      * {@link Supplier}
+     * {@link TableReference}
      * {@link Throwables}
      * {@link TimeUnit}
      * {@link Transaction}
@@ -696,5 +700,5 @@ public final class UserPhotosStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "t8z03QTVqE0sNoRXDBJQnA==";
+    static String __CLASS_HASH = "UzI7TXUlWL5M9KqjP/k4WA==";
 }

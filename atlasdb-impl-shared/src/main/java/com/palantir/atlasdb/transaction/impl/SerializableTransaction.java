@@ -59,6 +59,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
@@ -90,10 +91,10 @@ import com.palantir.util.Pair;
 public class SerializableTransaction extends SnapshotTransaction {
     private final static Logger log = LoggerFactory.getLogger(SerializableTransaction.class);
 
-    final ConcurrentMap<String, ConcurrentNavigableMap<Cell, byte[]>> readsByTable = Maps.newConcurrentMap();
-    final ConcurrentMap<String, ConcurrentMap<RangeRequest, byte[]>> rangeEndByTable = Maps.newConcurrentMap();
-    final ConcurrentMap<String, Set<Cell>> cellsRead = Maps.newConcurrentMap();
-    final ConcurrentMap<String, Set<RowRead>> rowsRead = Maps.newConcurrentMap();
+    final ConcurrentMap<TableReference, ConcurrentNavigableMap<Cell, byte[]>> readsByTable = Maps.newConcurrentMap();
+    final ConcurrentMap<TableReference, ConcurrentMap<RangeRequest, byte[]>> rangeEndByTable = Maps.newConcurrentMap();
+    final ConcurrentMap<TableReference, Set<Cell>> cellsRead = Maps.newConcurrentMap();
+    final ConcurrentMap<TableReference, Set<RowRead>> rowsRead = Maps.newConcurrentMap();
 
     public SerializableTransaction(KeyValueService keyValueService,
                                    RemoteLockService lockService,
@@ -127,44 +128,44 @@ public class SerializableTransaction extends SnapshotTransaction {
 
     @Override
     @Idempotent
-    public SortedMap<byte[], RowResult<byte[]>> getRows(String tableName,
-                                                 Iterable<byte[]> rows,
-                                                 ColumnSelection columnSelection) {
-        SortedMap<byte[], RowResult<byte[]>> ret = super.getRows(tableName, rows, columnSelection);
-        markRowsRead(tableName, rows, columnSelection, ret.values());
+    public SortedMap<byte[], RowResult<byte[]>> getRows(TableReference tableRef,
+                                                        Iterable<byte[]> rows,
+                                                        ColumnSelection columnSelection) {
+        SortedMap<byte[], RowResult<byte[]>> ret = super.getRows(tableRef, rows, columnSelection);
+        markRowsRead(tableRef, rows, columnSelection, ret.values());
         return ret;
     }
 
     @Override
     @Idempotent
-    public Map<Cell, byte[]> get(String tableName, Set<Cell> cells) {
-        Map<Cell, byte[]> ret = super.get(tableName, cells);
-        markCellsRead(tableName, cells, ret);
+    public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
+        Map<Cell, byte[]> ret = super.get(tableRef, cells);
+        markCellsRead(tableRef, cells, ret);
         return ret;
     }
 
     @Override
     @Idempotent
-    public BatchingVisitable<RowResult<byte[]>> getRange(final String tableName, final RangeRequest rangeRequest) {
-        final BatchingVisitable<RowResult<byte[]>> ret = super.getRange(tableName, rangeRequest);
-        return wrapRange(tableName, rangeRequest, ret);
+    public BatchingVisitable<RowResult<byte[]>> getRange(final TableReference tableRef, final RangeRequest rangeRequest) {
+        final BatchingVisitable<RowResult<byte[]>> ret = super.getRange(tableRef, rangeRequest);
+        return wrapRange(tableRef, rangeRequest, ret);
     }
 
     @Override
     @Idempotent
-    public Iterable<BatchingVisitable<RowResult<byte[]>>> getRanges(final String tableName,
+    public Iterable<BatchingVisitable<RowResult<byte[]>>> getRanges(final TableReference tableRef,
                                                              Iterable<RangeRequest> rangeRequests) {
-        Iterable<BatchingVisitable<RowResult<byte[]>>> ret = super.getRanges(tableName, rangeRequests);
+        Iterable<BatchingVisitable<RowResult<byte[]>>> ret = super.getRanges(tableRef, rangeRequests);
         Iterable<Pair<RangeRequest, BatchingVisitable<RowResult<byte[]>>>> zip = IterableUtils.zip(rangeRequests, ret);
         return Iterables.transform(zip, new Function<Pair<RangeRequest, BatchingVisitable<RowResult<byte[]>>>, BatchingVisitable<RowResult<byte[]>>>() {
             @Override
             public BatchingVisitable<RowResult<byte[]>> apply(Pair<RangeRequest, BatchingVisitable<RowResult<byte[]>>> pair) {
-                return wrapRange(tableName, pair.lhSide, pair.rhSide);
+                return wrapRange(tableRef, pair.lhSide, pair.rhSide);
             }
         });
     }
 
-    private BatchingVisitable<RowResult<byte[]>> wrapRange(final String tableName,
+    private BatchingVisitable<RowResult<byte[]>> wrapRange(final TableReference tableRef,
                                                            final RangeRequest rangeRequest,
                                                            final BatchingVisitable<RowResult<byte[]>> ret) {
         return new BatchingVisitable<RowResult<byte[]>>() {
@@ -176,21 +177,21 @@ public class SerializableTransaction extends SnapshotTransaction {
                     @Override
                     public boolean visit(List<RowResult<byte[]>> items) throws K {
                         if (items.size() < batchSize) {
-                            reachedEndOfRange(tableName, rangeRequest);
+                            reachedEndOfRange(tableRef, rangeRequest);
                         }
-                        markRangeRead(tableName, rangeRequest, items);
+                        markRangeRead(tableRef, rangeRequest, items);
                         return v.visit(items);
                     }
                 });
                 if (hitEnd) {
-                    reachedEndOfRange(tableName, rangeRequest);
+                    reachedEndOfRange(tableRef, rangeRequest);
                 }
                 return hitEnd;
             }
         };
     }
 
-    private ConcurrentNavigableMap<Cell, byte[]> getReadsForTable(String table) {
+    private ConcurrentNavigableMap<Cell, byte[]> getReadsForTable(TableReference table) {
         ConcurrentNavigableMap<Cell, byte[]> reads = readsByTable.get(table);
         if (reads == null) {
             ConcurrentNavigableMap<Cell, byte[]> newMap = new ConcurrentSkipListMap<Cell, byte[]>();
@@ -200,7 +201,7 @@ public class SerializableTransaction extends SnapshotTransaction {
         return reads;
     }
 
-    private void setRangeEnd(String table, RangeRequest range, byte[] maxRow) {
+    private void setRangeEnd(TableReference table, RangeRequest range, byte[] maxRow) {
         Validate.notNull(maxRow);
         ConcurrentMap<RangeRequest, byte[]> rangeEnds = rangeEndByTable.get(table);
         if (rangeEnds == null) {
@@ -235,7 +236,7 @@ public class SerializableTransaction extends SnapshotTransaction {
         }
     }
 
-    boolean isSerializableTable(String table) {
+    boolean isSerializableTable(TableReference table) {
         return getConflictHandlerForTable(table) == ConflictHandler.SERIALIZABLE;
     }
 
@@ -248,7 +249,7 @@ public class SerializableTransaction extends SnapshotTransaction {
         return map;
     }
 
-    private void markCellsRead(String table, Set<Cell> searched, Map<Cell, byte[]> result) {
+    private void markCellsRead(TableReference table, Set<Cell> searched, Map<Cell, byte[]> result) {
         if (!isSerializableTable(table)) {
             return;
         }
@@ -262,7 +263,7 @@ public class SerializableTransaction extends SnapshotTransaction {
         cellsForTable.addAll(searched);
     }
 
-    private void markRangeRead(String table, RangeRequest range, List<RowResult<byte[]>> result) {
+    private void markRangeRead(TableReference table, RangeRequest range, List<RowResult<byte[]>> result) {
         if (!isSerializableTable(table)) {
             return;
         }
@@ -285,7 +286,7 @@ public class SerializableTransaction extends SnapshotTransaction {
         }
     }
 
-    private void markRowsRead(String table, Iterable<byte[]> rows, ColumnSelection cols, Iterable<RowResult<byte[]>> result) {
+    private void markRowsRead(TableReference table, Iterable<byte[]> rows, ColumnSelection cols, Iterable<RowResult<byte[]>> result) {
         if (!isSerializableTable(table)) {
             return;
         }
@@ -303,7 +304,7 @@ public class SerializableTransaction extends SnapshotTransaction {
         rowReads.add(new RowRead(rows, cols));
     }
 
-    private void reachedEndOfRange(String table, RangeRequest range) {
+    private void reachedEndOfRange(TableReference table, RangeRequest range) {
         if (!isSerializableTable(table)) {
             return;
         }
@@ -312,8 +313,8 @@ public class SerializableTransaction extends SnapshotTransaction {
 
     @Override
     @Idempotent
-    public void put(String tableName, Map<Cell, byte[]> values) {
-        super.put(tableName, values);
+    public void put(TableReference tableRef, Map<Cell, byte[]> values) {
+        super.put(tableRef, values);
     }
 
     @Override
@@ -325,7 +326,7 @@ public class SerializableTransaction extends SnapshotTransaction {
     }
 
     private void verifyRows(Transaction ro) {
-        for (String table : rowsRead.keySet()) {
+        for (TableReference table : rowsRead.keySet()) {
             final ConcurrentNavigableMap<Cell, byte[]> readsForTable = getReadsForTable(table);
             Multimap<ColumnSelection, byte[]> map = Multimaps.newSortedSetMultimap(Maps.<ColumnSelection, Collection<byte[]>>newHashMap(), new Supplier<SortedSet<byte[]>>() {
                 @Override
@@ -397,7 +398,7 @@ public class SerializableTransaction extends SnapshotTransaction {
     }
 
     private void verifyCells(Transaction ro) {
-        for (String table : cellsRead.keySet()) {
+        for (TableReference table : cellsRead.keySet()) {
             final ConcurrentNavigableMap<Cell, byte[]> readsForTable = getReadsForTable(table);
             for (Iterable<Cell> batch : Iterables.partition(cellsRead.get(table), 1000)) {
                 if (writesByTable.get(table) != null) {
@@ -417,7 +418,7 @@ public class SerializableTransaction extends SnapshotTransaction {
 
     private void verifyRanges(Transaction ro) {
         // verify each set of reads to ensure they are the same.
-        for (String table : rangeEndByTable.keySet()) {
+        for (TableReference table : rangeEndByTable.keySet()) {
             for (Entry<RangeRequest, byte[]> e : rangeEndByTable.get(table).entrySet()) {
                 RangeRequest range = e.getKey();
                 byte[] rangeEnd = e.getValue();
@@ -457,7 +458,7 @@ public class SerializableTransaction extends SnapshotTransaction {
         }
     }
 
-    private NavigableMap<Cell, byte[]> getReadsInRange(String table,
+    private NavigableMap<Cell, byte[]> getReadsInRange(TableReference table,
                                                        Entry<RangeRequest, byte[]> e,
                                                        RangeRequest range) {
         NavigableMap<Cell, byte[]> reads = getReadsForTable(table);
@@ -492,7 +493,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                 getReadSentinelBehavior(),
                 allowHiddenTableAccess) {
             @Override
-            protected Map<Long, Long> getCommitTimestamps(String tableName,
+            protected Map<Long, Long> getCommitTimestamps(TableReference tableRef,
                                                           Iterable<Long> startTimestamps,
                                                           boolean waitForCommitterToComplete) {
                 Set<Long> beforeStart = Sets.newHashSet();
@@ -513,13 +514,13 @@ public class SerializableTransaction extends SnapshotTransaction {
                     // We do not block when waiting for results that were written after our
                     // start timestamp.  If we block here it may lead to deadlock if two transactions
                     // (or a cycle of any length) have all written their data and all doing checks before committing.
-                    Map<Long, Long> afterResults = super.getCommitTimestamps(tableName, afterStart, false);
+                    Map<Long, Long> afterResults = super.getCommitTimestamps(tableRef, afterStart, false);
                     if (!afterResults.keySet().containsAll(afterStart)) {
                         // If we do not get back all these results we may be in the deadlock case so we should just
                         // fail out early.  It may be the case that abort more transactions than needed to break the
                         // deadlock cycle, but this should be pretty rare.
                         throw new TransactionSerializableConflictException("An uncommitted conflicting read was " +
-                                "written after our start timestamp for table " + tableName + ".  " +
+                                "written after our start timestamp for table " + tableRef + ".  " +
                                 "This case can cause deadlock and is very likely to be a read write conflict.");
                     } else {
                         ret.putAll(afterResults);
@@ -527,7 +528,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                 }
                 // We are ok to block here because if there is a cycle of transactions that could result in a deadlock,
                 // then at least one of them will be in the ab
-                ret.putAll(super.getCommitTimestamps(tableName, beforeStart, waitForCommitterToComplete));
+                ret.putAll(super.getCommitTimestamps(tableRef, beforeStart, waitForCommitterToComplete));
                 if (containsMyStart) {
                     ret.put(myStart, commitTs);
                 }

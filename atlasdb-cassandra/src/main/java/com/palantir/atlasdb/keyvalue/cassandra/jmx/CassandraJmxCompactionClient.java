@@ -33,6 +33,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 /**
  * Maintains a JMX client for each node in C* cluster
@@ -76,12 +77,12 @@ public class CassandraJmxCompactionClient {
         hintedHandoffProxy.deleteHintsForEndpoint(host);
     }
 
-    public void forceTableFlush(String keyspace, String tableName) {
-        log.trace("flushing {}.{} for tombstone compaction!", keyspace, tableName);
+    public void forceTableFlush(String keyspace, TableReference tableRef) {
+        log.trace("flushing {}.{} for tombstone compaction!", keyspace, tableRef.getQualifiedName());
         try {
-            storageServiceProxy.forceKeyspaceFlush(keyspace, tableName);
+            storageServiceProxy.forceKeyspaceFlush(keyspace, tableRef.getQualifiedName());
         } catch (Exception e) {
-            log.error("Failed to flush table {}.{}.", keyspace, tableName, e);
+            log.error("Failed to flush table {}.{}.", keyspace, tableRef.getQualifiedName(), e);
             Throwables.propagateIfPossible(e);
         }
     }
@@ -94,8 +95,8 @@ public class CassandraJmxCompactionClient {
      * during a node's coming back process, the keyspace is not ready to be compacted
      * even the JMX connection can be established.
      */
-    public boolean forceTableCompaction(String keyspace, String tableName) {
-        boolean status = tryTableCompactionInternal(keyspace, tableName);
+    public boolean forceTableCompaction(String keyspace, TableReference tableRef) {
+        boolean status = tryTableCompactionInternal(keyspace, tableRef);
         int retries = 0;
         while (status == false && retries < RETRY_TIMES) {
             retries++;
@@ -105,7 +106,7 @@ public class CassandraJmxCompactionClient {
             } catch (InterruptedException e) {
                 log.error("Sleep interrupted while trying to compact", e);
             }
-            status = tryTableCompactionInternal(keyspace, tableName);
+            status = tryTableCompactionInternal(keyspace, tableRef);
         }
         if (status == false) {
             log.error("Failed to compact after {} retries.", RETRY_INTERVAL_IN_SECONDS);
@@ -113,13 +114,13 @@ public class CassandraJmxCompactionClient {
         return status;
     }
 
-    private boolean tryTableCompactionInternal(String keyspace, String tableName) {
+    private boolean tryTableCompactionInternal(String keyspace, TableReference tableRef) {
         try {
             Stopwatch stopWatch = Stopwatch.createStarted();
-            storageServiceProxy.forceKeyspaceCompaction(true, keyspace, tableName);
-            log.info("Compaction for {}.{} completed in {}", keyspace, tableName, stopWatch.stop());
+            storageServiceProxy.forceKeyspaceCompaction(true, keyspace, tableRef.getQualifiedName());
+            log.info("Compaction for {}.{} completed in {}", keyspace, tableRef, stopWatch.stop());
         } catch (Exception e) {
-            log.error("Failed to compaction {}.{}.", keyspace, tableName, e);
+            log.error("Failed to compaction {}.{}.", keyspace, tableRef, e);
             Throwables.propagateIfPossible(e);
             return false;
         }

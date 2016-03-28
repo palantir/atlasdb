@@ -27,10 +27,11 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public class CassandraConstants {
     static final int LONG_RUNNING_QUERY_SOCKET_TIMEOUT_MILLIS = 62000;
-    public static final String METADATA_TABLE = "_metadata";
+    public static final TableReference METADATA_TABLE = TableReference.createWithEmptyNamespace("_metadata");
     public static final int DEFAULT_REPLICATION_FACTOR = 3;
     public static final int DEFAULT_THRIFT_PORT = 9160;
     public static final int DEFAULT_CQL_PORT = 9042;
@@ -82,13 +83,13 @@ public class CassandraConstants {
     static final String CFDEF_COMPRESSION_TYPE_KEY = "sstable_compression";
     static final String CFDEF_COMPRESSION_CHUNK_LENGTH_KEY = "chunk_length_kb";
 
-    public static String NO_TABLE = "SYSTEM";
+    public static TableReference NO_TABLE = TableReference.createWithEmptyNamespace("SYSTEM");
     public static int NO_TTL = -1;
 
     static final String LEVELED_COMPACTION_STRATEGY = "org.apache.cassandra.db.compaction.LeveledCompactionStrategy";
     static final String SIZE_TIERED_COMPACTION_STRATEGY = "org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy";
 
-    public static final Set<String> HIDDEN_TABLES = ImmutableSet.of(
+    public static final Set<TableReference> HIDDEN_TABLES = ImmutableSet.of(
             CassandraConstants.METADATA_TABLE, AtlasDbConstants.TIMESTAMP_TABLE);
 
     // update CKVS.isMatchingCf if you update this method
