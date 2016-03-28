@@ -137,7 +137,7 @@ public class CassandraVerifier {
             }
             if (hosts.size() < desiredRf) {
                 logErrorOrThrow(String.format("The cassandra cluster only has %d nodes, and the desired replication " +
-                        "factor of %d is less than that.  Your replication factor is likely incorrect for your setup.",
+                        "factor of %d is greater than that.  Your replication factor is likely incorrect for your setup.",
                         hosts.size(), desiredRf), safetyDisabled);
             }
         }
