@@ -44,7 +44,6 @@ import com.google.common.base.Strings;
      * locks reentrantly, because the server has no way to know whether the
      * current client is the same one who already holds the lock.
      */
-    @JsonIgnore
     public static final LockClient ANONYMOUS = new LockClient("");
 
     private static final String INTERNAL_LOCK_GRANT_CLIENT_ID = "(internal lock grant client)";
@@ -78,6 +77,7 @@ import com.google.common.base.Strings;
     }
 
     /** Returns {@code true} if this is an anonymous lock client. */
+    @JsonIgnore
     public boolean isAnonymous() {
         return clientId.isEmpty();
     }
