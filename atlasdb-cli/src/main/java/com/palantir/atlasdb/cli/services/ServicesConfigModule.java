@@ -19,31 +19,29 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
 
+import javax.inject.Singleton;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.common.base.Strings;
+import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.server.AtlasDbServerConfiguration;
 
 import dagger.Module;
+import dagger.Provides;
 import io.dropwizard.jackson.Jackson;
 
 @Module
-public final class AtlasDbServicesModules {
+public class ServicesConfigModule {
 
-    private AtlasDbServicesModules() { }
+    private final ServicesConfig config;
 
-    public static AtlasDbServicesModule create(File configFile, String configRoot) throws IOException {
-        return create(config -> new AtlasDbServicesModule(config), configFile, configRoot);
-    }
-
-    public static AtlasDbServicesModule create(AtlasDbServicesModuleFactory factory,
-                                               File configFile,
-                                               String configRoot) throws IOException {
+    public static ServicesConfigModule create(File configFile, String configRoot) throws IOException {
         ObjectMapper configMapper = Jackson.newObjectMapper(new YAMLFactory());
         JsonNode node = getConfigNode(configMapper, configFile, configRoot);
         AtlasDbServerConfiguration config = configMapper.treeToValue(node, AtlasDbServerConfiguration.class);
-        return factory.createModule(config.getConfig());
+        return ServicesConfigModule.create(config.getConfig());
     }
 
     private static JsonNode getConfigNode(ObjectMapper configMapper, File configFile, String configRoot) throws IOException {
@@ -73,4 +71,21 @@ public final class AtlasDbServicesModules {
             return null;
         }
     }
+
+    public static ServicesConfigModule create(AtlasDbConfig atlasDbConfig) {
+        return new ServicesConfigModule(ImmutableServicesConfig.builder().atlasDbConfig(atlasDbConfig).build());
+    }
+
+    public ServicesConfigModule(ServicesConfig config) {
+        this.config = config;
+    }
+
+    @Provides
+    @Singleton
+    public ServicesConfig provideServicesConfig() { return config; }
+
+    @Provides
+    @Singleton
+    public AtlasDbConfig provideAtlasDbConfig() { return config.atlasDbConfig(); }
+
 }

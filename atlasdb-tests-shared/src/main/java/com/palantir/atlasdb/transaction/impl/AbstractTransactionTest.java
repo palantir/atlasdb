@@ -140,6 +140,7 @@ public abstract class AbstractTransactionTest {
 
     @After
     public void tearDown() {
+        keyValueService.dropTables(ImmutableSet.of(TEST_TABLE, TransactionConstants.TRANSACTION_TABLE));
         keyValueService.teardown();
     }
 

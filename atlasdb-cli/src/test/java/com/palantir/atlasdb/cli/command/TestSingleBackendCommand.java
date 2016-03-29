@@ -24,7 +24,8 @@ import org.junit.Test;
 
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cli.SingleBackendCliTests;
+import com.palantir.atlasdb.cli.runner.AbstractTestRunner;
+import com.palantir.atlasdb.cli.runner.RocksDbTestRunner;
 import com.palantir.atlasdb.cli.services.AtlasDbServices;
 
 import io.airlift.airline.Cli;
@@ -47,7 +48,7 @@ public class TestSingleBackendCommand {
         String flag2;
 
         @Override
-        protected int execute(AtlasDbServices services) {
+        public int execute(AtlasDbServices services) {
             // test a method on each of the services
             if (flag1 != null) {
                 services.getKeyValueService().getAllTableNames();
@@ -70,7 +71,7 @@ public class TestSingleBackendCommand {
 
     @BeforeClass
     public static void setup() throws URISyntaxException {
-        SIMPLE_CONFIG_FILE = SingleBackendCliTests.getConfigPath(SingleBackendCliTests.SIMPLE_ROCKSDB_CONFIG_FILENAME);
+        SIMPLE_CONFIG_FILE = AbstractTestRunner.getResourcePath(RocksDbTestRunner.SIMPLE_ROCKSDB_CONFIG_FILENAME);
         NESTED_CONFIG_FILE = Paths.get(TestSingleBackendCommand.class.getClassLoader().getResource("nested_rocksdb_config.yml").toURI()).toString();
     }
 
@@ -102,7 +103,7 @@ public class TestSingleBackendCommand {
 
     @Test
     public void testRunNestedConfig() {
-        assertSuccessful(runTest(new String[] { "test", "-c", NESTED_CONFIG_FILE, "-f1", "-r", "dropwizardConfig", "-f2", "test.new_table"}));
+        assertSuccessful(runTest(new String[] { "test", "-c", NESTED_CONFIG_FILE, "-f1", "--config-root", "dropwizardConfig", "-f2", "test.new_table"}));
     }
 
     @Test

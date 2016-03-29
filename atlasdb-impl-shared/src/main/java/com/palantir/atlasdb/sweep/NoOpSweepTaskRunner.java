@@ -22,7 +22,7 @@ public class NoOpSweepTaskRunner implements SweepTaskRunner {
 
     @Override
     public SweepResults run(String tableName, int batchSize, byte[] startRow) {
-        return new SweepResults(null, 0, 0);
+        return SweepResults.createEmptySweepResult(getSweepTimestamp(null));
     }
 
     @Override

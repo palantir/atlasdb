@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
@@ -851,7 +852,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         final Set<String> tablesToTruncate = filterOutTrulyEmptyTables(tableNames);
         if (!tablesToTruncate.isEmpty()) {
             try {
-                trySchemaMutationLock();
                 clientPool.runWithPooledResource(new FunctionCheckedException<Client, Void, Exception>() {
                     @Override
                     public Void apply(Client client) throws Exception {
@@ -859,17 +859,16 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                             if (shouldTraceQuery(tableName)) {
                                 ByteBuffer recv_trace = client.trace_next_query();
                                 Stopwatch stopwatch = Stopwatch.createStarted();
-                                client.truncate(internalTableName(tableName));
+                                truncateInternal(client, tableName);
                                 long duration = stopwatch.elapsed(TimeUnit.MILLISECONDS);
                                 if (duration > getMinimumDurationToTraceMillis()) {
                                     log.error("Traced a call to " + tableName + " that took " + duration + " ms."
                                             + " It will appear in system_traces with UUID=" + CassandraKeyValueServices.convertCassandraByteBufferUUIDtoString(recv_trace));
                                 }
                             } else {
-                                client.truncate(internalTableName(tableName));
+                                truncateInternal(client, tableName);
                             }
                         }
-                        CassandraKeyValueServices.waitForSchemaVersions(client, "(" + tablesToTruncate.size() + " tables in a call to truncateTables)", configManager.getConfig().schemaMutationTimeoutMillis());
                         return null;
                     }
 
@@ -882,8 +881,29 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 throw new PalantirRuntimeException("Creating tables requires all Cassandra nodes to be up and available.");
             } catch (Exception e) {
                 throw Throwables.throwUncheckedException(e);
-            } finally {
-                schemaMutationLock.unlock();
+            }
+        }
+    }
+
+    private void truncateInternal(Client client, String tableName) throws TException {
+        for (int tries = 1; tries <= CassandraConstants.MAX_TRUNCATION_ATTEMPTS; tries++) {
+            boolean successful = true;
+            try {
+                client.truncate(internalTableName(tableName));
+            } catch (TException e) {
+                log.error("Cluster was unavailable while we attempted a truncate for table " + tableName + "; we will try " + (CassandraConstants.MAX_TRUNCATION_ATTEMPTS - tries) + " additional time(s). (" + e.getMessage() + ")");
+                if (CassandraConstants.MAX_TRUNCATION_ATTEMPTS - tries == 0) {
+                    throw e;
+                }
+                successful = false;
+                try {
+                    Thread.sleep(new Random().nextInt((1 << (CassandraConstants.MAX_TRUNCATION_ATTEMPTS - tries)) - 1) * 1000);
+                } catch (InterruptedException e1) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+            if (successful) {
+                break;
             }
         }
     }

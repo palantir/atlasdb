@@ -21,9 +21,9 @@ import java.util.concurrent.Callable;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.cli.services.AtlasDbServices;
-import com.palantir.atlasdb.cli.services.AtlasDbServicesModuleFactory;
-import com.palantir.atlasdb.cli.services.AtlasDbServicesModules;
+import com.palantir.atlasdb.cli.services.AtlasDbServicesFactory;
 import com.palantir.atlasdb.cli.services.DaggerAtlasDbServices;
+import com.palantir.atlasdb.cli.services.ServicesConfigModule;
 import com.palantir.common.base.Throwables;
 
 import io.airlift.airline.Option;
@@ -36,7 +36,7 @@ public abstract class SingleBackendCommand implements Callable<Integer> {
             required = true)
     private File configFile;
 
-    @Option(name = {"-r", "--config-root"},
+    @Option(name = {"--config-root"},
             title = "CONFIG ROOT",
             description = "field in the config yaml file that contains the atlasdb configuration root")
     private String configRoot = "";
@@ -50,16 +50,17 @@ public abstract class SingleBackendCommand implements Callable<Integer> {
         }
     }
 
-    protected abstract int execute(AtlasDbServices services);
+    public abstract int execute(AtlasDbServices services);
 
-    @VisibleForTesting
-    protected AtlasDbServices connect() throws IOException {
-        return DaggerAtlasDbServices.builder().atlasDbServicesModule(AtlasDbServicesModules.create(configFile, configRoot)).build();
+    private AtlasDbServices connect() throws IOException {
+        ServicesConfigModule scm = ServicesConfigModule.create(configFile, configRoot);
+        return DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
     }
 
     @VisibleForTesting
-    protected AtlasDbServices connect(AtlasDbServicesModuleFactory factory) throws IOException {
-        return DaggerAtlasDbServices.builder().atlasDbServicesModule(AtlasDbServicesModules.create(factory, configFile, configRoot)).build();
+    public <T extends AtlasDbServices> T connect(AtlasDbServicesFactory factory) throws IOException {
+        ServicesConfigModule scm = ServicesConfigModule.create(configFile, configRoot);
+        return factory.connect(scm);
     }
 
 }

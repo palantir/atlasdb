@@ -17,17 +17,18 @@ package com.palantir.atlasdb.cli.command;
 
 import java.util.Scanner;
 
-import javax.inject.Singleton;
-
+import org.joda.time.format.ISODateTimeFormat;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedMap;
-import com.palantir.atlasdb.cli.SingleBackendCliTests;
-import com.palantir.atlasdb.cli.services.AtlasDbServices;
-import com.palantir.atlasdb.cli.services.AtlasDbServicesModule;
-import com.palantir.atlasdb.cli.services.AtlasDbServicesModuleFactory;
+import com.palantir.atlasdb.cli.runner.InMemoryTestRunner;
+import com.palantir.atlasdb.cli.runner.SingleBackendCliTestRunner;
+import com.palantir.atlasdb.cli.services.AtlasDbServicesFactory;
+import com.palantir.atlasdb.cli.services.DaggerTestAtlasDbServices;
+import com.palantir.atlasdb.cli.services.ServicesConfigModule;
+import com.palantir.atlasdb.cli.services.TestAtlasDbServices;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
@@ -37,58 +38,64 @@ import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.timestamp.TimestampService;
 
-import dagger.Provides;
-import io.airlift.airline.Cli;
-
 public class TestTimestampCommand {
 
-    private static String configPath;
-    private static Cli<SingleBackendCommand> cli;
     private static LockDescriptor lock;
-    private static LockClient client;
-    private static AtlasDbServicesModuleFactory moduleFactory;
+    private static AtlasDbServicesFactory moduleFactory;
 
     @BeforeClass
     public static void setup() throws Exception {
-        configPath = SingleBackendCliTests.getConfigPath(SingleBackendCliTests.SIMPLE_ROCKSDB_CONFIG_FILENAME);
-        cli = SingleBackendCliTests.build(TimestampCommand.class);
         lock = StringLockDescriptor.of("lock");
-        client = LockClient.of("test lock client");
-        moduleFactory = config -> new AtlasDbServicesModule(config) {
-            @Override @Provides @Singleton
-            public LockClient provideLockClient() {
-                return client;
+        moduleFactory = new AtlasDbServicesFactory() {
+            @Override
+            public TestAtlasDbServices connect(ServicesConfigModule servicesConfigModule) {
+                return DaggerTestAtlasDbServices.builder()
+                        .servicesConfigModule(servicesConfigModule)
+                        .build();
             }
         };
     }
 
+    private SingleBackendCliTestRunner makeRunner(String... args) {
+        return new InMemoryTestRunner(TimestampCommand.class, args);
+    }
+
     @Test
     public void testBasicInvariants() throws Exception {
-        SingleBackendCommand cmd = cli.parse("timestamp", "-c", configPath, "-f", "-i");
-        try (AtlasDbServices services = cmd.connect(moduleFactory)) {
+        try (SingleBackendCliTestRunner runner = makeRunner("-f", "-i", "-d")) {
+            TestAtlasDbServices services = runner.connect(moduleFactory);
             RemoteLockService rls = services.getLockSerivce();
             TimestampService tss = services.getTimestampService();
+            LockClient client = services.getTestLockClient();
 
             long lockedTs = tss.getFreshTimestamp();
             LockRequest request = LockRequest.builder(ImmutableSortedMap.of(
                     lock, LockMode.WRITE))
                     .withLockedInVersionId(lockedTs).doNotBlock().build();
-            LockRefreshToken token = rls.lockWithClient(client.getClientId(), request);
+            LockRefreshToken token = rls.lock(client.getClientId(), request);
 
-            Scanner scanner = new Scanner(SingleBackendCliTests.captureStdOut(() -> cmd.execute(services), true));
+            runner.run();
+
+            Scanner scanner = new Scanner(runner.run());
             final long fresh = Long.parseLong(scanner.findInLine("\\d+"));
             final long immutable = Long.parseLong(scanner.findInLine("\\d+"));
+            String immutableDateTime = scanner.findInLine("\\d+.*");
+            ISODateTimeFormat.dateTimeNoMillis().parseDateTime(immutableDateTime);
             Preconditions.checkArgument(immutable <= lockedTs);
             Preconditions.checkArgument(fresh > lockedTs);
             Preconditions.checkArgument(fresh < tss.getFreshTimestamp());
-
+            scanner.close();
+            
             rls.unlock(token);
 
-            scanner = new Scanner(SingleBackendCliTests.captureStdOut(() -> cmd.execute(services), true));
+            scanner = new Scanner(runner.run());
             final long newFresh = Long.parseLong(scanner.findInLine("\\d+"));
             final long newImmutable = Long.parseLong(scanner.findInLine("\\d+"));
+            final String newImmutableDateTime = scanner.findInLine("\\d+.*");
+            ISODateTimeFormat.dateTimeNoMillis().parseDateTime(newImmutableDateTime);
             Preconditions.checkArgument(newFresh > fresh);
             Preconditions.checkArgument(newImmutable > lockedTs);
+            scanner.close();
         }
     }
 

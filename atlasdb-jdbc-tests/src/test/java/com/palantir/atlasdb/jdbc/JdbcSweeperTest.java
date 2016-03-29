@@ -15,56 +15,12 @@
  */
 package com.palantir.atlasdb.jdbc;
 
-import org.junit.After;
-import org.junit.Before;
-
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
-import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cleaner.AbstractSweeperTest;
-import com.palantir.atlasdb.cleaner.Cleaner;
-import com.palantir.atlasdb.cleaner.Follower;
-import com.palantir.atlasdb.cleaner.NoOpCleaner;
-import com.palantir.atlasdb.sweep.SweepTaskRunnerImpl;
-import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
-import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
-import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
-import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
-import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
-import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
-import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
-import com.palantir.atlasdb.transaction.impl.TransactionTables;
-import com.palantir.atlasdb.transaction.service.TransactionServices;
-import com.palantir.lock.LockClient;
-import com.palantir.lock.LockServerOptions;
-import com.palantir.lock.impl.LockServiceImpl;
-import com.palantir.timestamp.InMemoryTimestampService;
-import com.palantir.timestamp.TimestampService;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 
 public class JdbcSweeperTest extends AbstractSweeperTest {
-    private LockServiceImpl lockService;
-
-    @Before
-    @SuppressWarnings("serial")
-    public void setup() {
-        kvs = JdbcTests.createEmptyKvs();
-        TimestampService tsService = new InMemoryTimestampService();
-        LockClient lockClient = LockClient.of("sweep client");
-        lockService = LockServiceImpl.create(new LockServerOptions() { @Override public boolean isStandaloneServer() { return false; }});
-        txService = TransactionServices.createTransactionService(kvs);
-        Supplier<AtlasDbConstraintCheckingMode> constraints = Suppliers.ofInstance(AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING);
-        ConflictDetectionManager cdm = ConflictDetectionManagers.createDefault(kvs);
-        SweepStrategyManager ssm = SweepStrategyManagers.createDefault(kvs);
-        Cleaner cleaner = new NoOpCleaner();
-        LockAwareTransactionManager txManager = new SerializableTransactionManager(kvs, tsService, lockClient, lockService, txService, constraints, cdm, ssm, cleaner, false);
-        TransactionTables.createTables(kvs);
-        Supplier<Long> tsSupplier = new Supplier<Long>() { @Override public Long get() { return sweepTimestamp.get(); }};
-        sweepRunner = new SweepTaskRunnerImpl(txManager, kvs, tsSupplier, tsSupplier, txService, ssm, ImmutableList.<Follower>of());
-    }
-
-    @After
-    public void teardown() {
-        lockService.close();
-        kvs.close();
+    @Override
+    protected KeyValueService getKeyValueService() {
+        return JdbcTests.createEmptyKvs();
     }
 }
