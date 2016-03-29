@@ -79,6 +79,7 @@ import com.google.common.collect.Iterables;
         return tokenId;
     }
 
+    @JsonIgnore
     public LockRefreshToken getLockRefreshToken() {
         return new LockRefreshToken(tokenId, expirationDateMs);
     }
