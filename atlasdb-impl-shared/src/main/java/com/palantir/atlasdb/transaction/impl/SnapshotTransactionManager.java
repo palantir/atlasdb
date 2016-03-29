@@ -31,7 +31,6 @@ import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
-import com.palantir.atlasdb.transaction.api.LockAcquisitionException;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTasks;
 import com.palantir.atlasdb.transaction.api.Transaction.TransactionType;
@@ -107,11 +106,19 @@ import com.palantir.timestamp.TimestampService;
     }
 
     @Override
-    public <T, E extends Exception> T runTaskWithLocksThrowOnConflict(Iterable<LockRefreshToken> lockTokens,
-                                                                      TransactionTask<T, E> task)
+    public <T, E extends Exception> T runTaskWithLocksThrowOnConflict(Iterable<HeldLocksToken> lockTokens,
+                                                                      LockAwareTransactionTask<T, E> task)
             throws E, TransactionFailedRetriableException {
-        RawTransaction tx = setupRunTaskWithLocksThrowOnConflict(lockTokens);
-        return finishRunTaskWithLockThrowOnConflict(tx, task);
+        Iterable<LockRefreshToken> lockRefreshTokens= Iterables.transform(lockTokens,
+                new Function<HeldLocksToken, LockRefreshToken>() {
+                    @Nullable
+                    @Override
+                    public LockRefreshToken apply(HeldLocksToken input) {
+                        return input.getLockRefreshToken();
+                    }
+                });
+        RawTransaction tx = setupRunTaskWithLocksThrowOnConflict(lockRefreshTokens);
+        return finishRunTaskWithLockThrowOnConflict(tx, LockAwareTransactionTasks.asLockUnaware(task, lockTokens));
     }
 
     public RawTransaction setupRunTaskWithLocksThrowOnConflict(Iterable<LockRefreshToken> lockTokens) {

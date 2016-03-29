@@ -19,9 +19,7 @@ import com.google.common.base.Supplier;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
-import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.lock.HeldLocksToken;
-import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
 
@@ -29,31 +27,6 @@ public abstract class ForwardingLockAwareTransactionManager extends
         ForwardingTransactionManager implements LockAwareTransactionManager {
     @Override
     protected abstract LockAwareTransactionManager delegate();
-
-    @Override
-    public <T, E extends Exception> T runTaskWithLocksWithRetry(Supplier<LockRequest> lockSupplier,
-                                                                TransactionTask<T, E> task)
-            throws E, InterruptedException {
-        return delegate().runTaskWithLocksWithRetry(lockSupplier, task);
-    }
-
-    @Override
-    public <T, E extends Exception> T runTaskWithLocksWithRetry(Iterable<LockRefreshToken> lockTokens,
-                                                                Supplier<LockRequest> lockSupplier,
-                                                                TransactionTask<T, E> task)
-            throws E, InterruptedException {
-        return delegate().runTaskWithLocksWithRetry(
-                lockTokens,
-                lockSupplier,
-                task);
-    }
-
-    @Override
-    public <T, E extends Exception> T runTaskWithLocksThrowOnConflict(Iterable<LockRefreshToken> lockTokens,
-                                                                      TransactionTask<T, E> task)
-            throws E, TransactionFailedRetriableException {
-        return delegate().runTaskWithLocksThrowOnConflict(lockTokens, task);
-    }
 
     @Override
     public <T, E extends Exception> T runTaskWithLocksWithRetry(Supplier<LockRequest> lockSupplier,

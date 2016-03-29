@@ -774,7 +774,7 @@ import com.palantir.util.Pair;
             throw e;
         }
         lockClientMultimap.remove(heldLocks.realToken.getClient(), token);
-        HeldLocksGrant grant = createHeldLocksGrant(heldLocks.realToken.getLocks(),
+        HeldLocksGrant grant = createHeldLocksGrant(heldLocks.realToken.getLockDescriptors(),
                 heldLocks.locks, heldLocks.realToken.getLockTimeout(),
                 heldLocks.realToken.getVersionId());
         if (log.isTraceEnabled()) {

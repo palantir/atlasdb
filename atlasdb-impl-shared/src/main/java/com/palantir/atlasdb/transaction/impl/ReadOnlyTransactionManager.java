@@ -28,7 +28,6 @@ import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.lock.HeldLocksToken;
-import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 
@@ -105,28 +104,6 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
                 readSentinelBehavior,
                 allowHiddenTableAccess);
         return runTaskThrowOnConflict(task, txn);
-    }
-
-    @Override
-    public <T, E extends Exception> T runTaskWithLocksWithRetry(Supplier<LockRequest> lockSupplier,
-                                                                TransactionTask<T, E> task)
-            throws E, InterruptedException {
-        throw new UnsupportedOperationException("this manager is read only");
-    }
-
-    @Override
-    public <T, E extends Exception> T runTaskWithLocksWithRetry(Iterable<LockRefreshToken> lockTokens,
-                                                                Supplier<LockRequest> lockSupplier,
-                                                                TransactionTask<T, E> task)
-            throws E, InterruptedException {
-        throw new UnsupportedOperationException("this manager is read only");
-    }
-
-    @Override
-    public <T, E extends Exception> T runTaskWithLocksThrowOnConflict(Iterable<LockRefreshToken> lockTokens,
-                                                                      TransactionTask<T, E> task)
-            throws E, TransactionFailedRetriableException {
-        throw new UnsupportedOperationException("this manager is read only");
     }
 
     @Override

@@ -26,6 +26,7 @@ import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Functions;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
@@ -155,7 +156,8 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
         }
     }
 
-    private boolean runOnce() {
+    @VisibleForTesting
+    public boolean runOnce() {
         SweepProgressRowResult progress = txManager.runTaskWithRetry(
                 new RuntimeTransactionTask<SweepProgressRowResult>() {
             @Override
@@ -177,10 +179,10 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
         Stopwatch watch = Stopwatch.createStarted();
         try {
             SweepResults results = sweepRunner.run(progress.getFullTableName(), batchSize, progress.getStartRow());
-            log.debug("Swept {} unique cells from {} starting at {} and performed {} deletions in {} ms.",
+            log.debug("Swept {} unique cells from {} starting at {} and performed {} deletions in {} ms up to timestamp {}.",
                     results.getCellsExamined(), progress.getFullTableName(),
                     progress.getStartRow() == null ? "0" : PtBytes.encodeHexString(progress.getStartRow()),
-                    results.getCellsDeleted(), watch.elapsed(TimeUnit.MILLISECONDS));
+                    results.getCellsDeleted(), watch.elapsed(TimeUnit.MILLISECONDS), results.getSweptTimestamp());
             saveSweepResults(progress, results);
             return true;
         } catch (RuntimeException e) {
@@ -285,12 +287,13 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
                                   final SweepResults results) {
         final long cellsDeleted = fromNullable(progress.getCellsDeleted()) + results.getCellsDeleted();
         final long cellsExamined = fromNullable(progress.getCellsExamined()) + results.getCellsExamined();
+        final long minimumSweptTimestamp = results.getSweptTimestamp();
         if (results.getNextStartRow().isPresent()) {
-            saveIntermediateSweepResults(progress, results.getNextStartRow().get(), cellsDeleted, cellsExamined);
+            saveIntermediateSweepResults(progress, results.getNextStartRow().get(), cellsDeleted, cellsExamined, minimumSweptTimestamp);
             return;
         }
 
-        saveFinalSweepResults(progress, cellsDeleted, cellsExamined);
+        saveFinalSweepResults(progress, cellsDeleted, cellsExamined, minimumSweptTimestamp);
 
         log.debug("Finished sweeping {}, examined {} unique cells, deleted {} cells.",
                 progress.getFullTableName(), cellsExamined, cellsDeleted);
@@ -310,7 +313,8 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
     private void saveIntermediateSweepResults(final SweepProgressRowResult progress,
                                               final byte[] nextStartRow,
                                               final long cellsDeleted,
-                                              final long cellsExamined) {
+                                              final long cellsExamined,
+                                              final long minimumSweptTimestamp) {
         txManager.runTaskWithRetry(new TxTask() {
             @Override
             public Void execute(Transaction t) {
@@ -322,8 +326,11 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
                 progressTable.putCellsExamined(row, cellsExamined);
                 if (!progress.hasStartRow()) {
                     // This is the first set of results being written for this table.
-                    tableFactory.getSweepPriorityTable(t).putWriteCount(
-                            SweepPriorityRow.of(progress.getFullTableName()), 0L);
+                    progressTable.putMinimumSweptTimestamp(row, minimumSweptTimestamp);
+
+                    SweepPriorityTable priorityTable = tableFactory.getSweepPriorityTable(t);
+                    SweepPriorityRow priorityRow = SweepPriorityRow.of(progress.getFullTableName());
+                    priorityTable.putWriteCount(priorityRow, 0L);
                 }
                 return null;
             }
@@ -332,7 +339,8 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
 
     private void saveFinalSweepResults(final SweepProgressRowResult progress,
                                        final long cellsDeleted,
-                                       final long cellsExamined) {
+                                       final long cellsExamined,
+                                       final long minimumSweptTimestamp) {
         txManager.runTaskWithRetry(new TxTask() {
             @Override
             public Void execute(Transaction t) {
@@ -344,6 +352,9 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
                 if (!progress.hasStartRow()) {
                     // This is the first (and only) set of results being written for this table.
                     priorityTable.putWriteCount(row, 0L);
+                    priorityTable.putMinimumSweptTimestamp(row, minimumSweptTimestamp);
+                } else {
+                    priorityTable.putMinimumSweptTimestamp(row, fromNullable(progress.getMinimumSweptTimestamp()));
                 }
                 return null;
             }

@@ -2,6 +2,9 @@ package com.palantir.atlasdb.schema.generated;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -9,11 +12,18 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import javax.annotation.Generated;
+
 
 import com.google.common.base.Function;
+import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
+import com.google.common.base.Supplier;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.HashMultimap;
@@ -21,37 +31,59 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
+import com.google.common.hash.Hashing;
+import com.google.common.primitives.Bytes;
+import com.google.common.primitives.UnsignedBytes;
+import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.Prefix;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.schema.Namespace;
+import com.palantir.atlasdb.table.api.AtlasDbDynamicMutableExpiringTable;
+import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
+import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutablePersistentTable;
+import com.palantir.atlasdb.table.api.AtlasDbNamedExpiringSet;
 import com.palantir.atlasdb.table.api.AtlasDbNamedMutableTable;
+import com.palantir.atlasdb.table.api.AtlasDbNamedPersistentSet;
+import com.palantir.atlasdb.table.api.ColumnValue;
 import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
+import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
+import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckingTransaction;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.common.base.AbortingVisitor;
+import com.palantir.common.base.AbortingVisitors;
+import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitableView;
 import com.palantir.common.base.BatchingVisitables;
+import com.palantir.common.base.Throwables;
+import com.palantir.common.collect.IterableView;
 import com.palantir.common.persist.Persistable;
 import com.palantir.common.persist.Persistable.Hydrator;
 import com.palantir.common.persist.Persistables;
 import com.palantir.common.proxy.AsyncProxy;
+import com.palantir.util.AssertUtils;
+import com.palantir.util.crypto.Sha256Hash;
 
 
+@Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
 public final class SweepProgressTable implements
         AtlasDbMutablePersistentTable<SweepProgressTable.SweepProgressRow,
                                          SweepProgressTable.SweepProgressNamedColumnValue<?>,
@@ -79,7 +111,7 @@ public final class SweepProgressTable implements
 
     private SweepProgressTable(Transaction t, Namespace namespace, List<SweepProgressTrigger> triggers) {
         this.t = t;
-        this.tableName = namespace.getName() + "." + rawTableName;
+        this.tableName = namespace.getName().isEmpty() ? rawTableName : namespace.getName() + "." + rawTableName;
         this.triggers = triggers;
         this.namespace = namespace;
     }
@@ -372,6 +404,66 @@ public final class SweepProgressTable implements
     /**
      * <pre>
      * Column value description {
+     *   type: Long;
+     * }
+     * </pre>
+     */
+    public static final class MinimumSweptTimestamp implements SweepProgressNamedColumnValue<Long> {
+        private final Long value;
+
+        public static MinimumSweptTimestamp of(Long value) {
+            return new MinimumSweptTimestamp(value);
+        }
+
+        private MinimumSweptTimestamp(Long value) {
+            this.value = value;
+        }
+
+        @Override
+        public String getColumnName() {
+            return "minimum_swept_timestamp";
+        }
+
+        @Override
+        public String getShortColumnName() {
+            return "m";
+        }
+
+        @Override
+        public Long getValue() {
+            return value;
+        }
+
+        @Override
+        public byte[] persistValue() {
+            byte[] bytes = EncodingUtils.encodeSignedVarLong(value);
+            return CompressionUtils.compress(bytes, Compression.NONE);
+        }
+
+        @Override
+        public byte[] persistColumnName() {
+            return PtBytes.toCachedBytes("m");
+        }
+
+        public static final Hydrator<MinimumSweptTimestamp> BYTES_HYDRATOR = new Hydrator<MinimumSweptTimestamp>() {
+            @Override
+            public MinimumSweptTimestamp hydrateFromBytes(byte[] bytes) {
+                bytes = CompressionUtils.decompress(bytes, Compression.NONE);
+                return of(EncodingUtils.decodeSignedVarLong(bytes, 0));
+            }
+        };
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("Value", this.value)
+                .toString();
+        }
+    }
+
+    /**
+     * <pre>
+     * Column value description {
      *   type: byte[];
      * }
      * </pre>
@@ -479,6 +571,10 @@ public final class SweepProgressTable implements
             return row.getColumns().containsKey(PtBytes.toCachedBytes("n"));
         }
 
+        public boolean hasMinimumSweptTimestamp() {
+            return row.getColumns().containsKey(PtBytes.toCachedBytes("m"));
+        }
+
         public boolean hasStartRow() {
             return row.getColumns().containsKey(PtBytes.toCachedBytes("s"));
         }
@@ -507,6 +603,15 @@ public final class SweepProgressTable implements
                 return null;
             }
             FullTableName value = FullTableName.BYTES_HYDRATOR.hydrateFromBytes(bytes);
+            return value.getValue();
+        }
+
+        public Long getMinimumSweptTimestamp() {
+            byte[] bytes = row.getColumns().get(PtBytes.toCachedBytes("m"));
+            if (bytes == null) {
+                return null;
+            }
+            MinimumSweptTimestamp value = MinimumSweptTimestamp.BYTES_HYDRATOR.hydrateFromBytes(bytes);
             return value.getValue();
         }
 
@@ -546,6 +651,15 @@ public final class SweepProgressTable implements
             };
         }
 
+        public static Function<SweepProgressRowResult, Long> getMinimumSweptTimestampFun() {
+            return new Function<SweepProgressRowResult, Long>() {
+                @Override
+                public Long apply(SweepProgressRowResult rowResult) {
+                    return rowResult.getMinimumSweptTimestamp();
+                }
+            };
+        }
+
         public static Function<SweepProgressRowResult, byte[]> getStartRowFun() {
             return new Function<SweepProgressRowResult, byte[]>() {
                 @Override
@@ -562,6 +676,7 @@ public final class SweepProgressTable implements
                 .add("CellsDeleted", getCellsDeleted())
                 .add("CellsExamined", getCellsExamined())
                 .add("FullTableName", getFullTableName())
+                .add("MinimumSweptTimestamp", getMinimumSweptTimestamp())
                 .add("StartRow", getStartRow())
                 .toString();
         }
@@ -584,6 +699,12 @@ public final class SweepProgressTable implements
             @Override
             public byte[] getShortName() {
                 return PtBytes.toCachedBytes("n");
+            }
+        },
+        MINIMUM_SWEPT_TIMESTAMP {
+            @Override
+            public byte[] getShortName() {
+                return PtBytes.toCachedBytes("m");
             }
         },
         START_ROW {
@@ -616,6 +737,7 @@ public final class SweepProgressTable implements
     private static final Map<String, Hydrator<? extends SweepProgressNamedColumnValue<?>>> shortNameToHydrator =
             ImmutableMap.<String, Hydrator<? extends SweepProgressNamedColumnValue<?>>>builder()
                 .put("n", FullTableName.BYTES_HYDRATOR)
+                .put("m", MinimumSweptTimestamp.BYTES_HYDRATOR)
                 .put("s", StartRow.BYTES_HYDRATOR)
                 .put("d", CellsDeleted.BYTES_HYDRATOR)
                 .put("e", CellsExamined.BYTES_HYDRATOR)
@@ -630,6 +752,20 @@ public final class SweepProgressTable implements
         Map<SweepProgressRow, String> ret = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> e : results.entrySet()) {
             String val = FullTableName.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
+            ret.put(cells.get(e.getKey()), val);
+        }
+        return ret;
+    }
+
+    public Map<SweepProgressRow, Long> getMinimumSweptTimestamps(Collection<SweepProgressRow> rows) {
+        Map<Cell, SweepProgressRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
+        for (SweepProgressRow row : rows) {
+            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("m")), row);
+        }
+        Map<Cell, byte[]> results = t.get(tableName, cells.keySet());
+        Map<SweepProgressRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<Cell, byte[]> e : results.entrySet()) {
+            Long val = MinimumSweptTimestamp.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
             ret.put(cells.get(e.getKey()), val);
         }
         return ret;
@@ -697,6 +833,30 @@ public final class SweepProgressTable implements
         Map<SweepProgressRow, SweepProgressNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
         for (Entry<SweepProgressRow, String> e : map.entrySet()) {
             toPut.put(e.getKey(), FullTableName.of(e.getValue()));
+        }
+        putUnlessExists(Multimaps.forMap(toPut));
+    }
+
+    public void putMinimumSweptTimestamp(SweepProgressRow row, Long value) {
+        put(ImmutableMultimap.of(row, MinimumSweptTimestamp.of(value)));
+    }
+
+    public void putMinimumSweptTimestamp(Map<SweepProgressRow, Long> map) {
+        Map<SweepProgressRow, SweepProgressNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
+        for (Entry<SweepProgressRow, Long> e : map.entrySet()) {
+            toPut.put(e.getKey(), MinimumSweptTimestamp.of(e.getValue()));
+        }
+        put(Multimaps.forMap(toPut));
+    }
+
+    public void putMinimumSweptTimestampUnlessExists(SweepProgressRow row, Long value) {
+        putUnlessExists(ImmutableMultimap.of(row, MinimumSweptTimestamp.of(value)));
+    }
+
+    public void putMinimumSweptTimestampUnlessExists(Map<SweepProgressRow, Long> map) {
+        Map<SweepProgressRow, SweepProgressNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
+        for (Entry<SweepProgressRow, Long> e : map.entrySet()) {
+            toPut.put(e.getKey(), MinimumSweptTimestamp.of(e.getValue()));
         }
         putUnlessExists(Multimaps.forMap(toPut));
     }
@@ -804,6 +964,16 @@ public final class SweepProgressTable implements
         t.delete(tableName, cells);
     }
 
+    public void deleteMinimumSweptTimestamp(SweepProgressRow row) {
+        deleteMinimumSweptTimestamp(ImmutableSet.of(row));
+    }
+
+    public void deleteMinimumSweptTimestamp(Iterable<SweepProgressRow> rows) {
+        byte[] col = PtBytes.toCachedBytes("m");
+        Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
+        t.delete(tableName, cells);
+    }
+
     public void deleteStartRow(SweepProgressRow row) {
         deleteStartRow(ImmutableSet.of(row));
     }
@@ -842,10 +1012,11 @@ public final class SweepProgressTable implements
     @Override
     public void delete(Iterable<SweepProgressRow> rows) {
         List<byte[]> rowBytes = Persistables.persistAll(rows);
-        Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size() * 4);
+        Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size() * 5);
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("d")));
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("e")));
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("n")));
+        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("m")));
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("s")));
         t.delete(tableName, cells);
     }
@@ -988,5 +1159,86 @@ public final class SweepProgressTable implements
         return ImmutableList.of();
     }
 
-    static String __CLASS_HASH = "Ld3TbQFLpRkHpBuyjmBBpw==";
+    /**
+     * This exists to avoid unused import warnings
+     * {@link AbortingVisitor}
+     * {@link AbortingVisitors}
+     * {@link ArrayListMultimap}
+     * {@link Arrays}
+     * {@link AssertUtils}
+     * {@link AsyncProxy}
+     * {@link AtlasDbConstraintCheckingMode}
+     * {@link AtlasDbDynamicMutableExpiringTable}
+     * {@link AtlasDbDynamicMutablePersistentTable}
+     * {@link AtlasDbMutableExpiringTable}
+     * {@link AtlasDbMutablePersistentTable}
+     * {@link AtlasDbNamedExpiringSet}
+     * {@link AtlasDbNamedMutableTable}
+     * {@link AtlasDbNamedPersistentSet}
+     * {@link BatchingVisitable}
+     * {@link BatchingVisitableView}
+     * {@link BatchingVisitables}
+     * {@link Bytes}
+     * {@link Callable}
+     * {@link Cell}
+     * {@link Cells}
+     * {@link Collection}
+     * {@link Collections2}
+     * {@link ColumnSelection}
+     * {@link ColumnValue}
+     * {@link ColumnValues}
+     * {@link ComparisonChain}
+     * {@link Compression}
+     * {@link CompressionUtils}
+     * {@link ConstraintCheckingTransaction}
+     * {@link Descending}
+     * {@link EncodingUtils}
+     * {@link Entry}
+     * {@link EnumSet}
+     * {@link ExecutorService}
+     * {@link Function}
+     * {@link Generated}
+     * {@link HashMultimap}
+     * {@link HashSet}
+     * {@link Hashing}
+     * {@link Hydrator}
+     * {@link ImmutableList}
+     * {@link ImmutableMap}
+     * {@link ImmutableMultimap}
+     * {@link ImmutableSet}
+     * {@link InvalidProtocolBufferException}
+     * {@link IterableView}
+     * {@link Iterables}
+     * {@link Iterator}
+     * {@link Joiner}
+     * {@link List}
+     * {@link Lists}
+     * {@link Map}
+     * {@link Maps}
+     * {@link MoreObjects}
+     * {@link Multimap}
+     * {@link Multimaps}
+     * {@link NamedColumnValue}
+     * {@link Namespace}
+     * {@link Objects}
+     * {@link Optional}
+     * {@link Persistable}
+     * {@link Persistables}
+     * {@link Prefix}
+     * {@link PtBytes}
+     * {@link RangeRequest}
+     * {@link RowResult}
+     * {@link Set}
+     * {@link Sets}
+     * {@link Sha256Hash}
+     * {@link SortedMap}
+     * {@link Supplier}
+     * {@link Throwables}
+     * {@link TimeUnit}
+     * {@link Transaction}
+     * {@link TypedRowResult}
+     * {@link UnsignedBytes}
+     * {@link ValueType}
+     */
+    static String __CLASS_HASH = "CLjuV6d5OsaOyG0r2OiSaQ==";
 }

@@ -19,13 +19,23 @@ import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.math.BigInteger;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.Iterables;
 
 /**
  * A token representing a set of locks being held by a client and the
@@ -34,6 +44,7 @@ import com.google.common.base.Preconditions;
  *
  * @author jtamer
  */
+@JsonDeserialize(builder=HeldLocksToken.SerializationProxy.class)
 @Immutable public final class HeldLocksToken implements ExpiringToken, Serializable {
     private static final long serialVersionUID = 0x99b3bb32bb98f83al;
 
@@ -48,12 +59,12 @@ import com.google.common.base.Preconditions;
     /**
      * This should only be created by the Lock Service
      */
-    public HeldLocksToken(BigInteger tokenId, LockClient client, long createionDateMs,
+    public HeldLocksToken(BigInteger tokenId, LockClient client, long creationDateMs,
             long expirationDateMs, SortedLockCollection<LockDescriptor> lockMap,
             TimeDuration lockTimeout, @Nullable Long versionId) {
         this.tokenId = Preconditions.checkNotNull(tokenId);
         this.client = Preconditions.checkNotNull(client);
-        this.creationDateMs = createionDateMs;
+        this.creationDateMs = creationDateMs;
         this.expirationDateMs = expirationDateMs;
         this.lockMap = lockMap;
         this.lockTimeout = SimpleTimeDuration.of(lockTimeout);
@@ -100,8 +111,18 @@ import com.google.common.base.Preconditions;
      * Returns the set of locks which were successfully acquired as a map
      * from descriptor to lock mode.
      */
-    public SortedLockCollection<LockDescriptor> getLocks() {
+    @JsonIgnore
+    public SortedLockCollection<LockDescriptor> getLockDescriptors() {
         return lockMap;
+    }
+
+    public List<LockWithMode> getLocks() {
+        return ImmutableList.copyOf(Iterables.transform(lockMap.entries(), new Function<Map.Entry<LockDescriptor, LockMode>, LockWithMode>() {
+            @Override
+            public LockWithMode apply(Map.Entry<LockDescriptor, LockMode> input) {
+                return new LockWithMode(input.getKey(), input.getValue());
+            }
+        }));
     }
 
     /**
@@ -170,7 +191,7 @@ import com.google.common.base.Preconditions;
         return new SerializationProxy(this);
     }
 
-    private static class SerializationProxy implements Serializable {
+    static class SerializationProxy implements Serializable {
         private static final long serialVersionUID = 0xe0bc169ce5a280acl;
 
         private final BigInteger tokenId;
@@ -189,6 +210,32 @@ import com.google.common.base.Preconditions;
             lockMap = heldLocksToken.lockMap;
             lockTimeout = heldLocksToken.lockTimeout;
             versionId = heldLocksToken.versionId;
+        }
+
+        @JsonCreator
+        public SerializationProxy(@JsonProperty("tokenId") BigInteger tokenId,
+                                  @JsonProperty("client") LockClient client,
+                                  @JsonProperty("creationDateMs") long creationDateMs,
+                                  @JsonProperty("expirationDateMs") long expirationDateMs,
+                                  @JsonProperty("locks") List<LockWithMode> locks,
+                                  @JsonProperty("lockTimeout") TimeDuration lockTimeout,
+                                  @JsonProperty("versionId") Long versionId) {
+            ImmutableSortedMap.Builder<LockDescriptor, LockMode> localLockMapBuilder = ImmutableSortedMap.naturalOrder();
+            for (LockWithMode lock : locks) {
+                localLockMapBuilder.put(lock.getLockDescriptor(), lock.getLockMode());
+            }
+            this.lockMap = LockCollections.of(localLockMapBuilder.build());
+            this.tokenId = Preconditions.checkNotNull(tokenId, "tokenId");
+            this.client = Preconditions.checkNotNull(client, "client");
+            this.creationDateMs = creationDateMs;
+            this.expirationDateMs = expirationDateMs;
+            this.lockTimeout = SimpleTimeDuration.of(lockTimeout);
+            this.versionId = versionId;
+            Preconditions.checkArgument(!this.lockMap.isEmpty());
+        }
+
+        public HeldLocksToken build() {
+            return (HeldLocksToken) readResolve();
         }
 
         Object readResolve() {

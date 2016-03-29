@@ -29,6 +29,7 @@ import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
 import javax.annotation.Nullable;
@@ -350,14 +351,16 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     }
 
     static class StillLeadingCall {
-        public final CountDownLatch populationLatch;
-        public volatile boolean failed;
+        private final AtomicInteger requestCount;
+        private final CountDownLatch populationLatch;
+        private volatile boolean failed;
         /* The status must only be written by the thread that owns and created this call. They must only be read by
          * other threads after awaiting the populationLatch.
          */
-        public volatile StillLeadingStatus status;
+        private volatile StillLeadingStatus status;
 
         public StillLeadingCall() {
+            this.requestCount = new AtomicInteger(1); // 1 because the current thread wants to make a request.
             // Counted down once by the thread that owns and created this call, after population or failure.
             this.populationLatch = new CountDownLatch(1);
             this.failed = false;
@@ -366,6 +369,53 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         public void populate(StillLeadingStatus status) {
             this.status = status;
         }
+
+        public int getRequestCountAndSetInvalid() {
+            return requestCount.getAndSet(Integer.MIN_VALUE);
+        }
+
+        public void fail() {
+            failed = true;
+        }
+        public void becomeReadable() {
+            populationLatch.countDown();
+        }
+        // End creator-only threads.
+
+        // This must only be called after awaitPopulation().
+        public boolean isFailed() {
+            return failed;
+        }
+
+        /**
+         * @return true if we are included in the batch and false otherwise
+         */
+        public boolean joinBatch() {
+            if (requestCount.get() < 0) {
+                return false;
+            }
+            int val = requestCount.incrementAndGet();
+            return isRequestCountValid(val);
+        }
+
+        public void awaitPopulation() {
+            try {
+                populationLatch.await();
+            } catch (InterruptedException e) {
+                log.error("Interrupted while waiting for a batch!", e);
+                throw Throwables.throwUncheckedException(e);
+            }
+        }
+
+        // This must only be called after awaitPopulation().
+        public StillLeadingStatus getStatus() {
+            return status;
+        }
+
+        public static boolean isRequestCountValid(int requestCount) {
+            return requestCount > 0;
+        }
+
     }
 
     /* The currently outstanding leadership check for a given token, if any. If it exists, it should be used, thus
@@ -384,16 +434,11 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                 populateStillLeadingCall(batch, token);
             }
 
-            try {
-                batch.populationLatch.await();
-            } catch (InterruptedException e) {
-                log.error("Interrupted waiting for a StillLeading batch. Trying another batch.", e);
-                Thread.currentThread().interrupt();
-                continue;
-            }
+            batch.awaitPopulation();
+
             // Now the batch is ready to be read.
-            if (!batch.failed) {
-                return batch.status;
+            if (!batch.isFailed()) {
+                return batch.getStatus();
             }
         }
     }
@@ -415,7 +460,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         for (int installBatchAttempts = 0; !(installedNewBatch || joinedBatch); installBatchAttempts++) {
             batch = currentIsStillLeadingCall.get(token);
             if (batch != null) {
-                joinedBatch = !batch.failed;
+                joinedBatch = batch.joinBatch();
             }
             if (!joinedBatch) {
                 StillLeadingCall newBatch = new StillLeadingCall();
@@ -433,6 +478,10 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                     installedNewBatch = true;
                 }
                 if (installedNewBatch) {
+                    // wait for in-flight batch to finish before continuing (simple batching)
+                    if (batch != null) {
+                        batch.awaitPopulation();
+                    }
                     batch = newBatch;
                 }
             }
@@ -443,13 +492,14 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
 
     private void populateStillLeadingCall(StillLeadingCall batch, LeadershipToken token) {
         try {
+            batch.getRequestCountAndSetInvalid();
             StillLeadingStatus status = isStillLeadingInternal(token);
             batch.populate(status);
         } catch (Throwable t) {
             log.error("Something went wrong while checking leadership", t);
-            batch.failed = true;
+            batch.fail();
         } finally {
-            batch.populationLatch.countDown();
+            batch.becomeReadable();
             /* Close only the current batch. If someone else has replaced this batch
              * already, don't close them prematurely; let them close themselves.
              */
