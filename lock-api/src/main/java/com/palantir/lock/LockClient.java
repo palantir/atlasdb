@@ -23,6 +23,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
@@ -43,6 +44,7 @@ import com.google.common.base.Strings;
      * locks reentrantly, because the server has no way to know whether the
      * current client is the same one who already holds the lock.
      */
+    @JsonIgnore
     public static final LockClient ANONYMOUS = new LockClient("");
 
     private static final String INTERNAL_LOCK_GRANT_CLIENT_ID = "(internal lock grant client)";
