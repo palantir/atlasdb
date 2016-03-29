@@ -32,8 +32,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
@@ -108,13 +106,6 @@ public abstract class AbstractSweeperTest {
     }
 
     private static void tearDownTables(KeyValueService kvs) {
-        Set<String> allTables = Sets.newHashSet(kvs.getAllTableNames());
-        boolean hasNamespace = allTables.remove(AtlasDbConstants.NAMESPACE_TABLE);
-        kvs.dropTables(allTables);
-
-        if (hasNamespace) {
-            kvs.truncateTable(AtlasDbConstants.NAMESPACE_TABLE);
-        }
         kvs.dropTable(TABLE_NAME);
         TransactionTables.deleteTables(kvs);
         Schemas.deleteTablesAndIndexes(SweepSchema.INSTANCE.getLatestSchema(), kvs);
@@ -345,9 +336,9 @@ public abstract class AbstractSweeperTest {
         put("foo", "buzz", 125);
         runBackgroundSweep(120, 3);
         List<SweepPriorityRowResult> results = txManager.runTaskReadOnly(t -> {
-                    SweepPriorityTable priorityTable = SweepTableFactory.of().getSweepPriorityTable(t);
-                    return BatchingVisitables.copyToList(priorityTable.getAllRowsUnordered());
-                });
+            SweepPriorityTable priorityTable = SweepTableFactory.of().getSweepPriorityTable(t);
+            return BatchingVisitables.copyToList(priorityTable.getAllRowsUnordered());
+        });
 
         for (SweepPriorityRowResult result : results) {
             Assert.assertEquals(new Long(120), result.getMinimumSweptTimestamp());
