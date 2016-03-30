@@ -16,7 +16,6 @@
 package com.palantir.common.concurrent;
 
 import java.util.Map;
-import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import com.google.common.collect.MapMaker;
@@ -36,8 +35,10 @@ public class ExecutorInheritableThreadLocal<T> {
         }
     };
 
+    private static class NullWrapper {}
+
     public void set(T value) {
-        mapForThisThread.get().put(this, value);
+        mapForThisThread.get().put(this, value == null ? new NullWrapper() : value);
     }
 
     public void remove() {
@@ -52,7 +53,11 @@ public class ExecutorInheritableThreadLocal<T> {
         if (mapForThisThread.get().containsKey(this)) {
             @SuppressWarnings("unchecked")
             T ret = (T) mapForThisThread.get().get(this);
-            return ret;
+            if (ret instanceof NullWrapper) {
+                return null;
+            } else {
+                return ret;
+            }
         } else {
             T ret = initialValue();
             set(ret);
