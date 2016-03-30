@@ -397,7 +397,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     @Override
     public byte[] getMetadataForTable(String tableName) {
         if (!tables.containsKey(tableName)) {
-            throw new IllegalArgumentException("No such table");
+            return AtlasDbConstants.EMPTY_TABLE_METADATA;
         }
         byte[] ret = tableMetadata.get(tableName);
         return ret == null ? ArrayUtils.EMPTY_BYTE_ARRAY : ret;
