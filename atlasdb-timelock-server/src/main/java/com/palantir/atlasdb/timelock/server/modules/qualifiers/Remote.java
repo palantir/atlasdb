@@ -13,15 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.server;
 
-import static java.lang.annotation.RetentionPolicy.RUNTIME;
+package com.palantir.atlasdb.timelock.server.modules.qualifiers;
+
+import static java.lang.annotation.RetentionPolicy.*;
 
 import java.lang.annotation.Retention;
 
 import javax.inject.Qualifier;
 
+/**
+ * Qualifies a group of dependencies as only being run on other instances of the application
+ */
 @Qualifier
 @Retention(RUNTIME)
-public @interface All {
+public @interface Remote {
 }

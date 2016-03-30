@@ -13,10 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.server;
+
+package com.palantir.atlasdb.timelock.server.modules;
 
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.timelock.server.TimeLockConfiguration;
 
 import dagger.Module;
 import dagger.Provides;

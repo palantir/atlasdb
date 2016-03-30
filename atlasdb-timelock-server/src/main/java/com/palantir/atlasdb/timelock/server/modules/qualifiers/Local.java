@@ -1,5 +1,5 @@
 /**
- * Copyright 2015 Palantir Technologies
+ * Copyright 2016 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,23 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.server;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.palantir.atlasdb.config.AtlasDbConfig;
+package com.palantir.atlasdb.timelock.server.modules.qualifiers;
 
-import io.dropwizard.Configuration;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
-public class AtlasDbServerConfiguration extends Configuration {
-    
-    private final AtlasDbConfig atlasdb;
-    
-    public AtlasDbServerConfiguration(@JsonProperty("atlasdb") AtlasDbConfig atlasdb) {
-        this.atlasdb = atlasdb;
-    }
-    
-    public AtlasDbConfig getConfig() {
-        return atlasdb;
-    }
-    
+import java.lang.annotation.Retention;
+
+import javax.inject.Qualifier;
+
+/**
+ * Qualifies a group of dependencies as only being run on this instance of the application
+ */
+@Qualifier
+@Retention(RUNTIME)
+public @interface Local {
 }

@@ -13,16 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.server;
 
-import static java.lang.annotation.RetentionPolicy.*;
+package com.palantir.atlasdb.timelock.server.modules;
 
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
+import javax.inject.Singleton;
+import javax.net.ssl.SSLSocketFactory;
 
-import javax.inject.Qualifier;
+import com.google.common.base.Optional;
 
-@Qualifier
-@Retention(RUNTIME)
-public @interface Remote {
+import dagger.Module;
+import dagger.Provides;
+
+@Module
+public class EnvironmentModule {
+    @Provides
+    @Singleton
+    public Optional<SSLSocketFactory> provideSsl() {
+        return Optional.absent();
+    }
 }

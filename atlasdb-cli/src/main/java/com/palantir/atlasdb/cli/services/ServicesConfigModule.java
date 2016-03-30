@@ -26,7 +26,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.common.base.Strings;
 import com.palantir.atlasdb.config.AtlasDbConfig;
-import com.palantir.atlasdb.server.AtlasDbServerConfiguration;
+import com.palantir.atlasdb.timelock.server.AtlasDbServerConfiguration;
 
 import dagger.Module;
 import dagger.Provides;

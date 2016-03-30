@@ -1,5 +1,5 @@
 /**
- * Copyright 2015 Palantir Technologies
+ * Copyright 2016 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.server;
+package com.palantir.atlasdb.timelock.server;
+
+import com.palantir.atlasdb.timelock.server.modules.ConfigModule;
 
 import io.dropwizard.Application;
 import io.dropwizard.setup.Environment;
@@ -26,11 +28,11 @@ public class TimeLockServer extends Application<TimeLockConfiguration> {
 
     @Override
     public void run(TimeLockConfiguration config, final Environment environment) throws Exception {
-        Endpoints endpoints = DaggerEndpoints.builder()
+        ServerEndpoints serverEndpoints = DaggerServerEndpoints.builder()
                 .configModule(new ConfigModule(config))
                 .build();
 
-        endpoints.forEach(environment.jersey()::register);
+        serverEndpoints.forEach(environment.jersey()::register);
     }
 
 }

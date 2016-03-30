@@ -29,7 +29,7 @@ import com.palantir.atlasdb.factory.TransactionManagers
 import com.palantir.atlasdb.impl.AtlasDbServiceImpl
 import com.palantir.atlasdb.impl.TableMetadataCache
 import com.palantir.atlasdb.jackson.AtlasJacksonModule
-import com.palantir.atlasdb.server.AtlasDbServerConfiguration
+import com.palantir.atlasdb.timelock.server.AtlasDbServerConfiguration
 import com.palantir.atlasdb.table.description.Schema
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager
 import groovy.json.JsonBuilder

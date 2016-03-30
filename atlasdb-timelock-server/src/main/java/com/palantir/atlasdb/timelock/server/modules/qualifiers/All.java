@@ -13,21 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.server;
 
-import javax.inject.Singleton;
-import javax.net.ssl.SSLSocketFactory;
+package com.palantir.atlasdb.timelock.server.modules.qualifiers;
 
-import com.google.common.base.Optional;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
-import dagger.Module;
-import dagger.Provides;
+import java.lang.annotation.Retention;
 
-@Module
-public class EnvironmentModule {
-    @Provides
-    @Singleton
-    public Optional<SSLSocketFactory> provideSsl() {
-        return Optional.absent();
-    }
+import javax.inject.Qualifier;
+
+/**
+ * Qualifies a group of dependencies as consisting of all dependencies from the {@link Local} and {@link Remote}
+ */
+@Qualifier
+@Retention(RUNTIME)
+public @interface All {
 }

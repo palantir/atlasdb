@@ -13,13 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.server;
+
+package com.palantir.atlasdb.timelock.server;
 
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import javax.inject.Singleton;
 
+import com.palantir.atlasdb.timelock.server.modules.ConfigModule;
+import com.palantir.atlasdb.timelock.server.modules.EnvironmentModule;
+import com.palantir.atlasdb.timelock.server.modules.TimeAndLockModule;
+import com.palantir.atlasdb.timelock.server.modules.LeaderElectionModule;
+import com.palantir.atlasdb.timelock.server.modules.qualifiers.Local;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.paxos.PaxosAcceptor;
@@ -35,12 +41,12 @@ import dagger.Component;
         ConfigModule.class,
 })
 @Singleton
-public interface Endpoints {
+public interface ServerEndpoints {
     TimestampService timestamp();
     RemoteLockService lock();
+    LeaderElectionService leaderElection();
     @Local PaxosLearner paxosLearner();
     @Local PaxosAcceptor paxosAcceptor();
-    LeaderElectionService leaderElection();
 
     default void forEach(Consumer<Object> consumer) {
         Stream.of(
