@@ -31,7 +31,9 @@ must have admin privledges on Bintray for this to work.**
 1. Clone the git repository: `git clone git@github.com:palantir/atlasdb.git; cd
 atlasdb`.
 2. Checkout the github-pages branch: `git checkout gh-pages`.
-3. Edit existing pages (found in `docs/`) using markdown. Create new pages by
+3. Use gem to install bundler (if you don't have it): `sudo gem install bundler`
+4. Install the dependencies in Gemfile with bundler: `bundler install`
+5. Edit existing pages (found in `docs/`) using markdown. Create new pages by
 adding a markdown file to `docs/` and then adding the appropriate navigation
 configuration in `_data/atlasdb/sidebar.yml`.
 
