@@ -21,15 +21,20 @@ import com.google.common.base.Optional;
 import com.palantir.atlasdb.encoding.PtBytes;
 
 public class SweepResults {
-    public static final SweepResults EMPTY_SWEEP = new SweepResults(null, 0, 0);
     private final @Nullable byte[] nextStartRow;
     private final long cellsExamined;
     private final long cellsSwept;
+    private final long sweptTimestamp;
 
-    public SweepResults(@Nullable byte[] nextStartRow, long cellsExamined, long cellsSwept) {
+    public static SweepResults createEmptySweepResult(long sweptTimestamp) {
+        return new SweepResults(null, 0, 0, sweptTimestamp);
+    }
+
+    public SweepResults(@Nullable byte[] nextStartRow, long cellsExamined, long cellsSwept, long sweptTimestamp) {
         this.nextStartRow = nextStartRow;
         this.cellsExamined = cellsExamined;
         this.cellsSwept = cellsSwept;
+        this.sweptTimestamp = sweptTimestamp;
     }
 
     public Optional<byte[]> getNextStartRow() {
@@ -44,10 +49,15 @@ public class SweepResults {
         return cellsSwept;
     }
 
+    public long getSweptTimestamp() {
+        return sweptTimestamp;
+    }
+
     @Override
     public String toString() {
         return "SweepResults [nextStartRow=" + PtBytes.encodeHexString(nextStartRow)
                 + ", cellsExamined=" + cellsExamined
-                + ", cellsSwept=" + cellsSwept + "]";
+                + ", cellsSwept=" + cellsSwept
+                + ", sweptTimestamp=" + sweptTimestamp + "]";
     }
 }

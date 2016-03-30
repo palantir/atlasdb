@@ -46,4 +46,12 @@ dependencies {
   compile('com.fasterxml.jackson.datatype:jackson-datatype-guava:' + libVersions.jackson) {
       exclude(module: "guava")
   }
+  testCompile(group: 'junit', name: 'junit', version: libVersions.junit) {
+    exclude group: 'org.hamcrest'
+  }
+  testCompile(group: "org.jmock", name: "jmock", version: libVersions.jmock) {
+    exclude group: 'org.hamcrest'
+  }
+  testCompile 'org.hamcrest:hamcrest-core:' + libVersions.hamcrest
+  testCompile 'org.hamcrest:hamcrest-library:' + libVersions.hamcrest
 }

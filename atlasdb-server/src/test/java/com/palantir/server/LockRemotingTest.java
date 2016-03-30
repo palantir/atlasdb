@@ -26,6 +26,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.atlasdb.http.TextDelegateDecoder;
+import com.palantir.lock.HeldLocksToken;
+import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
@@ -62,7 +64,7 @@ public class LockRemotingTest {
         writeValueAsString = mapper.writeValueAsString(request);
         LockRequest request2 = mapper.readValue(writeValueAsString, LockRequest.class);
 
-        LockRefreshToken lockResponse = rawLock.lockAnonymously(request);
+        LockRefreshToken lockResponse = rawLock.lock(LockClient.ANONYMOUS.getClientId(), request);
         rawLock.unlock(lockResponse);
         writeValueAsString = mapper.writeValueAsString(lockResponse);
         LockRefreshToken lockResponse2 = mapper.readValue(writeValueAsString, LockRefreshToken.class);
@@ -75,15 +77,23 @@ public class LockRemotingTest {
 
 
         String lockClient = "23234";
-        LockRefreshToken token = lock.lockWithClient(lockClient, request);
+        LockRefreshToken token = lock.lock(lockClient, request);
         long minLockedInVersionId = lock.getMinLockedInVersionId(lockClient);
         Assert.assertEquals(minVersion, minLockedInVersionId);
         lock.unlock(token);
-        token = lock.lockAnonymously(request);
+        token = lock.lock(LockClient.ANONYMOUS.getClientId(), request);
         Set<LockRefreshToken> refreshed = lock.refreshLockRefreshTokens(ImmutableList.of(token));
         Assert.assertEquals(1, refreshed.size());
         lock.unlock(token);
         lock.logCurrentState();
         lock.currentTimeMillis();
+
+        HeldLocksToken token1 = lock.lockAndGetHeldLocks(LockClient.ANONYMOUS.getClientId(), request);
+        HeldLocksToken token2 = lock.lockAndGetHeldLocks(LockClient.ANONYMOUS.getClientId(), request2);
+        Assert.assertNull(token2);
+        lock.unlock(token1.getLockRefreshToken());
+        token2 = lock.lockAndGetHeldLocks(LockClient.ANONYMOUS.getClientId(), request2);
+        Assert.assertNotNull(token2);
+        lock.unlock(token2.getLockRefreshToken());
     }
 }

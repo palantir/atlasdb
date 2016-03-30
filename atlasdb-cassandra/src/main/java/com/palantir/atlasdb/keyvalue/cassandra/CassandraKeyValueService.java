@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
@@ -60,12 +61,14 @@ import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Strings;
 import com.google.common.base.Supplier;
 import com.google.common.base.Verify;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -849,7 +852,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         final Set<String> tablesToTruncate = filterOutTrulyEmptyTables(tableNames);
         if (!tablesToTruncate.isEmpty()) {
             try {
-                trySchemaMutationLock();
                 clientPool.runWithPooledResource(new FunctionCheckedException<Client, Void, Exception>() {
                     @Override
                     public Void apply(Client client) throws Exception {
@@ -857,17 +859,16 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                             if (shouldTraceQuery(tableName)) {
                                 ByteBuffer recv_trace = client.trace_next_query();
                                 Stopwatch stopwatch = Stopwatch.createStarted();
-                                client.truncate(internalTableName(tableName));
+                                truncateInternal(client, tableName);
                                 long duration = stopwatch.elapsed(TimeUnit.MILLISECONDS);
                                 if (duration > getMinimumDurationToTraceMillis()) {
                                     log.error("Traced a call to " + tableName + " that took " + duration + " ms."
                                             + " It will appear in system_traces with UUID=" + CassandraKeyValueServices.convertCassandraByteBufferUUIDtoString(recv_trace));
                                 }
                             } else {
-                                client.truncate(internalTableName(tableName));
+                                truncateInternal(client, tableName);
                             }
                         }
-                        CassandraKeyValueServices.waitForSchemaVersions(client, "(" + tablesToTruncate.size() + " tables in a call to truncateTables)", configManager.getConfig().schemaMutationTimeoutMillis());
                         return null;
                     }
 
@@ -880,8 +881,29 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 throw new PalantirRuntimeException("Creating tables requires all Cassandra nodes to be up and available.");
             } catch (Exception e) {
                 throw Throwables.throwUncheckedException(e);
-            } finally {
-                schemaMutationLock.unlock();
+            }
+        }
+    }
+
+    private void truncateInternal(Client client, String tableName) throws TException {
+        for (int tries = 1; tries <= CassandraConstants.MAX_TRUNCATION_ATTEMPTS; tries++) {
+            boolean successful = true;
+            try {
+                client.truncate(internalTableName(tableName));
+            } catch (TException e) {
+                log.error("Cluster was unavailable while we attempted a truncate for table " + tableName + "; we will try " + (CassandraConstants.MAX_TRUNCATION_ATTEMPTS - tries) + " additional time(s). (" + e.getMessage() + ")");
+                if (CassandraConstants.MAX_TRUNCATION_ATTEMPTS - tries == 0) {
+                    throw e;
+                }
+                successful = false;
+                try {
+                    Thread.sleep(new Random().nextInt((1 << (CassandraConstants.MAX_TRUNCATION_ATTEMPTS - tries)) - 1) * 1000);
+                } catch (InterruptedException e1) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+            if (successful) {
+                break;
             }
         }
     }
@@ -1285,20 +1307,22 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     @Override
     public Set<String> getAllTableNames() {
+        return Sets.difference(getAllTablenamesInternal(), CassandraConstants.HIDDEN_TABLES);
+    }
+
+    private Set<String> getAllTablenamesInternal() {
         final CassandraKeyValueServiceConfig config = configManager.getConfig();
         try {
             return clientPool.runWithPooledResource(new FunctionCheckedException<Client, Set<String>, Exception>() {
                 @Override
                 public Set<String> apply(Client client) throws Exception {
-                    KsDef ks = client.describe_keyspace(config.keyspace());
-
-                    Set<String> ret = Sets.newHashSet();
-                    for (CfDef cf : ks.getCf_defs()) {
-                        if (!CassandraConstants.HIDDEN_TABLES.contains(cf.getName())) {
-                            ret.add(fromInternalTableName(cf.getName()));
-                        }
-                    }
-                    return ret;
+                    return FluentIterable.from(client.describe_keyspace(config.keyspace()).getCf_defs())
+                            .transform(new Function<CfDef, String>() {
+                                @Override
+                                public String apply(CfDef cf) {
+                                    return fromInternalTableName(cf.getName());
+                                }
+                            }).toSet();
                 }
 
                 @Override
@@ -1318,6 +1342,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         if (v == null) {
             return AtlasDbConstants.EMPTY_TABLE_METADATA;
         } else {
+            if (!getAllTablenamesInternal().contains(tableName)) {
+                log.error("While getting metadata, found a table, {}, with stored table metadata but no corresponding existing table in the underlying KVS. This is not necessarily a bug, but warrants further inquiry.", tableName);
+            }
             return v.getContents();
         }
     }
@@ -1327,7 +1354,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         Map<String, byte[]> tableToMetadataContents = Maps.newHashMap();
         ClosableIterator<RowResult<Value>> range = getRange(CassandraConstants.METADATA_TABLE, RangeRequest.all(), Long.MAX_VALUE);
         try {
-            Set<String> currentlyExistingTables = getAllTableNames();
             while (range.hasNext()) {
                 RowResult<Value> valueRow = range.next();
                 Iterable<Entry<Cell, Value>> cells = valueRow.getCells();
@@ -1335,23 +1361,38 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 for (Entry<Cell, Value> entry : cells) {
                     Value value = entry.getValue();
                     String tableName = new String(entry.getKey().getRowName());
-                    if (currentlyExistingTables.contains(tableName)) {
-                        byte[] contents;
-                        if (value == null) {
-                            contents = AtlasDbConstants.EMPTY_TABLE_METADATA;
-                        } else {
-                            contents = value.getContents();
-                        }
-                        tableToMetadataContents.put(tableName, contents);
+
+                    byte[] contents;
+                    if (value == null) {
+                        contents = AtlasDbConstants.EMPTY_TABLE_METADATA;
                     } else {
-                        log.info("Non-existing table {}: {}", tableName, value);
+                        contents = value.getContents();
                     }
+                    tableToMetadataContents.put(tableName, contents);
                 }
             }
         } finally {
             range.close();
         }
-        return tableToMetadataContents;
+
+        final Set<String> tablesInDatabase = getAllTableNames();
+
+        Set<String> tablesThatHaveMetadataButDontExist = Sets.difference(tableToMetadataContents.keySet(), tablesInDatabase);
+        if (!tablesThatHaveMetadataButDontExist.isEmpty()) {
+            log.error("While getting metadata for tables, we found the following tables that do not exist in the database, but are represented in the metadata table: " + tablesThatHaveMetadataButDontExist);
+        }
+
+        Set<String> tablesThatExistButHaveNoMetadata = Sets.difference(tablesInDatabase, tableToMetadataContents.keySet());
+        if (!tablesThatExistButHaveNoMetadata.isEmpty()) {
+            log.error("While getting metadata for tables, we found the following tables that exist in the database, but have no matching metadata stored: " + tablesThatExistButHaveNoMetadata);
+        }
+
+        return ImmutableMap.copyOf(Maps.filterEntries(tableToMetadataContents, new Predicate<Entry<String, byte[]>>() {
+            @Override
+            public boolean apply(Entry<String, byte[]> input) {
+                return tablesInDatabase.contains(input.getKey());
+            }
+        }));
     }
 
     private Cell getMetadataCell(String tableName) { // would have preferred an explicit charset, but thrift uses default internally

@@ -130,7 +130,7 @@ import com.palantir.timestamp.TimestampService;
                         immutableLockTs).build();
         final LockRefreshToken lock;
         try {
-            lock = lockService.lockWithClient(lockClient.getClientId(), lockRequest);
+            lock = lockService.lock(lockClient.getClientId(), lockRequest);
         } catch (InterruptedException e) {
             throw Throwables.throwUncheckedException(e);
         }
@@ -268,5 +268,9 @@ import com.palantir.timestamp.TimestampService;
 
     public KeyValueService getKeyValueService() {
         return keyValueService;
+    }
+    
+    public TimestampService getTimestampService() {
+        return timestampService;
     }
 }

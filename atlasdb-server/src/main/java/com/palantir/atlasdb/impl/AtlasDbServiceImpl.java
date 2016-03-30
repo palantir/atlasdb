@@ -22,9 +22,12 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import javax.inject.Inject;
+
 import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.api.AtlasDbService;
 import com.palantir.atlasdb.api.RangeToken;
@@ -56,8 +59,6 @@ import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitables;
 import com.palantir.lock.LockRefreshToken;
 
-import jersey.repackaged.com.google.common.collect.ImmutableList;
-
 public class AtlasDbServiceImpl implements AtlasDbService {
     private static final TableMetadata RAW_METADATA = new TableMetadata(
             NameMetadataDescription.create(ImmutableList.of(new NameComponentDescription("row", ValueType.STRING))),
@@ -70,7 +71,7 @@ public class AtlasDbServiceImpl implements AtlasDbService {
             CacheBuilder.newBuilder().expireAfterAccess(12, TimeUnit.HOURS).build();
     private final TableMetadataCache metadataCache;
 
-
+    @Inject
     public AtlasDbServiceImpl(KeyValueService kvs,
                               SerializableTransactionManager txManager,
                               TableMetadataCache metadataCache) {
