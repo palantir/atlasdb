@@ -15,8 +15,38 @@
  */
 package com.palantir.atlasdb.server;
 
+import javax.inject.Singleton;
+
+import com.google.common.base.Supplier;
+import com.palantir.atlasdb.factory.ServiceDiscoveringAtlasSupplier;
+import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.leader.LeaderElectionService;
+import com.palantir.leader.proxy.AwaitingLeadershipProxy;
+import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.impl.LockServiceImpl;
+import com.palantir.timestamp.TimestampService;
+
 import dagger.Module;
+import dagger.Provides;
 
 @Module
 public class TimeAndLockModule {
+    @Provides
+    @Singleton
+    public ServiceDiscoveringAtlasSupplier provideAtlasSupplier(KeyValueServiceConfig kvsConfig) {
+        return new ServiceDiscoveringAtlasSupplier(kvsConfig);
+    }
+
+    @Provides
+    @Singleton
+    public TimestampService provideTimestampService(LeaderElectionService leaderElectionService, ServiceDiscoveringAtlasSupplier atlasSupplier) {
+        Supplier<TimestampService> localTimestampService = atlasSupplier::getTimestampService;
+        return AwaitingLeadershipProxy.newProxyInstance(TimestampService.class, localTimestampService, leaderElectionService);
+    }
+
+    @Provides
+    @Singleton
+    public RemoteLockService provideLockService(LeaderElectionService leaderElectionService) {
+        return AwaitingLeadershipProxy.newProxyInstance(RemoteLockService.class, LockServiceImpl::create, leaderElectionService);
+    }
 }

@@ -27,7 +27,7 @@ public class TimeLockServer extends Application<TimeLockConfiguration> {
     @Override
     public void run(TimeLockConfiguration config, final Environment environment) throws Exception {
         Endpoints endpoints = DaggerEndpoints.builder()
-                .configModule(new ConfigModule(config.getConfig().leader().get()))
+                .configModule(new ConfigModule(config))
                 .build();
 
         endpoints.forEach(environment.jersey()::register);

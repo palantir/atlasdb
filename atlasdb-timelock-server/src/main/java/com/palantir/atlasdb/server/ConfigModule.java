@@ -16,20 +16,27 @@
 package com.palantir.atlasdb.server;
 
 import com.palantir.atlasdb.config.LeaderConfig;
+import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
 import dagger.Module;
 import dagger.Provides;
 
 @Module
 public class ConfigModule {
-    private final LeaderConfig leaderConfig;
 
-    public ConfigModule(LeaderConfig leaderConfig) {
-        this.leaderConfig = leaderConfig;
+    private final TimeLockConfiguration config;
+
+    public ConfigModule(TimeLockConfiguration config) {
+        this.config = config;
     }
 
     @Provides
     public LeaderConfig provideLeaderConfig() {
-        return leaderConfig;
+        return config.getConfig().leader().get();
+    }
+
+    @Provides
+    public KeyValueServiceConfig provideKvsConfig() {
+        return config.getConfig().keyValueService();
     }
 }

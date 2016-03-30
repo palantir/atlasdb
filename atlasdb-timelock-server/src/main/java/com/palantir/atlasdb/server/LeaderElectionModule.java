@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executors;
 
+import javax.inject.Singleton;
 import javax.net.ssl.SSLSocketFactory;
 
 import com.google.common.base.Optional;
@@ -49,6 +50,7 @@ import dagger.Provides;
 @Module
 public class LeaderElectionModule {
     @Provides
+    @Singleton
     public LeaderElectionService leaderElectionService(
             LeaderConfig config,
             @Local PaxosProposer proposer,
@@ -70,6 +72,7 @@ public class LeaderElectionModule {
     }
 
     @Provides
+    @Singleton
     @All
     public List<PaxosAcceptor> provideAllPaxosAcceptors(@Remote Set<String> remoteLeaders, @Local PaxosAcceptor localAcceptor, Optional<SSLSocketFactory> sslSocketFactory) {
         List<PaxosAcceptor> remoteAcceptors = AtlasDbHttpClients.createProxies(sslSocketFactory, remoteLeaders, PaxosAcceptor.class);
@@ -81,6 +84,7 @@ public class LeaderElectionModule {
     }
 
     @Provides
+    @Singleton
     @All
     public List<PaxosLearner> provideAllPaxosLearners(@Remote Set<String> remoteLeaders, @Local PaxosLearner localLearner, Optional<SSLSocketFactory> sslSocketFactory) {
         List<PaxosLearner> remoteLearners = AtlasDbHttpClients.createProxies(sslSocketFactory, remoteLeaders, PaxosLearner.class);
@@ -92,18 +96,21 @@ public class LeaderElectionModule {
     }
 
     @Provides
+    @Singleton
     @Local
     public PaxosAcceptor providePaxosAcceptor(LeaderConfig config) {
         return newAcceptor(config.acceptorLogDir().getPath());
     }
 
     @Provides
+    @Singleton
     @Local
     public PaxosLearner providePaxosLearner(LeaderConfig config) {
         return newLearner(config.learnerLogDir().getPath());
     }
 
     @Provides
+    @Singleton
     @Local
     public PaxosProposer providePaxosProposer(
             @Local PaxosLearner localLearner,
@@ -119,6 +126,7 @@ public class LeaderElectionModule {
     }
 
     @Provides
+    @Singleton
     @Remote
     public Set<String> provideRemoteLeaders(LeaderConfig config) {
         return config.leaders().stream()
@@ -128,6 +136,7 @@ public class LeaderElectionModule {
 
 
     @Provides
+    @Singleton
     @Remote
     public Map<PingableLeader, HostAndPort> providePotentialLeaders(@Remote Set<String> remoteLeaders, Optional<SSLSocketFactory> sslSocketFactory) {
         /* The interface used as a key here may be a proxy, which may have strange .equals() behavior.

@@ -18,9 +18,13 @@ package com.palantir.atlasdb.server;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
+import javax.inject.Singleton;
+
 import com.palantir.leader.LeaderElectionService;
+import com.palantir.lock.RemoteLockService;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
+import com.palantir.timestamp.TimestampService;
 
 import dagger.Component;
 
@@ -30,20 +34,21 @@ import dagger.Component;
         EnvironmentModule.class,
         ConfigModule.class,
 })
+@Singleton
 public interface Endpoints {
-//    TimestampService timestamp();
-//    RemoteLockService lock();
+    TimestampService timestamp();
+    RemoteLockService lock();
     @Local PaxosLearner paxosLearner();
     @Local PaxosAcceptor paxosAcceptor();
     LeaderElectionService leaderElection();
 
     default void forEach(Consumer<Object> consumer) {
         Stream.of(
-//                timestamp(),
-//                lock(),
                 paxosLearner(),
                 paxosAcceptor(),
-                leaderElection()
-        ).forEach(consumer);
+                leaderElection(),
+                timestamp(),
+                lock()
+        ).forEachOrdered(consumer);
     }
 }

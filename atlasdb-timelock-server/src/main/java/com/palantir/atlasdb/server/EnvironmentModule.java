@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.server;
 
+import javax.inject.Singleton;
 import javax.net.ssl.SSLSocketFactory;
 
 import com.google.common.base.Optional;
@@ -25,6 +26,7 @@ import dagger.Provides;
 @Module
 public class EnvironmentModule {
     @Provides
+    @Singleton
     public Optional<SSLSocketFactory> provideSsl() {
         return Optional.absent();
     }
