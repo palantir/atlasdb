@@ -498,6 +498,7 @@ public class RocksDbKeyValueService implements KeyValueService {
     public void dropTable(String tableName) {
         try {
             columnFamilies.drop(tableName);
+            putMetadataForTable(tableName, AtlasDbConstants.EMPTY_TABLE_METADATA);
         } catch (IllegalArgumentException e) {
             // ignore, table didn't exist
         } catch (RocksDBException e) {
