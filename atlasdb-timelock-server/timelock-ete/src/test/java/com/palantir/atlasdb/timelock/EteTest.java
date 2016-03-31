@@ -33,6 +33,8 @@ import com.palantir.docker.compose.connection.waiting.HealthCheck;
 import com.palantir.timestamp.TimestampService;
 
 public class EteTest {
+    public static final int TIMELOCK_SERVER_PORT = 3828;
+
     @ClassRule
     public static DockerComposition composition = DockerComposition.of("atlasdb-timelock-server/timelock-ete/docker-compose.yml")
             .waitingForService("timelock_1", toBePingable())
@@ -41,15 +43,15 @@ public class EteTest {
             .build();
 
     private static HealthCheck toBePingable() {
-        return container -> container.portMappedInternallyTo(3828).isHttpResponding(onPingEndpoint());
+        return container -> container.portMappedInternallyTo(TIMELOCK_SERVER_PORT).isHttpResponding(onPingEndpoint());
     }
 
     private static Function<DockerPort, String> onPingEndpoint() {
         return port -> "http://" + port.getIp() + ":" + port.getExternalPort();
     }
 
-    @Test public void shouldBeAbleToGetTimestampsOffAClusterOfServices() {
-        List<String> endpointUris = ImmutableList.of("");
+    @Test public void shouldBeAbleToGetTimestampsOffAClusterOfServices() throws Exception {
+        List<String> endpointUris = ImmutableList.of(onPingEndpoint().apply(composition.portOnContainerWithInternalMapping("timelock_1", TIMELOCK_SERVER_PORT)));
         TimestampService timestampService = AtlasDbHttpClients.createProxyWithFailover(Optional.absent(), endpointUris, TimestampService.class);
 
         long timestamp1 = timestampService.getFreshTimestamp();
