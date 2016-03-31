@@ -55,10 +55,8 @@ version = "" // This is to generate a good shadowJar jar name
 // Configure the shadow jar task
 shadowJar {
     mergeServiceFiles()
-//    exclude 'META-INF/*.DSA'
-//    exclude 'META-INF/*.RSA'
-}
-jar {
+    exclude 'META-INF/*.DSA'
+    exclude 'META-INF/*.RSA'
     manifest {
         attributes 'Main-Class': 'com.palantir.atlasdb.timelock.server.TimeLockServer'
     }
