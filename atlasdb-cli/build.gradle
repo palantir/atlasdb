@@ -7,10 +7,14 @@ mainClassName = 'com.palantir.atlasdb.cli.AtlasCli'
 applicationName = 'atlas-cli'
 
 dependencies {
-  compile project(':atlasdb-server')
+  compile project(':atlasdb-server-dropwizard')
   compile project(':atlasdb-impl-shared')
   compile 'io.airlift:airline:0.7'
   compile 'com.google.dagger:dagger:2.0.2'
+  compile 'com.fasterxml.jackson.core:jackson-databind:' + libVersions.jackson
+  compile 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:' + libVersions.jackson
+
+  testCompile project(':atlasdb-rocksdb')
 
   processor 'com.google.dagger:dagger-compiler:2.0.2'
   processor 'org.immutables:value:2.0.21'

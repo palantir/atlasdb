@@ -26,11 +26,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.common.base.Strings;
 import com.palantir.atlasdb.config.AtlasDbConfig;
-import com.palantir.atlasdb.server.AtlasDbServerConfiguration;
 
 import dagger.Module;
 import dagger.Provides;
-import io.dropwizard.jackson.Jackson;
 
 @Module
 public class ServicesConfigModule {
@@ -38,10 +36,10 @@ public class ServicesConfigModule {
     private final ServicesConfig config;
 
     public static ServicesConfigModule create(File configFile, String configRoot) throws IOException {
-        ObjectMapper configMapper = Jackson.newObjectMapper(new YAMLFactory());
+        ObjectMapper configMapper = new ObjectMapper(new YAMLFactory());
         JsonNode node = getConfigNode(configMapper, configFile, configRoot);
-        AtlasDbServerConfiguration config = configMapper.treeToValue(node, AtlasDbServerConfiguration.class);
-        return ServicesConfigModule.create(config.getConfig());
+        AtlasDbConfig config = configMapper.treeToValue(node, AtlasDbConfig.class);
+        return ServicesConfigModule.create(config);
     }
 
     private static JsonNode getConfigNode(ObjectMapper configMapper, File configFile, String configRoot) throws IOException {
