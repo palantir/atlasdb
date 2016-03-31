@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.WeakHashMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -470,7 +471,7 @@ public final class PTExecutors {
      * interface, then the returned {@code Runnable} will also implement {@code Future}.
      */
     public static Runnable wrap(final Runnable runnable) {
-        final WeakHashMap<ExecutorInheritableThreadLocal<?>, Object> mapForNewThread =
+        final ConcurrentMap<ExecutorInheritableThreadLocal<?>, Object> mapForNewThread =
                 ExecutorInheritableThreadLocal.getMapForNewThread();
         if (runnable instanceof Future<?>) {
             @SuppressWarnings("unchecked")
@@ -478,7 +479,7 @@ public final class PTExecutors {
             return new ForwardingRunnableFuture<Object>(unsafeFuture) {
                 @Override
                 public void run() {
-                    WeakHashMap<ExecutorInheritableThreadLocal<?>, Object> oldMap =
+                    ConcurrentMap<ExecutorInheritableThreadLocal<?>, Object> oldMap =
                         ExecutorInheritableThreadLocal.installMapOnThread(mapForNewThread);
                     try {
                         super.run();
@@ -491,7 +492,7 @@ public final class PTExecutors {
         return new Runnable() {
             @Override
             public void run() {
-                    WeakHashMap<ExecutorInheritableThreadLocal<?>, Object> oldMap =
+                ConcurrentMap<ExecutorInheritableThreadLocal<?>, Object> oldMap =
                         ExecutorInheritableThreadLocal.installMapOnThread(mapForNewThread);
                 try {
                     runnable.run();
@@ -503,12 +504,12 @@ public final class PTExecutors {
     }
 
     public static <T> RunnableFuture<T> wrap(RunnableFuture<T> rf) {
-        final WeakHashMap<ExecutorInheritableThreadLocal<?>, Object> mapForNewThread =
+        final ConcurrentMap<ExecutorInheritableThreadLocal<?>, Object> mapForNewThread =
                 ExecutorInheritableThreadLocal.getMapForNewThread();
         return new ForwardingRunnableFuture<T>(rf) {
             @Override
             public void run() {
-                WeakHashMap<ExecutorInheritableThreadLocal<?>, Object> oldMap =
+                ConcurrentMap<ExecutorInheritableThreadLocal<?>, Object> oldMap =
                     ExecutorInheritableThreadLocal.installMapOnThread(mapForNewThread);
                 try {
                     super.run();
@@ -524,12 +525,12 @@ public final class PTExecutors {
      * propagated through.
      */
     public static <T> Callable<T> wrap(final Callable<? extends T> callable) {
-        final WeakHashMap<ExecutorInheritableThreadLocal<?>, Object> mapForNewThread =
+        final ConcurrentMap<ExecutorInheritableThreadLocal<?>, Object> mapForNewThread =
                 ExecutorInheritableThreadLocal.getMapForNewThread();
         return new Callable<T>() {
             @Override
             public T call() throws Exception {
-                    WeakHashMap<ExecutorInheritableThreadLocal<?>, Object> oldMap =
+                ConcurrentMap<ExecutorInheritableThreadLocal<?>, Object> oldMap =
                         ExecutorInheritableThreadLocal.installMapOnThread(mapForNewThread);
                 try {
                     return callable.call();
