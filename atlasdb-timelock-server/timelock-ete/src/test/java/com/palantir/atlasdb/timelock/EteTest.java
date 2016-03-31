@@ -38,8 +38,8 @@ public class EteTest {
     @ClassRule
     public static DockerComposition composition = DockerComposition.of("atlasdb-timelock-server/timelock-ete/docker-compose.yml")
             .waitingForService("timelock_1", toBePingable())
-//            .waitingForService("timelock_2", toBePingable())
-//            .waitingForService("timelock_3", toBePingable())
+            .waitingForService("timelock_2", toBePingable())
+            .waitingForService("timelock_3", toBePingable())
             .build();
 
     private static HealthCheck toBePingable() {

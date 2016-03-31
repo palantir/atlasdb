@@ -1,8 +1,23 @@
 version: "2"
 services:
   timelock_1:
+    hostname: "timelock_1"
     build: ..
     volumes:
-     - ./conf:/timelock/var/conf
+     - ./conf:/timelock/var/conf:ro
+    ports:
+     - "3828"
+  timelock_2:
+    hostname: "timelock_2"
+    build: ..
+    volumes:
+     - ./conf:/timelock/var/conf:ro
+    ports:
+     - "3828"
+  timelock_3:
+    hostname: "timelock_3"
+    build: ..
+    volumes:
+     - ./conf:/timelock/var/conf:ro
     ports:
      - "3828"
