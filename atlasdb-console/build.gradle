@@ -9,6 +9,7 @@ dependencies {
     compile('org.codehaus.groovy:groovy-all:' + libVersions.groovy)
     compile 'com.fasterxml.jackson.core:jackson-databind:' + libVersions.jackson
     compile 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:' + libVersions.jackson
+    compile 'io.dropwizard:dropwizard-jackson:' + libVersions.dropwizard
 
     testCompile('org.jmock:jmock-legacy:' + libVersions.jmock) {
       exclude(module: 'jmock')

@@ -29,6 +29,7 @@ import com.palantir.atlasdb.config.AtlasDbConfig;
 
 import dagger.Module;
 import dagger.Provides;
+import io.dropwizard.jackson.DiscoverableSubtypeResolver;
 
 @Module
 public class ServicesConfigModule {
@@ -37,6 +38,7 @@ public class ServicesConfigModule {
 
     public static ServicesConfigModule create(File configFile, String configRoot) throws IOException {
         ObjectMapper configMapper = new ObjectMapper(new YAMLFactory());
+        configMapper.setSubtypeResolver(new DiscoverableSubtypeResolver());
         JsonNode node = getConfigNode(configMapper, configFile, configRoot);
         AtlasDbConfig config = configMapper.treeToValue(node, AtlasDbConfig.class);
         return ServicesConfigModule.create(config);
