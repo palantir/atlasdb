@@ -17,7 +17,6 @@ package com.palantir.common.concurrent;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.WeakHashMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
