@@ -9,13 +9,13 @@ if [ "${1:0:1}" = '-' ]; then
 	set -- cassandra -f "$@"
 fi
 
+PUBLIC="192.168.99.100"
 if [ "$1" = 'cassandra' ]; then
 	# TODO detect if this is a restart if necessary
 	: ${CASSANDRA_LISTEN_ADDRESS='auto'}
 	if [ "$CASSANDRA_LISTEN_ADDRESS" = 'auto' ]; then
 		CASSANDRA_LISTEN_ADDRESS="$(hostname -i)"
 	fi
-
 	: ${CASSANDRA_BROADCAST_ADDRESS="$CASSANDRA_LISTEN_ADDRESS"}
 
 	if [ "$CASSANDRA_BROADCAST_ADDRESS" = 'auto' ]; then
@@ -27,10 +27,11 @@ if [ "$1" = 'cassandra' ]; then
 		: ${CASSANDRA_SEEDS:="cassandra"}
 	fi
 	: ${CASSANDRA_SEEDS:="$CASSANDRA_BROADCAST_ADDRESS"}
+	
+    sed -ri 's/(- seeds:) "127.0.0.1"/\1 "'"$CASSANDRA_SEEDS"'"/' "$CASSANDRA_CONFIG/cassandra.yaml"
+    sed -i "s/# JVM_OPTS=\"\$JVM_OPTS \-Djava.rmi.server.hostname=<public name>\"/JVM_OPTS=\"\$JVM_OPTS -Djava.rmi.server.hostname=$PUBLIC\"/" "$CASSANDRA_CONFIG/cassandra-env.sh"
 
-	sed -ri 's/(- seeds:) "127.0.0.1"/\1 "'"$CASSANDRA_SEEDS"'"/' "$CASSANDRA_CONFIG/cassandra.yaml"
-    sed -i "s/# JVM_OPTS=\"\$JVM_OPTS \-Djava.rmi.server.hostname=<public name>\"/JVM_OPTS=\"\$JVM_OPTS -Djava.rmi.server.hostname=$(hostname -i)\"/" "$CASSANDRA_CONFIG/cassandra-env.sh"
-	for yaml in \
+    for yaml in \
 		broadcast_address \
 		broadcast_rpc_address \
 		cluster_name \
