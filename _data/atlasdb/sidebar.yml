@@ -120,6 +120,28 @@ entries:
       version: all
       output: web
 
+  - title: Cluster Management
+    audience: all
+    platform: all
+    product: all
+    version: all
+    output: web
+    items:
+    - title: CLIs
+      url: /docs/clis.html
+      audience: all
+      platform: all
+      product: all
+      version: all
+      output: web
+    - title: Console
+      url: /docs/console.html
+      audience: all
+      platform: all
+      product: all
+      version: all
+      output: web
+
   - title: Miscellaneous
     audience: all
     platform: all
