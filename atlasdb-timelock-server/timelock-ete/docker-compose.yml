@@ -1,0 +1,8 @@
+version: "2"
+services:
+  timelock_1:
+    build: ..
+    volumes:
+     - ./conf:/timelock/var/conf
+    ports:
+     - "3828"

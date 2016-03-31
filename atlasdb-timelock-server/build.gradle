@@ -1,26 +1,28 @@
-apply plugin: 'org.inferred.processors'
+buildscript {
+    repositories { jcenter() }
+    dependencies {
+        classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.3'
+    }
+}
+
 
 apply from: "../gradle/shared.gradle"
+
+apply plugin: 'com.github.johnrengelman.shadow'
+
+apply plugin: 'org.inferred.processors'
+
 
 dependencies {
     compile project(':lock-impl')
     compile project(':leader-election-impl')
     compile project(':atlasdb-config')
-    runtime project(':atlasdb-rocksdb')
-    runtime(project(':atlasdb-cassandra')) {
-        exclude(module:'log4j-over-slf4j')
-        exclude(module:'jcl-over-slf4j')
-        exclude(module:'json-simple')
-        exclude(module:'metrics-core')
-        exclude(module:'logback-core')
-        exclude(module:'logback-classic')
-        exclude(module:'joda-time')
-        exclude(module:'snakeyaml')
-        exclude(module:'hibernate-validator')
-        exclude(module:'libthrift')
-    }
+    compile project(':atlasdb-rocksdb')
+
     compile "io.dropwizard:dropwizard-core:" + libVersions.dropwizard
     compile 'com.google.dagger:dagger:2.0.2'
+
+    compile "org.rocksdb:rocksdbjni:4.1.0"
 
     processor 'org.immutables:value:2.0.21'
     processor('com.google.dagger:dagger-compiler:2.0.2') {
@@ -42,5 +44,22 @@ configurations.matching({ it.name in ['compile', 'runtime'] }).all {
         force 'com.fasterxml.jackson.core:jackson-databind:' + libVersions.jackson
         force 'com.fasterxml.jackson.core:jackson-core:' + libVersions.jackson
         force 'org.apache.commons:commons-lang3:3.1'
+    }
+}
+
+
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
+version = "" // This is to generate a good shadowJar jar name
+
+// Configure the shadow jar task
+shadowJar {
+    mergeServiceFiles()
+//    exclude 'META-INF/*.DSA'
+//    exclude 'META-INF/*.RSA'
+}
+jar {
+    manifest {
+        attributes 'Main-Class': 'com.palantir.atlasdb.timelock.server.TimeLockServer'
     }
 }

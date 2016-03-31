@@ -27,8 +27,10 @@ repositories {
 dependencies {
     compile project(':lock-api')
     compile project(':timestamp-api')
+    compile project(':atlasdb-config')
 
     testCompile 'com.palantir.docker.compose:docker-compose-rule:0.5.3'
+    testCompile 'ch.qos.logback:logback-classic:1.1.7'
 }
 
 
