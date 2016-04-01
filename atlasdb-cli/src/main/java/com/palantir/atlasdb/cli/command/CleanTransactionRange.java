@@ -44,9 +44,10 @@ public class CleanTransactionRange extends SingleBackendCommand {
             required = true)
     long startTimestampExclusive;
 
-    @Option(name = {"-d", "--delete"},
-            description = "Actually delete the range from the transaction table; as opposed to just marking them as cleaned")
-    boolean delete;
+    //clean has yet to be verified; always delete
+    //@Option(name = {"-d", "--delete"},
+    //        description = "Actually delete the range from the transaction table; as opposed to just marking them as cleaned")
+    boolean delete = true;
 
     final byte[] cleaned = TransactionConstants.getValueForTimestamp(TransactionConstants.CLEANED_COMMIT_TS);
 
@@ -84,31 +85,30 @@ public class CleanTransactionRange extends SingleBackendCommand {
                 value = row.getOnlyColumnValue();
             } catch (IllegalStateException e){
                 //this should never happen
-                System.out.printf("Error: Found a row in the transactions table that didn't have 1 and only 1 column value: start=%d", startResult);
+                System.out.printf("Error: Found a row in the transactions table that didn't have 1 and only 1 column value: start=%d\n", startResult);
                 continue;
             }
 
             long endResult = TransactionConstants.getTimestampForValue(value.getContents());
             maxTimestamp = Math.max(maxTimestamp, endResult);
-            System.out.printf("Found and cleaning possibly inconsistent transaction: [start=%d, commit=%d]", startResult, endResult);
+            System.out.printf("Found and cleaning possibly inconsistent transaction: [start=%d, commit=%d]\n", startResult, endResult);
 
             Cell key = Cell.create(rowName, TransactionConstants.COMMIT_TS_COLUMN);
             toClean.put(key, cleaned);
-            toDelete.put(key, value.getTimestamp());  //why was CLock putting 0L in his version?
-            System.out.printf("To debug, the above transaction's value's timestamp is %d", value.getTimestamp());
+            toDelete.put(key, value.getTimestamp());  //value.getTimestamp() should always be 0L but this is safer
         }
 
         if (!toClean.isEmpty()) {
             if (delete) {
                 kvs.delete(TransactionConstants.TRANSACTION_TABLE, toDelete);
-                System.out.println("\nDelete completed.");
+                System.out.println("Delete completed.");
             } else {
                 kvs.putUnlessExists(TransactionConstants.TRANSACTION_TABLE, toClean);
-                System.out.println("\nClean completed.");
+                System.out.println("Clean completed.");
             }
             
             pts.fastForwardTimestamp(maxTimestamp);
-            System.out.printf("Timestamp succesfully forwarded past all cleaned/deleted transactions to %d", maxTimestamp);
+            System.out.printf("Timestamp succesfully forwarded past all cleaned/deleted transactions to %d\n", maxTimestamp);
         } else {
             System.out.println("Found no transactions inside the given range to clean up or delete.");
         }
