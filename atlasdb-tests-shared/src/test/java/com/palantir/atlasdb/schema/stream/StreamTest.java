@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.NoSuchElementException;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.IOUtils;
 import org.junit.Assert;
@@ -33,6 +34,7 @@ import com.palantir.atlasdb.schema.stream.generated.StreamTestStreamStore;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestTableFactory;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxRow;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow;
+import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamStore;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueRow;
 import com.palantir.atlasdb.stream.PersistentStreamStore;
 import com.palantir.atlasdb.table.description.Schemas;
@@ -126,6 +128,35 @@ public class StreamTest extends AtlasDbTestCase {
                     store.markStreamAsUsed(t, id, reference);
                     return null;
                 });
+        InputStream stream = txManager.runTaskThrowOnConflict(t -> store.loadStream(t, id));
+
+        Sha256Hash hash1 = Sha256Hash.computeHash(bytesToStore);
+        Sha256Hash hash2 = Sha256Hash.computeHash(IOUtils.toByteArray(stream));
+        Assert.assertEquals(hash1, hash2);
+        return id;
+    }
+
+    @Test
+    public void testExpiringStoreByteStream() throws IOException {
+        storeAndCheckByteStreamExpiring(0);
+        storeAndCheckByteStreamExpiring(100);
+        storeAndCheckByteStreamExpiring(StreamTestStreamStore.BLOCK_SIZE_IN_BYTES + 500);
+        storeAndCheckByteStreamExpiring(StreamTestStreamStore.BLOCK_SIZE_IN_BYTES * 3);
+        storeAndCheckByteStreamExpiring(5000000);
+    }
+
+    private long storeAndCheckByteStreamExpiring(int size) throws IOException {
+        final byte[] bytesToStore = new byte[size];
+        Random rand = new Random();
+        rand.nextBytes(bytesToStore);
+
+        final long id = timestampService.getFreshTimestamp();
+        StreamTestWithHashStreamStore store = StreamTestWithHashStreamStore.of(txManager, StreamTestTableFactory.of());
+
+        txManager.runTaskWithRetry(t -> {
+            store.storeStream(id, new ByteArrayInputStream(bytesToStore), 5, TimeUnit.SECONDS);
+            return null;
+        });
         InputStream stream = txManager.runTaskThrowOnConflict(t -> store.loadStream(t, id));
 
         Sha256Hash hash1 = Sha256Hash.computeHash(bytesToStore);
