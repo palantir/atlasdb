@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.stream;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.DigestInputStream;
@@ -181,8 +180,6 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
 
 
     private void storeBlocksFromStream(@Nullable Transaction t, long id, InputStream stream) throws IOException {
-        // We need to use a buffered stream here because we assume each read will fill the whole buffer.
-        stream = new BufferedInputStream(stream);
         long blockNumber = 0;
 
         while (true) {
