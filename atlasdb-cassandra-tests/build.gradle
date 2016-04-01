@@ -10,6 +10,7 @@ dependencies {
   testCompile 'com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core
 
   testCompile 'org.mockito:mockito-core:1.9.5' 
+  testCompile 'com.palantir.docker.compose:docker-compose-rule:0.5.3'
 }
 
 jacoco {

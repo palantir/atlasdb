@@ -28,7 +28,7 @@ public class CQLKeyValueServiceSweeperTest extends AbstractSweeperTest {
         return CQLKeyValueService.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(
                         ImmutableCassandraKeyValueServiceConfig.builder()
-                                .addServers(new InetSocketAddress("localhost", 9042))
+                                .addServers(new InetSocketAddress(CassandraTestSuite.CASSANDRA_HOST, 9042))
                                 .poolSize(20)
                                 .keyspace("atlasdb")
                                 .ssl(false)

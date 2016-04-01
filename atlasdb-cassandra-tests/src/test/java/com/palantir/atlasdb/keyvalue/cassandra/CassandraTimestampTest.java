@@ -38,7 +38,7 @@ public class CassandraTimestampTest {
         kv = CassandraKeyValueService.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(
                         ImmutableCassandraKeyValueServiceConfig.builder()
-                                .addServers(new InetSocketAddress("localhost", 9160))
+                                .addServers(new InetSocketAddress(CassandraTestSuite.CASSANDRA_HOST, 9160))
                                 .poolSize(20)
                                 .keyspace("atlasdb")
                                 .ssl(false)
