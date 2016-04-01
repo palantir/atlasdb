@@ -15,9 +15,14 @@
  */
 package com.palantir.atlasdb.timelock;
 
+import static java.util.stream.Collectors.toList;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.lessThan;
 
+import static com.google.common.base.Throwables.propagate;
+
+import java.io.IOException;
 import java.util.List;
 import java.util.function.Function;
 
@@ -37,9 +42,10 @@ public class EteTest {
 
     @ClassRule
     public static DockerComposition composition = DockerComposition.of("atlasdb-timelock-server/timelock-ete/docker-compose.yml")
-            .waitingForService("timelock_1", toBePingable())
-            .waitingForService("timelock_2", toBePingable())
-            .waitingForService("timelock_3", toBePingable())
+            .waitingForService("timelock1", toBePingable())
+            .waitingForService("timelock2", toBePingable())
+            .waitingForService("timelock3", toBePingable())
+            .saveLogsTo("atlasdb-timelock-server/timelock-ete/container-logs")
             .build();
 
     private static HealthCheck toBePingable() {
@@ -47,16 +53,28 @@ public class EteTest {
     }
 
     private static Function<DockerPort, String> onPingEndpoint() {
-        return port -> "http://" + port.getIp() + ":" + port.getExternalPort();
+        return port -> "http://" + port.getIp() + ":" + port.getExternalPort() + "/leader/ping";
     }
 
     @Test public void shouldBeAbleToGetTimestampsOffAClusterOfServices() throws Exception {
-        List<String> endpointUris = ImmutableList.of(onPingEndpoint().apply(composition.portOnContainerWithInternalMapping("timelock_1", TIMELOCK_SERVER_PORT)));
-        TimestampService timestampService = AtlasDbHttpClients.createProxyWithFailover(Optional.absent(), endpointUris, TimestampService.class);
+        List<String> endpoints = ImmutableList.of("timelock1", "timelock2", "timelock3").stream()
+                .map(container -> timelockPort(container))
+                .map(port -> "http://" + port.getIp() + ":" + port.getExternalPort())
+                .collect(toList());
+
+        TimestampService timestampService = AtlasDbHttpClients.createProxyWithFailover(Optional.absent(), endpoints, TimestampService.class);
 
         long timestamp1 = timestampService.getFreshTimestamp();
         long timestamp2 = timestampService.getFreshTimestamp();
 
         assertThat(timestamp1, lessThan(timestamp2));
+    }
+
+    private DockerPort timelockPort(String container) {
+        try {
+            return composition.portOnContainerWithInternalMapping(container, 3828);
+        } catch (IOException | InterruptedException e) {
+            throw propagate(e);
+        }
     }
 }

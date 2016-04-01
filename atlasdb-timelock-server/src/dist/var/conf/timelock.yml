@@ -17,6 +17,6 @@ atlasdb:
     quorumSize: 1
     learnerLogDir: var/data/paxosLog/learner1
     acceptorLogDir: var/data/paxosLog/acceptor1
-    localServer: http://localhost:3828
+    localServer: http://${HOSTNAME}:3828
     leaders:
       - http://localhost:3828

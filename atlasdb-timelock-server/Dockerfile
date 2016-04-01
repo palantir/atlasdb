@@ -1,9 +1,11 @@
 FROM frolvlad/alpine-oraclejdk8:slim
 
-ADD build/artifacts/atlasdb-timelock-server-all.jar /atlasdb/atlasdb-timelock-server-all.jar
+RUN apk update && apk add libstdc++
 
 EXPOSE 3828
 
-RUN apk update && apk add libstdc++
+ADD build/artifacts/atlasdb-timelock-server-all.jar /atlasdb/atlasdb-timelock-server-all.jar
 
-CMD sed "s/HOSTNAME/$(hostname)/g" </timelock/var/conf/timelock.yml >/tmp/timelock.conf && java -jar /atlasdb/atlasdb-timelock-server-all.jar server /tmp/timelock.conf
+ADD docker/conf/ /timelock/var/conf
+
+CMD java -jar /atlasdb/atlasdb-timelock-server-all.jar server /timelock/var/conf/timelock.yml
