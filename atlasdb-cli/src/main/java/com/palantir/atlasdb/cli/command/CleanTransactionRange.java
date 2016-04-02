@@ -15,10 +15,7 @@
  */
 package com.palantir.atlasdb.cli.command;
 
-import java.util.Map;
-
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.cli.services.AtlasDbServices;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -44,13 +41,6 @@ public class CleanTransactionRange extends SingleBackendCommand {
             required = true)
     long startTimestampExclusive;
 
-    //clean has yet to be verified; always delete
-    //@Option(name = {"-d", "--delete"},
-    //        description = "Actually delete the range from the transaction table; as opposed to just marking them as cleaned")
-    boolean delete = true;
-
-    final byte[] cleaned = TransactionConstants.getValueForTimestamp(TransactionConstants.CLEANED_COMMIT_TS);
-
     @Override
     public int execute(AtlasDbServices services) {
         long immutable = services.getTransactionManager().getImmutableTimestamp();
@@ -70,9 +60,7 @@ public class CleanTransactionRange extends SingleBackendCommand {
                 .build(),
                 Long.MAX_VALUE);
 
-        Map<Cell, byte[]> toClean = Maps.newHashMap();
         Multimap<Cell, Long> toDelete = HashMultimap.create();
-
         long maxTimestamp = startTimestampExclusive;
         while (range.hasNext()) {
             RowResult<Value> row = range.next();
@@ -94,20 +82,14 @@ public class CleanTransactionRange extends SingleBackendCommand {
             System.out.printf("Found and cleaning possibly inconsistent transaction: [start=%d, commit=%d]\n", startResult, endResult);
 
             Cell key = Cell.create(rowName, TransactionConstants.COMMIT_TS_COLUMN);
-            toClean.put(key, cleaned);
             toDelete.put(key, value.getTimestamp());  //value.getTimestamp() should always be 0L but this is safer
         }
 
-        if (!toClean.isEmpty()) {
-            if (delete) {
-                kvs.delete(TransactionConstants.TRANSACTION_TABLE, toDelete);
-                System.out.println("Delete completed.");
-            } else {
-                kvs.putUnlessExists(TransactionConstants.TRANSACTION_TABLE, toClean);
-                System.out.println("Clean completed.");
-            }
+        if (!toDelete.isEmpty()) {
+            kvs.delete(TransactionConstants.TRANSACTION_TABLE, toDelete);
+            System.out.println("Delete completed.");
             
-            pts.fastForwardTimestamp(maxTimestamp);
+            pts.fastForwardTimestamp(maxTimestamp+1);
             System.out.printf("Timestamp succesfully forwarded past all cleaned/deleted transactions to %d\n", maxTimestamp);
         } else {
             System.out.println("Found no transactions inside the given range to clean up or delete.");
