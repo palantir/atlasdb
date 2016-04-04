@@ -26,6 +26,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Callables;
@@ -64,6 +65,30 @@ public class ExecutorInheritableThreadLocalTest extends Assert {
             @Override
             protected void uninstallOnChildThread() {
                 outputList.add(get() + 1);
+            }
+        };
+
+    private static final ExecutorInheritableThreadLocal<Integer> nullInts = new ExecutorInheritableThreadLocal<Integer>() {
+            @Override
+            protected Integer initialValue() {
+                return null;
+            }
+
+            @Override
+            protected Integer childValue(Integer parentValue) {
+                Preconditions.checkArgument(parentValue == null);
+                return null;
+            }
+
+            @Override
+            protected Integer installOnChildThread(Integer childValue) {
+                Preconditions.checkArgument(childValue == null);
+                return null;
+            }
+
+            @Override
+            protected void uninstallOnChildThread() {
+                Preconditions.checkArgument(get() == null);
             }
         };
 
@@ -126,5 +151,20 @@ public class ExecutorInheritableThreadLocalTest extends Assert {
         future.get();
         Thread.sleep(10);
         assertEquals(ImmutableList.of(11, 12, 13), outputList);
+    }
+
+    @Test
+    public void testAllNulls() throws InterruptedException, ExecutionException {
+        Preconditions.checkArgument(nullInts.get() == null);
+        Future<?> future = exec.submit(new Callable<Void>() {
+            @Override
+            public Void call() throws Exception {
+                Preconditions.checkArgument(nullInts.get() == null);
+                return null;
+            }
+        });
+        future.get();
+        Thread.sleep(10);
+        Preconditions.checkArgument(nullInts.get() == null);
     }
 }
