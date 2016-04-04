@@ -20,10 +20,13 @@ import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
 import com.palantir.common.base.ThrowablesTest;
+import com.palantir.util.crypto.MessageDigestPrototypeTest;
 
 @RunWith(Suite.class)
 @SuiteClasses({
-    ThrowablesTest.class})
+    ThrowablesTest.class,
+    MessageDigestPrototypeTest.class,
+})
 public class AllAtlasCommonsTests {
     // blank
 }
