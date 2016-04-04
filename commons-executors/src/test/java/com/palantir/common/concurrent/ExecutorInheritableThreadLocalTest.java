@@ -21,6 +21,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -68,27 +69,32 @@ public class ExecutorInheritableThreadLocalTest extends Assert {
             }
         };
 
+    private static final AtomicInteger nullCallCount = new AtomicInteger(0);
     private static final ExecutorInheritableThreadLocal<Integer> nullInts = new ExecutorInheritableThreadLocal<Integer>() {
             @Override
             protected Integer initialValue() {
+                nullCallCount.incrementAndGet();
                 return null;
             }
 
             @Override
             protected Integer childValue(Integer parentValue) {
                 Preconditions.checkArgument(parentValue == null);
+                nullCallCount.incrementAndGet();
                 return null;
             }
 
             @Override
             protected Integer installOnChildThread(Integer childValue) {
                 Preconditions.checkArgument(childValue == null);
+                nullCallCount.incrementAndGet();
                 return null;
             }
 
             @Override
             protected void uninstallOnChildThread() {
                 Preconditions.checkArgument(get() == null);
+                nullCallCount.incrementAndGet();
             }
         };
 
@@ -149,22 +155,26 @@ public class ExecutorInheritableThreadLocalTest extends Assert {
             }
         });
         future.get();
-        Thread.sleep(10);
         assertEquals(ImmutableList.of(11, 12, 13), outputList);
     }
 
     @Test
     public void testAllNulls() throws InterruptedException, ExecutionException {
+        nullCallCount.set(0);
         Preconditions.checkArgument(nullInts.get() == null);
+        assertEquals(1, nullCallCount.get());
         Future<?> future = exec.submit(new Callable<Void>() {
             @Override
             public Void call() throws Exception {
+                assertEquals(3, nullCallCount.get());
                 Preconditions.checkArgument(nullInts.get() == null);
+                assertEquals(3, nullCallCount.get());
                 return null;
             }
         });
         future.get();
-        Thread.sleep(10);
+        assertEquals(4, nullCallCount.get());
         Preconditions.checkArgument(nullInts.get() == null);
+        assertEquals(4, nullCallCount.get());
     }
 }
