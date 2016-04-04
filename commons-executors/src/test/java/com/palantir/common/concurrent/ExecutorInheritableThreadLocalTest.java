@@ -65,36 +65,43 @@ public class ExecutorInheritableThreadLocalTest extends Assert {
 
             @Override
             protected void uninstallOnChildThread() {
-                outputList.add(get() + 1);
+                // We don't add to count here because the future will return before it is complete.
+                // outputList.add(get() + 1);
             }
         };
 
-    private static final AtomicInteger nullCallCount = new AtomicInteger(0);
+    private static final ExecutorInheritableThreadLocal<AtomicInteger> nullCallCount = new ExecutorInheritableThreadLocal<AtomicInteger>() {
+        protected AtomicInteger initialValue() {
+            return new AtomicInteger(0);
+        }
+    };
     private static final ExecutorInheritableThreadLocal<Integer> nullInts = new ExecutorInheritableThreadLocal<Integer>() {
             @Override
             protected Integer initialValue() {
-                nullCallCount.incrementAndGet();
+                nullCallCount.get().incrementAndGet();
                 return null;
             }
 
             @Override
             protected Integer childValue(Integer parentValue) {
                 Preconditions.checkArgument(parentValue == null);
-                nullCallCount.incrementAndGet();
+                nullCallCount.get().incrementAndGet();
                 return null;
             }
 
             @Override
             protected Integer installOnChildThread(Integer childValue) {
                 Preconditions.checkArgument(childValue == null);
-                nullCallCount.incrementAndGet();
+                nullCallCount.get().incrementAndGet();
                 return null;
             }
 
             @Override
             protected void uninstallOnChildThread() {
                 Preconditions.checkArgument(get() == null);
-                nullCallCount.incrementAndGet();
+
+                // We don't add to count here because the future will return before it is complete.
+                // nullCallCount.get().incrementAndGet();
             }
         };
 
@@ -155,26 +162,26 @@ public class ExecutorInheritableThreadLocalTest extends Assert {
             }
         });
         future.get();
-        assertEquals(ImmutableList.of(11, 12, 13), outputList);
+        assertEquals(ImmutableList.of(11, 12), outputList);
     }
 
     @Test
     public void testAllNulls() throws InterruptedException, ExecutionException {
-        nullCallCount.set(0);
+        nullCallCount.set(new AtomicInteger(0));
         Preconditions.checkArgument(nullInts.get() == null);
-        assertEquals(1, nullCallCount.get());
+        assertEquals(1, nullCallCount.get().get());
         Future<?> future = exec.submit(new Callable<Void>() {
             @Override
             public Void call() throws Exception {
-                assertEquals(3, nullCallCount.get());
+                assertEquals(3, nullCallCount.get().get());
                 Preconditions.checkArgument(nullInts.get() == null);
-                assertEquals(3, nullCallCount.get());
+                assertEquals(3, nullCallCount.get().get());
                 return null;
             }
         });
         future.get();
-        assertEquals(4, nullCallCount.get());
+        assertEquals(3, nullCallCount.get().get());
         Preconditions.checkArgument(nullInts.get() == null);
-        assertEquals(4, nullCallCount.get());
+        assertEquals(3, nullCallCount.get().get());
     }
 }
