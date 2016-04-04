@@ -35,7 +35,9 @@ public class ExecutorInheritableThreadLocal<T> {
         }
     };
 
-    private static class NullWrapper {}
+    private enum NullWrapper {
+        INSTANCE
+    }
 
     public void set(T value) {
         mapForThisThread.get().put(this, wrapNull(value));
@@ -163,12 +165,12 @@ public class ExecutorInheritableThreadLocal<T> {
     }
 
     private static Object wrapNull(Object value) {
-        return value == null ? new NullWrapper() : value;
+        return value == null ? NullWrapper.INSTANCE : value;
     }
 
     @SuppressWarnings("unchecked")
     private T unwrapNull(Object ret) {
-        if (ret instanceof NullWrapper) {
+        if (ret == NullWrapper.INSTANCE) {
             return null;
         } else {
             return (T) ret;
