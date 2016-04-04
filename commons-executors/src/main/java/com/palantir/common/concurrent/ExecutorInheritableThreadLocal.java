@@ -18,6 +18,7 @@ package com.palantir.common.concurrent;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.MapMaker;
 
 /**
@@ -53,7 +54,6 @@ public class ExecutorInheritableThreadLocal<T> {
 
     public T get() {
         if (mapForThisThread.get().containsKey(this)) {
-            @SuppressWarnings("unchecked")
             Object ret = mapForThisThread.get().get(this);
             return unwrapNull(ret);
         } else {
@@ -122,40 +122,42 @@ public class ExecutorInheritableThreadLocal<T> {
         return null;
     }
 
-    static ConcurrentMap<ExecutorInheritableThreadLocal<?>, Object> getMapForNewThread() {
+    static ImmutableMap<ExecutorInheritableThreadLocal<?>, Object> getMapForNewThread() {
         ConcurrentMap<ExecutorInheritableThreadLocal<?>, Object> currentMap = mapForThisThread.get();
         if (currentMap.isEmpty()) {
             mapForThisThread.remove();
-            return currentMap;
+            return ImmutableMap.of();
         }
-        ConcurrentMap<ExecutorInheritableThreadLocal<?>, Object> ret = makeNewMap();
-        for (Map.Entry<ExecutorInheritableThreadLocal<?>, Object> e : currentMap.entrySet()) {
-            ret.put(e.getKey(), e.getKey().callChildValue(e.getValue()));
+        ImmutableMap.Builder<ExecutorInheritableThreadLocal<?>, Object> ret = ImmutableMap.builder();
+        for (ExecutorInheritableThreadLocal<?> e : currentMap.keySet()) {
+            @SuppressWarnings("unchecked")
+            ExecutorInheritableThreadLocal<Object> eitl = (ExecutorInheritableThreadLocal<Object>) e;
+            ret.put(eitl, wrapNull(eitl.callChildValue(eitl.get())));
         }
 
-        return ret;
+        return ret.build();
     }
 
     /**
      * @return the old map installed on that thread
      */
-    static ConcurrentMap<ExecutorInheritableThreadLocal<?>, Object> installMapOnThread(ConcurrentMap<ExecutorInheritableThreadLocal<?>, Object> map) {
+    static ConcurrentMap<ExecutorInheritableThreadLocal<?>, Object> installMapOnThread(ImmutableMap<ExecutorInheritableThreadLocal<?>, Object> map) {
         ConcurrentMap<ExecutorInheritableThreadLocal<?>, Object> oldMap = mapForThisThread.get();
         if (map.isEmpty()) {
             mapForThisThread.remove();
         } else {
-            // Temporarily install the untransformed map in case callInstallOnChildThread makes use
-            // of existing thread locals (UserSessionClientInfo does this).
-            mapForThisThread.set(map);
             ConcurrentMap<ExecutorInheritableThreadLocal<?>, Object> newMap = makeNewMap();
             newMap.putAll(map);
-            // Iterate over the new map so that 1) We modify entries in the new
-            // map, not the old, and 2) so we don't get CMEs if
-            // callInstallOnChildThread adds or removes any thread locals.
-            for (Map.Entry<ExecutorInheritableThreadLocal<?>, Object> e : newMap.entrySet()) {
-                e.setValue(wrapNull(e.getKey().callInstallOnChildThread(e.getValue())));
-            }
+
+            // Install the map in case callInstallOnChildThread makes use
+            // of existing thread locals (UserSessionClientInfo does this).
             mapForThisThread.set(newMap);
+
+            for (ExecutorInheritableThreadLocal<?> e : newMap.keySet()) {
+                @SuppressWarnings("unchecked")
+                ExecutorInheritableThreadLocal<Object> eitl = (ExecutorInheritableThreadLocal<Object>) e;
+                eitl.set(eitl.callInstallOnChildThread(eitl.get()));
+            }
         }
         return oldMap;
     }
@@ -206,7 +208,8 @@ public class ExecutorInheritableThreadLocal<T> {
         return childValue((T) o);
     }
 
+    @SuppressWarnings("unchecked")
     private T callInstallOnChildThread(Object o) {
-        return installOnChildThread(unwrapNull(o));
+        return installOnChildThread((T) o);
     }
 }

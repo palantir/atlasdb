@@ -37,6 +37,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.google.common.collect.ImmutableMap;
+
 /**
  * Please always use the static methods in this class instead of the ones in {@link
  * java.util.concurrent.Executors}, because the executors returned by these methods will propagate
@@ -470,7 +472,7 @@ public final class PTExecutors {
      * interface, then the returned {@code Runnable} will also implement {@code Future}.
      */
     public static Runnable wrap(final Runnable runnable) {
-        final ConcurrentMap<ExecutorInheritableThreadLocal<?>, Object> mapForNewThread =
+        final ImmutableMap<ExecutorInheritableThreadLocal<?>, Object> mapForNewThread =
                 ExecutorInheritableThreadLocal.getMapForNewThread();
         if (runnable instanceof Future<?>) {
             @SuppressWarnings("unchecked")
@@ -503,7 +505,7 @@ public final class PTExecutors {
     }
 
     public static <T> RunnableFuture<T> wrap(RunnableFuture<T> rf) {
-        final ConcurrentMap<ExecutorInheritableThreadLocal<?>, Object> mapForNewThread =
+        final ImmutableMap<ExecutorInheritableThreadLocal<?>, Object> mapForNewThread =
                 ExecutorInheritableThreadLocal.getMapForNewThread();
         return new ForwardingRunnableFuture<T>(rf) {
             @Override
@@ -524,7 +526,7 @@ public final class PTExecutors {
      * propagated through.
      */
     public static <T> Callable<T> wrap(final Callable<? extends T> callable) {
-        final ConcurrentMap<ExecutorInheritableThreadLocal<?>, Object> mapForNewThread =
+        final ImmutableMap<ExecutorInheritableThreadLocal<?>, Object> mapForNewThread =
                 ExecutorInheritableThreadLocal.getMapForNewThread();
         return new Callable<T>() {
             @Override
