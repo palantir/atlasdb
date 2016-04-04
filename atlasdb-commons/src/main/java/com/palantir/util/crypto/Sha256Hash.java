@@ -20,7 +20,6 @@ import java.io.InputStream;
 import java.io.Serializable;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 
 import com.google.common.hash.HashCode;
@@ -133,12 +132,7 @@ public class Sha256Hash implements Serializable, Comparable<Sha256Hash> {
 
     /** Returns a {@link MessageDigest} for computing SHA-256 hashes. */
     public static MessageDigest getMessageDigest() {
-        try {
-            return MessageDigest.getInstance("SHA-256"); //$NON-NLS-1$
-        } catch (NoSuchAlgorithmException e) {
-            // This should never happen.
-            throw new IllegalStateException(e.getMessage());
-        }
+        return MessageDigestPrototype.SHA_256.newDigest();
     }
 
     /** Computes the SHA-256 hash for the given array of bytes. */

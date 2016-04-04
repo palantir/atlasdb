@@ -19,8 +19,8 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 
 import javax.annotation.concurrent.GuardedBy;
 
@@ -40,14 +40,18 @@ import com.palantir.common.pooling.PoolingContainer;
 
 public class ManyClientPoolingContainer extends ForwardingPoolingContainer<Client>
         implements ManyHostPoolingContainer<Client> {
+
     private static final Logger log = LoggerFactory.getLogger(ManyClientPoolingContainer.class);
-    volatile ImmutableList<PoolingContainer<Client>> containers = ImmutableList.of();
+
+    private volatile ImmutableList<PoolingContainer<Client>> containers = ImmutableList.of();
+
     @GuardedBy("this")
-    final Map<InetSocketAddress, PoolingContainer<Client>> containerMap = Maps.newHashMap();
+    private final Map<InetSocketAddress, PoolingContainer<Client>> containerMap = Maps.newHashMap();
+
     @GuardedBy("this")
-    boolean isShutdown = false;
+    private boolean isShutdown = false;
+
     boolean safetyDisabled = false;
-    private final Random random = new Random();
 
     public static ManyClientPoolingContainer create(CassandraKeyValueServiceConfig config) {
         ManyClientPoolingContainer ret = new ManyClientPoolingContainer();
@@ -117,8 +121,8 @@ public class ManyClientPoolingContainer extends ForwardingPoolingContainer<Clien
 
     @Override
     protected PoolingContainer<Client> delegate() {
-        List<PoolingContainer<Client>> list = containers;
-        return list.get(random.nextInt(list.size()));
+        ImmutableList<PoolingContainer<Client>> list = containers; // volatile read
+        return list.get(ThreadLocalRandom.current().nextInt(list.size()));
     }
 
     @Override
