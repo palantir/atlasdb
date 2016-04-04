@@ -98,6 +98,11 @@ public class ExecutorInheritableThreadLocal<T> {
      * to perform cleanup activities on the child thread.
      * <p>
      * By default this method is a no-op, and should be overridden if different behavior is desired.
+     * <p>
+     * This will be run from a finally block, so it should not throw.
+     * <p>
+     * NOTE: This code isn't guaranteed to finish by the time future.get() returns in the calling thread.
+     * The completed Future is marked <code>isDone</code> and then this is run in a finally block.
      */
     protected void uninstallOnChildThread() {
         /* Do nothing. */
