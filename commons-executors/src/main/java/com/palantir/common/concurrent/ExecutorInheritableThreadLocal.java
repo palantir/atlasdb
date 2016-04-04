@@ -38,7 +38,7 @@ public class ExecutorInheritableThreadLocal<T> {
     private static class NullWrapper {}
 
     public void set(T value) {
-        mapForThisThread.get().put(this, value == null ? new NullWrapper() : value);
+        mapForThisThread.get().put(this, wrapNull(value));
     }
 
     public void remove() {
@@ -52,12 +52,8 @@ public class ExecutorInheritableThreadLocal<T> {
     public T get() {
         if (mapForThisThread.get().containsKey(this)) {
             @SuppressWarnings("unchecked")
-            T ret = (T) mapForThisThread.get().get(this);
-            if (ret instanceof NullWrapper) {
-                return null;
-            } else {
-                return ret;
-            }
+            Object ret = mapForThisThread.get().get(this);
+            return unwrapNull(ret);
         } else {
             T ret = initialValue();
             set(ret);
@@ -155,7 +151,7 @@ public class ExecutorInheritableThreadLocal<T> {
             // map, not the old, and 2) so we don't get CMEs if
             // callInstallOnChildThread adds or removes any thread locals.
             for (Map.Entry<ExecutorInheritableThreadLocal<?>, Object> e : newMap.entrySet()) {
-                e.setValue(e.getKey().callInstallOnChildThread(e.getValue()));
+                e.setValue(wrapNull(e.getKey().callInstallOnChildThread(e.getValue())));
             }
             mapForThisThread.set(newMap);
         }
@@ -164,6 +160,19 @@ public class ExecutorInheritableThreadLocal<T> {
 
     private static ConcurrentMap<ExecutorInheritableThreadLocal<?>, Object> makeNewMap() {
         return new MapMaker().weakKeys().concurrencyLevel(1).makeMap();
+    }
+
+    private static Object wrapNull(Object value) {
+        return value == null ? new NullWrapper() : value;
+    }
+
+    @SuppressWarnings("unchecked")
+    private T unwrapNull(Object ret) {
+        if (ret instanceof NullWrapper) {
+            return null;
+        } else {
+            return (T) ret;
+        }
     }
 
     static void uninstallMapOnThread(ConcurrentMap<ExecutorInheritableThreadLocal<?>, Object> oldMap) {
@@ -195,8 +204,7 @@ public class ExecutorInheritableThreadLocal<T> {
         return childValue((T) o);
     }
 
-    @SuppressWarnings("unchecked")
     private T callInstallOnChildThread(Object o) {
-        return installOnChildThread((T) o);
+        return installOnChildThread(unwrapNull(o));
     }
 }
