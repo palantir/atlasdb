@@ -18,7 +18,8 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
-import java.util.Random;
+import java.util.NoSuchElementException;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.apache.cassandra.thrift.Cassandra.Client;
 import org.apache.cassandra.thrift.TimedOutException;
@@ -35,6 +36,7 @@ import com.palantir.common.pooling.ForwardingPoolingContainer;
 
 public class RetriableManyHostPoolingContainer extends ForwardingPoolingContainer<Client>
         implements ManyHostPoolingContainer<Client> {
+
     private static final Logger log = LoggerFactory.getLogger(RetriableManyHostPoolingContainer.class);
 
     private final int maxTries;
@@ -87,7 +89,9 @@ public class RetriableManyHostPoolingContainer extends ForwardingPoolingContaine
         int numTries = 0;
         while (true) {
             try {
-                return numTries >= triesBeforeRandomHost ? delegate.runWithPooledResource(f) : delegate.runWithPooledResourceOnHost(host, f);
+                return numTries >= triesBeforeRandomHost
+                        ? delegate.runWithPooledResource(f)
+                        : delegate.runWithPooledResourceOnHost(host, f);
             } catch (Exception e) {
                 numTries++;
                 this.<K>handleException(numTries, e);
@@ -103,39 +107,49 @@ public class RetriableManyHostPoolingContainer extends ForwardingPoolingContaine
 
     @SuppressWarnings("unchecked")
     private <K extends Exception> void handleException(int numTries, Exception e) throws K {
-        if (e instanceof ClientCreationFailedException
-                || e instanceof TTransportException
-                || e instanceof TimedOutException
-                || e instanceof SocketTimeoutException
-                || e instanceof UnavailableException
-                || e instanceof InsufficientConsistencyException) {
+        if (isRetriableException(e)) {
             if (numTries >= maxTries) {
                 if (e instanceof TTransportException
                         && e.getCause() != null
                         && (e.getCause().getClass() == SocketException.class)) {
-                    String msg = "Error writing to Cassandra socket. Likely cause: Exceeded maximum thrift frame size; unlikely cause: network issues.";
-                    log.error("Tried to connect to cassandra " + numTries + " times. " + msg, e);
+                    String msg = "Error writing to Cassandra socket. Likely cause: " +
+                            "Exceeded maximum thrift frame size; unlikely cause: network issues.";
+                    log.error("Tried to connect to Cassandra {} times. {}", numTries, msg, e);
                     e = new TTransportException(((TTransportException) e).getType(), msg, e);
                 } else {
-                    log.error("Tried to connect to cassandra " + numTries + " times.", e);
+                    log.error("Tried to connect to Cassandra {} times.", numTries, e);
                 }
                 throw (K) e;
             } else {
-                log.warn("Error occurred talking to cassandra. Attempt {} of {}.", numTries, maxTries, e);
-                if (e instanceof SocketTimeoutException
-                        || e instanceof UnavailableException) {
+                log.warn("Error occurred talking to Cassandra. Attempt {} of {}.", numTries, maxTries, e);
+                if (isConnectionException(e)) {
                     // Connection is no good? This may be due to a long GC, we should back off sending them requests.
                     // Binary exponential backoff; should in total take ~10s on average w/maxTries=10
                     try {
-                        Thread.sleep(new Random().nextInt((1 << numTries)-1)*20);
-                    } catch (InterruptedException e1) {
+                        Thread.sleep(ThreadLocalRandom.current().nextInt((1 << numTries) - 1) * 20);
+                    } catch (InterruptedException ignored) {
                         Thread.currentThread().interrupt();
                     }
                 }
             }
         } else {
+            log.error("Unable to connect to Cassandra: " + e);
             throw (K) e;
         }
+    }
+
+    private static boolean isConnectionException(Exception e) {
+        return e instanceof SocketTimeoutException
+                || e instanceof UnavailableException
+                || e instanceof NoSuchElementException;
+    }
+
+    private static boolean isRetriableException(Exception e) {
+        return isConnectionException(e)
+                || e instanceof ClientCreationFailedException
+                || e instanceof TTransportException
+                || e instanceof TimedOutException
+                || e instanceof InsufficientConsistencyException;
     }
 
 }
