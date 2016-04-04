@@ -153,7 +153,7 @@ public class ExecutorInheritableThreadLocal<T> {
             // of existing thread locals (UserSessionClientInfo does this).
             mapForThisThread.set(newMap);
 
-            for (ExecutorInheritableThreadLocal<?> e : newMap.keySet()) {
+            for (ExecutorInheritableThreadLocal<?> e : map.keySet()) {
                 @SuppressWarnings("unchecked")
                 ExecutorInheritableThreadLocal<Object> eitl = (ExecutorInheritableThreadLocal<Object>) e;
                 eitl.set(eitl.callInstallOnChildThread(eitl.get()));
