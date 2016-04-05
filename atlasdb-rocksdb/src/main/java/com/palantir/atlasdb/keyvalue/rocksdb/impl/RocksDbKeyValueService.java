@@ -242,7 +242,7 @@ public class RocksDbKeyValueService implements KeyValueService {
     private static ColumnFamilyDescriptor getCfDescriptor(String tableName,
                                                           ColumnFamilyOptions cfMetadataOptions,
                                                           ColumnFamilyOptions cfCommonOptions) {
-        if (tableName.equals(METADATA_TABLE_NAME)) {
+        if (tableName.equals(METADATA_TABLE_NAME.getQualifiedName())) {
             return new ColumnFamilyDescriptor(tableName.getBytes(Charsets.UTF_8), cfMetadataOptions);
         } else {
             return new ColumnFamilyDescriptor(tableName.getBytes(Charsets.UTF_8), cfCommonOptions);
@@ -545,7 +545,7 @@ public class RocksDbKeyValueService implements KeyValueService {
                     @Nullable
                     @Override
                     public TableReference apply(@Nullable String input) {
-                        return null;
+                        return TableReference.createUnsafe(input);
                     }
                 }));
         return Sets.difference(tables, hiddenTables);
