@@ -71,6 +71,7 @@ public class ExecutorInheritableThreadLocalTest extends Assert {
         };
 
     private static final ExecutorInheritableThreadLocal<AtomicInteger> nullCallCount = new ExecutorInheritableThreadLocal<AtomicInteger>() {
+        @Override
         protected AtomicInteger initialValue() {
             return new AtomicInteger(0);
         }
