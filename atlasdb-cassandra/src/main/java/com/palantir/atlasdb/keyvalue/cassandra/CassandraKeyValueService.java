@@ -1284,7 +1284,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     for (TableReference table : tablesToCreate) {
                         CassandraVerifier.sanityCheckTableName(table);
 
-                        if (!existingTables.contains(internalTableName(table))) {
+                        if (!existingTables.contains(table)) {
                             client.system_add_column_family(getCfForTable(table, tableNamesToTableMetadata.get(table)));
                         } else {
                             log.warn(String.format("Ignored call to create a table (%s) that already existed.", table));
