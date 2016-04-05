@@ -20,8 +20,10 @@ import java.io.InputStream;
 import java.io.Serializable;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 
+import com.google.common.base.Preconditions;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hasher;
 import com.google.common.io.BaseEncoding;
@@ -144,5 +146,54 @@ public class Sha256Hash implements Serializable, Comparable<Sha256Hash> {
     @Override
     public int compareTo(Sha256Hash o) {
         return UnsignedBytes.lexicographicalComparator().compare(bytes, o.bytes);
+    }
+
+    /**
+     * Use {@link MessageDigest} prototypes as a workaround for
+     * https://bugs.openjdk.java.net/browse/JDK-7092821, similar to Guava's
+     * workaround https://github.com/google/guava/issues/1197
+     */
+    private enum MessageDigestPrototype {
+        SHA_256("SHA-256"); //$NON-NLS-1$
+
+        private final String algorithm;
+        private final MessageDigest prototype;
+        private final boolean supportsClone;
+
+        MessageDigestPrototype(String algorithm) {
+            this.algorithm = Preconditions.checkNotNull(algorithm);
+            this.prototype = createDigest(algorithm);
+            this.supportsClone = supportsClone(prototype);
+        }
+
+        public MessageDigest newDigest() {
+            if (supportsClone) {
+                try {
+                    return (MessageDigest) prototype.clone();
+                } catch (CloneNotSupportedException e) {
+                    // fall through
+                }
+            }
+            return createDigest(algorithm);
+        }
+
+        private static boolean supportsClone(MessageDigest prototype) {
+            try {
+                prototype.clone();
+                return true;
+            } catch (CloneNotSupportedException e) {
+                return false;
+            }
+        }
+
+        private static MessageDigest createDigest(String algorithm) {
+            try {
+                return MessageDigest.getInstance(algorithm);
+            } catch (NoSuchAlgorithmException e) {
+                // This should never happen.
+                throw new IllegalArgumentException("Invalid message digest: " + e.getMessage(), e);
+            }
+        }
+
     }
 }
