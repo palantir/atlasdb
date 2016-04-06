@@ -43,6 +43,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.collect.Maps2;
 
 
@@ -145,10 +146,11 @@ public class CassandraVerifier {
         return dataCenterToRack.keySet();
     }
 
-    static void sanityCheckTableName(String table) {
-        Validate.isTrue(!(table.startsWith("_") && table.contains("."))
-                || AtlasDbConstants.hiddenTables.contains(table)
-                || table.startsWith(AtlasDbConstants.NAMESPACE_PREFIX), "invalid tableName: " + table);
+    static void sanityCheckTableName(TableReference tableRef) {
+        String tableName = tableRef.getQualifiedName();
+        Validate.isTrue(!(tableName.startsWith("_") && tableName.contains("."))
+                || AtlasDbConstants.hiddenTables.contains(tableRef)
+                || tableName.startsWith(AtlasDbConstants.NAMESPACE_PREFIX), "invalid tableName: " + tableName);
     }
 
     private static void logErrorOrThrow(String errorMessage, boolean safetyDisabled) {

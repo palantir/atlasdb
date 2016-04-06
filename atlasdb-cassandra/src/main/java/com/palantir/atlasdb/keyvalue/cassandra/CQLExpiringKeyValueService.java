@@ -34,6 +34,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ExpiringKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CQLKeyValueServices.TransactionType;
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompaction;
@@ -60,28 +61,28 @@ public class CQLExpiringKeyValueService extends CQLKeyValueService implements Ex
     }
 
     @Override
-    public void put(final String tableName, final Map<Cell, byte[]> values, final long timestamp, final long time, final TimeUnit unit) {
+    public void put(final TableReference tableRef, final Map<Cell, byte[]> values, final long timestamp, final long time, final TimeUnit unit) {
         try {
-            putInternal(tableName, KeyValueServices.toConstantTimestampValues(values.entrySet(), timestamp), TransactionType.NONE, CassandraKeyValueServices.convertTtl(time, unit), false);
+            putInternal(tableRef, KeyValueServices.toConstantTimestampValues(values.entrySet(), timestamp), TransactionType.NONE, CassandraKeyValueServices.convertTtl(time, unit), false);
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
     }
 
     @Override
-    public void putWithTimestamps(String tableName, Multimap<Cell, Value> values, final long time, final TimeUnit unit) {
+    public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> values, final long time, final TimeUnit unit) {
         try {
-            putInternal(tableName, values.entries(), TransactionType.NONE, CassandraKeyValueServices.convertTtl(time, unit), false);
+            putInternal(tableRef, values.entries(), TransactionType.NONE, CassandraKeyValueServices.convertTtl(time, unit), false);
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
     }
 
     @Override
-    public void multiPut(Map<String, ? extends Map<Cell, byte[]>> valuesByTable, final long timestamp, final long time, final TimeUnit unit) throws KeyAlreadyExistsException {
-        Map<ResultSetFuture, String> resultSetFutures = Maps.newHashMap();
-        for (Entry<String, ? extends Map<Cell, byte[]>> e : valuesByTable.entrySet()) {
-            final String table = e.getKey();
+    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, final long timestamp, final long time, final TimeUnit unit) throws KeyAlreadyExistsException {
+        Map<ResultSetFuture, TableReference> resultSetFutures = Maps.newHashMap();
+        for (Entry<TableReference, ? extends Map<Cell, byte[]>> e : valuesByTable.entrySet()) {
+            final TableReference table = e.getKey();
             // We sort here because some key value stores are more efficient if you store adjacent keys together.
             NavigableMap<Cell, byte[]> sortedMap = ImmutableSortedMap.copyOf(e.getValue());
 
@@ -100,7 +101,7 @@ public class CQLExpiringKeyValueService extends CQLKeyValueService implements Ex
             }
         }
 
-        for (Entry<ResultSetFuture, String> result : resultSetFutures.entrySet()) {
+        for (Entry<ResultSetFuture, TableReference> result : resultSetFutures.entrySet()) {
             ResultSet resultSet;
             try {
                 resultSet = result.getKey().getUninterruptibly();

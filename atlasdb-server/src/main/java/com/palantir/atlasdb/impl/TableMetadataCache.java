@@ -24,6 +24,7 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.TableMetadata;
 
 public class TableMetadataCache {
@@ -37,7 +38,7 @@ public class TableMetadataCache {
                 .build(new CacheLoader<String, TableMetadata>() {
             @Override
             public TableMetadata load(String tableName) throws Exception {
-                byte[] rawMetadata = kvs.getMetadataForTable(tableName);
+                byte[] rawMetadata = kvs.getMetadataForTable(TableReference.createUnsafe(tableName));
                 if (rawMetadata == null || rawMetadata.length == 0) {
                     return EMPTY;
                 }

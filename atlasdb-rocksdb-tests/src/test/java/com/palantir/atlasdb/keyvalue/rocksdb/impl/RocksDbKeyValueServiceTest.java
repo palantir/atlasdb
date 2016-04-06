@@ -40,24 +40,26 @@ import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 
 public final class RocksDbKeyValueServiceTest {
     private static final byte[] COMMIT_TS_COLUMN = PtBytes.toBytes("t");
-    private static final String TRANSACTION_TABLE = "_transactions";
+    private static final TableReference TRANSACTION_TABLE = TableReference.createWithEmptyNamespace("_transactions");
+    private static final TableReference TABLE = TableReference.createWithEmptyNamespace("yo");
     private RocksDbKeyValueService db = null;
 
 
     @Before
     public void setUp() throws Exception {
         db = RocksDbKeyValueService.create("testdb");
-        for (String table : db.getAllTableNames()) {
-            if (!table.equals("default") && !table.equals("_metadata")) {
+        for (TableReference table : db.getAllTableNames()) {
+            if (!table.getQualifiedName().equals("default") && !table.getQualifiedName().equals("_metadata")) {
                 db.dropTable(table);
             }
         }
-        db.createTable("yo", AtlasDbConstants.EMPTY_TABLE_METADATA);
+        db.createTable(TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA);
     }
 
 
@@ -72,10 +74,11 @@ public final class RocksDbKeyValueServiceTest {
 
     @Test
     public void testCreate() {
-        db.createTable("yo", AtlasDbConstants.EMPTY_TABLE_METADATA);
-        db.createTable("yodog", AtlasDbConstants.EMPTY_TABLE_METADATA);
+        TableReference otherTable = TableReference.createWithEmptyNamespace("yodog");
+        db.createTable(TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA);
+        db.createTable(otherTable, AtlasDbConstants.EMPTY_TABLE_METADATA);
         db.createTable(TRANSACTION_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA);
-        assertEquals(ImmutableSet.of("yo", "yodog", TRANSACTION_TABLE),
+        assertEquals(ImmutableSet.of(TABLE, otherTable, TRANSACTION_TABLE),
                 db.getAllTableNames());
     }
 
@@ -83,7 +86,7 @@ public final class RocksDbKeyValueServiceTest {
     @Test
     public void testReadNoExist() {
         final Cell cell = Cell.create("r1".getBytes(), COMMIT_TS_COLUMN);
-        final Map<Cell, Value> res = db.get("yo", ImmutableMap.of(cell, 1L));
+        final Map<Cell, Value> res = db.get(TABLE, ImmutableMap.of(cell, 1L));
         assertTrue(res.isEmpty());
     }
 
@@ -91,8 +94,8 @@ public final class RocksDbKeyValueServiceTest {
     @Test
     public void testReadGood() {
         final Cell cell = Cell.create("r1".getBytes(), "2".getBytes());
-        db.put("yo", ImmutableMap.of(cell, "v1".getBytes()), 1);
-        final Map<Cell, Value> res = db.get("yo", ImmutableMap.of(cell, 2L));
+        db.put(TABLE, ImmutableMap.of(cell, "v1".getBytes()), 1);
+        final Map<Cell, Value> res = db.get(TABLE, ImmutableMap.of(cell, 2L));
         assertEquals(1, res.size());
         final Value value = res.get(cell);
         assertEquals(1, value.getTimestamp());
@@ -104,9 +107,9 @@ public final class RocksDbKeyValueServiceTest {
     public void testReadGood2() {
         final Cell cell = Cell.create("r1".getBytes(), "2".getBytes());
         final Cell cell2 = Cell.create("r".getBytes(), "12".getBytes());
-        db.put("yo", ImmutableMap.of(cell, "v1".getBytes()), 1000);
-        db.put("yo", ImmutableMap.of(cell2, "v2".getBytes()), 1000);
-        final Map<Cell, Value> res = db.get("yo", ImmutableMap.of(cell, 1001L));
+        db.put(TABLE, ImmutableMap.of(cell, "v1".getBytes()), 1000);
+        db.put(TABLE, ImmutableMap.of(cell2, "v2".getBytes()), 1000);
+        final Map<Cell, Value> res = db.get(TABLE, ImmutableMap.of(cell, 1001L));
         final Value value = res.get(cell);
         assertEquals(1000, value.getTimestamp());
         assertEquals("v1", new String(value.getContents()));
@@ -116,8 +119,8 @@ public final class RocksDbKeyValueServiceTest {
     @Test
     public void testReadGood3() {
         final Cell cell = Cell.create("r1".getBytes(), COMMIT_TS_COLUMN);
-        db.put("yo", ImmutableMap.of(cell, "v1".getBytes()), Long.MAX_VALUE - 3);
-        final Map<Cell, Value> res = db.get("yo", ImmutableMap.of(cell, Long.MAX_VALUE - 2));
+        db.put(TABLE, ImmutableMap.of(cell, "v1".getBytes()), Long.MAX_VALUE - 3);
+        final Map<Cell, Value> res = db.get(TABLE, ImmutableMap.of(cell, Long.MAX_VALUE - 2));
         final Value value = res.get(cell);
         assertEquals(Long.MAX_VALUE - 3, value.getTimestamp());
         assertEquals("v1", new String(value.getContents()));
@@ -127,8 +130,8 @@ public final class RocksDbKeyValueServiceTest {
     @Test
     public void testReadGood4() {
         final Cell cell = Cell.create("r,1".getBytes(), ",c,1,".getBytes());
-        db.put("yo", ImmutableMap.of(cell, "v,1".getBytes()), 1);
-        final Map<Cell, Value> res = db.get("yo", ImmutableMap.of(cell, 2L));
+        db.put(TABLE, ImmutableMap.of(cell, "v,1".getBytes()), 1);
+        final Map<Cell, Value> res = db.get(TABLE, ImmutableMap.of(cell, 2L));
         final Value value = res.get(cell);
         assertEquals(1, value.getTimestamp());
         assertEquals("v,1", new String(value.getContents()));
@@ -138,8 +141,8 @@ public final class RocksDbKeyValueServiceTest {
     @Test
     public void testReadBeforeTime() {
         final Cell cell = Cell.create("r1".getBytes(), COMMIT_TS_COLUMN);
-        db.put("yo", ImmutableMap.of(cell, "v1".getBytes()), 2);
-        final Map<Cell, Value> res = db.get("yo", ImmutableMap.of(cell, 2L));
+        db.put(TABLE, ImmutableMap.of(cell, "v1".getBytes()), 2);
+        final Map<Cell, Value> res = db.get(TABLE, ImmutableMap.of(cell, 2L));
         assertTrue(res.isEmpty());
     }
 
@@ -148,9 +151,9 @@ public final class RocksDbKeyValueServiceTest {
     public void testGetRow() {
         final Cell cell = Cell.create("r1".getBytes(), "c1".getBytes());
         final Cell cell2 = Cell.create("r1".getBytes(), "c2".getBytes());
-        db.put("yo", ImmutableMap.of(cell, "v1".getBytes()), 2);
-        db.put("yo", ImmutableMap.of(cell2, "v2".getBytes()), 2);
-        final Map<Cell, Value> rows = db.getRows("yo", ImmutableList.of("r1".getBytes()), ColumnSelection.all(), 3);
+        db.put(TABLE, ImmutableMap.of(cell, "v1".getBytes()), 2);
+        db.put(TABLE, ImmutableMap.of(cell2, "v2".getBytes()), 2);
+        final Map<Cell, Value> rows = db.getRows(TABLE, ImmutableList.of("r1".getBytes()), ColumnSelection.all(), 3);
         assertEquals(2, rows.size());
     }
 
@@ -160,16 +163,16 @@ public final class RocksDbKeyValueServiceTest {
         final Cell cell = Cell.create("r1".getBytes(), "c1".getBytes());
         final Cell cell2 = Cell.create("r1".getBytes(), "c2".getBytes());
         final Cell cell3 = Cell.create("r2".getBytes(), "c2".getBytes());
-        db.put("yo", ImmutableMap.of(cell, "v1".getBytes()), 2);
-        db.put("yo", ImmutableMap.of(cell2, "v2".getBytes()), 2);
-        db.put("yo", ImmutableMap.of(cell3, "v3".getBytes()), 4);
+        db.put(TABLE, ImmutableMap.of(cell, "v1".getBytes()), 2);
+        db.put(TABLE, ImmutableMap.of(cell2, "v2".getBytes()), 2);
+        db.put(TABLE, ImmutableMap.of(cell3, "v3".getBytes()), 4);
         final RangeRequest range = RangeRequest.builder().endRowExclusive("r2".getBytes()).build();
-        final ClosableIterator<? extends RowResult<Value>> it = db.getRange("yo", range, 10);
+        final ClosableIterator<? extends RowResult<Value>> it = db.getRange(TABLE, range, 10);
         try {
             final List<RowResult<Value>> list = Lists.newArrayList();
             Iterators.addAll(list, it);
             assertEquals(1, list.size());
-            final Map<Cell, Value> rows = db.getRows("yo", ImmutableList.of("r1".getBytes()), ColumnSelection.all(), 3);
+            final Map<Cell, Value> rows = db.getRows(TABLE, ImmutableList.of("r1".getBytes()), ColumnSelection.all(), 3);
             assertEquals(2, rows.size());
             final RowResult<Value> row = list.iterator().next();
             final Map<Cell, Value> cellsFromRow = putAll(Maps.<Cell, Value>newHashMap(), row.getCells());
@@ -183,16 +186,16 @@ public final class RocksDbKeyValueServiceTest {
     @Test
     public void testGetRange2() {
         final Cell cell = Cell.create(",r,1".getBytes(), ",c,1,".getBytes());
-        db.put("yo", ImmutableMap.of(cell, "v1".getBytes()), 2);
+        db.put(TABLE, ImmutableMap.of(cell, "v1".getBytes()), 2);
         final RangeRequest range = RangeRequest.builder().build();
-        final ClosableIterator<RowResult<Value>> it = db.getRange("yo", range, 10);
+        final ClosableIterator<RowResult<Value>> it = db.getRange(TABLE, range, 10);
         try {
             final List<RowResult<Value>> list = Lists.newArrayList();
             Iterators.addAll(list, it);
             assertEquals(1, list.size());
             final RowResult<Value> row = list.iterator().next();
             final Map<Cell, Value> cellsFromRow = putAll(Maps.<Cell, Value>newHashMap(), row.getCells());
-            final Map<Cell, Value> rows = db.getRows("yo", ImmutableList.of(",r,1".getBytes()), ColumnSelection.all(), 3);
+            final Map<Cell, Value> rows = db.getRows(TABLE, ImmutableList.of(",r,1".getBytes()), ColumnSelection.all(), 3);
             assertEquals(rows, cellsFromRow);
         } finally {
             it.close();
@@ -204,9 +207,9 @@ public final class RocksDbKeyValueServiceTest {
     public void testGetRowCellOverlap() {
         final Cell cell = Cell.create("12".getBytes(), "34".getBytes());
         final Cell cell2 = Cell.create("1".getBytes(), "23".getBytes());
-        db.put("yo", ImmutableMap.of(cell, "v1".getBytes()), 2);
-        db.put("yo", ImmutableMap.of(cell2, "v2".getBytes()), 2);
-        final Map<Cell, Value> rows = db.getRows("yo", ImmutableList.of("12".getBytes()), ColumnSelection.all(), 3);
+        db.put(TABLE, ImmutableMap.of(cell, "v1".getBytes()), 2);
+        db.put(TABLE, ImmutableMap.of(cell2, "v2".getBytes()), 2);
+        final Map<Cell, Value> rows = db.getRows(TABLE, ImmutableList.of("12".getBytes()), ColumnSelection.all(), 3);
         assertEquals(1, rows.size());
     }
 
@@ -215,21 +218,21 @@ public final class RocksDbKeyValueServiceTest {
     public void testGetRangeCellOverlap() {
         final Cell cell = Cell.create("12".getBytes(), "34".getBytes());
         final Cell cell2 = Cell.create("1".getBytes(), "235".getBytes());
-        db.put("yo", ImmutableMap.of(cell, "v1".getBytes()), 2);
-        db.put("yo", ImmutableMap.of(cell2, "v2".getBytes()), 2);
-        ClosableIterator<? extends RowResult<Value>> it = db.getRange("yo", RangeRequest.builder().build(), 3);
+        db.put(TABLE, ImmutableMap.of(cell, "v1".getBytes()), 2);
+        db.put(TABLE, ImmutableMap.of(cell2, "v2".getBytes()), 2);
+        ClosableIterator<? extends RowResult<Value>> it = db.getRange(TABLE, RangeRequest.builder().build(), 3);
         try {
             assertEquals(2, Iterators.size(it));
         } finally {
             it.close();
         }
-        it = db.getRange("yo", RangeRequest.builder().endRowExclusive("12".getBytes()).build(), 3);
+        it = db.getRange(TABLE, RangeRequest.builder().endRowExclusive("12".getBytes()).build(), 3);
         try {
             assertEquals(1, Iterators.size(it));
         } finally {
             it.close();
         }
-        it = db.getRange("yo", RangeRequest.builder().startRowInclusive("12".getBytes()).build(), 3);
+        it = db.getRange(TABLE, RangeRequest.builder().startRowInclusive("12".getBytes()).build(), 3);
         try {
             assertEquals(1, Iterators.size(it));
         } finally {
@@ -242,10 +245,10 @@ public final class RocksDbKeyValueServiceTest {
         final Cell cell = Cell.create("1".getBytes(), "1".getBytes());
         final Cell cell2 = Cell.create("12".getBytes(), "0".getBytes());
         final Cell cell3 = Cell.create("1".getBytes(), "3".getBytes());
-        db.put("yo", ImmutableMap.of(cell, "v1".getBytes()), 2);
-        db.put("yo", ImmutableMap.of(cell2, "v2".getBytes()), 2);
-        db.put("yo", ImmutableMap.of(cell3, "v3".getBytes()), 2);
-        final ClosableIterator<? extends RowResult<Value>> it = db.getRange("yo", RangeRequest.builder().build(), 3);
+        db.put(TABLE, ImmutableMap.of(cell, "v1".getBytes()), 2);
+        db.put(TABLE, ImmutableMap.of(cell2, "v2".getBytes()), 2);
+        db.put(TABLE, ImmutableMap.of(cell3, "v3".getBytes()), 2);
+        final ClosableIterator<? extends RowResult<Value>> it = db.getRange(TABLE, RangeRequest.builder().build(), 3);
         try {
             assertEquals(2, Iterators.size(it));
         } finally {
@@ -274,16 +277,16 @@ public final class RocksDbKeyValueServiceTest {
 
     @Test
     public void testMetadata() {
-        db.putMetadataForTable("yo", "yoyo".getBytes());
-        final byte[] meta = db.getMetadataForTable("yo");
+        db.putMetadataForTable(TABLE, "yoyo".getBytes());
+        final byte[] meta = db.getMetadataForTable(TABLE);
         assertEquals("yoyo", new String(meta));
     }
 
 
     @Test
     public void testCreateTables() {
-        db.putMetadataForTable("yo", "yoyo".getBytes());
-        final byte[] meta = db.getMetadataForTable("yo");
+        db.putMetadataForTable(TABLE, "yoyo".getBytes());
+        final byte[] meta = db.getMetadataForTable(TABLE);
         assertEquals("yoyo", new String(meta));
     }
 

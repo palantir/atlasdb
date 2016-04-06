@@ -41,6 +41,7 @@ import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.AbstractAtlasDbKeyValueServiceTest;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
@@ -126,8 +127,8 @@ public class VersionedPartitionedKvsTest extends AbstractAtlasDbKeyValueServiceT
     @After
     public void cleanupStuff() throws Exception {
         for (int i = 0; i < NUM_EPTS; ++i) {
-            for (String tableName : epts[i].kvs.delegate.getAllTableNames()) {
-                epts[i].kvs.delegate.dropTable(tableName);
+            for (TableReference tableRef : epts[i].kvs.delegate.getAllTableNames()) {
+                epts[i].kvs.delegate.dropTable(tableRef);
             }
         }
         setUpPrivate();
@@ -175,7 +176,7 @@ public class VersionedPartitionedKvsTest extends AbstractAtlasDbKeyValueServiceT
         skves[1].partitionMapService().updateMapIfNewer(pkvs.getPartitionMap());
         skves[2].partitionMapService().updateMapIfNewer(pkvs.getPartitionMap());
         skves[3].partitionMapService().updateMapIfNewer(pkvs.getPartitionMap());
-        pkvs.createTable("TABLE_NAME_2", AtlasDbConstants.GENERIC_TABLE_METADATA);
+        pkvs.createTable(TableReference.createWithEmptyNamespace("TABLE_NAME_2"), AtlasDbConstants.GENERIC_TABLE_METADATA);
 
         pkvs.getPartitionMap().setVersion(0L);
 

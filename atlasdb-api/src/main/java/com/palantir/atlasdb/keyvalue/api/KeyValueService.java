@@ -79,7 +79,7 @@ public interface KeyValueService extends AutoCloseable {
     /**
      * Gets values from the key-value store.
      *
-     * @param tableName the name of the table to retrieve values from.
+     * @param tableRef the name of the table to retrieve values from.
      * @param rows set containing the rows to retrieve values for.
      * @param columnSelection specifies the set of columns to fetch.
      * @param timestamp specifies the maximum timestamp (exclusive) at which to
@@ -95,7 +95,7 @@ public interface KeyValueService extends AutoCloseable {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    Map<Cell, Value> getRows(@QueryParam("tableName") String tableName,
+    Map<Cell, Value> getRows(@QueryParam("tableRef") TableReference tableRef,
                              Iterable<byte[]> rows,
                              @QueryParam("columnSelection") ColumnSelection columnSelection,
                              @QueryParam("timestamp") long timestamp);
@@ -103,7 +103,7 @@ public interface KeyValueService extends AutoCloseable {
     /**
      * Gets values from the key-value store.
      *
-     * @param tableName the name of the table to retrieve values from.
+     * @param tableRef the name of the table to retrieve values from.
      * @param timestampByCell specifies, for each row, the maximum timestamp (exclusive) at which to
      *        retrieve that rows's value.
      * @return map of retrieved values. Values which do not exist (either
@@ -117,12 +117,12 @@ public interface KeyValueService extends AutoCloseable {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    Map<Cell, Value> get(@QueryParam("tableName") String tableName, Map<Cell, Long> timestampByCell);
+    Map<Cell, Value> get(@QueryParam("tableRef") TableReference tableRef, Map<Cell, Long> timestampByCell);
 
     /**
      * Gets timestamp values from the key-value store.
      *
-     * @param tableName the name of the table to retrieve values from.
+     * @param tableRef the name of the table to retrieve values from.
      * @param timestampByCell map containing the cells to retrieve timestamps for. The map
      *        specifies, for each key, the maximum timestamp (exclusive) at which to
      *        retrieve that key's value.
@@ -137,7 +137,7 @@ public interface KeyValueService extends AutoCloseable {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    Map<Cell, Long> getLatestTimestamps(@QueryParam("tableName") String tableName,
+    Map<Cell, Long> getLatestTimestamps(@QueryParam("tableRef") TableReference tableRef,
                                         Map<Cell, Long> timestampByCell);
 
     /**
@@ -150,14 +150,13 @@ public interface KeyValueService extends AutoCloseable {
      * requests have successfully been written to disk before returning.
      * <p>
      * Putting a null value is the same as putting the empty byte[].  If you want to delete a value
-     * try {@link #delete(String, Multimap)}.
+     * try {@link #delete(TableReference, Multimap)}.
      * <p>
      * May throw KeyAlreadyExistsException, if storing a different value to existing key,
      * but this is not guaranteed even if the key exists - see {@link putUnlessExists}.
      * <p>
      * Must not throw KeyAlreadyExistsException when overwriting a cell with the original value (idempotent).
-     *
-     * @param tableName the name of the table to put values into.
+     *  @param tableRef the name of the table to put values into.
      * @param values map containing the key-value entries to put.
      * @param timestamp must be non-negative and not equal to {@link Long#MAX_VALUE}
      */
@@ -165,7 +164,7 @@ public interface KeyValueService extends AutoCloseable {
     @Path("put")
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    void put(@QueryParam("tableName") String tableName,
+    void put(@QueryParam("tableRef") TableReference tableRef,
              Map<Cell, byte[]> values,
              @QueryParam("timestamp") long timestamp) throws KeyAlreadyExistsException;
 
@@ -179,21 +178,20 @@ public interface KeyValueService extends AutoCloseable {
      * requests have successfully been written to disk before returning.
      * <p>
      * Putting a null value is the same as putting the empty byte[].  If you want to delete a value
-     * try {@link #delete(String, Multimap)}.
+     * try {@link #delete(TableReference, Multimap)}.
      * <p>
      * May throw KeyAlreadyExistsException, if storing a different value to existing key,
      * but this is not guaranteed even if the key exists - see {@link putUnlessExists}.
      * <p>
      * Must not throw KeyAlreadyExistsException when overwriting a cell with the original value (idempotent).
-     *
-     * @param valuesByTable map containing the key-value entries to put by table.
+     *  @param valuesByTable map containing the key-value entries to put by table.
      * @param timestamp must be non-negative and not equal to {@link Long#MAX_VALUE}
      */
     @POST
     @Path("multi-put")
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    void multiPut(Map<String, ? extends Map<Cell, byte[]>> valuesByTable,
+    void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable,
                   @QueryParam("timestamp") long timestamp) throws KeyAlreadyExistsException;
 
     /**
@@ -209,14 +207,13 @@ public interface KeyValueService extends AutoCloseable {
      * call may result in failure. The way around this is to delete and retry.
      * <p>
      * Putting a null value is the same as putting the empty byte[].  If you want to delete a value
-     * try {@link #delete(String, Multimap)}.
+     * try {@link #delete(TableReference, Multimap)}.
      * <p>
      * May throw KeyAlreadyExistsException, if storing a different value to existing key,
      * but this is not guaranteed even if the key exists - see {@link putUnlessExists}.
      * <p>
      * Must not throw KeyAlreadyExistsException when overwriting a cell with the original value (idempotent).
-     *
-     * @param tableName the name of the table to put values into.
+     *  @param tableRef the name of the table to put values into.
      * @param cellValues map containing the key-value entries to put with
      *               non-negative timestamps less than {@link Long#MAX_VALUE}.
      */
@@ -225,7 +222,7 @@ public interface KeyValueService extends AutoCloseable {
     @Consumes(MediaType.APPLICATION_JSON)
     @NonIdempotent
     @Idempotent
-    void putWithTimestamps(@QueryParam("tableName") String tableName,
+    void putWithTimestamps(@QueryParam("tableRef") TableReference tableRef,
                            Multimap<Cell, Value> cellValues) throws KeyAlreadyExistsException;
 
     /**
@@ -244,7 +241,7 @@ public interface KeyValueService extends AutoCloseable {
      * Retry should be done by the underlying implementation to ensure that other exceptions besides
      * {@link KeyAlreadyExistsException} are not thrown spuriously.
      *
-     * @param tableName the name of the table to put values into.
+     * @param tableRef the name of the table to put values into.
      * @param values map containing the key-value entries to put.
      * @throws KeyAlreadyExistsException If you are putting a Cell with the same timestamp as
      *                                      one that already exists.
@@ -252,7 +249,7 @@ public interface KeyValueService extends AutoCloseable {
     @POST
     @Path("put-unless-exists")
     @Consumes(MediaType.APPLICATION_JSON)
-    void putUnlessExists(@QueryParam("tableName") String tableName,
+    void putUnlessExists(@QueryParam("tableRef") TableReference tableRef,
                          Map<Cell, byte[]> values) throws KeyAlreadyExistsException;
 
     /**
@@ -274,16 +271,14 @@ public interface KeyValueService extends AutoCloseable {
      * <p>
      * Some systems may require more nodes to be up to ensure that a delete is successful. If this
      * is the case then this method may throw if the delete can't be completed on all nodes.
-     *
-     * @param tableName the name of the table to delete values from.
+     *  @param tableRef the name of the table to delete values from.
      * @param keys map containing the keys to delete values for; the map should specify, for each
-     *        key, the timestamp of the value to delete.
      */
     @POST
     @Path("delete")
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    void delete(@QueryParam("tableName") String tableName, Multimap<Cell, Long> keys);
+    void delete(@QueryParam("tableRef") TableReference tableRef, Multimap<Cell, Long> keys);
 
     /**
      * Truncate a table in the key-value store.
@@ -291,7 +286,7 @@ public interface KeyValueService extends AutoCloseable {
      * This is preferred to dropping and re-adding a table, as live schema changes can
      * be a complicated topic for distributed databases.
      *
-     * @param tableName the name of the table to truncate.
+     * @param tableRef the name of the table to truncate.
      *
      * @throws InsufficientConsistencyException if not all hosts respond successfully
      */
@@ -299,14 +294,14 @@ public interface KeyValueService extends AutoCloseable {
     @Path("truncate-table")
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    void truncateTable(@QueryParam("tableName") String tableName) throws InsufficientConsistencyException;
+    void truncateTable(@QueryParam("tableRef") TableReference tableRef) throws InsufficientConsistencyException;
 
     /**
      * Truncate tables in the key-value store.
      * <p>
      * This can be slightly faster than truncating a single table.
      *
-     * @param tableNames the name of the tables to truncate.
+     * @param tableRefs the name of the tables to truncate.
      *
      * @throws InsufficientConsistencyException if not all hosts respond successfully
      */
@@ -314,25 +309,23 @@ public interface KeyValueService extends AutoCloseable {
     @Path("truncate-tables")
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    void truncateTables(Set<String> tableNames) throws InsufficientConsistencyException;
+    void truncateTables(Set<TableReference> tableRefs) throws InsufficientConsistencyException;
 
     /**
      * For each row in the specified range, returns the most recent version strictly before
      * timestamp.
      *
      * Remember to close any {@link ClosableIterator}s you get in a finally block.
-     *
-     * @param tableName
+     *  @param tableRef
      * @param rangeRequest the range to load.
      * @param timestamp specifies the maximum timestamp (exclusive) at which to retrieve each rows's
-     *        value.
      */
     @POST
     @Path("get-range")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    ClosableIterator<RowResult<Value>> getRange(@QueryParam("tableName") String tableName,
+    ClosableIterator<RowResult<Value>> getRange(@QueryParam("tableRef") TableReference tableRef,
                                                 RangeRequest rangeRequest,
                                                 @QueryParam("timestamp") long timestamp);
 
@@ -340,21 +333,19 @@ public interface KeyValueService extends AutoCloseable {
      * For each row in the specified range, returns all versions strictly before
      * timestamp.
      * <p>
-     * This has the same consistency guarantees that {@link #getRangeOfTimestamps(String, RangeRequest, long)}.
+     * This has the same consistency guarantees that {@link #getRangeOfTimestamps(TableReference, RangeRequest, long)}.
      * <p>
      * Remember to close any {@link ClosableIterator}s you get in a finally block.
-     *
-     * @param tableName
+     *  @param tableRef
      * @param rangeRequest the range to load.
      * @param timestamp specifies the maximum timestamp (exclusive) at which to
-     *        retrieve each rows's values.
      */
     @POST
     @Path("get-range-with-history")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(@QueryParam("tableName") String tableName,
+    ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(@QueryParam("tableRef") TableReference tableRef,
                                                                 RangeRequest rangeRequest,
                                                                 @QueryParam("timestamp") long timestamp);
 
@@ -368,7 +359,7 @@ public interface KeyValueService extends AutoCloseable {
      * a Quorum of hosts. However this call MUST be implemented by talking to ALL the nodes where a
      * value could be stored.
      *
-     * @param tableName the name of the table to read from.
+     * @param tableRef the name of the table to read from.
      * @param rangeRequest the range to load.
      * @param timestamp the maximum timestamp to load.
      *
@@ -379,7 +370,7 @@ public interface KeyValueService extends AutoCloseable {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(@QueryParam("tableName") String tableName,
+    ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(@QueryParam("tableRef") TableReference tableRef,
                                                                 RangeRequest rangeRequest,
                                                                 @QueryParam("timestamp") long timestamp) throws InsufficientConsistencyException;
 
@@ -404,7 +395,7 @@ public interface KeyValueService extends AutoCloseable {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(@QueryParam("tableName") String tableName,
+    Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(@QueryParam("tableRef") TableReference tableRef,
             Iterable<RangeRequest> rangeRequests,
             @QueryParam("timestamp") long timestamp);
 
@@ -414,13 +405,14 @@ public interface KeyValueService extends AutoCloseable {
 
     /**
      * Drop the table, and also delete its table metadata.
+     * @param tableRef
      */
     @DELETE
     @Path("drop-table")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    void dropTable(@QueryParam("tableName") String tableName) throws InsufficientConsistencyException;
+    void dropTable(@QueryParam("tableName") TableReference tableRef) throws InsufficientConsistencyException;
 
 
     /**
@@ -428,20 +420,19 @@ public interface KeyValueService extends AutoCloseable {
      * use this call as the implementation can be much faster/less error-prone on some KVSs.
      * Also deletes corresponding table metadata.
      *
-     * @param tableNames
+     * @param tableRefs
      */
     @DELETE
     @Path("drop-tables")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    void dropTables(Set<String> tableNames) throws InsufficientConsistencyException;
+    void dropTables(Set<TableReference> tableRefs) throws InsufficientConsistencyException;
 
     /**
      * Creates a table with the specified name. If the table already exists, no action is performed
      * (the table is left in its current state).
-     *
-     * @param tableName
+     *  @param tableRef
      * @param tableMetadata
      */
     @POST
@@ -449,20 +440,20 @@ public interface KeyValueService extends AutoCloseable {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    void createTable(@QueryParam("tableName") String tableName, byte[] tableMetadata) throws InsufficientConsistencyException;
+    void createTable(@QueryParam("tableRef") TableReference tableRef, byte[] tableMetadata) throws InsufficientConsistencyException;
 
     /**
      * Creates many tables in idempotent fashion. If you are making many tables at once,
      * use this call as the implementation can be much faster/less error-prone on some KVSs.
      *
-     * @param tableNameToTableMetadata
+     * @param tableRefToTableMetadata
      */
     @POST
     @Path("create-tables")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    void createTables(Map<String, byte[]> tableNameToTableMetadata) throws InsufficientConsistencyException;
+    void createTables(Map<TableReference, byte[]> tableRefToTableMetadata) throws InsufficientConsistencyException;
 
     /**
      * Return the list of tables stored in this key value service.
@@ -475,37 +466,38 @@ public interface KeyValueService extends AutoCloseable {
     @Path("get-all-table-names")
     @Produces(MediaType.APPLICATION_JSON)
     @Idempotent
-    Set<String> getAllTableNames();
+    Set<TableReference> getAllTableNames();
 
     /**
      * Gets the metadata for a given table. Also useful for checking to see if a table exists.
      *
      * @return a byte array representing the metadata for the table. Array is empty if no table
      * with the given name exists. Consider {@link TableMetadata#BYTES_HYDRATOR} for hydrating.
+     * @param tableRef
      */
     @Idempotent
     @POST
     @Path("get-metadata-for-table")
     @Produces(MediaType.APPLICATION_OCTET_STREAM)
-    byte[] getMetadataForTable(@QueryParam("tableName") String tableName);
+    byte[] getMetadataForTable(@QueryParam("tableRef") TableReference tableRef);
 
     @POST
     @Path("get-metadata-for-tables")
     @Produces(MediaType.APPLICATION_JSON)
     @Idempotent
-    Map<String, byte[]> getMetadataForTables();
+    Map<TableReference, byte[]> getMetadataForTables();
 
     @POST
     @Path("put-metadata-for-table")
     @Consumes(MediaType.APPLICATION_OCTET_STREAM)
     @Idempotent
-    void putMetadataForTable(@QueryParam("tableName") String tableName, byte[] metadata);
+    void putMetadataForTable(@QueryParam("tableRef") TableReference tableRef, byte[] metadata);
 
     @POST
     @Path("put-metadata-for-tables")
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    void putMetadataForTables(final Map<String, byte[]> tableNameToMetadata);
+    void putMetadataForTables(final Map<TableReference, byte[]> tableRefToMetadata);
 
     ////////////////////////////////////////////////////////////
     // METHODS TO SUPPORT GARBAGE COLLECTION
@@ -519,7 +511,7 @@ public interface KeyValueService extends AutoCloseable {
     @Path("add-gc-sentinel-values")
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    void addGarbageCollectionSentinelValues(@QueryParam("tableName") String tableName, Set<Cell> cells);
+    void addGarbageCollectionSentinelValues(@QueryParam("tableName") TableReference tableRef, Set<Cell> cells);
 
     /**
      * Gets timestamp values from the key-value store. For each cell, this returns all associated
@@ -531,7 +523,7 @@ public interface KeyValueService extends AutoCloseable {
      * a Quorum of hosts. However this call MUST be implemented by talking to ALL the nodes where a
      * value could be stored.
      *
-     * @param tableName the name of the table to delete values from.
+     * @param tableRef the name of the table to delete values from.
      * @param cells set containg cells to retrieve timestamps for.
      * @param timestamp maximum timestamp to get (exclusive)
      * @return multimap of timestamps by cell
@@ -543,7 +535,7 @@ public interface KeyValueService extends AutoCloseable {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    Multimap<Cell, Long> getAllTimestamps(@QueryParam("tableName") String tableName,
+    Multimap<Cell, Long> getAllTimestamps(@QueryParam("tableName") TableReference tableRef,
                                           Set<Cell> cells,
                                           @QueryParam("timestamp") long timestamp)
             throws InsufficientConsistencyException;
@@ -553,9 +545,10 @@ public interface KeyValueService extends AutoCloseable {
      * deletions are performed.
      *
      * This call must be implemented so that it completes synchronously.
+     * @param tableRef
      */
     @POST
     @Path("compact-internally")
     @Consumes(MediaType.APPLICATION_JSON)
-    void compactInternally(String tableName);
+    void compactInternally(TableReference tableRef);
 }

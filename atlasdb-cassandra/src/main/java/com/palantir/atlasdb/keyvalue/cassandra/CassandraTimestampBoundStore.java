@@ -81,7 +81,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
             @Override
             public Long apply(Client client) {
                 ByteBuffer rowName = getRowName();
-                ColumnPath columnPath = new ColumnPath(AtlasDbConstants.TIMESTAMP_TABLE);
+                ColumnPath columnPath = new ColumnPath(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName());
                 columnPath.setColumn(getColumnName());
                 ColumnOrSuperColumn result;
                 try {
@@ -119,7 +119,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
         try {
             result = client.cas(
                     getRowName(),
-                    AtlasDbConstants.TIMESTAMP_TABLE,
+                    AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName(),
                     oldVal == null ? ImmutableList.<Column> of() : ImmutableList.of(makeColumn(oldVal)),
                     ImmutableList.of(makeColumn(newVal)),
                     ConsistencyLevel.SERIAL,

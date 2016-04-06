@@ -37,6 +37,7 @@ import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.common.TableTasks;
 import com.palantir.atlasdb.table.common.TableTasks.DiffStats;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -89,9 +90,11 @@ public class TableTasksTest {
 
     @Test
     public void testDiffTask() throws InterruptedException {
+        TableReference table1 = TableReference.createWithEmptyNamespace("table1");
+        TableReference table2 = TableReference.createWithEmptyNamespace("table2");
         Random rand = new Random();
-        kvs.createTable("table1", AtlasDbConstants.EMPTY_TABLE_METADATA);
-        kvs.createTable("table2", AtlasDbConstants.EMPTY_TABLE_METADATA);
+        kvs.createTable(table1, AtlasDbConstants.EMPTY_TABLE_METADATA);
+        kvs.createTable(table2, AtlasDbConstants.EMPTY_TABLE_METADATA);
         HashMultimap<Integer, Integer> keys1 = HashMultimap.create();
         HashMultimap<Integer, Integer> keys2 = HashMultimap.create();
         int key = 0;
@@ -99,11 +102,11 @@ public class TableTasksTest {
             int r = rand.nextInt(3);
             if (r >= 1) {
                 keys1.put(key, col);
-                kvs.put("table1", ImmutableMap.of(Cell.create(new byte[]{(byte) key}, new byte[]{(byte) col}), new byte[] {0}), 1);
+                kvs.put(table1, ImmutableMap.of(Cell.create(new byte[]{(byte) key}, new byte[]{(byte) col}), new byte[] {0}), 1);
             }
             if (r <= 1) {
                 keys2.put(key, col);
-                kvs.put("table2", ImmutableMap.of(Cell.create(new byte[]{(byte) key}, new byte[]{(byte) col}), new byte[] {0}), 1);
+                kvs.put(table2, ImmutableMap.of(Cell.create(new byte[]{(byte) key}, new byte[]{(byte) col}), new byte[] {0}), 1);
             }
             if (rand.nextBoolean()) {
                 key++;
@@ -117,7 +120,7 @@ public class TableTasksTest {
         AtomicLong cellsOnlyInSource = new AtomicLong();
         AtomicLong cellsInCommon = new AtomicLong();
         DiffStats stats = new TableTasks.DiffStats(rowsOnlyInSource, rowsPartiallyInCommon, rowsCompletelyInCommon, rowsVisited, cellsOnlyInSource, cellsInCommon);
-        TableTasks.diff(txManager, MoreExecutors.newDirectExecutorService(), "table1", "table2", 10, 1, stats, new TableTasks.DiffVisitor() {
+        TableTasks.diff(txManager, MoreExecutors.newDirectExecutorService(), table1, table2, 10, 1, stats, new TableTasks.DiffVisitor() {
             @Override
             public void visit(Transaction t, Iterator<Cell> partialDiff) {
                 Iterators.size(partialDiff);

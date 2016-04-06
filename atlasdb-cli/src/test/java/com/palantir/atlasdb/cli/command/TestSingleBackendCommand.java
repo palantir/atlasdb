@@ -27,6 +27,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cli.runner.AbstractTestRunner;
 import com.palantir.atlasdb.cli.runner.RocksDbTestRunner;
 import com.palantir.atlasdb.cli.services.AtlasDbServices;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 import io.airlift.airline.Cli;
 import io.airlift.airline.Command;
@@ -59,10 +60,11 @@ public class TestSingleBackendCommand {
 
             // test kvs create table
             if (flag2 != null) {
-                services.getKeyValueService().createTable(flag2, AtlasDbConstants.GENERIC_TABLE_METADATA);
-                Preconditions.checkArgument(services.getKeyValueService().getAllTableNames().contains(flag2),
-                        "kvs contains tables %s, but not table %s", services.getKeyValueService().getAllTableNames(), flag2);
-                services.getKeyValueService().dropTable(flag2);
+                TableReference table = TableReference.createUnsafe(flag2);
+                services.getKeyValueService().createTable(table, AtlasDbConstants.GENERIC_TABLE_METADATA);
+                Preconditions.checkArgument(services.getKeyValueService().getAllTableNames().contains(table),
+                        "kvs contains tables %s, but not table %s", services.getKeyValueService().getAllTableNames(), table.getQualifiedName());
+                services.getKeyValueService().dropTable(table);
             }
             return 0;
         }

@@ -19,6 +19,7 @@ import java.io.Closeable;
 
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 /**
@@ -30,24 +31,23 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
  */
 public interface Cleaner extends Closeable {
     /**
-     * @param cellToTableName Cells that were touched as part of the hard delete transaction
+     * @param cellToTableRefs Cells that were touched as part of the hard delete transaction
      * @param scrubTimestamp The start timestamp of the hard delete transaction whose
      *        cells need to be scrubbed; at the time queueCellsForScrubbing is called,
-     *        the hard delete transaction will be in the process of committing
-     * @throws exceptions are simply propagated up if something goes wrong.
+     *        the hard delete transaction will be in the process of committing  @throws exceptions are simply propagated up if something goes wrong.
      */
-    void queueCellsForScrubbing(Multimap<Cell, String> cellToTableNames,
+    void queueCellsForScrubbing(Multimap<Cell, TableReference> cellToTableRefs,
                                 long scrubTimestamp);
 
     /**
-     * @param tableNameToCell Cells to be scrubbed immediately
+     * @param tableRefToCell Cells to be scrubbed immediately
      * @param scrubTimestamp The start timestamp of the hard delete transaction whose
      *        cells need to be scrubbed; at the time scrubImmediately is called, the
      *        hard delete transaction will have just committed
      * @throws RuntimeException are simply propagated up if something goes wrong.
      */
     void scrubImmediately(TransactionManager txManager,
-                          Multimap<String, Cell> tableNameToCell,
+                          Multimap<TableReference, Cell> tableRefToCell,
                           long scrubTimestamp,
                           long commitTimestamp);
 

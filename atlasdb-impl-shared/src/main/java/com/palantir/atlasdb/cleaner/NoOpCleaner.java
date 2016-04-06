@@ -17,20 +17,21 @@ package com.palantir.atlasdb.cleaner;
 
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 final public class NoOpCleaner implements Cleaner {
     public static final NoOpCleaner INSTANCE = new NoOpCleaner();
 
     @Override
-    public void queueCellsForScrubbing(Multimap<Cell, String> cellToTableNames,
+    public void queueCellsForScrubbing(Multimap<Cell, TableReference> cellToTableRefs,
                                        long scrubTimestamp) {
         throw new UnsupportedOperationException("This cleaner does not support scrubbing");
     }
 
     @Override
     public void scrubImmediately(TransactionManager txManager,
-                                 Multimap<String, Cell> tableNameToCell,
+                                 Multimap<TableReference, Cell> tableRefToCell,
                                  long scrubTimestamp,
                                  long commitTs) {
         throw new UnsupportedOperationException("This cleaner does not support scrubbing");

@@ -36,11 +36,14 @@ import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.util.Pair;
 
 @Ignore
 public final class RocksDbKeyValuePerfTest {
+    private static final TableReference T_TABLE = TableReference.createWithEmptyNamespace("t");
+
     private static final Random RAND = new Random();
     private static final int KEY_SIZE = 16;
     private static final int VALUE_SIZE = 100;
@@ -53,10 +56,10 @@ public final class RocksDbKeyValuePerfTest {
     public void setUp() throws IOException {
         File dbPath = getDatabasePath();
         db = RocksDbKeyValueService.create(dbPath.getAbsolutePath());
-        for (String table : db.getAllTableNames()) {
+        for (TableReference table : db.getAllTableNames()) {
             db.dropTable(table);
         }
-        db.createTable("t", AtlasDbConstants.EMPTY_TABLE_METADATA);
+        db.createTable(T_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA);
     }
 
     @After
@@ -94,10 +97,10 @@ public final class RocksDbKeyValuePerfTest {
         for (int i = batchStart; i != batchEnd; ++i) {
             final Map<Cell, byte[]> toPut = Maps.newHashMap();
             for (int j = 0; j != BATCH_SIZE; ++j) {
-                toPut.put(Cell.create(getRandomBytes(KEY_SIZE), PtBytes.toBytes("t")), getRandomBytes(VALUE_SIZE));
+                toPut.put(Cell.create(getRandomBytes(KEY_SIZE), PtBytes.toBytes(T_TABLE.getQualifiedName())), getRandomBytes(VALUE_SIZE));
                 rawBytes += KEY_SIZE + VALUE_SIZE + 1 + 4;
             }
-            db.put("t", toPut, i);
+            db.put(T_TABLE, toPut, i);
 //            Cell commitCell = Cell.create(EncodingUtils.encodeVarLong(i), TransactionConstants.COMMIT_TS_COLUMN);
 //            ImmutableMap<Cell, byte[]> commitMap = ImmutableMap.of(commitCell, EncodingUtils.encodeVarLong(i+1));
 //            db.put(TransactionConstants.TRANSACTION_TABLE, commitMap, 0);

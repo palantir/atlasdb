@@ -19,6 +19,7 @@ import java.util.SortedMap;
 
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.BatchingVisitable;
 
 /**
@@ -29,14 +30,14 @@ import com.palantir.common.base.BatchingVisitable;
  */
 public interface ScrubberStore {
 
-    void queueCellsForScrubbing(Multimap<Cell, String> cellToTableNames, long scrubTimestamp, int batchSize);
+    void queueCellsForScrubbing(Multimap<Cell, TableReference> cellToTableRefs, long scrubTimestamp, int batchSize);
 
     void markCellsAsScrubbed(Multimap<Cell, Long> cellToScrubTimestamp, int batchSize);
 
-    public BatchingVisitable<SortedMap<Long, Multimap<String, Cell>>> getBatchingVisitableScrubQueue(int cellsToScrubBatchSize,
-                                                                                                     long maxScrubTimestamp /* exclusive */,
-                                                                                                     byte[] startRow,
-                                                                                                     byte[] endRow);
+    BatchingVisitable<SortedMap<Long, Multimap<TableReference, Cell>>> getBatchingVisitableScrubQueue(int cellsToScrubBatchSize,
+                                                                                                      long maxScrubTimestamp /* exclusive */,
+                                                                                                      byte[] startRow,
+                                                                                                      byte[] endRow);
 
     int getNumberRemainingScrubCells(int maxCellsToScan);
 

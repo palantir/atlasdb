@@ -49,12 +49,13 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 
 public abstract class AbstractAtlasDbKeyValueServiceTest {
-    protected static final String TEST_TABLE = "ns.pt_kvs_test";
-    protected static final String TEST_NONEXISTING_TABLE = "ns2.some_nonexisting_table";
+    protected static final TableReference TEST_TABLE = TableReference.createFromFullyQualifiedName("ns.pt_kvs_test");
+    protected static final TableReference TEST_NONEXISTING_TABLE = TableReference.createFromFullyQualifiedName("ns2.some_nonexisting_table");
 
     protected static final byte[] row0 = "row0".getBytes();
     protected static final byte[] row1 = "row1".getBytes();
@@ -260,7 +261,7 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
 
     @Test
     public void testGetAllTableNames() {
-        final String anotherTable = "AnotherTable";
+        final TableReference anotherTable = TableReference.createWithEmptyNamespace("AnotherTable");
         assertEquals(1, keyValueService.getAllTableNames().size());
         assertEquals(TEST_TABLE, keyValueService.getAllTableNames().iterator().next());
         keyValueService.createTable(anotherTable, AtlasDbConstants.GENERIC_TABLE_METADATA);

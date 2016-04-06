@@ -26,24 +26,20 @@ import org.apache.commons.lang.Validate;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.TableMappingService;
-import com.palantir.atlasdb.schema.Namespace;
-import com.palantir.atlasdb.schema.TableReference;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.Schemas;
 
 public abstract class AbstractTableMappingService implements TableMappingService {
 
-    private static final String PERIOD = ".";
+    protected final AtomicReference<BiMap<TableReference, TableReference>> tableMap = new AtomicReference<BiMap<TableReference, TableReference>>();
 
-    protected final AtomicReference<BiMap<TableReference, String>> tableMap = new AtomicReference<BiMap<TableReference, String>>();
-
-    protected abstract BiMap<TableReference, String> readTableMap();
+    protected abstract BiMap<TableReference, TableReference> readTableMap();
 
     protected void updateTableMap() {
         while(true) {
-            BiMap<TableReference, String> oldMap = tableMap.get();
-            BiMap<TableReference, String> newMap = readTableMap();
+            BiMap<TableReference, TableReference> oldMap = tableMap.get();
+            BiMap<TableReference, TableReference> newMap = readTableMap();
             if (tableMap.compareAndSet(oldMap, newMap)) {
                 return;
             }
@@ -51,12 +47,12 @@ public abstract class AbstractTableMappingService implements TableMappingService
     }
 
     @Override
-    public String getShortTableName(TableReference tableRef) {
+    public TableReference getMappedTableName(TableReference tableRef) {
         if (tableRef.getNamespace().isEmptyNamespace()) {
-            return tableRef.getTablename();
+            return tableRef;
         }
         if (tableMap.get().containsKey(tableRef)) {
-            String shortName = tableMap.get().get(tableRef);
+            TableReference shortName = tableMap.get().get(tableRef);
             validateShortName(tableRef, shortName);
             return tableMap.get().get(tableRef);
         } else {
@@ -66,11 +62,11 @@ public abstract class AbstractTableMappingService implements TableMappingService
         }
     }
 
-    protected void validateShortName(TableReference tableRef, String shortName) {
-        Validate.isTrue(Schemas.isTableNameValid(shortName), "Table mapper has an invalid table name for table reference " + tableRef + ": " + shortName);
+    protected void validateShortName(TableReference tableRef, TableReference shortName) {
+        Validate.isTrue(Schemas.isTableNameValid(shortName.getQualifiedName()), "Table mapper has an invalid table name for table reference " + tableRef + ": " + shortName);
     }
 
-    private TableReference getFullTableName(String shortTableName) {
+    private TableReference getFullTableName(TableReference shortTableName) {
         if (tableMap.get().containsValue(shortTableName)) {
             return tableMap.get().inverse().get(shortTableName);
         } else {
@@ -81,53 +77,42 @@ public abstract class AbstractTableMappingService implements TableMappingService
     }
 
     @Override
-    public <T> Map<String, T> mapToShortTableNames(Map<TableReference, T> toMap) {
-        Map<String, T> newMap = Maps.newHashMap();
+    public <T> Map<TableReference, T> mapToShortTableNames(Map<TableReference, T> toMap) {
+        Map<TableReference, T> newMap = Maps.newHashMap();
         for (Entry<TableReference, T> e : toMap.entrySet()) {
-            newMap.put(getShortTableName(e.getKey()), e.getValue());
+            newMap.put(getMappedTableName(e.getKey()), e.getValue());
         }
         return newMap;
     }
 
-    private final ConcurrentHashMap<String, Boolean> unmappedTables = new ConcurrentHashMap<String, Boolean>();
+    private final ConcurrentHashMap<TableReference, Boolean> unmappedTables = new ConcurrentHashMap<TableReference, Boolean>();
 
     @Override
-    public Set<TableReference> mapToFullTableNames(Set<String> tableNames) {
+    public Set<TableReference> mapToFullTableNames(Set<TableReference> tableRefs) {
         Set<TableReference> newSet = Sets.newHashSet();
-        Set<String> tablesToReload = Sets.newHashSet();
-        for (String name : tableNames) {
-            if (name.contains(PERIOD)) {
-                newSet.add(TableReference.createFromFullyQualifiedName(name));
+        Set<TableReference> tablesToReload = Sets.newHashSet();
+        for (TableReference name : tableRefs) {
+            if (name.isFullyQualifiedName()) {
+                newSet.add(name);
             } else if (tableMap.get().containsValue(name)) {
                 newSet.add(getFullTableName(name));
             } else if (unmappedTables.containsKey(name)) {
-                newSet.add(TableReference.createWithEmptyNamespace(name));
+                newSet.add(name);
             } else {
                 tablesToReload.add(name);
             }
         }
         if (!tablesToReload.isEmpty()) {
             updateTableMap();
-            for (String tableName : Sets.difference(tablesToReload, tableMap.get().values())) {
-                unmappedTables.put(tableName, true);
-                newSet.add(TableReference.createWithEmptyNamespace(tableName));
+            for (TableReference tableRef : Sets.difference(tablesToReload, tableMap.get().values())) {
+                unmappedTables.put(tableRef, true);
+                newSet.add(tableRef);
             }
-            for (String tableName : Sets.intersection(tablesToReload, tableMap.get().values())) {
-                newSet.add(getFullTableName(tableName));
+            for (TableReference tableRef : Sets.intersection(tablesToReload, tableMap.get().values())) {
+                newSet.add(getFullTableName(tableRef));
             }
         }
         return newSet;
-    }
-
-    @Override
-    public TableReference getTableReference(String tableName) {
-        if (tableName.contains(PERIOD)) {
-            return TableReference.createFromFullyQualifiedName(tableName);
-        }
-        if (AtlasDbConstants.hiddenTables.contains(tableName)) {
-            return TableReference.createWithEmptyNamespace(tableName);
-        }
-        return TableReference.create(Namespace.DEFAULT_NAMESPACE, tableName);
     }
 
 }

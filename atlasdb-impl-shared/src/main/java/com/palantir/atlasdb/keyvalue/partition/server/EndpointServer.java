@@ -33,6 +33,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.map.InKvsPartitionMapService;
@@ -179,24 +180,24 @@ public class EndpointServer implements PartitionMapService, KeyValueService {
 
     @Override
     @Idempotent
-    public Map<Cell, Value> getRows(final String tableName, final Iterable<byte[]> rows,
-            final ColumnSelection columnSelection, final long timestamp) {
+    public Map<Cell, Value> getRows(final TableReference tableRef, final Iterable<byte[]> rows,
+                                    final ColumnSelection columnSelection, final long timestamp) {
         return runPartitionMapReadOperation(new Function<Void, Map<Cell, Value>>() {
             @Override
             public Map<Cell, Value> apply(Void input) {
-                return kvs().getRows(tableName, rows, columnSelection, timestamp);
+                return kvs().getRows(tableRef, rows, columnSelection, timestamp);
             }
         });
     }
 
     @Override
     @Idempotent
-    public Map<Cell, Value> get(final String tableName,
+    public Map<Cell, Value> get(final TableReference tableRef,
             final Map<Cell, Long> timestampByCell) {
         return runPartitionMapReadOperation(new Function<Void, Map<Cell, Value>>() {
             @Override
             public Map<Cell, Value> apply(Void input) {
-                return kvs().get(tableName, timestampByCell);
+                return kvs().get(tableRef, timestampByCell);
             }
 
         });
@@ -204,23 +205,23 @@ public class EndpointServer implements PartitionMapService, KeyValueService {
 
     @Override
     @Idempotent
-    public Map<Cell, Long> getLatestTimestamps(final String tableName,
+    public Map<Cell, Long> getLatestTimestamps(final TableReference tableRef,
             final Map<Cell, Long> timestampByCell) {
         return runPartitionMapReadOperation(new Function<Void, Map<Cell, Long>>() {
             @Override
             public Map<Cell, Long> apply(Void input) {
-                return kvs().getLatestTimestamps(tableName, timestampByCell);
+                return kvs().getLatestTimestamps(tableRef, timestampByCell);
             }
         });
     }
 
     @Override
-    public void put(final String tableName, final Map<Cell, byte[]> values, final long timestamp)
+    public void put(final TableReference tableRef, final Map<Cell, byte[]> values, final long timestamp)
             throws KeyAlreadyExistsException {
         runPartitionMapReadOperation(new Function<Void, Void> () {
             @Override
             public Void apply(Void input) {
-                kvs().put(tableName, values, timestamp);
+                kvs().put(tableRef, values, timestamp);
                 return null;
             }
         });
@@ -228,7 +229,7 @@ public class EndpointServer implements PartitionMapService, KeyValueService {
 
     @Override
     public void multiPut(
-            final Map<String, ? extends Map<Cell, byte[]>> valuesByTable,
+            final Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable,
             final long timestamp) throws KeyAlreadyExistsException {
         runPartitionMapReadOperation(new Function<Void, Void> () {
             @Override
@@ -241,24 +242,24 @@ public class EndpointServer implements PartitionMapService, KeyValueService {
 
     @Override
     @NonIdempotent
-    public void putWithTimestamps(final String tableName,
+    public void putWithTimestamps(final TableReference tableRef,
             final Multimap<Cell, Value> cellValues) throws KeyAlreadyExistsException {
         runPartitionMapReadOperation(new Function<Void, Void> () {
             @Override
             public Void apply(Void input) {
-                kvs().putWithTimestamps(tableName, cellValues);
+                kvs().putWithTimestamps(tableRef, cellValues);
                 return null;
             }
         });
     }
 
     @Override
-    public void putUnlessExists(final String tableName, final Map<Cell, byte[]> values)
+    public void putUnlessExists(final TableReference tableRef, final Map<Cell, byte[]> values)
             throws KeyAlreadyExistsException {
         runPartitionMapReadOperation(new Function<Void, Void> () {
             @Override
             public Void apply(Void input) {
-                kvs().putUnlessExists(tableName, values);
+                kvs().putUnlessExists(tableRef, values);
                 return null;
             }
         });
@@ -266,11 +267,11 @@ public class EndpointServer implements PartitionMapService, KeyValueService {
 
     @Override
     @Idempotent
-    public void delete(final String tableName, final Multimap<Cell, Long> keys) {
+    public void delete(final TableReference tableRef, final Multimap<Cell, Long> keys) {
         runPartitionMapReadOperation(new Function<Void, Void>() {
             @Override
             public Void apply(Void input) {
-                kvs().delete(tableName, keys);
+                kvs().delete(tableRef, keys);
                 return null;
             }
         });
@@ -278,12 +279,12 @@ public class EndpointServer implements PartitionMapService, KeyValueService {
 
     @Override
     @Idempotent
-    public void truncateTable(final String tableName)
+    public void truncateTable(final TableReference tableRef)
             throws InsufficientConsistencyException {
         runPartitionMapReadOperation(new Function<Void, Void> () {
             @Override
             public Void apply(Void input) {
-                kvs().truncateTable(tableName);
+                kvs().truncateTable(tableRef);
                 return null;
             }
         });
@@ -291,12 +292,12 @@ public class EndpointServer implements PartitionMapService, KeyValueService {
 
     @Override
     @Idempotent
-    public void truncateTables(final Set<String> tableNames)
+    public void truncateTables(final Set<TableReference> tableRefs)
             throws InsufficientConsistencyException {
         runPartitionMapReadOperation(new Function<Void, Void> () {
             @Override
             public Void apply(Void input) {
-                kvs().truncateTables(tableNames);
+                kvs().truncateTables(tableRefs);
                 return null;
             }
         });
@@ -304,12 +305,12 @@ public class EndpointServer implements PartitionMapService, KeyValueService {
 
     @Override
     @Idempotent
-    public ClosableIterator<RowResult<Value>> getRange(final String tableName,
+    public ClosableIterator<RowResult<Value>> getRange(final TableReference tableRef,
             final RangeRequest rangeRequest, final long timestamp) {
         return runPartitionMapReadOperation(new Function<Void, ClosableIterator<RowResult<Value>>>() {
             @Override
             public ClosableIterator<RowResult<Value>> apply(Void input) {
-                return kvs().getRange(tableName, rangeRequest, timestamp);
+                return kvs().getRange(tableRef, rangeRequest, timestamp);
             }
         });
     }
@@ -317,11 +318,11 @@ public class EndpointServer implements PartitionMapService, KeyValueService {
     @Override
     @Idempotent
     public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(
-            final String tableName, final RangeRequest rangeRequest, final long timestamp) {
+            final TableReference tableRef, final RangeRequest rangeRequest, final long timestamp) {
         return runPartitionMapReadOperation(new Function<Void, ClosableIterator<RowResult<Set<Value>>>>() {
             @Override
             public ClosableIterator<RowResult<Set<Value>>> apply(Void input) {
-                return kvs().getRangeWithHistory(tableName, rangeRequest, timestamp);
+                return kvs().getRangeWithHistory(tableRef, rangeRequest, timestamp);
             }
         });
     }
@@ -329,12 +330,12 @@ public class EndpointServer implements PartitionMapService, KeyValueService {
     @Override
     @Idempotent
     public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(
-            final String tableName, final RangeRequest rangeRequest, final long timestamp)
+            final TableReference tableRef, final RangeRequest rangeRequest, final long timestamp)
             throws InsufficientConsistencyException {
         return runPartitionMapReadOperation(new Function<Void, ClosableIterator<RowResult<Set<Long>>>> () {
             @Override
             public ClosableIterator<RowResult<Set<Long>>> apply(Void input) {
-                return kvs().getRangeOfTimestamps(tableName, rangeRequest, timestamp);
+                return kvs().getRangeOfTimestamps(tableRef, rangeRequest, timestamp);
             }
         });
     }
@@ -342,24 +343,24 @@ public class EndpointServer implements PartitionMapService, KeyValueService {
     @Override
     @Idempotent
     public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
-            final String tableName, final Iterable<RangeRequest> rangeRequests,
+            final TableReference tableRef, final Iterable<RangeRequest> rangeRequests,
             final long timestamp) {
         return runPartitionMapReadOperation(new Function<Void, Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>>>() {
             @Override
             public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> apply(Void input) {
-                return kvs().getFirstBatchForRanges(tableName, rangeRequests, timestamp);
+                return kvs().getFirstBatchForRanges(tableRef, rangeRequests, timestamp);
             }
         });
     }
 
     @Override
     @Idempotent
-    public void dropTable(final String tableName)
+    public void dropTable(final TableReference tableRef)
             throws InsufficientConsistencyException {
         runPartitionMapReadOperation(new Function<Void, Void>() {
             @Override
             public Void apply(Void input) {
-                kvs().dropTable(tableName);
+                kvs().dropTable(tableRef);
                 return null;
             }
 
@@ -367,11 +368,11 @@ public class EndpointServer implements PartitionMapService, KeyValueService {
     }
 
     @Override
-    public void dropTables(final Set<String> tableNames) throws InsufficientConsistencyException {
+    public void dropTables(final Set<TableReference> tableRefs) throws InsufficientConsistencyException {
         runPartitionMapReadOperation(new Function<Void, Void>() {
             @Override
             public Void apply(Void input) {
-                kvs().dropTables(tableNames);
+                kvs().dropTables(tableRefs);
                 return null;
             }
         });
@@ -379,12 +380,12 @@ public class EndpointServer implements PartitionMapService, KeyValueService {
 
     @Override
     @Idempotent
-    public void createTable(final String tableName, final byte[] tableMetadata)
+    public void createTable(final TableReference tableRef, final byte[] tableMetadata)
             throws InsufficientConsistencyException {
         runPartitionMapReadOperation(new Function<Void, Void> () {
             @Override
             public Void apply(Void input) {
-                kvs().createTable(tableName, tableMetadata);
+                kvs().createTable(tableRef, tableMetadata);
                 return null;
             }
         });
@@ -393,12 +394,12 @@ public class EndpointServer implements PartitionMapService, KeyValueService {
     @Override
     @Idempotent
     public void createTables(
-            final Map<String, byte[]> tableNameToTableMetadata)
+            final Map<TableReference, byte[]> tableRefToTableMetadata)
             throws InsufficientConsistencyException {
         runPartitionMapReadOperation(new Function<Void, Void>() {
             @Override
             public Void apply(Void input) {
-                kvs().createTables(tableNameToTableMetadata);
+                kvs().createTables(tableRefToTableMetadata);
                 return null;
             }
         });
@@ -406,12 +407,12 @@ public class EndpointServer implements PartitionMapService, KeyValueService {
 
     @Override
     @Idempotent
-    public Set<String> getAllTableNames() {
-        return runPartitionMapReadOperation(new Function<Void, Set<String>>() {
+    public Set<TableReference> getAllTableNames() {
+        return runPartitionMapReadOperation(new Function<Void, Set<TableReference>>() {
             @Override
-            public Set<String> apply(Void input) {
+            public Set<TableReference> apply(Void input) {
                 // TODO: Hack
-                Set<String> ret = Sets.newHashSet(kvs().getAllTableNames());
+                Set<TableReference> ret = Sets.newHashSet(kvs().getAllTableNames());
                 ret.remove(InKvsPartitionMapService.PARTITION_MAP_TABLE);
                 return ret;
             }
@@ -420,20 +421,20 @@ public class EndpointServer implements PartitionMapService, KeyValueService {
 
     @Override
     @Idempotent
-    public byte[] getMetadataForTable(final String tableName) {
+    public byte[] getMetadataForTable(final TableReference tableRef) {
         return runPartitionMapReadOperation(new Function<Void, byte[]>() {
             @Override
             public byte[] apply(Void input) {
-                return kvs().getMetadataForTable(tableName);
+                return kvs().getMetadataForTable(tableRef);
             }});
     }
 
     @Override
     @Idempotent
-    public Map<String, byte[]> getMetadataForTables() {
-        return runPartitionMapReadOperation(new Function<Void, Map<String, byte[]>>() {
+    public Map<TableReference, byte[]> getMetadataForTables() {
+        return runPartitionMapReadOperation(new Function<Void, Map<TableReference, byte[]>>() {
             @Override
-            public Map<String, byte[]> apply(Void input) {
+            public Map<TableReference, byte[]> apply(Void input) {
                 return kvs().getMetadataForTables();
             }
 
@@ -442,11 +443,11 @@ public class EndpointServer implements PartitionMapService, KeyValueService {
 
     @Override
     @Idempotent
-    public void putMetadataForTable(final String tableName, final byte[] metadata) {
+    public void putMetadataForTable(final TableReference tableRef, final byte[] metadata) {
         runPartitionMapReadOperation(new Function<Void, Void>() {
             @Override
             public Void apply(@Nullable Void input) {
-                kvs().putMetadataForTable(tableName, metadata);
+                kvs().putMetadataForTable(tableRef, metadata);
                 return null;
             }
         });
@@ -454,11 +455,11 @@ public class EndpointServer implements PartitionMapService, KeyValueService {
 
     @Override
     @Idempotent
-    public void putMetadataForTables(final Map<String, byte[]> tableNameToMetadata) {
+    public void putMetadataForTables(final Map<TableReference, byte[]> tableRefToMetadata) {
         runPartitionMapReadOperation(new Function<Void, Void>() {
             @Override
             public Void apply(@Nullable Void input) {
-                kvs().putMetadataForTables(tableNameToMetadata);
+                kvs().putMetadataForTables(tableRefToMetadata);
                 return null;
             }
 
@@ -467,12 +468,12 @@ public class EndpointServer implements PartitionMapService, KeyValueService {
 
     @Override
     @Idempotent
-    public void addGarbageCollectionSentinelValues(final String tableName,
+    public void addGarbageCollectionSentinelValues(final TableReference tableRef,
             final Set<Cell> cells) {
         runPartitionMapReadOperation(new Function<Void, Void>() {
             @Override
             public Void apply(@Nullable Void input) {
-                kvs().addGarbageCollectionSentinelValues(tableName, cells);
+                kvs().addGarbageCollectionSentinelValues(tableRef, cells);
                 return null;
             }
         });
@@ -480,23 +481,23 @@ public class EndpointServer implements PartitionMapService, KeyValueService {
 
     @Override
     @Idempotent
-    public Multimap<Cell, Long> getAllTimestamps(final String tableName,
+    public Multimap<Cell, Long> getAllTimestamps(final TableReference tableRef,
             final Set<Cell> cells, final long timestamp)
             throws InsufficientConsistencyException {
         return runPartitionMapReadOperation(new Function<Void, Multimap<Cell, Long>>() {
             @Override
             public Multimap<Cell, Long> apply(@Nullable Void input) {
-                return kvs().getAllTimestamps(tableName, cells, timestamp);
+                return kvs().getAllTimestamps(tableRef, cells, timestamp);
             }
         });
     }
 
     @Override
-    public void compactInternally(final String tableName) {
+    public void compactInternally(final TableReference tableRef) {
         runPartitionMapReadOperation(new Function<Void, Void>() {
             @Override
             public Void apply(@Nullable Void input) {
-                kvs().compactInternally(tableName);
+                kvs().compactInternally(tableRef);
                 return null;
             }
         });

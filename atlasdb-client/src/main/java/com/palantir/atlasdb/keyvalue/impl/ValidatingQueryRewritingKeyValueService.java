@@ -39,6 +39,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -72,57 +73,58 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
     }
 
     @Override
-    public void createTable(String tableName, byte[] tableMetadata) {
-        sanityCheckTableName(tableName);
-        delegate.createTable(tableName, tableMetadata);
+    public void createTable(TableReference tableRef, byte[] tableMetadata) {
+        sanityCheckTableName(tableRef);
+        delegate.createTable(tableRef, tableMetadata);
     }
 
     @Override
-    public void createTables(Map<String, byte[]> tableNameToTableMetadata) {
-        if (tableNameToTableMetadata.isEmpty()) {
+    public void createTables(Map<TableReference, byte[]> tableRefToTableMetadata) {
+        if (tableRefToTableMetadata.isEmpty()) {
             return;
         }
-        if (tableNameToTableMetadata.size() == 1) {
-            Entry<String, byte[]> element = Iterables.getOnlyElement(tableNameToTableMetadata.entrySet());
+        if (tableRefToTableMetadata.size() == 1) {
+            Entry<TableReference, byte[]> element = Iterables.getOnlyElement(tableRefToTableMetadata.entrySet());
             createTable(element.getKey(), element.getValue());
             return;
         }
-        for (String tableName : tableNameToTableMetadata.keySet()) {
-            sanityCheckTableName(tableName);
+        for (TableReference tableRef : tableRefToTableMetadata.keySet()) {
+            sanityCheckTableName(tableRef);
         }
-        delegate.createTables(tableNameToTableMetadata);
+        delegate.createTables(tableRefToTableMetadata);
     }
 
-    protected void sanityCheckTableName(String tableName) {
+    protected void sanityCheckTableName(TableReference tableRef) {
+        String tableName = tableRef.getQualifiedName();
         Validate.isTrue(
                 (!tableName.startsWith("_") && tableName.contains("."))
-                        || AtlasDbConstants.hiddenTables.contains(tableName)
+                        || AtlasDbConstants.hiddenTables.contains(tableRef)
                         || tableName.startsWith(AtlasDbConstants.NAMESPACE_PREFIX),
                 "invalid tableName: " + tableName);
     }
 
     @Override
-    public void delete(String tableName, Multimap<Cell, Long> keys) {
+    public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
         if (keys.isEmpty()) {
             return;
         }
-        delegate.delete(tableName, keys);
+        delegate.delete(tableRef, keys);
     }
 
     @Override
-    public Map<Cell, Value> get(String tableName, Map<Cell, Long> timestampByCell) {
+    public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         if (timestampByCell.isEmpty()) {
             return ImmutableMap.of();
         }
-        return delegate.get(tableName, timestampByCell);
+        return delegate.get(tableRef, timestampByCell);
     }
 
     @Override
-    public Multimap<Cell, Long> getAllTimestamps(String tableName, Set<Cell> cells, long timestamp) {
+    public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long timestamp) {
         if (cells.isEmpty()) {
             return ImmutableSetMultimap.of();
         } else {
-            return delegate.getAllTimestamps(tableName, cells, timestamp);
+            return delegate.getAllTimestamps(tableRef, cells, timestamp);
         }
     }
 
@@ -132,36 +134,36 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
     }
 
     @Override
-    public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(String tableName, Iterable<RangeRequest> rangeRequests, long timestamp) {
+    public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp) {
         if (Iterables.isEmpty(rangeRequests)) {
             return ImmutableMap.of();
         }
-        return delegate.getFirstBatchForRanges(tableName, rangeRequests, timestamp);
+        return delegate.getFirstBatchForRanges(tableRef, rangeRequests, timestamp);
     }
 
     @Override
-    public Map<Cell, Long> getLatestTimestamps(String tableName, Map<Cell, Long> timestampByCell) {
+    public Map<Cell, Long> getLatestTimestamps(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         if (timestampByCell.isEmpty()) {
             return ImmutableMap.of();
         }
-        return delegate.getLatestTimestamps(tableName, timestampByCell);
+        return delegate.getLatestTimestamps(tableRef, timestampByCell);
     }
 
     @Override
-    public Map<Cell, Value> getRows(String tableName, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
+    public Map<Cell, Value> getRows(TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
         if (Iterables.isEmpty(rows) || columnSelection.noColumnsSelected()) {
             return ImmutableMap.of();
         }
-        return delegate.getRows(tableName, rows, columnSelection, timestamp);
+        return delegate.getRows(tableRef, rows, columnSelection, timestamp);
     }
 
     @Override
-    public void multiPut(Map<String, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) throws KeyAlreadyExistsException {
+    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) throws KeyAlreadyExistsException {
         if (valuesByTable.isEmpty()) {
             return;
         }
         if (valuesByTable.size() == 1) {
-            Entry<String, ? extends Map<Cell, byte[]>> entry = Iterables.getOnlyElement(valuesByTable.entrySet());
+            Entry<TableReference, ? extends Map<Cell, byte[]>> entry = Iterables.getOnlyElement(valuesByTable.entrySet());
             put(entry.getKey(), entry.getValue(), timestamp);
             return;
         }
@@ -169,43 +171,43 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
     }
 
     @Override
-    public void put(String tableName, Map<Cell, byte[]> values, long timestamp) throws KeyAlreadyExistsException {
+    public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp) throws KeyAlreadyExistsException {
         Validate.isTrue(timestamp != Long.MAX_VALUE);
         Validate.isTrue(timestamp >= 0);
-        Validate.isTrue(!tableName.equals(TransactionConstants.TRANSACTION_TABLE), TRANSACTION_ERROR);
+        Validate.isTrue(!tableRef.equals(TransactionConstants.TRANSACTION_TABLE), TRANSACTION_ERROR);
         if (values.isEmpty()) {
             return;
         }
-        delegate.put(tableName, values, timestamp);
+        delegate.put(tableRef, values, timestamp);
     }
 
     @Override
-    public void putMetadataForTables(Map<String, byte[]> tableNameToMetadata) {
-        if (tableNameToMetadata.isEmpty()) {
+    public void putMetadataForTables(Map<TableReference, byte[]> tableRefToMetadata) {
+        if (tableRefToMetadata.isEmpty()) {
             return;
         }
-        if (tableNameToMetadata.size() == 1) {
-            Entry<String, byte[]> entry = Iterables.getOnlyElement(tableNameToMetadata.entrySet());
+        if (tableRefToMetadata.size() == 1) {
+            Entry<TableReference, byte[]> entry = Iterables.getOnlyElement(tableRefToMetadata.entrySet());
             putMetadataForTable(entry.getKey(), entry.getValue());
             return;
         }
-        delegate.putMetadataForTables(tableNameToMetadata);
+        delegate.putMetadataForTables(tableRefToMetadata);
     }
 
     @Override
-    public void putUnlessExists(String tableName, Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
+    public void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
         if (values.isEmpty()) {
             return;
         }
-        delegate.putUnlessExists(tableName, values);
+        delegate.putUnlessExists(tableRef, values);
     }
 
     @Override
-    public void putWithTimestamps(String tableName, Multimap<Cell, Value> cellValues) throws KeyAlreadyExistsException {
+    public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> cellValues) throws KeyAlreadyExistsException {
         if (cellValues.isEmpty()) {
             return;
         }
-        Validate.isTrue(!tableName.equals(TransactionConstants.TRANSACTION_TABLE), TRANSACTION_ERROR);
+        Validate.isTrue(!tableRef.equals(TransactionConstants.TRANSACTION_TABLE), TRANSACTION_ERROR);
 
         long lastTimestamp = -1;
         boolean allAtSameTimestamp = true;
@@ -236,21 +238,21 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
 
             });
 
-            put(tableName, putMap, lastTimestamp);
+            put(tableRef, putMap, lastTimestamp);
             return;
         }
-        delegate.putWithTimestamps(tableName, cellValues);
+        delegate.putWithTimestamps(tableRef, cellValues);
     }
 
     @Override
-    public void truncateTables(Set<String> tableNames) {
-        if (tableNames.isEmpty()) {
+    public void truncateTables(Set<TableReference> tableRefs) {
+        if (tableRefs.isEmpty()) {
             return;
         }
-        if (tableNames.size() == 1) {
-            truncateTable(Iterables.getOnlyElement(tableNames));
+        if (tableRefs.size() == 1) {
+            truncateTable(Iterables.getOnlyElement(tableRefs));
             return;
         }
-        delegate.truncateTables(tableNames);
+        delegate.truncateTables(tableRefs);
     }
 }
