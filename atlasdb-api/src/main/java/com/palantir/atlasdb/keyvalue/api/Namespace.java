@@ -19,6 +19,9 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.Validate;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Objects;
 
 public final class Namespace {
@@ -59,10 +62,12 @@ public final class Namespace {
         return new Namespace(name);
     }
 
-    private Namespace(String name) {
+    @JsonCreator
+    private Namespace(@JsonProperty("name") String name) {
         this.name = name;
     }
 
+    @JsonIgnore
     public boolean isEmptyNamespace() {
         return this == EMPTY_NAMESPACE;
     }
@@ -92,4 +97,5 @@ public final class Namespace {
     public String toString() {
         return "Namespace [name=" + name + "]";
     }
+
 }

@@ -15,11 +15,12 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
-
 
 public class TableReference {
     private final Namespace namespace;
@@ -52,6 +53,8 @@ public class TableReference {
         this.namespace = namespace;
         this.tablename = tablename;
     }
+
+
 
     public Namespace getNamespace() {
         return namespace;
@@ -104,6 +107,18 @@ public class TableReference {
 
     @Override
     public String toString() {
-        return "TableReference [namespace=" + namespace + ", tablename=" + tablename + "]";
+        return getQualifiedName();
     }
+
+    public static TableReference fromString(String s) {
+        int dotCount = StringUtils.countMatches(s, ".");
+        if (dotCount == 0) {
+            return TableReference.createWithEmptyNamespace(s);
+        } else if (dotCount == 1){
+            return TableReference.createFromFullyQualifiedName(s);
+        } else {
+            throw new IllegalArgumentException(s + " is not a valid table reference.");
+        }
+    }
+
 }
