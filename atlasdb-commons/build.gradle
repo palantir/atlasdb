@@ -15,5 +15,15 @@ dependencies {
     compile(project(":commons-executors"))
     compile 'javax.ws.rs:javax.ws.rs-api:2.0.1'
     compile 'com.fasterxml.jackson.core:jackson-annotations:' + libVersions.jackson_annotation
+
+    testCompile(group: 'junit', name: 'junit', version: libVersions.junit) {
+        exclude group: 'org.hamcrest'
+    }
+    testCompile(group: "org.jmock", name: "jmock", version: libVersions.jmock) {
+        exclude group: 'org.hamcrest'
+    }
+    testCompile 'org.hamcrest:hamcrest-core:' + libVersions.hamcrest
+    testCompile 'org.hamcrest:hamcrest-library:' + libVersions.hamcrest
+
 }
 

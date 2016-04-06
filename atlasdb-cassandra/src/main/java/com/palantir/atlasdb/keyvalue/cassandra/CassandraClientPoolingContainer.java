@@ -82,9 +82,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
             resource = clientPool.borrowObject();
             return f.apply(resource);
         } catch (Exception e) {
-            if (e instanceof TTransportException
-                    || e instanceof TProtocolException
-                    || e instanceof NoSuchElementException) {
+            if (isInvalidClientConnection(e)) {
                 log.warn("Not reusing resource {} due to {}", resource, e);
                 shouldReuse = false;
             }
@@ -104,6 +102,12 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
                 }
             }
         }
+    }
+
+    private static boolean isInvalidClientConnection(Exception e) {
+        return e instanceof TTransportException
+                || e instanceof TProtocolException
+                || e instanceof NoSuchElementException;
     }
 
     private void invalidateQuietly(Client resource) {
