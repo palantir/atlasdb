@@ -19,7 +19,6 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
-import com.google.common.base.MoreObjects;
 import com.google.common.collect.Sets;
 import com.palantir.common.base.Throwables;
 import com.palantir.paxos.persistence.generated.PaxosPersistence.ExceptionProto;
@@ -55,7 +54,9 @@ public class PaxosProtos {
         StackTraceElementProto.Builder builder = StackTraceElementProto.newBuilder();
         builder.setDeclaringClass(real.getClassName());
         builder.setMethodName(real.getMethodName());
-        builder.setFileName(MoreObjects.firstNonNull(real.getFileName(), ""));
+        if (real.getFileName() != null) {
+            builder.setFileName(real.getFileName());
+        }
         builder.setLineNumber(real.getLineNumber());
         return builder.build();
     }
@@ -97,7 +98,7 @@ public class PaxosProtos {
     private static StackTraceElement fromProto(StackTraceElementProto proto) {
         return new StackTraceElement(proto.getDeclaringClass(),
                 proto.getMethodName(),
-                proto.getFileName(),
+                proto.hasFileName() ? proto.getFileName() : null,
                 proto.getLineNumber());
     }
 }
