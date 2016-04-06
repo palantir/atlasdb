@@ -167,6 +167,7 @@ public class ExecutorInheritableThreadLocalTest extends Assert {
 
     @Test
     public void testAllNulls() throws InterruptedException, ExecutionException {
+        nullInts.remove();
         nullCallCount.set(new AtomicInteger(0));
         Preconditions.checkArgument(nullInts.get() == null);
         assertEquals(1, nullCallCount.get().get());
