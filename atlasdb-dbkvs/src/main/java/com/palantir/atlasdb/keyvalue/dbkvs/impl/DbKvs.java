@@ -66,7 +66,7 @@ import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.Throwables;
-import com.palantir.db.oracle.OracleShim;
+import com.palantir.db.oracle.JdbcHandler;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.AgnosticLightResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultRow;
@@ -81,18 +81,18 @@ public class DbKvs extends AbstractKeyValueService {
     private final AtlasSystemPropertyManager systemProperties;
     private final DbTableFactory dbTables;
     private final PalantirSqlConnectionSupplier connections;
-    private final OracleShim oracleShim;
+    private final JdbcHandler jdbcHandler;
 
     public DbKvs(ExecutorService executor,
                  AtlasSystemPropertyManager systemProperties,
                  DbTableFactory dbTables,
                  PalantirSqlConnectionSupplier connections,
-                 OracleShim oracleShim) {
+                 JdbcHandler jdbcHandler) {
         super(executor);
         this.systemProperties = systemProperties;
         this.dbTables = dbTables;
         this.connections = connections;
-        this.oracleShim = oracleShim;
+        this.jdbcHandler = jdbcHandler;
     }
 
     @Override
@@ -747,7 +747,7 @@ public class DbKvs extends AbstractKeyValueService {
     private <T> T runRead(TableReference tableRef, Function<DbReadTable, T> runner) {
         ConnectionSupplier conns = new ConnectionSupplier(connections);
         try {
-            return runner.apply(dbTables.createRead(tableRef.getQualifiedName(), conns, oracleShim));
+            return runner.apply(dbTables.createRead(tableRef.getQualifiedName(), conns, jdbcHandler));
         } finally {
             conns.close();
         }

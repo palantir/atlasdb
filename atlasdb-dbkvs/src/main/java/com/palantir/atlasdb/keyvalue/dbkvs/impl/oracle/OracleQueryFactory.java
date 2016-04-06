@@ -28,16 +28,16 @@ import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbQueryFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.FullQuery;
-import com.palantir.db.oracle.OracleShim;
-import com.palantir.db.oracle.OracleShim.OracleStructArray;
+import com.palantir.db.oracle.JdbcHandler;
+import com.palantir.db.oracle.JdbcHandler.ArrayHandler;
 
 public abstract class OracleQueryFactory implements DbQueryFactory {
     protected final String tableName;
-    protected  final OracleShim oracleShim;
+    protected  final JdbcHandler jdbcHandler;
 
-    public OracleQueryFactory(String tableName, OracleShim oracleShim) {
+    public OracleQueryFactory(String tableName, JdbcHandler jdbcHandler) {
         this.tableName = tableName;
-        this.oracleShim = oracleShim;
+        this.jdbcHandler = jdbcHandler;
     }
 
     @Override
@@ -287,36 +287,36 @@ public abstract class OracleQueryFactory implements DbQueryFactory {
 
     abstract String getValueSubselect(String tableAlias, boolean includeValue);
 
-    private OracleStructArray rowsToOracleArray(Iterable<byte[]> rows) {
+    private ArrayHandler rowsToOracleArray(Iterable<byte[]> rows) {
         List<Object[]> oraRows = Lists.newArrayListWithCapacity(Iterables.size(rows));
         for (byte[] row : rows) {
             oraRows.add(new Object[] { row, null, null });
         }
-        return oracleShim.createOracleStructArray("PT_MET_CELL_TS", "PT_MET_CELL_TS_TABLE", oraRows);
+        return jdbcHandler.createStructArray("PT_MET_CELL_TS", "PT_MET_CELL_TS_TABLE", oraRows);
     }
 
-    private OracleStructArray cellsToOracleArray(Iterable<Cell> cells) {
+    private ArrayHandler cellsToOracleArray(Iterable<Cell> cells) {
         List<Object[]> oraRows = Lists.newArrayListWithCapacity(Iterables.size(cells));
         for (Cell cell : cells) {
             oraRows.add(new Object[] { cell.getRowName(), cell.getColumnName(), null });
         }
-        return oracleShim.createOracleStructArray("PT_MET_CELL_TS", "PT_MET_CELL_TS_TABLE", oraRows);
+        return jdbcHandler.createStructArray("PT_MET_CELL_TS", "PT_MET_CELL_TS_TABLE", oraRows);
     }
 
-    private OracleStructArray rowsAndTimestampsToOracleArray(Collection<Map.Entry<byte[], Long>> rows) {
+    private ArrayHandler rowsAndTimestampsToOracleArray(Collection<Map.Entry<byte[], Long>> rows) {
         List<Object[]> oraRows = Lists.newArrayListWithCapacity(rows.size());
         for (Entry<byte[], Long> entry : rows) {
             oraRows.add(new Object[] { entry.getKey(), null, entry.getValue() });
         }
-        return oracleShim.createOracleStructArray("PT_MET_CELL_TS", "PT_MET_CELL_TS_TABLE", oraRows);
+        return jdbcHandler.createStructArray("PT_MET_CELL_TS", "PT_MET_CELL_TS_TABLE", oraRows);
     }
 
-    private OracleStructArray cellsAndTimestampsToOracleArray(Collection<Map.Entry<Cell, Long>> cells) {
+    private ArrayHandler cellsAndTimestampsToOracleArray(Collection<Map.Entry<Cell, Long>> cells) {
         List<Object[]> oraRows = Lists.newArrayListWithCapacity(cells.size());
         for (Entry<Cell, Long> entry : cells) {
             Cell cell = entry.getKey();
             oraRows.add(new Object[] { cell.getRowName(), cell.getColumnName(), entry.getValue() });
         }
-        return oracleShim.createOracleStructArray("PT_MET_CELL_TS", "PT_MET_CELL_TS_TABLE", oraRows);
+        return jdbcHandler.createStructArray("PT_MET_CELL_TS", "PT_MET_CELL_TS_TABLE", oraRows);
     }
 }

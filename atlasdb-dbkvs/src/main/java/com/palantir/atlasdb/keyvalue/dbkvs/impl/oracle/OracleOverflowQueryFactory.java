@@ -23,16 +23,16 @@ import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.FullQuery;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowValue;
-import com.palantir.db.oracle.OracleShim;
-import com.palantir.db.oracle.OracleShim.OracleStructArray;
+import com.palantir.db.oracle.JdbcHandler;
+import com.palantir.db.oracle.JdbcHandler.ArrayHandler;
 
 public class OracleOverflowQueryFactory extends OracleQueryFactory {
     private final OverflowMigrationState migrationState;
 
     public OracleOverflowQueryFactory(String tableName,
                                       OverflowMigrationState migrationState,
-                                      OracleShim oracleShim) {
-        super(tableName, oracleShim);
+                                      JdbcHandler jdbcHandler) {
+        super(tableName, jdbcHandler);
         this.migrationState = migrationState;
     }
 
@@ -52,7 +52,7 @@ public class OracleOverflowQueryFactory extends OracleQueryFactory {
         for (OverflowValue overflowId : overflowIds) {
             oraRows.add(new Object[] { null, null, overflowId.id });
         }
-        OracleStructArray arg = oracleShim.createOracleStructArray("PT_MET_CELL_TS", "PT_MET_CELL_TS_TABLE", oraRows);
+        ArrayHandler arg = jdbcHandler.createStructArray("PT_MET_CELL_TS", "PT_MET_CELL_TS_TABLE", oraRows);
         switch (migrationState) {
         case UNSTARTED:
             return ImmutableList.of(getOldOverflowQuery(arg));
@@ -66,7 +66,7 @@ public class OracleOverflowQueryFactory extends OracleQueryFactory {
         }
     }
 
-    private FullQuery getOldOverflowQuery(OracleStructArray arg) {
+    private FullQuery getOldOverflowQuery(ArrayHandler arg) {
         String query =
                 " /*SQL_MET_SELECT_OVERFLOW */ " +
                 " SELECT /*+ USE_NL(t o) LEADING(t o) INDEX(o pk_pt_metropolis_overflow) */ " +
@@ -76,7 +76,7 @@ public class OracleOverflowQueryFactory extends OracleQueryFactory {
         return new FullQuery(query).withArg(arg);
     }
 
-    private FullQuery getNewOverflowQuery(OracleStructArray arg) {
+    private FullQuery getNewOverflowQuery(ArrayHandler arg) {
         String query =
                 " /*SQL_MET_SELECT_OVERFLOW (" + tableName + ") */ " +
                 " SELECT /*+ USE_NL(t o) LEADING(t o) INDEX(o pk_pt_mo_" + tableName + ") */ " +

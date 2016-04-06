@@ -31,8 +31,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.palantir.common.base.Throwables;
-import com.palantir.db.oracle.OracleShim.OracleBlob;
-import com.palantir.db.oracle.OracleShim.OracleStructArray;
+import com.palantir.db.oracle.JdbcHandler.ArrayHandler;
+import com.palantir.db.oracle.JdbcHandler.BlobHandler;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.ResourceCreationLocation;
@@ -81,15 +81,15 @@ public abstract class SQL extends BasicSQL {
     public static final int POSTGRES_BLOB_READ_LIMIT = 100 * 1000 * 1000; // Postgres doesn't like to read more than ~2^28 bytes at once, so limit to something smaller
 
     @Override
-    protected OracleBlob setObject(Connection c, PreparedStatement ps, int i, Object obj) {
+    protected BlobHandler setObject(Connection c, PreparedStatement ps, int i, Object obj) {
         if (obj instanceof byte[]) {
             byte[] bytes = (byte[]) obj;
             PTInputStream is = new PTInputStream(new ByteArrayInputStream(bytes), bytes.length);
             return handlePtInputStream(c, ps, i, is);
         } else if (obj instanceof PTInputStream) {
             return handlePtInputStream(c, ps, i, (PTInputStream) obj);
-        } else if (obj instanceof OracleStructArray) {
-            setOracleStructArray(c, ps, i, (OracleStructArray) obj);
+        } else if (obj instanceof ArrayHandler) {
+            setOracleStructArray(c, ps, i, (ArrayHandler) obj);
             return null;
         } else {
             return super.setObject(c, ps, i, obj);
@@ -100,7 +100,7 @@ public abstract class SQL extends BasicSQL {
     // JDBC driver.  We check for the limit and, if it's below, we read
     // the whole stream into a byte[] and set the object directly.
     private static final int ORACLE_BYTE_LOWER_LIMIT = 2000; // QA-70384
-    private OracleBlob handlePtInputStream(Connection c, PreparedStatement ps, int i, PTInputStream is) {
+    private BlobHandler handlePtInputStream(Connection c, PreparedStatement ps, int i, PTInputStream is) {
         if (is.getLength() <= ORACLE_BYTE_LOWER_LIMIT) {
             try {
                 byte[] bytes = IOUtils.toByteArray(is, is.getLength());
@@ -124,22 +124,22 @@ public abstract class SQL extends BasicSQL {
         } else {
             DBType dbType = DBType.getTypeFromConnection(c);
             Validate.isTrue(dbType == DBType.ORACLE, "We only support blobs over 2GB on oracle (postgres only supports blobs up to 1G)"); //$NON-NLS-1$
-            OracleBlob oracleBlob;
+            BlobHandler blobHandler;
             try {
-                oracleBlob = getOracleShim().createOracleBlob(c);
+                blobHandler = getJdbcHandler().createBlob(c);
             } catch (SQLException e){
                 sqlExceptionlog.info("Caught SQLException", e); //$NON-NLS-1$
                 throw PalantirSqlException.create(e);
             }
             OutputStream os = null;
             try {
-                os = oracleBlob.setBinaryStream(0);
+                os = blobHandler.setBinaryStream(0);
                 PTStreams.copy(is, os);
                 os.close();
-                ps.setBlob(i, oracleBlob.getBlob());
+                ps.setBlob(i, blobHandler.getBlob());
             } catch (Exception e) {
                 try {
-                    oracleBlob.freeTemporary();
+                    blobHandler.freeTemporary();
                 } catch (Exception e1) {
                     SqlLoggers.LOGGER.error("failed to free temp blob", e1); //$NON-NLS-1$
                 } // dispose early if we aren't returning correctly
@@ -147,14 +147,14 @@ public abstract class SQL extends BasicSQL {
             } finally {
                 IOUtils.closeQuietly(os);
             }
-            return oracleBlob;
+            return blobHandler;
         }
     }
 
     private void setOracleStructArray(Connection c,
                                       PreparedStatement ps,
                                       int paramIndex,
-                                      OracleStructArray array) {
+                                      ArrayHandler array) {
         Preconditions.checkArgument(DBType.getTypeFromConnection(c) == DBType.ORACLE);
         try {
             PreparedStatements.setObject(ps, paramIndex, array.toOracleArray(c));

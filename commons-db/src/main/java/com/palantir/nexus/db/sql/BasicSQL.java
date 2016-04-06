@@ -55,8 +55,8 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.concurrent.ThreadNamingCallable;
-import com.palantir.db.oracle.OracleShim;
-import com.palantir.db.oracle.OracleShim.OracleBlob;
+import com.palantir.db.oracle.JdbcHandler;
+import com.palantir.db.oracle.JdbcHandler.BlobHandler;
 import com.palantir.exception.PalantirInterruptedException;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.DBType;
@@ -159,7 +159,7 @@ public abstract class BasicSQL {
     private static final long POSTGRES_END_RANGE = new DateTime(294276, 1, 1, 0, 0, 0, 0).getMillis();
 
 
-    protected OracleBlob setObject(Connection c, PreparedStatement ps, int i, Object obj) throws PalantirSqlException {
+    protected BlobHandler setObject(Connection c, PreparedStatement ps, int i, Object obj) throws PalantirSqlException {
         if (obj instanceof ByteArrayInputStream) {
             ByteArrayInputStream bais = (ByteArrayInputStream)obj;
             // Using #available is only okay for ByteArrayInputStream,
@@ -288,18 +288,18 @@ public abstract class BasicSQL {
             String sql, Object[] vs) throws PalantirSqlException {
         PreparedStatement ps;
         ps = Connections.prepareStatement(c, sql);
-        List<OracleBlob> toClean = Lists.newArrayList();
+        List<BlobHandler> toClean = Lists.newArrayList();
         if (vs != null) {
             try {
                 for (int i=0; i < vs.length; i++) {
-                    OracleBlob cleanup = setObject(c, ps, i+1, vs[i]);
+                    BlobHandler cleanup = setObject(c, ps, i+1, vs[i]);
                     if (cleanup != null) {
                         toClean.add(cleanup);
                     }
                 }
             } catch (Exception e) {
                 // if we throw, we need to clean up any blobs we have already made
-                for (OracleBlob cleanupBlob : toClean) {
+                for (BlobHandler cleanupBlob : toClean) {
                     try {
                         cleanupBlob.freeTemporary();
                     } catch (Exception e1) {
@@ -315,14 +315,14 @@ public abstract class BasicSQL {
 
     private static class BlobCleanupPreparedStatement implements InvocationHandler {
         final PreparedStatement ps;
-        final Collection<OracleBlob> toCleanup;
+        final Collection<BlobHandler> toCleanup;
 
-        static PreparedStatement create(PreparedStatement ps, Collection<OracleBlob> toCleanup) {
+        static PreparedStatement create(PreparedStatement ps, Collection<BlobHandler> toCleanup) {
             return (PreparedStatement)Proxy.newProxyInstance(PreparedStatement.class.getClassLoader(),
                 new Class<?>[] {PreparedStatement.class}, new BlobCleanupPreparedStatement(ps, toCleanup));
         }
 
-        private BlobCleanupPreparedStatement(PreparedStatement ps, Collection<OracleBlob> toCleanup) {
+        private BlobCleanupPreparedStatement(PreparedStatement ps, Collection<BlobHandler> toCleanup) {
             Validate.notNull(ps);
             Validate.noNullElements(toCleanup);
             this.ps = ps;
@@ -332,7 +332,7 @@ public abstract class BasicSQL {
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
             if (method.getName().equals("close")) { //$NON-NLS-1$
-                for (OracleBlob cleanup : toCleanup) {
+                for (BlobHandler cleanup : toCleanup) {
                     try {
                         cleanup.freeTemporary();
                     } catch (Exception e) {
@@ -751,7 +751,7 @@ public abstract class BasicSQL {
         BasicSQLUtils.runUninterruptably (new Callable<Void>() {
             @Override
             public Void call() throws PalantirSqlException {
-                List<OracleBlob> cleanups = Lists.newArrayList();
+                List<BlobHandler> cleanups = Lists.newArrayList();
                 PreparedStatement ps = null;
                 SqlTimer.Handle timerKey = getSqlTimer().start("updateMany(" + vs.length + ")", sql.getKey(), sql.getQuery()); //$NON-NLS-1$ //$NON-NLS-2$
                 try {
@@ -759,7 +759,7 @@ public abstract class BasicSQL {
                     for (int i=0; i < vs.length; i++) {
                         for (int j=0; j < vs[i].length; j++) {
                             Object obj = vs[i][j];
-                            OracleBlob cleanup = setObject(c, ps, j+1, obj);
+                            BlobHandler cleanup = setObject(c, ps, j+1, obj);
                             if (cleanup != null) {
                                 cleanups.add(cleanup);
                             }
@@ -773,7 +773,7 @@ public abstract class BasicSQL {
                 } finally {
                     closeSilently(ps);
                     timerKey.stop();
-                    for (OracleBlob cleanup : cleanups) {
+                    for (BlobHandler cleanup : cleanups) {
                         try {
                             cleanup.freeTemporary();
                         } catch (Exception e) {
@@ -816,13 +816,13 @@ public abstract class BasicSQL {
                 PreparedStatement ps = null;
 
                 SqlTimer.Handle timerKey = getSqlTimer().start("insertMany(" + vs.length + ")", sql.getKey(), sql.getQuery()); //$NON-NLS-1$ //$NON-NLS-2$
-                List<OracleBlob> cleanups = Lists.newArrayList();
+                List<BlobHandler> cleanups = Lists.newArrayList();
                 try {
                     ps = c.prepareStatement(sql.getQuery());
                     for (int i=0; i < vs.length; i++) {
                         for (int j=0; j < vs[i].length; j++) {
                             Object obj = vs[i][j];
-                            OracleBlob cleanup = setObject(c, ps, j+1, obj);
+                            BlobHandler cleanup = setObject(c, ps, j+1, obj);
                             if (cleanup != null) {
                                 cleanups.add(cleanup);
                             }
@@ -837,7 +837,7 @@ public abstract class BasicSQL {
                 } finally {
                     closeSilently(ps);
                     timerKey.stop();
-                    for (OracleBlob cleanup : cleanups) {
+                    for (BlobHandler cleanup : cleanups) {
                         try {
                             cleanup.freeTemporary();
                         } catch (Exception e) {
@@ -872,17 +872,17 @@ public abstract class BasicSQL {
         }
     }
 
-    protected OracleShim getOracleShim() {
-        return new OracleShim() {
+    protected JdbcHandler getJdbcHandler() {
+        return new JdbcHandler() {
             @Override
-            public OracleStructArray createOracleStructArray(String structType,
-                                                             String arrayType,
-                                                             List<Object[]> elements) {
+            public ArrayHandler createStructArray(String structType,
+                                                  String arrayType,
+                                                  List<Object[]> elements) {
                throw new UnsupportedOperationException();
             }
 
             @Override
-            public OracleBlob createOracleBlob(Connection c) throws SQLException {
+            public BlobHandler createBlob(Connection c) throws SQLException {
                 throw new UnsupportedOperationException();
             }
         };

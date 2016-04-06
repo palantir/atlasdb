@@ -28,7 +28,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleOverflowQueryFactor
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleOverflowWriteTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleRawQueryFactory;
 import com.palantir.common.base.Throwables;
-import com.palantir.db.oracle.OracleShim;
+import com.palantir.db.oracle.JdbcHandler;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 
@@ -54,15 +54,15 @@ public class OracleDbTableFactory implements DbTableFactory {
     }
 
     @Override
-    public DbReadTable createRead(String tableName, ConnectionSupplier conns, OracleShim oracleShim) {
+    public DbReadTable createRead(String tableName, ConnectionSupplier conns, JdbcHandler jdbcHandler) {
         TableSize tableSize = getTableSize(conns, tableName);
         DbQueryFactory queryFactory;
         switch (tableSize) {
         case OVERFLOW:
-            queryFactory = new OracleOverflowQueryFactory(tableName, migrationState, oracleShim);
+            queryFactory = new OracleOverflowQueryFactory(tableName, migrationState, jdbcHandler);
             break;
         case RAW:
-            queryFactory = new OracleRawQueryFactory(tableName, oracleShim);
+            queryFactory = new OracleRawQueryFactory(tableName, jdbcHandler);
             break;
         default:
             throw new EnumConstantNotPresentException(TableSize.class, tableSize.name());
