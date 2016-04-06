@@ -1,4 +1,9 @@
+plugins{
+    id 'com.palantir.docker' version '0.5.2'
+}
+
 apply plugin: 'org.inferred.processors'
+apply plugin: 'com.palantir.docker'
 
 apply from: "../gradle/shared.gradle"
 
@@ -37,3 +42,12 @@ jacocoTestReport {
     }
 }
 
+docker {
+    name "com.palantir.docker/atlas-cassandra:${project.version}"
+    tags 'latest'
+    dockerfile "${rootProject.projectDir}/docker-containers/cassandra/Dockerfile"
+    files "${rootProject.projectDir}/docker-containers/cassandra/entrypoint.sh",
+        "${rootProject.projectDir}/docker-containers/cassandra/cassandra.yaml",
+        "${rootProject.projectDir}/docker-containers/cassandra/cassandra-env.sh"
+    dependsOn jar
+}

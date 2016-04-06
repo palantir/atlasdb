@@ -1,0 +1,19 @@
+version: '2'
+
+services:
+    cassandra:
+        image: atlas-cassandra:2.2-v0.1
+        ports:
+        - "9160"
+        - "9042"
+        - "7199"
+        environment:
+        - LOCAL_JMX=no
+    ete:
+        image: java:openjdk-8u72-jre
+        links:
+        - cassandra
+        volumes:
+        - ~/.gradle:/root/.gradle
+        - ..:/atlas
+        command: echo
