@@ -1,0 +1,14 @@
+# -*- yaml -*-
+# METABUILD GENERATED metaconf/metaconf.groovy + metaconf/project/build.yaml.tmpl -> atlasdb/atlasdb-dbkvs/build.yaml
+meta:
+  name: AtlasdbDbkvs
+  gradle_name: atlasdb-dbkvs
+  use_legacy_revision: true
+  source_target_version: 1.8
+  skip_dist: true
+jars:
+  -
+    name: atlasdb-dbkvs
+    src:
+      - src/main/java
+      - src/main/resources

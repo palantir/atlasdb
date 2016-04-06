@@ -1,0 +1,94 @@
+// -*- groovy -*-
+// METABUILD GENERATED metaconf/metaconf.groovy + metaconf/project/make.gradle.tmpl -> atlasdb/atlasdb-dbkvs/make.gradle
+apply from: "${rootProject.projectDir}/before.gradle"
+sourceSets.main.java.srcDirs=[ file('src/main/java') ]
+sourceSets.main.resources.srcDirs=[ file('src/main/resources') ]
+sourceSets.test.java.srcDirs=[  ]
+sourceSets.test.resources.srcDirs=[  ]
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
+archivesBaseName="atlasdb-dbkvs"
+configurations.create('test').extendsFrom(configurations.testRuntime)
+jar {
+  baseName 'atlasdb-dbkvs'
+  exclude '.gitkeep'
+  doFirst {
+    manifest {
+      from rootProject.ext.standardManifest
+      def jarList = processJarListForManifest(sourceSets.main.compileClasspath)
+      if (!jarList.isEmpty()) {
+        attributes.put('Class-Path', jarList.join(' '))
+      }
+    }
+  }
+  doLast {
+    recordArtifactName(archiveName, archivePath)
+  }
+}
+task testJar(type: Jar) {
+  baseName 'atlasdb-dbkvs-test'
+  from sourceSets.test.output
+  exclude '.gitkeep'
+  ext.is_test = true
+  doFirst {
+    manifest {
+      from rootProject.ext.standardManifest
+      def jarList = processJarListForManifest(sourceSets.test.compileClasspath)
+      if (!jarList.isEmpty()) {
+        attributes.put('Class-Path', jarList.join(' '))
+      }
+    }
+  }
+  doLast {
+    recordArtifactName(archiveName, archivePath)
+  }
+}
+assemble.dependsOn testJar
+task mainSourcesZip(type: Zip) {
+  baseName 'atlasdb-dbkvs'
+  from sourceSets.main.allSource
+}
+assemble.dependsOn mainSourcesZip
+task testSourcesZip(type: Zip) {
+  baseName 'atlasdb-dbkvs-test'
+  from sourceSets.test.allSource
+}
+assemble.dependsOn testSourcesZip
+def sourceSetEmpty(def sourceSet) {
+  return sourceSet.allSource.isEmpty() ||
+    (sourceSet.allSource.files.size() == 1 &&
+    sourceSet.allSource.singleFile.name.equals(".gitkeep"))
+}
+publishing {
+publications {
+  ivy(IvyPublication) {
+    if (!sourceSetEmpty(sourceSets.main)) {
+      artifact(mainSourcesZip) {
+        name "atlasdb-dbkvs"
+        extension "zip"
+        type "source"
+        conf "default"
+      }
+    }
+    if (!sourceSetEmpty(sourceSets.test)) {
+      artifact(testSourcesZip) {
+        name "atlasdb-dbkvs-test"
+        extension "zip"
+        type "source"
+        conf "test"
+      }
+    }
+  }
+}
+}
+dependencies {
+  test sourceSets.test.output
+  testCompile(group: 'junit', name: 'junit', version: '4.11', configuration: 'default')
+  testCompile(project(path: ':atlasdb-client', configuration: 'test'))
+  compile(project(path: ':atlasdb-client', configuration: 'default'))
+  testCompile(project(path: ':atlasdb-spi', configuration: 'test'))
+  compile(project(path: ':atlasdb-spi', configuration: 'default'))
+  testCompile(project(path: ':timestamp-impl', configuration: 'test'))
+  compile(project(path: ':timestamp-impl', configuration: 'default'))
+}
+apply from: "${rootProject.projectDir}/after.gradle"
