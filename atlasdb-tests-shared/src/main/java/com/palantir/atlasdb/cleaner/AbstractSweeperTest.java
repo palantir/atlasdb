@@ -24,6 +24,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.base.Supplier;
@@ -346,6 +347,7 @@ public abstract class AbstractSweeperTest {
         }
     }
 
+    @Ignore
     @Test
     public void testBackgroundSweepWritesPriorityTableWithDifferentTime() {
         createTable(SweepStrategy.CONSERVATIVE);
@@ -373,6 +375,7 @@ public abstract class AbstractSweeperTest {
         }
     }
 
+    @Ignore
     @Test
     public void testBackgroundSweeperWritesToProgressTable() {
         setupBackgroundSweeper(2);
@@ -395,6 +398,7 @@ public abstract class AbstractSweeperTest {
         Assert.assertEquals(new Long(2), result.getCellsExamined());
     }
 
+    @Ignore
     @Test
     public void testBackgroundSweeperDoesNotOverwriteProgressMinimumTimestamp() {
         setupBackgroundSweeper(2);
@@ -437,6 +441,7 @@ public abstract class AbstractSweeperTest {
         }
     }
 
+    @Ignore
     @Test
     public void testBackgroundSweeperWritesFromProgressToPriority() {
         setupBackgroundSweeper(3);
