@@ -12,6 +12,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresQueryFactory;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.db.oracle.OracleShim;
+import com.palantir.nexus.db.DBType;
 
 public class PostgresDbTableFactory implements DbTableFactory {
 
@@ -53,6 +54,11 @@ public class PostgresDbTableFactory implements DbTableFactory {
     @Override
     public DbWriteTable createWrite(String tableName, ConnectionSupplier conns) {
         return new SimpleDbWriteTable(tableName, conns);
+    }
+
+    @Override
+    public DBType getDbType() {
+        return DBType.POSTGRESQL;
     }
 
     @Override

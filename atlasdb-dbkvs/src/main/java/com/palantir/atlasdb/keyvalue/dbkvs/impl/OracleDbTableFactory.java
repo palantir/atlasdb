@@ -14,6 +14,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleOverflowWriteTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleRawQueryFactory;
 import com.palantir.common.base.Throwables;
 import com.palantir.db.oracle.OracleShim;
+import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 
 public class OracleDbTableFactory implements DbTableFactory {
@@ -85,6 +86,11 @@ public class OracleDbTableFactory implements DbTableFactory {
         } catch (ExecutionException e) {
             throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
         }
+    }
+
+    @Override
+    public DBType getDbType() {
+        return DBType.ORACLE;
     }
 
     @Override

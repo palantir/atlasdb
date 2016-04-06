@@ -1,6 +1,7 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
 import java.io.Closeable;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +21,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
+import com.palantir.common.base.Throwables;
 import com.palantir.nexus.db.sql.AgnosticLightResultRow;
 import com.palantir.nexus.db.sql.AgnosticLightResultSet;
 import com.palantir.nexus.db.sql.PalantirSqlConnection;
@@ -129,19 +131,28 @@ public class BatchedDbReadTable extends AbstractDbReadTable {
     @Override
     protected ClosableIterator<AgnosticLightResultRow> run(FullQuery query) {
         final PalantirSqlConnection freshConn = conns.getFresh();
-        final AgnosticLightResultSet results = freshConn.selectLightResultSetUnregisteredQuery(
-                query.getQuery(), query.getArgs());
-        return ClosableIterators.wrap(results.iterator(), new Closeable() {
-            @Override
-            public void close() {
-                results.close();
-                try {
-                    freshConn.getUnderlyingConnection().close();
-                } catch (SQLException e) {
-                    log.error("Failed to close db connection performing reads.", e);
+        try {
+            final AgnosticLightResultSet results = freshConn.selectLightResultSetUnregisteredQuery(
+                    query.getQuery(), query.getArgs());
+            return ClosableIterators.wrap(results.iterator(), new Closeable() {
+                @Override
+                public void close() {
+                    results.close();
+                    closeConnection(freshConn.getUnderlyingConnection());
                 }
-            }
-        });
+            });
+        } catch (Exception e) {
+            closeConnection(freshConn.getUnderlyingConnection());
+            throw Throwables.rewrapAndThrowUncheckedException(e);
+        }
+    }
+
+    private void closeConnection(Connection conn) {
+        try {
+            conn.close();
+        } catch (SQLException e) {
+            log.error("Failed to close db connection performing reads.", e);
+        }
     }
 
     private int getBatchSize() {

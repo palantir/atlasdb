@@ -46,6 +46,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.DbKvsGetRanges;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
@@ -369,10 +370,7 @@ public class DbKvs extends AbstractKeyValueService {
     public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(final TableReference tableRef,
                                                                                                            Iterable<RangeRequest> rangeRequests,
                                                                                                            final long timestamp) {
-        int concurrency = systemProperties.getCachedSystemPropertyInteger(
-                DeclaredAtlasSystemProperty.ATLASDB_GET_RANGES_CONCURRENCY);
-        return KeyValueServices.getFirstBatchForRangesUsingGetRangeConcurrent(
-                executor, this, tableRef, rangeRequests, timestamp, concurrency);
+        return new DbKvsGetRanges(this, dbTables.getDbType(), connections).getFirstBatchForRanges(tableRef, rangeRequests, timestamp);
     }
 
     @Override
