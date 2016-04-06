@@ -888,7 +888,7 @@ public class JdbcKeyValueService implements KeyValueService {
                         handleTableCreationException(e);
                     }
                     ctx.insertInto(METADATA_TABLE, TABLE_NAME, METADATA)
-                        .values(tableName(tableRef), metadata)
+                        .values(tableRef.getQualifiedName(), metadata)
                         .execute();
                 }
                 return null;
@@ -926,7 +926,7 @@ public class JdbcKeyValueService implements KeyValueService {
                 byte[] metadata = ctx
                         .select(METADATA)
                         .from(METADATA_TABLE)
-                        .where(TABLE_NAME.eq(tableName(tableRef)))
+                        .where(TABLE_NAME.eq(tableRef.getQualifiedName()))
                         .fetchOne(METADATA);
                 return MoreObjects.firstNonNull(metadata, new byte[0]);
             }
@@ -970,7 +970,7 @@ public class JdbcKeyValueService implements KeyValueService {
                         .where(TABLE_NAME.eq((String) null));
                 BatchBindStep batch = ctx.batch(query);
                 for (Entry<TableReference, byte[]> entry : tableRefToMetadata.entrySet()) {
-                    batch = batch.bind(entry.getValue(), tableName(entry.getKey()));
+                    batch = batch.bind(entry.getValue(), entry.getKey().getQualifiedName());
                 }
                 batch.execute();
                 return null;
