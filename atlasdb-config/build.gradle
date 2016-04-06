@@ -18,6 +18,10 @@ dependencies {
     }
     compile 'javax.validation:validation-api:1.1.0.Final'
 
+    compile 'com.fasterxml.jackson.core:jackson-databind:' + libVersions.jackson
+    compile 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:' + libVersions.jackson
+    compile 'io.dropwizard:dropwizard-jackson:' + libVersions.dropwizard
+
     processor 'org.immutables:value:2.0.21'
     processor 'com.google.auto.service:auto-service:1.0-rc2'
 

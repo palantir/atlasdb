@@ -15,14 +15,13 @@
  */
 package com.palantir.atlasdb.console.module
 
-import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import com.google.common.base.Optional
 import com.google.common.collect.ImmutableSet
 import com.palantir.atlasdb.api.AtlasDbService
 import com.palantir.atlasdb.api.TransactionToken
 import com.palantir.atlasdb.config.AtlasDbConfig
+import com.palantir.atlasdb.config.AtlasDbConfigs
 import com.palantir.atlasdb.console.AtlasConsoleModule
 import com.palantir.atlasdb.console.AtlasConsoleService
 import com.palantir.atlasdb.console.AtlasConsoleServiceImpl
@@ -36,7 +35,6 @@ import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager
 import groovy.json.JsonBuilder
 import groovy.json.JsonOutput
 import groovy.transform.CompileStatic
-import io.dropwizard.jackson.DiscoverableSubtypeResolver
 
 import javax.net.ssl.SSLSocketFactory
 
@@ -136,11 +134,7 @@ class AtlasCoreModule implements AtlasConsoleModule {
     }
 
     public connect(String yamlFilePath = null) {
-        ObjectMapper configMapper = new ObjectMapper(new YAMLFactory());
-        configMapper.setSubtypeResolver(new DiscoverableSubtypeResolver());
-        JsonNode configRoot = configMapper.readTree(new File(yamlFilePath)).get("atlasdb");
-        AtlasDbConfig config = configMapper.treeToValue(configRoot, AtlasDbConfig.class)
-
+        AtlasDbConfig config = AtlasDbConfigs.load(new File(yamlFilePath));
         SerializableTransactionManager tm = TransactionManagers.create(config, Optional.<SSLSocketFactory>absent(), ImmutableSet.<Schema>of(),
                 new com.palantir.atlasdb.factory.TransactionManagers.Environment() {
                     @Override
