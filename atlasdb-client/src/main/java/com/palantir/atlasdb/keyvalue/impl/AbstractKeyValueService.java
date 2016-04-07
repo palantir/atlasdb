@@ -50,7 +50,6 @@ import com.palantir.atlasdb.AtlasDbPerformanceConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.Maps2;
@@ -90,15 +89,15 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void createTables(Map<TableReference, byte[]> tableRefToTableMetadata) {
-        for (Entry<TableReference, byte[]> entry : tableRefToTableMetadata.entrySet()) {
+    public void createTables(Map<String, byte[]> tableNameToTableMetadata) {
+        for (Entry<String, byte[]> entry : tableNameToTableMetadata.entrySet()) {
             createTable(entry.getKey(), entry.getValue());
         }
     }
 
     @Override
-    public void dropTables(Set<TableReference> tableRefs) {
-        for (TableReference tableName : tableRefs) {
+    public void dropTables(Set<String> tableNames) {
+        for (String tableName : tableNames) {
             dropTable(tableName);
         }
     }
@@ -113,14 +112,14 @@ public abstract class AbstractKeyValueService implements KeyValueService {
      * This is slower than it needs to be so implementers are encouraged to make a faster impl.
      */
     @Override
-    public Map<Cell, Long> getLatestTimestamps(TableReference tableRef, Map<Cell, Long> keys) {
-        return Maps.newHashMap(Maps.transformValues(get(tableRef, keys), Value.GET_TIMESTAMP));
+    public Map<Cell, Long> getLatestTimestamps(String tableName, Map<Cell, Long> keys) {
+        return Maps.newHashMap(Maps.transformValues(get(tableName, keys), Value.GET_TIMESTAMP));
     }
 
     @Override
-    public Map<TableReference, byte[]> getMetadataForTables() {
-        ImmutableMap.Builder<TableReference, byte[]> builder = ImmutableMap.builder();
-        for (TableReference table: getAllTableNames()) {
+    public Map<String, byte[]> getMetadataForTables() {
+        ImmutableMap.Builder<String, byte[]> builder = ImmutableMap.builder();
+        for (String table: getAllTableNames()) {
             builder.put(table, getMetadataForTable(table));
         }
         return builder.build();
@@ -142,10 +141,10 @@ public abstract class AbstractKeyValueService implements KeyValueService {
      * @see com.palantir.atlasdb.keyvalue.api.KeyValueService#multiPut(java.util.Map, long)
      */
     @Override
-    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, final long timestamp) throws KeyAlreadyExistsException {
+    public void multiPut(Map<String, ? extends Map<Cell, byte[]>> valuesByTable, final long timestamp) throws KeyAlreadyExistsException {
         List<Callable<Void>> callables = Lists.newArrayList();
-        for (Entry<TableReference, ? extends Map<Cell, byte[]>> e : valuesByTable.entrySet()) {
-            final TableReference table = e.getKey();
+        for (Entry<String, ? extends Map<Cell, byte[]>> e : valuesByTable.entrySet()) {
+            final String table = e.getKey();
             // We sort here because some key value stores are more efficient if you store adjacent keys together.
             NavigableMap<Cell, byte[]> sortedMap = ImmutableSortedMap.copyOf(e.getValue());
 
@@ -199,15 +198,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     protected <T> Iterable<List<T>> partitionByCountAndBytes(final Iterable<T> iterable,
                                                              final int maximumCountPerPartition,
                                                              final long maximumBytesPerPartition,
-                                                             final TableReference tableRef,
-                                                             final Function<T, Long> sizingFunction) {
-        return partitionByCountAndBytes(iterable, maximumCountPerPartition, getMinimumDurationToTraceMillis(), tableRef.getQualifiedName(), sizingFunction);
-    }
-
-    protected <T> Iterable<List<T>> partitionByCountAndBytes(final Iterable<T> iterable,
-                                                             final int maximumCountPerPartition,
-                                                             final long maximumBytesPerPartition,
-                                                             final String tableName,
+                                                             final String tablename,
                                                              final Function<T, Long> sizingFunction) {
         return new Iterable<List<T>>() {
             @Override
@@ -236,9 +227,9 @@ public abstract class AbstractKeyValueService implements KeyValueService {
                         if (runningSize > maximumBytesPerPartition && log.isWarnEnabled()) {
                             String message = "Encountered an entry of approximate size " + sizingFunction.apply(firstEntry) +
                                     " bytes, larger than maximum size of " + maximumBytesPerPartition +
-                                    " defined per entire batch, while doing a write to " + tableName +
+                                    " defined per entire batch, while doing a write to " + tablename +
                                     ". Attempting to batch anyways.";
-                            if (AtlasDbConstants.TABLES_KNOWN_TO_BE_POORLY_DESIGNED.contains(TableReference.createUnsafe(tableName))) {
+                            if (AtlasDbConstants.TABLES_KNOWN_TO_BE_POORLY_DESIGNED.contains(tablename)) {
                                 log.warn(message);
                             } else {
                                 log.warn(message + " This can potentially cause out-of-memory errors.");
@@ -261,14 +252,14 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void putMetadataForTables(final Map<TableReference, byte[]> tableRefToMetadata) {
-        for (Map.Entry<TableReference, byte[]> entry : tableRefToMetadata.entrySet()) {
+    public void putMetadataForTables(final Map<String, byte[]> tableNameToMetadata) {
+        for (Map.Entry<String, byte[]> entry : tableNameToMetadata.entrySet()) {
             putMetadataForTable(entry.getKey(), entry.getValue());
         }
     }
 
-    public boolean shouldTraceQuery(final TableReference tableRef) {
-        return tracingPrefs.shouldTraceQuery(tableRef.getQualifiedName());
+    public boolean shouldTraceQuery(final String tableName) {
+        return tracingPrefs.shouldTraceQuery(tableName);
     }
 
     @Override
@@ -283,13 +274,13 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void truncateTables(final Set<TableReference> tableRefs) {
+    public void truncateTables(final Set<String> tableNames) {
         List<Future<Void>> futures = Lists.newArrayList();
-        for (final TableReference tableRef : tableRefs) {
+        for (final String tableName : tableNames) {
             futures.add(executor.submit(new Callable<Void>() {
                 @Override
                 public Void call() throws Exception {
-                    truncateTable(tableRef);
+                    truncateTable(tableName);
                     return null;
                 }
             }));
@@ -301,18 +292,17 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     }
 
 
-    protected static String internalTableName(TableReference tableRef) {
-        String tableName = tableRef.getQualifiedName();
+    protected static String internalTableName(String tableName) {
         if (tableName.startsWith("_")) {
             return tableName;
         }
         return tableName.replaceFirst("\\.", "__");
     }
 
-    protected TableReference fromInternalTableName(String tableName) {
+    protected String fromInternalTableName(String tableName) {
         if (tableName.startsWith("_")) {
-            return TableReference.createUnsafe(tableName);
+            return tableName;
         }
-        return TableReference.createUnsafe(tableName.replaceFirst("__", "."));
+        return tableName.replaceFirst("__", ".");
     }
 }

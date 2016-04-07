@@ -23,7 +23,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -33,9 +32,9 @@ public final class Helper {
     public final KeyValueService keyValueService = new InMemoryKeyValueService(false);
     public final TransactionService transactionService = TransactionServices.createTransactionService(keyValueService);
 
-    public String get(TableReference tableRef, String rowString, String colString, long ts) {
+    public String get(String tableName, String rowString, String colString, long ts) {
         Cell cell = Cell.create(rowString.getBytes(), colString.getBytes());
-        Map<Cell, Value> map = keyValueService.get(tableRef, ImmutableMap.of(cell, ts));
+        Map<Cell, Value> map = keyValueService.get(tableName, ImmutableMap.of(cell, ts));
         Value value = map.get(cell);
         if (value == null) {
             return "";
@@ -44,18 +43,18 @@ public final class Helper {
         }
     }
 
-    public Set<Long> getAllTimestampsStrings(TableReference tableRef,
-                                             String rowString,
-                                             String colString,
-                                             long ts) {
+    public Set<Long> getAllTimestampsStrings(String tableName,
+                                                       String rowString,
+                                                       String colString,
+                                                       long ts) {
         return Sets.newHashSet(keyValueService.getAllTimestamps(
-                tableRef,
+                tableName,
                 ImmutableSet.of(Cell.create(rowString.getBytes(), colString.getBytes())), ts).values());
     }
 
-    public void put(TableReference tableRef, String rowString, String colString, String valString, int ts) {
+    public void put(String tableName, String rowString, String colString, String valString, int ts) {
         keyValueService.put(
-                tableRef,
+                tableName,
                 ImmutableMap.of(
                         Cell.create(rowString.getBytes(), colString.getBytes()),
                         valString.getBytes()),

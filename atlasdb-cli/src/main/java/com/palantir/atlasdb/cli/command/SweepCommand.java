@@ -20,10 +20,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
 
 import com.google.common.base.Functions;
 import com.google.common.base.Optional;
+import com.google.common.base.Predicates;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -31,7 +31,6 @@ import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cli.services.AtlasDbServices;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
@@ -81,20 +80,18 @@ public class SweepCommand extends SingleBackendCommand {
             return 1;
         }
 
-        Map<TableReference, Optional<byte[]>> tableToStartRow = Maps.newHashMap();
+        Map<String, Optional<byte[]>> tableToStartRow = Maps.newHashMap();
 
         if ((table != null)) {
             Optional<byte[]> startRow = Optional.of(new byte[0]);
             if (row != null) {
                 startRow = Optional.of(decodeStartRow(row));
             }
-            tableToStartRow.put(TableReference.createUnsafe(table), startRow);
+            tableToStartRow.put(table, startRow);
         } else if (namespace != null) {
-            Set<TableReference> tablesInNamespace = services.getKeyValueService().getAllTableNames()
-                    .stream()
-                    .filter(tableRef -> tableRef.getNamespace().getName().equals(namespace))
-                    .collect(Collectors.toSet());
-            for (TableReference table : tablesInNamespace) {
+            Set<String> tablesInNamespace = Sets.filter(services.getKeyValueService().getAllTableNames(),
+                    Predicates.containsPattern("^" + namespace + "\\."));
+            for (String table : tablesInNamespace) {
                 tableToStartRow.put(table, Optional.of(new byte[0]));
             }
         } else if (sweepAllTables) {
@@ -104,8 +101,8 @@ public class SweepCommand extends SingleBackendCommand {
                             Functions.constant(Optional.of(new byte[0]))));
         }
 
-        for (Map.Entry<TableReference, Optional<byte[]>> entry : tableToStartRow.entrySet()) {
-            final TableReference table = entry.getKey();
+        for (Map.Entry<String, Optional<byte[]>> entry : tableToStartRow.entrySet()) {
+            final String table = entry.getKey();
             Optional<byte[]> startRow = entry.getValue();
 
             final AtomicLong cellsExamined = new AtomicLong();
@@ -126,7 +123,7 @@ public class SweepCommand extends SingleBackendCommand {
 
             services.getTransactionManager().runTaskWithRetry((TxTask) t -> {
                 SweepPriorityTable priorityTable = SweepTableFactory.of().getSweepPriorityTable(t);
-                SweepPriorityTable.SweepPriorityRow row1 = SweepPriorityTable.SweepPriorityRow.of(table.getQualifiedName());
+                SweepPriorityTable.SweepPriorityRow row1 = SweepPriorityTable.SweepPriorityRow.of(table);
                 priorityTable.putWriteCount(row1, 0L);
                 priorityTable.putCellsDeleted(row1, cellsDeleted.get());
                 priorityTable.putCellsExamined(row1, cellsExamined.get());

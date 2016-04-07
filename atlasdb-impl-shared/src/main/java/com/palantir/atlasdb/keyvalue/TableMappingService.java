@@ -18,13 +18,14 @@ package com.palantir.atlasdb.keyvalue;
 import java.util.Map;
 import java.util.Set;
 
-import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.schema.TableReference;
 
 
 public interface TableMappingService {
-    TableReference addTable(TableReference tableRef);
-    void removeTable(TableReference tableRef);
-    TableReference getMappedTableName(TableReference tableRef);
-    <T> Map<TableReference, T> mapToShortTableNames(Map<TableReference, T> tableMap);
-    Set<TableReference> mapToFullTableNames(Set<TableReference> tableNames);
+    public String addTable(TableReference tableRef);
+    public void removeTable(TableReference tableRef);
+    public String getShortTableName(TableReference tableRef);
+    public <T> Map<String, T> mapToShortTableNames(Map<TableReference, T> tableMap);
+    public Set<TableReference> mapToFullTableNames(Set<String> tableNames);
+    public TableReference getTableReference(String tableName);
 }

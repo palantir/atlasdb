@@ -29,6 +29,8 @@ import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
 
 public class CassandraTimestampTest {
+    private static final String TIMESTAMP_TABLE = AtlasDbConstants.TIMESTAMP_TABLE;
+
     private CassandraKeyValueService kv;
 
     @Before
@@ -48,7 +50,7 @@ public class CassandraTimestampTest {
                                 .autoRefreshNodes(false)
                                 .build()));
         kv.initializeFromFreshInstance();
-        kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
+        kv.dropTable(TIMESTAMP_TABLE);
     }
 
     @After

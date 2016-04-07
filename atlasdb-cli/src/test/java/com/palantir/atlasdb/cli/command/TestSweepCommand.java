@@ -35,8 +35,6 @@ import com.palantir.atlasdb.cli.services.TestAtlasDbServices;
 import com.palantir.atlasdb.cli.services.TestSweeperModule;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.Namespace;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.TableDefinition;
@@ -47,11 +45,11 @@ import com.palantir.timestamp.TimestampService;
 
 public class TestSweepCommand {
 
-    private static final Namespace NS1 = Namespace.create("test");
-    private static final Namespace NS2 = Namespace.create("diff");
-    private static final TableReference TABLE_ONE = TableReference.create(NS1, "one");
-    private static final TableReference TABLE_TWO = TableReference.create(NS1, "two");
-    private static final TableReference TABLE_THREE = TableReference.create(NS2, "one");
+    private static final String NS1 = "test";
+    private static final String NS2 = "diff";
+    private static final String TABLE_ONE = NS1 + ".one";
+    private static final String TABLE_TWO = NS1 + ".two";
+    private static final String TABLE_THREE = NS2 + ".one";
     private static final String COL = "c";
 
     private static AtomicLong sweepTimestamp;
@@ -77,7 +75,7 @@ public class TestSweepCommand {
 
     @Test
     public void testSweepTable() throws Exception {
-        try (SingleBackendCliTestRunner runner = makeRunner("-t", TABLE_ONE.getQualifiedName())) {
+        try (SingleBackendCliTestRunner runner = makeRunner("-t", TABLE_ONE)) {
             TestAtlasDbServices services = runner.connect(moduleFactory);
             SerializableTransactionManager txm = services.getTransactionManager();
             TimestampService tss = services.getTimestampService();
@@ -110,7 +108,7 @@ public class TestSweepCommand {
 
     @Test
     public void testSweepNamespace() throws Exception {
-        try (SingleBackendCliTestRunner runner = makeRunner("-n", NS1.getName())) {
+        try (SingleBackendCliTestRunner runner = makeRunner("-n", NS1)) {
             TestAtlasDbServices services = runner.connect(moduleFactory);
             SerializableTransactionManager txm = services.getTransactionManager();
             TimestampService tss = services.getTimestampService();
@@ -174,7 +172,7 @@ public class TestSweepCommand {
 
     @Test
     public void testSweepStartRow() throws Exception {
-        try (SingleBackendCliTestRunner runner = makeRunner("-t", TABLE_ONE.getQualifiedName(), "-r", BaseEncoding.base16().encode("foo".getBytes()))) {
+        try (SingleBackendCliTestRunner runner = makeRunner("-t", TABLE_ONE, "-r", BaseEncoding.base16().encode("foo".getBytes()))) {
             TestAtlasDbServices services = runner.connect(moduleFactory);
             SerializableTransactionManager txm = services.getTransactionManager();
             TimestampService tss = services.getTimestampService();
@@ -206,18 +204,18 @@ public class TestSweepCommand {
         return runner.run();
     }
 
-    private String get(KeyValueService kvs, TableReference table, String row, long ts) {
+    private String get(KeyValueService kvs, String table, String row, long ts) {
         Cell cell = Cell.create(row.getBytes(), COL.getBytes());
         Value val = kvs.get(table, ImmutableMap.of(cell, ts)).get(cell);
         return val == null ? null : new String(val.getContents());
     }
 
-    private Set<Long> getAllTs(KeyValueService kvs, TableReference table, String row) {
+    private Set<Long> getAllTs(KeyValueService kvs, String table, String row) {
         Cell cell = Cell.create(row.getBytes(), COL.getBytes());
         return ImmutableSet.copyOf(kvs.getAllTimestamps(table, ImmutableSet.of(cell), Long.MAX_VALUE).get(cell));
     }
 
-    private long put(SerializableTransactionManager txm, TableReference table, String row, String val) {
+    private long put(SerializableTransactionManager txm, String table, String row, String val) {
         Cell cell = Cell.create(row.getBytes(), COL.getBytes());
         return txm.runTaskWithRetry(t -> {
             t.put(table, ImmutableMap.of(cell, val.getBytes()));
@@ -225,7 +223,7 @@ public class TestSweepCommand {
         });
     }
 
-    private void createTable(KeyValueService kvs, TableReference table, final TableMetadataPersistence.SweepStrategy sweepStrategy) {
+    private void createTable(KeyValueService kvs, String table, final TableMetadataPersistence.SweepStrategy sweepStrategy) {
         kvs.createTable(table,
                 new TableDefinition() {{
                     rowName();

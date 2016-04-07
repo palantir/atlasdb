@@ -23,14 +23,13 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.remoting.RemotingKeyValueService;
 import com.palantir.common.base.ClosableIterator;
 
 public abstract class RangeIterator<T> implements ClosableIterator<RowResult<T>> {
 
-    @JsonProperty("tableRef")
-    final TableReference tableRef;
+    @JsonProperty("tableName")
+    final String tableName;
 
     @JsonProperty("range")
     final RangeRequest range;
@@ -47,9 +46,9 @@ public abstract class RangeIterator<T> implements ClosableIterator<RowResult<T>>
     @JsonProperty("position")
     int position = 0;
 
-    public RangeIterator(TableReference tableRef, RangeRequest range, long timestamp,
+    public RangeIterator(String tableName, RangeRequest range, long timestamp,
                          boolean hasNext, ImmutableList<RowResult<T>> page) {
-        this.tableRef = tableRef;
+        this.tableName = tableName;
         this.range = range;
         this.timestamp = timestamp;
         this.hasNext = hasNext;
@@ -75,7 +74,7 @@ public abstract class RangeIterator<T> implements ClosableIterator<RowResult<T>>
                     "This remote keyvalue service needs to be wrapped with RemotingKeyValueService.createClientSide!");
         }
 
-        ClosableIterator<RowResult<T>> result = getMoreRows(keyValueService, tableRef, newRange, timestamp);
+        ClosableIterator<RowResult<T>> result = getMoreRows(keyValueService, tableName, newRange, timestamp);
         swapWithNewRows(validateIsRangeIterator(result));
 
         if (position < page.size()) {
@@ -85,7 +84,7 @@ public abstract class RangeIterator<T> implements ClosableIterator<RowResult<T>>
         }
     }
 
-    protected abstract ClosableIterator<RowResult<T>> getMoreRows(KeyValueService kvs, TableReference tableRef, RangeRequest newRange, long timestamp);
+    protected abstract ClosableIterator<RowResult<T>> getMoreRows(KeyValueService kvs, String tableName, RangeRequest newRange, long timestamp);
 
     private void swapWithNewRows(RangeIterator<T> other) {
         hasNext = other.hasNext;
@@ -117,7 +116,7 @@ public abstract class RangeIterator<T> implements ClosableIterator<RowResult<T>>
             return false;
         }
         RangeIterator<?> other = (RangeIterator<?>) obj;
-        if (!Objects.equal(tableRef, other.tableRef)) {
+        if (!Objects.equal(tableName, other.tableName)) {
             return false;
         }
         if (timestamp != other.timestamp) {
@@ -140,7 +139,7 @@ public abstract class RangeIterator<T> implements ClosableIterator<RowResult<T>>
 
     @Override
     public int hashCode() {
-        return java.util.Objects.hash(tableRef, range, page, timestamp, hasNext, position);
+        return java.util.Objects.hash(tableName, range, page, timestamp, hasNext, position);
     }
 
     static <T> RangeIterator<T> validateIsRangeIterator(ClosableIterator<RowResult<T>> it) {

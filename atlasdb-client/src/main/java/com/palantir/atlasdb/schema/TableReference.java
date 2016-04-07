@@ -13,14 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.keyvalue.api;
+package com.palantir.atlasdb.schema;
 
-import org.apache.commons.lang3.StringUtils;
-
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
+
 
 public class TableReference {
     private final Namespace namespace;
@@ -40,21 +36,14 @@ public class TableReference {
         return new TableReference(Namespace.EMPTY_NAMESPACE, tablename);
     }
 
-    public static TableReference createUnsafe(String fullTableName) {
-        return fullTableName.indexOf('.') < 0 ? createWithEmptyNamespace(fullTableName) : createFromFullyQualifiedName(fullTableName);
-    }
-
     public static boolean isFullyQualifiedName(String tableName) {
         return tableName.contains(".");
     }
 
-    @JsonCreator
-    private TableReference(@JsonProperty("namespace") Namespace namespace, @JsonProperty("tablename") String tablename) {
+    private TableReference(Namespace namespace, String tablename) {
         this.namespace = namespace;
         this.tablename = tablename;
     }
-
-
 
     public Namespace getNamespace() {
         return namespace;
@@ -62,16 +51,6 @@ public class TableReference {
 
     public String getTablename() {
         return tablename;
-    }
-
-    @JsonIgnore
-    public String getQualifiedName() {
-        return namespace.isEmptyNamespace() || namespace.getName().equals("met") ? tablename : namespace.getName() + "." + tablename;
-    }
-
-    @JsonIgnore
-    public boolean isFullyQualifiedName() {
-        return getQualifiedName().contains(".");
     }
 
     @Override
@@ -107,18 +86,6 @@ public class TableReference {
 
     @Override
     public String toString() {
-        return getQualifiedName();
+        return "TableReference [namespace=" + namespace + ", tablename=" + tablename + "]";
     }
-
-    public static TableReference fromString(String s) {
-        int dotCount = StringUtils.countMatches(s, ".");
-        if (dotCount == 0) {
-            return TableReference.createWithEmptyNamespace(s);
-        } else if (dotCount == 1){
-            return TableReference.createFromFullyQualifiedName(s);
-        } else {
-            throw new IllegalArgumentException(s + " is not a valid table reference.");
-        }
-    }
-
 }

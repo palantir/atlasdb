@@ -23,7 +23,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.NamespacedKeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.StatsTrackingKeyValueService;
@@ -139,19 +138,19 @@ public class AtlasDbTestCase {
         keyValueService.clearTablesReadFrom();
     }
 
-    protected Set<TableReference> getTablesWrittenTo() {
+    protected Set<String> getTablesWrittenTo() {
         return keyValueService.getTablesWrittenTo();
     }
 
-    protected Set<TableReference> getTablesReadFrom() {
+    protected Set<String> getTablesReadFrom() {
         return keyValueService.getTablesReadFrom();
     }
 
-    protected boolean wasTableWrittenTo(TableReference tableName) {
+    protected boolean wasTableWrittenTo(String tableName) {
         return getTablesWrittenTo().contains(tableName);
     }
 
-    protected boolean wasTableReadFrom(TableReference tableName) {
+    protected boolean wasTableReadFrom(String tableName) {
         return getTablesReadFrom().contains(tableName);
     }
 }

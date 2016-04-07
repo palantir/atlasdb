@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.google.common.collect.ImmutableMap;
@@ -31,7 +32,6 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
@@ -45,9 +45,10 @@ public abstract class AbstractTransaction implements Transaction {
             ImmutableSortedMap.<byte[], RowResult<byte[]>> orderedBy(
                     UnsignedBytes.lexicographicalComparator()).build();
 
-    private final Set<TableReference> tempTables = Sets.newSetFromMap(Maps.<TableReference, Boolean> newConcurrentMap());
-    private final ConcurrentMap<TableReference, AtomicLong> inMemTempSizeByTable = Maps.newConcurrentMap();
-    private final ConcurrentMap<TableReference, AtomicLong> batchNumber = Maps.newConcurrentMap();
+    private final Set<String> tempTables = Sets.newSetFromMap(Maps.<String, Boolean> newConcurrentMap());
+    private final AtomicInteger tempTableCounter = new AtomicInteger();
+    private final ConcurrentMap<String, AtomicLong> inMemTempSizeByTable = Maps.newConcurrentMap();
+    private final ConcurrentMap<String, AtomicLong> batchNumber = Maps.newConcurrentMap();
 
     private TransactionType transactionType = TransactionType.DEFAULT;
 
@@ -64,15 +65,15 @@ public abstract class AbstractTransaction implements Transaction {
     }
 
     @Override
-    final public void delete(TableReference tableRef, Set<Cell> cells) {
-        put(tableRef, Cells.constantValueMap(cells, PtBytes.EMPTY_BYTE_ARRAY));
+    final public void delete(String tableName, Set<Cell> cells) {
+        put(tableName, Cells.constantValueMap(cells, PtBytes.EMPTY_BYTE_ARRAY));
     }
 
-    public boolean isTempTable(TableReference tableRef) {
-        return tempTables.contains(tableRef);
+    public boolean isTempTable(String tableName) {
+        return tempTables.contains(tableName);
     }
 
-    protected Set<TableReference> getAllTempTables() {
+    protected Set<String> getAllTempTables() {
         return Collections.unmodifiableSet(tempTables);
     }
 
@@ -80,20 +81,20 @@ public abstract class AbstractTransaction implements Transaction {
         getKeyValueService().dropTables(tempTables);
     }
 
-    private AtomicLong getTempSize(TableReference tableRef) {
-        AtomicLong atomicLong = inMemTempSizeByTable.get(tableRef);
+    private AtomicLong getTempSize(String tableName) {
+        AtomicLong atomicLong = inMemTempSizeByTable.get(tableName);
         if (atomicLong == null) {
-            inMemTempSizeByTable.putIfAbsent(tableRef, new AtomicLong());
-            atomicLong = inMemTempSizeByTable.get(tableRef);
+            inMemTempSizeByTable.putIfAbsent(tableName, new AtomicLong());
+            atomicLong = inMemTempSizeByTable.get(tableName);
         }
         return atomicLong;
     }
 
-    private long getNewBatchNumber(TableReference tableRef) {
-        AtomicLong atomicLong = batchNumber.get(tableRef);
+    private long getNewBatchNumber(String tableName) {
+        AtomicLong atomicLong = batchNumber.get(tableName);
         if (atomicLong == null) {
-            batchNumber.putIfAbsent(tableRef, new AtomicLong());
-            atomicLong = batchNumber.get(tableRef);
+            batchNumber.putIfAbsent(tableName, new AtomicLong());
+            atomicLong = batchNumber.get(tableName);
         }
         long ret = atomicLong.getAndIncrement();
         if (ret >= getTimestamp()) {
@@ -103,7 +104,7 @@ public abstract class AbstractTransaction implements Transaction {
         return ret;
     }
 
-    protected void putTempTableWrites(TableReference tableRef,
+    protected void putTempTableWrites(String tableName,
                                       Map<Cell, byte[]> values,
                                       ConcurrentNavigableMap<Cell, byte[]> writes) {
         long addedSize = 0;
@@ -119,24 +120,24 @@ public abstract class AbstractTransaction implements Transaction {
                 addedSize += val.length - prevVal.length;
             }
         }
-        AtomicLong inMemSize = getTempSize(tableRef);
+        AtomicLong inMemSize = getTempSize(tableName);
         inMemSize.addAndGet(addedSize);
 
         if (inMemSize.get() > TEMP_TABLE_IN_MEMORY_BYTES_LIMIT) {
             synchronized (inMemSize) {
                 if (inMemSize.get() > TEMP_TABLE_IN_MEMORY_BYTES_LIMIT) {
-                    pushWritesToKvService(tableRef, inMemSize, writes);
+                    pushWritesToKvService(tableName, inMemSize, writes);
                 }
             }
         }
     }
 
-    private void pushWritesToKvService(TableReference tableRef,
+    private void pushWritesToKvService(String tableName,
                                        AtomicLong inMemSize,
                                        ConcurrentNavigableMap<Cell, byte[]> writes) {
         long removedSize = 0;
         ImmutableMap<Cell, byte[]> toWrite = ImmutableMap.copyOf(writes);
-        getKeyValueService().put(tableRef, toWrite, getNewBatchNumber(tableRef));
+        getKeyValueService().put(tableName, toWrite, getNewBatchNumber(tableName));
         for (Map.Entry<Cell, byte[]> e : toWrite.entrySet()) {
             if (writes.remove(e.getKey(), e.getValue())) {
                 removedSize += e.getValue().length + Cells.getApproxSizeOfCell(e.getKey());

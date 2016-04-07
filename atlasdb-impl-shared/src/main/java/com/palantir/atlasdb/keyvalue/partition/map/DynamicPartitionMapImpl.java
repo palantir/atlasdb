@@ -63,7 +63,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.partition.PartitionedKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
@@ -528,10 +527,10 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     private void copyData(KeyValueService destKvs, RangeRequest rangeToCopy) {
         ImmutableList<PartitionMapService> mapServices = ImmutableList.<PartitionMapService> of(InMemoryPartitionMapService.create(this));
         PartitionedKeyValueService pkvs = PartitionedKeyValueService.create(quorumParameters, mapServices);
-        for (TableReference tableRef : pkvs.getAllTableNames()) {
+        for (String tableName : pkvs.getAllTableNames()) {
             // TODO: getRangeOfTimestamps?
             try (ClosableIterator<RowResult<Set<Value>>> allRows = pkvs
-                    .getRangeWithHistory(tableRef, rangeToCopy,
+                    .getRangeWithHistory(tableName, rangeToCopy,
                             Long.MAX_VALUE)) {
                 while (allRows.hasNext()) {
                     RowResult<Set<Value>> row = allRows.next();
@@ -545,7 +544,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
                             rowTsMap.put(entry.getKey(), entry.getValue().getTimestamp());
                         }
 
-                        destKvs.putWithTimestamps(tableRef, rowMap);
+                        destKvs.putWithTimestamps(tableName, rowMap);
                     }
                 }
             }
@@ -558,12 +557,12 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
      * @param rangeToDelete
      */
     private void deleteData(KeyValueService kvs, RangeRequest rangeToDelete) {
-        for (TableReference tableRef : kvs.getAllTableNames()) {
+        for (String tableName : kvs.getAllTableNames()) {
 
             Multimap<Cell, Long> cells = HashMultimap.create();
 
             try (ClosableIterator<RowResult<Set<Long>>> allTimestamps =
-                    kvs.getRangeOfTimestamps(tableRef, rangeToDelete, Long.MAX_VALUE)) {
+                    kvs.getRangeOfTimestamps(tableName, rangeToDelete, Long.MAX_VALUE)) {
 
                 while (allTimestamps.hasNext()) {
                     RowResult<Set<Long>> row = allTimestamps.next();
@@ -573,7 +572,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
                         }
                     }
                 }
-                kvs.delete(tableRef, cells);
+                kvs.delete(tableName, cells);
             }
         }
     }
@@ -659,9 +658,9 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
 
         ImmutableList<PartitionMapService> mapServices = ImmutableList.<PartitionMapService> of(InMemoryPartitionMapService.create(this));
         PartitionedKeyValueService pkvs = PartitionedKeyValueService.create(quorumParameters, mapServices);
-        for (TableReference tableRef : pkvs.getAllTableNames()) {
-            byte[] metadata = kve.keyValueService().getMetadataForTable(tableRef);
-            kve.keyValueService().createTable(tableRef, metadata);
+        for (String tableName : pkvs.getAllTableNames()) {
+            byte[] metadata = kve.keyValueService().getMetadataForTable(tableName);
+            kve.keyValueService().createTable(tableName, metadata);
         }
 
         ring.put(key, new EndpointWithJoiningStatus(kve));
@@ -960,7 +959,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         // If this fails... I don't care.
         try {
             kve.partitionMapService().updateMap(this);
-            for (TableReference table : kvs.getAllTableNames()) {
+            for (String table : kvs.getAllTableNames()) {
                 kvs.dropTable(table);
             }
         } catch (RuntimeException e) {

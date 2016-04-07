@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
+import static com.palantir.atlasdb.schema.TableReference.isFullyQualifiedName;
+
 import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -35,11 +37,10 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.schema.TableReference;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
@@ -50,14 +51,14 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
  */
 public class TableSplittingKeyValueService implements KeyValueService {
     public static TableSplittingKeyValueService create(List<KeyValueService> delegates,
-                                                       Map<TableReference, KeyValueService> delegateByTable) {
-        Map<Namespace, KeyValueService> delegateByNamespace = ImmutableMap.of();
+                                                       Map<String, KeyValueService> delegateByTable) {
+        Map<String, KeyValueService> delegateByNamespace = ImmutableMap.of();
         return create(delegates, delegateByTable, delegateByNamespace);
     }
 
     public static TableSplittingKeyValueService create(List<KeyValueService> delegates,
-                                                       Map<TableReference, KeyValueService> delegateByTable,
-                                                       Map<Namespace, KeyValueService> delegateByNamespace) {
+                                                       Map<String, KeyValueService> delegateByTable,
+                                                       Map<String, KeyValueService> delegateByNamespace) {
         // See comment in get all table names for why we do this.
         Map<KeyValueService, Void> map = new IdentityHashMap<KeyValueService, Void>(delegates.size());
         for (KeyValueService delegate : delegates) {
@@ -69,46 +70,46 @@ public class TableSplittingKeyValueService implements KeyValueService {
     }
 
     private final List<KeyValueService> delegates;
-    private final Map<TableReference, KeyValueService> delegateByTable;
-    private final Map<Namespace, KeyValueService> delegateByNamespace;
+    private final Map<String, KeyValueService> delegateByTable;
+    private final Map<String, KeyValueService> delegateByNamespace;
 
     private TableSplittingKeyValueService(List<KeyValueService> delegates,
-                                         Map<TableReference, KeyValueService> delegateByTable, Map<Namespace, KeyValueService> delegateByNamespace) {
+                                         Map<String, KeyValueService> delegateByTable, Map<String, KeyValueService> delegateByNamespace) {
         this.delegates = ImmutableList.copyOf(delegates);
         this.delegateByTable = ImmutableMap.copyOf(delegateByTable);
         this.delegateByNamespace = ImmutableMap.copyOf(delegateByNamespace);
     }
 
     @Override
-    public void addGarbageCollectionSentinelValues(TableReference tableRef, Set<Cell> cells) {
-        getDelegate(tableRef).addGarbageCollectionSentinelValues(tableRef, cells);
+    public void addGarbageCollectionSentinelValues(String tableName, Set<Cell> cells) {
+        getDelegate(tableName).addGarbageCollectionSentinelValues(tableName, cells);
     }
 
     @Override
-    public void createTable(TableReference tableRef, byte[] tableMetadata) {
-        getDelegate(tableRef).createTable(tableRef, tableMetadata);
+    public void createTable(String tableName, byte[] tableMetadata) {
+        getDelegate(tableName).createTable(tableName, tableMetadata);
     }
 
     @Override
-    public void createTables(Map<TableReference, byte[]> tableNamesToTableMetadata) {
-        Map<KeyValueService, Map<TableReference, byte[]>> splitTableNamesToTableMetadata = groupByDelegate(tableNamesToTableMetadata);
+    public void createTables(Map<String, byte[]> tableNamesToTableMetadata) {
+        Map<KeyValueService, Map<String, byte[]>> splitTableNamesToTableMetadata = groupByDelegate(tableNamesToTableMetadata);
         for (KeyValueService delegate : splitTableNamesToTableMetadata.keySet()) {
             delegate.createTables(splitTableNamesToTableMetadata.get(delegate));
         }
     }
 
-    private Map<KeyValueService, Map<TableReference, byte[]>> groupByDelegate(Map<TableReference, byte[]> tableRefsToTableMetadata) {
-        Map<KeyValueService, Map<TableReference, byte[]>> splitTableNamesToTableMetadata = Maps.newHashMap();
-        for (Entry<TableReference, byte[]> tableEntry : tableRefsToTableMetadata.entrySet()) {
-            TableReference tableRef = tableEntry.getKey();
+    private Map<KeyValueService, Map<String, byte[]>> groupByDelegate(Map<String, byte[]> tableNamesToTableMetadata) {
+        Map<KeyValueService, Map<String, byte[]>> splitTableNamesToTableMetadata = Maps.newHashMap();
+        for (Entry<String, byte[]> tableEntry : tableNamesToTableMetadata.entrySet()) {
+            String tableName = tableEntry.getKey();
             byte[] tableMetadata = tableEntry.getValue();
 
-            KeyValueService delegate = getDelegate(tableRef);
+            KeyValueService delegate = getDelegate(tableName);
             if (splitTableNamesToTableMetadata.containsKey(delegate)) {
-                splitTableNamesToTableMetadata.get(delegate).put(tableRef, tableMetadata);
+                splitTableNamesToTableMetadata.get(delegate).put(tableName, tableMetadata);
             } else {
-                Map<TableReference, byte[]> mapTableToMaxValue = Maps.newHashMap();
-                mapTableToMaxValue.put(tableRef, tableMetadata);
+                Map<String, byte[]> mapTableToMaxValue = Maps.newHashMap();
+                mapTableToMaxValue.put(tableName, tableMetadata);
                 splitTableNamesToTableMetadata.put(delegate, mapTableToMaxValue);
             }
         }
@@ -116,50 +117,50 @@ public class TableSplittingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
-        getDelegate(tableRef).delete(tableRef, keys);
+    public void delete(String tableName, Multimap<Cell, Long> keys) {
+        getDelegate(tableName).delete(tableName, keys);
     }
 
     @Override
-    public void dropTable(TableReference tableRef) {
-        getDelegate(tableRef).dropTable(tableRef);
+    public void dropTable(String tableName) {
+        getDelegate(tableName).dropTable(tableName);
     }
 
     @Override
-    public void dropTables(Set<TableReference> tableRefs) {
-        Map<KeyValueService, Set<TableReference>> tablesByKVS = Maps.newHashMap();
-        for (TableReference tableRef : tableRefs) {
-            KeyValueService delegate = getDelegate(tableRef);
+    public void dropTables(Set<String> tableNames) {
+        Map<KeyValueService, Set<String>> tablesByKVS = Maps.newHashMap();
+        for (String tableName : tableNames) {
+            KeyValueService delegate = getDelegate(tableName);
             if (tablesByKVS.containsKey(delegate)) {
-                tablesByKVS.get(delegate).add(tableRef);
+                tablesByKVS.get(delegate).add(tableName);
             } else {
-                Set<TableReference> tablesBelongingToThisDelegate = Sets.newHashSet(tableRef);
+                Set<String> tablesBelongingToThisDelegate = Sets.newHashSet(tableName);
                 tablesByKVS.put(delegate, tablesBelongingToThisDelegate);
             }
         }
 
-        for (Entry<KeyValueService, Set<TableReference>> kvsEntry : tablesByKVS.entrySet()) {
+        for (Entry<KeyValueService, Set<String>> kvsEntry : tablesByKVS.entrySet()) {
             kvsEntry.getKey().dropTables(kvsEntry.getValue());
         }
     }
 
     @Override
-    public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
-        return getDelegate(tableRef).get(tableRef, timestampByCell);
+    public Map<Cell, Value> get(String tableName, Map<Cell, Long> timestampByCell) {
+        return getDelegate(tableName).get(tableName, timestampByCell);
     }
 
     @Override
-    public Set<TableReference> getAllTableNames() {
-        Set<TableReference> ret = Sets.newHashSet();
+    public Set<String> getAllTableNames() {
+        Set<String> ret = Sets.newHashSet();
         for (KeyValueService delegate : delegates) {
-            Set<TableReference> tableRefs = delegate.getAllTableNames();
-            for (TableReference tableRef : tableRefs) {
+            Set<String> tableNames = delegate.getAllTableNames();
+            for (String tableName : tableNames) {
                 // Note: Can't use .equals!
                 // If our delegate is a proxy (such as ProfilingProxy) it will delegate the equals
                 // call. If the proxied class does not override equals, the instance comparison with
                 // the proxy will fail. Fortunately, we really do want instance equality here.
-                if (getDelegate(tableRef) == delegate) {
-                    ret.add(tableRef);
+                if (getDelegate(tableName) == delegate) {
+                    ret.add(tableName);
                 }
             }
         }
@@ -167,25 +168,28 @@ public class TableSplittingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long timestamp) {
-        return getDelegate(tableRef).getAllTimestamps(tableRef, cells, timestamp);
+    public Multimap<Cell, Long> getAllTimestamps(String tableName, Set<Cell> cells, long timestamp) {
+        return getDelegate(tableName).getAllTimestamps(tableName, cells, timestamp);
     }
 
-    private KeyValueService getDelegate(TableReference tableRef) {
-        return tableDelegateFor(tableRef)
-                .or(namespaceDelegateFor(tableRef))
+    private KeyValueService getDelegate(String tableName) {
+        return tableDelegateFor(tableName)
+                .or(namespaceDelegateFor(tableName))
                 .or(delegates.get(0));
     }
 
-    private Optional<KeyValueService> tableDelegateFor(TableReference tableRef) {
-        return Optional.fromNullable(delegateByTable.get(tableRef));
+    private Optional<KeyValueService> tableDelegateFor(String tableName) {
+        return Optional.fromNullable(delegateByTable.get(tableName));
     }
 
-    private Optional<KeyValueService> namespaceDelegateFor(TableReference tableRef) {
-        if (!tableRef.isFullyQualifiedName()) {
+    private Optional<KeyValueService> namespaceDelegateFor(String tableName) {
+        if (!isFullyQualifiedName(tableName)) {
             return Optional.absent();
         }
-        KeyValueService delegate = delegateByNamespace.get(tableRef.getNamespace());
+
+        TableReference tableRef = TableReference.createFromFullyQualifiedName(tableName);
+        KeyValueService delegate = delegateByNamespace.get(tableRef.getNamespace().getName());
+
         return Optional.fromNullable(delegate);
     }
 
@@ -195,25 +199,25 @@ public class TableSplittingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(TableReference tableRef,
+    public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(String tableName,
                                                                                                            Iterable<RangeRequest> rangeRequests,
                                                                                                            long timestamp) {
-        return getDelegate(tableRef).getFirstBatchForRanges(tableRef, rangeRequests, timestamp);
+        return getDelegate(tableName).getFirstBatchForRanges(tableName, rangeRequests, timestamp);
     }
 
     @Override
-    public Map<Cell, Long> getLatestTimestamps(TableReference tableRef, Map<Cell, Long> timestampByCell) {
-        return getDelegate(tableRef).getLatestTimestamps(tableRef, timestampByCell);
+    public Map<Cell, Long> getLatestTimestamps(String tableName, Map<Cell, Long> timestampByCell) {
+        return getDelegate(tableName).getLatestTimestamps(tableName, timestampByCell);
     }
 
     @Override
-    public byte[] getMetadataForTable(TableReference tableRef) {
-        return getDelegate(tableRef).getMetadataForTable(tableRef);
+    public byte[] getMetadataForTable(String tableName) {
+        return getDelegate(tableName).getMetadataForTable(tableName);
     }
 
     @Override
-    public Map<TableReference, byte[]> getMetadataForTables() {
-        Map<TableReference, byte[]> crossDelegateTableMetadata = Maps.newHashMap();
+    public Map<String, byte[]> getMetadataForTables() {
+        Map<String, byte[]> crossDelegateTableMetadata = Maps.newHashMap();
         for (KeyValueService delegate : getDelegates()) {
             crossDelegateTableMetadata.putAll(delegate.getMetadataForTables());
         }
@@ -221,32 +225,32 @@ public class TableSplittingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public ClosableIterator<RowResult<Value>> getRange(TableReference tableRef,
+    public ClosableIterator<RowResult<Value>> getRange(String tableName,
                                                        RangeRequest rangeRequest,
                                                        long timestamp) {
-        return getDelegate(tableRef).getRange(tableRef, rangeRequest, timestamp);
+        return getDelegate(tableName).getRange(tableName, rangeRequest, timestamp);
     }
 
     @Override
-    public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(TableReference tableRef,
+    public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(String tableName,
                                                                        RangeRequest rangeRequest,
                                                                        long timestamp) {
-        return getDelegate(tableRef).getRangeOfTimestamps(tableRef, rangeRequest, timestamp);
+        return getDelegate(tableName).getRangeOfTimestamps(tableName, rangeRequest, timestamp);
     }
 
     @Override
-    public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(TableReference tableRef,
+    public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(String tableName,
                                                                        RangeRequest rangeRequest,
                                                                        long timestamp) {
-        return getDelegate(tableRef).getRangeWithHistory(tableRef, rangeRequest, timestamp);
+        return getDelegate(tableName).getRangeWithHistory(tableName, rangeRequest, timestamp);
     }
 
     @Override
-    public Map<Cell, Value> getRows(TableReference tableRef,
+    public Map<Cell, Value> getRows(String tableName,
                                     Iterable<byte[]> rows,
                                     ColumnSelection columnSelection,
                                     long timestamp) {
-        return getDelegate(tableRef).getRows(tableRef, rows, columnSelection, timestamp);
+        return getDelegate(tableName).getRows(tableName, rows, columnSelection, timestamp);
     }
 
     @Override
@@ -257,49 +261,49 @@ public class TableSplittingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
-        Map<KeyValueService, Map<TableReference, Map<Cell, byte[]>>> mapByDelegate = Maps.newHashMap();
-        for (Entry<TableReference, ? extends Map<Cell, byte[]>> e : valuesByTable.entrySet()) {
+    public void multiPut(Map<String, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
+        Map<KeyValueService, Map<String, Map<Cell, byte[]>>> mapByDelegate = Maps.newHashMap();
+        for (Entry<String, ? extends Map<Cell, byte[]>> e : valuesByTable.entrySet()) {
             KeyValueService delegate = getDelegate(e.getKey());
-            Map<TableReference, Map<Cell, byte[]>> map = mapByDelegate.get(delegate);
+            Map<String, Map<Cell, byte[]>> map = mapByDelegate.get(delegate);
             if (map == null) {
                 map = Maps.newHashMap();
                 mapByDelegate.put(delegate, map);
             }
             map.put(e.getKey(), e.getValue());
         }
-        for (Entry<KeyValueService, Map<TableReference, Map<Cell, byte[]>>> e : mapByDelegate.entrySet()) {
+        for (Entry<KeyValueService, Map<String, Map<Cell, byte[]>>> e : mapByDelegate.entrySet()) {
             e.getKey().multiPut(e.getValue(), timestamp);
         }
     }
 
     @Override
-    public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp) {
-        getDelegate(tableRef).put(tableRef, values, timestamp);
+    public void put(String tableName, Map<Cell, byte[]> values, long timestamp) {
+        getDelegate(tableName).put(tableName, values, timestamp);
     }
 
     @Override
-    public void putMetadataForTable(TableReference tableRef, byte[] metadata) {
-        getDelegate(tableRef).putMetadataForTable(tableRef, metadata);
+    public void putMetadataForTable(String tableName, byte[] metadata) {
+        getDelegate(tableName).putMetadataForTable(tableName, metadata);
     }
 
     @Override
-    public void putMetadataForTables(Map<TableReference, byte[]> tableRefToMetadata) {
-        Map<KeyValueService, Map<TableReference, byte[]>> splitTableNameToMetadata = groupByDelegate(tableRefToMetadata);
+    public void putMetadataForTables(Map<String, byte[]> tableNameToMetadata) {
+        Map<KeyValueService, Map<String, byte[]>> splitTableNameToMetadata = groupByDelegate(tableNameToMetadata);
         for (KeyValueService delegate : splitTableNameToMetadata.keySet()) {
             delegate.putMetadataForTables(splitTableNameToMetadata.get(delegate));
         }
     }
 
     @Override
-    public void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values)
+    public void putUnlessExists(String tableName, Map<Cell, byte[]> values)
             throws KeyAlreadyExistsException {
-        getDelegate(tableRef).putUnlessExists(tableRef, values);
+        getDelegate(tableName).putUnlessExists(tableName, values);
     }
 
     @Override
-    public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> values) {
-        getDelegate(tableRef).putWithTimestamps(tableRef, values);
+    public void putWithTimestamps(String tableName, Multimap<Cell, Value> values) {
+        getDelegate(tableName).putWithTimestamps(tableName, values);
     }
 
     @Override
@@ -317,15 +321,15 @@ public class TableSplittingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void truncateTable(TableReference tableRef){
-        getDelegate(tableRef).truncateTable(tableRef);
+    public void truncateTable(String tableName){
+        getDelegate(tableName).truncateTable(tableName);
     }
 
     @Override
-    public void truncateTables(Set<TableReference> tableRefs) {
-        SetMultimap<KeyValueService, TableReference> tablesToTruncateByKvs = HashMultimap.create();
-        for (TableReference tableRef : tableRefs) {
-            tablesToTruncateByKvs.put(getDelegate(tableRef), tableRef);
+    public void truncateTables(Set<String> tableNames) {
+        SetMultimap<KeyValueService, String> tablesToTruncateByKvs = HashMultimap.create();
+        for (String tableName : tableNames) {
+            tablesToTruncateByKvs.put(getDelegate(tableName), tableName);
         }
         for (KeyValueService kvs : tablesToTruncateByKvs.keySet()) {
             kvs.truncateTables(tablesToTruncateByKvs.get(kvs));
@@ -333,7 +337,7 @@ public class TableSplittingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void compactInternally(TableReference tableRef) {
-        getDelegate(tableRef).compactInternally(tableRef);
+    public void compactInternally(String tableName) {
+        getDelegate(tableName).compactInternally(tableName);
     }
 }

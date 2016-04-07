@@ -24,7 +24,6 @@ import org.apache.commons.lang.Validate;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.AtlasRowLockDescriptor;
@@ -50,16 +49,16 @@ public class AssertLockedKeyValueService extends ForwardingKeyValueService {
     }
 
     @Override
-    public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp) {
+    public void put(String tableName, Map<Cell, byte[]> values, long timestamp) {
 
-        if (tableRef.equals(TransactionConstants.TRANSACTION_TABLE)) {
+        if (tableName.equals(TransactionConstants.TRANSACTION_TABLE)) {
             SortedMap<LockDescriptor, LockMode> mapToAssertLockHeld = Maps.newTreeMap();
             SortedMap<LockDescriptor, LockMode> mapToAssertLockNotHeld = Maps.newTreeMap();
             for (Map.Entry<Cell, byte[]> e : values.entrySet()) {
                 if (Arrays.equals(e.getValue(), TransactionConstants.getValueForTimestamp(TransactionConstants.FAILED_COMMIT_TS))) {
-                    mapToAssertLockNotHeld.put(AtlasRowLockDescriptor.of(tableRef.getQualifiedName(), e.getKey().getRowName()), LockMode.READ);
+                    mapToAssertLockNotHeld.put(AtlasRowLockDescriptor.of(tableName, e.getKey().getRowName()), LockMode.READ);
                 } else {
-                    mapToAssertLockHeld.put(AtlasRowLockDescriptor.of(tableRef.getQualifiedName(), e.getKey().getRowName()), LockMode.READ);
+                    mapToAssertLockHeld.put(AtlasRowLockDescriptor.of(tableName, e.getKey().getRowName()), LockMode.READ);
                 }
             }
 
@@ -80,6 +79,6 @@ public class AssertLockedKeyValueService extends ForwardingKeyValueService {
             }
         }
 
-        super.put(tableRef, values, timestamp);
+        super.put(tableName, values, timestamp);
     }
 }

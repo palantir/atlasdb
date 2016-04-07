@@ -45,13 +45,12 @@ import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
-import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.Prefix;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
+import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
@@ -95,7 +94,8 @@ public final class SweepProgressTable implements
     private final Transaction t;
     private final List<SweepProgressTrigger> triggers;
     private final static String rawTableName = "progress";
-    private final TableReference tableRef;
+    private final String tableName;
+    private final Namespace namespace;
 
     static SweepProgressTable of(Transaction t, Namespace namespace) {
         return new SweepProgressTable(t, namespace, ImmutableList.<SweepProgressTrigger>of());
@@ -111,24 +111,21 @@ public final class SweepProgressTable implements
 
     private SweepProgressTable(Transaction t, Namespace namespace, List<SweepProgressTrigger> triggers) {
         this.t = t;
-        this.tableRef = TableReference.create(namespace, rawTableName);
+        this.tableName = namespace.getName().isEmpty() ? rawTableName : namespace.getName() + "." + rawTableName;
         this.triggers = triggers;
+        this.namespace = namespace;
     }
 
     public static String getRawTableName() {
         return rawTableName;
     }
 
-    public TableReference getTableRef() {
-        return tableRef;
-    }
-
     public String getTableName() {
-        return tableRef.getQualifiedName();
+        return tableName;
     }
 
     public Namespace getNamespace() {
-        return tableRef.getNamespace();
+        return namespace;
     }
 
     /**
@@ -751,7 +748,7 @@ public final class SweepProgressTable implements
         for (SweepProgressRow row : rows) {
             cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("n")), row);
         }
-        Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
+        Map<Cell, byte[]> results = t.get(tableName, cells.keySet());
         Map<SweepProgressRow, String> ret = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> e : results.entrySet()) {
             String val = FullTableName.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
@@ -765,7 +762,7 @@ public final class SweepProgressTable implements
         for (SweepProgressRow row : rows) {
             cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("m")), row);
         }
-        Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
+        Map<Cell, byte[]> results = t.get(tableName, cells.keySet());
         Map<SweepProgressRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> e : results.entrySet()) {
             Long val = MinimumSweptTimestamp.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
@@ -779,7 +776,7 @@ public final class SweepProgressTable implements
         for (SweepProgressRow row : rows) {
             cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("s")), row);
         }
-        Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
+        Map<Cell, byte[]> results = t.get(tableName, cells.keySet());
         Map<SweepProgressRow, byte[]> ret = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> e : results.entrySet()) {
             byte[] val = StartRow.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
@@ -793,7 +790,7 @@ public final class SweepProgressTable implements
         for (SweepProgressRow row : rows) {
             cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("d")), row);
         }
-        Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
+        Map<Cell, byte[]> results = t.get(tableName, cells.keySet());
         Map<SweepProgressRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> e : results.entrySet()) {
             Long val = CellsDeleted.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
@@ -807,7 +804,7 @@ public final class SweepProgressTable implements
         for (SweepProgressRow row : rows) {
             cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("e")), row);
         }
-        Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
+        Map<Cell, byte[]> results = t.get(tableName, cells.keySet());
         Map<SweepProgressRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> e : results.entrySet()) {
             Long val = CellsExamined.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
@@ -938,8 +935,8 @@ public final class SweepProgressTable implements
 
     @Override
     public void put(Multimap<SweepProgressRow, ? extends SweepProgressNamedColumnValue<?>> rows) {
-        t.useTable(tableRef, this);
-        t.put(tableRef, ColumnValues.toCellValues(rows));
+        t.useTable(tableName, this);
+        t.put(tableName, ColumnValues.toCellValues(rows));
         for (SweepProgressTrigger trigger : triggers) {
             trigger.putSweepProgress(rows);
         }
@@ -964,7 +961,7 @@ public final class SweepProgressTable implements
     public void deleteFullTableName(Iterable<SweepProgressRow> rows) {
         byte[] col = PtBytes.toCachedBytes("n");
         Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
-        t.delete(tableRef, cells);
+        t.delete(tableName, cells);
     }
 
     public void deleteMinimumSweptTimestamp(SweepProgressRow row) {
@@ -974,7 +971,7 @@ public final class SweepProgressTable implements
     public void deleteMinimumSweptTimestamp(Iterable<SweepProgressRow> rows) {
         byte[] col = PtBytes.toCachedBytes("m");
         Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
-        t.delete(tableRef, cells);
+        t.delete(tableName, cells);
     }
 
     public void deleteStartRow(SweepProgressRow row) {
@@ -984,7 +981,7 @@ public final class SweepProgressTable implements
     public void deleteStartRow(Iterable<SweepProgressRow> rows) {
         byte[] col = PtBytes.toCachedBytes("s");
         Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
-        t.delete(tableRef, cells);
+        t.delete(tableName, cells);
     }
 
     public void deleteCellsDeleted(SweepProgressRow row) {
@@ -994,7 +991,7 @@ public final class SweepProgressTable implements
     public void deleteCellsDeleted(Iterable<SweepProgressRow> rows) {
         byte[] col = PtBytes.toCachedBytes("d");
         Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
-        t.delete(tableRef, cells);
+        t.delete(tableName, cells);
     }
 
     public void deleteCellsExamined(SweepProgressRow row) {
@@ -1004,7 +1001,7 @@ public final class SweepProgressTable implements
     public void deleteCellsExamined(Iterable<SweepProgressRow> rows) {
         byte[] col = PtBytes.toCachedBytes("e");
         Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
-        t.delete(tableRef, cells);
+        t.delete(tableName, cells);
     }
 
     @Override
@@ -1021,7 +1018,7 @@ public final class SweepProgressTable implements
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("n")));
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("m")));
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("s")));
-        t.delete(tableRef, cells);
+        t.delete(tableName, cells);
     }
 
     @Override
@@ -1032,7 +1029,7 @@ public final class SweepProgressTable implements
     @Override
     public Optional<SweepProgressRowResult> getRow(SweepProgressRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
-        RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
+        RowResult<byte[]> rowResult = t.getRows(tableName, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
             return Optional.absent();
         } else {
@@ -1047,7 +1044,7 @@ public final class SweepProgressTable implements
 
     @Override
     public List<SweepProgressRowResult> getRows(Iterable<SweepProgressRow> rows, ColumnSelection columns) {
-        SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
+        SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableName, Persistables.persistAll(rows), columns);
         List<SweepProgressRowResult> rowResults = Lists.newArrayListWithCapacity(results.size());
         for (RowResult<byte[]> row : results.values()) {
             rowResults.add(SweepProgressRowResult.of(row));
@@ -1080,7 +1077,7 @@ public final class SweepProgressTable implements
     @Override
     public List<SweepProgressNamedColumnValue<?>> getRowColumns(SweepProgressRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
-        RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
+        RowResult<byte[]> rowResult = t.getRows(tableName, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
             return ImmutableList.of();
         } else {
@@ -1120,7 +1117,7 @@ public final class SweepProgressTable implements
     }
 
     private Multimap<SweepProgressRow, SweepProgressNamedColumnValue<?>> getRowsMultimapInternal(Iterable<SweepProgressRow> rows, ColumnSelection columns) {
-        SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
+        SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableName, Persistables.persistAll(rows), columns);
         return getRowMapFromRowResults(results.values());
     }
 
@@ -1140,7 +1137,7 @@ public final class SweepProgressTable implements
     }
 
     public BatchingVisitableView<SweepProgressRowResult> getAllRowsUnordered(ColumnSelection columns) {
-        return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder().retainColumns(columns).build()),
+        return BatchingVisitables.transform(t.getRange(tableName, RangeRequest.builder().retainColumns(columns).build()),
                 new Function<RowResult<byte[]>, SweepProgressRowResult>() {
             @Override
             public SweepProgressRowResult apply(RowResult<byte[]> input) {
@@ -1236,7 +1233,6 @@ public final class SweepProgressTable implements
      * {@link Sha256Hash}
      * {@link SortedMap}
      * {@link Supplier}
-     * {@link TableReference}
      * {@link Throwables}
      * {@link TimeUnit}
      * {@link Transaction}
@@ -1244,5 +1240,5 @@ public final class SweepProgressTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "JdYIsvXhQw3ZkZMVh3ypQA==";
+    static String __CLASS_HASH = "CLjuV6d5OsaOyG0r2OiSaQ==";
 }
