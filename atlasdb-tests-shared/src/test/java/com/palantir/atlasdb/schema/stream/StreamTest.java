@@ -15,6 +15,10 @@
  */
 package com.palantir.atlasdb.schema.stream;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.IsEqual.equalTo;
+import static org.hamcrest.core.IsNot.not;
+
 import static junit.framework.TestCase.assertEquals;
 
 import java.io.ByteArrayInputStream;
@@ -47,6 +51,7 @@ import com.palantir.atlasdb.stream.PersistentStreamStore;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
+import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
 
 public class StreamTest extends AtlasDbTestCase {
@@ -224,6 +229,29 @@ public class StreamTest extends AtlasDbTestCase {
         assertEquals(id1, sha256HashLongMap.get(hash1).longValue());
         assertEquals(id2, sha256HashLongMap.get(hash2).longValue());
         assertEquals(null, sha256HashLongMap.get(hash3));
+    }
+
+    @Test
+    public void testStoreCopy() {
+        final byte[] bytes = new byte[2 * StreamTestStreamStore.BLOCK_SIZE_IN_BYTES];
+        Random rand = new Random();
+        rand.nextBytes(bytes);
+
+        long id1 = timestampService.getFreshTimestamp();
+        long id2 = timestampService.getFreshTimestamp();
+
+        ImmutableMap<Long, InputStream> streams = ImmutableMap.of(
+                id1, new ByteArrayInputStream(bytes),
+                id2, new ByteArrayInputStream(bytes));
+
+        PersistentStreamStore store = StreamTestStreamStore.of(txManager, StreamTestTableFactory.of());
+        txManager.runTaskWithRetry(t -> store.storeStreams(t, streams));
+
+        Pair<Long, Sha256Hash> idAndHash1 = store.storeStream(new ByteArrayInputStream(bytes));
+        Pair<Long, Sha256Hash> idAndHash2 = store.storeStream(new ByteArrayInputStream(bytes));
+
+        assertThat(idAndHash1.getRhSide(), equalTo(idAndHash2.getRhSide()));        //verify hashes are the same
+        assertThat(idAndHash1.getLhSide(), not(equalTo(idAndHash2.getLhSide())));   //verify ids are different
     }
 
 }
