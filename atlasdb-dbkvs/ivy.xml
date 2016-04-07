@@ -13,19 +13,27 @@
   <publications>
     <artifact name="atlasdb-dbkvs" type="jar" conf="default"/>
     <artifact name="atlasdb-dbkvs" type="source" ext="zip" conf="default"/>
+    <artifact name="atlasdb-dbkvs-test" type="jar" conf="test"/>
+    <artifact name="atlasdb-dbkvs-test" type="source" ext="zip" conf="test"/>
   </publications>
   <dependencies>
     <dependency org="junit" name="junit" rev="4.11"
                 transitive="true" conf="test,eclipse-&gt;default">
     </dependency>
-    <dependency org="palantir" name="atlasdb-client" rev="3.13.4.2-develop.+"
+    <dependency org="palantir" name="atlasdb-client" rev="3.14.0.0-develop.+"
                 transitive="true" conf="test-&gt;test;default-&gt;default">
     </dependency>
-    <dependency org="palantir" name="atlasdb-spi" rev="3.13.4.2-develop.+"
+    <dependency org="palantir" name="atlasdb-spi" rev="3.14.0.0-develop.+"
                 transitive="true" conf="test-&gt;test;default-&gt;default">
     </dependency>
-    <dependency org="palantir" name="timestamp-impl" rev="3.13.4.2-develop.+"
+    <dependency org="palantir" name="timestamp-impl" rev="3.14.0.0-develop.+"
                 transitive="true" conf="test-&gt;test;default-&gt;default">
+    </dependency>
+    <dependency org="palantir" name="ptdatabase" rev="3.14.0.0-develop.+"
+                transitive="true" conf="test-&gt;test;default-&gt;default">
+    </dependency>
+    <dependency org="palantir" name="ptcommons-testutils" rev="3.14.0.0-develop.+"
+                transitive="true" conf="test-&gt;test">
     </dependency>
   </dependencies>
 </ivy-module>

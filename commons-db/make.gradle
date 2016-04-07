@@ -1,16 +1,16 @@
 // -*- groovy -*-
-// METABUILD GENERATED metaconf/metaconf.groovy + metaconf/project/make.gradle.tmpl -> atlasdb/atlasdb-dbkvs/make.gradle
+// METABUILD GENERATED metaconf/metaconf.groovy + metaconf/project/make.gradle.tmpl -> atlasdb/commons-db/make.gradle
 apply from: "${rootProject.projectDir}/before.gradle"
-sourceSets.main.java.srcDirs=[ file('src/main/java') ]
-sourceSets.main.resources.srcDirs=[ file('src/main/resources') ]
-sourceSets.test.java.srcDirs=[ file('src/test/java') ]
+sourceSets.main.java.srcDirs=[ file('src') ]
+sourceSets.main.resources.srcDirs=[  ]
+sourceSets.test.java.srcDirs=[  ]
 sourceSets.test.resources.srcDirs=[  ]
-sourceCompatibility = '1.8'
-targetCompatibility = '1.8'
-archivesBaseName="atlasdb-dbkvs"
+sourceCompatibility = '1.6'
+targetCompatibility = '1.6'
+archivesBaseName="commons-db"
 configurations.create('test').extendsFrom(configurations.testRuntime)
 jar {
-  baseName 'atlasdb-dbkvs'
+  baseName 'commons-db'
   exclude '.gitkeep'
   doFirst {
     manifest {
@@ -26,7 +26,7 @@ jar {
   }
 }
 task testJar(type: Jar) {
-  baseName 'atlasdb-dbkvs-test'
+  baseName 'commons-db-test'
   from sourceSets.test.output
   exclude '.gitkeep'
   ext.is_test = true
@@ -45,12 +45,12 @@ task testJar(type: Jar) {
 }
 assemble.dependsOn testJar
 task mainSourcesZip(type: Zip) {
-  baseName 'atlasdb-dbkvs'
+  baseName 'commons-db'
   from sourceSets.main.allSource
 }
 assemble.dependsOn mainSourcesZip
 task testSourcesZip(type: Zip) {
-  baseName 'atlasdb-dbkvs-test'
+  baseName 'commons-db-test'
   from sourceSets.test.allSource
 }
 assemble.dependsOn testSourcesZip
@@ -62,15 +62,9 @@ def sourceSetEmpty(def sourceSet) {
 publishing {
 publications {
   ivy(IvyPublication) {
-    artifact(testJar) {
-      name "atlasdb-dbkvs-test"
-      extension "jar"
-      type "jar"
-      conf "default"
-    }
     if (!sourceSetEmpty(sourceSets.main)) {
       artifact(mainSourcesZip) {
-        name "atlasdb-dbkvs"
+        name "commons-db"
         extension "zip"
         type "source"
         conf "default"
@@ -78,7 +72,7 @@ publications {
     }
     if (!sourceSetEmpty(sourceSets.test)) {
       artifact(testSourcesZip) {
-        name "atlasdb-dbkvs-test"
+        name "commons-db-test"
         extension "zip"
         type "source"
         conf "test"
@@ -89,15 +83,33 @@ publications {
 }
 dependencies {
   test sourceSets.test.output
+  compile(group: 'commons-dbutils', name: 'commons-dbutils', version: '1.3', configuration: 'default')
+  compile(group: 'commons-lang', name: 'commons-lang', version: '2.6', configuration: 'default')
+  compile(group: 'commons-io', name: 'commons-io', version: '2.1', configuration: 'default')
+  compile(group: 'log4j', name: 'log4j', version: '1.2.17', configuration: 'default')
+  {
+    transitive = false
+  }
+  compile(group: 'com.mchange', name: 'c3p0', version: '0.9.5.1', configuration: 'default')
+  compile(group: 'org.postgresql', name: 'postgresql', version: '9.4.1207.jre7', configuration: 'default')
+  {
+    exclude(
+      module: 'waffle-jna',
+    )
+  }
+  compile(group: 'com.zaxxer', name: 'HikariCP', version: '2.4.5', configuration: 'default')
+  {
+    exclude(
+      group: 'org.slf4j',
+    )
+  }
+  compile(group: 'joda-time', name: 'joda-time', version: '2.9.2', configuration: 'default')
   testCompile(group: 'junit', name: 'junit', version: '4.11', configuration: 'default')
-  testCompile(project(path: ':atlasdb-client', configuration: 'test'))
-  compile(project(path: ':atlasdb-client', configuration: 'default'))
-  testCompile(project(path: ':atlasdb-spi', configuration: 'test'))
-  compile(project(path: ':atlasdb-spi', configuration: 'default'))
-  testCompile(project(path: ':timestamp-impl', configuration: 'test'))
-  compile(project(path: ':timestamp-impl', configuration: 'default'))
-  testCompile(project(path: ':ptdatabase', configuration: 'test'))
-  compile(project(path: ':ptdatabase', configuration: 'default'))
+  testCompile(project(path: ':ptcommons-api', configuration: 'test'))
+  compile(project(path: ':ptcommons-api', configuration: 'default'))
+  testCompile(project(path: ':ptcommons-proxy', configuration: 'test'))
+  compile(project(path: ':ptcommons-proxy', configuration: 'default'))
   testCompile(project(path: ':ptcommons-testutils', configuration: 'test'))
+  testCompile(project(path: ':test-core', configuration: 'test'))
 }
 apply from: "${rootProject.projectDir}/after.gradle"

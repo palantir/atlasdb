@@ -12,3 +12,11 @@ jars:
     src:
       - src/main/java
       - src/main/resources
+  -
+    name: atlasdb-dbkvs-test
+    src:
+      - src/test/java
+    depends:
+      - atlasdb-dbkvs
+    is_test: true
+    ivy_conf: test
