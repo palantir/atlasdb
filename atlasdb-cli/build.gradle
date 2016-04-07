@@ -12,6 +12,8 @@ dependencies {
   compile 'io.airlift:airline:0.7'
   compile 'com.google.dagger:dagger:2.0.2'
 
+  testCompile project(':atlasdb-rocksdb')
+
   processor 'com.google.dagger:dagger-compiler:2.0.2'
   processor 'org.immutables:value:2.0.21'
 }
