@@ -28,6 +28,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
+import com.google.common.primitives.Longs;
 
 /**
  * A simple, immutable implementation of {@link TimeDuration}.
@@ -126,7 +127,7 @@ import com.google.common.base.Preconditions;
 
     @Override
     public int compareTo(TimeDuration o) {
-        return Long.valueOf(toNanos()).compareTo(o.toNanos());
+        return Longs.compare(toNanos(), o.toNanos());
     }
 
     @Override public boolean equals(@Nullable Object obj) {
