@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.schema.stream;
 
+import static junit.framework.TestCase.assertEquals;
+
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -192,6 +194,36 @@ public class StreamTest extends AtlasDbTestCase {
         loadedBytes = FileUtils.readFileToByteArray(file);
         Assert.assertArrayEquals(bytesToStore, loadedBytes);
         Assert.assertEquals(expectedHash, Sha256Hash.computeHash(loadedBytes));
+    }
+
+    @Test
+    public void testLookupStreamIdsByHash() throws Exception {
+        final byte[] bytes1 = new byte[2 * StreamTestStreamStore.BLOCK_SIZE_IN_BYTES];
+        final byte[] bytes2 = new byte[2 * StreamTestStreamStore.BLOCK_SIZE_IN_BYTES];
+
+        long id1 = timestampService.getFreshTimestamp();
+        long id2 = timestampService.getFreshTimestamp();
+
+        Random rand = new Random();
+        rand.nextBytes(bytes1);
+        rand.nextBytes(bytes2);
+        Sha256Hash hash1 = Sha256Hash.computeHash(bytes1);
+        Sha256Hash hash2 = Sha256Hash.computeHash(bytes2);
+        Sha256Hash hash3 = Sha256Hash.EMPTY;
+
+        ImmutableMap<Long, InputStream> streams = ImmutableMap.of(
+                id1, new ByteArrayInputStream(bytes1),
+                id2, new ByteArrayInputStream(bytes2));
+
+        PersistentStreamStore store = StreamTestStreamStore.of(txManager, StreamTestTableFactory.of());
+
+        txManager.runTaskWithRetry(t -> store.storeStreams(t, streams));
+
+        Map<Sha256Hash, Long> sha256HashLongMap = txManager.runTaskWithRetry(t -> store.lookupStreamIdsByHash(t, ImmutableSet.of(hash1, hash2, hash3)));
+
+        assertEquals(id1, sha256HashLongMap.get(hash1).longValue());
+        assertEquals(id2, sha256HashLongMap.get(hash2).longValue());
+        assertEquals(null, sha256HashLongMap.get(hash3));
     }
 
 }
