@@ -18,12 +18,10 @@ package com.palantir.atlasdb.schema.stream;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.hamcrest.core.IsNot.not;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertNotNull;
-import static junit.framework.TestCase.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -45,11 +43,9 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.AtlasDbTestCase;
 import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.schema.stream.generated.StreamTestStreamMetadataTable;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestStreamStore;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestTableFactory;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxRow;
@@ -61,7 +57,6 @@ import com.palantir.atlasdb.stream.PersistentStreamStore;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
-import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
@@ -271,143 +266,110 @@ public class StreamTest extends AtlasDbTestCase {
     @Test
     public void testStreamMetadataConflictDeleteFirst() throws Exception {
         long streamId = timestampService.getFreshTimestamp();
-        final CountDownLatch writeLatch = new CountDownLatch(1);
-        final CountDownLatch deleteLatch = new CountDownLatch(1);
 
-        ExecutorService exec = PTExecutors.newFixedThreadPool(2);
-
-        Future<?> writeFuture = exec.submit(new Runnable() {
+        runConflictingTasksConcurrently(streamId, new TwoConflictingTasks() {
             @Override
-            public void run() {
-                try {
-                    txManager.runTaskThrowOnConflict(new TransactionTask<Void, RuntimeException>() {
-                        @Override
-                        public Void execute(Transaction t) throws RuntimeException {
-                            StreamTestStreamStore ss = StreamTestStreamStore.of(txManager, StreamTestTableFactory.of());
-                            ss.storeStreams(t, ImmutableMap.of(streamId, new ByteArrayInputStream(new byte[1])));
-                            deleteLatch.countDown();
-                            try {
-                                writeLatch.await();
-                            } catch (InterruptedException e) {
-                                throw Throwables.rewrapAndThrowUncheckedException(e);
-                            }
-                            return null;
-                        }
-                    });
-                    fail("Because we concurrently deleted, we should have failed with TransactionSerializableConflictException.");
-                } catch (TransactionConflictException e) {
-                    // expected
-                }
-            }
-        });
-
-        deleteLatch.await();
-        Future<?> deleteFuture = exec.submit(new Runnable() {
-            @Override
-            public void run() {
-                txManager.runTaskThrowOnConflict(new TransactionTask<Void, RuntimeException>() {
-                    @Override
-                    public Void execute(Transaction t) throws RuntimeException {
-                        StreamTestStreamStore.of(txManager, StreamTestTableFactory.of()).deleteStreams(t, ImmutableSet.of(streamId));
-                        return null;
-                    }
-                });
-            }
-        });
-
-        exec.shutdown();
-        Futures.getUnchecked(deleteFuture);
-
-        writeLatch.countDown();
-        Futures.getUnchecked(writeFuture);
-
-        txManager.runTaskThrowOnConflict(new TransactionTask<Void, RuntimeException>() {
-            @Override
-            public Void execute(Transaction t) throws RuntimeException {
+            public void startFirstAndFail(Transaction t, long streamId) {
                 StreamTestStreamStore ss = StreamTestStreamStore.of(txManager, StreamTestTableFactory.of());
+                ss.storeStreams(t, ImmutableMap.of(streamId, new ByteArrayInputStream(new byte[1])));
+            }
 
-                try {
-                    InputStream loadedStream = ss.loadStream(t, streamId);
-                    fail("This element should have been deleted");
-                } catch (NoSuchElementException e) {
-                    // expected
-                }
-                return null;
+            @Override
+            public void startSecondAndFinish(Transaction t, long streamId) {
+                StreamTestStreamStore.of(txManager, StreamTestTableFactory.of()).deleteStreams(t, ImmutableSet.of(streamId));
             }
         });
+
+        assertStreamDoesNotExist(streamId);
     }
-
-
-
-
-
-
-
-
 
     @Test
     public void testStreamMetadataConflictWriteFirst() throws Exception {
         long streamId = timestampService.getFreshTimestamp();
-        final CountDownLatch writeLatch = new CountDownLatch(1);
-        final CountDownLatch deleteLatch = new CountDownLatch(1);
+
+        runConflictingTasksConcurrently(streamId, new TwoConflictingTasks() {
+            @Override
+            public void startFirstAndFail(Transaction t, long streamId) {
+                StreamTestStreamStore.of(txManager, StreamTestTableFactory.of()).deleteStreams(t, ImmutableSet.of(streamId));
+            }
+
+            @Override
+            public void startSecondAndFinish(Transaction t, long streamId) {
+                StreamTestStreamStore ss = StreamTestStreamStore.of(txManager, StreamTestTableFactory.of());
+                ss.storeStreams(t, ImmutableMap.of(streamId, new ByteArrayInputStream(new byte[1])));
+            }
+        });
+
+        assertNotNull(getStream(streamId));
+    }
+
+    private InputStream getStream(long streamId) {
+        return txManager.runTaskThrowOnConflict(t -> {
+            StreamTestStreamStore streamStore = StreamTestStreamStore.of(txManager, StreamTestTableFactory.of());
+            return streamStore.loadStream(t, streamId);
+        });
+    }
+
+    private void assertStreamDoesNotExist(final long streamId) {
+        try {
+            getStream(streamId);
+            fail("This element should have been deleted");
+        } catch (NoSuchElementException e) {
+            // expected
+        }
+    }
+
+    private void runConflictingTasksConcurrently(long streamId, TwoConflictingTasks twoConflictingTasks) throws InterruptedException {
+        final CountDownLatch firstLatch = new CountDownLatch(1);
+        final CountDownLatch secondLatch = new CountDownLatch(1);
 
         ExecutorService exec = PTExecutors.newFixedThreadPool(2);
 
-        Future<?> deleteFuture = exec.submit(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    txManager.runTaskThrowOnConflict(new TransactionTask<Void, RuntimeException>() {
-                        @Override
-                        public Void execute(Transaction t) throws RuntimeException {
-                            StreamTestStreamStore.of(txManager, StreamTestTableFactory.of()).deleteStreams(t, ImmutableSet.of(streamId));
-                            writeLatch.countDown();
-                            try {
-                                deleteLatch.await();
-                            } catch (InterruptedException e) {
-                                throw Throwables.rewrapAndThrowUncheckedException(e);
-                            }
-                            return null;
-                        }
-                    });
-                    fail("Because we concurrently wrote, we should have failed with TransactionSerializableConflictException.");
-                } catch (TransactionConflictException e) {
-                    // expected
-                }
-            }
-        });
 
-        writeLatch.await();
-
-        Future<?> writeFuture = exec.submit(new Runnable() {
-            @Override
-            public void run() {
-                txManager.runTaskThrowOnConflict(new TransactionTask<Void, RuntimeException>() {
-                    @Override
-                    public Void execute(Transaction t) throws RuntimeException {
-                        StreamTestStreamStore ss = StreamTestStreamStore.of(txManager, StreamTestTableFactory.of());
-                        ss.storeStreams(t, ImmutableMap.of(streamId, new ByteArrayInputStream(new byte[1])));
-                        return null;
-                    }
+        Future<?> firstFuture = exec.submit(() -> {
+            try {
+                txManager.runTaskThrowOnConflict(t -> {
+                    twoConflictingTasks.startFirstAndFail(t, streamId);
+                    letOtherTaskFinish(firstLatch, secondLatch);
+                    return null;
                 });
+                fail("Because we concurrently wrote, we should have failed with TransactionConflictException.");
+            } catch (TransactionConflictException e) {
+                // expected
             }
         });
+
+        firstLatch.await();
+
+        Future<?> secondFuture = exec.submit((Runnable) () -> txManager.runTaskThrowOnConflict((TransactionTask<Void, RuntimeException>) t -> {
+            twoConflictingTasks.startSecondAndFinish(t, streamId);
+            return null;
+        }));
 
         exec.shutdown();
-        Futures.getUnchecked(writeFuture);
+        Futures.getUnchecked(secondFuture);
 
-        deleteLatch.countDown();
-        Futures.getUnchecked(deleteFuture);
+        secondLatch.countDown();
+        Futures.getUnchecked(firstFuture);
+    }
 
-        txManager.runTaskThrowOnConflict(new TransactionTask<Void, RuntimeException>() {
-            @Override
-            public Void execute(Transaction t) throws RuntimeException {
-                StreamTestStreamStore ss = StreamTestStreamStore.of(txManager, StreamTestTableFactory.of());
-                InputStream loadedStream = ss.loadStream(t, streamId);
-                assertNotNull(loadedStream);
-                return null;
-            }
-        });
+    private void letOtherTaskFinish(CountDownLatch firstLatch, CountDownLatch secondLatch) {
+        firstLatch.countDown();
+        try {
+            secondLatch.await();
+        } catch (InterruptedException e) {
+            throw Throwables.rewrapAndThrowUncheckedException(e);
+        }
+    }
+
+    abstract class TwoConflictingTasks {
+        public void startFirstAndFail(Transaction t, long streamId) {
+            StreamTestStreamStore.of(txManager, StreamTestTableFactory.of()).deleteStreams(t, ImmutableSet.of(streamId));
+        }
+        public void startSecondAndFinish(Transaction t, long streamId) {
+            StreamTestStreamStore ss = StreamTestStreamStore.of(txManager, StreamTestTableFactory.of());
+            ss.storeStreams(t, ImmutableMap.of(streamId, new ByteArrayInputStream(new byte[1])));
+        }
     }
 
 }
