@@ -103,7 +103,7 @@ public class TestSingleBackendCommand {
 
     @Test
     public void testRunNestedConfig() {
-        assertSuccessful(runTest(new String[] { "test", "-c", NESTED_CONFIG_FILE, "-f1", "--config-root", "dropwizardConfig", "-f2", "test.new_table"}));
+        assertSuccessful(runTest(new String[] { "test", "-c", NESTED_CONFIG_FILE, "-f1", "--config-root", "atlasdb", "-f2", "test.new_table"}));
     }
 
     @Test
