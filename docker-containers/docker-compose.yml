@@ -2,7 +2,7 @@ version: '2'
 
 services:
     cassandra:
-        image: atlas-cassandra:2.2-v0.1
+        image: com.palantir.docker/atlas-cassandra:2.2-v0.1
         ports:
         - "9160"
         - "9042"
@@ -16,4 +16,5 @@ services:
         volumes:
         - ~/.gradle:/root/.gradle
         - ..:/atlas
+        working_dir: /atlas
         command: echo

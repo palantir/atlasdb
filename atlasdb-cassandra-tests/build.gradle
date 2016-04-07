@@ -43,7 +43,7 @@ jacocoTestReport {
 }
 
 docker {
-    name "com.palantir.docker/atlas-cassandra:${project.version}"
+    name "com.palantir.docker/atlas-cassandra:2.2-v0.1"
     tags 'latest'
     dockerfile "${rootProject.projectDir}/docker-containers/cassandra/Dockerfile"
     files "${rootProject.projectDir}/docker-containers/cassandra/entrypoint.sh",

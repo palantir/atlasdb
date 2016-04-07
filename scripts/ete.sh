@@ -3,7 +3,7 @@
 set -e
 cd $(dirname $0)/..
 
-./gradlew dockerPrepare --parallel --console=plain
+./gradlew docker --parallel --console=plain
 
 cd docker-containers 
 
