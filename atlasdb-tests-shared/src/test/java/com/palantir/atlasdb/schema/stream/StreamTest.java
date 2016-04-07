@@ -18,8 +18,11 @@ package com.palantir.atlasdb.schema.stream;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.hamcrest.core.IsNot.not;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 
 import static junit.framework.TestCase.assertEquals;
+import static junit.framework.TestCase.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -28,6 +31,9 @@ import java.io.InputStream;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Random;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.FileUtils;
@@ -38,8 +44,10 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.AtlasDbTestCase;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.schema.stream.generated.StreamTestStreamMetadataTable;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestStreamStore;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestTableFactory;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxRow;
@@ -50,7 +58,10 @@ import com.palantir.atlasdb.stream.GenericStreamStore;
 import com.palantir.atlasdb.stream.PersistentStreamStore;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
+import com.palantir.common.base.Throwables;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
 
@@ -252,6 +263,76 @@ public class StreamTest extends AtlasDbTestCase {
 
         assertThat(idAndHash1.getRhSide(), equalTo(idAndHash2.getRhSide()));        //verify hashes are the same
         assertThat(idAndHash1.getLhSide(), not(equalTo(idAndHash2.getLhSide())));   //verify ids are different
+    }
+
+    @Test
+    public void testStreamMetadataConflictDeleteFirst() throws Exception {
+        long streamId = timestampService.getFreshTimestamp();
+        final CountDownLatch writeLatch = new CountDownLatch(1);
+        final CountDownLatch deleteLatch = new CountDownLatch(1);
+
+        ExecutorService exec = PTExecutors.newFixedThreadPool(2);
+
+        Future<?> writeFuture = exec.submit(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    txManager.runTaskThrowOnConflict(new TransactionTask<Void, RuntimeException>() {
+                        @Override
+                        public Void execute(Transaction t) throws RuntimeException {
+                            StreamTestStreamStore ss = StreamTestStreamStore.of(txManager, StreamTestTableFactory.of());
+                            ss.storeStreams(t, ImmutableMap.of(streamId, new ByteArrayInputStream(new byte[1])));
+                            //ss.markMediaAsUsedByFragments(ImmutableSetMultimap.of(new FragmentId(1L, -1L, 0L), streamId));
+                            deleteLatch.countDown();
+                            try {
+                                writeLatch.await();
+                            } catch (InterruptedException e) {
+                                throw Throwables.rewrapAndThrowUncheckedException(e);
+                            }
+                            return null;
+                        }
+                    });
+                    fail("Because we concurrently deleted, we should have failed with TransactionSerializableConflictException.");
+                } catch (TransactionConflictException e) {
+                    // expected
+                }
+            }
+        });
+
+        deleteLatch.await();
+        Future<?> deleteFuture = exec.submit(new Runnable() {
+            @Override
+            public void run() {
+                txManager.runTaskThrowOnConflict(new TransactionTask<Void, RuntimeException>() {
+                    @Override
+                    public Void execute(Transaction t) throws RuntimeException {
+                        StreamTestStreamStore.of(txManager, StreamTestTableFactory.of()).deleteStreams(t, ImmutableSet.of(streamId));
+                        return null;
+                    }
+                });
+            }
+        });
+
+        exec.shutdown();
+        Futures.getUnchecked(deleteFuture);
+
+        writeLatch.countDown();
+        Futures.getUnchecked(writeFuture);
+
+        txManager.runTaskThrowOnConflict(new TransactionTask<Void, RuntimeException>() {
+            @Override
+            public Void execute(Transaction t) throws RuntimeException {
+                StreamTestStreamStore ss = StreamTestStreamStore.of(txManager, StreamTestTableFactory.of());
+
+                try {
+                    InputStream loadedStream = ss.loadStream(t, streamId);
+                    fail("This element should have been deleted");
+                } catch (NoSuchElementException e) {
+                    // expected
+                }
+                return null;
+            }
+        });
     }
 
 }

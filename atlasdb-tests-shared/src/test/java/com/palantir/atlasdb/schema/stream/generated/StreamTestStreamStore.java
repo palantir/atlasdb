@@ -270,7 +270,7 @@ public final class StreamTestStreamStore extends AbstractPersistentStreamStore {
     /**
      * This should only be used from the cleanup tasks.
      */
-    void deleteStreams(Transaction t, final Set<Long> streamIds) {
+    public void deleteStreams(Transaction t, final Set<Long> streamIds) {
         if (streamIds.isEmpty()) {
             return;
         }
