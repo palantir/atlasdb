@@ -20,6 +20,8 @@ import static com.palantir.docker.compose.connection.waiting.HealthChecks.toHave
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.joda.time.Duration;
+
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.runner.RunWith;
@@ -27,8 +29,6 @@ import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
 import com.palantir.docker.compose.DockerComposition;
-
-import org.joda.time.Duration;
 
 @RunWith(Suite.class)
 @SuiteClasses({
@@ -66,7 +66,7 @@ public class CassandraTestSuite {
     }
 
     @ClassRule
-    public static DockerComposition composition = DockerComposition.of("src/test/resources/docker-containers/docker-compose.yml")
+    public static DockerComposition composition = DockerComposition.of("../docker-containers/docker-compose.yml")
             .saveLogsTo(".")
             .waitingForService("cassandra", toHaveAllPortsOpen(), Duration.standardMinutes(2))
             .build();
