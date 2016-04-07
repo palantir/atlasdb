@@ -22,6 +22,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 import static junit.framework.TestCase.assertEquals;
+import static junit.framework.TestCase.assertNotNull;
 import static junit.framework.TestCase.assertTrue;
 
 import java.io.ByteArrayInputStream;
@@ -44,6 +45,7 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.AtlasDbTestCase;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -59,6 +61,7 @@ import com.palantir.atlasdb.stream.PersistentStreamStore;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
+import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
@@ -282,7 +285,6 @@ public class StreamTest extends AtlasDbTestCase {
                         public Void execute(Transaction t) throws RuntimeException {
                             StreamTestStreamStore ss = StreamTestStreamStore.of(txManager, StreamTestTableFactory.of());
                             ss.storeStreams(t, ImmutableMap.of(streamId, new ByteArrayInputStream(new byte[1])));
-                            //ss.markMediaAsUsedByFragments(ImmutableSetMultimap.of(new FragmentId(1L, -1L, 0L), streamId));
                             deleteLatch.countDown();
                             try {
                                 writeLatch.await();
@@ -330,6 +332,79 @@ public class StreamTest extends AtlasDbTestCase {
                 } catch (NoSuchElementException e) {
                     // expected
                 }
+                return null;
+            }
+        });
+    }
+
+
+
+
+
+
+
+
+
+    @Test
+    public void testStreamMetadataConflictWriteFirst() throws Exception {
+        long streamId = timestampService.getFreshTimestamp();
+        final CountDownLatch writeLatch = new CountDownLatch(1);
+        final CountDownLatch deleteLatch = new CountDownLatch(1);
+
+        ExecutorService exec = PTExecutors.newFixedThreadPool(2);
+
+        Future<?> deleteFuture = exec.submit(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    txManager.runTaskThrowOnConflict(new TransactionTask<Void, RuntimeException>() {
+                        @Override
+                        public Void execute(Transaction t) throws RuntimeException {
+                            StreamTestStreamStore.of(txManager, StreamTestTableFactory.of()).deleteStreams(t, ImmutableSet.of(streamId));
+                            writeLatch.countDown();
+                            try {
+                                deleteLatch.await();
+                            } catch (InterruptedException e) {
+                                throw Throwables.rewrapAndThrowUncheckedException(e);
+                            }
+                            return null;
+                        }
+                    });
+                    fail("Because we concurrently wrote, we should have failed with TransactionSerializableConflictException.");
+                } catch (TransactionConflictException e) {
+                    // expected
+                }
+            }
+        });
+
+        writeLatch.await();
+
+        Future<?> writeFuture = exec.submit(new Runnable() {
+            @Override
+            public void run() {
+                txManager.runTaskThrowOnConflict(new TransactionTask<Void, RuntimeException>() {
+                    @Override
+                    public Void execute(Transaction t) throws RuntimeException {
+                        StreamTestStreamStore ss = StreamTestStreamStore.of(txManager, StreamTestTableFactory.of());
+                        ss.storeStreams(t, ImmutableMap.of(streamId, new ByteArrayInputStream(new byte[1])));
+                        return null;
+                    }
+                });
+            }
+        });
+
+        exec.shutdown();
+        Futures.getUnchecked(writeFuture);
+
+        deleteLatch.countDown();
+        Futures.getUnchecked(deleteFuture);
+
+        txManager.runTaskThrowOnConflict(new TransactionTask<Void, RuntimeException>() {
+            @Override
+            public Void execute(Transaction t) throws RuntimeException {
+                StreamTestStreamStore ss = StreamTestStreamStore.of(txManager, StreamTestTableFactory.of());
+                InputStream loadedStream = ss.loadStream(t, streamId);
+                assertNotNull(loadedStream);
                 return null;
             }
         });
