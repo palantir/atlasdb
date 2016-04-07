@@ -22,11 +22,12 @@ import java.util.Set;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 /**
  * Thrown if there is a conflict detected when a transaction is committed.
- * If two concurrent transactions make calls to {@link Transaction#put(String, java.util.Map)} or
- * {@link Transaction#delete(String, Set)} for the same <code>Cell</code>, then this is a write-write conflict.
+ * If two concurrent transactions make calls to {@link Transaction#put(com.palantir.atlasdb.keyvalue.api.TableReference, java.util.Map)} or
+ * {@link Transaction#delete(com.palantir.atlasdb.keyvalue.api.TableReference, Set)} for the same <code>Cell</code>, then this is a write-write conflict.
  * <p>
  * The error message should be detailed about what caused the failure and what other transaction
  * conflicted with this one.
@@ -91,11 +92,11 @@ public class TransactionConflictException extends TransactionFailedRetriableExce
         return dominatingWrites;
     }
 
-    public static TransactionConflictException create(String tableName, long timestamp,
-            Collection<CellConflict> spanningWrites, Collection<CellConflict> dominatingWrites, long elapsedMillis) {
+    public static TransactionConflictException create(TableReference tableRef, long timestamp,
+                                                      Collection<CellConflict> spanningWrites, Collection<CellConflict> dominatingWrites, long elapsedMillis) {
         StringBuilder sb = new StringBuilder();
         sb.append("Transaction Conflict after " + elapsedMillis + " ms for table: "
-            + tableName + " with start timestamp: " + timestamp + "\n");
+            + tableRef.getQualifiedName() + " with start timestamp: " + timestamp + "\n");
         if (!spanningWrites.isEmpty()) {
             sb.append("Another transaction wrote values before our start timestamp and committed after. Cells:\n");
             formatConflicts(spanningWrites, sb);

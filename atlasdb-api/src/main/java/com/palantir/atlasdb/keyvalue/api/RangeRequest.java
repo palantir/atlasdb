@@ -346,7 +346,7 @@ import com.palantir.util.Pair;
          * read a lot from this range, then this should be pretty large for performance.  If we are only going to read
          * the first thing in a range, then this should be set to 1.
          * <p>
-         * If hint is null then the range will use the default. Usually for {@link Transaction#getRange(String, RangeRequest)}
+         * If hint is null then the range will use the default. Usually for {@link Transaction#getRange(TableReference, RangeRequest)}
          * this means the batch size will be whatever is passed as the batch size to
          * BatchingVisitable#batchAccept(int, com.palantir.common.base.AbortingVisitor)
          */

@@ -23,6 +23,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.BatchingVisitable;
@@ -34,21 +35,21 @@ import com.palantir.common.base.BatchingVisitable;
 public interface Transaction {
 
     @Idempotent
-    SortedMap<byte[], RowResult<byte[]>> getRows(String tableName, Iterable<byte[]> rows,
+    SortedMap<byte[], RowResult<byte[]>> getRows(TableReference tableRef, Iterable<byte[]> rows,
                                                  ColumnSelection columnSelection);
 
     @Idempotent
-    Map<Cell, byte[]> get(String tableName, Set<Cell> cells);
+    Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells);
 
     /**
      * Creates a visitable that scans the provided range.
      *
-     * @param tableName the table to scan
+     * @param tableRef the table to scan
      * @param rangeRequest the range of rows and columns to scan
      * @return an array of <code>RowResult</code> objects representing the range
      */
     @Idempotent
-    BatchingVisitable<RowResult<byte[]>> getRange(String tableName, RangeRequest rangeRequest);
+    BatchingVisitable<RowResult<byte[]>> getRange(TableReference tableRef, RangeRequest rangeRequest);
 
     /**
      * Creates a visitable that scans the provided range.
@@ -59,24 +60,24 @@ public interface Transaction {
      * will default to 1 for the first page in each range.
      */
     @Idempotent
-    Iterable<BatchingVisitable<RowResult<byte[]>>> getRanges(String tableName, Iterable<RangeRequest> rangeRequests);
+    Iterable<BatchingVisitable<RowResult<byte[]>>> getRanges(TableReference tableRef, Iterable<RangeRequest> rangeRequests);
 
     /**
      * Puts values into the key-value store. If you put a null or the empty byte array, then
      * this is treated like a delete to the store.
-     * @param tableName the table into which to put the values
+     * @param tableRef the table into which to put the values
      * @param values the values to append to the table
      */
     @Idempotent
-    void put(String tableName, Map<Cell, byte[]> values);
+    void put(TableReference tableRef, Map<Cell, byte[]> values);
 
     /**
      * Deletes values from the key-value store.
-     * @param tableName the table from which to delete the values
+     * @param tableRef the table from which to delete the values
      * @param keys the set of cells to delete from the store
      */
     @Idempotent
-    void delete(String tableName, Set<Cell> keys);
+    void delete(TableReference tableRef, Set<Cell> keys);
 
     @Idempotent
     TransactionType getTransactionType();
@@ -159,5 +160,5 @@ public interface Transaction {
     /**
      * Informs the transaction that a particular table has been written to.
      */
-    void useTable(String tableName, ConstraintCheckable table);
+    void useTable(TableReference tableRef, ConstraintCheckable table);
 }

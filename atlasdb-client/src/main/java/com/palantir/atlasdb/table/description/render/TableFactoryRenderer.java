@@ -20,7 +20,7 @@ import java.util.Map.Entry;
 import java.util.SortedMap;
 
 import com.google.common.collect.Maps;
-import com.palantir.atlasdb.schema.Namespace;
+import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.table.description.TableDefinition;
 
 public class TableFactoryRenderer {
@@ -90,7 +90,7 @@ public class TableFactoryRenderer {
                 line("import com.google.common.base.Function;");
                 line("import com.google.common.collect.ImmutableList;");
                 line("import com.google.common.collect.Multimap;");
-                line("import com.palantir.atlasdb.schema.Namespace;");
+                line("import com.palantir.atlasdb.keyvalue.api.Namespace;");
                 line("import com.palantir.atlasdb.table.generation.Triggers;");
                 line("import com.palantir.atlasdb.transaction.api.Transaction;");
             }

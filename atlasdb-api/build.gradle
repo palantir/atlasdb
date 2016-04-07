@@ -3,5 +3,6 @@ apply from: "../gradle/shared.gradle"
 dependencies {
   compile(project(":atlasdb-commons"))
   compile 'javax.ws.rs:javax.ws.rs-api:2.0.1'
+  compile 'org.apache.commons:commons-lang3:3.1'
   compile 'com.fasterxml.jackson.core:jackson-annotations:' + libVersions.jackson_annotation
 }

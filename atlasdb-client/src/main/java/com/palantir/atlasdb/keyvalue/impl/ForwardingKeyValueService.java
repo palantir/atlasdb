@@ -28,6 +28,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -57,138 +58,138 @@ public abstract class ForwardingKeyValueService extends ForwardingObject impleme
     }
 
     @Override
-    public void createTable(String tableName, final byte[] tableMetadata) {
-        delegate().createTable(tableName, tableMetadata);
+    public void createTable(TableReference tableRef, final byte[] tableMetadata) {
+        delegate().createTable(tableRef, tableMetadata);
     }
 
     @Override
-    public void createTables(Map<String, byte[]> tableNameToTableMetadata) {
-        delegate().createTables(tableNameToTableMetadata);
+    public void createTables(Map<TableReference, byte[]> tableRefToTableMetadata) {
+        delegate().createTables(tableRefToTableMetadata);
     }
 
     @Override
-    public void delete(String tableName, Multimap<Cell, Long> keys) {
-        delegate().delete(tableName, keys);
+    public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
+        delegate().delete(tableRef, keys);
     }
 
     @Override
-    public Multimap<Cell, Long> getAllTimestamps(String tableName, Set<Cell> keys, long timestamp) {
-        return delegate().getAllTimestamps(tableName, keys, timestamp);
+    public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> keys, long timestamp) {
+        return delegate().getAllTimestamps(tableRef, keys, timestamp);
     }
 
     @Override
-    public void dropTable(String tableName) {
-        delegate().dropTable(tableName);
+    public void dropTable(TableReference tableRef) {
+        delegate().dropTable(tableRef);
     }
 
     @Override
-    public void dropTables(Set<String> tableNames) {
-        delegate().dropTables(tableNames);
+    public void dropTables(Set<TableReference> tableRefs) {
+        delegate().dropTables(tableRefs);
     }
 
     @Override
-    public Map<Cell, Value> get(String tableName, Map<Cell, Long> timestampByCell) {
-        return delegate().get(tableName, timestampByCell);
+    public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        return delegate().get(tableRef, timestampByCell);
     }
 
     @Override
-    public Map<Cell, Value> getRows(String tableName, Iterable<byte[]> rows,
+    public Map<Cell, Value> getRows(TableReference tableRef, Iterable<byte[]> rows,
                                     ColumnSelection columnSelection, long timestamp) {
-        return delegate().getRows(tableName, rows, columnSelection, timestamp);
+        return delegate().getRows(tableRef, rows, columnSelection, timestamp);
     }
 
     @Override
-    public Map<Cell, Long> getLatestTimestamps(String tableName, Map<Cell, Long> timestampByCell) {
-        return delegate().getLatestTimestamps(tableName, timestampByCell);
+    public Map<Cell, Long> getLatestTimestamps(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        return delegate().getLatestTimestamps(tableRef, timestampByCell);
     }
 
     @Override
-    public ClosableIterator<RowResult<Value>> getRange(String tableName, RangeRequest rangeRequest, long timestamp) {
-        return delegate().getRange(tableName, rangeRequest, timestamp);
+    public ClosableIterator<RowResult<Value>> getRange(TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
+        return delegate().getRange(tableRef, rangeRequest, timestamp);
     }
 
     @Override
-    public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(String tableName,
+    public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(TableReference tableRef,
                                                                        RangeRequest rangeRequest,
                                                                        long timestamp) {
-        return delegate().getRangeOfTimestamps(tableName, rangeRequest, timestamp);
+        return delegate().getRangeOfTimestamps(tableRef, rangeRequest, timestamp);
     }
 
     @Override
-    public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(String tableName,
+    public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(TableReference tableRef,
                                                                        RangeRequest rangeRequest,
                                                                        long timestamp) {
-        return delegate().getRangeWithHistory(tableName, rangeRequest, timestamp);
+        return delegate().getRangeWithHistory(tableRef, rangeRequest, timestamp);
     }
 
     @Override
-    public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(String tableName,
-            Iterable<RangeRequest> rangeRequests,
-            long timestamp) {
-        return delegate().getFirstBatchForRanges(tableName, rangeRequests, timestamp);
+    public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(TableReference tableRef,
+                                                                                                           Iterable<RangeRequest> rangeRequests,
+                                                                                                           long timestamp) {
+        return delegate().getFirstBatchForRanges(tableRef, rangeRequests, timestamp);
     }
 
     @Override
-    public void put(String tableName, Map<Cell, byte[]> values, long timestamp) {
-        delegate().put(tableName, values, timestamp);
+    public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp) {
+        delegate().put(tableRef, values, timestamp);
     }
 
     @Override
-    public void multiPut(Map<String, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
+    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
         delegate().multiPut(valuesByTable, timestamp);
     }
 
     @Override
-    public void putWithTimestamps(String tableName, Multimap<Cell, Value> values) {
-        delegate().putWithTimestamps(tableName, values);
+    public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> values) {
+        delegate().putWithTimestamps(tableRef, values);
     }
 
     @Override
-    public void putUnlessExists(String tableName, Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
-        delegate().putUnlessExists(tableName, values);
+    public void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
+        delegate().putUnlessExists(tableRef, values);
     }
 
     @Override
-    public void truncateTable(String tableName) {
-        delegate().truncateTable(tableName);
+    public void truncateTable(TableReference tableRef) {
+        delegate().truncateTable(tableRef);
     }
 
     @Override
-    public void truncateTables(Set<String> tableNames) {
-        delegate().truncateTables(tableNames);
+    public void truncateTables(Set<TableReference> tableRefs) {
+        delegate().truncateTables(tableRefs);
     }
 
     @Override
-    public byte[] getMetadataForTable(String tableName) {
-        return delegate().getMetadataForTable(tableName);
+    public byte[] getMetadataForTable(TableReference tableRef) {
+        return delegate().getMetadataForTable(tableRef);
     }
 
     @Override
-    public Map<String, byte[]> getMetadataForTables() {
+    public Map<TableReference, byte[]> getMetadataForTables() {
         return delegate().getMetadataForTables();
     }
 
     @Override
-    public void putMetadataForTable(String tableName, byte[] metadata) {
-        delegate().putMetadataForTable(tableName, metadata);
+    public void putMetadataForTable(TableReference tableRef, byte[] metadata) {
+        delegate().putMetadataForTable(tableRef, metadata);
     }
     @Override
-    public void putMetadataForTables(final Map<String, byte[]> tableNameToMetadata) {
-        delegate().putMetadataForTables(tableNameToMetadata);
+    public void putMetadataForTables(final Map<TableReference, byte[]> tableRefToMetadata) {
+        delegate().putMetadataForTables(tableRefToMetadata);
     }
 
     @Override
-    public Set<String> getAllTableNames() {
+    public Set<TableReference> getAllTableNames() {
         return delegate().getAllTableNames();
     }
 
     @Override
-    public void addGarbageCollectionSentinelValues(String tableName, Set<Cell> cells) {
-        delegate().addGarbageCollectionSentinelValues(tableName, cells);
+    public void addGarbageCollectionSentinelValues(TableReference tableRef, Set<Cell> cells) {
+        delegate().addGarbageCollectionSentinelValues(tableRef, cells);
     }
 
     @Override
-    public void compactInternally(String tableName) {
-        delegate().compactInternally(tableName);
+    public void compactInternally(TableReference tableRef) {
+        delegate().compactInternally(tableRef);
     }
 }

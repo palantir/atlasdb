@@ -16,11 +16,12 @@
 package com.palantir.atlasdb.console.module
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import com.google.common.base.Optional
 import com.google.common.collect.ImmutableSet
 import com.palantir.atlasdb.api.AtlasDbService
 import com.palantir.atlasdb.api.TransactionToken
+import com.palantir.atlasdb.config.AtlasDbConfig
+import com.palantir.atlasdb.config.AtlasDbConfigs
 import com.palantir.atlasdb.console.AtlasConsoleModule
 import com.palantir.atlasdb.console.AtlasConsoleService
 import com.palantir.atlasdb.console.AtlasConsoleServiceImpl
@@ -29,13 +30,11 @@ import com.palantir.atlasdb.factory.TransactionManagers
 import com.palantir.atlasdb.impl.AtlasDbServiceImpl
 import com.palantir.atlasdb.impl.TableMetadataCache
 import com.palantir.atlasdb.jackson.AtlasJacksonModule
-import com.palantir.atlasdb.server.AtlasDbServerConfiguration
 import com.palantir.atlasdb.table.description.Schema
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager
 import groovy.json.JsonBuilder
 import groovy.json.JsonOutput
 import groovy.transform.CompileStatic
-import io.dropwizard.jackson.Jackson
 
 import javax.net.ssl.SSLSocketFactory
 
@@ -135,10 +134,8 @@ class AtlasCoreModule implements AtlasConsoleModule {
     }
 
     public connect(String yamlFilePath = null) {
-        ObjectMapper configMapper = Jackson.newObjectMapper(new YAMLFactory())
-        AtlasDbServerConfiguration config = configMapper.readValue(new File(yamlFilePath), AtlasDbServerConfiguration.class)
-
-        SerializableTransactionManager tm = TransactionManagers.create(config.getConfig(), Optional.<SSLSocketFactory>absent(), ImmutableSet.<Schema>of(),
+        AtlasDbConfig config = AtlasDbConfigs.load(new File(yamlFilePath));
+        SerializableTransactionManager tm = TransactionManagers.create(config, Optional.<SSLSocketFactory>absent(), ImmutableSet.<Schema>of(),
                 new com.palantir.atlasdb.factory.TransactionManagers.Environment() {
                     @Override
                     public void register(Object resource) {

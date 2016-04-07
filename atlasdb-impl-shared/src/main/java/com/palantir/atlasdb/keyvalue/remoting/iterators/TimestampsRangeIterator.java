@@ -23,21 +23,22 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.ClosableIterator;
 
 public class TimestampsRangeIterator extends RangeIterator<Set<Long>> {
     @JsonCreator
-    public TimestampsRangeIterator(@JsonProperty("tableName") String tableName,
+    public TimestampsRangeIterator(@JsonProperty("tableRef") TableReference tableRef,
                                    @JsonProperty("range") RangeRequest range,
                                    @JsonProperty("timestamp") long timestamp,
                                    @JsonProperty("hasNext") boolean hasNext,
                                    @JsonProperty("page") ImmutableList<RowResult<Set<Long>>> page) {
-        super(tableName, range, timestamp, hasNext, page);
+        super(tableRef, range, timestamp, hasNext, page);
     }
 
     @Override
-    protected ClosableIterator<RowResult<Set<Long>>> getMoreRows(KeyValueService kvs, String tableName,
+    protected ClosableIterator<RowResult<Set<Long>>> getMoreRows(KeyValueService kvs, TableReference tableRef,
                                                                  RangeRequest newRange, long timestamp) {
-        return kvs.getRangeOfTimestamps(tableName, newRange, timestamp);
+        return kvs.getRangeOfTimestamps(tableRef, newRange, timestamp);
     }
 }

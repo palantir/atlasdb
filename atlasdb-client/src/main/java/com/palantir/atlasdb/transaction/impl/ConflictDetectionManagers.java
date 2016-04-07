@@ -25,6 +25,7 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
@@ -42,7 +43,7 @@ public class ConflictDetectionManagers {
         return new ConflictDetectionManager(RecomputingSupplier.create(Suppliers.ofInstance(getTablesToConflictDetect(schema))));
     }
 
-    public static ConflictDetectionManager fromMap(final Map<String, ConflictHandler> map) {
+    public static ConflictDetectionManager fromMap(final Map<TableReference, ConflictHandler> map) {
         return new ConflictDetectionManager(RecomputingSupplier.create(Suppliers.ofInstance(map)));
     }
 
@@ -53,26 +54,26 @@ public class ConflictDetectionManagers {
         return new ConflictDetectionManager(getNoConflictDetectSupplier(kvs));
     }
 
-    private static RecomputingSupplier<Map<String, ConflictHandler>> getNoConflictDetectSupplier(final KeyValueService kvs) {
-        return RecomputingSupplier.create(new Supplier<Map<String, ConflictHandler>>() {
+    private static RecomputingSupplier<Map<TableReference, ConflictHandler>> getNoConflictDetectSupplier(final KeyValueService kvs) {
+        return RecomputingSupplier.create(new Supplier<Map<TableReference, ConflictHandler>>() {
             @Override
-            public Map<String, ConflictHandler> get() {
-                Set<String> tables = kvs.getAllTableNames();
+            public Map<TableReference, ConflictHandler> get() {
+                Set<TableReference> tables = kvs.getAllTableNames();
                 return Maps.asMap(tables, Functions.constant(ConflictHandler.IGNORE_ALL));
             }
         });
     }
 
-    private static RecomputingSupplier<Map<String, ConflictHandler>> getTablesToConflictDetectSupplier(final KeyValueService keyValueService) {
-        return RecomputingSupplier.create(new Supplier<Map<String, ConflictHandler>>() {
+    private static RecomputingSupplier<Map<TableReference, ConflictHandler>> getTablesToConflictDetectSupplier(final KeyValueService keyValueService) {
+        return RecomputingSupplier.create(new Supplier<Map<TableReference, ConflictHandler>>() {
             @Override
-            public Map<String, ConflictHandler> get() {
+            public Map<TableReference, ConflictHandler> get() {
                 return getTablesToConflictDetect(keyValueService);
             }
         });
     }
 
-    private static Map<String, ConflictHandler> getTablesToConflictDetect(KeyValueService kvs) {
+    private static Map<TableReference, ConflictHandler> getTablesToConflictDetect(KeyValueService kvs) {
         return ImmutableMap.copyOf(Maps.transformValues(kvs.getMetadataForTables(), new Function<byte[], ConflictHandler>() {
             @Override
             public ConflictHandler apply(byte[] metadataForTable) {
@@ -85,9 +86,9 @@ public class ConflictDetectionManagers {
         }));
     }
 
-    private static Map<String, ConflictHandler> getTablesToConflictDetect(Schema schema) {
-        Map<String, ConflictHandler> ret = Maps.newHashMap();
-        for (Map.Entry<String, TableMetadata> e : schema.getAllTablesAndIndexMetadata().entrySet()) {
+    private static Map<TableReference, ConflictHandler> getTablesToConflictDetect(Schema schema) {
+        Map<TableReference, ConflictHandler> ret = Maps.newHashMap();
+        for (Map.Entry<TableReference, TableMetadata> e : schema.getAllTablesAndIndexMetadata().entrySet()) {
             ret.put(e.getKey(), e.getValue().getConflictHandler());
         }
         return ret;

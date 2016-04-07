@@ -21,15 +21,16 @@ import java.util.SortedMap;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public interface ConstraintCheckingTransaction extends Transaction {
     /**
      * Returns the cell values in the key-value service, ignoring the cache of local writes.
      */
-    public Map<Cell, byte[]> getIgnoringLocalWrites(String tableName, Set<Cell> cells);
+    public Map<Cell, byte[]> getIgnoringLocalWrites(TableReference tableRef, Set<Cell> cells);
 
     /**
      * Returns the row result values in the key-value service, ignoring the cache of local writes.
      */
-    public SortedMap<byte[], RowResult<byte[]>> getRowsIgnoringLocalWrites(String tableName, Iterable<byte[]> rows);
+    public SortedMap<byte[], RowResult<byte[]>> getRowsIgnoringLocalWrites(TableReference tableRef, Iterable<byte[]> rows);
 }

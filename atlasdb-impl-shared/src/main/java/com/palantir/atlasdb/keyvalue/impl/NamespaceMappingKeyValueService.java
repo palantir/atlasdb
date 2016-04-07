@@ -23,7 +23,6 @@ import java.util.Set;
 import com.google.common.collect.ForwardingObject;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.NamespacedKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -31,9 +30,8 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.schema.TableReference;
-import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
@@ -48,168 +46,139 @@ public class NamespaceMappingKeyValueService extends ForwardingObject implements
         this.delegate = delegate;
     }
 
-    protected TableReference getTableReference(String tableName) {
-        return delegate().getTableMapper().getTableReference(tableName);
-    }
-
-    protected Set<String> resolveNamespacedSet(Set<TableReference> set) {
-        Set<String> resolvedSet = Sets.newHashSet();
-        for (TableReference tableRef : set) {
-            resolvedSet.add(convertTableReferenceToString(tableRef));
-        }
-        return resolvedSet;
-    }
-
-    protected final String convertTableReferenceToString(TableReference tableRef) {
-        return Schemas.getFullTableName(tableRef.getTablename(), tableRef.getNamespace());
-    }
-
     @Override
     protected NamespacedKeyValueService delegate() {
         return delegate;
     }
 
     @Override
-    public void createTable(String tableName, byte[] tableMetadata) {
-        delegate().createTable(getTableReference(tableName), tableMetadata);
+    public void createTable(TableReference tableRef, byte[] tableMetadata) {
+        delegate().createTable(tableRef, tableMetadata);
     }
 
     @Override
-    public void delete(String tableName, Multimap<Cell, Long> keys) {
-        delegate().delete(getTableReference(tableName), keys);
+    public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
+        delegate().delete(tableRef, keys);
     }
 
     @Override
-    public Multimap<Cell, Long> getAllTimestamps(String tableName, Set<Cell> keys, long timestamp) {
-        return delegate().getAllTimestamps(getTableReference(tableName), keys, timestamp);
+    public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> keys, long timestamp) {
+        return delegate().getAllTimestamps(tableRef, keys, timestamp);
     }
 
     @Override
-    public void dropTable(String tableName) {
-        delegate().dropTable(getTableReference(tableName));
+    public void dropTable(TableReference tableRef) {
+        delegate().dropTable(tableRef);
     }
 
     @Override
-    public void dropTables(Set<String> tableNames) {
-        Set<TableReference> tableReferences = Sets.newHashSet();
-        for (String tableName : tableNames) {
-            tableReferences.add(getTableReference(tableName));
-        }
-        delegate().dropTables(tableReferences);
+    public void dropTables(Set<TableReference> tableRefs) {
+        delegate().dropTables(tableRefs);
     }
 
     @Override
-    public Map<Cell, Value> get(String tableName, Map<Cell, Long> timestampByCell) {
-        return delegate().get(getTableReference(tableName), timestampByCell);
+    public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        return delegate().get(tableRef, timestampByCell);
     }
 
     @Override
-    public Map<Cell, Value> getRows(String tableName, Iterable<byte[]> rows,
+    public Map<Cell, Value> getRows(TableReference tableRef, Iterable<byte[]> rows,
                                     ColumnSelection columnSelection, long timestamp) {
-        return delegate().getRows(getTableReference(tableName), rows, columnSelection, timestamp);
+        return delegate().getRows(tableRef, rows, columnSelection, timestamp);
     }
 
     @Override
-    public Map<Cell, Long> getLatestTimestamps(String tableName, Map<Cell, Long> timestampByCell) {
-        return delegate().getLatestTimestamps(getTableReference(tableName), timestampByCell);
+    public Map<Cell, Long> getLatestTimestamps(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        return delegate().getLatestTimestamps(tableRef, timestampByCell);
     }
 
     @Override
-    public ClosableIterator<RowResult<Value>> getRange(String tableName, RangeRequest rangeRequest, long timestamp) {
-        return delegate().getRange(getTableReference(tableName), rangeRequest, timestamp);
+    public ClosableIterator<RowResult<Value>> getRange(TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
+        return delegate().getRange(tableRef, rangeRequest, timestamp);
     }
 
     @Override
-    public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(String tableName, RangeRequest rangeRequest, long timestamp) {
-        return delegate().getRangeOfTimestamps(getTableReference(tableName), rangeRequest, timestamp);
+    public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
+        return delegate().getRangeOfTimestamps(tableRef, rangeRequest, timestamp);
     }
 
     @Override
-    public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(String tableName,
-                                                                RangeRequest rangeRequest,
-                                                                long timestamp) {
-        return delegate().getRangeWithHistory(getTableReference(tableName), rangeRequest, timestamp);
+    public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(TableReference tableRef,
+                                                                       RangeRequest rangeRequest,
+                                                                       long timestamp) {
+        return delegate().getRangeWithHistory(tableRef, rangeRequest, timestamp);
     }
 
     @Override
-    public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(String tableName,
-            Iterable<RangeRequest> rangeRequests,
-            long timestamp) {
-        return delegate().getFirstBatchForRanges(getTableReference(tableName), rangeRequests, timestamp);
+    public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(TableReference tableRef,
+                                                                                                           Iterable<RangeRequest> rangeRequests,
+                                                                                                           long timestamp) {
+        return delegate().getFirstBatchForRanges(tableRef, rangeRequests, timestamp);
     }
 
     @Override
-    public void put(String tableName, Map<Cell, byte[]> values, long timestamp) {
-        delegate().put(getTableReference(tableName), values, timestamp);
+    public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp) {
+        delegate().put(tableRef, values, timestamp);
     }
 
     @Override
-    public void putWithTimestamps(String tableName, Multimap<Cell, Value> cellValues) {
-        delegate().putWithTimestamps(getTableReference(tableName), cellValues);
+    public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> cellValues) {
+        delegate().putWithTimestamps(tableRef, cellValues);
     }
 
     @Override
-    public void multiPut(Map<String, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
+    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
         Map<TableReference, ? extends Map<Cell, byte[]>> map = getNamespacedMap(valuesByTable);
         delegate().multiPut(map, timestamp);
     }
 
-    private <T> Map<TableReference, T> getNamespacedMap(Map<String, T> map) {
+    private <T> Map<TableReference, T> getNamespacedMap(Map<TableReference, T> map) {
         Map<TableReference, T> namespacedMap = Maps.newHashMap();
-        for (Entry<String, T> e : map.entrySet()) {
-            namespacedMap.put(getTableReference(e.getKey()), e.getValue());
+        for (Entry<TableReference, T> e : map.entrySet()) {
+            namespacedMap.put(e.getKey(), e.getValue());
         }
         return namespacedMap;
     }
 
     @Override
-    public void putUnlessExists(String tableName, Map<Cell, byte[]> values)
+    public void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values)
             throws KeyAlreadyExistsException {
-        delegate().putUnlessExists(getTableReference(tableName), values);
+        delegate().putUnlessExists(tableRef, values);
     }
 
     @Override
-    public void truncateTable(String tableName) {
-        delegate().truncateTable(getTableReference(tableName));
+    public void truncateTable(TableReference tableRef) {
+        delegate().truncateTable(tableRef);
     }
 
     @Override
-    public void truncateTables(Set<String> tableNames) {
-        Set<TableReference> tableRefs = Sets.newHashSet();
-        for (String tableName : tableNames) {
-            tableRefs.add(getTableReference(tableName));
-        }
+    public void truncateTables(Set<TableReference> tableRefs) {
         delegate().truncateTables(tableRefs);
     }
 
     @Override
-    public byte[] getMetadataForTable(String tableName) {
-        return delegate().getMetadataForTable(getTableReference(tableName));
+    public byte[] getMetadataForTable(TableReference tableRef) {
+        return delegate().getMetadataForTable(tableRef);
     }
 
     @Override
-    public Map<String, byte[]> getMetadataForTables() {
-        Map<TableReference, byte[]> tableRefMetadata = delegate().getMetadataForTables();
-        Map<String, byte[]> tableNameMetadata = Maps.newHashMapWithExpectedSize(tableRefMetadata.size());
-        for (Entry<TableReference, byte[]> entry : tableRefMetadata.entrySet()) {
-            tableNameMetadata.put(convertTableReferenceToString(entry.getKey()), entry.getValue());
-        }
-        return tableNameMetadata;
+    public Map<TableReference, byte[]> getMetadataForTables() {
+        return delegate().getMetadataForTables();
     }
 
     @Override
-    public void putMetadataForTable(String tableName, byte[] metadata) {
-        delegate().putMetadataForTable(getTableReference(tableName), metadata);
+    public void putMetadataForTable(TableReference tableRef, byte[] metadata) {
+        delegate().putMetadataForTable(tableRef, metadata);
     }
 
     @Override
-    public Set<String> getAllTableNames() {
-        return resolveNamespacedSet(delegate().getAllTableNames());
+    public Set<TableReference> getAllTableNames() {
+        return delegate().getAllTableNames();
     }
 
     @Override
-    public void addGarbageCollectionSentinelValues(String tableName, Set<Cell> cells) {
-        delegate().addGarbageCollectionSentinelValues(getTableReference(tableName), cells);
+    public void addGarbageCollectionSentinelValues(TableReference tableRef, Set<Cell> cells) {
+        delegate().addGarbageCollectionSentinelValues(tableRef, cells);
     }
 
     @Override
@@ -233,25 +202,25 @@ public class NamespaceMappingKeyValueService extends ForwardingObject implements
     }
 
     @Override
-    public void createTables(Map<String, byte[]> tableNameToTableMetadata) {
-        Map<TableReference, byte[]> tableReferencesToTableMetadata = Maps.newHashMapWithExpectedSize(tableNameToTableMetadata.size());
-        for (Entry<String, byte[]> tableToMetadata : tableNameToTableMetadata.entrySet()) {
-            tableReferencesToTableMetadata.put(getTableReference(tableToMetadata.getKey()), tableToMetadata.getValue());
+    public void createTables(Map<TableReference, byte[]> tableRefToTableMetadata) {
+        Map<TableReference, byte[]> tableReferencesToTableMetadata = Maps.newHashMapWithExpectedSize(tableRefToTableMetadata.size());
+        for (Entry<TableReference, byte[]> tableToMetadata : tableRefToTableMetadata.entrySet()) {
+            tableReferencesToTableMetadata.put(tableToMetadata.getKey(), tableToMetadata.getValue());
         }
         delegate().createTables(tableReferencesToTableMetadata);
     }
 
     @Override
-    public void putMetadataForTables(Map<String, byte[]> tableNameToMetadata) {
-        Map<TableReference, byte[]> tableReferencesToMetadata = Maps.newHashMapWithExpectedSize(tableNameToMetadata.size());
-        for (Entry<String, byte[]> tableToMetadataEntry : tableNameToMetadata.entrySet()) {
-            tableReferencesToMetadata.put(getTableReference(tableToMetadataEntry.getKey()), tableToMetadataEntry.getValue());
+    public void putMetadataForTables(Map<TableReference, byte[]> tableRefToMetadata) {
+        Map<TableReference, byte[]> tableReferencesToMetadata = Maps.newHashMapWithExpectedSize(tableRefToMetadata.size());
+        for (Entry<TableReference, byte[]> tableToMetadataEntry : tableRefToMetadata.entrySet()) {
+            tableReferencesToMetadata.put(tableToMetadataEntry.getKey(), tableToMetadataEntry.getValue());
         }
         delegate().putMetadataForTables(tableReferencesToMetadata);
     }
 
     @Override
-    public void compactInternally(String tableName) {
-        delegate().compactInternally(getTableReference(tableName));
+    public void compactInternally(TableReference tableRef) {
+        delegate().compactInternally(tableRef);
     }
 }

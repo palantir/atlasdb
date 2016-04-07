@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.rocksdb.impl;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
 
 public class RocksTransactionTest extends AbstractTransactionTest {
@@ -24,7 +25,7 @@ public class RocksTransactionTest extends AbstractTransactionTest {
     @Override
     public void setUp() throws Exception {
         db = RocksDbKeyValueService.create("testdb");
-        for (String table : db.getAllTableNames()) {
+        for (TableReference table : db.getAllTableNames()) {
             if (!table.equals("default") && !table.equals("_metadata")) {
                 db.dropTable(table);
             }

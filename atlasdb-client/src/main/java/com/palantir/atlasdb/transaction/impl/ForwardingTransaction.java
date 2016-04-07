@@ -24,6 +24,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
@@ -34,44 +35,44 @@ import com.palantir.common.base.BatchingVisitable;
 public abstract class ForwardingTransaction extends ForwardingObject implements Transaction {
 
     @Override
-    public void useTable(String tableName, ConstraintCheckable table) {
-        delegate().useTable(tableName, table);
+    public void useTable(TableReference tableRef, ConstraintCheckable table) {
+        delegate().useTable(tableRef, table);
     }
 
     @Override
     public abstract Transaction delegate();
 
     @Override
-    public SortedMap<byte[], RowResult<byte[]>> getRows(String tableName,
+    public SortedMap<byte[], RowResult<byte[]>> getRows(TableReference tableRef,
                                                         Iterable<byte[]> rows,
                                                         ColumnSelection columnSelection) {
-        return delegate().getRows(tableName, rows, columnSelection);
+        return delegate().getRows(tableRef, rows, columnSelection);
     }
 
     @Override
-    public Map<Cell, byte[]> get(String tableName, Set<Cell> cells) {
-        return delegate().get(tableName, cells);
+    public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
+        return delegate().get(tableRef, cells);
     }
 
     @Override
-    public BatchingVisitable<RowResult<byte[]>> getRange(String tableName, RangeRequest rangeRequest) {
-        return delegate().getRange(tableName, rangeRequest);
+    public BatchingVisitable<RowResult<byte[]>> getRange(TableReference tableRef, RangeRequest rangeRequest) {
+        return delegate().getRange(tableRef, rangeRequest);
     }
 
     @Override
-    public Iterable<BatchingVisitable<RowResult<byte[]>>> getRanges(String tableName,
+    public Iterable<BatchingVisitable<RowResult<byte[]>>> getRanges(TableReference tableRef,
                                                                     Iterable<RangeRequest> rangeRequests) {
-        return delegate().getRanges(tableName, rangeRequests);
+        return delegate().getRanges(tableRef, rangeRequests);
     }
 
     @Override
-    public void put(String tableName, Map<Cell, byte[]> values) {
-        delegate().put(tableName, values);
+    public void put(TableReference tableRef, Map<Cell, byte[]> values) {
+        delegate().put(tableRef, values);
     }
 
     @Override
-    public void delete(String tableName, Set<Cell> keys) {
-        delegate().delete(tableName, keys);
+    public void delete(TableReference tableRef, Set<Cell> keys) {
+        delegate().delete(tableRef, keys);
     }
 
     @Override
