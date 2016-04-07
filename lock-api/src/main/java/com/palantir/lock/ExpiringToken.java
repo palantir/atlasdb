@@ -19,9 +19,6 @@ import java.util.Comparator;
 
 import javax.annotation.Nullable;
 
-import com.google.common.primitives.Longs;
-
-
 /**
  * A lock server token with an expiration date.
  *
@@ -63,7 +60,7 @@ public interface ExpiringToken {
     static final Comparator<ExpiringToken> COMPARATOR = new Comparator<ExpiringToken>() {
         @Override
         public int compare(ExpiringToken o1, ExpiringToken o2) {
-            return Longs.compare(o1.getExpirationDateMs(), o2.getExpirationDateMs());
+            return Long.compare(o1.getExpirationDateMs(), o2.getExpirationDateMs());
         }
     };
 }
