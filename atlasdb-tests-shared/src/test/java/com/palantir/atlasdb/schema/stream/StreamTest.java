@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.schema.stream;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
@@ -23,6 +24,7 @@ import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.junit.Assert;
 import org.junit.Before;
@@ -133,6 +135,7 @@ public class StreamTest extends AtlasDbTestCase {
                 });
 
         verifyLoadingStreams(id, bytesToStore, store);
+        verifyLoadingStreamsAsFile(id, bytesToStore, store);
 
         store.storeStream(new ByteArrayInputStream(bytesToStore));
         verifyLoadingStreams(id, bytesToStore, store);
@@ -159,6 +162,7 @@ public class StreamTest extends AtlasDbTestCase {
         store.storeStream(id, new ByteArrayInputStream(bytesToStore), 5, TimeUnit.SECONDS);
 
         verifyLoadingStreams(id, bytesToStore, store);
+        verifyLoadingStreamsAsFile(id, bytesToStore, store);
 
         return id;
     }
@@ -176,6 +180,16 @@ public class StreamTest extends AtlasDbTestCase {
                 store.loadStreams(t, ImmutableSet.of(id)));
 
         loadedBytes = IOUtils.toByteArray(streams.get(id));
+        Assert.assertArrayEquals(bytesToStore, loadedBytes);
+        Assert.assertEquals(expectedHash, Sha256Hash.computeHash(loadedBytes));
+    }
+
+    private void verifyLoadingStreamsAsFile(long id, byte[] bytesToStore, GenericStreamStore<Long> store) throws IOException {
+        byte[] loadedBytes;
+        Sha256Hash expectedHash = Sha256Hash.computeHash(bytesToStore);
+
+        File file = txManager.runTaskThrowOnConflict(t -> store.loadStreamAsFile(t, id));
+        loadedBytes = FileUtils.readFileToByteArray(file);
         Assert.assertArrayEquals(bytesToStore, loadedBytes);
         Assert.assertEquals(expectedHash, Sha256Hash.computeHash(loadedBytes));
     }
