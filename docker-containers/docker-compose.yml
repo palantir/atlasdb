@@ -10,7 +10,7 @@ services:
         environment:
         - LOCAL_JMX=no
     ete:
-        image: java:openjdk-8u72-jre
+        image: java:8
         links:
         - cassandra
         volumes:
@@ -18,3 +18,5 @@ services:
         - ..:/atlas
         working_dir: /atlas
         command: echo
+        environment:
+        - ETE=true
