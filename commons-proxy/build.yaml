@@ -1,0 +1,13 @@
+# -*- yaml -*-
+# METABUILD GENERATED metaconf/metaconf.groovy + metaconf/project/build.yaml.tmpl -> atlasdb/commons-proxy/build.yaml
+meta:
+  name: CommonsProxy
+  gradle_name: commons-proxy
+  use_legacy_revision: true
+  source_target_version: 1.6
+  skip_dist: true
+jars:
+  -
+    name: commons-proxy
+    src:
+      - src

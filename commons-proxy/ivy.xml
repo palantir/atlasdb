@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- METABUILD GENERATED metaconf/metaconf.groovy + metaconf/project/ivy.xml.tmpl -> atlasdb/commons-proxy/ivy.xml -->
+<?xml-stylesheet type="text/xsl" href="/ivy-doc.xsl"?>
+<ivy-module xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            version="1.4"
+            xsi:noNamespaceSchemaLocation="http://incubator.apache.org/ivy/schemas/ivy.xsd">
+  <info organisation="palantir" module="commons-proxy"/>
+  <configurations>
+    <conf name="default"/>
+    <conf name="test" extends="default"/>
+    <conf name="eclipse"/>
+  </configurations>
+  <publications>
+    <artifact name="commons-proxy" type="jar" conf="default"/>
+    <artifact name="commons-proxy" type="source" ext="zip" conf="default"/>
+  </publications>
+  <dependencies>
+    <dependency org="org.slf4j" name="slf4j-api" rev="1.7.5"
+                transitive="true" conf="test,default,eclipse-&gt;default">
+    </dependency>
+  </dependencies>
+</ivy-module>

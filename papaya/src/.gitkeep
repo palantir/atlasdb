@@ -1,0 +1,2 @@
+METABUILD GENERATED metaconf/metaconf.groovy + metaconf/project/gitkeep.tmpl -> atlasdb/papaya/src/.gitkeep
+METABUILD GENERATED metaconf/metaconf.groovy + metaconf/project/gitkeep.tmpl -> atlasdb/papaya/test-src/.gitkeep
