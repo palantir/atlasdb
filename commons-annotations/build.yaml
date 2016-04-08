@@ -1,0 +1,13 @@
+# -*- yaml -*-
+# METABUILD GENERATED metaconf/metaconf.groovy + metaconf/project/build.yaml.tmpl -> atlasdb/commons-annotations/build.yaml
+meta:
+  name: CommonsAnnotations
+  gradle_name: commons-annotations
+  use_legacy_revision: true
+  source_target_version: 1.6
+  skip_dist: true
+jars:
+  -
+    name: commons-annotations
+    src:
+      - src

@@ -1,5 +1,5 @@
 // -*- groovy -*-
-// METABUILD GENERATED metaconf/metaconf.groovy + metaconf/project/make.gradle.tmpl -> atlasdb/commons-api/make.gradle
+// METABUILD GENERATED metaconf/metaconf.groovy + metaconf/project/make.gradle.tmpl -> atlasdb/commons-annotations/make.gradle
 apply from: "${rootProject.projectDir}/before.gradle"
 sourceSets.main.java.srcDirs=[ file('src') ]
 sourceSets.main.resources.srcDirs=[  ]
@@ -7,10 +7,10 @@ sourceSets.test.java.srcDirs=[  ]
 sourceSets.test.resources.srcDirs=[  ]
 sourceCompatibility = '1.6'
 targetCompatibility = '1.6'
-archivesBaseName="commons-api"
+archivesBaseName="commons-annotations"
 configurations.create('test').extendsFrom(configurations.testRuntime)
 jar {
-  baseName 'commons-api'
+  baseName 'commons-annotations'
   exclude '.gitkeep'
   doFirst {
     manifest {
@@ -26,7 +26,7 @@ jar {
   }
 }
 task testJar(type: Jar) {
-  baseName 'commons-api-test'
+  baseName 'commons-annotations-test'
   from sourceSets.test.output
   exclude '.gitkeep'
   ext.is_test = true
@@ -45,12 +45,12 @@ task testJar(type: Jar) {
 }
 assemble.dependsOn testJar
 task mainSourcesZip(type: Zip) {
-  baseName 'commons-api'
+  baseName 'commons-annotations'
   from sourceSets.main.allSource
 }
 assemble.dependsOn mainSourcesZip
 task testSourcesZip(type: Zip) {
-  baseName 'commons-api-test'
+  baseName 'commons-annotations-test'
   from sourceSets.test.allSource
 }
 assemble.dependsOn testSourcesZip
@@ -64,7 +64,7 @@ publications {
   ivy(IvyPublication) {
     if (!sourceSetEmpty(sourceSets.main)) {
       artifact(mainSourcesZip) {
-        name "commons-api"
+        name "commons-annotations"
         extension "zip"
         type "source"
         conf "default"
@@ -72,7 +72,7 @@ publications {
     }
     if (!sourceSetEmpty(sourceSets.test)) {
       artifact(testSourcesZip) {
-        name "commons-api-test"
+        name "commons-annotations-test"
         extension "zip"
         type "source"
         conf "test"
@@ -83,11 +83,5 @@ publications {
 }
 dependencies {
   test sourceSets.test.output
-  testCompile(project(path: ':atlasdb-commons', configuration: 'test'))
-  compile(project(path: ':atlasdb-commons', configuration: 'default'))
-  testCompile(project(path: ':papaya', configuration: 'test'))
-  compile(project(path: ':papaya', configuration: 'default'))
-  testCompile(project(path: ':commons-annotations', configuration: 'test'))
-  compile(project(path: ':commons-annotations', configuration: 'default'))
 }
 apply from: "${rootProject.projectDir}/after.gradle"
