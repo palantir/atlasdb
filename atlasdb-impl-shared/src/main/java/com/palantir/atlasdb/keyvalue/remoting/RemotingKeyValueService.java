@@ -33,7 +33,6 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.map.DynamicPartitionMapImpl;
@@ -92,24 +91,24 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
             }
 
             @Override
-            public ClosableIterator<RowResult<Value>> getRange(TableReference tableRef,
+            public ClosableIterator<RowResult<Value>> getRange(String tableName,
                                                                RangeRequest rangeRequest,
                                                                long timestamp) {
-                return withKvs(super.getRange(tableRef, rangeRequest, timestamp));
+                return withKvs(super.getRange(tableName, rangeRequest, timestamp));
             }
 
             @Override
-            public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(TableReference tableRef,
+            public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(String tableName,
                                                                                RangeRequest rangeRequest,
                                                                                long timestamp) {
-                return withKvs(super.getRangeWithHistory(tableRef, rangeRequest, timestamp));
+                return withKvs(super.getRangeWithHistory(tableName, rangeRequest, timestamp));
             }
 
             @Override
-            public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(TableReference tableRef,
+            public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(String tableName,
                                                                                RangeRequest rangeRequest,
                                                                                long timestamp) {
-                return withKvs(super.getRangeOfTimestamps(tableRef, rangeRequest, timestamp));
+                return withKvs(super.getRangeOfTimestamps(tableName, rangeRequest, timestamp));
             }
         };
     }
@@ -181,40 +180,40 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
     }
 
     @Override
-    public RangeIterator<Value> getRange(final TableReference tableRef,
+    public RangeIterator<Value> getRange(final String tableName,
                                          final RangeRequest range,
                                          final long timestamp) {
-        return transformIterator(tableRef, range, timestamp, super.getRange(tableRef, range, timestamp),
+        return transformIterator(tableName, range, timestamp, super.getRange(tableName, range, timestamp),
             new Function<Pair<Boolean, ImmutableList<RowResult<Value>>>, RangeIterator<Value>>() {
                 @Override @Nullable
                 public RangeIterator<Value> apply(@Nullable Pair<Boolean, ImmutableList<RowResult<Value>>> input) {
-                    return new ValueRangeIterator(tableRef, range, timestamp, input.lhSide, input.rhSide);
+                    return new ValueRangeIterator(tableName, range, timestamp, input.lhSide, input.rhSide);
                 }
             });
     }
 
     @Override
-    public RangeIterator<Set<Value>> getRangeWithHistory(final TableReference tableRef,
+    public RangeIterator<Set<Value>> getRangeWithHistory(final String tableName,
                                                          final RangeRequest rangeRequest,
                                                          final long timestamp) {
-        return transformIterator(tableRef, rangeRequest, timestamp, super.getRangeWithHistory(tableRef, rangeRequest, timestamp),
+        return transformIterator(tableName, rangeRequest, timestamp, super.getRangeWithHistory(tableName, rangeRequest, timestamp),
             new Function<Pair<Boolean, ImmutableList<RowResult<Set<Value>>>>, RangeIterator<Set<Value>>>(){
                 @Override @Nullable
                 public RangeIterator<Set<Value>> apply(@Nullable Pair<Boolean, ImmutableList<RowResult<Set<Value>>>> input) {
-                    return new HistoryRangeIterator(tableRef, rangeRequest, timestamp, input.lhSide, input.rhSide);
+                    return new HistoryRangeIterator(tableName, rangeRequest, timestamp, input.lhSide, input.rhSide);
                 }
             });
     }
 
     @Override
-    public RangeIterator<Set<Long>> getRangeOfTimestamps(final TableReference tableRef,
+    public RangeIterator<Set<Long>> getRangeOfTimestamps(final String tableName,
                                                          final RangeRequest rangeRequest,
                                                          final long timestamp) {
-        return transformIterator(tableRef, rangeRequest, timestamp, super.getRangeOfTimestamps(tableRef, rangeRequest, timestamp),
+        return transformIterator(tableName, rangeRequest, timestamp, super.getRangeOfTimestamps(tableName, rangeRequest, timestamp),
             new Function<Pair<Boolean, ImmutableList<RowResult<Set<Long>>>>, RangeIterator<Set<Long>>>() {
                 @Override @Nullable
                 public RangeIterator<Set<Long>> apply(@Nullable Pair<Boolean, ImmutableList<RowResult<Set<Long>>>> input) {
-                    return new TimestampsRangeIterator(tableRef, rangeRequest, timestamp, input.lhSide, input.rhSide);
+                    return new TimestampsRangeIterator(tableName, rangeRequest, timestamp, input.lhSide, input.rhSide);
                 }
             });
     }
@@ -242,7 +241,7 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
 
     // This method transforms an iterator into paging iterator that can be
     // sent over-the-wire in json.
-    private static <T> RangeIterator<T> transformIterator(TableReference tableRef, RangeRequest range,
+    private static <T> RangeIterator<T> transformIterator(String tableName, RangeRequest range,
                                                    long timestamp, ClosableIterator<RowResult<T>> closableIterator,
                                                    Function<Pair<Boolean, ImmutableList<RowResult<T>>>, RangeIterator<T>> resultSupplier) {
         try {

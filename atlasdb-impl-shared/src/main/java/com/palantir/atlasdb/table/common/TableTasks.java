@@ -42,7 +42,6 @@ import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.RuntimeTransactionTask;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -79,8 +78,8 @@ public class TableTasks {
 
     public static void copy(final TransactionManager txManager,
                             ExecutorService exec,
-                            final TableReference srcTable,
-                            final TableReference dstTable,
+                            final String srcTable,
+                            final String dstTable,
                             int batchSize,
                             int threadCount,
                             @Output CopyStats stats) throws InterruptedException {
@@ -100,8 +99,8 @@ public class TableTasks {
     public static void copy(final TransactionManager txManager,
                             ExecutorService exec,
                             final Iterable<LockRefreshToken> lockTokens,
-                            final TableReference srcTable,
-                            final TableReference dstTable,
+                            final String srcTable,
+                            final String dstTable,
                             int batchSize,
                             int threadCount,
                             @Output CopyStats stats) throws InterruptedException {
@@ -120,8 +119,8 @@ public class TableTasks {
     }
 
     public static void copyExternal(ExecutorService exec,
-                                    final TableReference srcTable,
-                                    final TableReference dstTable,
+                                    final String srcTable,
+                                    final String dstTable,
                                     int batchSize,
                                     int threadCount,
                                     final CopyStats stats,
@@ -155,8 +154,8 @@ public class TableTasks {
     }
 
     private static PartialCopyStats copyInternal(final Transaction t,
-                                                 final TableReference srcTable,
-                                                 final TableReference dstTable,
+                                                 final String srcTable,
+                                                 final String dstTable,
                                                  RangeRequest request,
                                                  final MutableRange range) {
         final PartialCopyStats stats = new PartialCopyStats();
@@ -189,7 +188,7 @@ public class TableTasks {
     }
 
     public static long estimateSize(Transaction t,
-                                    TableReference table,
+                                    String table,
                                     final int batchSize,
                                     final Function<byte[], byte[]> uniformizer) {
         final AtomicLong estimate = new AtomicLong();
@@ -255,8 +254,8 @@ public class TableTasks {
 
     public static void diff(final TransactionManager txManager,
                             ExecutorService exec,
-                            final TableReference plusTable,
-                            final TableReference minusTable,
+                            final String plusTable,
+                            final String minusTable,
                             int batchSize,
                             int threadCount,
                             @Output DiffStats stats,
@@ -278,8 +277,8 @@ public class TableTasks {
     public static void diff(final TransactionManager txManager,
                             ExecutorService exec,
                             final Iterable<LockRefreshToken> lockTokens,
-                            final TableReference plusTable,
-                            final TableReference minusTable,
+                            final String plusTable,
+                            final String minusTable,
                             final int batchSize,
                             int threadCount,
                             @Output DiffStats stats,
@@ -306,8 +305,8 @@ public class TableTasks {
 
     private static void diffExternal(final TransactionManager txManager,
                                      ExecutorService exec,
-                                     final TableReference plusTable,
-                                     final TableReference minusTable,
+                                     final String plusTable,
+                                     final String minusTable,
                                      final int batchSize,
                                      int threadCount,
                                      final DiffStats stats,
@@ -359,8 +358,8 @@ public class TableTasks {
     }
 
     private static DiffStrategy getDiffStrategy(TransactionManager txManager,
-                                                final TableReference plusTable,
-                                                final TableReference minusTable,
+                                                final String plusTable,
+                                                final String minusTable,
                                                 final int batchSize) {
         final DiffStrategy strategy = txManager.runTaskWithRetry(
                 new RuntimeTransactionTask<DiffStrategy>() {
@@ -375,8 +374,8 @@ public class TableTasks {
     }
 
     private static PartialDiffStats diffInternal(final Transaction t,
-                                                 TableReference plusTable,
-                                                 final TableReference minusTable,
+                                                 String plusTable,
+                                                 final String minusTable,
                                                  final RangeRequest request,
                                                  final MutableRange range,
                                                  final DiffStrategy strategy,

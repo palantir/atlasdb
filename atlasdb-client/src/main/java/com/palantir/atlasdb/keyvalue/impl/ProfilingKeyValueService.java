@@ -35,7 +35,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -95,94 +94,94 @@ public class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void addGarbageCollectionSentinelValues(TableReference tableRef, Set<Cell> cells) {
+    public void addGarbageCollectionSentinelValues(String tableName, Set<Cell> cells) {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
-            delegate.addGarbageCollectionSentinelValues(tableRef, cells);
+            delegate.addGarbageCollectionSentinelValues(tableName, cells);
             log.trace("Call to KVS.addGarbageCollectionSentinelValues on table {} over {} cells took {} ms.",
-                    tableRef, cells.size(), stopwatch.elapsed(TimeUnit.MILLISECONDS));
+                    tableName, cells.size(), stopwatch.elapsed(TimeUnit.MILLISECONDS));
         } else {
-            delegate.addGarbageCollectionSentinelValues(tableRef, cells);
+            delegate.addGarbageCollectionSentinelValues(tableName, cells);
         }
     }
 
     @Override
-    public void createTable(TableReference tableRef, byte[] tableMetadata) {
+    public void createTable(String tableName, byte[] tableMetadata) {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
-            delegate.createTable(tableRef, tableMetadata);
-            logTimeAndTable("createTable", tableRef.getQualifiedName(), stopwatch);
+            delegate.createTable(tableName, tableMetadata);
+            logTimeAndTable("createTable", tableName, stopwatch);
         } else {
-            delegate.createTable(tableRef, tableMetadata);
+            delegate.createTable(tableName, tableMetadata);
         }
     }
 
     @Override
-    public void createTables(Map<TableReference, byte[]> tableRefToTableMetadata) {
+    public void createTables(Map<String, byte[]> tableNameToTableMetadata) {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
-            delegate.createTables(tableRefToTableMetadata);
-            logTimeAndTableCount("createTables", tableRefToTableMetadata.keySet().size(), stopwatch);
+            delegate.createTables(tableNameToTableMetadata);
+            logTimeAndTableCount("createTables", tableNameToTableMetadata.keySet().size(), stopwatch);
         } else {
-            delegate.createTables(tableRefToTableMetadata);
+            delegate.createTables(tableNameToTableMetadata);
         }
     }
 
     @Override
-    public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
+    public void delete(String tableName, Multimap<Cell, Long> keys) {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
-            delegate.delete(tableRef, keys);
-            logCellsAndSize("delete", tableRef.getQualifiedName(), keys.keySet().size(), byteSize(keys), stopwatch);
+            delegate.delete(tableName, keys);
+            logCellsAndSize("delete", tableName, keys.keySet().size(), byteSize(keys), stopwatch);
         } else {
-            delegate.delete(tableRef, keys);
+            delegate.delete(tableName, keys);
         }
     }
 
     @Override
-    public void dropTable(TableReference tableRef) {
+    public void dropTable(String tableName) {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
-            delegate.dropTable(tableRef);
-            logTimeAndTable("dropTable", tableRef.getQualifiedName(), stopwatch);
+            delegate.dropTable(tableName);
+            logTimeAndTable("dropTable", tableName, stopwatch);
         } else {
-            delegate.dropTable(tableRef);
+            delegate.dropTable(tableName);
         }
     }
 
     @Override
-    public void dropTables(Set<TableReference> tableRefs) {
+    public void dropTables(Set<String> tableNames) {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
-            delegate.dropTables(tableRefs);
-            logTimeAndTableCount("dropTable", tableRefs.size(), stopwatch);
+            delegate.dropTables(tableNames);
+            logTimeAndTableCount("dropTable", tableNames.size(), stopwatch);
         } else {
-            delegate.dropTables(tableRefs);
+            delegate.dropTables(tableNames);
         }
     }
 
     @Override
-    public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+    public Map<Cell, Value> get(String tableName, Map<Cell, Long> timestampByCell) {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
             long sizeInBytes = 0;
-            Map<Cell, Value> result = delegate.get(tableRef, timestampByCell);
+            Map<Cell, Value> result = delegate.get(tableName, timestampByCell);
             for (Entry<Cell, Value> entry : result.entrySet()) {
                 sizeInBytes += Cells.getApproxSizeOfCell(entry.getKey()) + entry.getValue().getContents().length + 4L;
             }
             log.trace("Call to KVS.get on table {}, requesting {} cells took {} ms and returned {} bytes.",
-                    tableRef, timestampByCell.size(), stopwatch.elapsed(TimeUnit.MILLISECONDS), sizeInBytes);
+                    tableName, timestampByCell.size(), stopwatch.elapsed(TimeUnit.MILLISECONDS), sizeInBytes);
             return result;
         } else {
-            return delegate.get(tableRef, timestampByCell);
+            return delegate.get(tableName, timestampByCell);
         }
     }
 
     @Override
-    public Set<TableReference> getAllTableNames() {
+    public Set<String> getAllTableNames() {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
-            Set<TableReference> result = delegate.getAllTableNames();
+            Set<String> result = delegate.getAllTableNames();
             logTime("getAllTableNames", stopwatch);
             return result;
         } else {
@@ -191,14 +190,14 @@ public class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long timestamp) {
+    public Multimap<Cell, Long> getAllTimestamps(String tableName, Set<Cell> cells, long timestamp) {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
-            Multimap<Cell, Long> result = delegate.getAllTimestamps(tableRef, cells, timestamp);
-            logCellsAndSize("getAllTimestamps", tableRef.getQualifiedName(), cells.size(), cells.size() * Longs.BYTES, stopwatch);
+            Multimap<Cell, Long> result = delegate.getAllTimestamps(tableName, cells, timestamp);
+            logCellsAndSize("getAllTimestamps", tableName, cells.size(), cells.size() * Longs.BYTES, stopwatch);
             return result;
         } else {
-            return delegate.getAllTimestamps(tableRef, cells, timestamp);
+            return delegate.getAllTimestamps(tableName, cells, timestamp);
         }
     }
 
@@ -208,46 +207,46 @@ public class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp) {
+    public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(String tableName, Iterable<RangeRequest> rangeRequests, long timestamp) {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
-            Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> result = delegate.getFirstBatchForRanges(tableRef, rangeRequests, timestamp);
-            logTimeAndTable("getFirstBatchForRanges", tableRef.getQualifiedName(), stopwatch);
+            Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> result = delegate.getFirstBatchForRanges(tableName, rangeRequests, timestamp);
+            logTimeAndTable("getFirstBatchForRanges", tableName, stopwatch);
             return result;
         } else {
-            return delegate.getFirstBatchForRanges(tableRef, rangeRequests, timestamp);
+            return delegate.getFirstBatchForRanges(tableName, rangeRequests, timestamp);
         }
     }
 
     @Override
-    public Map<Cell, Long> getLatestTimestamps(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+    public Map<Cell, Long> getLatestTimestamps(String tableName, Map<Cell, Long> timestampByCell) {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
-            Map<Cell, Long> result = delegate.getLatestTimestamps(tableRef, timestampByCell);
-            logCellsAndSize("getLatestTimestamps", tableRef.getQualifiedName(), timestampByCell.size(), byteSize(timestampByCell), stopwatch);
+            Map<Cell, Long> result = delegate.getLatestTimestamps(tableName, timestampByCell);
+            logCellsAndSize("getLatestTimestamps", tableName, timestampByCell.size(), byteSize(timestampByCell), stopwatch);
             return result;
         } else {
-            return delegate.getLatestTimestamps(tableRef, timestampByCell);
+            return delegate.getLatestTimestamps(tableName, timestampByCell);
         }
     }
 
     @Override
-    public byte[] getMetadataForTable(TableReference tableRef) {
+    public byte[] getMetadataForTable(String tableName) {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
-            byte[] result = delegate.getMetadataForTable(tableRef);
-            logTimeAndTable("getMetadataForTable", tableRef.getQualifiedName(), stopwatch);
+            byte[] result = delegate.getMetadataForTable(tableName);
+            logTimeAndTable("getMetadataForTable", tableName, stopwatch);
             return result;
         } else {
-            return delegate.getMetadataForTable(tableRef);
+            return delegate.getMetadataForTable(tableName);
         }
     }
 
     @Override
-    public Map<TableReference, byte[]> getMetadataForTables() {
+    public Map<String, byte[]> getMetadataForTables() {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
-            Map<TableReference, byte[]> result = delegate.getMetadataForTables();
+            Map<String, byte[]> result = delegate.getMetadataForTables();
             logTime("getMetadataForTables", stopwatch);
             return result;
         } else {
@@ -256,59 +255,59 @@ public class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public ClosableIterator<RowResult<Value>> getRange(TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
+    public ClosableIterator<RowResult<Value>> getRange(String tableName, RangeRequest rangeRequest, long timestamp) {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
-            ClosableIterator<RowResult<Value>> result = delegate.getRange(tableRef, rangeRequest, timestamp);
-            logTimeAndTable("getRange", tableRef.getQualifiedName(), stopwatch);
+            ClosableIterator<RowResult<Value>> result = delegate.getRange(tableName, rangeRequest, timestamp);
+            logTimeAndTable("getRange", tableName, stopwatch);
             return result;
         } else {
-            return delegate.getRange(tableRef, rangeRequest, timestamp);
+            return delegate.getRange(tableName, rangeRequest, timestamp);
         }
     }
 
     @Override
-    public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
+    public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(String tableName, RangeRequest rangeRequest, long timestamp) {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
-            ClosableIterator<RowResult<Set<Long>>> result = delegate.getRangeOfTimestamps(tableRef, rangeRequest, timestamp);
-            logTimeAndTable("getRangeOfTimestamps", tableRef.getQualifiedName(), stopwatch);
+            ClosableIterator<RowResult<Set<Long>>> result = delegate.getRangeOfTimestamps(tableName, rangeRequest, timestamp);
+            logTimeAndTable("getRangeOfTimestamps", tableName, stopwatch);
             return result;
         } else {
-            return delegate.getRangeOfTimestamps(tableRef, rangeRequest, timestamp);
+            return delegate.getRangeOfTimestamps(tableName, rangeRequest, timestamp);
         }
     }
 
     @Override
-    public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
+    public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(String tableName, RangeRequest rangeRequest, long timestamp) {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
-            ClosableIterator<RowResult<Set<Value>>> result = delegate.getRangeWithHistory(tableRef, rangeRequest, timestamp);
-            logTimeAndTable("getRangeWithHistory", tableRef.getQualifiedName(), stopwatch);
+            ClosableIterator<RowResult<Set<Value>>> result = delegate.getRangeWithHistory(tableName, rangeRequest, timestamp);
+            logTimeAndTable("getRangeWithHistory", tableName, stopwatch);
             return result;
         } else {
-            return delegate.getRangeWithHistory(tableRef, rangeRequest, timestamp);
+            return delegate.getRangeWithHistory(tableName, rangeRequest, timestamp);
         }
     }
 
     @Override
-    public Map<Cell, Value> getRows(TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
+    public Map<Cell, Value> getRows(String tableName, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
             long sizeInBytes = 0;
-            Map<Cell, Value> result = delegate.getRows(tableRef, rows, columnSelection, timestamp);
+            Map<Cell, Value> result = delegate.getRows(tableName, rows, columnSelection, timestamp);
             for (Entry<Cell, Value> entry : result.entrySet()) {
                 sizeInBytes += Cells.getApproxSizeOfCell(entry.getKey()) + entry.getValue().getContents().length;
             }
             log.trace("Call to KVS.getRows on table {} requesting {} columns from {} rows took {} ms and returned {} bytes.",
-                    tableRef,
+                    tableName,
                     columnSelection.allColumnsSelected() ? "all" : Iterables.size(columnSelection.getSelectedColumns()),
                     Iterables.size(rows),
                     stopwatch.elapsed(TimeUnit.MILLISECONDS),
                     sizeInBytes);
             return result;
         } else {
-            return delegate.getRows(tableRef, rows, columnSelection, timestamp);
+            return delegate.getRows(tableName, rows, columnSelection, timestamp);
         }
     }
 
@@ -324,7 +323,7 @@ public class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
+    public void multiPut(Map<String, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
             delegate.multiPut(valuesByTable, timestamp);
@@ -342,57 +341,57 @@ public class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp) {
+    public void put(String tableName, Map<Cell, byte[]> values, long timestamp) {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
-            delegate.put(tableRef, values, timestamp);
-            logCellsAndSize("put", tableRef.getQualifiedName(), values.keySet().size(), byteSize(values), stopwatch);
+            delegate.put(tableName, values, timestamp);
+            logCellsAndSize("put", tableName, values.keySet().size(), byteSize(values), stopwatch);
         } else {
-            delegate.put(tableRef, values, timestamp);
+            delegate.put(tableName, values, timestamp);
         }
     }
 
     @Override
-    public void putMetadataForTable(TableReference tableRef, byte[] metadata) {
+    public void putMetadataForTable(String tableName, byte[] metadata) {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
-            delegate.putMetadataForTable(tableRef, metadata);
-            logTimeAndTable("putMetadataForTable", tableRef.getQualifiedName(), stopwatch);
+            delegate.putMetadataForTable(tableName, metadata);
+            logTimeAndTable("putMetadataForTable", tableName, stopwatch);
         } else {
-            delegate.putMetadataForTable(tableRef, metadata);
+            delegate.putMetadataForTable(tableName, metadata);
         }
     }
 
     @Override
-    public void putMetadataForTables(Map<TableReference, byte[]> tableRefToMetadata) {
+    public void putMetadataForTables(Map<String, byte[]> tableNameToMetadata) {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
-            delegate.putMetadataForTables(tableRefToMetadata);
-            logTimeAndTableCount("putMetadataForTables", tableRefToMetadata.keySet().size(), stopwatch);
+            delegate.putMetadataForTables(tableNameToMetadata);
+            logTimeAndTableCount("putMetadataForTables", tableNameToMetadata.keySet().size(), stopwatch);
         } else {
-            delegate.putMetadataForTables(tableRefToMetadata);
+            delegate.putMetadataForTables(tableNameToMetadata);
         }
     }
 
     @Override
-    public void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
+    public void putUnlessExists(String tableName, Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
-            delegate.putUnlessExists(tableRef, values);
-            logCellsAndSize("putUnlessExists", tableRef.getQualifiedName(), values.keySet().size(), byteSize(values), stopwatch);
+            delegate.putUnlessExists(tableName, values);
+            logCellsAndSize("putUnlessExists", tableName, values.keySet().size(), byteSize(values), stopwatch);
         } else {
-            delegate.putUnlessExists(tableRef, values);
+            delegate.putUnlessExists(tableName, values);
         }
     }
 
     @Override
-    public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> values) {
+    public void putWithTimestamps(String tableName, Multimap<Cell, Value> values) {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
-            delegate.putWithTimestamps(tableRef, values);
-            logCellsAndSize("putWithTimestamps", tableRef.getQualifiedName(), values.keySet().size(), byteSize(values), stopwatch);
+            delegate.putWithTimestamps(tableName, values);
+            logCellsAndSize("putWithTimestamps", tableName, values.keySet().size(), byteSize(values), stopwatch);
         } else {
-            delegate.putWithTimestamps(tableRef, values);
+            delegate.putWithTimestamps(tableName, values);
         }
     }
 
@@ -419,35 +418,35 @@ public class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void truncateTable(TableReference tableRef) {
+    public void truncateTable(String tableName) {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
-            delegate.truncateTable(tableRef);
-            logTimeAndTable("truncateTable", tableRef.getQualifiedName(), stopwatch);
+            delegate.truncateTable(tableName);
+            logTimeAndTable("truncateTable", tableName, stopwatch);
         } else {
-            delegate.truncateTable(tableRef);
+            delegate.truncateTable(tableName);
         }
     }
 
     @Override
-    public void truncateTables(Set<TableReference> tableRefs) {
+    public void truncateTables(Set<String> tableNames) {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
-            delegate.truncateTables(tableRefs);
-            logTimeAndTableCount("truncateTables", tableRefs.size(), stopwatch);
+            delegate.truncateTables(tableNames);
+            logTimeAndTableCount("truncateTables", tableNames.size(), stopwatch);
         } else {
-            delegate.truncateTables(tableRefs);
+            delegate.truncateTables(tableNames);
         }
     }
 
     @Override
-    public void compactInternally(TableReference tableRef) {
+    public void compactInternally(String tableName) {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
-            delegate.compactInternally(tableRef);
-            logTimeAndTable("compactInternally", tableRef.getQualifiedName(), stopwatch);
+            delegate.compactInternally(tableName);
+            logTimeAndTable("compactInternally", tableName, stopwatch);
         } else {
-            delegate.compactInternally(tableRef);
+            delegate.compactInternally(tableName);
         }
     }
 }

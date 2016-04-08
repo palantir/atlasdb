@@ -16,13 +16,12 @@
 package com.palantir.atlasdb.sweep;
 
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 
 public class NoOpSweepTaskRunner implements SweepTaskRunner {
 
     @Override
-    public SweepResults run(TableReference tableRef, int batchSize, byte[] startRow) {
+    public SweepResults run(String tableName, int batchSize, byte[] startRow) {
         return SweepResults.createEmptySweepResult(getSweepTimestamp(null));
     }
 

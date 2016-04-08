@@ -30,14 +30,13 @@ import com.palantir.atlasdb.AtlasDbTestCase;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
 @Ignore
 public class CachingTransactionTest extends AtlasDbTestCase {
     @Test
     public void testCacheEmptyGets() {
-        final TableReference TABLE = TableReference.createWithEmptyNamespace("table");
+        final String TABLE = "table";
         final Set<byte[]> ONE_ROW = ImmutableSortedSet.<byte[]>orderedBy(PtBytes.BYTES_COMPARATOR).add("row".getBytes()).build();
         final Set<byte[]> NO_ROWS = ImmutableSortedSet.<byte[]>orderedBy(PtBytes.BYTES_COMPARATOR).build();
         final ColumnSelection ALL_COLUMNS = ColumnSelection.all();

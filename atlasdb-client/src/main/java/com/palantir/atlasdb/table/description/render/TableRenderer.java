@@ -65,14 +65,13 @@ import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
-import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.Prefix;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ExpirationStrategy;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
+import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
@@ -240,8 +239,6 @@ public class TableRenderer {
                     renderGetRawTableName();
                 }
                 line();
-                renderGetTableRef();
-                line();
                 renderGetTableName();
                 line();
                 renderGetNamespace();
@@ -375,21 +372,22 @@ public class TableRenderer {
             if (!isGeneric) {
                 line("private final static String rawTableName = \"" + raw_table_name + "\";");
             }
-            line("private final TableReference tableRef;");
+            line("private final String tableName;");
+            line("private final Namespace namespace;");
         }
 
         private void staticFactories() {
             if (isNestedIndex) {
                 line("public static ", Table, " of(", outerTable, " table", isGeneric ? ", String tableName" : "", ") {"); {
-                    line("return new ", Table, "(table.t, table.tableRef.getNamespace()", isGeneric ? ", tableName" : "", ", ImmutableList.<", Trigger, ">of());");
+                    line("return new ", Table, "(table.t, table.namespace", isGeneric ? ", tableName" : "", ", ImmutableList.<", Trigger, ">of());");
                 } line("}");
                 line();
                 line("public static ", Table, " of(", outerTable, " table", isGeneric ? ", String tableName" : "", ", ", Trigger, " trigger, ", Trigger, "... triggers) {"); {
-                    line("return new ", Table, "(table.t, table.tableRef.getNamespace()", isGeneric ? ", tableName" : "", ", ImmutableList.<", Trigger, ">builder().add(trigger).add(triggers).build());");
+                    line("return new ", Table, "(table.t, table.namespace", isGeneric ? ", tableName" : "", ", ImmutableList.<", Trigger, ">builder().add(trigger).add(triggers).build());");
                 } line("}");
                 line();
                 line("public static ", Table, " of(", outerTable, " table", isGeneric ? ", String tableName" : "", ", List<", Trigger, "> triggers) {"); {
-                    line("return new ", Table, "(table.t, table.tableRef.getNamespace()", isGeneric ? ", tableName" : "", ", triggers);");
+                    line("return new ", Table, "(table.t, table.namespace", isGeneric ? ", tableName" : "", ", triggers);");
                 } line("}");
             } else {
                 line("static ", Table, " of(Transaction t, Namespace namespace", isGeneric ? ", String tableName" : "", ") {"); {
@@ -410,11 +408,12 @@ public class TableRenderer {
             line("private ", Table, "(Transaction t, Namespace namespace", isGeneric ? ", String tableName" : "", ", List<", Trigger, "> triggers) {"); {
                 line("this.t = t;");
                 if (isGeneric) {
-                    line("this.tableRef = TableReference.create(namespace, tableName);");
+                    line("this.tableName = namespace.getName().isEmpty() ? tableName : namespace.getName() + \".\" + tableName;");
                 } else {
-                    line("this.tableRef = TableReference.create(namespace, rawTableName);");
+                    line("this.tableName = namespace.getName().isEmpty() ? rawTableName : namespace.getName() + \".\" + rawTableName;");
                 }
                 line("this.triggers = triggers;");
+                line("this.namespace = namespace;");
             } line("}");
         }
 
@@ -424,21 +423,15 @@ public class TableRenderer {
             } line("}");
         }
 
-        private void renderGetTableRef() {
-            line("public TableReference getTableRef() {"); {
-                line("return tableRef;");
-            } line("}");
-        }
-
         private void renderGetTableName() {
             line("public String getTableName() {"); {
-                line("return tableRef.getQualifiedName();");
+                line("return tableName;");
             } line("}");
         }
 
         private void renderGetNamespace() {
             line("public Namespace getNamespace() {"); {
-                line("return tableRef.getNamespace();");
+                line("return namespace;");
             } line("}");
         }
 
@@ -466,7 +459,7 @@ public class TableRenderer {
             line();
             line("@Override");
             line("public void delete(Multimap<", Row, ", ", Column, "> values) {"); {
-                line("t.delete(tableRef, ColumnValues.toCells(values));");
+                line("t.delete(tableName, ColumnValues.toCells(values));");
             } line("}");
         }
 
@@ -486,7 +479,7 @@ public class TableRenderer {
             line();
             line("@Override");
             line("public void put(Multimap<", Row, ", ? extends ", ColumnValue, "> values", lastParams, ") {"); {
-                line("t.useTable(tableRef, this);");
+                line("t.useTable(tableName, this);");
                 if (!indices.isEmpty()) {
                     line("for (Entry<", Row, ", ? extends ", ColumnValue, "> e : values.entries()) {"); {
                         for (IndexMetadata index : indices) {
@@ -494,7 +487,7 @@ public class TableRenderer {
                         }
                     } line("}");
                 }
-                line("t.put(tableRef, ColumnValues.toCellValues(values", args, "));");
+                line("t.put(tableName, ColumnValues.toCellValues(values", args, "));");
                 line("for (", Trigger, " trigger : triggers) {"); {
                     line("trigger.put", tableName, "(values);");
                 } line("}");
@@ -618,7 +611,7 @@ public class TableRenderer {
             line("@Override");
             line("public List<", ColumnValue, "> getRowColumns(", Row, " row, ColumnSelection columns) {"); {
                 line("byte[] bytes = row.persistToBytes();");
-                line("RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);");
+                line("RowResult<byte[]> rowResult = t.getRows(tableName, ImmutableSet.of(bytes), columns).get(bytes);");
                 line("if (rowResult == null) {"); {
                     line("return ImmutableList.of();");
                 } line("} else {"); {
@@ -662,7 +655,7 @@ public class TableRenderer {
                 line("for (", Row, " row : rows) {"); {
                     line("cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes(", ColumnRenderers.short_name(col), ")), row);");
                 } line("}");
-                line("Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());");
+                line("Map<Cell, byte[]> results = t.get(tableName, cells.keySet());");
                 line("Map<", Row, ", ", ColumnRenderers.TypeName(col), "> ret = Maps.newHashMapWithExpectedSize(results.size());");
                 line("for (Entry<Cell, byte[]> e : results.entrySet()) {"); {
                     line(ColumnRenderers.TypeName(col), " val = ", ColumnRenderers.VarName(col), ".BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();");
@@ -725,7 +718,7 @@ public class TableRenderer {
             String args = isExpiring(table) ? ", duration, unit" : "";
             line("@Override");
             line("public void put(Multimap<", Row, ", ? extends ", ColumnValue, "> rows", params, ") {"); {
-                line("t.useTable(tableRef, this);");
+                line("t.useTable(tableName, this);");
 
                 if (!cellReferencingIndices.isEmpty()) {
                     line("Multimap<", Row, ", ", ColumnValue, "> affectedCells = getAffectedCells(rows);");
@@ -742,7 +735,7 @@ public class TableRenderer {
                         }
                     } line("}");
                 }
-                line("t.put(tableRef, ColumnValues.toCellValues(rows", args, "));");
+                line("t.put(tableName, ColumnValues.toCellValues(rows", args, "));");
                 line("for (", Trigger, " trigger : triggers) {"); {
                     line("trigger.put", tableName, "(rows);");
                 } line("}");
@@ -841,7 +834,7 @@ public class TableRenderer {
                         } line("}");
                     } line("}");
                 } line("}");
-                line("t.delete(TableReference.createUnsafe(\"", Schemas.getFullTableName(index.getIndexName(), namespace), "\"), indexCells.build());");
+                line("t.delete(\"", Schemas.getFullTableName(index.getIndexName(), namespace), "\", indexCells.build());");
             } line("}");
         }
 
@@ -860,12 +853,12 @@ public class TableRenderer {
                 line("byte[] col = PtBytes.toCachedBytes(", ColumnRenderers.short_name(col), ");");
                 line("Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);");
                 if (!columnIndices.isEmpty()) {
-                    line("Map<Cell, byte[]> results = t.get(tableRef, cells);");
+                    line("Map<Cell, byte[]> results = t.get(tableName, cells);");
                     for (IndexMetadata index : columnIndices) {
                         line("delete", Renderers.getIndexTableName(index), "Raw(results);");
                     }
                 }
-                line("t.delete(tableRef, cells);");
+                line("t.delete(tableName, cells);");
             } line("}");
             for (IndexMetadata index : columnIndices) {
                 line();
@@ -915,7 +908,7 @@ public class TableRenderer {
                         line("}");
                     }
                 }  line("}");
-                line("t.delete(TableReference.createUnsafe(\"", Schemas.getFullTableName(index.getIndexName(), namespace), "\"), indexCells);");
+                line("t.delete(\"", Schemas.getFullTableName(index.getIndexName(), namespace), "\", indexCells);");
             } line("}");
         }
 
@@ -942,7 +935,7 @@ public class TableRenderer {
                 for (NamedColumnDescription col : namedColumns) {
                     line("cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes(", ColumnRenderers.short_name(col), ")));");
                 }
-                line("t.delete(tableRef, cells);");
+                line("t.delete(tableName, cells);");
             } line("}");
         }
 
@@ -951,7 +944,7 @@ public class TableRenderer {
                 line("if (range.getColumnNames().isEmpty()) {"); {
                     line("range = range.getBuilder().retainColumns(ColumnSelection.all()).build();");
                 } line("}");
-                line("return BatchingVisitables.transform(t.getRange(tableRef, range), new Function<RowResult<byte[]>, ", RowResult, ">() {"); {
+                line("return BatchingVisitables.transform(t.getRange(tableName, range), new Function<RowResult<byte[]>, ", RowResult, ">() {"); {
                     line("@Override");
                     line("public ", RowResult, " apply(RowResult<byte[]> input) {"); {
                         line("return ", RowResult, ".of(input);");
@@ -962,7 +955,7 @@ public class TableRenderer {
 
         private void renderGetRanges() {
             line("public IterableView<BatchingVisitable<", RowResult, ">> getRanges(Iterable<RangeRequest> ranges) {"); {
-                line("Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, ranges);");
+                line("Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableName, ranges);");
                 line("return IterableView.of(rangeResults).transform(");
                 line("        new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<", RowResult, ">>() {"); {
                     line("@Override");
@@ -1022,7 +1015,7 @@ public class TableRenderer {
             } line("}");
             line();
             line("public BatchingVisitableView<", RowResult, "> getAllRowsUnordered(ColumnSelection columns) {"); {
-                line("return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder().retainColumns(columns).build()),");
+                line("return BatchingVisitables.transform(t.getRange(tableName, RangeRequest.builder().retainColumns(columns).build()),");
                 line("        new Function<RowResult<byte[]>, ", RowResult, ">() {"); {
                     line("@Override");
                     line("public ", RowResult, " apply(RowResult<byte[]> input) {"); {
@@ -1041,7 +1034,7 @@ public class TableRenderer {
             line("@Override");
             line("public Optional<", RowResult, "> getRow(", Row, " row, ColumnSelection columns) {"); {
                 line("byte[] bytes = row.persistToBytes();");
-                line("RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);");
+                line("RowResult<byte[]> rowResult = t.getRows(tableName, ImmutableSet.of(bytes), columns).get(bytes);");
                 line("if (rowResult == null) {"); {
                     line("return Optional.absent();");
                 } line("} else {"); {
@@ -1058,7 +1051,7 @@ public class TableRenderer {
             line();
             line("@Override");
             line("public List<", RowResult, "> getRows(Iterable<", Row, "> rows, ColumnSelection columns) {"); {
-                line("SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);");
+                line("SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableName, Persistables.persistAll(rows), columns);");
                 line("List<", RowResult, "> rowResults = Lists.newArrayListWithCapacity(results.size());");
                 line("for (RowResult<byte[]> row : results.values()) {"); {
                     line("rowResults.add(", RowResult, ".of(row));");
@@ -1088,7 +1081,7 @@ public class TableRenderer {
             line("@Override");
             line("public Multimap<", Row, ", ", ColumnValue, "> get(Multimap<", Row, ", ", Column, "> cells) {"); {
                 line("Set<Cell> rawCells = ColumnValues.toCells(cells);");
-                line("Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);");
+                line("Map<Cell, byte[]> rawResults = t.get(tableName, rawCells);");
                 line("Multimap<", Row, ", ", ColumnValue, "> rowMap = HashMultimap.create();");
                 line("for (Entry<Cell, byte[]> e : rawResults.entrySet()) {");
                     line("if (e.getValue().length > 0) {");
@@ -1143,7 +1136,7 @@ public class TableRenderer {
             } line("}");
             line();
             line("private Multimap<", Row, ", ", ColumnValue, "> getRowsMultimapInternal(Iterable<", Row, "> rows, ColumnSelection columns) {"); {
-                line("SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);");
+                line("SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableName, Persistables.persistAll(rows), columns);");
                 line("return getRowMapFromRowResults(results.values());");
             } line("}");
             line();
@@ -1205,7 +1198,7 @@ public class TableRenderer {
             line();
             line("@Override");
             line("public void addUnlessExists(Set<", Row, "> rows", params, ") {"); {
-                line("SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), ColumnSelection.all());");
+                line("SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableName, Persistables.persistAll(rows), ColumnSelection.all());");
                 line("Map<", Row, ", ", ColumnValue, "> map = Maps.newHashMapWithExpectedSize(rows.size() - results.size());");
                 line(ColumnValue, " col = Exists.of(0L);");
                 line("for (", Row, " row : rows) {"); {
@@ -1327,7 +1320,6 @@ public class TableRenderer {
         Namespace.class,
         Hashing.class,
         ValueType.class,
-        Generated.class,
-        TableReference.class
+        Generated.class
     };
 }

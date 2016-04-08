@@ -45,13 +45,12 @@ import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
-import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.Prefix;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
+import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
@@ -95,7 +94,8 @@ public final class SweepPriorityTable implements
     private final Transaction t;
     private final List<SweepPriorityTrigger> triggers;
     private final static String rawTableName = "priority";
-    private final TableReference tableRef;
+    private final String tableName;
+    private final Namespace namespace;
 
     static SweepPriorityTable of(Transaction t, Namespace namespace) {
         return new SweepPriorityTable(t, namespace, ImmutableList.<SweepPriorityTrigger>of());
@@ -111,24 +111,21 @@ public final class SweepPriorityTable implements
 
     private SweepPriorityTable(Transaction t, Namespace namespace, List<SweepPriorityTrigger> triggers) {
         this.t = t;
-        this.tableRef = TableReference.create(namespace, rawTableName);
+        this.tableName = namespace.getName().isEmpty() ? rawTableName : namespace.getName() + "." + rawTableName;
         this.triggers = triggers;
+        this.namespace = namespace;
     }
 
     public static String getRawTableName() {
         return rawTableName;
     }
 
-    public TableReference getTableRef() {
-        return tableRef;
-    }
-
     public String getTableName() {
-        return tableRef.getQualifiedName();
+        return tableName;
     }
 
     public Namespace getNamespace() {
-        return tableRef.getNamespace();
+        return namespace;
     }
 
     /**
@@ -751,7 +748,7 @@ public final class SweepPriorityTable implements
         for (SweepPriorityRow row : rows) {
             cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("w")), row);
         }
-        Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
+        Map<Cell, byte[]> results = t.get(tableName, cells.keySet());
         Map<SweepPriorityRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> e : results.entrySet()) {
             Long val = WriteCount.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
@@ -765,7 +762,7 @@ public final class SweepPriorityTable implements
         for (SweepPriorityRow row : rows) {
             cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("t")), row);
         }
-        Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
+        Map<Cell, byte[]> results = t.get(tableName, cells.keySet());
         Map<SweepPriorityRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> e : results.entrySet()) {
             Long val = LastSweepTime.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
@@ -779,7 +776,7 @@ public final class SweepPriorityTable implements
         for (SweepPriorityRow row : rows) {
             cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("m")), row);
         }
-        Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
+        Map<Cell, byte[]> results = t.get(tableName, cells.keySet());
         Map<SweepPriorityRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> e : results.entrySet()) {
             Long val = MinimumSweptTimestamp.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
@@ -793,7 +790,7 @@ public final class SweepPriorityTable implements
         for (SweepPriorityRow row : rows) {
             cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("d")), row);
         }
-        Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
+        Map<Cell, byte[]> results = t.get(tableName, cells.keySet());
         Map<SweepPriorityRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> e : results.entrySet()) {
             Long val = CellsDeleted.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
@@ -807,7 +804,7 @@ public final class SweepPriorityTable implements
         for (SweepPriorityRow row : rows) {
             cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("e")), row);
         }
-        Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
+        Map<Cell, byte[]> results = t.get(tableName, cells.keySet());
         Map<SweepPriorityRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> e : results.entrySet()) {
             Long val = CellsExamined.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
@@ -938,8 +935,8 @@ public final class SweepPriorityTable implements
 
     @Override
     public void put(Multimap<SweepPriorityRow, ? extends SweepPriorityNamedColumnValue<?>> rows) {
-        t.useTable(tableRef, this);
-        t.put(tableRef, ColumnValues.toCellValues(rows));
+        t.useTable(tableName, this);
+        t.put(tableName, ColumnValues.toCellValues(rows));
         for (SweepPriorityTrigger trigger : triggers) {
             trigger.putSweepPriority(rows);
         }
@@ -964,7 +961,7 @@ public final class SweepPriorityTable implements
     public void deleteWriteCount(Iterable<SweepPriorityRow> rows) {
         byte[] col = PtBytes.toCachedBytes("w");
         Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
-        t.delete(tableRef, cells);
+        t.delete(tableName, cells);
     }
 
     public void deleteLastSweepTime(SweepPriorityRow row) {
@@ -974,7 +971,7 @@ public final class SweepPriorityTable implements
     public void deleteLastSweepTime(Iterable<SweepPriorityRow> rows) {
         byte[] col = PtBytes.toCachedBytes("t");
         Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
-        t.delete(tableRef, cells);
+        t.delete(tableName, cells);
     }
 
     public void deleteMinimumSweptTimestamp(SweepPriorityRow row) {
@@ -984,7 +981,7 @@ public final class SweepPriorityTable implements
     public void deleteMinimumSweptTimestamp(Iterable<SweepPriorityRow> rows) {
         byte[] col = PtBytes.toCachedBytes("m");
         Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
-        t.delete(tableRef, cells);
+        t.delete(tableName, cells);
     }
 
     public void deleteCellsDeleted(SweepPriorityRow row) {
@@ -994,7 +991,7 @@ public final class SweepPriorityTable implements
     public void deleteCellsDeleted(Iterable<SweepPriorityRow> rows) {
         byte[] col = PtBytes.toCachedBytes("d");
         Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
-        t.delete(tableRef, cells);
+        t.delete(tableName, cells);
     }
 
     public void deleteCellsExamined(SweepPriorityRow row) {
@@ -1004,7 +1001,7 @@ public final class SweepPriorityTable implements
     public void deleteCellsExamined(Iterable<SweepPriorityRow> rows) {
         byte[] col = PtBytes.toCachedBytes("e");
         Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
-        t.delete(tableRef, cells);
+        t.delete(tableName, cells);
     }
 
     @Override
@@ -1021,7 +1018,7 @@ public final class SweepPriorityTable implements
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("t")));
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("m")));
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("w")));
-        t.delete(tableRef, cells);
+        t.delete(tableName, cells);
     }
 
     @Override
@@ -1032,7 +1029,7 @@ public final class SweepPriorityTable implements
     @Override
     public Optional<SweepPriorityRowResult> getRow(SweepPriorityRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
-        RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
+        RowResult<byte[]> rowResult = t.getRows(tableName, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
             return Optional.absent();
         } else {
@@ -1047,7 +1044,7 @@ public final class SweepPriorityTable implements
 
     @Override
     public List<SweepPriorityRowResult> getRows(Iterable<SweepPriorityRow> rows, ColumnSelection columns) {
-        SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
+        SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableName, Persistables.persistAll(rows), columns);
         List<SweepPriorityRowResult> rowResults = Lists.newArrayListWithCapacity(results.size());
         for (RowResult<byte[]> row : results.values()) {
             rowResults.add(SweepPriorityRowResult.of(row));
@@ -1080,7 +1077,7 @@ public final class SweepPriorityTable implements
     @Override
     public List<SweepPriorityNamedColumnValue<?>> getRowColumns(SweepPriorityRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
-        RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
+        RowResult<byte[]> rowResult = t.getRows(tableName, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
             return ImmutableList.of();
         } else {
@@ -1120,7 +1117,7 @@ public final class SweepPriorityTable implements
     }
 
     private Multimap<SweepPriorityRow, SweepPriorityNamedColumnValue<?>> getRowsMultimapInternal(Iterable<SweepPriorityRow> rows, ColumnSelection columns) {
-        SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
+        SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableName, Persistables.persistAll(rows), columns);
         return getRowMapFromRowResults(results.values());
     }
 
@@ -1140,7 +1137,7 @@ public final class SweepPriorityTable implements
     }
 
     public BatchingVisitableView<SweepPriorityRowResult> getAllRowsUnordered(ColumnSelection columns) {
-        return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder().retainColumns(columns).build()),
+        return BatchingVisitables.transform(t.getRange(tableName, RangeRequest.builder().retainColumns(columns).build()),
                 new Function<RowResult<byte[]>, SweepPriorityRowResult>() {
             @Override
             public SweepPriorityRowResult apply(RowResult<byte[]> input) {
@@ -1236,7 +1233,6 @@ public final class SweepPriorityTable implements
      * {@link Sha256Hash}
      * {@link SortedMap}
      * {@link Supplier}
-     * {@link TableReference}
      * {@link Throwables}
      * {@link TimeUnit}
      * {@link Transaction}
@@ -1244,5 +1240,5 @@ public final class SweepPriorityTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "x71bt7mpWXXGo3KAX+BzUw==";
+    static String __CLASS_HASH = "qdZuchzEhla/Fq3HX6KS+Q==";
 }

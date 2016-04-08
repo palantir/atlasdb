@@ -33,7 +33,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ForwardingClosableIterator;
@@ -80,11 +79,11 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
         }
     }
 
-    private final ConcurrentMap<TableReference, TableStats> statsByTableName = Maps.newConcurrentMap();
+    private final ConcurrentMap<String, TableStats> statsByTableName = Maps.newConcurrentMap();
 
     private final KeyValueService delegate;
 
-    public Map<TableReference, TableStats> getTableStats() {
+    public Map<String, TableStats> getTableStats() {
         return Collections.unmodifiableMap(statsByTableName);
     }
 
@@ -110,14 +109,14 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
     }
 
     @Override
-    public Map<Cell, Value> get(TableReference tableRef,
+    public Map<Cell, Value> get(String tableName,
                                 Map<Cell, Long> timestampByCell) {
         long start = System.currentTimeMillis();
-        Map<Cell, Value> r = super.get(tableRef, timestampByCell);
+        Map<Cell, Value> r = super.get(tableName, timestampByCell);
         long finish = System.currentTimeMillis();
 
         // Update stats only after successful get.
-        TableStats s = getTableStats(tableRef);
+        TableStats s = getTableStats(tableName);
         long cellBytes = 0;
         for (Cell cell : timestampByCell.keySet()) {
             cellBytes += cell.getRowName().length;
@@ -132,16 +131,16 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
     }
 
     @Override
-    public Map<Cell, Value> getRows(TableReference tableRef,
+    public Map<Cell, Value> getRows(String tableName,
                                     Iterable<byte[]> rows,
                                     ColumnSelection columnSelection,
                                     long timestamp) {
         long start = System.currentTimeMillis();
-        Map<Cell, Value> r = super.getRows(tableRef, rows, columnSelection, timestamp);
+        Map<Cell, Value> r = super.getRows(tableName, rows, columnSelection, timestamp);
         long finish = System.currentTimeMillis();
 
         // Update stats only after successful get.
-        TableStats s = getTableStats(tableRef);
+        TableStats s = getTableStats(tableName);
         for (byte[] row : rows) {
             s.totalGetCellBytes.addAndGet(row.length);
         }
@@ -153,12 +152,12 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
     }
 
     @Override
-    public ClosableIterator<RowResult<Value>> getRange(final TableReference tableRef, RangeRequest range,
-                                                       long timestamp) {
-        final TableStats s = getTableStats(tableRef);
+    public ClosableIterator<RowResult<Value>> getRange(final String tableName, RangeRequest range,
+            long timestamp) {
+        final TableStats s = getTableStats(tableName);
 
         long start = System.currentTimeMillis();
-        final ClosableIterator<RowResult<Value>> it = super.getRange(tableRef, range, timestamp);
+        final ClosableIterator<RowResult<Value>> it = super.getRange(tableName, range, timestamp);
         long finish = System.currentTimeMillis();
         s.totalGetMillis.addAndGet(finish - start);
         s.totalGetCalls.incrementAndGet();
@@ -191,11 +190,11 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
     }
 
     @Override
-    public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp) {
-        TableStats s = getTableStats(tableRef);
+    public void put(String tableName, Map<Cell, byte[]> values, long timestamp) {
+        TableStats s = getTableStats(tableName);
 
         long start = System.currentTimeMillis();
-        super.put(tableRef, values, timestamp);
+        super.put(tableName, values, timestamp);
         long finish = System.currentTimeMillis();
         s.totalPutMillis.addAndGet(finish - start);
         s.totalPutCalls.incrementAndGet();
@@ -210,14 +209,14 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
     }
 
     @Override
-    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
+    public void multiPut(Map<String, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
         long start = System.currentTimeMillis();
         super.multiPut(valuesByTable, timestamp);
         long finish = System.currentTimeMillis();
-        for (Entry<TableReference, ? extends Map<Cell, byte[]>> entry : valuesByTable.entrySet()) {
-            TableReference tableRef = entry.getKey();
+        for (Entry<String, ? extends Map<Cell, byte[]>> entry : valuesByTable.entrySet()) {
+            String tableName = entry.getKey();
             Map<Cell, byte[]> values = entry.getValue();
-            TableStats s = getTableStats(tableRef);
+            TableStats s = getTableStats(tableName);
             s.totalPutMillis.addAndGet(finish - start);
             s.totalPutCalls.incrementAndGet();
 
@@ -232,11 +231,11 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
     }
 
     @Override
-    public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> values) {
-        TableStats s = getTableStats(tableRef);
+    public void putWithTimestamps(String tableName, Multimap<Cell, Value> values) {
+        TableStats s = getTableStats(tableName);
 
         long start = System.currentTimeMillis();
-        super.putWithTimestamps(tableRef, values);
+        super.putWithTimestamps(tableName, values);
         long finish = System.currentTimeMillis();
         s.totalPutMillis.addAndGet(finish - start);
         s.totalPutCalls.incrementAndGet();
@@ -251,12 +250,12 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
     }
 
     @Override
-    public void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values)
+    public void putUnlessExists(String tableName, Map<Cell, byte[]> values)
             throws KeyAlreadyExistsException {
-        TableStats s = getTableStats(tableRef);
+        TableStats s = getTableStats(tableName);
 
         long start = System.currentTimeMillis();
-        super.putUnlessExists(tableRef, values);
+        super.putUnlessExists(tableName, values);
         long finish = System.currentTimeMillis();
         s.totalPutMillis.addAndGet(finish - start);
         s.totalPutCalls.incrementAndGet();
@@ -270,17 +269,17 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
         }
     }
 
-    private TableStats getTableStats(TableReference tableRef) {
-        TableStats s = statsByTableName.get(tableRef);
+    private TableStats getTableStats(String tableName) {
+        TableStats s = statsByTableName.get(tableName);
         if (s == null) {
-            statsByTableName.putIfAbsent(tableRef, new TableStats());
-            s = statsByTableName.get(tableRef);
+            statsByTableName.putIfAbsent(tableName, new TableStats());
+            s = statsByTableName.get(tableName);
         }
         return s;
     }
 
     public void dumpStats(PrintWriter writer) {
-        Map<TableReference, TableStats> sortedStats = ImmutableSortedMap.copyOf(statsByTableName);
+        Map<String, TableStats> sortedStats = ImmutableSortedMap.copyOf(statsByTableName);
         String headerFmt = "|| %-20s || %10s || %10s || %10s || %10s || %10s || %10s ||\n";
         String rowFmt =    "|  %-20s |  %10s |  %10s |  %10s |  %10s |  %10s |  %10s |\n";
 
@@ -294,11 +293,11 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
                 "get_calls",
                 "put_calls");
 
-        for (Entry<TableReference, TableStats> statsEntry : sortedStats.entrySet()) {
+        for (Entry<String, TableStats> statsEntry : sortedStats.entrySet()) {
             TableStats s = statsEntry.getValue();
             writer.printf(
                     rowFmt,
-                    statsEntry.getKey().getQualifiedName(),
+                    statsEntry.getKey(),
                     s.getTotalGetMillis(),
                     s.getTotalPutMillis(),
                     s.getTotalGetBytes(),

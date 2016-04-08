@@ -29,7 +29,6 @@ import org.apache.cassandra.service.StorageServiceMBean;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionClient;
 
 public class CassandraJmxCompactionClientTest {
@@ -42,7 +41,7 @@ public class CassandraJmxCompactionClientTest {
     private static String FAKE_HOST = "localhost";
     private static int FAKE_JMX_PORT = 7199;
     private static final String TEST_KEY_SPACE = "testKeySpace";
-    private static final TableReference TEST_TABLE_NAME = TableReference.createWithEmptyNamespace("testTableName");
+    private static final String TEST_TABLE_NAME = "testTableName";
 
     @Before
     public void setUp() {
@@ -63,13 +62,13 @@ public class CassandraJmxCompactionClientTest {
     @Test
     public void verifyForceTableFlush() throws InterruptedException, ExecutionException, IOException {
         jmxClient.forceTableFlush(TEST_KEY_SPACE, TEST_TABLE_NAME);
-        verify(mockedSSProxy).forceKeyspaceFlush(TEST_KEY_SPACE, TEST_TABLE_NAME.getQualifiedName());
+        verify(mockedSSProxy).forceKeyspaceFlush(TEST_KEY_SPACE, TEST_TABLE_NAME);
     }
 
     @Test
     public void verifyForceTableCompaction() throws InterruptedException, ExecutionException, IOException {
         jmxClient.forceTableCompaction(TEST_KEY_SPACE, TEST_TABLE_NAME);
-        verify(mockedSSProxy).forceKeyspaceCompaction(true, TEST_KEY_SPACE, TEST_TABLE_NAME.getQualifiedName());
+        verify(mockedSSProxy).forceKeyspaceCompaction(true, TEST_KEY_SPACE, TEST_TABLE_NAME);
     }
 
     @Test

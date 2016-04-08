@@ -58,7 +58,6 @@ import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TrackingKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePriority;
@@ -105,7 +104,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         }
 
         @Override
-        public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp) {
+        public void put(String tableName, Map<Cell, byte[]> values, long timestamp) {
             if (randomlyThrow && random.nextInt(3) == 0) {
                 throw new RuntimeException();
             }
@@ -117,7 +116,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 }
                 throw new RuntimeException();
             }
-            super.put(tableRef, values, timestamp);
+            super.put(tableName, values, timestamp);
         }
 
         public void setRandomlyHang(boolean randomlyHang) {
@@ -133,11 +132,11 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             return delegate;
         }
     }
-    static final TableReference TABLE = TableReference.createFromFullyQualifiedName("default.table");
-    static final TableReference TABLE1 = TableReference.createFromFullyQualifiedName("default.table1");
-    static final TableReference TABLE2 = TableReference.createFromFullyQualifiedName("default.table2");
+    static final String TABLE = "default.table";
+    static final String TABLE1 = "default.table1";
+    static final String TABLE2 = "default.table2";
 
-    static final TableReference TABLE_SWEPT_THOROUGH = TableReference.createFromFullyQualifiedName("default.table2");
+    static final String TABLE_SWEPT_THOROUGH = "default.table2";
 
     @Override
     @Before
@@ -146,7 +145,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         // Some KV stores need more nodes to be up to accomplish a delete, so we model that here as throwing
         keyValueService = new TrackingKeyValueService(keyValueService) {
             @Override
-            public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
+            public void delete(String tableName, Multimap<Cell, Long> keys) {
                 throw new RuntimeException("cannot delete");
             }
         };
@@ -332,7 +331,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         // a RuntimeException from time to time and hanging other times. which effectively kills the
         // thread. We ensure that every transaction either adds 5 rows to the table or adds 0 rows
         // by checking at the end that the number of rows is a multiple of 5.
-        final TableReference tableRef = TABLE;
+        final String tableName = "table";
         Random random = new Random(1);
 
         final UnstableKeyValueService unstableKvs = new UnstableKeyValueService(keyValueService, random);
@@ -361,7 +360,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
                     Transaction transaction = unstableTransactionManager.createNewTransaction();
                     BatchingVisitable<RowResult<byte[]>> results =
-                            transaction.getRange(tableRef, RangeRequest.builder().build());
+                            transaction.getRange(tableName, RangeRequest.builder().build());
 
                     final MutableInt nextIndex = new MutableInt(0);
                     results.batchAccept(1, AbortingVisitors.batching(new AbortingVisitor<RowResult<byte[]>, Exception>() {
@@ -379,7 +378,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                     for (int j = 0; j < 5; j++) {
                         int rowNumber = nextIndex.toInteger() + j;
                         Cell cell = Cell.create(("row" + rowNumber).getBytes(), "data".getBytes());
-                        transaction.put(tableRef,
+                        transaction.put(tableName,
                                 ImmutableMap.of(cell, BigInteger.valueOf(rowNumber).toByteArray()));
                         Thread.yield();
                     }
@@ -395,7 +394,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         // Verify each table has a number of rows that's a multiple of 5
         Transaction verifyTransaction = txManager.createNewTransaction();
         BatchingVisitable<RowResult<byte[]>> results =
-                verifyTransaction.getRange(tableRef, RangeRequest.builder().build());
+                verifyTransaction.getRange(tableName, RangeRequest.builder().build());
 
         final MutableInt numRows = new MutableInt(0);
         results.batchAccept(1,
@@ -658,7 +657,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     private HeldLocksToken getFakeHeldLocksToken() {
         ImmutableSortedMap.Builder<LockDescriptor, LockMode> builder =
                 ImmutableSortedMap.naturalOrder();
-        builder.put(AtlasRowLockDescriptor.of(TransactionConstants.TRANSACTION_TABLE.getQualifiedName(),
+        builder.put(AtlasRowLockDescriptor.of(TransactionConstants.TRANSACTION_TABLE,
                 TransactionConstants.getValueForTimestamp(0L)), LockMode.WRITE);
         return new HeldLocksToken(new BigInteger("0"), lockClient,
                 System.currentTimeMillis(), System.currentTimeMillis(),

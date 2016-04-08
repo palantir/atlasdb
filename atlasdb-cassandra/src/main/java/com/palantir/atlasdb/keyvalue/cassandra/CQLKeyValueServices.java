@@ -47,7 +47,6 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.table.description.TableMetadata;
@@ -257,7 +256,7 @@ public class CQLKeyValueServices {
         return CassandraKeyValueServices.getBytesFromByteBuffer(row.getBytes(CassandraConstants.VALUE_COL));
     }
 
-    void createTableWithSettings(TableReference tableRef, byte[] rawMetadata, CQLKeyValueService kvs) {
+    void createTableWithSettings(String tableName, byte[] rawMetadata, CQLKeyValueService kvs) {
         StringBuilder queryBuilder = new StringBuilder();
 
         int explicitCompressionBlockSizeKB = 0;
@@ -284,7 +283,7 @@ public class CQLKeyValueServices {
             chunkLength = explicitCompressionBlockSizeKB;
         }
 
-        queryBuilder.append("CREATE TABLE IF NOT EXISTS " + kvs.getFullTableName(tableRef) + " ( " // full table name (ks.cf)
+        queryBuilder.append("CREATE TABLE IF NOT EXISTS " + kvs.getFullTableName(tableName) + " ( " // full table name (ks.cf)
                 + CassandraConstants.ROW_NAME + " blob, "
                 + CassandraConstants.COL_NAME_COL + " blob, "
                 + CassandraConstants.TS_COL + " bigint, "
@@ -308,7 +307,7 @@ public class CQLKeyValueServices {
                 + CassandraConstants.TS_COL + " ASC) ");
 
         BoundStatement createTableStatement =
-                kvs.getPreparedStatement(tableRef, queryBuilder.toString(), kvs.longRunningQuerySession)
+                kvs.getPreparedStatement(tableName, queryBuilder.toString(), kvs.longRunningQuerySession)
                         .setConsistencyLevel(ConsistencyLevel.ALL)
                         .bind();
         try {
@@ -319,7 +318,7 @@ public class CQLKeyValueServices {
         }
     }
 
-    static void setSettingsForTable(TableReference tableRef, byte[] rawMetadata, CQLKeyValueService kvs) {
+    static void setSettingsForTable(String tableName, byte[] rawMetadata, CQLKeyValueService kvs) {
         int explicitCompressionBlockSizeKB = 0;
         boolean negativeLookups = false;
         double falsePositiveChance = CassandraConstants.DEFAULT_LEVELED_COMPACTION_BLOOM_FILTER_FP_CHANCE;
@@ -344,7 +343,7 @@ public class CQLKeyValueServices {
         }
 
         StringBuilder sb = new StringBuilder();
-        sb.append("ALTER TABLE " + kvs.getFullTableName(tableRef) + " WITH "
+        sb.append("ALTER TABLE " + kvs.getFullTableName(tableName) + " WITH "
                 + "bloom_filter_fp_chance = " + falsePositiveChance + " ");
 
         sb.append("AND caching = '{\"keys\":\"ALL\", \"rows_per_partition\":\"ALL\"}' ");
@@ -358,7 +357,7 @@ public class CQLKeyValueServices {
                 + "'sstable_compression': '" + CassandraConstants.DEFAULT_COMPRESSION_TYPE + "'}");
 
         BoundStatement alterTableStatement =
-                kvs.getPreparedStatement(tableRef, sb.toString(), kvs.longRunningQuerySession)
+                kvs.getPreparedStatement(tableName, sb.toString(), kvs.longRunningQuerySession)
                         .setConsistencyLevel(ConsistencyLevel.ALL)
                         .bind();
         try {
@@ -404,7 +403,7 @@ public class CQLKeyValueServices {
         }
     }
 
-    static Cell getMetadataCell(TableReference tableRef) {
-        return Cell.create(tableRef.getQualifiedName().getBytes(), "m".getBytes());
+    static Cell getMetadataCell(String tableName) {
+        return Cell.create(tableName.getBytes(), "m".getBytes());
     }
 }

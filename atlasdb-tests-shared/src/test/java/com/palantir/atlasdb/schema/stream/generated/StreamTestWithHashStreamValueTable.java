@@ -16,7 +16,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
 
-
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -45,13 +44,12 @@ import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
-import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.Prefix;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
+import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
@@ -95,7 +93,8 @@ public final class StreamTestWithHashStreamValueTable implements
     private final Transaction t;
     private final List<StreamTestWithHashStreamValueTrigger> triggers;
     private final static String rawTableName = "stream_test_with_hash_stream_value";
-    private final TableReference tableRef;
+    private final String tableName;
+    private final Namespace namespace;
 
     static StreamTestWithHashStreamValueTable of(Transaction t, Namespace namespace) {
         return new StreamTestWithHashStreamValueTable(t, namespace, ImmutableList.<StreamTestWithHashStreamValueTrigger>of());
@@ -111,24 +110,21 @@ public final class StreamTestWithHashStreamValueTable implements
 
     private StreamTestWithHashStreamValueTable(Transaction t, Namespace namespace, List<StreamTestWithHashStreamValueTrigger> triggers) {
         this.t = t;
-        this.tableRef = TableReference.create(namespace, rawTableName);
+        this.tableName = namespace.getName().isEmpty() ? rawTableName : namespace.getName() + "." + rawTableName;
         this.triggers = triggers;
+        this.namespace = namespace;
     }
 
     public static String getRawTableName() {
         return rawTableName;
     }
 
-    public TableReference getTableRef() {
-        return tableRef;
-    }
-
     public String getTableName() {
-        return tableRef.getQualifiedName();
+        return tableName;
     }
 
     public Namespace getNamespace() {
-        return tableRef.getNamespace();
+        return namespace;
     }
 
     /**
@@ -412,7 +408,7 @@ public final class StreamTestWithHashStreamValueTable implements
         for (StreamTestWithHashStreamValueRow row : rows) {
             cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("v")), row);
         }
-        Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
+        Map<Cell, byte[]> results = t.get(tableName, cells.keySet());
         Map<StreamTestWithHashStreamValueRow, byte[]> ret = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> e : results.entrySet()) {
             byte[] val = Value.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
@@ -447,8 +443,8 @@ public final class StreamTestWithHashStreamValueTable implements
 
     @Override
     public void put(Multimap<StreamTestWithHashStreamValueRow, ? extends StreamTestWithHashStreamValueNamedColumnValue<?>> rows, long duration, TimeUnit unit) {
-        t.useTable(tableRef, this);
-        t.put(tableRef, ColumnValues.toCellValues(rows, duration, unit));
+        t.useTable(tableName, this);
+        t.put(tableName, ColumnValues.toCellValues(rows, duration, unit));
         for (StreamTestWithHashStreamValueTrigger trigger : triggers) {
             trigger.putStreamTestWithHashStreamValue(rows);
         }
@@ -473,7 +469,7 @@ public final class StreamTestWithHashStreamValueTable implements
     public void deleteValue(Iterable<StreamTestWithHashStreamValueRow> rows) {
         byte[] col = PtBytes.toCachedBytes("v");
         Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
-        t.delete(tableRef, cells);
+        t.delete(tableName, cells);
     }
 
     @Override
@@ -486,7 +482,7 @@ public final class StreamTestWithHashStreamValueTable implements
         List<byte[]> rowBytes = Persistables.persistAll(rows);
         Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("v")));
-        t.delete(tableRef, cells);
+        t.delete(tableName, cells);
     }
 
     @Override
@@ -497,7 +493,7 @@ public final class StreamTestWithHashStreamValueTable implements
     @Override
     public Optional<StreamTestWithHashStreamValueRowResult> getRow(StreamTestWithHashStreamValueRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
-        RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
+        RowResult<byte[]> rowResult = t.getRows(tableName, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
             return Optional.absent();
         } else {
@@ -512,7 +508,7 @@ public final class StreamTestWithHashStreamValueTable implements
 
     @Override
     public List<StreamTestWithHashStreamValueRowResult> getRows(Iterable<StreamTestWithHashStreamValueRow> rows, ColumnSelection columns) {
-        SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
+        SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableName, Persistables.persistAll(rows), columns);
         List<StreamTestWithHashStreamValueRowResult> rowResults = Lists.newArrayListWithCapacity(results.size());
         for (RowResult<byte[]> row : results.values()) {
             rowResults.add(StreamTestWithHashStreamValueRowResult.of(row));
@@ -545,7 +541,7 @@ public final class StreamTestWithHashStreamValueTable implements
     @Override
     public List<StreamTestWithHashStreamValueNamedColumnValue<?>> getRowColumns(StreamTestWithHashStreamValueRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
-        RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
+        RowResult<byte[]> rowResult = t.getRows(tableName, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
             return ImmutableList.of();
         } else {
@@ -585,7 +581,7 @@ public final class StreamTestWithHashStreamValueTable implements
     }
 
     private Multimap<StreamTestWithHashStreamValueRow, StreamTestWithHashStreamValueNamedColumnValue<?>> getRowsMultimapInternal(Iterable<StreamTestWithHashStreamValueRow> rows, ColumnSelection columns) {
-        SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
+        SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableName, Persistables.persistAll(rows), columns);
         return getRowMapFromRowResults(results.values());
     }
 
@@ -605,7 +601,7 @@ public final class StreamTestWithHashStreamValueTable implements
     }
 
     public BatchingVisitableView<StreamTestWithHashStreamValueRowResult> getAllRowsUnordered(ColumnSelection columns) {
-        return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder().retainColumns(columns).build()),
+        return BatchingVisitables.transform(t.getRange(tableName, RangeRequest.builder().retainColumns(columns).build()),
                 new Function<RowResult<byte[]>, StreamTestWithHashStreamValueRowResult>() {
             @Override
             public StreamTestWithHashStreamValueRowResult apply(RowResult<byte[]> input) {
@@ -701,7 +697,6 @@ public final class StreamTestWithHashStreamValueTable implements
      * {@link Sha256Hash}
      * {@link SortedMap}
      * {@link Supplier}
-     * {@link TableReference}
      * {@link Throwables}
      * {@link TimeUnit}
      * {@link Transaction}
@@ -709,5 +704,5 @@ public final class StreamTestWithHashStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "5yyhOKf8MpAopIcJMcvNGw==";
+    static String __CLASS_HASH = "/W5S6serveoEX9umxltNGA==";
 }

@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.keyvalue.rocksdb.impl;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AbstractAtlasDbKeyValueServiceTest;
 
 public class RocksDbKeyValueSharedTest extends AbstractAtlasDbKeyValueServiceTest {
@@ -25,8 +24,8 @@ public class RocksDbKeyValueSharedTest extends AbstractAtlasDbKeyValueServiceTes
     @Override
     public void setUp() throws Exception {
         db = RocksDbKeyValueService.create("testdb");
-        for (TableReference table : db.getAllTableNames()) {
-            if (!table.getQualifiedName().equals("default") && !table.getQualifiedName().equals("_metadata")) {
+        for (String table : db.getAllTableNames()) {
+            if (!table.equals("default") && !table.equals("_metadata")) {
                 db.dropTable(table);
             }
         }

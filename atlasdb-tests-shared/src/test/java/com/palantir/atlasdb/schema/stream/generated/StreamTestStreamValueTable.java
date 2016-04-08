@@ -16,7 +16,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
 
-
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -45,13 +44,12 @@ import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
-import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.Prefix;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
+import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
@@ -95,7 +93,8 @@ public final class StreamTestStreamValueTable implements
     private final Transaction t;
     private final List<StreamTestStreamValueTrigger> triggers;
     private final static String rawTableName = "stream_test_stream_value";
-    private final TableReference tableRef;
+    private final String tableName;
+    private final Namespace namespace;
 
     static StreamTestStreamValueTable of(Transaction t, Namespace namespace) {
         return new StreamTestStreamValueTable(t, namespace, ImmutableList.<StreamTestStreamValueTrigger>of());
@@ -111,24 +110,21 @@ public final class StreamTestStreamValueTable implements
 
     private StreamTestStreamValueTable(Transaction t, Namespace namespace, List<StreamTestStreamValueTrigger> triggers) {
         this.t = t;
-        this.tableRef = TableReference.create(namespace, rawTableName);
+        this.tableName = namespace.getName().isEmpty() ? rawTableName : namespace.getName() + "." + rawTableName;
         this.triggers = triggers;
+        this.namespace = namespace;
     }
 
     public static String getRawTableName() {
         return rawTableName;
     }
 
-    public TableReference getTableRef() {
-        return tableRef;
-    }
-
     public String getTableName() {
-        return tableRef.getQualifiedName();
+        return tableName;
     }
 
     public Namespace getNamespace() {
-        return tableRef.getNamespace();
+        return namespace;
     }
 
     /**
@@ -403,7 +399,7 @@ public final class StreamTestStreamValueTable implements
         for (StreamTestStreamValueRow row : rows) {
             cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("v")), row);
         }
-        Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
+        Map<Cell, byte[]> results = t.get(tableName, cells.keySet());
         Map<StreamTestStreamValueRow, byte[]> ret = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> e : results.entrySet()) {
             byte[] val = Value.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
@@ -438,8 +434,8 @@ public final class StreamTestStreamValueTable implements
 
     @Override
     public void put(Multimap<StreamTestStreamValueRow, ? extends StreamTestStreamValueNamedColumnValue<?>> rows) {
-        t.useTable(tableRef, this);
-        t.put(tableRef, ColumnValues.toCellValues(rows));
+        t.useTable(tableName, this);
+        t.put(tableName, ColumnValues.toCellValues(rows));
         for (StreamTestStreamValueTrigger trigger : triggers) {
             trigger.putStreamTestStreamValue(rows);
         }
@@ -464,7 +460,7 @@ public final class StreamTestStreamValueTable implements
     public void deleteValue(Iterable<StreamTestStreamValueRow> rows) {
         byte[] col = PtBytes.toCachedBytes("v");
         Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
-        t.delete(tableRef, cells);
+        t.delete(tableName, cells);
     }
 
     @Override
@@ -477,7 +473,7 @@ public final class StreamTestStreamValueTable implements
         List<byte[]> rowBytes = Persistables.persistAll(rows);
         Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("v")));
-        t.delete(tableRef, cells);
+        t.delete(tableName, cells);
     }
 
     @Override
@@ -488,7 +484,7 @@ public final class StreamTestStreamValueTable implements
     @Override
     public Optional<StreamTestStreamValueRowResult> getRow(StreamTestStreamValueRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
-        RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
+        RowResult<byte[]> rowResult = t.getRows(tableName, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
             return Optional.absent();
         } else {
@@ -503,7 +499,7 @@ public final class StreamTestStreamValueTable implements
 
     @Override
     public List<StreamTestStreamValueRowResult> getRows(Iterable<StreamTestStreamValueRow> rows, ColumnSelection columns) {
-        SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
+        SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableName, Persistables.persistAll(rows), columns);
         List<StreamTestStreamValueRowResult> rowResults = Lists.newArrayListWithCapacity(results.size());
         for (RowResult<byte[]> row : results.values()) {
             rowResults.add(StreamTestStreamValueRowResult.of(row));
@@ -536,7 +532,7 @@ public final class StreamTestStreamValueTable implements
     @Override
     public List<StreamTestStreamValueNamedColumnValue<?>> getRowColumns(StreamTestStreamValueRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
-        RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
+        RowResult<byte[]> rowResult = t.getRows(tableName, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
             return ImmutableList.of();
         } else {
@@ -576,7 +572,7 @@ public final class StreamTestStreamValueTable implements
     }
 
     private Multimap<StreamTestStreamValueRow, StreamTestStreamValueNamedColumnValue<?>> getRowsMultimapInternal(Iterable<StreamTestStreamValueRow> rows, ColumnSelection columns) {
-        SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
+        SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableName, Persistables.persistAll(rows), columns);
         return getRowMapFromRowResults(results.values());
     }
 
@@ -596,7 +592,7 @@ public final class StreamTestStreamValueTable implements
     }
 
     public BatchingVisitableView<StreamTestStreamValueRowResult> getAllRowsUnordered(ColumnSelection columns) {
-        return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder().retainColumns(columns).build()),
+        return BatchingVisitables.transform(t.getRange(tableName, RangeRequest.builder().retainColumns(columns).build()),
                 new Function<RowResult<byte[]>, StreamTestStreamValueRowResult>() {
             @Override
             public StreamTestStreamValueRowResult apply(RowResult<byte[]> input) {
@@ -692,7 +688,6 @@ public final class StreamTestStreamValueTable implements
      * {@link Sha256Hash}
      * {@link SortedMap}
      * {@link Supplier}
-     * {@link TableReference}
      * {@link Throwables}
      * {@link TimeUnit}
      * {@link Transaction}
@@ -700,5 +695,5 @@ public final class StreamTestStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "AW5bkfuNm5HKpXkur7a4cg==";
+    static String __CLASS_HASH = "2KEvkQR/hBT2U+coipiazQ==";
 }

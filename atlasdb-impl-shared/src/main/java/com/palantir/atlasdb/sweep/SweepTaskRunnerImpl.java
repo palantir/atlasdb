@@ -47,7 +47,6 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.transaction.api.Transaction.TransactionType;
@@ -95,11 +94,11 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
     }
 
     @Override
-    public SweepResults run(TableReference tableRef, int batchSize, @Nullable byte[] startRow) {
-        Preconditions.checkNotNull(tableRef);
-        Preconditions.checkState(!AtlasDbConstants.hiddenTables.contains(tableRef));
+    public SweepResults run(String tableName, int batchSize, @Nullable byte[] startRow) {
+        Preconditions.checkNotNull(tableName);
+        Preconditions.checkState(!AtlasDbConstants.hiddenTables.contains(tableName));
 
-        if (tableRef.getQualifiedName().startsWith(AtlasDbConstants.NAMESPACE_PREFIX)) {
+        if (tableName.startsWith(AtlasDbConstants.NAMESPACE_PREFIX)) {
                 // this happens sometimes; I think it's because some places in the code can
                 // start this sweeper without doing the full normally ordered KVSModule startup.
                 // I did check and sweep.stats did contain the FQ table name for all of the tables,
@@ -107,8 +106,8 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
                 log.warn("The sweeper should not be run on tables passed through namespace mapping.");
                 return SweepResults.createEmptySweepResult(0L);
         }
-        if (keyValueService.getMetadataForTable(tableRef).length == 0) {
-            log.warn("The sweeper tried to sweep table '{}', but the table does not exist. Skipping table.", tableRef);
+        if (keyValueService.getMetadataForTable(tableName).length == 0) {
+            log.warn("The sweeper tried to sweep table '{}', but the table does not exist. Skipping table.", tableName);
             return SweepResults.createEmptySweepResult(0L);
         }
 
@@ -123,7 +122,7 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
         // (1) force old readers to abort (if they read a garbage collection sentinel), or
         // (2) force old writers to retry (note that we must roll back any uncommitted transactions that
         //     we encounter
-        SweepStrategy sweepStrategy = sweepStrategyManager.get().get(tableRef);
+        SweepStrategy sweepStrategy = sweepStrategyManager.get().get(tableName);
         if (sweepStrategy == null) {
             sweepStrategy = SweepStrategy.CONSERVATIVE;
         } else if (sweepStrategy == SweepStrategy.NOTHING) {
@@ -141,11 +140,11 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
         if (sweepStrategy == SweepStrategy.CONSERVATIVE) {
             valueResults = ClosableIterators.wrap(ImmutableList.<RowResult<Value>>of().iterator());
         } else {
-            valueResults = keyValueService.getRange(tableRef, rangeRequest, sweepTimestamp);
+            valueResults = keyValueService.getRange(tableName, rangeRequest, sweepTimestamp);
         }
 
         ClosableIterator<RowResult<Set<Long>>> rowResults =
-                keyValueService.getRangeOfTimestamps(tableRef, rangeRequest, sweepTimestamp);
+                keyValueService.getRangeOfTimestamps(tableName, rangeRequest, sweepTimestamp);
 
         try {
             List<RowResult<Set<Long>>> rowResultTimestamps = ImmutableList.copyOf(Iterators.limit(rowResults, batchSize));
@@ -153,7 +152,7 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
             Set<Cell> sentinelsToAdd = Sets.newHashSet();
             Multimap<Cell, Long> rowTimestamps = getTimestampsFromRowResults(rowResultTimestamps, sweepStrategy);
             Multimap<Cell, Long> cellTsPairsToSweep = getCellTsPairsToSweep(rowTimestamps, peekingValues, sweepTimestamp, sweepStrategy, sentinelsToAdd);
-            sweepCells(tableRef, cellTsPairsToSweep, sentinelsToAdd);
+            sweepCells(tableName, cellTsPairsToSweep, sentinelsToAdd);
             byte[] nextRow = rowResultTimestamps.size() < batchSize ? null :
                 RangeRequests.getNextStartRow(false, Iterables.getLast(rowResultTimestamps).getRowName());
             return new SweepResults(nextRow, rowResultTimestamps.size(), cellTsPairsToSweep.size(), sweepTimestamp);
@@ -297,7 +296,7 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
         return commitTs;
     }
 
-    private void sweepCells(TableReference tableRef,
+    private void sweepCells(String tableName,
                             Multimap<Cell, Long> cellTsPairsToSweep,
                             Set<Cell> sentinelsToAdd) {
         if (cellTsPairsToSweep.isEmpty()) {
@@ -305,13 +304,13 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
         }
 
         for (Follower follower : followers) {
-            follower.run(txManager, tableRef, cellTsPairsToSweep.keySet(), TransactionType.HARD_DELETE);
+            follower.run(txManager, tableName, cellTsPairsToSweep.keySet(), TransactionType.HARD_DELETE);
         }
         if (!sentinelsToAdd.isEmpty()) {
             keyValueService.addGarbageCollectionSentinelValues(
-                    tableRef,
+                    tableName,
                     sentinelsToAdd);
         }
-        keyValueService.delete(tableRef, cellTsPairsToSweep);
+        keyValueService.delete(tableName, cellTsPairsToSweep);
     }
 }

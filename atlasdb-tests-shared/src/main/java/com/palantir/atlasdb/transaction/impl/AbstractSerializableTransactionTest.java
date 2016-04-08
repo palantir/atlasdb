@@ -38,7 +38,6 @@ import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -70,7 +69,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
     @Override
     protected Transaction startTransaction() {
-        ImmutableMap<TableReference, ConflictHandler> tablesToWriteWrite = ImmutableMap.of(
+        ImmutableMap<String, ConflictHandler> tablesToWriteWrite = ImmutableMap.of(
                 TEST_TABLE,
                 ConflictHandler.SERIALIZABLE,
                 TransactionConstants.TRANSACTION_TABLE,

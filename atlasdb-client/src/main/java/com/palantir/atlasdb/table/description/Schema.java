@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.apache.commons.lang.Validate;
 
@@ -41,9 +40,8 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
 import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
-import com.palantir.atlasdb.keyvalue.api.Namespace;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ExpirationStrategy;
+import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.schema.stream.StreamTables;
 import com.palantir.atlasdb.stream.GenericStreamStore;
 import com.palantir.atlasdb.table.description.IndexDefinition.IndexType;
@@ -109,32 +107,32 @@ public class Schema {
         }
     }
 
-    public TableDefinition getTableDefinition(TableReference tableRef) {
-        return tableDefinitions.get(tableRef.getTablename());
+    public TableDefinition getTableDefinition(String tableName) {
+        return tableDefinitions.get(tableName);
     }
 
-    public Map<TableReference, TableMetadata> getAllTablesAndIndexMetadata() {
-        Map<TableReference, TableMetadata> ret = Maps.newHashMap();
+    public Map<String, TableMetadata> getAllTablesAndIndexMetadata() {
+        Map<String, TableMetadata> ret = Maps.newHashMap();
         for (Map.Entry<String, TableDefinition> e : tableDefinitions.entrySet()) {
-            ret.put(TableReference.create(namespace, e.getKey()), e.getValue().toTableMetadata());
+            ret.put(e.getKey(), e.getValue().toTableMetadata());
         }
         for (Map.Entry<String, IndexDefinition> e : indexDefinitions.entrySet()) {
-            ret.put(TableReference.create(namespace, e.getKey()), e.getValue().toIndexMetadata(e.getKey()).getTableMetadata());
+            ret.put(e.getKey(), e.getValue().toIndexMetadata(e.getKey()).getTableMetadata());
         }
         return ret;
     }
 
-    public Set<TableReference> getAllIndexes() {
-        return indexDefinitions.keySet().stream().map((table) -> TableReference.create(namespace, table)).collect(Collectors.toSet());
+    public Set<String> getAllIndexes() {
+        return indexDefinitions.keySet();
     }
 
-    public Set<TableReference> getAllTables() {
-        return tableDefinitions.keySet().stream().map((table) -> TableReference.create(namespace, table)).collect(Collectors.toSet());
+    public Set<String> getAllTables() {
+        return tableDefinitions.keySet();
     }
 
     public void addIndexDefinition(String idxName, IndexDefinition definition) {
         validateIndex(idxName, definition);
-        String indexName = Schemas.appendIndexSuffix(idxName, definition).getQualifiedName();
+        String indexName = Schemas.appendIndexSuffix(idxName, definition);
         indexesByTable.put(definition.getSourceTable(), indexName);
         indexDefinitions.put(indexName, definition);
     }
@@ -208,8 +206,8 @@ public class Schema {
                 "Cell referencing indexes not implemented for tables with dynamic columns.");
     }
 
-    public IndexDefinition getIndex(TableReference indexRef) {
-        return indexDefinitions.get(indexRef.getTablename());
+    public IndexDefinition getIndex(String indexName) {
+        return indexDefinitions.get(indexName);
     }
 
     /**
@@ -261,20 +259,12 @@ public class Schema {
         }
     }
 
-    public Map<TableReference, TableDefinition> getTableDefinitions() {
-        return tableDefinitions.entrySet().stream()
-                .collect(Collectors.toMap(
-                        e -> TableReference.create(namespace, e.getKey()),
-                        e -> e.getValue()
-                ));
+    public Map<String, TableDefinition> getTableDefinitions() {
+        return tableDefinitions;
     }
 
-    public Map<TableReference, IndexDefinition> getIndexDefinitions() {
-        return indexDefinitions.entrySet().stream()
-                .collect(Collectors.toMap(
-                        e -> TableReference.create(namespace, e.getKey()),
-                        e -> e.getValue()
-                ));
+    public Map<String, IndexDefinition> getIndexDefinitions() {
+        return indexDefinitions;
     }
 
     public Namespace getNamespace() {
@@ -377,10 +367,10 @@ public class Schema {
         cleanupTasks.put(rawTableName, task);
     }
 
-    public Multimap<TableReference, OnCleanupTask> getCleanupTasksByTable() {
-        Multimap<TableReference, OnCleanupTask> ret = ArrayListMultimap.create();
+    public Multimap<String, OnCleanupTask> getCleanupTasksByTable() {
+        Multimap<String, OnCleanupTask> ret = ArrayListMultimap.create();
         for (Map.Entry<String, Supplier<OnCleanupTask>> e : cleanupTasks.entries()) {
-            ret.put(TableReference.create(namespace, e.getKey()), e.getValue().get());
+            ret.put(Schemas.getFullTableName(e.getKey(), namespace), e.getValue().get());
         }
         return ret;
     }

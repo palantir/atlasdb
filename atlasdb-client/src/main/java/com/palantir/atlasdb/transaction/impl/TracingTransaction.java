@@ -20,7 +20,6 @@ import java.util.Set;
 
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
 public abstract class TracingTransaction extends ForwardingTransaction {
@@ -36,7 +35,7 @@ public abstract class TracingTransaction extends ForwardingTransaction {
     }
 
     @Override
-    public void put(TableReference tableRef, Map<Cell, byte[]> values) {
+    public void put(String tableName, Map<Cell, byte[]> values) {
         if (isTraceEnabled()) {
             for (Map.Entry<Cell, byte[]> e : values.entrySet()) {
                 Cell key = e.getKey();
@@ -44,28 +43,28 @@ public abstract class TracingTransaction extends ForwardingTransaction {
                 trace(
                     "PUT: timestamp=%d table=%s row=%s column=%s value=%s",
                     delegate.getTimestamp(),
-                        tableRef,
+                    tableName,
                     toHex(key.getRowName()),
                     toHex(key.getColumnName()),
                     toHex(value));
             }
         }
-        super.put(tableRef, values);
+        super.put(tableName, values);
     }
 
     @Override
-    public void delete(TableReference tableRef, Set<Cell> keys) {
+    public void delete(String tableName, Set<Cell> keys) {
         if (isTraceEnabled()) {
             for (Cell key : keys) {
                 trace(
                     "DELETE: timestamp=%d table=%s row=%s column=%s",
                     delegate.getTimestamp(),
-                        tableRef,
+                    tableName,
                     toHex(key.getRowName()),
                     toHex(key.getColumnName()));
             }
         }
-        super.delete(tableRef, keys);
+        super.delete(tableName, keys);
     }
 
     @Override

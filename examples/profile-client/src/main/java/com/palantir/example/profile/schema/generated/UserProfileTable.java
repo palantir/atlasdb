@@ -45,13 +45,12 @@ import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
-import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.Prefix;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
+import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
@@ -95,7 +94,8 @@ public final class UserProfileTable implements
     private final Transaction t;
     private final List<UserProfileTrigger> triggers;
     private final static String rawTableName = "user_profile";
-    private final TableReference tableRef;
+    private final String tableName;
+    private final Namespace namespace;
 
     static UserProfileTable of(Transaction t, Namespace namespace) {
         return new UserProfileTable(t, namespace, ImmutableList.<UserProfileTrigger>of());
@@ -111,24 +111,21 @@ public final class UserProfileTable implements
 
     private UserProfileTable(Transaction t, Namespace namespace, List<UserProfileTrigger> triggers) {
         this.t = t;
-        this.tableRef = TableReference.create(namespace, rawTableName);
+        this.tableName = namespace.getName().isEmpty() ? rawTableName : namespace.getName() + "." + rawTableName;
         this.triggers = triggers;
+        this.namespace = namespace;
     }
 
     public static String getRawTableName() {
         return rawTableName;
     }
 
-    public TableReference getTableRef() {
-        return tableRef;
-    }
-
     public String getTableName() {
-        return tableRef.getQualifiedName();
+        return tableName;
     }
 
     public Namespace getNamespace() {
-        return tableRef.getNamespace();
+        return namespace;
     }
 
     /**
@@ -678,7 +675,7 @@ public final class UserProfileTable implements
         for (UserProfileRow row : rows) {
             cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("m")), row);
         }
-        Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
+        Map<Cell, byte[]> results = t.get(tableName, cells.keySet());
         Map<UserProfileRow, com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile> ret = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> e : results.entrySet()) {
             com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile val = Metadata.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
@@ -692,7 +689,7 @@ public final class UserProfileTable implements
         for (UserProfileRow row : rows) {
             cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("c")), row);
         }
-        Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
+        Map<Cell, byte[]> results = t.get(tableName, cells.keySet());
         Map<UserProfileRow, com.palantir.example.profile.schema.CreationData> ret = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> e : results.entrySet()) {
             com.palantir.example.profile.schema.CreationData val = Create.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
@@ -706,7 +703,7 @@ public final class UserProfileTable implements
         for (UserProfileRow row : rows) {
             cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("j")), row);
         }
-        Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
+        Map<Cell, byte[]> results = t.get(tableName, cells.keySet());
         Map<UserProfileRow, com.fasterxml.jackson.databind.JsonNode> ret = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> e : results.entrySet()) {
             com.fasterxml.jackson.databind.JsonNode val = Json.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
@@ -720,7 +717,7 @@ public final class UserProfileTable implements
         for (UserProfileRow row : rows) {
             cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("p")), row);
         }
-        Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
+        Map<Cell, byte[]> results = t.get(tableName, cells.keySet());
         Map<UserProfileRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> e : results.entrySet()) {
             Long val = PhotoStreamId.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
@@ -827,7 +824,7 @@ public final class UserProfileTable implements
 
     @Override
     public void put(Multimap<UserProfileRow, ? extends UserProfileNamedColumnValue<?>> rows) {
-        t.useTable(tableRef, this);
+        t.useTable(tableName, this);
         Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> affectedCells = getAffectedCells(rows);
         deleteCookiesIdx(affectedCells);
         deleteCreatedIdx(affectedCells);
@@ -878,7 +875,7 @@ public final class UserProfileTable implements
                 }
             }
         }
-        t.put(tableRef, ColumnValues.toCellValues(rows));
+        t.put(tableName, ColumnValues.toCellValues(rows));
         for (UserProfileTrigger trigger : triggers) {
             trigger.putUserProfile(rows);
         }
@@ -903,9 +900,9 @@ public final class UserProfileTable implements
     public void deleteMetadata(Iterable<UserProfileRow> rows) {
         byte[] col = PtBytes.toCachedBytes("m");
         Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
-        Map<Cell, byte[]> results = t.get(tableRef, cells);
+        Map<Cell, byte[]> results = t.get(tableName, cells);
         deleteUserBirthdaysIdxRaw(results);
-        t.delete(tableRef, cells);
+        t.delete(tableName, cells);
     }
 
     private void deleteUserBirthdaysIdxRaw(Map<Cell, byte[]> results) {
@@ -919,7 +916,7 @@ public final class UserProfileTable implements
             UserBirthdaysIdxTable.UserBirthdaysIdxColumn indexCol = UserBirthdaysIdxTable.UserBirthdaysIdxColumn.of(row.persistToBytes(), col.persistColumnName(), id);
             indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
         }
-        t.delete(TableReference.createUnsafe("default.user_birthdays_idx"), indexCells);
+        t.delete("default.user_birthdays_idx", indexCells);
     }
 
     public void deleteCreate(UserProfileRow row) {
@@ -929,9 +926,9 @@ public final class UserProfileTable implements
     public void deleteCreate(Iterable<UserProfileRow> rows) {
         byte[] col = PtBytes.toCachedBytes("c");
         Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
-        Map<Cell, byte[]> results = t.get(tableRef, cells);
+        Map<Cell, byte[]> results = t.get(tableName, cells);
         deleteCreatedIdxRaw(results);
-        t.delete(tableRef, cells);
+        t.delete(tableName, cells);
     }
 
     private void deleteCreatedIdxRaw(Map<Cell, byte[]> results) {
@@ -945,7 +942,7 @@ public final class UserProfileTable implements
             CreatedIdxTable.CreatedIdxColumn indexCol = CreatedIdxTable.CreatedIdxColumn.of(row.persistToBytes(), col.persistColumnName(), id);
             indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
         }
-        t.delete(TableReference.createUnsafe("default.created_idx"), indexCells);
+        t.delete("default.created_idx", indexCells);
     }
 
     public void deleteJson(UserProfileRow row) {
@@ -955,9 +952,9 @@ public final class UserProfileTable implements
     public void deleteJson(Iterable<UserProfileRow> rows) {
         byte[] col = PtBytes.toCachedBytes("j");
         Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
-        Map<Cell, byte[]> results = t.get(tableRef, cells);
+        Map<Cell, byte[]> results = t.get(tableName, cells);
         deleteCookiesIdxRaw(results);
-        t.delete(tableRef, cells);
+        t.delete(tableName, cells);
     }
 
     private void deleteCookiesIdxRaw(Map<Cell, byte[]> results) {
@@ -973,7 +970,7 @@ public final class UserProfileTable implements
                 indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
             }
         }
-        t.delete(TableReference.createUnsafe("default.cookies_idx"), indexCells);
+        t.delete("default.cookies_idx", indexCells);
     }
 
     public void deletePhotoStreamId(UserProfileRow row) {
@@ -983,7 +980,7 @@ public final class UserProfileTable implements
     public void deletePhotoStreamId(Iterable<UserProfileRow> rows) {
         byte[] col = PtBytes.toCachedBytes("p");
         Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
-        t.delete(tableRef, cells);
+        t.delete(tableName, cells);
     }
 
     @Override
@@ -1003,7 +1000,7 @@ public final class UserProfileTable implements
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("j")));
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("m")));
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("p")));
-        t.delete(tableRef, cells);
+        t.delete(tableName, cells);
     }
 
     @Override
@@ -1014,7 +1011,7 @@ public final class UserProfileTable implements
     @Override
     public Optional<UserProfileRowResult> getRow(UserProfileRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
-        RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
+        RowResult<byte[]> rowResult = t.getRows(tableName, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
             return Optional.absent();
         } else {
@@ -1029,7 +1026,7 @@ public final class UserProfileTable implements
 
     @Override
     public List<UserProfileRowResult> getRows(Iterable<UserProfileRow> rows, ColumnSelection columns) {
-        SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
+        SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableName, Persistables.persistAll(rows), columns);
         List<UserProfileRowResult> rowResults = Lists.newArrayListWithCapacity(results.size());
         for (RowResult<byte[]> row : results.values()) {
             rowResults.add(UserProfileRowResult.of(row));
@@ -1062,7 +1059,7 @@ public final class UserProfileTable implements
     @Override
     public List<UserProfileNamedColumnValue<?>> getRowColumns(UserProfileRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
-        RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
+        RowResult<byte[]> rowResult = t.getRows(tableName, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
             return ImmutableList.of();
         } else {
@@ -1102,7 +1099,7 @@ public final class UserProfileTable implements
     }
 
     private Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> getRowsMultimapInternal(Iterable<UserProfileRow> rows, ColumnSelection columns) {
-        SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
+        SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableName, Persistables.persistAll(rows), columns);
         return getRowMapFromRowResults(results.values());
     }
 
@@ -1150,7 +1147,7 @@ public final class UserProfileTable implements
                 }
             }
         }
-        t.delete(TableReference.createUnsafe("default.cookies_idx"), indexCells.build());
+        t.delete("default.cookies_idx", indexCells.build());
     }
 
     private void deleteCreatedIdx(Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> result) {
@@ -1167,7 +1164,7 @@ public final class UserProfileTable implements
                 }
             }
         }
-        t.delete(TableReference.createUnsafe("default.created_idx"), indexCells.build());
+        t.delete("default.created_idx", indexCells.build());
     }
 
     private void deleteUserBirthdaysIdx(Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> result) {
@@ -1184,7 +1181,7 @@ public final class UserProfileTable implements
                 }
             }
         }
-        t.delete(TableReference.createUnsafe("default.user_birthdays_idx"), indexCells.build());
+        t.delete("default.user_birthdays_idx", indexCells.build());
     }
 
     public BatchingVisitableView<UserProfileRowResult> getAllRowsUnordered() {
@@ -1192,7 +1189,7 @@ public final class UserProfileTable implements
     }
 
     public BatchingVisitableView<UserProfileRowResult> getAllRowsUnordered(ColumnSelection columns) {
-        return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder().retainColumns(columns).build()),
+        return BatchingVisitables.transform(t.getRange(tableName, RangeRequest.builder().retainColumns(columns).build()),
                 new Function<RowResult<byte[]>, UserProfileRowResult>() {
             @Override
             public UserProfileRowResult apply(RowResult<byte[]> input) {
@@ -1223,40 +1220,38 @@ public final class UserProfileTable implements
         private final Transaction t;
         private final List<CookiesIdxTrigger> triggers;
         private final static String rawTableName = "cookies_idx";
-        private final TableReference tableRef;
+        private final String tableName;
+        private final Namespace namespace;
 
         public static CookiesIdxTable of(UserProfileTable table) {
-            return new CookiesIdxTable(table.t, table.tableRef.getNamespace(), ImmutableList.<CookiesIdxTrigger>of());
+            return new CookiesIdxTable(table.t, table.namespace, ImmutableList.<CookiesIdxTrigger>of());
         }
 
         public static CookiesIdxTable of(UserProfileTable table, CookiesIdxTrigger trigger, CookiesIdxTrigger... triggers) {
-            return new CookiesIdxTable(table.t, table.tableRef.getNamespace(), ImmutableList.<CookiesIdxTrigger>builder().add(trigger).add(triggers).build());
+            return new CookiesIdxTable(table.t, table.namespace, ImmutableList.<CookiesIdxTrigger>builder().add(trigger).add(triggers).build());
         }
 
         public static CookiesIdxTable of(UserProfileTable table, List<CookiesIdxTrigger> triggers) {
-            return new CookiesIdxTable(table.t, table.tableRef.getNamespace(), triggers);
+            return new CookiesIdxTable(table.t, table.namespace, triggers);
         }
 
         private CookiesIdxTable(Transaction t, Namespace namespace, List<CookiesIdxTrigger> triggers) {
             this.t = t;
-            this.tableRef = TableReference.create(namespace, rawTableName);
+            this.tableName = namespace.getName().isEmpty() ? rawTableName : namespace.getName() + "." + rawTableName;
             this.triggers = triggers;
+            this.namespace = namespace;
         }
 
         public static String getRawTableName() {
             return rawTableName;
         }
 
-        public TableReference getTableRef() {
-            return tableRef;
-        }
-
         public String getTableName() {
-            return tableRef.getQualifiedName();
+            return tableName;
         }
 
         public Namespace getNamespace() {
-            return tableRef.getNamespace();
+            return namespace;
         }
 
         /**
@@ -1628,7 +1623,7 @@ public final class UserProfileTable implements
 
         @Override
         public void delete(Multimap<CookiesIdxRow, CookiesIdxColumn> values) {
-            t.delete(tableRef, ColumnValues.toCells(values));
+            t.delete(tableName, ColumnValues.toCells(values));
         }
 
         @Override
@@ -1643,8 +1638,8 @@ public final class UserProfileTable implements
 
         @Override
         public void put(Multimap<CookiesIdxRow, ? extends CookiesIdxColumnValue> values) {
-            t.useTable(tableRef, this);
-            t.put(tableRef, ColumnValues.toCellValues(values));
+            t.useTable(tableName, this);
+            t.put(tableName, ColumnValues.toCellValues(values));
             for (CookiesIdxTrigger trigger : triggers) {
                 trigger.putCookiesIdx(values);
             }
@@ -1695,7 +1690,7 @@ public final class UserProfileTable implements
         @Override
         public Multimap<CookiesIdxRow, CookiesIdxColumnValue> get(Multimap<CookiesIdxRow, CookiesIdxColumn> cells) {
             Set<Cell> rawCells = ColumnValues.toCells(cells);
-            Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
+            Map<Cell, byte[]> rawResults = t.get(tableName, rawCells);
             Multimap<CookiesIdxRow, CookiesIdxColumnValue> rowMap = HashMultimap.create();
             for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
                 if (e.getValue().length > 0) {
@@ -1728,7 +1723,7 @@ public final class UserProfileTable implements
         @Override
         public List<CookiesIdxColumnValue> getRowColumns(CookiesIdxRow row, ColumnSelection columns) {
             byte[] bytes = row.persistToBytes();
-            RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
+            RowResult<byte[]> rowResult = t.getRows(tableName, ImmutableSet.of(bytes), columns).get(bytes);
             if (rowResult == null) {
                 return ImmutableList.of();
             } else {
@@ -1770,7 +1765,7 @@ public final class UserProfileTable implements
         }
 
         private Multimap<CookiesIdxRow, CookiesIdxColumnValue> getRowsMultimapInternal(Iterable<CookiesIdxRow> rows, ColumnSelection columns) {
-            SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
+            SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableName, Persistables.persistAll(rows), columns);
             return getRowMapFromRowResults(results.values());
         }
 
@@ -1791,7 +1786,7 @@ public final class UserProfileTable implements
             if (range.getColumnNames().isEmpty()) {
                 range = range.getBuilder().retainColumns(ColumnSelection.all()).build();
             }
-            return BatchingVisitables.transform(t.getRange(tableRef, range), new Function<RowResult<byte[]>, CookiesIdxRowResult>() {
+            return BatchingVisitables.transform(t.getRange(tableName, range), new Function<RowResult<byte[]>, CookiesIdxRowResult>() {
                 @Override
                 public CookiesIdxRowResult apply(RowResult<byte[]> input) {
                     return CookiesIdxRowResult.of(input);
@@ -1800,7 +1795,7 @@ public final class UserProfileTable implements
         }
 
         public IterableView<BatchingVisitable<CookiesIdxRowResult>> getRanges(Iterable<RangeRequest> ranges) {
-            Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, ranges);
+            Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableName, ranges);
             return IterableView.of(rangeResults).transform(
                     new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<CookiesIdxRowResult>>() {
                 @Override
@@ -1859,40 +1854,38 @@ public final class UserProfileTable implements
         private final Transaction t;
         private final List<CreatedIdxTrigger> triggers;
         private final static String rawTableName = "created_idx";
-        private final TableReference tableRef;
+        private final String tableName;
+        private final Namespace namespace;
 
         public static CreatedIdxTable of(UserProfileTable table) {
-            return new CreatedIdxTable(table.t, table.tableRef.getNamespace(), ImmutableList.<CreatedIdxTrigger>of());
+            return new CreatedIdxTable(table.t, table.namespace, ImmutableList.<CreatedIdxTrigger>of());
         }
 
         public static CreatedIdxTable of(UserProfileTable table, CreatedIdxTrigger trigger, CreatedIdxTrigger... triggers) {
-            return new CreatedIdxTable(table.t, table.tableRef.getNamespace(), ImmutableList.<CreatedIdxTrigger>builder().add(trigger).add(triggers).build());
+            return new CreatedIdxTable(table.t, table.namespace, ImmutableList.<CreatedIdxTrigger>builder().add(trigger).add(triggers).build());
         }
 
         public static CreatedIdxTable of(UserProfileTable table, List<CreatedIdxTrigger> triggers) {
-            return new CreatedIdxTable(table.t, table.tableRef.getNamespace(), triggers);
+            return new CreatedIdxTable(table.t, table.namespace, triggers);
         }
 
         private CreatedIdxTable(Transaction t, Namespace namespace, List<CreatedIdxTrigger> triggers) {
             this.t = t;
-            this.tableRef = TableReference.create(namespace, rawTableName);
+            this.tableName = namespace.getName().isEmpty() ? rawTableName : namespace.getName() + "." + rawTableName;
             this.triggers = triggers;
+            this.namespace = namespace;
         }
 
         public static String getRawTableName() {
             return rawTableName;
         }
 
-        public TableReference getTableRef() {
-            return tableRef;
-        }
-
         public String getTableName() {
-            return tableRef.getQualifiedName();
+            return tableName;
         }
 
         public Namespace getNamespace() {
-            return tableRef.getNamespace();
+            return namespace;
         }
 
         /**
@@ -2264,7 +2257,7 @@ public final class UserProfileTable implements
 
         @Override
         public void delete(Multimap<CreatedIdxRow, CreatedIdxColumn> values) {
-            t.delete(tableRef, ColumnValues.toCells(values));
+            t.delete(tableName, ColumnValues.toCells(values));
         }
 
         @Override
@@ -2279,8 +2272,8 @@ public final class UserProfileTable implements
 
         @Override
         public void put(Multimap<CreatedIdxRow, ? extends CreatedIdxColumnValue> values) {
-            t.useTable(tableRef, this);
-            t.put(tableRef, ColumnValues.toCellValues(values));
+            t.useTable(tableName, this);
+            t.put(tableName, ColumnValues.toCellValues(values));
             for (CreatedIdxTrigger trigger : triggers) {
                 trigger.putCreatedIdx(values);
             }
@@ -2331,7 +2324,7 @@ public final class UserProfileTable implements
         @Override
         public Multimap<CreatedIdxRow, CreatedIdxColumnValue> get(Multimap<CreatedIdxRow, CreatedIdxColumn> cells) {
             Set<Cell> rawCells = ColumnValues.toCells(cells);
-            Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
+            Map<Cell, byte[]> rawResults = t.get(tableName, rawCells);
             Multimap<CreatedIdxRow, CreatedIdxColumnValue> rowMap = HashMultimap.create();
             for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
                 if (e.getValue().length > 0) {
@@ -2364,7 +2357,7 @@ public final class UserProfileTable implements
         @Override
         public List<CreatedIdxColumnValue> getRowColumns(CreatedIdxRow row, ColumnSelection columns) {
             byte[] bytes = row.persistToBytes();
-            RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
+            RowResult<byte[]> rowResult = t.getRows(tableName, ImmutableSet.of(bytes), columns).get(bytes);
             if (rowResult == null) {
                 return ImmutableList.of();
             } else {
@@ -2406,7 +2399,7 @@ public final class UserProfileTable implements
         }
 
         private Multimap<CreatedIdxRow, CreatedIdxColumnValue> getRowsMultimapInternal(Iterable<CreatedIdxRow> rows, ColumnSelection columns) {
-            SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
+            SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableName, Persistables.persistAll(rows), columns);
             return getRowMapFromRowResults(results.values());
         }
 
@@ -2427,7 +2420,7 @@ public final class UserProfileTable implements
             if (range.getColumnNames().isEmpty()) {
                 range = range.getBuilder().retainColumns(ColumnSelection.all()).build();
             }
-            return BatchingVisitables.transform(t.getRange(tableRef, range), new Function<RowResult<byte[]>, CreatedIdxRowResult>() {
+            return BatchingVisitables.transform(t.getRange(tableName, range), new Function<RowResult<byte[]>, CreatedIdxRowResult>() {
                 @Override
                 public CreatedIdxRowResult apply(RowResult<byte[]> input) {
                     return CreatedIdxRowResult.of(input);
@@ -2436,7 +2429,7 @@ public final class UserProfileTable implements
         }
 
         public IterableView<BatchingVisitable<CreatedIdxRowResult>> getRanges(Iterable<RangeRequest> ranges) {
-            Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, ranges);
+            Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableName, ranges);
             return IterableView.of(rangeResults).transform(
                     new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<CreatedIdxRowResult>>() {
                 @Override
@@ -2495,40 +2488,38 @@ public final class UserProfileTable implements
         private final Transaction t;
         private final List<UserBirthdaysIdxTrigger> triggers;
         private final static String rawTableName = "user_birthdays_idx";
-        private final TableReference tableRef;
+        private final String tableName;
+        private final Namespace namespace;
 
         public static UserBirthdaysIdxTable of(UserProfileTable table) {
-            return new UserBirthdaysIdxTable(table.t, table.tableRef.getNamespace(), ImmutableList.<UserBirthdaysIdxTrigger>of());
+            return new UserBirthdaysIdxTable(table.t, table.namespace, ImmutableList.<UserBirthdaysIdxTrigger>of());
         }
 
         public static UserBirthdaysIdxTable of(UserProfileTable table, UserBirthdaysIdxTrigger trigger, UserBirthdaysIdxTrigger... triggers) {
-            return new UserBirthdaysIdxTable(table.t, table.tableRef.getNamespace(), ImmutableList.<UserBirthdaysIdxTrigger>builder().add(trigger).add(triggers).build());
+            return new UserBirthdaysIdxTable(table.t, table.namespace, ImmutableList.<UserBirthdaysIdxTrigger>builder().add(trigger).add(triggers).build());
         }
 
         public static UserBirthdaysIdxTable of(UserProfileTable table, List<UserBirthdaysIdxTrigger> triggers) {
-            return new UserBirthdaysIdxTable(table.t, table.tableRef.getNamespace(), triggers);
+            return new UserBirthdaysIdxTable(table.t, table.namespace, triggers);
         }
 
         private UserBirthdaysIdxTable(Transaction t, Namespace namespace, List<UserBirthdaysIdxTrigger> triggers) {
             this.t = t;
-            this.tableRef = TableReference.create(namespace, rawTableName);
+            this.tableName = namespace.getName().isEmpty() ? rawTableName : namespace.getName() + "." + rawTableName;
             this.triggers = triggers;
+            this.namespace = namespace;
         }
 
         public static String getRawTableName() {
             return rawTableName;
         }
 
-        public TableReference getTableRef() {
-            return tableRef;
-        }
-
         public String getTableName() {
-            return tableRef.getQualifiedName();
+            return tableName;
         }
 
         public Namespace getNamespace() {
-            return tableRef.getNamespace();
+            return namespace;
         }
 
         /**
@@ -2900,7 +2891,7 @@ public final class UserProfileTable implements
 
         @Override
         public void delete(Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumn> values) {
-            t.delete(tableRef, ColumnValues.toCells(values));
+            t.delete(tableName, ColumnValues.toCells(values));
         }
 
         @Override
@@ -2915,8 +2906,8 @@ public final class UserProfileTable implements
 
         @Override
         public void put(Multimap<UserBirthdaysIdxRow, ? extends UserBirthdaysIdxColumnValue> values) {
-            t.useTable(tableRef, this);
-            t.put(tableRef, ColumnValues.toCellValues(values));
+            t.useTable(tableName, this);
+            t.put(tableName, ColumnValues.toCellValues(values));
             for (UserBirthdaysIdxTrigger trigger : triggers) {
                 trigger.putUserBirthdaysIdx(values);
             }
@@ -2967,7 +2958,7 @@ public final class UserProfileTable implements
         @Override
         public Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> get(Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumn> cells) {
             Set<Cell> rawCells = ColumnValues.toCells(cells);
-            Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
+            Map<Cell, byte[]> rawResults = t.get(tableName, rawCells);
             Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> rowMap = HashMultimap.create();
             for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
                 if (e.getValue().length > 0) {
@@ -3000,7 +2991,7 @@ public final class UserProfileTable implements
         @Override
         public List<UserBirthdaysIdxColumnValue> getRowColumns(UserBirthdaysIdxRow row, ColumnSelection columns) {
             byte[] bytes = row.persistToBytes();
-            RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
+            RowResult<byte[]> rowResult = t.getRows(tableName, ImmutableSet.of(bytes), columns).get(bytes);
             if (rowResult == null) {
                 return ImmutableList.of();
             } else {
@@ -3042,7 +3033,7 @@ public final class UserProfileTable implements
         }
 
         private Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> getRowsMultimapInternal(Iterable<UserBirthdaysIdxRow> rows, ColumnSelection columns) {
-            SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
+            SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableName, Persistables.persistAll(rows), columns);
             return getRowMapFromRowResults(results.values());
         }
 
@@ -3063,7 +3054,7 @@ public final class UserProfileTable implements
             if (range.getColumnNames().isEmpty()) {
                 range = range.getBuilder().retainColumns(ColumnSelection.all()).build();
             }
-            return BatchingVisitables.transform(t.getRange(tableRef, range), new Function<RowResult<byte[]>, UserBirthdaysIdxRowResult>() {
+            return BatchingVisitables.transform(t.getRange(tableName, range), new Function<RowResult<byte[]>, UserBirthdaysIdxRowResult>() {
                 @Override
                 public UserBirthdaysIdxRowResult apply(RowResult<byte[]> input) {
                     return UserBirthdaysIdxRowResult.of(input);
@@ -3072,7 +3063,7 @@ public final class UserProfileTable implements
         }
 
         public IterableView<BatchingVisitable<UserBirthdaysIdxRowResult>> getRanges(Iterable<RangeRequest> ranges) {
-            Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, ranges);
+            Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableName, ranges);
             return IterableView.of(rangeResults).transform(
                     new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<UserBirthdaysIdxRowResult>>() {
                 @Override
@@ -3196,7 +3187,6 @@ public final class UserProfileTable implements
      * {@link Sha256Hash}
      * {@link SortedMap}
      * {@link Supplier}
-     * {@link TableReference}
      * {@link Throwables}
      * {@link TimeUnit}
      * {@link Transaction}
@@ -3204,5 +3194,5 @@ public final class UserProfileTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "O3BBdePYKzyTMAnT96FW7Q==";
+    static String __CLASS_HASH = "H6aTI37mwLQ2Z3aoKzdQfA==";
 }

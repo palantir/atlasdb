@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.schema;
 
-import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.table.description.Schema;
 
 public interface AtlasSchema {

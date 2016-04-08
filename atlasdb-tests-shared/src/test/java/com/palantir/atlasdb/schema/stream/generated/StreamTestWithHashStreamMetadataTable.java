@@ -16,7 +16,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
 
-
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -45,13 +44,12 @@ import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
-import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.Prefix;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
+import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
@@ -95,7 +93,8 @@ public final class StreamTestWithHashStreamMetadataTable implements
     private final Transaction t;
     private final List<StreamTestWithHashStreamMetadataTrigger> triggers;
     private final static String rawTableName = "stream_test_with_hash_stream_metadata";
-    private final TableReference tableRef;
+    private final String tableName;
+    private final Namespace namespace;
 
     static StreamTestWithHashStreamMetadataTable of(Transaction t, Namespace namespace) {
         return new StreamTestWithHashStreamMetadataTable(t, namespace, ImmutableList.<StreamTestWithHashStreamMetadataTrigger>of());
@@ -111,24 +110,21 @@ public final class StreamTestWithHashStreamMetadataTable implements
 
     private StreamTestWithHashStreamMetadataTable(Transaction t, Namespace namespace, List<StreamTestWithHashStreamMetadataTrigger> triggers) {
         this.t = t;
-        this.tableRef = TableReference.create(namespace, rawTableName);
+        this.tableName = namespace.getName().isEmpty() ? rawTableName : namespace.getName() + "." + rawTableName;
         this.triggers = triggers;
+        this.namespace = namespace;
     }
 
     public static String getRawTableName() {
         return rawTableName;
     }
 
-    public TableReference getTableRef() {
-        return tableRef;
-    }
-
     public String getTableName() {
-        return tableRef.getQualifiedName();
+        return tableName;
     }
 
     public Namespace getNamespace() {
-        return tableRef.getNamespace();
+        return namespace;
     }
 
     /**
@@ -424,7 +420,7 @@ public final class StreamTestWithHashStreamMetadataTable implements
         for (StreamTestWithHashStreamMetadataRow row : rows) {
             cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("md")), row);
         }
-        Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
+        Map<Cell, byte[]> results = t.get(tableName, cells.keySet());
         Map<StreamTestWithHashStreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> ret = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> e : results.entrySet()) {
             com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata val = Metadata.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
@@ -459,8 +455,8 @@ public final class StreamTestWithHashStreamMetadataTable implements
 
     @Override
     public void put(Multimap<StreamTestWithHashStreamMetadataRow, ? extends StreamTestWithHashStreamMetadataNamedColumnValue<?>> rows, long duration, TimeUnit unit) {
-        t.useTable(tableRef, this);
-        t.put(tableRef, ColumnValues.toCellValues(rows, duration, unit));
+        t.useTable(tableName, this);
+        t.put(tableName, ColumnValues.toCellValues(rows, duration, unit));
         for (StreamTestWithHashStreamMetadataTrigger trigger : triggers) {
             trigger.putStreamTestWithHashStreamMetadata(rows);
         }
@@ -485,7 +481,7 @@ public final class StreamTestWithHashStreamMetadataTable implements
     public void deleteMetadata(Iterable<StreamTestWithHashStreamMetadataRow> rows) {
         byte[] col = PtBytes.toCachedBytes("md");
         Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
-        t.delete(tableRef, cells);
+        t.delete(tableName, cells);
     }
 
     @Override
@@ -498,7 +494,7 @@ public final class StreamTestWithHashStreamMetadataTable implements
         List<byte[]> rowBytes = Persistables.persistAll(rows);
         Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("md")));
-        t.delete(tableRef, cells);
+        t.delete(tableName, cells);
     }
 
     @Override
@@ -509,7 +505,7 @@ public final class StreamTestWithHashStreamMetadataTable implements
     @Override
     public Optional<StreamTestWithHashStreamMetadataRowResult> getRow(StreamTestWithHashStreamMetadataRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
-        RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
+        RowResult<byte[]> rowResult = t.getRows(tableName, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
             return Optional.absent();
         } else {
@@ -524,7 +520,7 @@ public final class StreamTestWithHashStreamMetadataTable implements
 
     @Override
     public List<StreamTestWithHashStreamMetadataRowResult> getRows(Iterable<StreamTestWithHashStreamMetadataRow> rows, ColumnSelection columns) {
-        SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
+        SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableName, Persistables.persistAll(rows), columns);
         List<StreamTestWithHashStreamMetadataRowResult> rowResults = Lists.newArrayListWithCapacity(results.size());
         for (RowResult<byte[]> row : results.values()) {
             rowResults.add(StreamTestWithHashStreamMetadataRowResult.of(row));
@@ -557,7 +553,7 @@ public final class StreamTestWithHashStreamMetadataTable implements
     @Override
     public List<StreamTestWithHashStreamMetadataNamedColumnValue<?>> getRowColumns(StreamTestWithHashStreamMetadataRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
-        RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
+        RowResult<byte[]> rowResult = t.getRows(tableName, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
             return ImmutableList.of();
         } else {
@@ -597,7 +593,7 @@ public final class StreamTestWithHashStreamMetadataTable implements
     }
 
     private Multimap<StreamTestWithHashStreamMetadataRow, StreamTestWithHashStreamMetadataNamedColumnValue<?>> getRowsMultimapInternal(Iterable<StreamTestWithHashStreamMetadataRow> rows, ColumnSelection columns) {
-        SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
+        SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableName, Persistables.persistAll(rows), columns);
         return getRowMapFromRowResults(results.values());
     }
 
@@ -617,7 +613,7 @@ public final class StreamTestWithHashStreamMetadataTable implements
     }
 
     public BatchingVisitableView<StreamTestWithHashStreamMetadataRowResult> getAllRowsUnordered(ColumnSelection columns) {
-        return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder().retainColumns(columns).build()),
+        return BatchingVisitables.transform(t.getRange(tableName, RangeRequest.builder().retainColumns(columns).build()),
                 new Function<RowResult<byte[]>, StreamTestWithHashStreamMetadataRowResult>() {
             @Override
             public StreamTestWithHashStreamMetadataRowResult apply(RowResult<byte[]> input) {
@@ -713,7 +709,6 @@ public final class StreamTestWithHashStreamMetadataTable implements
      * {@link Sha256Hash}
      * {@link SortedMap}
      * {@link Supplier}
-     * {@link TableReference}
      * {@link Throwables}
      * {@link TimeUnit}
      * {@link Transaction}
@@ -721,5 +716,5 @@ public final class StreamTestWithHashStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "nGuTzn1WeUahrGFlnGzejA==";
+    static String __CLASS_HASH = "a1P3II1PNyGgUokMLv0hWA==";
 }

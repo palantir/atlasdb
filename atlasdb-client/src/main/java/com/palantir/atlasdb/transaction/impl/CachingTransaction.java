@@ -37,7 +37,6 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
@@ -66,16 +65,16 @@ public class CachingTransaction extends ForwardingTransaction {
     }
 
     @Override
-    public SortedMap<byte[], RowResult<byte[]>> getRows(TableReference tableRef, Iterable<byte[]> rows,
+    public SortedMap<byte[], RowResult<byte[]>> getRows(String tableName, Iterable<byte[]> rows,
                                                         ColumnSelection columnSelection) {
         if (Iterables.isEmpty(rows)) {
-            log.info("Attempted getRows on '{}' table and {} with empty rows argument", tableRef, columnSelection);
+            log.info("Attempted getRows on '{}' table and {} with empty rows argument", tableName, columnSelection);
             return AbstractTransaction.EMPTY_SORTED_ROWS;
         }
 
-        ConcurrentMap<Cell, byte[]> colCache = getColCacheForTable(tableRef);
+        ConcurrentMap<Cell, byte[]> colCache = getColCacheForTable(tableName);
         if (columnSelection.allColumnsSelected()) {
-            SortedMap<byte[], RowResult<byte[]>> loaded = super.getRows(tableRef, rows, columnSelection);
+            SortedMap<byte[], RowResult<byte[]>> loaded = super.getRows(tableName, rows, columnSelection);
             cacheLoadedRows(colCache, loaded.values());
             return loaded;
         } else {
@@ -103,7 +102,7 @@ public class CachingTransaction extends ForwardingTransaction {
                     inCache.put(row, RowResult.create(row, matches.build()));
                 }
             }
-            SortedMap<byte[], RowResult<byte[]>> results = super.getRows(tableRef, toLoad, columnSelection);
+            SortedMap<byte[], RowResult<byte[]>> results = super.getRows(tableName, toLoad, columnSelection);
             cacheLoadedRows(colCache, results.values());
             inCache.putAll(results);
             return inCache.build();
@@ -132,13 +131,13 @@ public class CachingTransaction extends ForwardingTransaction {
     }
 
     @Override
-    public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
+    public Map<Cell, byte[]> get(String tableName, Set<Cell> cells) {
         if (cells.isEmpty()) {
-            log.info("Attempted get on '{}' table with empty cells argument", tableRef);
+            log.info("Attempted get on '{}' table with empty cells argument", tableName);
             return ImmutableMap.of();
         }
 
-        ConcurrentMap<Cell, byte[]> cache = getColCacheForTable(tableRef);
+        ConcurrentMap<Cell, byte[]> cache = getColCacheForTable(tableName);
         Set<Cell> toLoad = Sets.newHashSet();
         Map<Cell, byte[]> cacheHit = Maps.newHashMapWithExpectedSize(cells.size());
         for (Cell cell : cells) {
@@ -152,7 +151,7 @@ public class CachingTransaction extends ForwardingTransaction {
             }
         }
 
-        final Map<Cell, byte[]> loaded = super.get(tableRef, toLoad);
+        final Map<Cell, byte[]> loaded = super.get(tableName, toLoad);
 
         cacheLoadedColumns(cache, toLoad, loaded);
         cacheHit.putAll(loaded);
@@ -160,23 +159,23 @@ public class CachingTransaction extends ForwardingTransaction {
     }
 
     @Override
-    final public void delete(TableReference tableRef, Set<Cell> cells) {
+    final public void delete(String tableName, Set<Cell> cells) {
         if (cells.isEmpty()) {
-            log.info("Attempted delete on '{}' table with empty cells", tableRef);
+            log.info("Attempted delete on '{}' table with empty cells", tableName);
             return;
         }
-        put(tableRef, Cells.constantValueMap(cells, PtBytes.EMPTY_BYTE_ARRAY));
+        put(tableName, Cells.constantValueMap(cells, PtBytes.EMPTY_BYTE_ARRAY));
     }
 
     @Override
-    public void put(TableReference tableRef, Map<Cell, byte[]> values) {
+    public void put(String tableName, Map<Cell, byte[]> values) {
         if (values.isEmpty()) {
-            log.info("Attempted put on '{}' table with empty cells", tableRef);
+            log.info("Attempted put on '{}' table with empty cells", tableName);
             return;
         }
 
-        super.put(tableRef, values);
-        Map<Cell, byte[]> colCache = getColCacheForTable(tableRef);
+        super.put(tableName, values);
+        Map<Cell, byte[]> colCache = getColCacheForTable(tableName);
         for (Map.Entry<Cell, byte[]> e : values.entrySet()) {
             byte[] value = e.getValue();
             if (value == null) {
@@ -186,8 +185,7 @@ public class CachingTransaction extends ForwardingTransaction {
         }
     }
 
-    private ConcurrentMap<Cell, byte[]> getColCacheForTable(TableReference tableRef) {
-        String tableName = tableRef.getQualifiedName();
+    private ConcurrentMap<Cell, byte[]> getColCacheForTable(String tableName) {
         return columnTableCache.getUnchecked(tableName);
     }
 }

@@ -22,30 +22,29 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public class TombstoneCompactionTask implements Callable<Void> {
     private static final Logger log = LoggerFactory.getLogger(TombstoneCompactionTask.class);
     private final CassandraJmxCompactionClient client;
     private final String keyspace;
-    private final TableReference tableRef;
+    private final String tableName;
 
-    TombstoneCompactionTask(CassandraJmxCompactionClient client, String keyspace, TableReference tableRef) {
+    TombstoneCompactionTask(CassandraJmxCompactionClient client, String keyspace, String tableName) {
         Preconditions.checkArgument(!Strings.isNullOrEmpty(keyspace));
-        Preconditions.checkArgument(!Strings.isNullOrEmpty(tableRef.getQualifiedName()));
+        Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName));
 
         this.client = Preconditions.checkNotNull(client);
         this.keyspace = keyspace;
-        this.tableRef = tableRef;
+        this.tableName = tableName;
     }
 
     @Override
     public Void call() throws Exception {
         // table flush will make sure tombstone is persisted on disk for tombstone compaction
-        client.forceTableFlush(keyspace, tableRef);
+        client.forceTableFlush(keyspace, tableName);
         log.info("Completed table flush.");
 
-        client.forceTableCompaction(keyspace, tableRef);
+        client.forceTableCompaction(keyspace, tableName);
         log.info("Completed table compaction.");
         return null;
     }

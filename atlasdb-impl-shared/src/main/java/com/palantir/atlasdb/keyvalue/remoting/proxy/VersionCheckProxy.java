@@ -31,7 +31,6 @@ import com.google.common.reflect.AbstractInvocationHandler;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.exception.ClientVersionTooOldException;
@@ -154,21 +153,21 @@ public class VersionCheckProxy<T> extends AbstractInvocationHandler {
         }
 
         @Override
-        public ClosableIterator<RowResult<Value>> getRange(TableReference tableRef,
-                                                           RangeRequest rangeRequest, long timestamp) {
-            return invalidateOnVersionChangeProxy(super.getRange(tableRef, rangeRequest, timestamp), serverVersionSupplier);
+        public ClosableIterator<RowResult<Value>> getRange(String tableName,
+                RangeRequest rangeRequest, long timestamp) {
+            return invalidateOnVersionChangeProxy(super.getRange(tableName, rangeRequest, timestamp), serverVersionSupplier);
         }
 
         @Override
         public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(
-                TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
-            return invalidateOnVersionChangeProxy(super.getRangeWithHistory(tableRef, rangeRequest, timestamp), serverVersionSupplier);
+                String tableName, RangeRequest rangeRequest, long timestamp) {
+            return invalidateOnVersionChangeProxy(super.getRangeWithHistory(tableName, rangeRequest, timestamp), serverVersionSupplier);
         }
 
         @Override
         public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(
-                TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
-            return invalidateOnVersionChangeProxy(super.getRangeOfTimestamps(tableRef, rangeRequest, timestamp), serverVersionSupplier);
+                String tableName, RangeRequest rangeRequest, long timestamp) {
+            return invalidateOnVersionChangeProxy(super.getRangeOfTimestamps(tableName, rangeRequest, timestamp), serverVersionSupplier);
         }
 
     }

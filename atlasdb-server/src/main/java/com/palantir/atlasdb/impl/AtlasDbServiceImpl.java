@@ -21,7 +21,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
@@ -43,7 +42,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
 import com.palantir.atlasdb.table.description.DynamicColumnDescription;
@@ -84,7 +82,7 @@ public class AtlasDbServiceImpl implements AtlasDbService {
 
     @Override
     public Set<String> getAllTableNames() {
-        return kvs.getAllTableNames().stream().map(TableReference::getQualifiedName).collect(Collectors.toSet());
+        return kvs.getAllTableNames();
     }
 
     @Override
@@ -94,7 +92,7 @@ public class AtlasDbServiceImpl implements AtlasDbService {
 
     @Override
     public void createTable(String tableName) {
-        kvs.createTable(getTableRef(tableName), RAW_METADATA.persistToBytes());
+        kvs.createTable(tableName, RAW_METADATA.persistToBytes());
     }
 
     @Override
@@ -104,7 +102,7 @@ public class AtlasDbServiceImpl implements AtlasDbService {
             @Override
             public TableRowResult execute(Transaction t) {
                 Collection<RowResult<byte[]>> values = t.getRows(
-                        getTableRef(rows.getTableName()), rows.getRows(), rows.getColumnSelection()).values();
+                        rows.getTableName(), rows.getRows(), rows.getColumnSelection()).values();
                 return new TableRowResult(rows.getTableName(), values);
             }
         });
@@ -116,7 +114,7 @@ public class AtlasDbServiceImpl implements AtlasDbService {
         return runReadOnly(token, new RuntimeTransactionTask<TableCellVal>() {
             @Override
             public TableCellVal execute(Transaction t) {
-                Map<Cell, byte[]> values = t.get(getTableRef(cells.getTableName()), ImmutableSet.copyOf(cells.getCells()));
+                Map<Cell, byte[]> values = t.get(cells.getTableName(), ImmutableSet.copyOf(cells.getCells()));
                 return new TableCellVal(cells.getTableName(), values);
             }
         });
@@ -135,7 +133,7 @@ public class AtlasDbServiceImpl implements AtlasDbService {
                     .batchHint(limit)
                     .retainColumns(range.getColumns())
                     .build();
-                BatchingVisitable<RowResult<byte[]>> visitable = t.getRange(getTableRef(range.getTableName()), request);
+                BatchingVisitable<RowResult<byte[]>> visitable = t.getRange(range.getTableName(), request);
                 List<RowResult<byte[]>> results = BatchingVisitables.limit(visitable, limit).immutableCopy();
                 TableRowResult data = new TableRowResult(range.getTableName(), results);
                 if (results.size() == limit) {
@@ -155,7 +153,7 @@ public class AtlasDbServiceImpl implements AtlasDbService {
         runWithRetry(token, new TxTask() {
             @Override
             public Void execute(Transaction t) {
-                t.put(getTableRef(data.getTableName()), data.getResults());
+                t.put(data.getTableName(), data.getResults());
                 return null;
             }
         });
@@ -167,7 +165,7 @@ public class AtlasDbServiceImpl implements AtlasDbService {
         runWithRetry(token, new TxTask() {
             @Override
             public Void execute(Transaction t) {
-                t.delete(getTableRef(cells.getTableName()), ImmutableSet.copyOf(cells.getCells()));
+                t.delete(cells.getTableName(), ImmutableSet.copyOf(cells.getCells()));
                 return null;
             }
         });
@@ -229,9 +227,5 @@ public class AtlasDbServiceImpl implements AtlasDbService {
             });
             transactions.invalidate(token);
         }
-    }
-
-    private TableReference getTableRef(String tableName) {
-        return TableReference.createUnsafe(tableName);
     }
 }

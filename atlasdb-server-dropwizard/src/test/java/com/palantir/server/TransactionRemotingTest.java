@@ -19,7 +19,6 @@ import java.lang.reflect.Field;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -29,6 +28,8 @@ import org.junit.Test;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
+import com.google.common.base.Function;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -46,7 +47,6 @@ import com.palantir.atlasdb.jackson.AtlasJacksonModule;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbFactory;
 import com.palantir.atlasdb.schema.AtlasSchema;
 import com.palantir.atlasdb.schema.SweepSchema;
@@ -54,6 +54,7 @@ import com.palantir.atlasdb.schema.generated.SweepPriorityTable;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable.CellsExamined;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable.SweepPriorityRow;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable.SweepPriorityRowResult;
+import com.palantir.atlasdb.schema.generated.UpgradeMetadataTable.UpgradeMetadataRow;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 
@@ -98,11 +99,13 @@ public class TransactionRemotingTest {
     @Test
     public void testGetAllTableNames() {
         Set<String> allTableNames = service.getAllTableNames();
-        Collection<String> expectedTableNames =
-                schema.getLatestSchema().getAllTablesAndIndexMetadata().keySet()
-                        .stream()
-                        .map(TableReference::getQualifiedName)
-                        .collect(Collectors.toSet());
+        Collection<String> expectedTableNames = schema.getLatestSchema().getAllTablesAndIndexMetadata().keySet();
+        expectedTableNames = Collections2.transform(expectedTableNames, new Function<String, String>() {
+            @Override
+            public String apply(String input) {
+                return schema.getNamespace().getName() + "." + input;
+            }
+        });
         Assert.assertTrue(allTableNames.containsAll(expectedTableNames));
     }
 
@@ -129,7 +132,7 @@ public class TransactionRemotingTest {
         TransactionToken txId = TransactionToken.autoCommit();
         TableRowResult goodResults = service.getRows(txId, new TableRowSelection(
                 "sweep.priority",
-                ImmutableList.of(SweepPriorityRow.of("foo").persistToBytes()),
+                ImmutableList.of(UpgradeMetadataRow.of("foo").persistToBytes()),
                 ColumnSelection.all()));
         SweepPriorityRowResult result = SweepPriorityRowResult.of(Iterables.getOnlyElement(goodResults.getResults()));
         Assert.assertEquals(1L, result.getCellsExamined().longValue());
