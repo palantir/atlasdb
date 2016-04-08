@@ -1,0 +1,13 @@
+# -*- yaml -*-
+# METABUILD GENERATED metaconf/metaconf.groovy + metaconf/project/build.yaml.tmpl -> atlasdb/commons-api/build.yaml
+meta:
+  name: CommonsApi
+  gradle_name: commons-api
+  use_legacy_revision: true
+  source_target_version: 1.6
+  skip_dist: true
+jars:
+  -
+    name: commons-api
+    src:
+      - src
