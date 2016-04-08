@@ -29,7 +29,10 @@
     <dependency org="palantir" name="timestamp-impl" rev="3.14.0.0-develop.+"
                 transitive="true" conf="test-&gt;test;default-&gt;default">
     </dependency>
-    <dependency org="palantir" name="ptdatabase" rev="3.14.0.0-develop.+"
+    <dependency org="palantir" name="commons-db" rev="3.14.0.0-develop.+"
+                transitive="true" conf="test-&gt;test;default-&gt;default">
+    </dependency>
+    <dependency org="palantir" name="commons-api" rev="3.14.0.0-develop.+"
                 transitive="true" conf="test-&gt;test;default-&gt;default">
     </dependency>
     <dependency org="palantir" name="ptcommons-testutils" rev="3.14.0.0-develop.+"

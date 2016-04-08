@@ -96,8 +96,10 @@ dependencies {
   compile(project(path: ':atlasdb-spi', configuration: 'default'))
   testCompile(project(path: ':timestamp-impl', configuration: 'test'))
   compile(project(path: ':timestamp-impl', configuration: 'default'))
-  testCompile(project(path: ':ptdatabase', configuration: 'test'))
-  compile(project(path: ':ptdatabase', configuration: 'default'))
+  testCompile(project(path: ':commons-db', configuration: 'test'))
+  compile(project(path: ':commons-db', configuration: 'default'))
+  testCompile(project(path: ':commons-api', configuration: 'test'))
+  compile(project(path: ':commons-api', configuration: 'default'))
   testCompile(project(path: ':ptcommons-testutils', configuration: 'test'))
 }
 apply from: "${rootProject.projectDir}/after.gradle"
