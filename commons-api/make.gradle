@@ -85,8 +85,6 @@ dependencies {
   test sourceSets.test.output
   testCompile(project(path: ':atlasdb-commons', configuration: 'test'))
   compile(project(path: ':atlasdb-commons', configuration: 'default'))
-  testCompile(project(path: ':papaya', configuration: 'test'))
-  compile(project(path: ':papaya', configuration: 'default'))
   testCompile(project(path: ':commons-annotations', configuration: 'test'))
   compile(project(path: ':commons-annotations', configuration: 'default'))
 }

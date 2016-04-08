@@ -18,9 +18,6 @@
     <dependency org="palantir" name="atlasdb-commons" rev="3.14.0.0-develop.+"
                 transitive="true" conf="test-&gt;test;default-&gt;default">
     </dependency>
-    <dependency org="palantir" name="papaya" rev="3.14.0.0-develop.+"
-                transitive="true" conf="test-&gt;test;default-&gt;default">
-    </dependency>
     <dependency org="palantir" name="commons-annotations" rev="3.14.0.0-develop.+"
                 transitive="true" conf="test-&gt;test;default-&gt;default">
     </dependency>
