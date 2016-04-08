@@ -151,7 +151,6 @@ public class StreamTest extends AtlasDbTestCase {
                 });
 
         verifyLoadingStreams(id, bytesToStore, store);
-        verifyLoadingStreamsAsFile(id, bytesToStore, store);
 
         store.storeStream(new ByteArrayInputStream(bytesToStore));
         verifyLoadingStreams(id, bytesToStore, store);
@@ -178,36 +177,35 @@ public class StreamTest extends AtlasDbTestCase {
         store.storeStream(id, new ByteArrayInputStream(bytesToStore), 5, TimeUnit.SECONDS);
 
         verifyLoadingStreams(id, bytesToStore, store);
-        verifyLoadingStreamsAsFile(id, bytesToStore, store);
 
         return id;
     }
 
     private void verifyLoadingStreams(long id, byte[] bytesToStore, GenericStreamStore<Long> store) throws IOException {
-        byte[] loadedBytes;
-        InputStream stream = txManager.runTaskThrowOnConflict(t -> store.loadStream(t, id));
-
-        Sha256Hash expectedHash = Sha256Hash.computeHash(bytesToStore);
-        loadedBytes = IOUtils.toByteArray(stream);
-        Assert.assertArrayEquals(bytesToStore, loadedBytes);
-        Assert.assertEquals(expectedHash, Sha256Hash.computeHash(loadedBytes));
-
-        Map<Long, InputStream> streams = txManager.runTaskThrowOnConflict(t ->
-                store.loadStreams(t, ImmutableSet.of(id)));
-
-        loadedBytes = IOUtils.toByteArray(streams.get(id));
-        Assert.assertArrayEquals(bytesToStore, loadedBytes);
-        Assert.assertEquals(expectedHash, Sha256Hash.computeHash(loadedBytes));
+        verifyLoadStream(id, bytesToStore, store);
+        verifyLoadStreams(id, bytesToStore, store);
+        verifyLoadStreamAsFile(id, bytesToStore, store);
     }
 
-    private void verifyLoadingStreamsAsFile(long id, byte[] bytesToStore, GenericStreamStore<Long> store) throws IOException {
-        byte[] loadedBytes;
-        Sha256Hash expectedHash = Sha256Hash.computeHash(bytesToStore);
-
+    private void verifyLoadStreamAsFile(long id, byte[] bytesToStore, GenericStreamStore<Long> store) throws IOException {
         File file = txManager.runTaskThrowOnConflict(t -> store.loadStreamAsFile(t, id));
-        loadedBytes = FileUtils.readFileToByteArray(file);
-        Assert.assertArrayEquals(bytesToStore, loadedBytes);
-        Assert.assertEquals(expectedHash, Sha256Hash.computeHash(loadedBytes));
+        Assert.assertArrayEquals(bytesToStore, FileUtils.readFileToByteArray(file));
+    }
+
+    private void verifyLoadStreams(long id, byte[] bytesToStore, GenericStreamStore<Long> store) throws IOException {
+        Map<Long, InputStream> streams = txManager.runTaskThrowOnConflict(t ->
+                store.loadStreams(t, ImmutableSet.of(id)));
+        assertStreamHasBytes(streams.get(id), bytesToStore);
+    }
+
+    private void verifyLoadStream(long id, byte[] bytesToStore, GenericStreamStore<Long> store) throws IOException {
+        InputStream stream = txManager.runTaskThrowOnConflict(t -> store.loadStream(t, id));
+        assertStreamHasBytes(stream, bytesToStore);
+    }
+
+    private void assertStreamHasBytes(InputStream stream, byte[] bytes) throws IOException {
+        byte[] streamAsBytes = IOUtils.toByteArray(stream);
+        Assert.assertArrayEquals(bytes, streamAsBytes);
     }
 
     @Test
