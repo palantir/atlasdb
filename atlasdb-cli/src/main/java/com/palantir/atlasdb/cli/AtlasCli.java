@@ -19,6 +19,7 @@ import java.util.concurrent.Callable;
 
 import com.palantir.atlasdb.cli.command.CleanTransactionRange;
 import com.palantir.atlasdb.cli.command.TimestampCommand;
+import com.palantir.atlasdb.cli.command.TruncatePaxosLog;
 
 import io.airlift.airline.Cli;
 import io.airlift.airline.Help;
@@ -29,7 +30,8 @@ public class AtlasCli {
         Cli.CliBuilder<Callable> builder = Cli.<Callable>builder("atlas-cli")
                 .withDescription("Perform common AtlasDB tasks")
                 .withDefaultCommand(Help.class)
-                .withCommands(Help.class, TimestampCommand.class, CleanTransactionRange.class);
+                .withCommands(Help.class, TimestampCommand.class,
+                        CleanTransactionRange.class, TruncatePaxosLog.class);
         return builder.build();
     }
 
