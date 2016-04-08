@@ -46,6 +46,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.AtlasDbTestCase;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.schema.stream.generated.DeletingStreamStore;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestStreamStore;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestTableFactory;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxRow;
@@ -274,7 +275,8 @@ public class StreamTest extends AtlasDbTestCase {
 
             @Override
             public void startSecondAndFinish(Transaction t, long streamId) {
-                StreamTestStreamStore.of(txManager, StreamTestTableFactory.of()).deleteStreams(t, ImmutableSet.of(streamId));
+                DeletingStreamStore deletingStreamStore = new DeletingStreamStore(StreamTestStreamStore.of(txManager, StreamTestTableFactory.of()));
+                deletingStreamStore.deleteStreams(t, ImmutableSet.of(streamId));
             }
         });
 
@@ -288,7 +290,8 @@ public class StreamTest extends AtlasDbTestCase {
         runConflictingTasksConcurrently(streamId, new TwoConflictingTasks() {
             @Override
             public void startFirstAndFail(Transaction t, long streamId) {
-                StreamTestStreamStore.of(txManager, StreamTestTableFactory.of()).deleteStreams(t, ImmutableSet.of(streamId));
+                DeletingStreamStore deletingStreamStore = new DeletingStreamStore(StreamTestStreamStore.of(txManager, StreamTestTableFactory.of()));
+                deletingStreamStore.deleteStreams(t, ImmutableSet.of(streamId));
             }
 
             @Override
@@ -361,13 +364,8 @@ public class StreamTest extends AtlasDbTestCase {
     }
 
     abstract class TwoConflictingTasks {
-        public void startFirstAndFail(Transaction t, long streamId) {
-            StreamTestStreamStore.of(txManager, StreamTestTableFactory.of()).deleteStreams(t, ImmutableSet.of(streamId));
-        }
-        public void startSecondAndFinish(Transaction t, long streamId) {
-            StreamTestStreamStore ss = StreamTestStreamStore.of(txManager, StreamTestTableFactory.of());
-            ss.storeStreams(t, ImmutableMap.of(streamId, new ByteArrayInputStream(new byte[1])));
-        }
+        public abstract void startFirstAndFail(Transaction t, long streamId);
+        public abstract void startSecondAndFinish(Transaction t, long streamId);
     }
 
 }
