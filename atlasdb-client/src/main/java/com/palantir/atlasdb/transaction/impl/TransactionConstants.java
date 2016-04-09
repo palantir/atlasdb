@@ -18,6 +18,7 @@ package com.palantir.atlasdb.transaction.impl;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
@@ -32,7 +33,7 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 public class TransactionConstants {
     private TransactionConstants() {/* */}
 
-    public static final String TRANSACTION_TABLE = "_transactions";
+    public static final TableReference TRANSACTION_TABLE = TableReference.createWithEmptyNamespace("_transactions");
     public static final String COMMIT_TS_COLUMN_STRING = "t";
     public static final byte[] COMMIT_TS_COLUMN = PtBytes.toBytes(COMMIT_TS_COLUMN_STRING);
     public static final long FAILED_COMMIT_TS = -1L;

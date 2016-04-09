@@ -27,6 +27,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.KeyValueEndpoint;
 import com.palantir.atlasdb.keyvalue.partition.endpoint.SimpleKeyValueEndpoint;
@@ -354,9 +355,9 @@ public class DynamicPartitionMapManager {
             System.err.println("Ring=" + ring);
             for (EndpointWithStatus ews : ring.values()) {
                 KeyValueService kvs = ews.get().keyValueService();
-                for (String tableName : kvs.getAllTableNames()) {
-                    System.err.println("Dropping table " + tableName + " from " + kvs);
-                    kvs.dropTable(tableName);
+                for (TableReference tableRef : kvs.getAllTableNames()) {
+                    System.err.println("Dropping table " + tableRef.getQualifiedName() + " from " + kvs);
+                    kvs.dropTable(tableRef);
                 }
             }
         } catch (Exception e) {

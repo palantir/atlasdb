@@ -26,6 +26,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.NonIdempotent;
@@ -75,7 +76,7 @@ public class ThrowingKeyValueService implements KeyValueService {
 
     @Override
     @Idempotent
-    public Map<Cell, Value> getRows(String tableName,
+    public Map<Cell, Value> getRows(TableReference tableRef,
                                     Iterable<byte[]> rows,
                                     ColumnSelection columnSelection,
                                     long timestamp) {
@@ -84,74 +85,74 @@ public class ThrowingKeyValueService implements KeyValueService {
 
     @Override
     @Idempotent
-    public Map<Cell, Value> get(String tableName, Map<Cell, Long> timestampByCell) {
+    public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         throw throwEx();
     }
 
     @Override
     @Idempotent
-    public Map<Cell, Long> getLatestTimestamps(String tableName, Map<Cell, Long> timestampByCell) {
+    public Map<Cell, Long> getLatestTimestamps(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         throw throwEx();
     }
 
     @Override
     @NonIdempotent
-    public void put(String tableName, Map<Cell, byte[]> values, long timestamp) {
+    public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp) {
         throw throwEx();
     }
 
     @Override
     @NonIdempotent
-    public void multiPut(Map<String, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
+    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
         throw throwEx();
     }
 
     @Override
     @NonIdempotent
-    public void putWithTimestamps(String tableName, Multimap<Cell, Value> values) {
+    public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> values) {
         throw throwEx();
     }
 
     @Override
-    public void putUnlessExists(String tableName, Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
-        throw throwEx();
-    }
-
-    @Override
-    @Idempotent
-    public void delete(String tableName, Multimap<Cell, Long> keys) {
+    public void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
         throw throwEx();
     }
 
     @Override
     @Idempotent
-    public void truncateTable(String tableName) {
+    public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
         throw throwEx();
     }
 
     @Override
     @Idempotent
-    public void truncateTables(Set<String> tableNames) {
+    public void truncateTable(TableReference tableRef) {
         throw throwEx();
     }
 
     @Override
     @Idempotent
-    public ClosableIterator<RowResult<Value>> getRange(String tableName,
+    public void truncateTables(Set<TableReference> tableRefs) {
+        throw throwEx();
+    }
+
+    @Override
+    @Idempotent
+    public ClosableIterator<RowResult<Value>> getRange(TableReference tableRef,
                                                        RangeRequest rangeRequest,
                                                        long timestamp) {
         throw throwEx();
     }
 
     @Override
-    public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(String tableName,
+    public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(TableReference tableRef,
                                                                        RangeRequest rangeRequest,
                                                                        long timestamp) {
         throw throwEx();
     }
 
     @Override
-    public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(String tableName,
+    public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(TableReference tableRef,
                                                                        RangeRequest rangeRequest,
                                                                        long timestamp) {
         throw throwEx();
@@ -159,7 +160,7 @@ public class ThrowingKeyValueService implements KeyValueService {
 
     @Override
     @Idempotent
-    public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(String tableName,
+    public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(TableReference tableRef,
                                                                                                            Iterable<RangeRequest> rangeRequests,
                                                                                                            long timestamp) {
         throw throwEx();
@@ -167,70 +168,70 @@ public class ThrowingKeyValueService implements KeyValueService {
 
     @Override
     @Idempotent
-    public void dropTable(String tableName) {
+    public void dropTable(TableReference tableRef) {
         throw throwEx();
     }
 
     @Override
     @Idempotent
-    public void dropTables(Set<String> tableNames) {
+    public void dropTables(Set<TableReference> tableRefs) {
         throw throwEx();
     }
 
     @Override
     @Idempotent
-    public void createTable(String tableName, byte[] tableMetadata) {
+    public void createTable(TableReference tableRef, byte[] tableMetadata) {
         throw throwEx();
     }
 
     @Override
     @Idempotent
-    public Set<String> getAllTableNames() {
+    public Set<TableReference> getAllTableNames() {
         throw throwEx();
     }
 
     @Override
     @Idempotent
-    public byte[] getMetadataForTable(String tableName) {
+    public byte[] getMetadataForTable(TableReference tableRef) {
         throw throwEx();
     }
 
     @Override
     @Idempotent
-    public Map<String, byte[]> getMetadataForTables() {
+    public Map<TableReference, byte[]> getMetadataForTables() {
         throw throwEx();
     }
 
     @Override
     @Idempotent
-    public void putMetadataForTable(String tableName, byte[] metadata) {
+    public void putMetadataForTable(TableReference tableRef, byte[] metadata) {
         throw throwEx();
     }
 
     @Override
     @Idempotent
-    public void addGarbageCollectionSentinelValues(String tableName, Set<Cell> cells) {
+    public void addGarbageCollectionSentinelValues(TableReference tableRef, Set<Cell> cells) {
         throw throwEx();
     }
 
     @Override
     @Idempotent
-    public Multimap<Cell, Long> getAllTimestamps(String tableName, Set<Cell> cells, long timestamp) {
+    public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long timestamp) {
         throw throwEx();
     }
 
     @Override
-    public void createTables(Map<String, byte[]> tableNameToTableMetadata) {
+    public void createTables(Map<TableReference, byte[]> tableRefToTableMetadata) {
         throw throwEx();
     }
 
     @Override
-    public void putMetadataForTables(Map<String, byte[]> tableNameToMetadata) {
+    public void putMetadataForTables(Map<TableReference, byte[]> tableRefToMetadata) {
         throw throwEx();
     }
 
     @Override
-    public void compactInternally(String tableName) {
+    public void compactInternally(TableReference tableRef) {
         throw throwEx();
     }
 }

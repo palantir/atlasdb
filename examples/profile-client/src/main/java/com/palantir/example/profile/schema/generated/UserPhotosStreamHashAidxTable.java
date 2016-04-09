@@ -45,12 +45,13 @@ import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.Prefix;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
-import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
@@ -92,8 +93,7 @@ public final class UserPhotosStreamHashAidxTable implements
     private final Transaction t;
     private final List<UserPhotosStreamHashAidxTrigger> triggers;
     private final static String rawTableName = "user_photos_stream_hash_aidx";
-    private final String tableName;
-    private final Namespace namespace;
+    private final TableReference tableRef;
 
     static UserPhotosStreamHashAidxTable of(Transaction t, Namespace namespace) {
         return new UserPhotosStreamHashAidxTable(t, namespace, ImmutableList.<UserPhotosStreamHashAidxTrigger>of());
@@ -109,21 +109,24 @@ public final class UserPhotosStreamHashAidxTable implements
 
     private UserPhotosStreamHashAidxTable(Transaction t, Namespace namespace, List<UserPhotosStreamHashAidxTrigger> triggers) {
         this.t = t;
-        this.tableName = namespace.getName().isEmpty() ? rawTableName : namespace.getName() + "." + rawTableName;
+        this.tableRef = TableReference.create(namespace, rawTableName);
         this.triggers = triggers;
-        this.namespace = namespace;
     }
 
     public static String getRawTableName() {
         return rawTableName;
     }
 
+    public TableReference getTableRef() {
+        return tableRef;
+    }
+
     public String getTableName() {
-        return tableName;
+        return tableRef.getQualifiedName();
     }
 
     public Namespace getNamespace() {
-        return namespace;
+        return tableRef.getNamespace();
     }
 
     /**
@@ -460,7 +463,7 @@ public final class UserPhotosStreamHashAidxTable implements
 
     @Override
     public void delete(Multimap<UserPhotosStreamHashAidxRow, UserPhotosStreamHashAidxColumn> values) {
-        t.delete(tableName, ColumnValues.toCells(values));
+        t.delete(tableRef, ColumnValues.toCells(values));
     }
 
     @Override
@@ -475,8 +478,8 @@ public final class UserPhotosStreamHashAidxTable implements
 
     @Override
     public void put(Multimap<UserPhotosStreamHashAidxRow, ? extends UserPhotosStreamHashAidxColumnValue> values) {
-        t.useTable(tableName, this);
-        t.put(tableName, ColumnValues.toCellValues(values));
+        t.useTable(tableRef, this);
+        t.put(tableRef, ColumnValues.toCellValues(values));
         for (UserPhotosStreamHashAidxTrigger trigger : triggers) {
             trigger.putUserPhotosStreamHashAidx(values);
         }
@@ -527,7 +530,7 @@ public final class UserPhotosStreamHashAidxTable implements
     @Override
     public Multimap<UserPhotosStreamHashAidxRow, UserPhotosStreamHashAidxColumnValue> get(Multimap<UserPhotosStreamHashAidxRow, UserPhotosStreamHashAidxColumn> cells) {
         Set<Cell> rawCells = ColumnValues.toCells(cells);
-        Map<Cell, byte[]> rawResults = t.get(tableName, rawCells);
+        Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
         Multimap<UserPhotosStreamHashAidxRow, UserPhotosStreamHashAidxColumnValue> rowMap = HashMultimap.create();
         for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
             if (e.getValue().length > 0) {
@@ -560,7 +563,7 @@ public final class UserPhotosStreamHashAidxTable implements
     @Override
     public List<UserPhotosStreamHashAidxColumnValue> getRowColumns(UserPhotosStreamHashAidxRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
-        RowResult<byte[]> rowResult = t.getRows(tableName, ImmutableSet.of(bytes), columns).get(bytes);
+        RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
             return ImmutableList.of();
         } else {
@@ -602,7 +605,7 @@ public final class UserPhotosStreamHashAidxTable implements
     }
 
     private Multimap<UserPhotosStreamHashAidxRow, UserPhotosStreamHashAidxColumnValue> getRowsMultimapInternal(Iterable<UserPhotosStreamHashAidxRow> rows, ColumnSelection columns) {
-        SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableName, Persistables.persistAll(rows), columns);
+        SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         return getRowMapFromRowResults(results.values());
     }
 
@@ -624,7 +627,7 @@ public final class UserPhotosStreamHashAidxTable implements
     }
 
     public BatchingVisitableView<UserPhotosStreamHashAidxRowResult> getAllRowsUnordered(ColumnSelection columns) {
-        return BatchingVisitables.transform(t.getRange(tableName, RangeRequest.builder().retainColumns(columns).build()),
+        return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder().retainColumns(columns).build()),
                 new Function<RowResult<byte[]>, UserPhotosStreamHashAidxRowResult>() {
             @Override
             public UserPhotosStreamHashAidxRowResult apply(RowResult<byte[]> input) {
@@ -720,6 +723,7 @@ public final class UserPhotosStreamHashAidxTable implements
      * {@link Sha256Hash}
      * {@link SortedMap}
      * {@link Supplier}
+     * {@link TableReference}
      * {@link Throwables}
      * {@link TimeUnit}
      * {@link Transaction}
@@ -727,5 +731,5 @@ public final class UserPhotosStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "jiqbJ5WTE2nHigPqzGohBg==";
+    static String __CLASS_HASH = "b9hBaFb3UVNOtnjdYnV/GA==";
 }

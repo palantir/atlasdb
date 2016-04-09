@@ -17,14 +17,15 @@ package com.palantir.atlasdb.server;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.palantir.atlasdb.config.AtlasDbConfig;
+import com.palantir.atlasdb.config.AtlasDbConfigs;
 
 import io.dropwizard.Configuration;
 
 public class AtlasDbServerConfiguration extends Configuration {
     
     private final AtlasDbConfig atlasdb;
-    
-    public AtlasDbServerConfiguration(@JsonProperty("atlasdb") AtlasDbConfig atlasdb) {
+
+    public AtlasDbServerConfiguration(@JsonProperty(AtlasDbConfigs.ATLASDB_CONFIG_ROOT) AtlasDbConfig atlasdb) {
         this.atlasdb = atlasdb;
     }
     

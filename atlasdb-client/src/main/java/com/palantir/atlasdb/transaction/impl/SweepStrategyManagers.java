@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Maps.EntryTransformer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableMetadata;
@@ -42,7 +43,7 @@ public class SweepStrategyManagers {
         return new SweepStrategyManager(RecomputingSupplier.create(Suppliers.ofInstance(getSweepStrategies(schema))));
     }
 
-    public static SweepStrategyManager fromMap(final Map<String, SweepStrategy> map) {
+    public static SweepStrategyManager fromMap(final Map<TableReference, SweepStrategy> map) {
         return new SweepStrategyManager(RecomputingSupplier.create(Suppliers.ofInstance(map)));
     }
 
@@ -50,29 +51,29 @@ public class SweepStrategyManagers {
         return new SweepStrategyManager(getConservativeManager(kvs));
     }
 
-    private static RecomputingSupplier<Map<String, SweepStrategy>> getConservativeManager(final KeyValueService kvs) {
-        return RecomputingSupplier.create(new Supplier<Map<String, SweepStrategy>>() {
+    private static RecomputingSupplier<Map<TableReference, SweepStrategy>> getConservativeManager(final KeyValueService kvs) {
+        return RecomputingSupplier.create(new Supplier<Map<TableReference, SweepStrategy>>() {
             @Override
-            public Map<String, SweepStrategy> get() {
-                Set<String> tables = kvs.getAllTableNames();
+            public Map<TableReference, SweepStrategy> get() {
+                Set<TableReference> tables = kvs.getAllTableNames();
                 return Maps.asMap(tables, Functions.constant(SweepStrategy.CONSERVATIVE));
             }
         });
     }
 
-    private static RecomputingSupplier<Map<String, SweepStrategy>> getSweepStrategySupplier(final KeyValueService keyValueService) {
-        return RecomputingSupplier.create(new Supplier<Map<String, SweepStrategy>>() {
+    private static RecomputingSupplier<Map<TableReference, SweepStrategy>> getSweepStrategySupplier(final KeyValueService keyValueService) {
+        return RecomputingSupplier.create(new Supplier<Map<TableReference, SweepStrategy>>() {
             @Override
-            public Map<String, SweepStrategy> get() {
+            public Map<TableReference, SweepStrategy> get() {
                 return getSweepStrategies(keyValueService);
             }
         });
     }
 
-    private static Map<String, SweepStrategy> getSweepStrategies(KeyValueService kvs) {
-        return ImmutableMap.copyOf(Maps.transformEntries(kvs.getMetadataForTables(), new EntryTransformer<String, byte[], SweepStrategy>() {
+    private static Map<TableReference, SweepStrategy> getSweepStrategies(KeyValueService kvs) {
+        return ImmutableMap.copyOf(Maps.transformEntries(kvs.getMetadataForTables(), new EntryTransformer<TableReference, byte[], SweepStrategy>() {
             @Override
-            public SweepStrategy transformEntry(String tableName, byte[] tableMetadata) {
+            public SweepStrategy transformEntry(TableReference tableRef, byte[] tableMetadata) {
                 if (tableMetadata != null && tableMetadata.length > 0) {
                     return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(tableMetadata).getSweepStrategy();
                 } else {
@@ -82,9 +83,9 @@ public class SweepStrategyManagers {
         }));
     }
 
-    private static Map<String, SweepStrategy> getSweepStrategies(Schema schema) {
-        Map<String, SweepStrategy> ret = Maps.newHashMap();
-        for (Map.Entry<String, TableMetadata> e : schema.getAllTablesAndIndexMetadata().entrySet()) {
+    private static Map<TableReference, SweepStrategy> getSweepStrategies(Schema schema) {
+        Map<TableReference, SweepStrategy> ret = Maps.newHashMap();
+        for (Map.Entry<TableReference, TableMetadata> e : schema.getAllTablesAndIndexMetadata().entrySet()) {
             ret.put(e.getKey(), e.getValue().getSweepStrategy());
         }
         return ret;

@@ -28,12 +28,13 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 
 public class TrackingKeyValueService extends ForwardingKeyValueService {
-    private final Set<String> tablesWrittenTo = Sets.newSetFromMap(Maps.<String, Boolean>newConcurrentMap());
-    private final Set<String> tablesReadFrom = Sets.newSetFromMap(Maps.<String, Boolean>newConcurrentMap());
+    private final Set<TableReference> tablesWrittenTo = Sets.newSetFromMap(Maps.<TableReference, Boolean>newConcurrentMap());
+    private final Set<TableReference> tablesReadFrom = Sets.newSetFromMap(Maps.<TableReference, Boolean>newConcurrentMap());
     private final KeyValueService delegate;
 
     public TrackingKeyValueService(KeyValueService delegate) {
@@ -46,53 +47,53 @@ public class TrackingKeyValueService extends ForwardingKeyValueService {
     }
 
     @Override
-    public Map<Cell, Value> get(String tableName, Map<Cell, Long> timestampByCell) {
-        tablesReadFrom.add(tableName);
-        return super.get(tableName, timestampByCell);
+    public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        tablesReadFrom.add(tableRef);
+        return super.get(tableRef, timestampByCell);
     }
 
     @Override
-    public Map<Cell, Value> getRows(String tableName, Iterable<byte[]> rows,
+    public Map<Cell, Value> getRows(TableReference tableRef, Iterable<byte[]> rows,
                                     ColumnSelection columnSelection, long timestamp) {
-        tablesReadFrom.add(tableName);
-        return super.getRows(tableName, rows, columnSelection, timestamp);
+        tablesReadFrom.add(tableRef);
+        return super.getRows(tableRef, rows, columnSelection, timestamp);
     }
 
     @Override
-    public ClosableIterator<RowResult<Value>> getRange(String tableName, RangeRequest rangeRequest, long timestamp) {
-        tablesReadFrom.add(tableName);
-        return super.getRange(tableName, rangeRequest, timestamp);
+    public ClosableIterator<RowResult<Value>> getRange(TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
+        tablesReadFrom.add(tableRef);
+        return super.getRange(tableRef, rangeRequest, timestamp);
     }
 
     @Override
-    public void put(String tableName, Map<Cell, byte[]> values, long timestamp) {
-        tablesWrittenTo.add(tableName);
-        super.put(tableName, values, timestamp);
+    public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp) {
+        tablesWrittenTo.add(tableRef);
+        super.put(tableRef, values, timestamp);
     }
 
     @Override
-    public void multiPut(Map<String, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
+    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
         tablesWrittenTo.addAll(valuesByTable.keySet());
         super.multiPut(valuesByTable, timestamp);
     }
 
     @Override
-    public void putWithTimestamps(String tableName, Multimap<Cell, Value> values) {
-        tablesWrittenTo.add(tableName);
-        super.putWithTimestamps(tableName, values);
+    public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> values) {
+        tablesWrittenTo.add(tableRef);
+        super.putWithTimestamps(tableRef, values);
     }
 
     @Override
-    public void putUnlessExists(String tableName, Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
-        tablesWrittenTo.add(tableName);
-        super.putUnlessExists(tableName, values);
+    public void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
+        tablesWrittenTo.add(tableRef);
+        super.putUnlessExists(tableRef, values);
     }
 
-    public Set<String> getTablesWrittenTo() {
+    public Set<TableReference> getTablesWrittenTo() {
         return ImmutableSet.copyOf(tablesWrittenTo);
     }
 
-    public Set<String> getTablesReadFrom() {
+    public Set<TableReference> getTablesReadFrom() {
         return ImmutableSet.copyOf(tablesReadFrom);
     }
 

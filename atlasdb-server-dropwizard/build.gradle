@@ -1,0 +1,33 @@
+apply from: "../gradle/shared.gradle"
+
+dependencies {
+    compile project(':atlasdb-server')
+    compile project(':lock-impl')
+    compile project(':leader-election-impl')
+    compile project(':atlasdb-config')
+    runtime project(':atlasdb-rocksdb')
+    runtime(project(':atlasdb-cassandra')) {
+        exclude(module:'log4j-over-slf4j')
+        exclude(module:'jcl-over-slf4j')
+        exclude(module:'json-simple')
+        exclude(module:'metrics-core')
+        exclude(module:'logback-core')
+        exclude(module:'logback-classic')
+        exclude(module:'joda-time')
+        exclude(module:'snakeyaml')
+        exclude(module:'hibernate-validator')
+        exclude(module:'libthrift')
+    }
+    compile "io.dropwizard:dropwizard-core:" + libVersions.dropwizard
+    
+    testCompile "io.dropwizard:dropwizard-testing:" + libVersions.dropwizard
+}
+configurations.matching({ it.name in ['compile', 'runtime'] }).all {
+    resolutionStrategy {
+        force 'com.google.code.findbugs:jsr305:' + libVersions.jsr305
+        force 'org.slf4j:slf4j-api:' + libVersions.slf4j
+        force 'com.fasterxml.jackson.core:jackson-databind:' + libVersions.jackson
+        force 'com.fasterxml.jackson.core:jackson-core:' + libVersions.jackson
+        force 'org.apache.commons:commons-lang3:3.1'
+    }
+}

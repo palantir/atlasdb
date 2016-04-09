@@ -25,6 +25,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
@@ -40,7 +41,7 @@ public final class InKvsPartitionMapService implements PartitionMapService {
 
     private final KeyValueService storage;
 
-    public static final String PARTITION_MAP_TABLE = AtlasDbConstants.PARTITION_MAP_TABLE;
+    public static final TableReference PARTITION_MAP_TABLE = AtlasDbConstants.PARTITION_MAP_TABLE;
 
     private InKvsPartitionMapService(DynamicPartitionMapImpl partitionMap, KeyValueService storage) {
     	this.storage = storage;

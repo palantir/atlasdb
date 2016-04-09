@@ -18,6 +18,7 @@ package com.palantir.atlasdb.cleaner;
 import java.util.Set;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 
@@ -26,10 +27,10 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
  */
 public interface Follower {
     /**
-     * @param tableName the table being scrubbed / swept
+     * @param tableRef the table being scrubbed / swept
      * @param cells ALL the actual cells being deleted (not just the ones passed in to scrub()!)
      * @param transactionType regular or aggressive hard delete
      */
     // TODO (ejin): Is passing a TransactionType really the cleanest approach here?
-    void run(TransactionManager txManager, String tableName, Set<Cell> cells, Transaction.TransactionType transactionType);
+    void run(TransactionManager txManager, TableReference tableRef, Set<Cell> cells, Transaction.TransactionType transactionType);
 }
