@@ -1,5 +1,8 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.io.Closeable;
 import java.util.Iterator;
 import java.util.List;
@@ -19,12 +22,11 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
-import com.palantir.PTAssert;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.exception.PalantirInterruptedException;
 
-public class LazyClosableIteratorTest extends PTAssert {
+public class LazyClosableIteratorTest {
 
     @Test
     public void testInterruptsDontCauseLeaksMultiple() throws Exception {

@@ -53,11 +53,5 @@
     <dependency org="palantir" name="atlasdb-papaya" rev="3.14.0.0-develop.+"
                 transitive="true" conf="test-&gt;test;default-&gt;default">
     </dependency>
-    <dependency org="palantir" name="ptcommons-testutils" rev="3.14.0.0-develop.+"
-                transitive="true" conf="test-&gt;test">
-    </dependency>
-    <dependency org="palantir" name="test-core" rev="3.14.0.0-develop.+"
-                transitive="true" conf="test-&gt;test">
-    </dependency>
   </dependencies>
 </ivy-module>

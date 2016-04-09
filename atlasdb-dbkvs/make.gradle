@@ -100,6 +100,5 @@ dependencies {
   compile(project(path: ':commons-db', configuration: 'default'))
   testCompile(project(path: ':commons-api', configuration: 'test'))
   compile(project(path: ':commons-api', configuration: 'default'))
-  testCompile(project(path: ':ptcommons-testutils', configuration: 'test'))
 }
 apply from: "${rootProject.projectDir}/after.gradle"

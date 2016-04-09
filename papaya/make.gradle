@@ -94,6 +94,5 @@ dependencies {
   compile(group: 'org.slf4j', name: 'slf4j-api', version: '1.7.5', configuration: 'default')
   testCompile(project(path: ':atlasdb-commons', configuration: 'test'))
   compile(project(path: ':atlasdb-commons', configuration: 'default'))
-  testCompile(project(path: ':test-core', configuration: 'test'))
 }
 apply from: "${rootProject.projectDir}/after.gradle"

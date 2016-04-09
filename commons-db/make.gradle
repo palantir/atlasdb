@@ -111,7 +111,5 @@ dependencies {
   compile(project(path: ':commons-proxy', configuration: 'default'))
   testCompile(project(path: ':atlasdb-papaya', configuration: 'test'))
   compile(project(path: ':atlasdb-papaya', configuration: 'default'))
-  testCompile(project(path: ':ptcommons-testutils', configuration: 'test'))
-  testCompile(project(path: ':test-core', configuration: 'test'))
 }
 apply from: "${rootProject.projectDir}/after.gradle"
