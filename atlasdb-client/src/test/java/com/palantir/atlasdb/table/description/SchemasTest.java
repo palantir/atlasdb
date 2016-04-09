@@ -32,12 +32,14 @@ import org.junit.Test;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.schema.Namespace;
+import com.palantir.atlasdb.keyvalue.api.Namespace;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
 public class SchemasTest {
     private static String TABLE_NAME = "testTable";
+    private static TableReference TABLE_REF = TableReference.createWithEmptyNamespace("testTable");
     private static Namespace NAMESPACE = Namespace.create("testNamespace");
     Mockery mockery;
     KeyValueService kvs;
@@ -74,20 +76,20 @@ public class SchemasTest {
     @Test
     public void testCreateTable() {
         mockery.checking(new Expectations(){{
-            oneOf(kvs).createTables(with(tableMapContainsEntry(TABLE_NAME, getSimpleTableDefinitionAsBytes(TABLE_NAME))));
+            oneOf(kvs).createTables(with(tableMapContainsEntry(TABLE_REF, getSimpleTableDefinitionAsBytes(TABLE_REF))));
         }});
-        Schemas.createTable(kvs, TABLE_NAME, getSimpleTableDefinition(TABLE_NAME));
+        Schemas.createTable(kvs, TABLE_REF, getSimpleTableDefinition(TABLE_REF));
     }
 
     @Test
     public void testCreateTables() {
-        String tableName1 = TABLE_NAME + "1";
-        String tableName2 = TABLE_NAME + "2";
+        TableReference tableName1 = TableReference.createWithEmptyNamespace(TABLE_NAME + "1");
+        TableReference tableName2 = TableReference.createWithEmptyNamespace(TABLE_NAME + "2");
         mockery.checking(new Expectations(){{
             oneOf(kvs).createTables(with(tableMapContainsEntry(tableName1, getSimpleTableDefinitionAsBytes(tableName1))));
             oneOf(kvs).createTables(with(tableMapContainsEntry(tableName2, getSimpleTableDefinitionAsBytes(tableName2))));
         }});
-        Map<String, TableDefinition> tables = Maps.newHashMap();
+        Map<TableReference, TableDefinition> tables = Maps.newHashMap();
         tables.put(tableName1, getSimpleTableDefinition(tableName1));
         tables.put(tableName2, getSimpleTableDefinition(tableName2));
         Schemas.createTables(kvs, tables);
@@ -96,16 +98,16 @@ public class SchemasTest {
     @Test
     public void testDeleteTable() {
         mockery.checking(new Expectations(){{
-            oneOf(kvs).dropTable(with(equal(TABLE_NAME)));
+            oneOf(kvs).dropTable(with(equal(TABLE_REF)));
         }});
-        Schemas.deleteTable(kvs, TABLE_NAME);
+        Schemas.deleteTable(kvs, TABLE_REF);
     }
 
     @Test
     public void testDeleteTablesForSweepSchema() {
-        Set<String> allTableNames = Sets.newHashSet();
-        allTableNames.add("sweep.progress");
-        allTableNames.add("sweep.priority");
+        Set<TableReference> allTableNames = Sets.newHashSet();
+        allTableNames.add(TableReference.createFromFullyQualifiedName("sweep.progress"));
+        allTableNames.add(TableReference.createFromFullyQualifiedName("sweep.priority"));
 
         mockery.checking(new Expectations(){{
             oneOf(kvs).getAllTableNames(); will(returnValue(allTableNames));
@@ -115,24 +117,24 @@ public class SchemasTest {
         Schemas.deleteTablesAndIndexes(SweepSchema.INSTANCE.getLatestSchema(), kvs);
     }
 
-    private Matcher<Map<String, byte[]>> tableMapContainsEntry(String tableName, byte[] description) {
-        return new TypeSafeDiagnosingMatcher<Map<String, byte[]>>() {
+    private Matcher<Map<TableReference, byte[]>> tableMapContainsEntry(TableReference tableRef, byte[] description) {
+        return new TypeSafeDiagnosingMatcher<Map<TableReference, byte[]>>() {
             @Override
-            protected boolean matchesSafely(Map<String, byte[]> item, Description mismatchDescription) {
-                mismatchDescription.appendText("Map does not contain match: ").appendValue(tableName);
-                return item.containsKey(tableName) && Arrays.equals(description, item.get(tableName));
+            protected boolean matchesSafely(Map<TableReference, byte[]> item, Description mismatchDescription) {
+                mismatchDescription.appendText("Map does not contain match: ").appendValue(tableRef.getQualifiedName());
+                return item.containsKey(tableRef) && Arrays.equals(description, item.get(tableRef));
             }
 
             @Override
             public void describeTo(Description description) {
-                description.appendText("Contains key: ").appendValue(tableName);
+                description.appendText("Contains key: ").appendValue(tableRef.getQualifiedName());
             }
         };
     }
 
-    private TableDefinition getSimpleTableDefinition(String tableName) {
+    private TableDefinition getSimpleTableDefinition(TableReference tableRef) {
         return new TableDefinition() {{
-            javaTableName(tableName);
+            javaTableName(tableRef.getTablename());
             rowName();
                 rowComponent("rowName", ValueType.STRING);
             columns();
@@ -142,17 +144,9 @@ public class SchemasTest {
         }};
     }
 
-    private byte[] getSimpleTableDefinitionAsBytes(String tableName) {
-        return getSimpleTableDefinition(tableName).toTableMetadata().persistToBytes();
+    private byte[] getSimpleTableDefinitionAsBytes(TableReference tableRef) {
+        return getSimpleTableDefinition(tableRef).toTableMetadata().persistToBytes();
     }
 
-    private Schema getMockSchema() {
-        Schema singleTableSchema = mockery.mock(Schema.class);
-        mockery.checking(new Expectations() {{
-            oneOf(singleTableSchema).getTableDefinition(TABLE_NAME); will(returnValue(getSimpleTableDefinition(TABLE_NAME)));
-        }});
-
-        return singleTableSchema;
-    }
 }
 

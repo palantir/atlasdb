@@ -34,6 +34,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.annotation.Output;
@@ -48,9 +49,9 @@ public class KeyValueServices {
 
     private KeyValueServices() {/**/}
 
-    public static TableMetadata getTableMetadataSafe(KeyValueService service, String tableName) {
+    public static TableMetadata getTableMetadataSafe(KeyValueService service, TableReference tableRef) {
         try {
-            byte[] metadataForTable = service.getMetadataForTable(tableName);
+            byte[] metadataForTable = service.getMetadataForTable(tableRef);
             if (metadataForTable == null || metadataForTable.length == 0) {
                 return null;
             }
@@ -63,7 +64,7 @@ public class KeyValueServices {
 
     public static void getFirstBatchForRangeUsingGetRange(
             KeyValueService kv,
-            String tableName,
+            TableReference tableRef,
             RangeRequest request,
             long timestamp,
             @Output Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ret) {
@@ -74,7 +75,7 @@ public class KeyValueServices {
         if (request.getBatchHint() == null) {
             requestWithHint = request.withBatchHint(100);
         }
-        final ClosableIterator<RowResult<Value>> range = kv.getRange(tableName, requestWithHint, timestamp);
+        final ClosableIterator<RowResult<Value>> range = kv.getRange(tableRef, requestWithHint, timestamp);
         try {
             int batchSize = requestWithHint.getBatchHint();
             final Iterator<RowResult<Value>> withLimit = Iterators.limit(range, batchSize);
@@ -103,7 +104,7 @@ public class KeyValueServices {
     public static Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRangesUsingGetRangeConcurrent(
             ExecutorService executor,
             final KeyValueService kv,
-            final String tableName,
+            final TableReference tableRef,
             Iterable<RangeRequest> rangeRequests,
             final long timestamp,
             int maxConcurrentRequests) {
@@ -114,7 +115,7 @@ public class KeyValueServices {
                 pool.submitTask(new Runnable() {
                     @Override
                     public void run() {
-                        getFirstBatchForRangeUsingGetRange(kv, tableName, request, timestamp, ret);
+                        getFirstBatchForRangeUsingGetRange(kv, tableRef, request, timestamp, ret);
                     }
                 });
             }
@@ -127,12 +128,12 @@ public class KeyValueServices {
 
     public static Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRangesUsingGetRange(
             KeyValueService kv,
-            String tableName,
+            TableReference tableRef,
             Iterable<RangeRequest> rangeRequests,
             long timestamp) {
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ret = Maps.newHashMap();
         for (final RangeRequest request : rangeRequests) {
-            getFirstBatchForRangeUsingGetRange(kv, tableName, request, timestamp, ret);
+            getFirstBatchForRangeUsingGetRange(kv, tableRef, request, timestamp, ret);
         }
         return ret;
     }

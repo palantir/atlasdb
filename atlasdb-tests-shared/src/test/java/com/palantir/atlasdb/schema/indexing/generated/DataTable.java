@@ -16,6 +16,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
 
+
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -44,12 +45,13 @@ import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.Prefix;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
-import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
@@ -93,8 +95,7 @@ public final class DataTable implements
     private final Transaction t;
     private final List<DataTrigger> triggers;
     private final static String rawTableName = "data";
-    private final String tableName;
-    private final Namespace namespace;
+    private final TableReference tableRef;
 
     static DataTable of(Transaction t, Namespace namespace) {
         return new DataTable(t, namespace, ImmutableList.<DataTrigger>of());
@@ -110,21 +111,24 @@ public final class DataTable implements
 
     private DataTable(Transaction t, Namespace namespace, List<DataTrigger> triggers) {
         this.t = t;
-        this.tableName = namespace.getName().isEmpty() ? rawTableName : namespace.getName() + "." + rawTableName;
+        this.tableRef = TableReference.create(namespace, rawTableName);
         this.triggers = triggers;
-        this.namespace = namespace;
     }
 
     public static String getRawTableName() {
         return rawTableName;
     }
 
+    public TableReference getTableRef() {
+        return tableRef;
+    }
+
     public String getTableName() {
-        return tableName;
+        return tableRef.getQualifiedName();
     }
 
     public Namespace getNamespace() {
-        return namespace;
+        return tableRef.getNamespace();
     }
 
     /**
@@ -387,7 +391,7 @@ public final class DataTable implements
         for (DataRow row : rows) {
             cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("v")), row);
         }
-        Map<Cell, byte[]> results = t.get(tableName, cells.keySet());
+        Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<DataRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> e : results.entrySet()) {
             Long val = Value.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
@@ -422,7 +426,7 @@ public final class DataTable implements
 
     @Override
     public void put(Multimap<DataRow, ? extends DataNamedColumnValue<?>> rows) {
-        t.useTable(tableName, this);
+        t.useTable(tableRef, this);
         Multimap<DataRow, DataNamedColumnValue<?>> affectedCells = getAffectedCells(rows);
         deleteIndex1Idx(affectedCells);
         deleteIndex2Idx(affectedCells);
@@ -491,7 +495,7 @@ public final class DataTable implements
                 }
             }
         }
-        t.put(tableName, ColumnValues.toCellValues(rows));
+        t.put(tableRef, ColumnValues.toCellValues(rows));
         for (DataTrigger trigger : triggers) {
             trigger.putData(rows);
         }
@@ -516,12 +520,12 @@ public final class DataTable implements
     public void deleteValue(Iterable<DataRow> rows) {
         byte[] col = PtBytes.toCachedBytes("v");
         Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
-        Map<Cell, byte[]> results = t.get(tableName, cells);
+        Map<Cell, byte[]> results = t.get(tableRef, cells);
         deleteIndex1IdxRaw(results);
         deleteIndex2IdxRaw(results);
         deleteIndex3IdxRaw(results);
         deleteIndex4IdxRaw(results);
-        t.delete(tableName, cells);
+        t.delete(tableRef, cells);
     }
 
     private void deleteIndex1IdxRaw(Map<Cell, byte[]> results) {
@@ -535,7 +539,7 @@ public final class DataTable implements
             Index1IdxTable.Index1IdxColumn indexCol = Index1IdxTable.Index1IdxColumn.of(row.persistToBytes(), col.persistColumnName(), id);
             indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
         }
-        t.delete("default.index1_idx", indexCells);
+        t.delete(TableReference.createUnsafe("default.index1_idx"), indexCells);
     }
 
     private void deleteIndex2IdxRaw(Map<Cell, byte[]> results) {
@@ -549,7 +553,7 @@ public final class DataTable implements
             Index2IdxTable.Index2IdxColumn indexCol = Index2IdxTable.Index2IdxColumn.of(row.persistToBytes(), col.persistColumnName());
             indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
         }
-        t.delete("default.index2_idx", indexCells);
+        t.delete(TableReference.createUnsafe("default.index2_idx"), indexCells);
     }
 
     private void deleteIndex3IdxRaw(Map<Cell, byte[]> results) {
@@ -564,7 +568,7 @@ public final class DataTable implements
                 indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
             }
         }
-        t.delete("default.index3_idx", indexCells);
+        t.delete(TableReference.createUnsafe("default.index3_idx"), indexCells);
     }
 
     private void deleteIndex4IdxRaw(Map<Cell, byte[]> results) {
@@ -582,7 +586,7 @@ public final class DataTable implements
                 }
             }
         }
-        t.delete("default.index4_idx", indexCells);
+        t.delete(TableReference.createUnsafe("default.index4_idx"), indexCells);
     }
 
     @Override
@@ -600,7 +604,7 @@ public final class DataTable implements
         List<byte[]> rowBytes = Persistables.persistAll(rows);
         Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("v")));
-        t.delete(tableName, cells);
+        t.delete(tableRef, cells);
     }
 
     @Override
@@ -611,7 +615,7 @@ public final class DataTable implements
     @Override
     public Optional<DataRowResult> getRow(DataRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
-        RowResult<byte[]> rowResult = t.getRows(tableName, ImmutableSet.of(bytes), columns).get(bytes);
+        RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
             return Optional.absent();
         } else {
@@ -626,7 +630,7 @@ public final class DataTable implements
 
     @Override
     public List<DataRowResult> getRows(Iterable<DataRow> rows, ColumnSelection columns) {
-        SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableName, Persistables.persistAll(rows), columns);
+        SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         List<DataRowResult> rowResults = Lists.newArrayListWithCapacity(results.size());
         for (RowResult<byte[]> row : results.values()) {
             rowResults.add(DataRowResult.of(row));
@@ -659,7 +663,7 @@ public final class DataTable implements
     @Override
     public List<DataNamedColumnValue<?>> getRowColumns(DataRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
-        RowResult<byte[]> rowResult = t.getRows(tableName, ImmutableSet.of(bytes), columns).get(bytes);
+        RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
             return ImmutableList.of();
         } else {
@@ -699,7 +703,7 @@ public final class DataTable implements
     }
 
     private Multimap<DataRow, DataNamedColumnValue<?>> getRowsMultimapInternal(Iterable<DataRow> rows, ColumnSelection columns) {
-        SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableName, Persistables.persistAll(rows), columns);
+        SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         return getRowMapFromRowResults(results.values());
     }
 
@@ -745,7 +749,7 @@ public final class DataTable implements
                 }
             }
         }
-        t.delete("default.index1_idx", indexCells.build());
+        t.delete(TableReference.createUnsafe("default.index1_idx"), indexCells.build());
     }
 
     private void deleteIndex2Idx(Multimap<DataRow, DataNamedColumnValue<?>> result) {
@@ -762,7 +766,7 @@ public final class DataTable implements
                 }
             }
         }
-        t.delete("default.index2_idx", indexCells.build());
+        t.delete(TableReference.createUnsafe("default.index2_idx"), indexCells.build());
     }
 
     private void deleteIndex3Idx(Multimap<DataRow, DataNamedColumnValue<?>> result) {
@@ -780,7 +784,7 @@ public final class DataTable implements
                 }
             }
         }
-        t.delete("default.index3_idx", indexCells.build());
+        t.delete(TableReference.createUnsafe("default.index3_idx"), indexCells.build());
     }
 
     private void deleteIndex4Idx(Multimap<DataRow, DataNamedColumnValue<?>> result) {
@@ -801,7 +805,7 @@ public final class DataTable implements
                 }
             }
         }
-        t.delete("default.index4_idx", indexCells.build());
+        t.delete(TableReference.createUnsafe("default.index4_idx"), indexCells.build());
     }
 
     public BatchingVisitableView<DataRowResult> getAllRowsUnordered() {
@@ -809,7 +813,7 @@ public final class DataTable implements
     }
 
     public BatchingVisitableView<DataRowResult> getAllRowsUnordered(ColumnSelection columns) {
-        return BatchingVisitables.transform(t.getRange(tableName, RangeRequest.builder().retainColumns(columns).build()),
+        return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder().retainColumns(columns).build()),
                 new Function<RowResult<byte[]>, DataRowResult>() {
             @Override
             public DataRowResult apply(RowResult<byte[]> input) {
@@ -840,38 +844,40 @@ public final class DataTable implements
         private final Transaction t;
         private final List<Index1IdxTrigger> triggers;
         private final static String rawTableName = "index1_idx";
-        private final String tableName;
-        private final Namespace namespace;
+        private final TableReference tableRef;
 
         public static Index1IdxTable of(DataTable table) {
-            return new Index1IdxTable(table.t, table.namespace, ImmutableList.<Index1IdxTrigger>of());
+            return new Index1IdxTable(table.t, table.tableRef.getNamespace(), ImmutableList.<Index1IdxTrigger>of());
         }
 
         public static Index1IdxTable of(DataTable table, Index1IdxTrigger trigger, Index1IdxTrigger... triggers) {
-            return new Index1IdxTable(table.t, table.namespace, ImmutableList.<Index1IdxTrigger>builder().add(trigger).add(triggers).build());
+            return new Index1IdxTable(table.t, table.tableRef.getNamespace(), ImmutableList.<Index1IdxTrigger>builder().add(trigger).add(triggers).build());
         }
 
         public static Index1IdxTable of(DataTable table, List<Index1IdxTrigger> triggers) {
-            return new Index1IdxTable(table.t, table.namespace, triggers);
+            return new Index1IdxTable(table.t, table.tableRef.getNamespace(), triggers);
         }
 
         private Index1IdxTable(Transaction t, Namespace namespace, List<Index1IdxTrigger> triggers) {
             this.t = t;
-            this.tableName = namespace.getName().isEmpty() ? rawTableName : namespace.getName() + "." + rawTableName;
+            this.tableRef = TableReference.create(namespace, rawTableName);
             this.triggers = triggers;
-            this.namespace = namespace;
         }
 
         public static String getRawTableName() {
             return rawTableName;
         }
 
+        public TableReference getTableRef() {
+            return tableRef;
+        }
+
         public String getTableName() {
-            return tableName;
+            return tableRef.getQualifiedName();
         }
 
         public Namespace getNamespace() {
-            return namespace;
+            return tableRef.getNamespace();
         }
 
         /**
@@ -1243,7 +1249,7 @@ public final class DataTable implements
 
         @Override
         public void delete(Multimap<Index1IdxRow, Index1IdxColumn> values) {
-            t.delete(tableName, ColumnValues.toCells(values));
+            t.delete(tableRef, ColumnValues.toCells(values));
         }
 
         @Override
@@ -1258,8 +1264,8 @@ public final class DataTable implements
 
         @Override
         public void put(Multimap<Index1IdxRow, ? extends Index1IdxColumnValue> values) {
-            t.useTable(tableName, this);
-            t.put(tableName, ColumnValues.toCellValues(values));
+            t.useTable(tableRef, this);
+            t.put(tableRef, ColumnValues.toCellValues(values));
             for (Index1IdxTrigger trigger : triggers) {
                 trigger.putIndex1Idx(values);
             }
@@ -1310,7 +1316,7 @@ public final class DataTable implements
         @Override
         public Multimap<Index1IdxRow, Index1IdxColumnValue> get(Multimap<Index1IdxRow, Index1IdxColumn> cells) {
             Set<Cell> rawCells = ColumnValues.toCells(cells);
-            Map<Cell, byte[]> rawResults = t.get(tableName, rawCells);
+            Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
             Multimap<Index1IdxRow, Index1IdxColumnValue> rowMap = HashMultimap.create();
             for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
                 if (e.getValue().length > 0) {
@@ -1343,7 +1349,7 @@ public final class DataTable implements
         @Override
         public List<Index1IdxColumnValue> getRowColumns(Index1IdxRow row, ColumnSelection columns) {
             byte[] bytes = row.persistToBytes();
-            RowResult<byte[]> rowResult = t.getRows(tableName, ImmutableSet.of(bytes), columns).get(bytes);
+            RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
             if (rowResult == null) {
                 return ImmutableList.of();
             } else {
@@ -1385,7 +1391,7 @@ public final class DataTable implements
         }
 
         private Multimap<Index1IdxRow, Index1IdxColumnValue> getRowsMultimapInternal(Iterable<Index1IdxRow> rows, ColumnSelection columns) {
-            SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableName, Persistables.persistAll(rows), columns);
+            SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
             return getRowMapFromRowResults(results.values());
         }
 
@@ -1406,7 +1412,7 @@ public final class DataTable implements
             if (range.getColumnNames().isEmpty()) {
                 range = range.getBuilder().retainColumns(ColumnSelection.all()).build();
             }
-            return BatchingVisitables.transform(t.getRange(tableName, range), new Function<RowResult<byte[]>, Index1IdxRowResult>() {
+            return BatchingVisitables.transform(t.getRange(tableRef, range), new Function<RowResult<byte[]>, Index1IdxRowResult>() {
                 @Override
                 public Index1IdxRowResult apply(RowResult<byte[]> input) {
                     return Index1IdxRowResult.of(input);
@@ -1415,7 +1421,7 @@ public final class DataTable implements
         }
 
         public IterableView<BatchingVisitable<Index1IdxRowResult>> getRanges(Iterable<RangeRequest> ranges) {
-            Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableName, ranges);
+            Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, ranges);
             return IterableView.of(rangeResults).transform(
                     new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<Index1IdxRowResult>>() {
                 @Override
@@ -1474,38 +1480,40 @@ public final class DataTable implements
         private final Transaction t;
         private final List<Index2IdxTrigger> triggers;
         private final static String rawTableName = "index2_idx";
-        private final String tableName;
-        private final Namespace namespace;
+        private final TableReference tableRef;
 
         public static Index2IdxTable of(DataTable table) {
-            return new Index2IdxTable(table.t, table.namespace, ImmutableList.<Index2IdxTrigger>of());
+            return new Index2IdxTable(table.t, table.tableRef.getNamespace(), ImmutableList.<Index2IdxTrigger>of());
         }
 
         public static Index2IdxTable of(DataTable table, Index2IdxTrigger trigger, Index2IdxTrigger... triggers) {
-            return new Index2IdxTable(table.t, table.namespace, ImmutableList.<Index2IdxTrigger>builder().add(trigger).add(triggers).build());
+            return new Index2IdxTable(table.t, table.tableRef.getNamespace(), ImmutableList.<Index2IdxTrigger>builder().add(trigger).add(triggers).build());
         }
 
         public static Index2IdxTable of(DataTable table, List<Index2IdxTrigger> triggers) {
-            return new Index2IdxTable(table.t, table.namespace, triggers);
+            return new Index2IdxTable(table.t, table.tableRef.getNamespace(), triggers);
         }
 
         private Index2IdxTable(Transaction t, Namespace namespace, List<Index2IdxTrigger> triggers) {
             this.t = t;
-            this.tableName = namespace.getName().isEmpty() ? rawTableName : namespace.getName() + "." + rawTableName;
+            this.tableRef = TableReference.create(namespace, rawTableName);
             this.triggers = triggers;
-            this.namespace = namespace;
         }
 
         public static String getRawTableName() {
             return rawTableName;
         }
 
+        public TableReference getTableRef() {
+            return tableRef;
+        }
+
         public String getTableName() {
-            return tableName;
+            return tableRef.getQualifiedName();
         }
 
         public Namespace getNamespace() {
-            return namespace;
+            return tableRef.getNamespace();
         }
 
         /**
@@ -1877,7 +1885,7 @@ public final class DataTable implements
 
         @Override
         public void delete(Multimap<Index2IdxRow, Index2IdxColumn> values) {
-            t.delete(tableName, ColumnValues.toCells(values));
+            t.delete(tableRef, ColumnValues.toCells(values));
         }
 
         @Override
@@ -1892,8 +1900,8 @@ public final class DataTable implements
 
         @Override
         public void put(Multimap<Index2IdxRow, ? extends Index2IdxColumnValue> values) {
-            t.useTable(tableName, this);
-            t.put(tableName, ColumnValues.toCellValues(values));
+            t.useTable(tableRef, this);
+            t.put(tableRef, ColumnValues.toCellValues(values));
             for (Index2IdxTrigger trigger : triggers) {
                 trigger.putIndex2Idx(values);
             }
@@ -1944,7 +1952,7 @@ public final class DataTable implements
         @Override
         public Multimap<Index2IdxRow, Index2IdxColumnValue> get(Multimap<Index2IdxRow, Index2IdxColumn> cells) {
             Set<Cell> rawCells = ColumnValues.toCells(cells);
-            Map<Cell, byte[]> rawResults = t.get(tableName, rawCells);
+            Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
             Multimap<Index2IdxRow, Index2IdxColumnValue> rowMap = HashMultimap.create();
             for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
                 if (e.getValue().length > 0) {
@@ -1977,7 +1985,7 @@ public final class DataTable implements
         @Override
         public List<Index2IdxColumnValue> getRowColumns(Index2IdxRow row, ColumnSelection columns) {
             byte[] bytes = row.persistToBytes();
-            RowResult<byte[]> rowResult = t.getRows(tableName, ImmutableSet.of(bytes), columns).get(bytes);
+            RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
             if (rowResult == null) {
                 return ImmutableList.of();
             } else {
@@ -2019,7 +2027,7 @@ public final class DataTable implements
         }
 
         private Multimap<Index2IdxRow, Index2IdxColumnValue> getRowsMultimapInternal(Iterable<Index2IdxRow> rows, ColumnSelection columns) {
-            SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableName, Persistables.persistAll(rows), columns);
+            SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
             return getRowMapFromRowResults(results.values());
         }
 
@@ -2040,7 +2048,7 @@ public final class DataTable implements
             if (range.getColumnNames().isEmpty()) {
                 range = range.getBuilder().retainColumns(ColumnSelection.all()).build();
             }
-            return BatchingVisitables.transform(t.getRange(tableName, range), new Function<RowResult<byte[]>, Index2IdxRowResult>() {
+            return BatchingVisitables.transform(t.getRange(tableRef, range), new Function<RowResult<byte[]>, Index2IdxRowResult>() {
                 @Override
                 public Index2IdxRowResult apply(RowResult<byte[]> input) {
                     return Index2IdxRowResult.of(input);
@@ -2049,7 +2057,7 @@ public final class DataTable implements
         }
 
         public IterableView<BatchingVisitable<Index2IdxRowResult>> getRanges(Iterable<RangeRequest> ranges) {
-            Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableName, ranges);
+            Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, ranges);
             return IterableView.of(rangeResults).transform(
                     new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<Index2IdxRowResult>>() {
                 @Override
@@ -2108,38 +2116,40 @@ public final class DataTable implements
         private final Transaction t;
         private final List<Index3IdxTrigger> triggers;
         private final static String rawTableName = "index3_idx";
-        private final String tableName;
-        private final Namespace namespace;
+        private final TableReference tableRef;
 
         public static Index3IdxTable of(DataTable table) {
-            return new Index3IdxTable(table.t, table.namespace, ImmutableList.<Index3IdxTrigger>of());
+            return new Index3IdxTable(table.t, table.tableRef.getNamespace(), ImmutableList.<Index3IdxTrigger>of());
         }
 
         public static Index3IdxTable of(DataTable table, Index3IdxTrigger trigger, Index3IdxTrigger... triggers) {
-            return new Index3IdxTable(table.t, table.namespace, ImmutableList.<Index3IdxTrigger>builder().add(trigger).add(triggers).build());
+            return new Index3IdxTable(table.t, table.tableRef.getNamespace(), ImmutableList.<Index3IdxTrigger>builder().add(trigger).add(triggers).build());
         }
 
         public static Index3IdxTable of(DataTable table, List<Index3IdxTrigger> triggers) {
-            return new Index3IdxTable(table.t, table.namespace, triggers);
+            return new Index3IdxTable(table.t, table.tableRef.getNamespace(), triggers);
         }
 
         private Index3IdxTable(Transaction t, Namespace namespace, List<Index3IdxTrigger> triggers) {
             this.t = t;
-            this.tableName = namespace.getName().isEmpty() ? rawTableName : namespace.getName() + "." + rawTableName;
+            this.tableRef = TableReference.create(namespace, rawTableName);
             this.triggers = triggers;
-            this.namespace = namespace;
         }
 
         public static String getRawTableName() {
             return rawTableName;
         }
 
+        public TableReference getTableRef() {
+            return tableRef;
+        }
+
         public String getTableName() {
-            return tableName;
+            return tableRef.getQualifiedName();
         }
 
         public Namespace getNamespace() {
-            return namespace;
+            return tableRef.getNamespace();
         }
 
         /**
@@ -2489,7 +2499,7 @@ public final class DataTable implements
 
         @Override
         public void delete(Multimap<Index3IdxRow, Index3IdxColumn> values) {
-            t.delete(tableName, ColumnValues.toCells(values));
+            t.delete(tableRef, ColumnValues.toCells(values));
         }
 
         @Override
@@ -2504,8 +2514,8 @@ public final class DataTable implements
 
         @Override
         public void put(Multimap<Index3IdxRow, ? extends Index3IdxColumnValue> values) {
-            t.useTable(tableName, this);
-            t.put(tableName, ColumnValues.toCellValues(values));
+            t.useTable(tableRef, this);
+            t.put(tableRef, ColumnValues.toCellValues(values));
             for (Index3IdxTrigger trigger : triggers) {
                 trigger.putIndex3Idx(values);
             }
@@ -2556,7 +2566,7 @@ public final class DataTable implements
         @Override
         public Multimap<Index3IdxRow, Index3IdxColumnValue> get(Multimap<Index3IdxRow, Index3IdxColumn> cells) {
             Set<Cell> rawCells = ColumnValues.toCells(cells);
-            Map<Cell, byte[]> rawResults = t.get(tableName, rawCells);
+            Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
             Multimap<Index3IdxRow, Index3IdxColumnValue> rowMap = HashMultimap.create();
             for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
                 if (e.getValue().length > 0) {
@@ -2589,7 +2599,7 @@ public final class DataTable implements
         @Override
         public List<Index3IdxColumnValue> getRowColumns(Index3IdxRow row, ColumnSelection columns) {
             byte[] bytes = row.persistToBytes();
-            RowResult<byte[]> rowResult = t.getRows(tableName, ImmutableSet.of(bytes), columns).get(bytes);
+            RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
             if (rowResult == null) {
                 return ImmutableList.of();
             } else {
@@ -2631,7 +2641,7 @@ public final class DataTable implements
         }
 
         private Multimap<Index3IdxRow, Index3IdxColumnValue> getRowsMultimapInternal(Iterable<Index3IdxRow> rows, ColumnSelection columns) {
-            SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableName, Persistables.persistAll(rows), columns);
+            SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
             return getRowMapFromRowResults(results.values());
         }
 
@@ -2652,7 +2662,7 @@ public final class DataTable implements
             if (range.getColumnNames().isEmpty()) {
                 range = range.getBuilder().retainColumns(ColumnSelection.all()).build();
             }
-            return BatchingVisitables.transform(t.getRange(tableName, range), new Function<RowResult<byte[]>, Index3IdxRowResult>() {
+            return BatchingVisitables.transform(t.getRange(tableRef, range), new Function<RowResult<byte[]>, Index3IdxRowResult>() {
                 @Override
                 public Index3IdxRowResult apply(RowResult<byte[]> input) {
                     return Index3IdxRowResult.of(input);
@@ -2661,7 +2671,7 @@ public final class DataTable implements
         }
 
         public IterableView<BatchingVisitable<Index3IdxRowResult>> getRanges(Iterable<RangeRequest> ranges) {
-            Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableName, ranges);
+            Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, ranges);
             return IterableView.of(rangeResults).transform(
                     new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<Index3IdxRowResult>>() {
                 @Override
@@ -2720,38 +2730,40 @@ public final class DataTable implements
         private final Transaction t;
         private final List<Index4IdxTrigger> triggers;
         private final static String rawTableName = "index4_idx";
-        private final String tableName;
-        private final Namespace namespace;
+        private final TableReference tableRef;
 
         public static Index4IdxTable of(DataTable table) {
-            return new Index4IdxTable(table.t, table.namespace, ImmutableList.<Index4IdxTrigger>of());
+            return new Index4IdxTable(table.t, table.tableRef.getNamespace(), ImmutableList.<Index4IdxTrigger>of());
         }
 
         public static Index4IdxTable of(DataTable table, Index4IdxTrigger trigger, Index4IdxTrigger... triggers) {
-            return new Index4IdxTable(table.t, table.namespace, ImmutableList.<Index4IdxTrigger>builder().add(trigger).add(triggers).build());
+            return new Index4IdxTable(table.t, table.tableRef.getNamespace(), ImmutableList.<Index4IdxTrigger>builder().add(trigger).add(triggers).build());
         }
 
         public static Index4IdxTable of(DataTable table, List<Index4IdxTrigger> triggers) {
-            return new Index4IdxTable(table.t, table.namespace, triggers);
+            return new Index4IdxTable(table.t, table.tableRef.getNamespace(), triggers);
         }
 
         private Index4IdxTable(Transaction t, Namespace namespace, List<Index4IdxTrigger> triggers) {
             this.t = t;
-            this.tableName = namespace.getName().isEmpty() ? rawTableName : namespace.getName() + "." + rawTableName;
+            this.tableRef = TableReference.create(namespace, rawTableName);
             this.triggers = triggers;
-            this.namespace = namespace;
         }
 
         public static String getRawTableName() {
             return rawTableName;
         }
 
+        public TableReference getTableRef() {
+            return tableRef;
+        }
+
         public String getTableName() {
-            return tableName;
+            return tableRef.getQualifiedName();
         }
 
         public Namespace getNamespace() {
-            return namespace;
+            return tableRef.getNamespace();
         }
 
         /**
@@ -3123,7 +3135,7 @@ public final class DataTable implements
 
         @Override
         public void delete(Multimap<Index4IdxRow, Index4IdxColumn> values) {
-            t.delete(tableName, ColumnValues.toCells(values));
+            t.delete(tableRef, ColumnValues.toCells(values));
         }
 
         @Override
@@ -3138,8 +3150,8 @@ public final class DataTable implements
 
         @Override
         public void put(Multimap<Index4IdxRow, ? extends Index4IdxColumnValue> values) {
-            t.useTable(tableName, this);
-            t.put(tableName, ColumnValues.toCellValues(values));
+            t.useTable(tableRef, this);
+            t.put(tableRef, ColumnValues.toCellValues(values));
             for (Index4IdxTrigger trigger : triggers) {
                 trigger.putIndex4Idx(values);
             }
@@ -3190,7 +3202,7 @@ public final class DataTable implements
         @Override
         public Multimap<Index4IdxRow, Index4IdxColumnValue> get(Multimap<Index4IdxRow, Index4IdxColumn> cells) {
             Set<Cell> rawCells = ColumnValues.toCells(cells);
-            Map<Cell, byte[]> rawResults = t.get(tableName, rawCells);
+            Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
             Multimap<Index4IdxRow, Index4IdxColumnValue> rowMap = HashMultimap.create();
             for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
                 if (e.getValue().length > 0) {
@@ -3223,7 +3235,7 @@ public final class DataTable implements
         @Override
         public List<Index4IdxColumnValue> getRowColumns(Index4IdxRow row, ColumnSelection columns) {
             byte[] bytes = row.persistToBytes();
-            RowResult<byte[]> rowResult = t.getRows(tableName, ImmutableSet.of(bytes), columns).get(bytes);
+            RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
             if (rowResult == null) {
                 return ImmutableList.of();
             } else {
@@ -3265,7 +3277,7 @@ public final class DataTable implements
         }
 
         private Multimap<Index4IdxRow, Index4IdxColumnValue> getRowsMultimapInternal(Iterable<Index4IdxRow> rows, ColumnSelection columns) {
-            SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableName, Persistables.persistAll(rows), columns);
+            SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
             return getRowMapFromRowResults(results.values());
         }
 
@@ -3286,7 +3298,7 @@ public final class DataTable implements
             if (range.getColumnNames().isEmpty()) {
                 range = range.getBuilder().retainColumns(ColumnSelection.all()).build();
             }
-            return BatchingVisitables.transform(t.getRange(tableName, range), new Function<RowResult<byte[]>, Index4IdxRowResult>() {
+            return BatchingVisitables.transform(t.getRange(tableRef, range), new Function<RowResult<byte[]>, Index4IdxRowResult>() {
                 @Override
                 public Index4IdxRowResult apply(RowResult<byte[]> input) {
                     return Index4IdxRowResult.of(input);
@@ -3295,7 +3307,7 @@ public final class DataTable implements
         }
 
         public IterableView<BatchingVisitable<Index4IdxRowResult>> getRanges(Iterable<RangeRequest> ranges) {
-            Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableName, ranges);
+            Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, ranges);
             return IterableView.of(rangeResults).transform(
                     new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<Index4IdxRowResult>>() {
                 @Override
@@ -3419,6 +3431,7 @@ public final class DataTable implements
      * {@link Sha256Hash}
      * {@link SortedMap}
      * {@link Supplier}
+     * {@link TableReference}
      * {@link Throwables}
      * {@link TimeUnit}
      * {@link Transaction}
@@ -3426,5 +3439,5 @@ public final class DataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "cDqCVFftUEM9/8r+1LB40g==";
+    static String __CLASS_HASH = "TAfXhQqzRAKrhLBxlvImOw==";
 }

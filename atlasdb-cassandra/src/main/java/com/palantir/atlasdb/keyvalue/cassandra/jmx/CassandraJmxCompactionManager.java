@@ -32,6 +32,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 /**
  * CassandraJmxCompactionManager manages all JMX compaction clients for C* cluster.
@@ -53,7 +54,7 @@ public class CassandraJmxCompactionManager {
 
     public void performTombstoneCompaction(long timeoutInSeconds,
                                            String keyspace,
-                                           String tableName) throws InterruptedException, TimeoutException {
+                                           TableReference tableRef) throws InterruptedException, TimeoutException {
         Stopwatch stopWatch = Stopwatch.createStarted();
         if (!removeHintedHandoff(timeoutInSeconds)) {
             return;
@@ -68,7 +69,7 @@ public class CassandraJmxCompactionManager {
         }
 
         // ALL HINTED HANDOFFS NEED TO BE DELETED BEFORE MOVING TO TOMBSTONE COMPACTION TASK
-        if (!deleteTombstone(keyspace, tableName, remainingTimeoutSeconds)) {
+        if (!deleteTombstone(keyspace, tableRef, remainingTimeoutSeconds)) {
             return;
         }
         log.info("All compaction tasks are completed.");
@@ -83,10 +84,10 @@ public class CassandraJmxCompactionManager {
         return executeInParallel(exec, hintedHandoffDeletionTasks, timeoutInSeconds);
     }
 
-    private boolean deleteTombstone(String keyspace, String tableName, long timeoutInSeconds) throws InterruptedException, TimeoutException {
+    private boolean deleteTombstone(String keyspace, TableReference tableRef, long timeoutInSeconds) throws InterruptedException, TimeoutException {
         List<TombstoneCompactionTask> compactionTasks = Lists.newArrayListWithExpectedSize(clients.size());
         for (CassandraJmxCompactionClient client : clients) {
-            compactionTasks.add(new TombstoneCompactionTask(client, keyspace, tableName));
+            compactionTasks.add(new TombstoneCompactionTask(client, keyspace, tableRef));
         }
 
         return executeInParallel(exec, compactionTasks, timeoutInSeconds);

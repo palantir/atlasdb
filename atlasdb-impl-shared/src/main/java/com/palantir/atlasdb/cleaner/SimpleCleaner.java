@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Supplier;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 /**
@@ -44,18 +45,18 @@ public class SimpleCleaner implements Cleaner {
     }
 
     @Override
-    public void queueCellsForScrubbing(Multimap<Cell, String> cellToTableNames,
+    public void queueCellsForScrubbing(Multimap<Cell, TableReference> cellToTableRefs,
                                        long scrubTimestamp) {
-        scrubber.queueCellsForScrubbing(cellToTableNames, scrubTimestamp);
+        scrubber.queueCellsForScrubbing(cellToTableRefs, scrubTimestamp);
     }
 
     @Override
     public void scrubImmediately(TransactionManager txManager,
-                                 Multimap<String, Cell> tableNameToCell,
+                                 Multimap<TableReference, Cell> tableRefToCell,
                                  long scrubTimestamp,
                                  long commitTimestamp) {
         try {
-            scrubber.scrubImmediately(txManager, tableNameToCell, scrubTimestamp, commitTimestamp);
+            scrubber.scrubImmediately(txManager, tableRefToCell, scrubTimestamp, commitTimestamp);
         } catch (RuntimeException e) {
             String message = "Scrubbing has failed during aggressive hard delete.  "
                     + "Deleted values will no longer be visible to any Palantir clients, but the deleted values"

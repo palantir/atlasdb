@@ -32,6 +32,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -44,7 +45,7 @@ import com.palantir.lock.LockRequest;
 public class RangeVisitor {
     private static final Logger log = LoggerFactory.getLogger(RangeVisitor.class);
     private final LockAwareTransactionManager txManager;
-    private final String tableName;
+    private final TableReference tableRef;
     private byte[] startRow = new byte[0];
     private byte[] endRow = new byte[0];
     private int batchSize = 1000;
@@ -54,9 +55,9 @@ public class RangeVisitor {
     private AtomicLong counter = new AtomicLong();
 
     public RangeVisitor(LockAwareTransactionManager txManager,
-                        String tableName) {
+                        TableReference tableRef) {
         this.txManager = txManager;
-        this.tableName = tableName;
+        this.tableRef = tableRef;
     }
 
     public RangeVisitor setStartRowInclusive(byte[] startRow) {
@@ -137,7 +138,7 @@ public class RangeVisitor {
                 counter.addAndGet(numVisited);
                 log.info("Visited {} rows from {} in {} ms.",
                         numVisited,
-                        tableName,
+                        tableRef.getQualifiedName(),
                         System.currentTimeMillis() - startTime);
             } catch (InterruptedException e) {
                 throw Throwables.rewrapAndThrowUncheckedException(e);
@@ -150,7 +151,7 @@ public class RangeVisitor {
                                RangeRequest request,
                                final MutableRange range) {
         final AtomicLong numVisited = new AtomicLong();
-        boolean isEmpty = t.getRange(tableName, request).batchAccept(range.getBatchSize(),
+        boolean isEmpty = t.getRange(tableRef, request).batchAccept(range.getBatchSize(),
                 new AbortingVisitor<List<RowResult<byte[]>>, RuntimeException>() {
                     @Override
                     public boolean visit(List<RowResult<byte[]>> batch) {
