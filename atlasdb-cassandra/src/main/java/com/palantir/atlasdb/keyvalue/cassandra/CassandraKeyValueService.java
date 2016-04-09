@@ -115,6 +115,7 @@ import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.common.pooling.PoolingContainer;
+import com.palantir.remoting.ssl.SslConfiguration;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -224,13 +225,14 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         boolean safetyDisabled = config.safetyDisabled();
         String keyspace = config.keyspace();
         boolean ssl = config.ssl();
+        Optional<SslConfiguration> sslConfiguration = config.sslConfiguration();
         int socketTimeoutMillis = config.socketTimeoutMillis();
         int socketQueryTimeoutMillis = config.socketQueryTimeoutMillis();
 
         for (InetSocketAddress addr : addrList) {
             Cassandra.Client client = null;
             try {
-                client = CassandraClientFactory.getClientInternal(addr, ssl, socketTimeoutMillis, socketQueryTimeoutMillis);
+                client = CassandraClientFactory.getClientInternal(addr, ssl, sslConfiguration, socketTimeoutMillis, socketQueryTimeoutMillis);
 
                 validatePartitioner(client);
 
@@ -242,7 +244,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
                 tokenAwareMapper = TokenAwareMapper.create(configManager, clientPool);
                 createTableInternal(client, CassandraConstants.METADATA_TABLE);
-                CassandraVerifier.sanityCheckRingConsistency(currentHosts, keyspace, ssl, safetyDisabled, socketTimeoutMillis, socketQueryTimeoutMillis);
+                CassandraVerifier.sanityCheckRingConsistency(currentHosts, keyspace, ssl, sslConfiguration, safetyDisabled, socketTimeoutMillis, socketQueryTimeoutMillis);
                 upgradeFromOlderInternalSchema(client);
                 CassandraKeyValueServices.failQuickInInitializationIfClusterAlreadyInInconsistentState(client, config.safetyDisabled(), configManager.getConfig().schemaMutationTimeoutMillis());
                 return;

@@ -80,6 +80,7 @@ public class ManyClientPoolingContainer extends ForwardingPoolingContainer<Clien
                     Sets.union(containerMap.keySet(), toAdd),
                     keyspace,
                     isSsl,
+                    config.sslConfiguration(),
                     safetyDisabled,
                     socketTimeoutMillis,
                     socketQueryTimeoutMillis);

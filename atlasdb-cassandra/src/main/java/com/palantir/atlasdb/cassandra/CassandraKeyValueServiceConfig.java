@@ -27,6 +27,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.remoting.ssl.SslConfiguration;
 
 @JsonDeserialize(as = ImmutableCassandraKeyValueServiceConfig.class)
 @JsonSerialize(as = ImmutableCassandraKeyValueServiceConfig.class)
@@ -46,6 +47,8 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     public abstract String keyspace();
 
     public abstract boolean ssl();
+
+    public abstract Optional<SslConfiguration> sslConfiguration();
 
     public abstract int replicationFactor();
 
