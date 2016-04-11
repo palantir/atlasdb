@@ -15,10 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.net.InetSocketAddress;
-
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
-import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cleaner.AbstractSweeperTest;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 
@@ -26,18 +23,6 @@ public class CassandraKeyValueServiceSweeperTest extends AbstractSweeperTest {
     @Override
     protected KeyValueService getKeyValueService() {
         return CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(
-                        ImmutableCassandraKeyValueServiceConfig.builder()
-                                .addServers(new InetSocketAddress(CassandraTestSuite.CASSANDRA_HOST, 9160))
-                                .poolSize(20)
-                                .keyspace("atlasdb")
-                                .ssl(false)
-                                .replicationFactor(1)
-                                .mutationBatchCount(10000)
-                                .mutationBatchSizeBytes(10000000)
-                                .fetchBatchCount(1000)
-                                .safetyDisabled(false)
-                                .autoRefreshNodes(false)
-                                .build()));
+                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.thriftConfigurationSafetyDisabled));
     }
 }

@@ -15,20 +15,14 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import static com.palantir.docker.compose.connection.waiting.HealthChecks.toHaveAllPortsOpen;
+import java.net.InetSocketAddress;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import org.joda.time.Duration;
-
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
-import com.palantir.docker.compose.DockerComposition;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 
 @RunWith(Suite.class)
 @SuiteClasses({
@@ -42,32 +36,44 @@ import com.palantir.docker.compose.DockerComposition;
 })
 public class CassandraTestSuite {
 
-    private final static String DOCKER_HOST_VARIABLE = "DOCKER_HOST";
-    static String CASSANDRA_HOST;
-
-    @BeforeClass
-    public static void initializeVariables() {
-        String dockerHost = System.getenv(DOCKER_HOST_VARIABLE);
-        if (dockerHost == null) {
-            throw new IllegalStateException("Environment variable " + DOCKER_HOST_VARIABLE + " needs to be defined.");
-        }
-        CASSANDRA_HOST = extractCassandraHostName(dockerHost);
-    }
-
-    // DOCKER_HOST syntax: tcp://192.168.99.100:2376
-    private static String extractCassandraHostName(String dockerHost) {
-        Pattern pattern = Pattern.compile("://(.*?):");
-        Matcher matcher = pattern.matcher(dockerHost);
-        if (matcher.find()) {
-            return matcher.group(1);
-        } else {
-            return dockerHost;
-        }
-    }
-
-    @ClassRule
-    public static DockerComposition composition = DockerComposition.of("../docker-containers/docker-compose.yml")
-            .saveLogsTo(".")
-            .waitingForService("cassandra", toHaveAllPortsOpen(), Duration.standardMinutes(2))
+    static final CassandraKeyValueServiceConfig thriftConfigurationSafetyEnabled = ImmutableCassandraKeyValueServiceConfig.builder()
+            .addServers(new InetSocketAddress(CassandraTestSuite.CASSANDRA_HOST, 9160))
+            .poolSize(20)
+            .keyspace("atlasdb")
+            .ssl(false)
+            .replicationFactor(1)
+            .mutationBatchCount(10000)
+            .mutationBatchSizeBytes(10000000)
+            .fetchBatchCount(1000)
+            .safetyDisabled(true)
+            .autoRefreshNodes(false)
             .build();
+
+    static final CassandraKeyValueServiceConfig thriftConfigurationSafetyDisabled = ImmutableCassandraKeyValueServiceConfig.builder()
+            .addServers(new InetSocketAddress(CassandraTestSuite.CASSANDRA_HOST, 9160))
+            .poolSize(20)
+            .keyspace("atlasdb")
+            .ssl(false)
+            .replicationFactor(1)
+            .mutationBatchCount(10000)
+            .mutationBatchSizeBytes(10000000)
+            .fetchBatchCount(1000)
+            .safetyDisabled(false)
+            .autoRefreshNodes(false)
+            .build();
+
+    static final CassandraKeyValueServiceConfig cqlConfiguration = ImmutableCassandraKeyValueServiceConfig.builder()
+            .addServers(new InetSocketAddress(CassandraTestSuite.CASSANDRA_HOST, 9042))
+            .poolSize(20)
+            .keyspace("atlasdb")
+            .ssl(false)
+            .replicationFactor(1)
+            .mutationBatchCount(10000)
+            .mutationBatchSizeBytes(10000000)
+            .fetchBatchCount(1000)
+            .safetyDisabled(true)
+            .autoRefreshNodes(false)
+            .build();
+
+    private static final String CASSANDRA_HOST = "cassandra";
 }
