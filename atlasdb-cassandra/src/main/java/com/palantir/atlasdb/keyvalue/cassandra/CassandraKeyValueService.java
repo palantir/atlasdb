@@ -1110,7 +1110,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     Set<TableReference> existingTables = Sets.newHashSet();
 
                     for (CfDef cf : ks.getCf_defs()) {
-                        existingTables.add(fromInternalTableName(cf.getName().toLowerCase()));
+                        existingTables.add(fromInternalTableName(cf.getName()));
                     }
 
                     for (TableReference table : tablesToDrop) {
@@ -1158,19 +1158,20 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 public Void apply(Client client) throws Exception {
                     KsDef ks = client.describe_keyspace(configManager.getConfig().keyspace());
                     Set<TableReference> tablesToCreate = tableNamesToTableMetadata.keySet();
-                    Set<TableReference> existingTables = Sets.newHashSet();
+                    Set<TableReference> existingTablesLowerCased = Sets.newHashSet();
 
                     for (CfDef cf : ks.getCf_defs()) {
-                        existingTables.add(fromInternalTableName(cf.getName().toLowerCase()));
+                        existingTablesLowerCased.add(fromInternalTableName(cf.getName().toLowerCase()));
                     }
 
                     for (TableReference table : tablesToCreate) {
                         CassandraVerifier.sanityCheckTableName(table);
 
-                        if (!existingTables.contains(table)) {
+                        TableReference tableRefLowerCased = TableReference.createUnsafe(table.getQualifiedName().toLowerCase());
+                        if (!existingTablesLowerCased.contains(tableRefLowerCased)) {
                             client.system_add_column_family(getCfForTable(table, tableNamesToTableMetadata.get(table)));
                         } else {
-                            log.warn(String.format("Ignored call to create a table (%s) that already existed.", table));
+                            log.warn(String.format("Ignored call to create a table (%s) that already existed (case insensitive).", table));
                         }
                     }
                     if (!tablesToCreate.isEmpty()) {
