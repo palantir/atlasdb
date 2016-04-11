@@ -31,10 +31,11 @@ import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
         CassandraKeyValueServiceSerializableTransactionTest.class,
         CassandraKeyValueServiceTransactionTest.class,
         CassandraKeyValueServiceSweeperTest.class,
-        CassandraTimestampTest.class
+        CassandraTimestampTest.class,
+        CassandraKeyValueServiceTest.class
 })
 public class CassandraTestSuite {
-    
+
     static CassandraKeyValueServiceConfig CKVS_CONFIG = ImmutableCassandraKeyValueServiceConfig.builder()
             .addServers(new InetSocketAddress(CassandraTestConfigs.CASSANDRA_HOST, CassandraTestConfigs.THRIFT_PORT))
             .poolSize(20)
