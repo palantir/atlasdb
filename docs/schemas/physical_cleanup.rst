@@ -1,3 +1,7 @@
+================
+Physical Cleanup
+================
+
 When using a MVCC scheme, there will be old data that is no longer
 needed. We need to keep it around for a while because long running
 read-only transactions may be reading it, but we eventually need to

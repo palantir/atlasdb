@@ -1,17 +1,9 @@
-What is AtlasDB?
-================
-
-AtlasDB is a transaction layer built on top of any generic key value
-store. Relational databases are good at OLTP (many small transactions)
-style queries and OLAP (ad-hoc large queries). AtlasDB doubles down on
-the OLTP style workflows at the expense of OLAP. Queries are very
-explicit and query time can easily be back of the enveloped.
-
+========
 Benefits
 ========
 
 Deadlock Free
--------------
+=============
 
 AtlasDB support Snapshot Isolation (SI) as well as full Serializable
 (SSI). SI is naturally deadlock free however a transaction may need to
@@ -22,7 +14,7 @@ of them will be restarted because of a read/write conflict (which is
 guaranteed to exist).
 
 Physical Representation Agnostic
---------------------------------
+================================
 
 All key value stores have the same transactional semantics. One of the
 great benefits of AtlasDB is that your unit tests can run on an
@@ -40,7 +32,7 @@ postgres data over. Then you can flip reads to Cassandra. Then you can
 just do writes to Cassandra and shut down the postgres db.
 
 Indexes
--------
+=======
 
 Once you have transactions, indexes are super easy to keep consistent.
 Whenever you write a row, you just update the index and it goes in a
@@ -54,7 +46,7 @@ data. An index lookup or range read in AtlasDB just talks to 1 node. It
 is efficient to answer the query "give me the next row after this row".
 
 Clear Transaction Semantics
----------------------------
+===========================
 
 Because this is open source code, it is easy to have full control over
 what your transactions semantics are. There is some level of trust with
@@ -64,7 +56,7 @@ precise control over your consistency/performance trade-off. Conflict
 handlers are specified per table and the default is Snapshot Isolation.
 
 Advisory Locking
-----------------
+================
 
 Advisory Locking is a first class feature in AtlasDB. An example with a
 traditional DB would be grabbing a lock/lease to ensure that only one

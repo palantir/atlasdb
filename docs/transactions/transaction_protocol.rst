@@ -1,5 +1,6 @@
-Protocol
-========
+====================
+Transaction Protocol
+====================
 
 NOTE: the AtlasDB transaction protocol is inspired by (but different
 from) google's percolator transaction protocol. For additional reading
@@ -49,12 +50,13 @@ Lets assume we are reading Cell c.
    c.startTs is less than immutatableTs) This is to wait to make sure
    the transaction that wrote it is done.
 3. Read the transaction table for the commitTs.
-4.  
-
--  If commitTs doesn't exists try to roll back this transaction and
+4. One of two actions:
+   
+   a. If commitTs doesn't exists try to roll back this transaction and
    start over. If it is -1 (been rolled back) delete the associated data
    and start over.
--  If c.commitTs greater than your startTs skip it and move on to the
+   
+   b. If c.commitTs greater than your startTs skip it and move on to the
    next highest TS for the cell.
 
 Immutable Timestamp
