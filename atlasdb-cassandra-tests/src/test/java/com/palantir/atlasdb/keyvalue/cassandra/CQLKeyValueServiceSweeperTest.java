@@ -24,6 +24,6 @@ public class CQLKeyValueServiceSweeperTest extends AbstractSweeperTest {
     protected KeyValueService getKeyValueService() {
         return CQLKeyValueService.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(
-                        CassandraTestSuite.cqlConfiguration));
+                        CassandraTestConfigs.cqlConfiguration));
     }
 }

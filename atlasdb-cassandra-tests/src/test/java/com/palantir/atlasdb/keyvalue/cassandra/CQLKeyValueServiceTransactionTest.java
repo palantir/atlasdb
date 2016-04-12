@@ -25,7 +25,7 @@ public class CQLKeyValueServiceTransactionTest extends AbstractTransactionTest {
     protected KeyValueService getKeyValueService() {
         return CQLKeyValueService.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(
-                        CassandraTestSuite.cqlConfiguration));
+                        CassandraTestConfigs.cqlConfiguration));
     }
 
     @Override

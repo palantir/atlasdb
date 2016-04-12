@@ -31,7 +31,7 @@ public class CassandraTimestampTest {
     @Before
     public void setUp() {
         kv = CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.thriftConfigurationSafetyEnabled));
+                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestConfigs.thriftConfigurationSafetyEnabled));
         kv.initializeFromFreshInstance();
         kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
     }

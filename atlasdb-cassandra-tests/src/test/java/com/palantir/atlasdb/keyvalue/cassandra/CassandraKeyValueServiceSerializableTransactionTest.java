@@ -26,7 +26,7 @@ public class CassandraKeyValueServiceSerializableTransactionTest extends
     protected KeyValueService getKeyValueService() {
         return CassandraKeyValueService.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(
-                        CassandraTestSuite.thriftConfigurationSafetyDisabled));
+                        CassandraTestConfigs.thriftConfigurationSafetyDisabled));
     }
 
     @Override

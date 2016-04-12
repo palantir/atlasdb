@@ -15,14 +15,11 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.net.InetSocketAddress;
-
+import org.joda.time.Duration;
+import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
-
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 
 @RunWith(Suite.class)
 @SuiteClasses({
@@ -36,44 +33,8 @@ import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 })
 public class CassandraTestSuite {
 
-    static final CassandraKeyValueServiceConfig thriftConfigurationSafetyEnabled = ImmutableCassandraKeyValueServiceConfig.builder()
-            .addServers(new InetSocketAddress(CassandraTestSuite.CASSANDRA_HOST, 9160))
-            .poolSize(20)
-            .keyspace("atlasdb")
-            .ssl(false)
-            .replicationFactor(1)
-            .mutationBatchCount(10000)
-            .mutationBatchSizeBytes(10000000)
-            .fetchBatchCount(1000)
-            .safetyDisabled(true)
-            .autoRefreshNodes(false)
-            .build();
-
-    static final CassandraKeyValueServiceConfig thriftConfigurationSafetyDisabled = ImmutableCassandraKeyValueServiceConfig.builder()
-            .addServers(new InetSocketAddress(CassandraTestSuite.CASSANDRA_HOST, 9160))
-            .poolSize(20)
-            .keyspace("atlasdb")
-            .ssl(false)
-            .replicationFactor(1)
-            .mutationBatchCount(10000)
-            .mutationBatchSizeBytes(10000000)
-            .fetchBatchCount(1000)
-            .safetyDisabled(false)
-            .autoRefreshNodes(false)
-            .build();
-
-    static final CassandraKeyValueServiceConfig cqlConfiguration = ImmutableCassandraKeyValueServiceConfig.builder()
-            .addServers(new InetSocketAddress(CassandraTestSuite.CASSANDRA_HOST, 9042))
-            .poolSize(20)
-            .keyspace("atlasdb")
-            .ssl(false)
-            .replicationFactor(1)
-            .mutationBatchCount(10000)
-            .mutationBatchSizeBytes(10000000)
-            .fetchBatchCount(1000)
-            .safetyDisabled(true)
-            .autoRefreshNodes(false)
-            .build();
-
-    private static final String CASSANDRA_HOST = "cassandra";
+    @BeforeClass
+    public static void waitUntilCassandraIsUp() {
+        CassandraTestTools.waitTillServiceIsUp(CassandraTestConfigs.CASSANDRA_HOST, CassandraTestConfigs.THRIFT_PORT, Duration.millis(2000));
+    }
 }

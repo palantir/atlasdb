@@ -24,7 +24,7 @@ public class CassandraKeyValueServiceTransactionTest extends AbstractTransaction
     @Override
     protected KeyValueService getKeyValueService() {
         return CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.thriftConfigurationSafetyDisabled));
+                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestConfigs.thriftConfigurationSafetyDisabled));
     }
 
     @Override

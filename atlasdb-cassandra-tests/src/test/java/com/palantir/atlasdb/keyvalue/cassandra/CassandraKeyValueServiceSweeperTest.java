@@ -23,6 +23,6 @@ public class CassandraKeyValueServiceSweeperTest extends AbstractSweeperTest {
     @Override
     protected KeyValueService getKeyValueService() {
         return CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.thriftConfigurationSafetyDisabled));
+                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestConfigs.thriftConfigurationSafetyDisabled));
     }
 }
