@@ -24,6 +24,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.base.Supplier;
@@ -35,6 +36,7 @@ import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
@@ -69,7 +71,7 @@ import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampService;
 
 public abstract class AbstractSweeperTest {
-    protected static final String TABLE_NAME = "table";
+    protected static final TableReference TABLE_NAME = TableReference.createWithEmptyNamespace("table");
     private static final String COL = "c";
     protected static final int DEFAULT_BATCH_SIZE = 1000;
 
@@ -134,7 +136,7 @@ public abstract class AbstractSweeperTest {
         createTable(SweepStrategy.CONSERVATIVE);
         put("foo", "bar", 50);
         put("foo", "baz", 100);
-        SweepResults results = sweep(175);
+        SweepResults results = completeSweep(175);
         Assert.assertEquals(1, results.getCellsDeleted());
         Assert.assertEquals(1, results.getCellsExamined());
         Assert.assertEquals("baz", get("foo", 150));
@@ -146,7 +148,7 @@ public abstract class AbstractSweeperTest {
     public void testDontSweepLatestConservative() {
         createTable(SweepStrategy.CONSERVATIVE);
         put("foo", "bar", 50);
-        SweepResults results = sweep(75);
+        SweepResults results = completeSweep(75);
         Assert.assertEquals(0, results.getCellsDeleted());
         Assert.assertEquals(1, results.getCellsExamined());
         Assert.assertEquals("bar", get("foo", 150));
@@ -158,7 +160,7 @@ public abstract class AbstractSweeperTest {
         createTable(SweepStrategy.CONSERVATIVE);
         put("foo", "bar", 50);
         putUncommitted("foo", "baz", 100);
-        SweepResults results = sweep(175);
+        SweepResults results = completeSweep(175);
         Assert.assertEquals(1, results.getCellsDeleted());
         Assert.assertEquals(1, results.getCellsExamined());
         Assert.assertEquals("bar", get("foo", 750));
@@ -173,7 +175,7 @@ public abstract class AbstractSweeperTest {
         put("foo", "baz", 100);
         put("foo", "buzz", 125);
         putUncommitted("foo", "foo", 150);
-        SweepResults results = sweep(175);
+        SweepResults results = completeSweep(175);
         Assert.assertEquals(4, results.getCellsDeleted());
         Assert.assertEquals(1, results.getCellsExamined());
         Assert.assertEquals("buzz", get("foo", 200));
@@ -189,7 +191,7 @@ public abstract class AbstractSweeperTest {
         put("foo", "baz", 100);
         put("foo", "buzz", 125);
         putUncommitted("foo", "foo", 150);
-        SweepResults results = sweep(110);
+        SweepResults results = completeSweep(110);
         Assert.assertEquals(2, results.getCellsDeleted());
         Assert.assertEquals(1, results.getCellsExamined());
         Assert.assertEquals(ImmutableSet.of(-1L, 100L, 125L, 150L), getAllTs("foo"));
@@ -200,7 +202,7 @@ public abstract class AbstractSweeperTest {
         createTable(SweepStrategy.THOROUGH);
         put("foo", "bar", 50);
         put("foo", "baz", 100);
-        SweepResults results = sweep(175);
+        SweepResults results = completeSweep(175);
         Assert.assertEquals(1, results.getCellsDeleted());
         Assert.assertEquals(1, results.getCellsExamined());
         Assert.assertEquals("baz", get("foo", 150));
@@ -212,7 +214,7 @@ public abstract class AbstractSweeperTest {
     public void testDontSweepLatestThorough() {
         createTable(SweepStrategy.THOROUGH);
         put("foo", "bar", 50);
-        SweepResults results = sweep(75);
+        SweepResults results = completeSweep(75);
         Assert.assertEquals(0, results.getCellsDeleted());
         Assert.assertEquals(1, results.getCellsExamined());
         Assert.assertEquals("bar", get("foo", 150));
@@ -223,7 +225,7 @@ public abstract class AbstractSweeperTest {
     public void testSweepLatestDeletedThorough() {
         createTable(SweepStrategy.THOROUGH);
         put("foo", "", 50);
-        SweepResults results = sweep(75);
+        SweepResults results = completeSweep(75);
         Assert.assertEquals(1, results.getCellsDeleted());
         Assert.assertEquals(1, results.getCellsExamined());
         Assert.assertEquals(null, get("foo", 150));
@@ -235,7 +237,7 @@ public abstract class AbstractSweeperTest {
         createTable(SweepStrategy.THOROUGH);
         put("foo", "bar", 50);
         putUncommitted("foo", "baz", 100);
-        SweepResults results = sweep(175);
+        SweepResults results = completeSweep(175);
         Assert.assertEquals(1, results.getCellsDeleted());
         Assert.assertEquals(1, results.getCellsExamined());
         Assert.assertEquals("bar", get("foo", 750));
@@ -250,7 +252,7 @@ public abstract class AbstractSweeperTest {
         put("foo", "baz", 100);
         put("foo", "buzz", 125);
         putUncommitted("foo", "foo", 150);
-        SweepResults results = sweep(175);
+        SweepResults results = completeSweep(175);
         Assert.assertEquals(4, results.getCellsDeleted());
         Assert.assertEquals(1, results.getCellsExamined());
         Assert.assertEquals("buzz", get("foo", 200));
@@ -266,12 +268,12 @@ public abstract class AbstractSweeperTest {
         put("foo", "baz", 100);
         put("foo", "", 125);
         putUncommitted("foo", "foo", 150);
-        SweepResults results = sweep(175);
+        SweepResults results = completeSweep(175);
         Assert.assertEquals(4, results.getCellsDeleted());
         Assert.assertEquals(1, results.getCellsExamined());
         Assert.assertEquals("", get("foo", 200));
         Assert.assertEquals(ImmutableSet.of(125L), getAllTs("foo"));
-        results = sweep(175);
+        results = completeSweep(175);
         Assert.assertEquals(1, results.getCellsDeleted());
         Assert.assertEquals(1, results.getCellsExamined());
         Assert.assertEquals(null, get("foo", 200));
@@ -286,7 +288,7 @@ public abstract class AbstractSweeperTest {
         put("foo", "baz", 100);
         put("foo", "foo", 125);
         putUncommitted("foo", "", 150);
-        SweepResults results = sweep(175);
+        SweepResults results = completeSweep(175);
         Assert.assertEquals(4, results.getCellsDeleted());
         Assert.assertEquals(1, results.getCellsExamined());
         Assert.assertEquals("foo", get("foo", 200));
@@ -301,7 +303,7 @@ public abstract class AbstractSweeperTest {
         put("foo", "baz", 100);
         put("foo", "buzz", 125);
         putUncommitted("foo", "foo", 150);
-        SweepResults results = sweep(110);
+        SweepResults results = completeSweep(110);
         Assert.assertEquals(2, results.getCellsDeleted());
         Assert.assertEquals(1, results.getCellsExamined());
         Assert.assertEquals(ImmutableSet.of(100L, 125L, 150L), getAllTs("foo"));
@@ -315,7 +317,7 @@ public abstract class AbstractSweeperTest {
         put("foo", "baz", 100);
         put("foo", "buzz", 125);
         putUncommitted("foo", "foo", 150);
-        SweepResults results = sweep(200);
+        SweepResults results = completeSweep(200);
         Assert.assertEquals(0, results.getCellsDeleted());
         Assert.assertEquals(0, results.getCellsExamined());
         Assert.assertEquals(ImmutableSet.of(50L, 75L, 100L, 125L, 150L), getAllTs("foo"));
@@ -324,11 +326,17 @@ public abstract class AbstractSweeperTest {
     @Test
     public void testSweepResultsIncludeMinimumTimestamp() {
         createTable(SweepStrategy.CONSERVATIVE);
-        SweepResults results = sweep(200);
+        SweepResults results = completeSweep(200);
         Assert.assertEquals(200, results.getSweptTimestamp());
     }
 
     @Test
+    @Ignore
+    /*
+     * These tests have been ignored pending internal ticket 94009
+     * They are fragile when run with test suites that do not properly
+     * clean up tables from the kvs.
+     */
     public void testBackgroundSweepWritesPriorityTable() {
         createTable(SweepStrategy.CONSERVATIVE);
         put("foo", "bar", 50);
@@ -345,6 +353,7 @@ public abstract class AbstractSweeperTest {
         }
     }
 
+    @Ignore
     @Test
     public void testBackgroundSweepWritesPriorityTableWithDifferentTime() {
         createTable(SweepStrategy.CONSERVATIVE);
@@ -372,6 +381,7 @@ public abstract class AbstractSweeperTest {
         }
     }
 
+    @Ignore
     @Test
     public void testBackgroundSweeperWritesToProgressTable() {
         setupBackgroundSweeper(2);
@@ -389,11 +399,12 @@ public abstract class AbstractSweeperTest {
         Assert.assertEquals(1, progressResults.size());
         SweepProgressRowResult result = Iterables.getOnlyElement(progressResults);
         Assert.assertEquals(new Long(150), result.getMinimumSweptTimestamp());
-        Assert.assertEquals(TABLE_NAME, result.getFullTableName());
+        Assert.assertEquals(TABLE_NAME.getQualifiedName(), result.getFullTableName());
         Assert.assertEquals(new Long(0), result.getCellsDeleted());
         Assert.assertEquals(new Long(2), result.getCellsExamined());
     }
 
+    @Ignore
     @Test
     public void testBackgroundSweeperDoesNotOverwriteProgressMinimumTimestamp() {
         setupBackgroundSweeper(2);
@@ -412,7 +423,7 @@ public abstract class AbstractSweeperTest {
         Assert.assertEquals(1, progressResults.size());
         SweepProgressRowResult result = Iterables.getOnlyElement(progressResults);
         Assert.assertEquals(new Long(150), result.getMinimumSweptTimestamp());
-        Assert.assertEquals(TABLE_NAME, result.getFullTableName());
+        Assert.assertEquals(TABLE_NAME.getQualifiedName(), result.getFullTableName());
         Assert.assertEquals(new Long(0), result.getCellsDeleted());
         Assert.assertEquals(new Long(4), result.getCellsExamined());
     }
@@ -436,6 +447,7 @@ public abstract class AbstractSweeperTest {
         }
     }
 
+    @Ignore
     @Test
     public void testBackgroundSweeperWritesFromProgressToPriority() {
         setupBackgroundSweeper(3);
@@ -468,6 +480,7 @@ public abstract class AbstractSweeperTest {
     }
 
     @Test
+    @Ignore
     public void testBackgroundSweepCanHandleNegativeImmutableTimestamp() {
         createTable(SweepStrategy.CONSERVATIVE);
         put("foo", "bar", 50);
@@ -482,6 +495,22 @@ public abstract class AbstractSweeperTest {
         for (SweepPriorityRowResult result : results) {
             Assert.assertEquals(new Long(Long.MIN_VALUE), result.getMinimumSweptTimestamp());
         }
+    }
+
+    @Test
+    public void testSweeperFailsHalfwayThroughOnDeleteTable() {
+        createTable(SweepStrategy.CONSERVATIVE);
+        put("foo", "bar", 50);
+        put("foo2", "bang", 75);
+        put("foo3", "baz", 100);
+        put("foo4", "buzz", 125);
+        partialSweep(150, 2);
+
+        kvs.dropTable(TABLE_NAME);
+
+        SweepResults results = completeSweep(175);
+
+        Assert.assertEquals(results, SweepResults.createEmptySweepResult(0L));
     }
 
     private List<SweepProgressRowResult> getProgressTable() {
@@ -505,10 +534,20 @@ public abstract class AbstractSweeperTest {
         }
     }
 
-    private SweepResults sweep(long ts) {
-        sweepTimestamp.set(ts);
-        SweepResults results = sweepRunner.run(TABLE_NAME, 1000, new byte[0]);
+    private SweepResults completeSweep(long ts) {
+        SweepResults results = sweep(ts, DEFAULT_BATCH_SIZE);
         Assert.assertFalse(results.getNextStartRow().isPresent());
+        return results;
+    }
+
+    private SweepResults sweep(long ts, int batchSize) {
+        sweepTimestamp.set(ts);
+        return sweepRunner.run(TABLE_NAME, batchSize, new byte[0]);
+    }
+
+    private SweepResults partialSweep(long ts, int batchSize) {
+        SweepResults results = sweep(ts, batchSize);
+        Assert.assertTrue(results.getNextStartRow().isPresent());
         return results;
     }
 

@@ -16,7 +16,10 @@
 package com.palantir.common.concurrent;
 
 import java.util.Map;
-import java.util.WeakHashMap;
+import java.util.concurrent.ConcurrentMap;
+
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.MapMaker;
 
 /**
  * This class is like {@link InheritableThreadLocal} but it works with tasks spawned from the static
@@ -25,16 +28,20 @@ import java.util.WeakHashMap;
  */
 public class ExecutorInheritableThreadLocal<T> {
 
-    private final static ThreadLocal<WeakHashMap<ExecutorInheritableThreadLocal<?>, Object>> mapForThisThread
-            = new ThreadLocal<WeakHashMap<ExecutorInheritableThreadLocal<?>,Object>>() {
+    private final static ThreadLocal<ConcurrentMap<ExecutorInheritableThreadLocal<?>, Object>> mapForThisThread
+            = new ThreadLocal<ConcurrentMap<ExecutorInheritableThreadLocal<?>,Object>>() {
         @Override
-        protected WeakHashMap<ExecutorInheritableThreadLocal<?>, Object> initialValue() {
-            return new WeakHashMap<ExecutorInheritableThreadLocal<?>, Object>();
+        protected ConcurrentMap<ExecutorInheritableThreadLocal<?>, Object> initialValue() {
+            return makeNewMap();
         }
     };
 
+    private enum NullWrapper {
+        INSTANCE
+    }
+
     public void set(T value) {
-        mapForThisThread.get().put(this, value);
+        mapForThisThread.get().put(this, wrapNull(value));
     }
 
     public void remove() {
@@ -47,9 +54,8 @@ public class ExecutorInheritableThreadLocal<T> {
 
     public T get() {
         if (mapForThisThread.get().containsKey(this)) {
-            @SuppressWarnings("unchecked")
-            T ret = (T) mapForThisThread.get().get(this);
-            return ret;
+            Object ret = mapForThisThread.get().get(this);
+            return unwrapNull(ret);
         } else {
             T ret = initialValue();
             set(ret);
@@ -92,6 +98,11 @@ public class ExecutorInheritableThreadLocal<T> {
      * to perform cleanup activities on the child thread.
      * <p>
      * By default this method is a no-op, and should be overridden if different behavior is desired.
+     * <p>
+     * This will be run from a finally block, so it should not throw.
+     * <p>
+     * NOTE: This code isn't guaranteed to finish by the time future.get() returns in the calling thread.
+     * The completed Future is marked <code>isDone</code> and then this is run in a finally block.
      */
     protected void uninstallOnChildThread() {
         /* Do nothing. */
@@ -116,44 +127,64 @@ public class ExecutorInheritableThreadLocal<T> {
         return null;
     }
 
-    static WeakHashMap<ExecutorInheritableThreadLocal<?>, Object> getMapForNewThread() {
-        WeakHashMap<ExecutorInheritableThreadLocal<?>, Object> currentMap = mapForThisThread.get();
+    static ImmutableMap<ExecutorInheritableThreadLocal<?>, Object> getMapForNewThread() {
+        ConcurrentMap<ExecutorInheritableThreadLocal<?>, Object> currentMap = mapForThisThread.get();
         if (currentMap.isEmpty()) {
             mapForThisThread.remove();
-            return currentMap;
+            return ImmutableMap.of();
         }
-        WeakHashMap<ExecutorInheritableThreadLocal<?>, Object> ret = new WeakHashMap<ExecutorInheritableThreadLocal<?>, Object>(currentMap.size());
-        for (Map.Entry<ExecutorInheritableThreadLocal<?>, Object> e : currentMap.entrySet()) {
-            ret.put(e.getKey(), e.getKey().callChildValue(e.getValue()));
+        ImmutableMap.Builder<ExecutorInheritableThreadLocal<?>, Object> ret = ImmutableMap.builder();
+        for (ExecutorInheritableThreadLocal<?> e : currentMap.keySet()) {
+            @SuppressWarnings("unchecked")
+            ExecutorInheritableThreadLocal<Object> eitl = (ExecutorInheritableThreadLocal<Object>) e;
+            ret.put(eitl, wrapNull(eitl.callChildValue(eitl.get())));
         }
 
-        return ret;
+        return ret.build();
     }
 
     /**
      * @return the old map installed on that thread
      */
-    static WeakHashMap<ExecutorInheritableThreadLocal<?>, Object> installMapOnThread(WeakHashMap<ExecutorInheritableThreadLocal<?>, Object> map) {
-        WeakHashMap<ExecutorInheritableThreadLocal<?>, Object> oldMap = mapForThisThread.get();
+    static ConcurrentMap<ExecutorInheritableThreadLocal<?>, Object> installMapOnThread(ImmutableMap<ExecutorInheritableThreadLocal<?>, Object> map) {
+        ConcurrentMap<ExecutorInheritableThreadLocal<?>, Object> oldMap = mapForThisThread.get();
         if (map.isEmpty()) {
             mapForThisThread.remove();
         } else {
-            // Temporarily install the untransformed map in case callInstallOnChildThread makes use
+            ConcurrentMap<ExecutorInheritableThreadLocal<?>, Object> newMap = makeNewMap();
+            newMap.putAll(map);
+
+            // Install the map in case callInstallOnChildThread makes use
             // of existing thread locals (UserSessionClientInfo does this).
-            mapForThisThread.set(map);
-            WeakHashMap<ExecutorInheritableThreadLocal<?>, Object> newMap = new WeakHashMap<ExecutorInheritableThreadLocal<?>, Object>(map);
-            // Iterate over the new map so that 1) We modify entries in the new
-            // map, not the old, and 2) so we don't get CMEs if
-            // callInstallOnChildThread adds or removes any thread locals.
-            for (Map.Entry<ExecutorInheritableThreadLocal<?>, Object> e : newMap.entrySet()) {
-                e.setValue(e.getKey().callInstallOnChildThread(e.getValue()));
-            }
             mapForThisThread.set(newMap);
+
+            for (ExecutorInheritableThreadLocal<?> e : map.keySet()) {
+                @SuppressWarnings("unchecked")
+                ExecutorInheritableThreadLocal<Object> eitl = (ExecutorInheritableThreadLocal<Object>) e;
+                eitl.set(eitl.callInstallOnChildThread(eitl.get()));
+            }
         }
         return oldMap;
     }
 
-    static void uninstallMapOnThread(WeakHashMap<ExecutorInheritableThreadLocal<?>, Object> oldMap) {
+    private static ConcurrentMap<ExecutorInheritableThreadLocal<?>, Object> makeNewMap() {
+        return new MapMaker().weakKeys().concurrencyLevel(1).makeMap();
+    }
+
+    private static Object wrapNull(Object value) {
+        return value == null ? NullWrapper.INSTANCE : value;
+    }
+
+    @SuppressWarnings("unchecked")
+    private T unwrapNull(Object ret) {
+        if (ret == NullWrapper.INSTANCE) {
+            return null;
+        } else {
+            return (T) ret;
+        }
+    }
+
+    static void uninstallMapOnThread(ConcurrentMap<ExecutorInheritableThreadLocal<?>, Object> oldMap) {
         try {
             for (ExecutorInheritableThreadLocal<?> eitl : mapForThisThread.get().keySet()) {
                 eitl.uninstallOnChildThread();

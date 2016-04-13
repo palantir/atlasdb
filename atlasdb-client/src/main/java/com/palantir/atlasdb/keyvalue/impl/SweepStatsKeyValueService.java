@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +47,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable;
@@ -69,12 +71,12 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
     private static final long FLUSH_DELAY_SECONDS = 42;
 
     // This is gross and won't work if someone starts namespacing sweep differently
-    private static final String SWEEP_PRIORITY_TABLE = SweepSchema.INSTANCE.getNamespace().getName() + '.' + SweepPriorityTable.getRawTableName();
+    private static final TableReference SWEEP_PRIORITY_TABLE = TableReference.create(SweepSchema.INSTANCE.getNamespace(), SweepPriorityTable.getRawTableName());
 
     private final KeyValueService delegate;
     private final TimestampService timestampService;
-    private final Multiset<String> writesByTable = ConcurrentHashMultiset.create();
-    private final Set<String> clearedTables = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
+    private final Multiset<TableReference> writesByTable = ConcurrentHashMultiset.create();
+    private final Set<TableReference> clearedTables = Collections.newSetFromMap(new ConcurrentHashMap<TableReference, Boolean>());
     private final AtomicInteger totalModifications = new AtomicInteger();
     private final Lock flushLock = new ReentrantLock();
     private final ScheduledExecutorService flushExecutor = PTExecutors.newSingleThreadScheduledExecutor();
@@ -92,17 +94,17 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
     }
 
     @Override
-    public void put(String tableName, Map<Cell, byte[]> values, long timestamp) {
-        delegate().put(tableName, values, timestamp);
-        writesByTable.add(tableName, values.size());
+    public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp) {
+        delegate().put(tableRef, values, timestamp);
+        writesByTable.add(tableRef, values.size());
         recordModifications(values.size());
     }
 
     @Override
-    public void multiPut(Map<String, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
+    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
         delegate().multiPut(valuesByTable, timestamp);
         int newWrites = 0;
-        for (Entry<String, ? extends Map<Cell, byte[]>> entry : valuesByTable.entrySet()) {
+        for (Entry<TableReference, ? extends Map<Cell, byte[]>> entry : valuesByTable.entrySet()) {
             writesByTable.add(entry.getKey(), entry.getValue().size());
             newWrites += entry.getValue().size();
         }
@@ -110,30 +112,30 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
     }
 
     @Override
-    public void putWithTimestamps(String tableName, Multimap<Cell, Value> cellValues) {
-        delegate().putWithTimestamps(tableName, cellValues);
-        writesByTable.add(tableName, cellValues.size());
+    public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> cellValues) {
+        delegate().putWithTimestamps(tableRef, cellValues);
+        writesByTable.add(tableRef, cellValues.size());
         recordModifications(cellValues.size());
     }
 
     @Override
-    public void truncateTable(String tableName) {
-        delegate().truncateTable(tableName);
-        clearedTables.add(tableName);
+    public void truncateTable(TableReference tableRef) {
+        delegate().truncateTable(tableRef);
+        clearedTables.add(tableRef);
         recordModifications(CLEAR_WEIGHT);
     }
 
     @Override
-    public void truncateTables(Set<String> tableNames) {
-        delegate().truncateTables(tableNames);
-        clearedTables.addAll(tableNames);
-        recordModifications(CLEAR_WEIGHT * tableNames.size());
+    public void truncateTables(Set<TableReference> tableRefs) {
+        delegate().truncateTables(tableRefs);
+        clearedTables.addAll(tableRefs);
+        recordModifications(CLEAR_WEIGHT * tableRefs.size());
     }
 
     @Override
-    public void dropTable(String tableName) {
-        delegate().dropTable(tableName);
-        clearedTables.add(tableName);
+    public void dropTable(TableReference tableRef) {
+        delegate().dropTable(tableRef);
+        clearedTables.add(tableRef);
         recordModifications(CLEAR_WEIGHT);
     }
 
@@ -209,9 +211,9 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
                             if (totalModifications.get() >= WRITE_THRESHOLD) {
                                 // snapshot current values while holding the lock and flush
                                 totalModifications.set(0);
-                                Multiset<String> localWritesByTable = ImmutableMultiset.copyOf(writesByTable);
+                                Multiset<TableReference> localWritesByTable = ImmutableMultiset.copyOf(writesByTable);
                                 writesByTable.clear();
-                                Set<String> localClearedTables = ImmutableSet.copyOf(clearedTables);
+                                Set<TableReference> localClearedTables = ImmutableSet.copyOf(clearedTables);
                                 clearedTables.clear();
 
                                 // apply back pressure by only allowing one flush at a time
@@ -228,7 +230,7 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
         };
     }
 
-    private void flushWrites(Multiset<String> writes, Set<String> clears) {
+    private void flushWrites(Multiset<TableReference> writes, Set<TableReference> clears) {
         if (writes.isEmpty() && clears.isEmpty()) {
             log.debug("No writes to flush");
             return;
@@ -239,23 +241,24 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
         log.trace("Flushing writes: {}", writes);
         log.trace("Flushing clears: {}", clears);
         try {
-            Set<String> tableNames = Sets.difference(writes.elementSet(), clears);
-            Iterable<byte[]> rows = Collections2.transform(tableNames,
+            Set<TableReference> tableNames = Sets.difference(writes.elementSet(), clears);
+            Collection<byte[]> rows = Collections2.transform(
+                    Collections2.transform(tableNames, t -> t.getQualifiedName()),
                     Functions.compose(Persistables.persistToBytesFunction(), SweepPriorityRow.fromFullTableNameFun()));
             Map<Cell, Value> oldWriteCounts = delegate().getRows(SWEEP_PRIORITY_TABLE, rows,
                     SweepPriorityTable.getColumnSelection(SweepPriorityNamedColumn.WRITE_COUNT), Long.MAX_VALUE);
             Map<Cell, byte[]> newWriteCounts = Maps.newHashMapWithExpectedSize(writes.elementSet().size());
             byte[] col = SweepPriorityNamedColumn.WRITE_COUNT.getShortName();
-            for (String tableName : tableNames) {
-                Preconditions.checkState(!tableName.startsWith(AtlasDbConstants.NAMESPACE_PREFIX),
+            for (TableReference tableRef : tableNames) {
+                Preconditions.checkState(!tableRef.getQualifiedName().startsWith(AtlasDbConstants.NAMESPACE_PREFIX),
                         "The sweep stats kvs should wrap the namespace mapping kvs, not the other way around.");
-                byte[] row = SweepPriorityRow.of(tableName).persistToBytes();
+                byte[] row = SweepPriorityRow.of(tableRef.getQualifiedName()).persistToBytes();
                 Cell cell = Cell.create(row, col);
                 Value oldValue = oldWriteCounts.get(cell);
                 long oldCount = oldValue == null || oldValue.getContents().length == 0 ? 0 :
                     SweepPriorityTable.WriteCount.BYTES_HYDRATOR.hydrateFromBytes(oldValue.getContents()).getValue();
-                long newValue = clears.contains(tableName) ? writes.count(tableName) : oldCount + writes.count(tableName);
-                log.debug("Sweep priority for {} has {} writes (was {})", tableName, newValue, oldCount);
+                long newValue = clears.contains(tableRef) ? writes.count(tableRef) : oldCount + writes.count(tableRef);
+                log.debug("Sweep priority for {} has {} writes (was {})", tableRef, newValue, oldCount);
                 newWriteCounts.put(cell, SweepPriorityTable.WriteCount.of(newValue).persistValue());
             }
             long timestamp = timestampService.getFreshTimestamp();
@@ -265,7 +268,7 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
             commit(timestamp);
             delegate().put(SWEEP_PRIORITY_TABLE, newWriteCounts, timestamp);
         } catch (RuntimeException e) {
-            Set<String> allTableNames = delegate().getAllTableNames();
+            Set<TableReference> allTableNames = delegate().getAllTableNames();
             if (!allTableNames.contains(SWEEP_PRIORITY_TABLE)
                     || !allTableNames.contains(TransactionConstants.TRANSACTION_TABLE)) {
                 // ignore problems when sweep or transaction tables don't exist

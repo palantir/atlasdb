@@ -42,8 +42,8 @@ import com.google.common.collect.Multimap;
  */
 public interface ExpiringKeyValueService extends KeyValueService {
 
-    public void multiPut(Map<String, ? extends Map<Cell, byte[]>> valuesByTable, final long timestamp, final long time, final TimeUnit unit) throws KeyAlreadyExistsException;
-    public void put(final String tableName, final Map<Cell, byte[]> values, final long timestamp, final long time, final TimeUnit unit);
-    public void putWithTimestamps(String tableName, Multimap<Cell, Value> values, final long time, final TimeUnit unit);
+    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, final long timestamp, final long time, final TimeUnit unit) throws KeyAlreadyExistsException;
+    public void put(final TableReference tableRef, final Map<Cell, byte[]> values, final long timestamp, final long time, final TimeUnit unit);
+    public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> values, final long time, final TimeUnit unit);
 
 }

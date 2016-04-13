@@ -18,38 +18,39 @@ package com.palantir.atlasdb.transaction.impl;
 import java.util.Map;
 
 import com.google.common.collect.Maps;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
 public class ConflictDetectionManager {
-    private final RecomputingSupplier<Map<String, ConflictHandler>> supplier;
-    private final Map<String, ConflictHandler> overrides;
+    private final RecomputingSupplier<Map<TableReference, ConflictHandler>> supplier;
+    private final Map<TableReference, ConflictHandler> overrides;
 
-    public ConflictDetectionManager(RecomputingSupplier<Map<String, ConflictHandler>> supplier) {
+    public ConflictDetectionManager(RecomputingSupplier<Map<TableReference, ConflictHandler>> supplier) {
         this.supplier = supplier;
         this.overrides = Maps.newConcurrentMap();
     }
 
-    public void setConflictDetectionMode(String table, ConflictHandler handler) {
+    public void setConflictDetectionMode(TableReference table, ConflictHandler handler) {
         overrides.put(table, handler);
     }
 
-    public void removeConflictDetectionMode(String table) {
+    public void removeConflictDetectionMode(TableReference table) {
         overrides.remove(table);
     }
 
-    public boolean isEmptyOrContainsTable(String tableName) {
-        Map<String, ConflictHandler> tableToConflictHandler = supplier.get();
+    public boolean isEmptyOrContainsTable(TableReference tableRef) {
+        Map<TableReference, ConflictHandler> tableToConflictHandler = supplier.get();
         if (tableToConflictHandler.isEmpty() && overrides.isEmpty()) {
             return true;
         }
-        if (tableToConflictHandler.containsKey(tableName) || overrides.containsKey(tableName)) {
+        if (tableToConflictHandler.containsKey(tableRef) || overrides.containsKey(tableRef)) {
             return true;
         }
         return false;
     }
 
-    public Map<String, ConflictHandler> get() {
-        Map<String, ConflictHandler> ret = Maps.newHashMap(supplier.get());
+    public Map<TableReference, ConflictHandler> get() {
+        Map<TableReference, ConflictHandler> ret = Maps.newHashMap(supplier.get());
         ret.putAll(overrides);
         return ret;
     }

@@ -12,6 +12,8 @@ dependencies {
   compile 'io.airlift:airline:0.7'
   compile 'com.google.dagger:dagger:2.0.2'
 
+  testCompile project(':atlasdb-rocksdb')
+
   processor 'com.google.dagger:dagger-compiler:2.0.2'
   processor 'org.immutables:value:2.0.21'
 }
@@ -21,5 +23,7 @@ configurations.matching({ it.name in ['compile', 'runtime'] }).all {
           force 'com.google.code.findbugs:jsr305:' + libVersions.jsr305
           force 'org.slf4j:slf4j-api:' + libVersions.slf4j
           force 'org.apache.commons:commons-lang3:3.1'
+          force 'org.apache.thrift:libthrift:' + libVersions.libthrift
+          force 'commons-codec:commons-codec:' + libVersions.commons_codec
       }
 }

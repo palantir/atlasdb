@@ -126,7 +126,7 @@ import com.google.common.base.Preconditions;
 
     @Override
     public int compareTo(TimeDuration o) {
-        return Long.valueOf(toNanos()).compareTo(o.toNanos());
+        return Long.compare(toNanos(), o.toNanos());
     }
 
     @Override public boolean equals(@Nullable Object obj) {

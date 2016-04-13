@@ -26,10 +26,12 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.Namespace;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public class TableSplittingKeyValueServiceTest {
-    private static final String TABLE = "namespace.table";
-    private static final String NAMESPACE = "namespace";
+    private static final Namespace NAMESPACE = Namespace.create("namespace");
+    private static final TableReference TABLE = TableReference.create(NAMESPACE, "table");
     private static final Cell CELL = Cell.create("row".getBytes(), "column".getBytes());
     private static final byte[] VALUE = "value".getBytes();
     private static final long TIMESTAMP = 123l;
@@ -59,7 +61,7 @@ public class TableSplittingKeyValueServiceTest {
     public void delegatesMethodsToTheKvsAssociatedWithTheNamespaceIfNoTableMappingExists() {
         TableSplittingKeyValueService splittingKvs = TableSplittingKeyValueService.create(
                 ImmutableList.of(tableDelegate, namespaceDelegate),
-                ImmutableMap.<String, KeyValueService>of(),
+                ImmutableMap.<TableReference, KeyValueService>of(),
                 ImmutableMap.of(NAMESPACE, namespaceDelegate)
         );
 
@@ -89,7 +91,7 @@ public class TableSplittingKeyValueServiceTest {
     public void defaultsToTheFirstKvsInTheListIfNoMappingsMatch() {
         TableSplittingKeyValueService splittingKvs = TableSplittingKeyValueService.create(
                 ImmutableList.of(defaultKvs, tableDelegate),
-                ImmutableMap.of("not-this", tableDelegate)
+                ImmutableMap.of(TableReference.createWithEmptyNamespace("not-this"), tableDelegate)
         );
 
         mockery.checking(new Expectations() {{
@@ -101,20 +103,23 @@ public class TableSplittingKeyValueServiceTest {
 
     @Test
     public void splitsTableMetadataIntoTheCorrectTables() {
+        TableReference table1 = TableReference.createWithEmptyNamespace("table1");
+        TableReference table2 = TableReference.createWithEmptyNamespace("table2");
+        TableReference table3 = TableReference.createWithEmptyNamespace("table3");
         TableSplittingKeyValueService splittingKvs = TableSplittingKeyValueService.create(
                 ImmutableList.of(tableDelegate, otherTableDelegate),
                 ImmutableMap.of(
-                        "table1", tableDelegate,
-                        "table2", otherTableDelegate,
-                        "table3", otherTableDelegate)
+                        table1, tableDelegate,
+                        table2, otherTableDelegate,
+                        table3, otherTableDelegate)
         );
 
-        final ImmutableMap<String, byte[]> tableSpec1 = ImmutableMap.of(
-                "table1", "1".getBytes()
+        final ImmutableMap<TableReference, byte[]> tableSpec1 = ImmutableMap.of(
+                table1, "1".getBytes()
         );
-        final ImmutableMap<String, byte[]> tableSpec2 = ImmutableMap.of(
-                "table2", "2".getBytes(),
-                "table3", "3".getBytes()
+        final ImmutableMap<TableReference, byte[]> tableSpec2 = ImmutableMap.of(
+                table2, "2".getBytes(),
+                table3, "3".getBytes()
         );
 
         mockery.checking(new Expectations() {{
@@ -125,8 +130,8 @@ public class TableSplittingKeyValueServiceTest {
         splittingKvs.createTables(merge(tableSpec1, tableSpec2));
     }
 
-    private Map<String,byte[]> merge(ImmutableMap<String, byte[]> left, ImmutableMap<String, byte[]> right) {
-        return ImmutableMap.<String, byte[]>builder()
+    private Map<TableReference, byte[]> merge(ImmutableMap<TableReference, byte[]> left, ImmutableMap<TableReference, byte[]> right) {
+        return ImmutableMap.<TableReference, byte[]>builder()
                 .putAll(left)
                 .putAll(right)
                 .build();

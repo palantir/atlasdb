@@ -16,6 +16,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
 
+
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -44,12 +45,13 @@ import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.Prefix;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
-import com.palantir.atlasdb.schema.Namespace;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
@@ -91,8 +93,7 @@ public final class StreamTestWithHashStreamHashAidxTable implements
     private final Transaction t;
     private final List<StreamTestWithHashStreamHashAidxTrigger> triggers;
     private final static String rawTableName = "stream_test_with_hash_stream_hash_aidx";
-    private final String tableName;
-    private final Namespace namespace;
+    private final TableReference tableRef;
 
     static StreamTestWithHashStreamHashAidxTable of(Transaction t, Namespace namespace) {
         return new StreamTestWithHashStreamHashAidxTable(t, namespace, ImmutableList.<StreamTestWithHashStreamHashAidxTrigger>of());
@@ -108,21 +109,24 @@ public final class StreamTestWithHashStreamHashAidxTable implements
 
     private StreamTestWithHashStreamHashAidxTable(Transaction t, Namespace namespace, List<StreamTestWithHashStreamHashAidxTrigger> triggers) {
         this.t = t;
-        this.tableName = namespace.getName().isEmpty() ? rawTableName : namespace.getName() + "." + rawTableName;
+        this.tableRef = TableReference.create(namespace, rawTableName);
         this.triggers = triggers;
-        this.namespace = namespace;
     }
 
     public static String getRawTableName() {
         return rawTableName;
     }
 
+    public TableReference getTableRef() {
+        return tableRef;
+    }
+
     public String getTableName() {
-        return tableName;
+        return tableRef.getQualifiedName();
     }
 
     public Namespace getNamespace() {
-        return namespace;
+        return tableRef.getNamespace();
     }
 
     /**
@@ -459,7 +463,7 @@ public final class StreamTestWithHashStreamHashAidxTable implements
 
     @Override
     public void delete(Multimap<StreamTestWithHashStreamHashAidxRow, StreamTestWithHashStreamHashAidxColumn> values) {
-        t.delete(tableName, ColumnValues.toCells(values));
+        t.delete(tableRef, ColumnValues.toCells(values));
     }
 
     @Override
@@ -474,8 +478,8 @@ public final class StreamTestWithHashStreamHashAidxTable implements
 
     @Override
     public void put(Multimap<StreamTestWithHashStreamHashAidxRow, ? extends StreamTestWithHashStreamHashAidxColumnValue> values, long duration, TimeUnit unit) {
-        t.useTable(tableName, this);
-        t.put(tableName, ColumnValues.toCellValues(values, duration, unit));
+        t.useTable(tableRef, this);
+        t.put(tableRef, ColumnValues.toCellValues(values, duration, unit));
         for (StreamTestWithHashStreamHashAidxTrigger trigger : triggers) {
             trigger.putStreamTestWithHashStreamHashAidx(values);
         }
@@ -515,7 +519,7 @@ public final class StreamTestWithHashStreamHashAidxTable implements
     @Override
     public Multimap<StreamTestWithHashStreamHashAidxRow, StreamTestWithHashStreamHashAidxColumnValue> get(Multimap<StreamTestWithHashStreamHashAidxRow, StreamTestWithHashStreamHashAidxColumn> cells) {
         Set<Cell> rawCells = ColumnValues.toCells(cells);
-        Map<Cell, byte[]> rawResults = t.get(tableName, rawCells);
+        Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
         Multimap<StreamTestWithHashStreamHashAidxRow, StreamTestWithHashStreamHashAidxColumnValue> rowMap = HashMultimap.create();
         for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
             if (e.getValue().length > 0) {
@@ -548,7 +552,7 @@ public final class StreamTestWithHashStreamHashAidxTable implements
     @Override
     public List<StreamTestWithHashStreamHashAidxColumnValue> getRowColumns(StreamTestWithHashStreamHashAidxRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
-        RowResult<byte[]> rowResult = t.getRows(tableName, ImmutableSet.of(bytes), columns).get(bytes);
+        RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
             return ImmutableList.of();
         } else {
@@ -590,7 +594,7 @@ public final class StreamTestWithHashStreamHashAidxTable implements
     }
 
     private Multimap<StreamTestWithHashStreamHashAidxRow, StreamTestWithHashStreamHashAidxColumnValue> getRowsMultimapInternal(Iterable<StreamTestWithHashStreamHashAidxRow> rows, ColumnSelection columns) {
-        SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableName, Persistables.persistAll(rows), columns);
+        SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         return getRowMapFromRowResults(results.values());
     }
 
@@ -612,7 +616,7 @@ public final class StreamTestWithHashStreamHashAidxTable implements
     }
 
     public BatchingVisitableView<StreamTestWithHashStreamHashAidxRowResult> getAllRowsUnordered(ColumnSelection columns) {
-        return BatchingVisitables.transform(t.getRange(tableName, RangeRequest.builder().retainColumns(columns).build()),
+        return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder().retainColumns(columns).build()),
                 new Function<RowResult<byte[]>, StreamTestWithHashStreamHashAidxRowResult>() {
             @Override
             public StreamTestWithHashStreamHashAidxRowResult apply(RowResult<byte[]> input) {
@@ -708,6 +712,7 @@ public final class StreamTestWithHashStreamHashAidxTable implements
      * {@link Sha256Hash}
      * {@link SortedMap}
      * {@link Supplier}
+     * {@link TableReference}
      * {@link Throwables}
      * {@link TimeUnit}
      * {@link Transaction}
@@ -715,5 +720,5 @@ public final class StreamTestWithHashStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "jiTMuCR8WMsOId61i6lLrA==";
+    static String __CLASS_HASH = "6e3OpDo5DaHq4R1fMv/Mkg==";
 }

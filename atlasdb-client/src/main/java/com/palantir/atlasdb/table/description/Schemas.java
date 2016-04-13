@@ -25,41 +25,41 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.schema.Namespace;
+import com.palantir.atlasdb.keyvalue.api.Namespace;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public final class Schemas {
     private static final String INDEX_SUFFIX = "idx";
 
-    public static String appendIndexSuffix(String indexName, IndexDefinition definition) {
+    public static TableReference appendIndexSuffix(String indexName, IndexDefinition definition) {
         Preconditions.checkArgument(
                 !indexName.endsWith(INDEX_SUFFIX),
                 "Index name cannot end with '" + INDEX_SUFFIX + "': " + indexName);
-        indexName = indexName + definition.getIndexType().getIndexSuffix();
-        return indexName;
+        return TableReference.createUnsafe(indexName + definition.getIndexType().getIndexSuffix());
     }
 
-    public static void createIndex(KeyValueService kvs, String fullIndexName, IndexDefinition definition) {
-        createIndices(kvs, ImmutableMap.of(fullIndexName, definition));
+    public static void createIndex(KeyValueService kvs, TableReference fullIndexRef, IndexDefinition definition) {
+        createIndices(kvs, ImmutableMap.of(fullIndexRef, definition));
     }
 
-    public static void createIndices(KeyValueService kvs, Map<String, IndexDefinition> fullIndexNameToDefinition) {
-        Map<String, byte[]> fullIndexNameToMetadata = Maps.newHashMapWithExpectedSize(fullIndexNameToDefinition.size());
-        for (Entry<String, IndexDefinition> indexEntry : fullIndexNameToDefinition.entrySet()) {
-            fullIndexNameToMetadata.put(indexEntry.getKey(), indexEntry.getValue().toIndexMetadata(indexEntry.getKey()).getTableMetadata().persistToBytes());
+    public static void createIndices(KeyValueService kvs, Map<TableReference, IndexDefinition> fullIndexNameToDefinition) {
+        Map<TableReference, byte[]> fullIndexNameToMetadata = Maps.newHashMapWithExpectedSize(fullIndexNameToDefinition.size());
+        for (Entry<TableReference, IndexDefinition> indexEntry : fullIndexNameToDefinition.entrySet()) {
+            fullIndexNameToMetadata.put(indexEntry.getKey(), indexEntry.getValue().toIndexMetadata(indexEntry.getKey().getQualifiedName()).getTableMetadata().persistToBytes());
         }
         kvs.createTables(fullIndexNameToMetadata);
     }
 
-    public static void createTable(KeyValueService kvs, String fullTableName, TableDefinition definition) {
-        createTables(kvs, ImmutableMap.of(fullTableName, definition));
+    public static void createTable(KeyValueService kvs, TableReference tableRef, TableDefinition definition) {
+        createTables(kvs, ImmutableMap.of(tableRef, definition));
     }
 
-    public static void createTables(KeyValueService kvs, Map<String, TableDefinition>  fullTableNameToDefinition) {
-        Map<String, byte[]> fullTableNameToMetadata = Maps.newHashMapWithExpectedSize(fullTableNameToDefinition.size());
-        for (Entry<String, TableDefinition> tableEntry : fullTableNameToDefinition.entrySet()) {
-            fullTableNameToMetadata.put(tableEntry.getKey(), tableEntry.getValue().toTableMetadata().persistToBytes());
+    public static void createTables(KeyValueService kvs, Map<TableReference, TableDefinition>  tableRefToDefinition) {
+        Map<TableReference, byte[]> tableRefToMetadata = Maps.newHashMapWithExpectedSize(tableRefToDefinition.size());
+        for (Entry<TableReference, TableDefinition> tableEntry : tableRefToDefinition.entrySet()) {
+            tableRefToMetadata.put(tableEntry.getKey(), tableEntry.getValue().toTableMetadata().persistToBytes());
         }
-        kvs.createTables(fullTableNameToMetadata);
+        kvs.createTables(tableRefToMetadata);
     }
 
     public static String getFullTableName(String tableName, Namespace namespace) {
@@ -97,29 +97,18 @@ public final class Schemas {
      */
     public static void createTablesAndIndexes(Schema schema, KeyValueService kvs) {
         schema.validate();
-
-        Map<String, TableDefinition> fullTableNamesToDefinitions = Maps.newHashMapWithExpectedSize(schema.getTableDefinitions().size());
-        for (Entry<String, TableDefinition> e : schema.getTableDefinitions().entrySet()) {
-            fullTableNamesToDefinitions.put(getFullTableName(e.getKey(), schema.getNamespace()), e.getValue());
-        }
-        Map<String, IndexDefinition> fullIndexNamesToDefinitions = Maps.newHashMapWithExpectedSize(schema.getIndexDefinitions().size());
-        for (Entry<String, IndexDefinition> e : schema.getIndexDefinitions().entrySet()) {
-            fullIndexNamesToDefinitions.put(getFullTableName(e.getKey(), schema.getNamespace()), e.getValue());
-        }
-        createTables(kvs, fullTableNamesToDefinitions);
-        createIndices(kvs, fullIndexNamesToDefinitions);
+        createTables(kvs, schema.getTableDefinitions());
+        createIndices(kvs, schema.getIndexDefinitions());
     }
 
-    public static void createTable(Schema schema, KeyValueService kvs, String tableName) {
-        TableDefinition definition = schema.getTableDefinition(tableName);
-        String fullTableName = getFullTableName(tableName, schema.getNamespace());
-        createTable(kvs, fullTableName, definition);
+    public static void createTable(Schema schema, KeyValueService kvs, TableReference tableRef) {
+        TableDefinition definition = schema.getTableDefinition(tableRef);
+        createTable(kvs, tableRef, definition);
     }
 
-    public static void createIndex(Schema schema, KeyValueService kvs, String indexName) {
-        IndexDefinition definition = schema.getIndex(indexName);
-        String fullIndexName = getFullTableName(indexName, schema.getNamespace());
-        createIndex(kvs, fullIndexName, definition);
+    public static void createIndex(Schema schema, KeyValueService kvs, TableReference indexRef) {
+        IndexDefinition definition = schema.getIndex(indexRef);
+        createIndex(kvs, indexRef, definition);
     }
 
     public static void deleteTablesAndIndexes(Schema schema, KeyValueService kvs) {
@@ -133,18 +122,18 @@ public final class Schemas {
         kvs.truncateTables(getExistingTablesAlsoPresentInSchema(schema, kvs));
     }
 
-    private static Set<String> getExistingTablesAlsoPresentInSchema(Schema schema, KeyValueService kvs) {
-        Set<String> allTables = kvs.getAllTableNames();
-        Set<String> schemaFullTableNames = Sets.newHashSet();
+    private static Set<TableReference> getExistingTablesAlsoPresentInSchema(Schema schema, KeyValueService kvs) {
+        Set<TableReference> allTables = kvs.getAllTableNames();
+        Set<TableReference> schemaFullTableNames = Sets.newHashSet();
 
-        schemaFullTableNames.addAll(schema.getIndexDefinitions().keySet().stream().map(indexName -> getFullTableName(indexName, schema.getNamespace())).collect(Collectors.toList()));
-        schemaFullTableNames.addAll(schema.getTableDefinitions().keySet().stream().map(tableName -> getFullTableName(tableName, schema.getNamespace())).collect(Collectors.toList()));
+        schemaFullTableNames.addAll(schema.getIndexDefinitions().keySet());
+        schemaFullTableNames.addAll(schema.getTableDefinitions().keySet());
 
         return schemaFullTableNames.stream().filter(allTables::contains).collect(Collectors.toSet());
     }
 
-    public static void deleteTable(KeyValueService kvs, String tableName) {
-        kvs.dropTable(tableName);
+    public static void deleteTable(KeyValueService kvs, TableReference tableRef) {
+        kvs.dropTable(tableRef);
     }
 
 }

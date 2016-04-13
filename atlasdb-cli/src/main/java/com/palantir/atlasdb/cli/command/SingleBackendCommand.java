@@ -24,6 +24,7 @@ import com.palantir.atlasdb.cli.services.AtlasDbServices;
 import com.palantir.atlasdb.cli.services.AtlasDbServicesFactory;
 import com.palantir.atlasdb.cli.services.DaggerAtlasDbServices;
 import com.palantir.atlasdb.cli.services.ServicesConfigModule;
+import com.palantir.atlasdb.config.AtlasDbConfigs;
 import com.palantir.common.base.Throwables;
 
 import io.airlift.airline.Option;
@@ -39,7 +40,7 @@ public abstract class SingleBackendCommand implements Callable<Integer> {
     @Option(name = {"--config-root"},
             title = "CONFIG ROOT",
             description = "field in the config yaml file that contains the atlasdb configuration root")
-    private String configRoot = "";
+    private String configRoot = AtlasDbConfigs.ATLASDB_CONFIG_ROOT;
 
     @Override
     public Integer call() {

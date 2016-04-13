@@ -44,6 +44,7 @@ import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TieredKeyValueService;
@@ -52,8 +53,8 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 public class TieredKvsTest {
 
-    private final String tieredTable = "tiered_table";
-    private final String untieredTable = "untiered_table";
+    private final TableReference tieredTable = TableReference.createWithEmptyNamespace("tiered_table");
+    private final TableReference untieredTable = TableReference.createWithEmptyNamespace("untiered_table");
     private TieredKeyValueService tieredKvs;
     private KeyValueService primaryKvs;
     private KeyValueService secondaryKvs;

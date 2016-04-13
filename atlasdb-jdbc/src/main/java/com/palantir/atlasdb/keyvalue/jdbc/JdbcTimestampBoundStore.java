@@ -27,6 +27,7 @@ import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
 
 import com.google.common.base.Function;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
 
@@ -37,10 +38,11 @@ public class JdbcTimestampBoundStore implements TimestampBoundStore {
     private final Table<Record> TABLE;
     private static final Field<Integer> DUMMY_COLUMN = DSL.field("dummy_column", Integer.class);
     private static final Field<Long> LATEST_TIMESTAMP = DSL.field("latest_timestamp", Long.class);
+    private static final TableReference TIMESTAMP_TABLE = TableReference.createWithEmptyNamespace("_timestamp");
 
     private JdbcTimestampBoundStore(JdbcKeyValueService kvs) {
         this.kvs = kvs;
-        TABLE = DSL.table(kvs.tableName("_timestamp"));
+        TABLE = DSL.table(kvs.tableName(TIMESTAMP_TABLE));
     }
 
     public static JdbcTimestampBoundStore create(final JdbcKeyValueService kvs) {
@@ -54,7 +56,7 @@ public class JdbcTimestampBoundStore implements TimestampBoundStore {
                         .getSQL();
                 int endIndex = partialSql.lastIndexOf(')');
                 String fullSql = partialSql.substring(0, endIndex) + "," +
-                        " CONSTRAINT " + kvs.primaryKey("_timestamp") +
+                        " CONSTRAINT " + kvs.primaryKey(TIMESTAMP_TABLE) +
                         " PRIMARY KEY (" + DUMMY_COLUMN.getName() + ")" +
                         partialSql.substring(endIndex);
                 try {
