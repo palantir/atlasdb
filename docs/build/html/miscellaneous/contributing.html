@@ -1,0 +1,253 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Contributing to AtlasDB &mdash; AtlasDB 0.3.34 documentation</title>
+  
+
+  
+  
+
+  
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700,400italic,700italic|Roboto+Slab:400,700|Inconsolata:400,700&subset=latin,cyrillic' rel='stylesheet' type='text/css'>
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="AtlasDB 0.3.34 documentation" href="../index.html"/>
+        <link rel="up" title="Miscellaneous" href="index.html"/>
+        <link rel="prev" title="Miscellaneous" href="index.html"/> 
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-nav-search">
+        
+          <a href="../index.html" class="fa fa-home"> AtlasDB</a>
+        
+        
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+        
+          
+          
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../overview/index.html">Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../overview/benefits.html">Benefits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/atlas_server_api.html">Atlas Server Api</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/getting_started.html">Getting Started</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../schemas/index.html">Schemas</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../schemas/tables_and_indices.html">Tables and Indices</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../schemas/streams.html">Streams</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../schemas/cleanup_tasks.html">Cleanup Tasks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../schemas/physical_cleanup.html">Physical Cleanup</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../transactions/index.html">Transactions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../transactions/isolation_levels.html">Isolation Levels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../transactions/performance_ideas.html">Performance Ideas</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../transactions/transaction_protocol.html">Transaction Protocol</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../configuration/index.html">Configuration</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../configuration/cassandra_config.html">Cassandra Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../cluster_management/index.html">Cluster Management</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../cluster_management/clis.html">Command Line Utilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../cluster_management/console.html">Console</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Miscellaneous</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="">Contributing to AtlasDB</a></li>
+</ul>
+</li>
+</ul>
+
+          
+        
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../index.html">AtlasDB</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="index.html">Miscellaneous</a> &raquo;</li>
+      
+    <li>Contributing to AtlasDB</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          <a href="../_sources/miscellaneous/contributing.txt" rel="nofollow"> View page source</a>
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document">
+            
+  <div class="section" id="contributing-to-atlasdb">
+<h1>Contributing to AtlasDB<a class="headerlink" href="#contributing-to-atlasdb" title="Permalink to this headline">¶</a></h1>
+<p>Start by getting a <a class="reference external" href="/atlasdb/docs/getting_started.html#running-from-source">local development
+setup</a>
+working. We are happy to accept pull requests and could use help
+implementing the AtlasDB API for more underlying physical stores.</p>
+<div class="section" id="release-schedule">
+<h2>Release Schedule<a class="headerlink" href="#release-schedule" title="Permalink to this headline">¶</a></h2>
+<p>We aim to release once a week, but may release faster to patch bugs or
+slower if there is low code churn. We are still setting up a formal
+branching model, but for now the <code class="docutils literal"><span class="pre">develop</span></code> branch serves as
+<code class="docutils literal"><span class="pre">develop</span></code> and <code class="docutils literal"><span class="pre">release</span></code> (we have no <code class="docutils literal"><span class="pre">release</span></code> branch) and we merge
+releases into <code class="docutils literal"><span class="pre">master</span></code>. This should change soon.</p>
+</div>
+<div class="section" id="cutting-for-release">
+<h2>Cutting for Release<a class="headerlink" href="#cutting-for-release" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic simple">
+<li>Checkout the commit to tag for release (probably
+<code class="docutils literal"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">origin/develop</span></code>).</li>
+<li>Tag the commit: <code class="docutils literal"><span class="pre">git</span> <span class="pre">tag</span> <span class="pre">-a</span> <span class="pre">&lt;version&gt;</span></code>.</li>
+<li>Push the tag to Github:
+<code class="docutils literal"><span class="pre">git</span> <span class="pre">push</span> <span class="pre">origin</span> <span class="pre">&lt;version&gt;:refs/tags/&lt;version&gt;</span></code>.</li>
+<li>After a short wait you can publish the artifacts on Bintray by going
+to the <a class="reference external" href="https://bintray.com/palantir/releases/atlasdb/view">AtlasDB
+page</a>. <strong>Note:
+You must have admin privledges on Bintray for this to work.</strong></li>
+</ol>
+<div class="section" id="contributing-docs">
+<h3>Contributing Docs<a class="headerlink" href="#contributing-docs" title="Permalink to this headline">¶</a></h3>
+<ol class="arabic simple">
+<li>Clone the git repository:
+<code class="docutils literal"><span class="pre">git</span> <span class="pre">clone</span> <span class="pre">git&#64;github.com:palantir/atlasdb.git;</span> <span class="pre">cd</span> <span class="pre">atlasdb</span></code>.</li>
+<li>Checkout the github-pages branch: <code class="docutils literal"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">gh-pages</span></code>.</li>
+<li>Use gem to install bundler (if you don&#8217;t have it):
+<code class="docutils literal"><span class="pre">sudo</span> <span class="pre">gem</span> <span class="pre">install</span> <span class="pre">bundler</span></code></li>
+<li>Install the dependencies in Gemfile with bundler: <code class="docutils literal"><span class="pre">bundler</span> <span class="pre">install</span></code></li>
+<li>Edit existing pages (found in <code class="docutils literal"><span class="pre">docs/</span></code>) using markdown. Create new
+pages by adding a markdown file to <code class="docutils literal"><span class="pre">docs/</span></code> and then adding the
+appropriate navigation configuration in
+<code class="docutils literal"><span class="pre">_data/atlasdb/sidebar.yml</span></code>.</li>
+</ol>
+<p>You can generate and view the docs locally by running
+<code class="docutils literal"><span class="pre">jekyll</span> <span class="pre">serve</span> <span class="pre">--config</span> <span class="pre">configs/atlasdb/config.yml</span></code> and opening
+<code class="docutils literal"><span class="pre">http://127.0.0.1:4009/</span></code>.</p>
+<p>The docs are a fork of the <a class="reference external" href="https://github.com/tomjohnson1492/documentation-theme-jekyll">jekyll documentation
+theme</a>.
+See <a class="reference external" href="http://idratherbewriting.com/documentation-theme-jekyll/mydoc/home.html">the theme
+documentation</a>
+for more help.</p>
+</div>
+</div>
+</div>
+
+
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="index.html" class="btn btn-neutral" title="Miscellaneous"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2016, Palantir Technologies.
+    </p>
+  </div>
+
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+  
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'0.3.34',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

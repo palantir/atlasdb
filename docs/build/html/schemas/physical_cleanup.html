@@ -1,0 +1,292 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Physical Cleanup &mdash; AtlasDB 0.3.34 documentation</title>
+  
+
+  
+  
+
+  
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700,400italic,700italic|Roboto+Slab:400,700|Inconsolata:400,700&subset=latin,cyrillic' rel='stylesheet' type='text/css'>
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="AtlasDB 0.3.34 documentation" href="../index.html"/>
+        <link rel="up" title="Schemas" href="index.html"/>
+        <link rel="next" title="Transactions" href="../transactions/index.html"/>
+        <link rel="prev" title="Cleanup Tasks" href="cleanup_tasks.html"/> 
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-nav-search">
+        
+          <a href="../index.html" class="fa fa-home"> AtlasDB</a>
+        
+        
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+        
+          
+          
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../overview/index.html">Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../overview/benefits.html">Benefits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/atlas_server_api.html">Atlas Server Api</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/getting_started.html">Getting Started</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Schemas</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="tables_and_indices.html">Tables and Indices</a></li>
+<li class="toctree-l2"><a class="reference internal" href="streams.html">Streams</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cleanup_tasks.html">Cleanup Tasks</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="">Physical Cleanup</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../transactions/index.html">Transactions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../transactions/isolation_levels.html">Isolation Levels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../transactions/performance_ideas.html">Performance Ideas</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../transactions/transaction_protocol.html">Transaction Protocol</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../configuration/index.html">Configuration</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../configuration/cassandra_config.html">Cassandra Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../cluster_management/index.html">Cluster Management</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../cluster_management/clis.html">Command Line Utilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../cluster_management/console.html">Console</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../miscellaneous/index.html">Miscellaneous</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../miscellaneous/contributing.html">Contributing to AtlasDB</a></li>
+</ul>
+</li>
+</ul>
+
+          
+        
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../index.html">AtlasDB</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="index.html">Schemas</a> &raquo;</li>
+      
+    <li>Physical Cleanup</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          <a href="../_sources/schemas/physical_cleanup.txt" rel="nofollow"> View page source</a>
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document">
+            
+  <div class="section" id="physical-cleanup">
+<h1>Physical Cleanup<a class="headerlink" href="#physical-cleanup" title="Permalink to this headline">¶</a></h1>
+<p>When using a MVCC scheme, there will be old data that is no longer
+needed. We need to keep it around for a while because long running
+read-only transactions may be reading it, but we eventually need to
+clean up this old data.</p>
+<p>AtlasDB has a variety of options for maximal flexibility.</p>
+<div class="section" id="sweeping">
+<h2>Sweeping<a class="headerlink" href="#sweeping" title="Permalink to this headline">¶</a></h2>
+<p>A Sweeper will run in the background and remove data that is no longer
+needed. It does this by waiting until any read-only transaction would be
+timed out. This is found in
+<code class="docutils literal"><span class="pre">Cleaner.getTransactionReadTimeoutMillis()</span></code> and defaults to 24 hours.
+The sweeper does a range scan on each table and cleans up old stuff it
+finds.</p>
+<div class="section" id="sentinel-values">
+<h3>Sentinel Values<a class="headerlink" href="#sentinel-values" title="Permalink to this headline">¶</a></h3>
+<p>The primary objective of AtlasDB is correctness. This manifests by never
+relying on time for correctness. This means that we can&#8217;t just assume
+that a transaction that has been running for a day is aware that is
+supposed to stop reading. It may continue reading and we want it to
+throw rather than returning the wrong data. Returning data that
+represents a state of the world that isn&#8217;t the snapshot it&#8217;s reading
+would totally break the transactional guarantees we want.</p>
+<p>So we achieve this by writing an empty byte array at the <code class="docutils literal"><span class="pre">-1</span></code>
+timestamp called the sentinel value. Then we delete any data we think
+should be cleaned up. Now if a transaction reads the sentinel value, it
+knows that it is missing data that it should have read. We throw in this
+case rather than allowing inconsistent reads.</p>
+</div>
+</div>
+<div class="section" id="sweep-strategies">
+<h2>Sweep Strategies<a class="headerlink" href="#sweep-strategies" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="sweepstrategy-nothing">
+<h3>SweepStrategy.NOTHING<a class="headerlink" href="#sweepstrategy-nothing" title="Permalink to this headline">¶</a></h3>
+<p>This disables sweeping for this table.</p>
+</div>
+<div class="section" id="sweepstrategy-conservative">
+<h3>SweepStrategy.CONSERVATIVE<a class="headerlink" href="#sweepstrategy-conservative" title="Permalink to this headline">¶</a></h3>
+<p>This is the default, but will always leave the most recent value and
+also always keep a sentinel value (-1 timestamp). Even if the most
+recent value is a delete, there will be 2 entries for each cell. (row,
+col, -1, byte[0]) and also a delete entry at (row, col,
+most_recent_ts, byte[0])</p>
+</div>
+<div class="section" id="sweepstrategy-thorough">
+<h3>SweepStrategy.THOROUGH<a class="headerlink" href="#sweepstrategy-thorough" title="Permalink to this headline">¶</a></h3>
+<p>This sweep mode will clean up sentinel values and also the most recent
+value if it is a delete. This is great for space savings where you have
+a <code class="docutils literal"><span class="pre">CELL_REFERENCING</span></code> index that has a lot of churn.</p>
+<p>There are 2 main downsides to THOROUGH:</p>
+<ol class="arabic simple">
+<li>Read only transactions are not allowed to read THOROUGH tables. This
+is because we clean the sentinel and a read only transaction may read
+a cell as a delete when it should have read data and we can no longer
+detect this case because we removed the sentinel.</li>
+<li>Any readers of this table have to ensure their locks are still valid
+at read time. This is to prevent the case where the sweeper moves
+past your transaction because your immutable timestamp lock has
+expired. If the sweeper moved past your transaction, it may have
+cleaned up stuff you should have read.</li>
+</ol>
+</div>
+</div>
+<div class="section" id="scrubbing">
+<h2>Scrubbing<a class="headerlink" href="#scrubbing" title="Permalink to this headline">¶</a></h2>
+<p>If a transaction is marked as <code class="docutils literal"><span class="pre">TransactionType.HARD_DELETE</span></code> or
+<code class="docutils literal"><span class="pre">TransactionType.AGGRESSIVE_HARD_DELETE</span></code> all the rows that have been
+written are kept track of in the _scrub table. The scrubber will
+inspect these rows and perform the same type of deletes are sweep, but
+are targeted so they will be cleaned up much faster than a sweep which
+has to do a big getRange over everything.</p>
+<div class="section" id="aggressive-hard-delete">
+<h3>AGGRESSIVE_HARD_DELETE<a class="headerlink" href="#aggressive-hard-delete" title="Permalink to this headline">¶</a></h3>
+<p><code class="docutils literal"><span class="pre">AGGRESSIVE_HARD_DELETE</span></code> will immediately call scrub after the
+transaction is complete within the <code class="docutils literal"><span class="pre">TransactionManager.run*</span></code> call and
+block until these rows are scrubbed. This must block until the
+immutableTimestamp has passed the transaction, so it may take a second.
+This will run all the OnCleanupTasks for the tables affected and block
+again if those cause more rows to be cleaned.</p>
+<p>Another side effect of AGGRESSIVE_HARD_DELETE is that read only
+transactions may be aborted if they would read data that has been
+aggressively scrubbed (even if they haven&#8217;t timed out yet).</p>
+<p>So basically you want the data deleted NOW maybe due to legal issues and
+you do this at the expense of having some read only transactions fail.</p>
+</div>
+</div>
+</div>
+
+
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="../transactions/index.html" class="btn btn-neutral float-right" title="Transactions">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="cleanup_tasks.html" class="btn btn-neutral" title="Cleanup Tasks"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2016, Palantir Technologies.
+    </p>
+  </div>
+
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+  
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'0.3.34',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
