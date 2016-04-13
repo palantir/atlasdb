@@ -5,6 +5,10 @@ dependencies {
     compile project(':leader-election-impl')
     compile project(':atlasdb-config')
     compile 'javax.inject:javax.inject:1'
+    compile ('com.google.protobuf:protobuf-java-util:3.0.0-beta-2') {
+        exclude(module: 'protobuf-java')
+    }
+    compile(group: "com.google.protobuf", name: "protobuf-java", version: libVersions.protobuf)
 }
 
 configurations.matching({ it.name in ['compile', 'runtime'] }).all {
