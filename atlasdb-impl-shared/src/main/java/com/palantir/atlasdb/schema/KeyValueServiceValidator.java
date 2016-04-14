@@ -24,8 +24,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
-import org.apache.commons.lang.Validate;
-
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -181,13 +180,11 @@ public class KeyValueServiceValidator {
     private void validateEquality(Map<Cell, byte[]> cells1, Map<Cell, byte[]> cells2) {
         Set<Cell> ks1 = cells1.keySet();
         Set<Cell> ks2 = cells2.keySet();
-        if (!ks1.equals(ks2)) {
-            Validate.isTrue(false, "Cells not equal. Expected: " + ks1 + ". Actual: " + ks2);
-        }
+        Preconditions.checkArgument(ks1.equals(ks2),
+                "Cells not equal. Expected: %s. Actual: %s", ks1, ks2);
         for (Cell c : ks1) {
-            if (!Arrays.equals(cells1.get(c), cells2.get(c))) {
-                Validate.isTrue(false, "Value not equal in " + c);
-            }
+            Preconditions.checkArgument(Arrays.equals(cells1.get(c), cells2.get(c)),
+                    "Values not equal for cell %s", c);
         }
     }
 }
