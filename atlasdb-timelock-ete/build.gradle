@@ -29,7 +29,7 @@ dependencies {
     compile project(':timestamp-api')
     compile project(':atlasdb-config')
 
-    testCompile 'com.palantir.docker.compose:docker-compose-rule:0.7.1'
+    testCompile 'com.palantir.docker.compose:docker-compose-rule:0.8.0'
     testCompile 'ch.qos.logback:logback-classic:1.1.7'
 }
 
