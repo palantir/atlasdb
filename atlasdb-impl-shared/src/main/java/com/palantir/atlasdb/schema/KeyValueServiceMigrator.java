@@ -41,6 +41,7 @@ import com.palantir.common.concurrent.PTExecutors;
 public class KeyValueServiceMigrator {
     private final TableReference checkpointTable;
     private static final String CHECKPOINT_TABLE_NAME = "tmp_migrate_progress";
+    private static final int PARTITIONS = 256;
 
     private final TransactionManager fromTransactionManager;
     private final TransactionManager toTransactionManager;
@@ -49,7 +50,6 @@ public class KeyValueServiceMigrator {
     private final Supplier<Long> migrationTimestampSupplier;
 
     private final int threads;
-    private final int partitions;
     private final int defaultBatchSize;
 
     // Tables that exist on the legacy KVS and should not be migrated.
@@ -78,7 +78,6 @@ public class KeyValueServiceMigrator {
                                    KeyValueService toKvs,
                                    Supplier<Long> migrationTimestampSupplier,
                                    int threads,
-                                   int partitions,
                                    int defaultBatchSize,
                                    Map<TableReference, Integer> readBatchSizeOverrides,
                                    KvsMigrationMessageProcessor messageProcessor,
@@ -91,7 +90,6 @@ public class KeyValueServiceMigrator {
         this.toKvs = toKvs;
         this.migrationTimestampSupplier = migrationTimestampSupplier;
         this.threads = threads;
-        this.partitions = partitions;
         this.defaultBatchSize = defaultBatchSize;
         this.readBatchSizeOverrides = readBatchSizeOverrides;
         this.messageProcessor = messageProcessor;
@@ -214,7 +212,7 @@ public class KeyValueServiceMigrator {
                             readTxManager).txManager(txManager).writeKvs(writeKvs).migrationTimestamp(
                             migrationTimestamp).checkpointer(checkpointer).build();
             TableMigratorBuilder builder =
-                    new TableMigratorBuilder().srcTable(table).partitions(partitions).partitioners(
+                    new TableMigratorBuilder().srcTable(table).partitions(PARTITIONS).partitioners(
                             getPartitioners(fromKvs, table)).readBatchSize(
                             getBatchSize(table)).executor(executor).checkpointer(checkpointer).progress(
                             taskProgress).rangeMigrator(rangeMigrator);

@@ -146,7 +146,6 @@ public class KvsMigrationCommand implements Callable<Integer> {
                 toServices.getKeyValueService(),
                 migrationTimestampSupplier,
                 threads,
-                256,
                 batchSize,
                 ImmutableMap.<TableReference, Integer>of(),
                 (String message, KeyValueServiceMigrator.KvsMigrationMessageLevel level) -> {
