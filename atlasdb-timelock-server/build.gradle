@@ -1,15 +1,13 @@
 buildscript {
     repositories { jcenter() }
     dependencies {
-        classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.3'
+        classpath 'com.palantir.gradle.javadist:gradle-java-distribution:0.5.2'
     }
 }
 
-
 apply from: "../gradle/shared.gradle"
 
-apply plugin: 'com.github.johnrengelman.shadow'
-
+apply plugin: 'com.palantir.java-distribution'
 apply plugin: 'org.inferred.processors'
 
 
@@ -17,12 +15,23 @@ dependencies {
     compile project(':lock-impl')
     compile project(':leader-election-impl')
     compile project(':atlasdb-config')
-    compile project(':atlasdb-rocksdb')
+    compile(project(':atlasdb-cassandra')) {
+        exclude(module:'log4j-over-slf4j')
+        exclude(module:'jcl-over-slf4j')
+        exclude(module:'json-simple')
+        exclude(module:'metrics-core')
+        exclude(module:'logback-core')
+        exclude(module:'logback-classic')
+        exclude(module:'joda-time')
+        exclude(module:'snakeyaml')
+        exclude(module: 'hibernate-validator')
+    }
 
     compile "io.dropwizard:dropwizard-core:" + libVersions.dropwizard
     compile 'com.google.dagger:dagger:2.0.2'
 
     compile "org.rocksdb:rocksdbjni:4.1.0"
+    compile 'org.apache.thrift:libthrift:0.9.1'
 
     processor 'org.immutables:value:2.0.21'
     processor('com.google.dagger:dagger-compiler:2.0.2') {
@@ -44,20 +53,19 @@ configurations.matching({ it.name in ['compile', 'runtime'] }).all {
         force 'com.fasterxml.jackson.core:jackson-databind:' + libVersions.jackson
         force 'com.fasterxml.jackson.core:jackson-core:' + libVersions.jackson
         force 'org.apache.commons:commons-lang3:3.1'
+        force 'org.apache.thrift:libthrift:0.9.1'
+        force 'commons-codec:commons-codec:1.6'
+        force 'org.hibernate:hibernate-validator:5.1.3.Final'
     }
 }
 
+distribution {
+    serviceName 'atlasdb-timelock'
+    mainClass 'com.palantir.atlasdb.timelock.server.TimeLockServer'
+    args 'server', 'var/conf/timelock.yml'
+}
 
 sourceCompatibility = '1.8'
 targetCompatibility = '1.8'
-version = "" // This is to generate a good shadowJar jar name
+version = "snapshot" // This is to generate a good distTar name
 
-// Configure the shadow jar task
-shadowJar {
-    mergeServiceFiles()
-    exclude 'META-INF/*.DSA'
-    exclude 'META-INF/*.RSA'
-    manifest {
-        attributes 'Main-Class': 'com.palantir.atlasdb.timelock.server.TimeLockServer'
-    }
-}

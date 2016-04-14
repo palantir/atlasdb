@@ -11,8 +11,13 @@ server:
 
 atlasdb:
   keyValueService:
-    type: rocksdb
-    dataDir: var/data/rocksdb
+    type: cassandra
+    servers:
+      - cassandra:9160
+    ssl: false
+    replicationFactor: 1
+    keyspace: timelockEte
+    safetyDisabled: true
   leader:
     quorumSize: 2
     learnerLogDir: var/data/paxosLog/learner1

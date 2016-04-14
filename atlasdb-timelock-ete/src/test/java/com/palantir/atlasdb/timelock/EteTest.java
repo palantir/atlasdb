@@ -26,6 +26,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.function.Function;
 
+import javax.net.ssl.SSLSocketFactory;
+
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -33,27 +35,44 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.docker.compose.DockerComposition;
+import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerPort;
-import com.palantir.docker.compose.connection.waiting.HealthCheck;
+import com.palantir.docker.compose.connection.waiting.MultiServiceHealthCheck;
+import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 import com.palantir.timestamp.TimestampService;
 
 public class EteTest {
     public static final int TIMELOCK_SERVER_PORT = 3828;
+    private static final Optional<SSLSocketFactory> NO_SSL = Optional.absent();
 
+    public static final ImmutableList<String> TIMELOCK_NODES = ImmutableList.of("timelock1", "timelock2", "timelock3");
     @ClassRule
-    public static DockerComposition composition = DockerComposition.of("atlasdb-timelock-server/timelock-ete/docker-compose.yml")
-            .waitingForService("timelock1", toBePingable())
-            .waitingForService("timelock2", toBePingable())
-            .waitingForService("timelock3", toBePingable())
-            .saveLogsTo("atlasdb-timelock-server/timelock-ete/container-logs")
+    public static DockerComposition composition = DockerComposition.of("docker-compose.yml")
+            .waitingForServices(TIMELOCK_NODES, toHaveElectedALeader())
+            .saveLogsTo("container-logs")
             .build();
 
-    private static HealthCheck toBePingable() {
-        return container -> container.portMappedInternallyTo(TIMELOCK_SERVER_PORT).isHttpResponding(onPingEndpoint());
+    private static MultiServiceHealthCheck toHaveElectedALeader() {
+        return (containers) -> {
+            List<String> containerEndpoints = containers.stream()
+                    .map(asTimelockHost())
+                    .collect(toList());
+            TimestampService timestampService = AtlasDbHttpClients.createProxyWithFailover(NO_SSL, containerEndpoints, TimestampService.class);
+            return haveElectedALeader(timestampService);
+        };
     }
 
-    private static Function<DockerPort, String> onPingEndpoint() {
-        return port -> "http://" + port.getIp() + ":" + port.getExternalPort() + "/leader/ping";
+    private static SuccessOrFailure haveElectedALeader(TimestampService timestampService) {
+        try {
+            timestampService.getFreshTimestamp();
+            return SuccessOrFailure.success();
+        } catch (Exception e) {
+            return SuccessOrFailure.fromException(e);
+        }
+    }
+
+    private static Function<Container, String> asTimelockHost() {
+        return container -> container.portMappedInternallyTo(TIMELOCK_SERVER_PORT).inFormat("http://$HOST:$EXTERNAL_PORT");
     }
 
     @Test public void shouldBeAbleToGetTimestampsOffAClusterOfServices() throws Exception {

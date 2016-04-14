@@ -1,0 +1,44 @@
+version: "2"
+services:
+  cassandra:
+    hostname: "cassandra"
+    build: cassandra
+    environment:
+    - CASSANDRA_BROADCAST_ADDRESS=cassandra
+    - CASSANDRA_START_RPC=true
+    - _JAVA_OPTIONS=-Dcassandra.skip_wait_for_gossip_to_settle=0
+    ports:
+      - "9160:9160"
+      - "7199:7199"
+      - "9042:9042"
+
+  timelock1:
+    hostname: "timelock1"
+    build: ../atlasdb-timelock-server
+    environment:
+      - HOSTNAME=timelock1
+    ports:
+      - "3828"
+    depends_on:
+      - cassandra
+
+  timelock2:
+    hostname: "timelock2"
+    build: ../atlasdb-timelock-server
+    environment:
+      - HOSTNAME=timelock2
+    ports:
+      - "3828"
+    depends_on:
+      - cassandra
+
+  timelock3:
+    hostname: "timelock3"
+    build: ../atlasdb-timelock-server
+    environment:
+      - HOSTNAME=timelock3
+    ports:
+      - "3828"
+    depends_on:
+      - cassandra
+
