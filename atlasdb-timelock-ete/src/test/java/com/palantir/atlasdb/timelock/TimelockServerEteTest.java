@@ -28,6 +28,7 @@ import java.util.List;
 
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.rules.RuleChain;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
@@ -42,11 +43,15 @@ public class TimelockServerEteTest {
     private static final int TIMELOCK_SERVER_PORT = 3828;
     private static final ImmutableList<String> TIMELOCK_NODES = ImmutableList.of("timelock1", "timelock2", "timelock3");
 
-    @ClassRule
     public static DockerComposition composition = DockerComposition.of("docker-compose.yml")
             .waitingForServices(TIMELOCK_NODES, toHaveElectedALeader())
             .saveLogsTo("container-logs")
             .build();
+
+    public static EnsureGradleHasRun gradle = new EnsureGradleHasRun(":atlasdb-timelock-server:distTar");
+
+    @ClassRule
+    public static RuleChain rules = RuleChain.outerRule(gradle).around(composition);
 
     @Test
     public void shouldBeAbleToGetTimestampsOffAClusterOfServices() throws Exception {
