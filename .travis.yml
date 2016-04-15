@@ -31,7 +31,7 @@ before_script:
 - ps aux --sort=-%mem | awk 'NR<=10{print $0}'
 
 script:
-- ./gradlew -i :atlasdb-timelock-ete:test
+- ./gradlew --debug :atlasdb-timelock-ete:test
 - travis_wait ./gradlew --max-workers 2 check --stacktrace
 
 after_success:
