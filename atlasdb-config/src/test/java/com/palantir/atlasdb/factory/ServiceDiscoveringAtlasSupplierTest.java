@@ -17,14 +17,19 @@ package com.palantir.atlasdb.factory;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.IsNot.not;
+import static org.mockito.Mockito.mock;
 
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeDiagnosingMatcher;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.timestamp.TimestampService;
 
 public class ServiceDiscoveringAtlasSupplierTest {
     private final KeyValueServiceConfig kvsConfig = () -> AutoServiceAnnotatedAtlasDbFactory.TYPE;
@@ -46,11 +51,12 @@ public class ServiceDiscoveringAtlasSupplierTest {
     @Test
     public void delegateToFactoriesAnnotatedWithAutoServiceForCreatingTimestampServices() {
         ServiceDiscoveringAtlasSupplier atlasSupplier = new ServiceDiscoveringAtlasSupplier(kvsConfig);
-        KeyValueService delegateKeyValueService = delegate.createRawKeyValueService(kvsConfig);
+        TimestampService timestampService = mock(TimestampService.class);
+        AutoServiceAnnotatedAtlasDbFactory.nextTimestampServiceToReturn(timestampService);
 
         assertThat(
                 atlasSupplier.getTimestampService(),
-                is(delegate.createTimestampService(delegateKeyValueService)));
+                is(timestampService));
     }
 
     @Test
@@ -61,5 +67,29 @@ public class ServiceDiscoveringAtlasSupplierTest {
         exception.expectMessage("Have you annotated it with @AutoService(AtlasDbFactory.class)?");
 
         new ServiceDiscoveringAtlasSupplier(invalidKvsConfig);
+    }
+
+    @Test
+    public void returnDifferentTimestampServicesOnSubsequentCalls() {
+        ServiceDiscoveringAtlasSupplier supplier = new ServiceDiscoveringAtlasSupplier(kvsConfig);
+        AutoServiceAnnotatedAtlasDbFactory.nextTimestampServiceToReturn(mock(TimestampService.class), mock(TimestampService.class));
+
+        assertThat(supplier.getTimestampService(), is(not(sameObjectAs(supplier.getTimestampService()))));
+    }
+
+    private Matcher<Object> sameObjectAs(Object initial) {
+        return new TypeSafeDiagnosingMatcher<Object>() {
+            @Override
+            protected boolean matchesSafely(Object item, Description mismatchDescription) {
+                mismatchDescription.appendValue(item);
+                return initial == item;
+            }
+
+            @Override
+            public void describeTo(Description description) {
+                description.appendText("Object which is exactly the same as ").appendValue(initial);
+
+            }
+        };
     }
 }
