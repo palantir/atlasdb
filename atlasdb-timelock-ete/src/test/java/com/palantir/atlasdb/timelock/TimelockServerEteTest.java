@@ -43,15 +43,17 @@ public class TimelockServerEteTest {
     private static final int TIMELOCK_SERVER_PORT = 3828;
     private static final ImmutableList<String> TIMELOCK_NODES = ImmutableList.of("timelock1", "timelock2", "timelock3");
 
-    public static DockerComposition composition = DockerComposition.of("docker-compose.yml")
+    public static DockerComposition dockerComposition = DockerComposition.of("docker-compose.yml")
             .waitingForServices(TIMELOCK_NODES, toHaveElectedALeader())
             .saveLogsTo("container-logs")
             .build();
 
-    public static EnsureGradleHasRun gradle = new EnsureGradleHasRun(":atlasdb-timelock-server:distTar");
+    public static Gradle gradle = Gradle.ensureTaskHasRun(":atlasdb-timelock-server:distTar");
 
     @ClassRule
-    public static RuleChain rules = RuleChain.outerRule(gradle).around(composition);
+    public static RuleChain rules = RuleChain
+            .outerRule(gradle)
+            .around(dockerComposition);
 
     @Test
     public void shouldBeAbleToGetTimestampsOffAClusterOfServices() throws Exception {
@@ -79,7 +81,7 @@ public class TimelockServerEteTest {
 
     private DockerPort timelockPort(String container) {
         try {
-            return composition.portOnContainerWithInternalMapping(container, TIMELOCK_SERVER_PORT);
+            return dockerComposition.portOnContainerWithInternalMapping(container, TIMELOCK_SERVER_PORT);
         } catch (IOException | InterruptedException e) {
             throw propagate(e);
         }

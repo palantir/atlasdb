@@ -26,12 +26,16 @@ import java.nio.file.Paths;
 import org.apache.commons.io.IOUtils;
 import org.junit.rules.ExternalResource;
 
-public class EnsureGradleHasRun extends ExternalResource {
+public class Gradle extends ExternalResource {
 
     private final String command;
 
-    public EnsureGradleHasRun(String command) {
+    private Gradle(String command) {
         this.command = command;
+    }
+
+    public static Gradle ensureTaskHasRun(String command) {
+        return new Gradle(command);
     }
 
     @Override
