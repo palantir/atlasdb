@@ -1,0 +1,652 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Tables and Indices &mdash; AtlasDB 0.3.34 documentation</title>
+  
+
+  
+  
+
+  
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700,400italic,700italic|Roboto+Slab:400,700|Inconsolata:400,700&subset=latin,cyrillic' rel='stylesheet' type='text/css'>
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="AtlasDB 0.3.34 documentation" href="../index.html"/>
+        <link rel="up" title="Schemas" href="index.html"/>
+        <link rel="next" title="Streams" href="streams.html"/>
+        <link rel="prev" title="Schemas" href="index.html"/> 
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-nav-search">
+        
+          <a href="../index.html" class="fa fa-home"> AtlasDB</a>
+        
+        
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+        
+          
+          
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../overview/index.html">Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../overview/benefits.html">Benefits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/atlas_server_api.html">Atlas Server Api</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/getting_started.html">Getting Started</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Schemas</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="">Tables and Indices</a></li>
+<li class="toctree-l2"><a class="reference internal" href="streams.html">Streams</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cleanup_tasks.html">Cleanup Tasks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="physical_cleanup.html">Physical Cleanup</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../transactions/index.html">Transactions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../transactions/isolation_levels.html">Isolation Levels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../transactions/performance_ideas.html">Performance Ideas</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../transactions/transaction_protocol.html">Transaction Protocol</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../configuration/index.html">Configuration</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../configuration/cassandra_config.html">Cassandra Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../cluster_management/index.html">Cluster Management</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../cluster_management/clis.html">Command Line Utilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../cluster_management/console.html">Console</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../miscellaneous/index.html">Miscellaneous</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../miscellaneous/contributing.html">Contributing to AtlasDB</a></li>
+</ul>
+</li>
+</ul>
+
+          
+        
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../index.html">AtlasDB</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="index.html">Schemas</a> &raquo;</li>
+      
+    <li>Tables and Indices</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          <a href="../_sources/schemas/tables_and_indices.txt" rel="nofollow"> View page source</a>
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document">
+            
+  <div class="section" id="tables-and-indices">
+<h1>Tables and Indices<a class="headerlink" href="#tables-and-indices" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="tables">
+<h2>Tables<a class="headerlink" href="#tables" title="Permalink to this headline">¶</a></h2>
+<p>Tables are the base structure for storing data in atlasdb. Every table
+has a name, a row specification, a column-value specification, an
+optional set of constraints on the table, and an optional set of
+behavior and performance tuning parameters.</p>
+<p>There is one main way to add a table to the schema, along with two
+variants.</p>
+<p>{%raw%}</p>
+<div class="code java highlight-python"><div class="highlight"><pre>schema.addTableDefinition(&quot;table_name_here&quot;, new TableDefinition() {{
+    javaName(&quot;JavaTableName&quot;); //optional
+    rowName();
+        ...
+    columns(); //or dynamicColumns();
+        ...
+    constraints(); //optional section
+        ...
+    ... //behavior/perf options
+}});
+</pre></div>
+</div>
+<p>{%endraw%}</p>
+<p>The <code class="docutils literal"><span class="pre">addTableDefinition</span></code> method takes two arguments: the name of the
+table to be used in the key-value store itself, and a table definition.
+The table name should be specified in snake_case. The details of the
+TableDefinition initialization will be covered in the &#8220;Table/Index
+Definition&#8221; section.</p>
+<p>If there are multiple tables which will have the same definition but
+will have different names, the first variation of the table definition
+can be used:</p>
+<p>{%raw%}</p>
+<div class="code java highlight-python"><div class="highlight"><pre>schema.addDefinitionForTables(ImmutableSet.of(&quot;table1_name&quot;, &quot;table2_name&quot;), new TableDefinition() {{
+    ...
+}});
+</pre></div>
+</div>
+<p>{%endraw%}</p>
+<p>If the table should not exist for more than a transaction and is
+primarily to conserve server memory, then a table can be explicitly
+declared a temp table using the second variation:</p>
+<p>{%raw%}</p>
+<div class="code java highlight-python"><div class="highlight"><pre>schema.addTempTableDefinition(&quot;temp_table_name&quot;, new TableDefinition() {{
+    ...
+}});
+</pre></div>
+</div>
+<p>{%endraw%}</p>
+<p>The AtlasDB developers however strongly recommend against usage of this
+form, since they have not found it to be particularly useful in making
+atlasdb queries, and thus have never used it themselves, and thus have
+never tested to see if it actually works.</p>
+</div>
+<div class="section" id="indices">
+<h2>Indices<a class="headerlink" href="#indices" title="Permalink to this headline">¶</a></h2>
+<p>A common pattern in database schemas is to define an index table whose
+values are derived from and kept in sync with values from a base table.
+In standard RDBMS&#8217;s these are user-defined and db-managed, but atlasdb
+[STRIKEOUT:is not so full-featured] requires you to think more carefully
+about performance.</p>
+<p>There are two kinds of indices which can be defined in atlasdb: additive
+and cell-referencing. Both use the dynamic columns layout. For additive
+indices, each cell in the index is derived from a unique one row in the
+base table. For cell-referencing indices, each cell in the index is
+derived from a unique cell (not row of cells) in the base table. For
+more complicated index situations (e.g. indices whose rows are derived
+from multiple tables) a regular table must be defined for the index, and
+synchronization between the base table(s) and index must be done
+manually.</p>
+<p>{%raw%}</p>
+<div class="code java highlight-python"><div class="highlight"><pre>schema.addIndexDefinition(&quot;index_name_here&quot;, new IndexDefinition(IndexType.ADDITIVE /* or .CELL_REFERENCING */) {{
+    onTable(&quot;base_table_name&quot;);
+    onCondition(&quot;source_column&quot;, &quot; /* java boolean expression */ _value &gt; 100 &quot;); //optional
+    rowName();
+        ...
+    dynamicColumns(); //or noColumns();
+        ...
+    ... //behavior/perf options
+}});
+</pre></div>
+</div>
+<p>{%endraw%}</p>
+<p>Note that, in the case where the index should only get a row from the
+base table if some condition is met, the <code class="docutils literal"><span class="pre">onCondition</span></code> clause can be
+added to the index definition. The value of the cell with the specified
+column is accessed by the <code class="docutils literal"><span class="pre">_value</span></code> term.</p>
+<p>If multiple indices should be defined for the same index definition,
+then the following variant can be used:</p>
+<p>{%raw%}</p>
+<div class="code java highlight-python"><div class="highlight"><pre>schema.addAdditiveIndexesForDefinition(ImmutableSet.of(&quot;index1_name&quot;, &quot;index2_name&quot;), new IndexDefinition(...) {{
+    ...
+}});
+</pre></div>
+</div>
+<p>{%endraw%}</p>
+<p>The AtlasDB Developers however strongly recommend against usage of this
+form, since they have not found it to be particularly useful in making
+atlasdb queries, and thus have never used it themselves, and thus have
+never tested to so if it actually works.</p>
+<div class="section" id="additive">
+<h3>Additive<a class="headerlink" href="#additive" title="Permalink to this headline">¶</a></h3>
+<p>The components of a cell in an additive index can reference any cells
+for each row of the base table. Insertions of new rows to the base table
+and updates to existing rows in the base table will automatically
+trigger updates to the values in the index tables. Deletes to the base
+table however are not cascaded to the index tables, and must be done
+manually. Manual additions, updates, and deletes to an additive index
+table do not trigger actions on the base table. Additive indices will
+have a &#8220;_aidx&#8221; suffix added to their index names.</p>
+</div>
+<div class="section" id="cell-referencing">
+<h3>Cell-Referencing<a class="headerlink" href="#cell-referencing" title="Permalink to this headline">¶</a></h3>
+<p>The components of a cell in a cell-referencing index can only reference
+cells from a schema-specified column for each row of the base table.
+Insertions and updates of cells to the base table with the correct
+column will automatically trigger insertions/updates to corresponding
+cells in the index table. Deletes to the base table are also cascaded to
+the index table. Manual additions, updates, and deletes to the
+cell-referencing table do not trigger actions on the base table.
+Cell-referencing indices have a &#8220;_idx&#8221; suffix added to their index
+names.</p>
+<p>Note however that this automatic management comes at a performance cost:
+Writing to a table performs a read from each cell-referencing index (as
+well as a write) to determine what deletions need to be performed on the
+index. This read happens synchronously. This can cause writes (which are
+otherwise asynchrounous and batched) to be particularly expensive in
+tables with cell-referencing indices.</p>
+</div>
+<div class="section" id="regular-tables">
+<h3>Regular tables<a class="headerlink" href="#regular-tables" title="Permalink to this headline">¶</a></h3>
+<p>Technically there exists a third type of index, which is simply a
+regular table with data derived from another table. In this case the row
+name is a tuple composed of the field on which you&#8217;re indexing and the
+primary key (i.e., row name) of the table from which the index table is
+derived. To look something up, the client can simply do a range scan of
+rows in the index the first component of which is what it&#8217;s looking for.
+The client then gets back the row names that include that row component,
+and from there it can look at the remaining components (typically some
+sort of ID) to find what it&#8217;s looking for.</p>
+<p>The disadvantage of creating such an index is that inserts, updates, and
+deletes to the table from which the index table is derived all have to
+be accounted for manually with extra logic.</p>
+<p>However, there is an advantage to indexing this way: The client can page
+through the results, whereas additive or cell-referencing indices have
+dynamic columns by default, forcing the client to get all of the results
+at once. This may or may not be an issue depending on the amount of data
+being stored in a given table.</p>
+</div>
+</div>
+<div class="section" id="table-index-definitions">
+<h2>Table/Index Definitions<a class="headerlink" href="#table-index-definitions" title="Permalink to this headline">¶</a></h2>
+<p>The <code class="docutils literal"><span class="pre">TableDefinition</span></code> and <code class="docutils literal"><span class="pre">IndexDefinition</span></code> is often created as an
+anonymous class using &#8220;double-brace initialization&#8221;, which allows for
+more readable code than a conventional builder. Certain initialization
+methods, such as <code class="docutils literal"><span class="pre">javaName()</span></code>, can be called at any time in the
+method, while others, such as <code class="docutils literal"><span class="pre">column()</span></code>, need to be preceded by a
+&#8220;state transition&#8221; command, such as <code class="docutils literal"><span class="pre">columns()</span></code>. By convention, such
+definitions are broken down into the following sections:</p>
+<ul class="simple">
+<li><strong>Definition Parameters</strong> such as <code class="docutils literal"><span class="pre">javaName()</span></code> define basic
+properties of tables and indexes and are placed at the beginning.</li>
+<li><strong>Row Definitions</strong> such as <code class="docutils literal"><span class="pre">rowComponent()</span></code> define the rows of the
+table. The section is begun with a <code class="docutils literal"><span class="pre">rowName()</span></code> call. A table must
+define at least one row component through these methods to be valid.</li>
+<li><strong>Named Column Definitions</strong> such as <code class="docutils literal"><span class="pre">column()</span></code> define the named
+columns of the table. The section is begun with a <code class="docutils literal"><span class="pre">columns()</span></code> call.
+A table can have a named column section or a dynamic column section,
+but not both.</li>
+<li><strong>Dynamic Column Definitions</strong> such as <code class="docutils literal"><span class="pre">columnComponent()</span></code> define
+the dynamic columns of the table. The section is begun with a
+<code class="docutils literal"><span class="pre">dynamicColumns()</span></code> call. A table can have a named column section or
+a dynamic column section, but not both.</li>
+<li><strong>Constraint Definitions</strong> such as <code class="docutils literal"><span class="pre">tableConstraint()</span></code> define
+constraints on the table (such as foreign key relations). The section
+is begun with a <code class="docutils literal"><span class="pre">constraints()</span></code> call. This section is optional.</li>
+<li><strong>Behavioral Parameters</strong> such as <code class="docutils literal"><span class="pre">conflictHandler()</span></code> define the
+behavior of the table during run-time. This includes allowed queries,
+performance optimizations, and concurrency strategies, among others.
+This section is usually at the end.</li>
+</ul>
+<div class="section" id="definition-parameters">
+<h3>Definition Parameters<a class="headerlink" href="#definition-parameters" title="Permalink to this headline">¶</a></h3>
+<div class="code java highlight-python"><div class="highlight"><pre>public void javaTableName(String name);
+</pre></div>
+</div>
+<p>This method specifies the name of the table to be used in generated java
+code for the schema. It should be specified in CamelCase and be as long
+as descriptive as is useful. If this method is not called, the value
+will be derived by converting the table&#8217;s atlasdb name from snake_case
+to CamelCase.</p>
+<div class="section" id="index-specific-parameters">
+<h4>Index-specific Parameters<a class="headerlink" href="#index-specific-parameters" title="Permalink to this headline">¶</a></h4>
+<div class="code java highlight-python"><div class="highlight"><pre>public void onTable(String name);
+</pre></div>
+</div>
+<p>This method specifies the atlasdb name of the table which this index
+definition will derive its data from. This method is required for all
+IndexDefinitions.</p>
+<div class="code java highlight-python"><div class="highlight"><pre>public void onCondition(String sourceColumn, String booleanExpression);
+</pre></div>
+</div>
+<p>Optional parameter. Specifies that only rows which satisfy the specified
+boolean expression on the specified source column will be added to the
+index. The source column must be a valid component name from the source
+table, and the boolean expression must be a valid java expression, with
+<code class="docutils literal"><span class="pre">_value</span></code> denoting the value of the source column. <em>Not available
+before</em> <em>3.12.4.3-r1</em></p>
+</div>
+</div>
+<div class="section" id="row-definitions">
+<h3>Row Definitions<a class="headerlink" href="#row-definitions" title="Permalink to this headline">¶</a></h3>
+<p>Each row is uniquely identified by its <code class="docutils literal"><span class="pre">rowName</span></code>. Each <code class="docutils literal"><span class="pre">rowName</span></code> is
+composed of at least one <code class="docutils literal"><span class="pre">rowComponent</span></code>. Therefore each row is
+uniquely identified by the permutation of its <code class="docutils literal"><span class="pre">rowComponent</span></code> values.
+Order matters. For example, the <code class="docutils literal"><span class="pre">OBJECT_TABLE</span></code> definition includes:</p>
+<div class="code java highlight-python"><div class="highlight"><pre>rowName();
+    rowComponent(&quot;object_id&quot;,           ValueType.FIXED_LONG);
+    rowComponent(&quot;realm_id&quot;,            ValueType.VAR_LONG); partition(REALM_PARTITIONER);
+    rowComponent(&quot;fragment_version_id&quot;, ValueType.VAR_LONG);
+</pre></div>
+</div>
+<p>This means that each row in this table is uniquely identified by a
+3-tuple consisting of an object ID, a realm ID, and a fragment version
+ID.</p>
+<p>Only the last <code class="docutils literal"><span class="pre">rowComponent</span></code> of a <code class="docutils literal"><span class="pre">rowName</span></code> can be set to
+<code class="docutils literal"><span class="pre">ValueType.STRING</span></code> or to <code class="docutils literal"><span class="pre">ValueType.BLOB</span></code> because values of these
+types do not explicitly or implicitly track their own size. If you need
+a <code class="docutils literal"><span class="pre">rowComponent</span></code> other than the last one to be a string or a byte
+array, use <code class="docutils literal"><span class="pre">ValueType.VAR_STRING</span></code> or <code class="docutils literal"><span class="pre">ValueType.SIZED_BLOB</span></code> instead.
+See the ValueTypes section for more information</p>
+<div class="code java highlight-python"><div class="highlight"><pre>public void rowComponent(String componentName, ValueType valueType, ValueByteOrder valueByteOrder = ValueByteOrder.ASCENDING);
+</pre></div>
+</div>
+<p>By default, all rows are stored in ascending byte order. This means
+range results are iterated in ascending order. If you need to access
+rows in reverse order, then adding the <code class="docutils literal"><span class="pre">ValueByteOrder.DESCENDING</span></code>
+argument will store them in descending order instead.</p>
+<div class="section" id="partitioners">
+<h4>Partitioners<a class="headerlink" href="#partitioners" title="Permalink to this headline">¶</a></h4>
+<p>Each row component, after being defined, may then have a partitioner
+specified on them. The partitioner is responsible for split the space of
+possible values for each row component into a number of ranges. Rows are
+then partitioned according to the row component ranges; rows which fall
+into the same partition are stored in the same server shard. Performance
+is optimized by putting rows often accessed together in the same
+partition, while spreading rows equally across all partitions.</p>
+<div class="code java highlight-python"><div class="highlight"><pre>public void partition(RowNamePartitioner... partitioners);
+
+public ExplicitRowNamePartitioner explicit(String... componentValues);
+public ExplicitRowNamePartitioner explicit(long... componentValues);
+public UniformRowNamePartitioner uniform();
+</pre></div>
+</div>
+<p>By default, all row components use <code class="docutils literal"><span class="pre">partition(uniform())</span></code>. If however,
+certain values are certain to be stored/access very often (the base
+realm of the object model, for example), they can have partitions
+explicitly created for them by specifying <code class="docutils literal"><span class="pre">explicit(...)</span></code>. Note that
+use of <code class="docutils literal"><span class="pre">partition()</span></code> assumes the order storage of rows; if there is no
+good way to partition the rows uniformly and range requests are not
+needed, then perhaps <code class="docutils literal"><span class="pre">partitionStrategy(PartitionStrategy.HASH)</span></code> is a
+better idea for your table.</p>
+<p>{{site.data.alerts.important}} The most significant component of any
+table is used by the partitioner to distribute data across the cluster.
+To avoid hot-spotting, the type of the first row component should NOT be
+a VAR_LONG, a VAR_SIGNED_LONG, or a SIZED_BLOB.
+{{site.data.alerts.end}}</p>
+<p>For a safe data distribution it is suggested the usage of
+<code class="docutils literal"><span class="pre">hashFirstRowComponent()</span></code>:</p>
+<div class="code java highlight-python"><div class="highlight"><pre>rowName();
+    hashFirstRowComponent()
+    rowComponent(&quot;secondary_row_component_of_any_type&quot;, ValueType.VAR_LONG);
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="table-named-columns">
+<h3>Table Named Columns<a class="headerlink" href="#table-named-columns" title="Permalink to this headline">¶</a></h3>
+<p>For tables using the named columns layout, the column name and value
+type referenced by each column is specified by a single command.</p>
+<div class="code java highlight-python"><div class="highlight"><pre>public void column(String columnName, String shortName, ValueType valueType)
+public void column(String columnName, String shortName, Class&lt;?&gt; protoOrPersistable, Compression compression = Compression.NONE)
+</pre></div>
+</div>
+<p>The column name is the name of the column that will be used in the
+generated java code and table metadata. The short name is a one or two
+character label which will be the actual name for the column when stored
+in atlasdb. Any ValueType may be used as the value for a column, as well
+as any protobuffer class or Persistable. AtlasDB will handle serializing
+and deserializing the proto/persistable to and from its byte array
+representation, and will optionally also compress the byte array to save
+space using the method you specify. Columns can not be overloaded with
+multiple types - each <code class="docutils literal"><span class="pre">column()</span></code> call must contain unique column names
+and short names.</p>
+<p>If instead you don&#8217;t need the a row to have multiple columns and all
+table information can be encapsulted in the row components, then the
+section can instead be specified with <code class="docutils literal"><span class="pre">noColumns()</span></code>, which defines the
+table to contain a single column &#8220;exists&#8221; with short name &#8220;e&#8221; and value
+type VAR_LONG (always zero).</p>
+</div>
+<div class="section" id="table-dynamic-columns">
+<h3>Table Dynamic Columns<a class="headerlink" href="#table-dynamic-columns" title="Permalink to this headline">¶</a></h3>
+<p>For dynamic columns, the name-value components that make up the column
+and the value type referenced by columns are specified by separate
+commands.</p>
+<div class="code java highlight-python"><div class="highlight"><pre>public void columnComponent(String componentName, ValueType valueType, ValueByteOrder byteOrder = ValueByteOrder.ASCENDING)
+</pre></div>
+</div>
+<p>Each column component is made up of a component name (specified in
+snake_case), a value type, and optionally a byte ordering. Column
+components for dynamic columns must be primitive ValueTypes which can be
+partitioned and ordered. The order of the column component calls is the
+order in which the components will be stored together. Since dyanmic
+columns of a row are retrieved in byte order, this means column
+component ordering determines sort ordering for retrieval.</p>
+<div class="code java highlight-python"><div class="highlight"><pre>public void value(ValueType valueType)
+public void value(Class&lt;? extends GeneratedMessage&gt; proto, Compression compression = Compression.NONE)
+</pre></div>
+</div>
+<p>Every dynamic column will also have a value associated with it, which
+can be a primitive ValueType or protobuf (optionally compressed).</p>
+<p>If values are not needed for the table, specifying
+<code class="docutils literal"><span class="pre">value(ValueType.VAR_LONG)</span></code> and <code class="docutils literal"><span class="pre">maxValueSize(1)</span></code> is conventional.
+The max value size command is a performance hint for atlasdb.</p>
+</div>
+<div class="section" id="index-rows-and-columns">
+<h3>Index Rows and Columns<a class="headerlink" href="#index-rows-and-columns" title="Permalink to this headline">¶</a></h3>
+<p>Indices are a little more constrained in their definition than tables,
+since their components must be primitive value-types derived from the
+pre-existing components of a table. All index definitions also do not
+get a choice between named and dynamic column types: If the index is
+defined with columns, then it is dynamic; if defined without columns,
+this it is named with an implicit <code class="docutils literal"><span class="pre">noColumns()</span></code>.</p>
+<p>Both the <code class="docutils literal"><span class="pre">rowName()</span></code> and <code class="docutils literal"><span class="pre">dynamicColumns()</span></code> sections use the same
+methods to define their components:</p>
+<div class="code java highlight-python"><div class="highlight"><pre>public void componentFromRow(String componentName,
+                             ValueType valueType,
+                             ValueByteOrder byteOrder = ValueByteOrder.ASCENDING,
+                             String sourceComponentName = componentName);
+
+public void componentFromColumn(String componentName,
+                                ValueType valueType,
+                                ValueByteOrder byteOrder = ValueByteOrder.ASCENDING,
+                                String sourceColumnName = componentName,
+                                String codeToAccessValue);
+
+public void componentFromDynamicColumn(String componentName,
+                                       ValueType valueType,
+                                       ValueByteOrder byteOrder = ValueByteOrder.ASCENDING,
+                                       String sourceComponentName = componentName);
+</pre></div>
+</div>
+<p>All components define a component name, value-type, byte-order, which
+defaults to ascending if unspecified, and component name of the source
+row/column component, which by default is assumed to be the same as the
+component name specified earlier. Note that for cell-referencing
+indexes, all index components derived from columns need to reference the
+same column.</p>
+<p>For components being derived from named columns, an additional &#8220;code to
+access value&#8221; argument is required. This argument allows value-type
+index components to be extracted from more complicated protobuf or
+serializable column components. The argument must be a valid java source
+code expression, where <code class="docutils literal"><span class="pre">_value</span></code> is the value of the table component.</p>
+<p>For the row definitions section, each <code class="docutils literal"><span class="pre">componentFromRow</span></code> call can be
+succeeded by a <code class="docutils literal"><span class="pre">partitioner()</span></code> call, in the exact same manner as for
+table rows. For more information, see the Partitioners subsection of
+Table Rows.</p>
+</div>
+<div class="section" id="constraints">
+<h3>Constraints<a class="headerlink" href="#constraints" title="Permalink to this headline">¶</a></h3>
+<p>Sometimes the set of valid values for a table is smaller than the set of
+valid values specified by just type information. In these cases, it can
+be useful to explicitly express these constraints when defining the
+tables to ensure that code written against these tables do not violate
+them. The atlasdb schema allows three different types of constraints to
+be defined: Foreign key constraints, table constraints, and row
+constraints. Note however, that these constraints are used mostly for
+staging and debugging environments only and will usually not be enabled
+in production due to their sometimes prohibitive performance costs.</p>
+<div class="code java highlight-python"><div class="highlight"><pre>public void foreignKeyConstraint(ForeignKeyConstraingMetadata constraint);
+public void tableConstraint(TableConstraint constraint);
+public void rowConstraint(RowConstraintMetadata constraint);
+</pre></div>
+</div>
+<ul class="simple">
+<li><strong>Foreign Key Constraints</strong> reach across tables and specify that
+certain components must have matching values with components from
+another table.</li>
+<li><strong>Table Constraints</strong> affect the whole table and at present define
+immutability constraints for those tables. See the javadoc for
+TableConstraint for details.</li>
+<li><strong>Row Constraints</strong> define constraints for which each table row must
+satisfy. These operations can be specifying that certain components
+must be nonnegative, or that certain row components and column
+components must contain the same value.</li>
+</ul>
+</div>
+<div class="section" id="behavioral-parameters">
+<h3>Behavioral Parameters<a class="headerlink" href="#behavioral-parameters" title="Permalink to this headline">¶</a></h3>
+<div class="code java highlight-python"><div class="highlight"><pre>public void conflictHandler(ConflictHandler handler = ConflictHandler.RETRY_ON_WRITE_WRITE);
+</pre></div>
+</div>
+<p>The conflict handler parameter specifies the MVCC transaction semantics
+for the table.</p>
+<div class="code java highlight-python"><div class="highlight"><pre>public void partitionStrategy(PartitionStrategy strategy = PartitionStrategy.ORDERED);
+</pre></div>
+</div>
+<p>Specifies the strategy for how rows in the table will be partitioned
+across database shards.</p>
+<ul class="simple">
+<li><strong>ORDERED</strong> means that rows will be partitioned into contiguous
+chunks of the table space. This is useful if your table needs range
+scans. See the partitions section for more information.</li>
+<li><strong>HASH</strong> means that rows will be partitioned based on the hashes of
+their row. This avoids hotspotting, but makes range scans rather
+difficult.</li>
+</ul>
+<div class="code java highlight-python"><div class="highlight"><pre>public void cachePriority(CachePriority priority = CachePriority.WARM);
+</pre></div>
+</div>
+<p>Specifies the retention policy for caching atlasdb queries and their
+results. Values are <strong>COLDEST, COLD, WARM, HOT, HOTTEST.</strong> The hotter
+the setting, the more queries and the longer they are stored.</p>
+<div class="code java highlight-python"><div class="highlight"><pre>public void dbCompressionRequested();
+</pre></div>
+</div>
+<p>Cassandra only - specifies whether the table should be stored
+compressed.</p>
+<div class="code java highlight-python"><div class="highlight"><pre>public void rangeScanAllowed();
+</pre></div>
+</div>
+<p>Specifies whether a table should be allowed to have range scans
+conducted on its rows. <em>NOTE: if this option is not selected, you will
+not be able to use the **getRange*</em> operation against your table!*</p>
+<div class="code java highlight-python"><div class="highlight"><pre>public void negativeLookups();
+</pre></div>
+</div>
+<p>Cassandra only - if certain queries are expected to regularly search for
+non-existent rows, this will have cassandra create bloom filters on the
+rows to speed up the search.</p>
+<div class="code java highlight-python"><div class="highlight"><pre>public void maxValueSize(int size);
+</pre></div>
+</div>
+<p>Performance hint - specifies the size in bytes of the largest value
+which any given row in the table may hold.</p>
+</div>
+</div>
+</div>
+
+
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="streams.html" class="btn btn-neutral float-right" title="Streams">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="index.html" class="btn btn-neutral" title="Schemas"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2016, Palantir Technologies.
+    </p>
+  </div>
+
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+  
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'0.3.34',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

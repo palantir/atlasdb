@@ -1,0 +1,5 @@
+# Emacs temp files
+*~
+
+# Build directory
+_build/

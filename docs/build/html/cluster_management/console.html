@@ -1,0 +1,277 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Console &mdash; AtlasDB 0.3.34 documentation</title>
+  
+
+  
+  
+
+  
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700,400italic,700italic|Roboto+Slab:400,700|Inconsolata:400,700&subset=latin,cyrillic' rel='stylesheet' type='text/css'>
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="AtlasDB 0.3.34 documentation" href="../index.html"/>
+        <link rel="up" title="Cluster Management" href="index.html"/>
+        <link rel="next" title="Miscellaneous" href="../miscellaneous/index.html"/>
+        <link rel="prev" title="Command Line Utilities" href="clis.html"/> 
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-nav-search">
+        
+          <a href="../index.html" class="fa fa-home"> AtlasDB</a>
+        
+        
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+        
+          
+          
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../overview/index.html">Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../overview/benefits.html">Benefits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/atlas_server_api.html">Atlas Server Api</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/getting_started.html">Getting Started</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../schemas/index.html">Schemas</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../schemas/tables_and_indices.html">Tables and Indices</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../schemas/streams.html">Streams</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../schemas/cleanup_tasks.html">Cleanup Tasks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../schemas/physical_cleanup.html">Physical Cleanup</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../transactions/index.html">Transactions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../transactions/isolation_levels.html">Isolation Levels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../transactions/performance_ideas.html">Performance Ideas</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../transactions/transaction_protocol.html">Transaction Protocol</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../configuration/index.html">Configuration</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../configuration/cassandra_config.html">Cassandra Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Cluster Management</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="clis.html">Command Line Utilities</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="">Console</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../miscellaneous/index.html">Miscellaneous</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../miscellaneous/contributing.html">Contributing to AtlasDB</a></li>
+</ul>
+</li>
+</ul>
+
+          
+        
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../index.html">AtlasDB</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="index.html">Cluster Management</a> &raquo;</li>
+      
+    <li>Console</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          <a href="../_sources/cluster_management/console.txt" rel="nofollow"> View page source</a>
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document">
+            
+  <div class="section" id="console">
+<h1>Console<a class="headerlink" href="#console" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+<p>The AtlasDB Console is intended for use by engineers interested in
+examining the internals of a running AtlasDB instance. It supports both
+simple and complex quieries on all tables in AtlasDB, as well as
+put/get/delete requests, tabular pretty print, and transactions. The
+primary high-level goals for AtlasDB Console are simplicity and ease of
+user. You can query AtlasDB Console using a Groovy shell or write
+scripts as needed to obtain the information you are interested in. There
+is a lot of functionality built into this interface and you are able to
+perform both safe and destructive (read dangerous) operations.</p>
+</div>
+<div class="section" id="getting-started">
+<h2>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h2>
+<p>This section provides basic instructions for navigating AtlasDB Console.
+By following the steps below, you can learn how to import sample data
+and run basic queries that will give you some insight into how your data
+is stored in AtlasDB. If you have not used Groovy or GroovyShell before,
+you may wish to refer to <a class="reference external" href="#using-groovy-in-atlasdb-console">using
+Groovy</a> before you start.</p>
+<p>Incomplete - pending transfer from internal documentation.</p>
+</div>
+<div class="section" id="using-groovy-in-atlasdb-console">
+<h2>Using Groovy in AtlasDB Console<a class="headerlink" href="#using-groovy-in-atlasdb-console" title="Permalink to this headline">¶</a></h2>
+<p>This section contains tips and tricks for navigating GroovyShell and
+using Groovy to its fullest extent in AtlasDB Console.</p>
+<ul class="simple">
+<li>Type <code class="docutils literal"><span class="pre">:help</span></code> or <code class="docutils literal"><span class="pre">:h</span></code> to get usage help.</li>
+<li>Type <code class="docutils literal"><span class="pre">help()</span></code> to examine all AtlasDB related functions available.</li>
+<li>Type <code class="docutils literal"><span class="pre">:exit</span></code> or <code class="docutils literal"><span class="pre">:x</span></code> to exit GroovyShell.</li>
+<li>Type <code class="docutils literal"><span class="pre">:clear</span></code> or <code class="docutils literal"><span class="pre">:c</span></code> to exit a command block.</li>
+<li>To use an external editor to write a script without exiting
+GroovyShell, type <code class="docutils literal"><span class="pre">:edit</span></code>. Before you use this command for the
+first time, you will need to set your default editor (either vim or
+emacs) using the command <code class="docutils literal"><span class="pre">:set</span> <span class="pre">editor</span> <span class="pre">vim</span></code> or
+<code class="docutils literal"><span class="pre">:set</span> <span class="pre">editor</span> <span class="pre">emacs</span></code>.</li>
+<li>To load and run a Groovy script, type
+<code class="docutils literal"><span class="pre">:load</span> <span class="pre">&lt;PATH-TO-FILE&gt;/&lt;FILENAME&gt;.groovy</span></code>. The file you load must
+end with the <code class="docutils literal"><span class="pre">.groovy</span></code> extension.</li>
+<li>To record your AtlasDB Console session, type
+<code class="docutils literal"><span class="pre">:record</span> <span class="pre">start</span> <span class="pre">&lt;PATH-TO-RECORD-FILE&gt;/&lt;FILENAME&gt;.txt</span></code>. You can also
+just type <code class="docutils literal"><span class="pre">:record</span> <span class="pre">start</span></code> and GroovyShell will save your session to
+a .txt file in your <code class="docutils literal"><span class="pre">/tmp</span></code> directory. GroovyShell will record
+anything typed on the command line or returned by a command to the
+file. You can end the recording by typing <code class="docutils literal"><span class="pre">:record</span> <span class="pre">stop</span></code> or review
+the name of the record file and its current size by typing
+<code class="docutils literal"><span class="pre">:record</span> <span class="pre">status</span></code>.</li>
+<li>To view a list of all of the commands you have executed so far, type
+<code class="docutils literal"><span class="pre">:history</span></code>.</li>
+<li>If you want the editor to print out the last result (e.g. printing
+the results of a command like <code class="docutils literal"><span class="pre">table('my_table').getRange()</span></code>
+without a <code class="docutils literal"><span class="pre">print</span></code> or <code class="docutils literal"><span class="pre">pp</span></code> command), type
+<code class="docutils literal"><span class="pre">:set</span> <span class="pre">show-last-result</span> <span class="pre">true</span></code> to turn it on. This option is disabled
+by default.</li>
+<li>You can run scripts on load by setting the &#8211;script flag like this:
+<code class="docutils literal"><span class="pre">./bin/unix/atlasDBConsole-script</span> <span class="pre">&lt;PATH-TO-FILE&gt;/&lt;FILENAME&gt;.groovy</span></code>.
+The script you load must end with the <code class="docutils literal"><span class="pre">.groovy</span></code> extension. This
+will load the script, run it, and exit the console. To keep the
+console running after the script executes, run
+<code class="docutils literal"><span class="pre">./bin/unix/atlasDBConsole</span> <span class="pre">&lt;PATH-TO-FILE&gt;/&lt;FILENAME&gt;.groovy</span></code>
+(without the <code class="docutils literal"><span class="pre">-script</span></code> flag).</li>
+</ul>
+<div class="section" id="writing-scripts-in-groovy">
+<h3>Writing Scripts in Groovy<a class="headerlink" href="#writing-scripts-in-groovy" title="Permalink to this headline">¶</a></h3>
+<p>You can find a quick introduction to Groovy
+<a class="reference external" href="http://learnxinyminutes.com/docs/groovy/">here</a>. For a more in-depth
+guide, see the latest official <a class="reference external" href="http://www.groovy-lang.org/documentation.html">Groovy
+docs</a>.</p>
+</div>
+</div>
+</div>
+
+
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="../miscellaneous/index.html" class="btn btn-neutral float-right" title="Miscellaneous">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="clis.html" class="btn btn-neutral" title="Command Line Utilities"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2016, Palantir Technologies.
+    </p>
+  </div>
+
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+  
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'0.3.34',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

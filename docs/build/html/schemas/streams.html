@@ -1,0 +1,249 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Streams &mdash; AtlasDB 0.3.34 documentation</title>
+  
+
+  
+  
+
+  
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700,400italic,700italic|Roboto+Slab:400,700|Inconsolata:400,700&subset=latin,cyrillic' rel='stylesheet' type='text/css'>
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="AtlasDB 0.3.34 documentation" href="../index.html"/>
+        <link rel="up" title="Schemas" href="index.html"/>
+        <link rel="next" title="Cleanup Tasks" href="cleanup_tasks.html"/>
+        <link rel="prev" title="Tables and Indices" href="tables_and_indices.html"/> 
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-nav-search">
+        
+          <a href="../index.html" class="fa fa-home"> AtlasDB</a>
+        
+        
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+        
+          
+          
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../overview/index.html">Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../overview/benefits.html">Benefits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/atlas_server_api.html">Atlas Server Api</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/getting_started.html">Getting Started</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Schemas</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="tables_and_indices.html">Tables and Indices</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="">Streams</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cleanup_tasks.html">Cleanup Tasks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="physical_cleanup.html">Physical Cleanup</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../transactions/index.html">Transactions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../transactions/isolation_levels.html">Isolation Levels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../transactions/performance_ideas.html">Performance Ideas</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../transactions/transaction_protocol.html">Transaction Protocol</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../configuration/index.html">Configuration</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../configuration/cassandra_config.html">Cassandra Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../cluster_management/index.html">Cluster Management</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../cluster_management/clis.html">Command Line Utilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../cluster_management/console.html">Console</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../miscellaneous/index.html">Miscellaneous</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../miscellaneous/contributing.html">Contributing to AtlasDB</a></li>
+</ul>
+</li>
+</ul>
+
+          
+        
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../index.html">AtlasDB</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="index.html">Schemas</a> &raquo;</li>
+      
+    <li>Streams</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          <a href="../_sources/schemas/streams.txt" rel="nofollow"> View page source</a>
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document">
+            
+  <div class="section" id="streams">
+<h1>Streams<a class="headerlink" href="#streams" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+<p>When storing large objects in an atlasdb database, the underlying
+database can impose limits on the size of the object and its performance
+characteristics. Postgres has a 1GB entry limit, and Cassandra generally
+does not like transmissions of over 30MB over the wire at a time. If it
+is known beforehand that a particular column of a table will store large
+objects, the object and an associated id can be instead stored in a
+stream store table. AtlasDB will automatically segment large objects
+into smaller chunks and store them in a separate stream store table. The
+stored object can then be streamed or updated by the associated id.
+AtlasDB will also reference count these objects and clean them up when
+they are not used anymore. Also, the storage of the streams happens on
+separate transactions and does not count toward your byte limit for your
+local trasaction.</p>
+<div class="code java highlight-python"><div class="highlight"><pre>public void addStreamStoreDefinition(String long_name, String short_name, ValueType streamIdType, int inMemoryThreshold);
+</pre></div>
+</div>
+<p>The long name is the name of the stream store in the generated java
+code, the short name the prefix which will be used in the actual
+database tables. The stream id type argument specifies the ValueType of
+the id for each stored object. The in-memory threshold argument
+specifies the largest size object (in bytes) which atlasdb will cache in
+memory in order to boost retrieval performance.</p>
+</div>
+<div class="section" id="performance">
+<h2>Performance<a class="headerlink" href="#performance" title="Permalink to this headline">¶</a></h2>
+<p>Streams are marked as <code class="docutils literal"><span class="pre">cachePriority(CachePriority.COLD)</span></code> by default.
+This is a hint to the key value store that these can potentially be
+stored on different media than regular tables. One simple way to handle
+this is to write a <code class="docutils literal"><span class="pre">KeyValueService</span></code> implementation that just
+delegates to 2 other <code class="docutils literal"><span class="pre">KeyValueService</span></code> impls and sends COLD tables to
+one and other tables to another.</p>
+</div>
+<div class="section" id="non-duplication">
+<h2>Non-Duplication<a class="headerlink" href="#non-duplication" title="Permalink to this headline">¶</a></h2>
+<p>A single stream of bytes may be stored multiple times and have many
+references to it, but will only be stored once under the covers. When
+all references to a stream are removed it will be cleaned up by the
+OnCleanupTask that is registered with the cleaner. See
+<a class="reference external" href="Cleanup">Cleanup</a> for more details</p>
+</div>
+</div>
+
+
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="cleanup_tasks.html" class="btn btn-neutral float-right" title="Cleanup Tasks">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="tables_and_indices.html" class="btn btn-neutral" title="Tables and Indices"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2016, Palantir Technologies.
+    </p>
+  </div>
+
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+  
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'0.3.34',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
