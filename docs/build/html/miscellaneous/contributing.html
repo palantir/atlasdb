@@ -166,22 +166,14 @@ You must have admin privledges on Bintray for this to work.</strong></li>
 <li>Clone the git repository:
 <code class="docutils literal"><span class="pre">git</span> <span class="pre">clone</span> <span class="pre">git&#64;github.com:palantir/atlasdb.git;</span> <span class="pre">cd</span> <span class="pre">atlasdb</span></code>.</li>
 <li>Checkout the github-pages branch: <code class="docutils literal"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">gh-pages</span></code>.</li>
-<li>Use gem to install bundler (if you don&#8217;t have it):
-<code class="docutils literal"><span class="pre">sudo</span> <span class="pre">gem</span> <span class="pre">install</span> <span class="pre">bundler</span></code></li>
-<li>Install the dependencies in Gemfile with bundler: <code class="docutils literal"><span class="pre">bundler</span> <span class="pre">install</span></code></li>
-<li>Edit existing pages (found in <code class="docutils literal"><span class="pre">docs/</span></code>) using markdown. Create new
-pages by adding a markdown file to <code class="docutils literal"><span class="pre">docs/</span></code> and then adding the
-appropriate navigation configuration in
-<code class="docutils literal"><span class="pre">_data/atlasdb/sidebar.yml</span></code>.</li>
+<li>Install sphinx if you don&#8217;t have it.  Instructions can be found <a class="reference external" href="http://www.sphinx-doc.org/en/stable/install.html">here</a>.  The easiest option for Mac users will be using pip.</li>
+<li>Confirm you installtion is working by running <code class="docutils literal"><span class="pre">cd</span> <span class="pre">docs</span> <span class="pre">&amp;&amp;</span> <span class="pre">make</span> <span class="pre">html</span></code></li>
+<li>Existing pages can be found in <code class="docutils literal"><span class="pre">docs/source</span></code>. Create new pages by adding an .rst file to <code class="docutils literal"><span class="pre">docs/source</span></code> and then adding the file name to the appropriate .toctree in the parent file.</li>
+<li>Prior to checking in changes be sure to generate and check in the associated html files by running <code class="docutils literal"><span class="pre">make</span> <span class="pre">html</span></code> and <code class="docutils literal"><span class="pre">git</span> <span class="pre">add</span> <span class="pre">build/html/</span></code>.</li>
 </ol>
 <p>You can generate and view the docs locally by running
-<code class="docutils literal"><span class="pre">jekyll</span> <span class="pre">serve</span> <span class="pre">--config</span> <span class="pre">configs/atlasdb/config.yml</span></code> and opening
-<code class="docutils literal"><span class="pre">http://127.0.0.1:4009/</span></code>.</p>
-<p>The docs are a fork of the <a class="reference external" href="https://github.com/tomjohnson1492/documentation-theme-jekyll">jekyll documentation
-theme</a>.
-See <a class="reference external" href="http://idratherbewriting.com/documentation-theme-jekyll/mydoc/home.html">the theme
-documentation</a>
-for more help.</p>
+<code class="docutils literal"><span class="pre">make</span> <span class="pre">html</span></code> and opening the built html files in <code class="docutils literal"><span class="pre">docs/build/html/</span></code> in your browser of choice.</p>
+<p>The docs are built using <a class="reference external" href="http://www.sphinx-doc.org/en/stable/index.html">Sphinx</a> and written in <a class="reference external" href="http://docutils.sourceforge.net/rst.html">.rst</a>.</p>
 </div>
 </div>
 </div>
