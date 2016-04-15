@@ -1,7 +1,25 @@
-sudo: false
+sudo: required
 language: java
 jdk:
 - oraclejdk8
+services:
+- docker
+
+env:
+  DOCKER_COMPOSE_VERSION: 1.7.0
+  matrix:
+  - CI=true
+  global:
+  - secure: dy0epaXYbr3MLXOCmVnSqTTxOY2H7vLQwnz9N9qFHzuFOhXpOZKVQXc8ODw597T1j4GDP5qKChNL3GYQIjjemZHXf44n1AQwJ7X2Dkf1ezAtAJa7B4tN3Uf82XKySoQgI7pLIlFiY071n70cOg2jwNuCxBijWrdbe2FbwD/my4Lp9ogJn9yfOygOGMcsXHgaX7T0bbfAWZUW0QJ/cjp2/G9ZhpQwZQT1aqaCXDaupLLnySnCaazikbUqkec7UBxUIZAQArw5xN49JF2hOW7D3C/PoMdIs1ZA3TZ/EI0ViRBeR3G/qlLoiK/0MIn5j17pdPiBf21SKEOh4LfrBvCjmI8jtAFGHIGt2i03oGuJCneUZ98zvO+E/pKF5DHlEmuyC0IEVe+QuglxhAw0qkXJezyKprE6Bg6g1KzNyu5AN2fjs/DF6kESQXAu1p4HNxSLuJTcxcF5nzrSEbo9/66c2y+dB/Yk/Gfy1XrejZJ41dd4Sfnsb9oHFqluGZ4yHaHbRNurB/vWIL7XEPNgPjF3h/ovp9eRGrXuzNWxWFDmOuKtHJs5C0j/bq/rM0yF33pyboRk7lpslbNwSrDYjCapAR2gpnjJwu9/UH0F6UgyOA+PBk7kUfBZDyKuBW9wdIYSrZzJ7ltdc8ByE8FHy/UxmSNKYRDHETETMEJQX3ri9n0=
+  - secure: OpVtzmwvovDPItg7lpwOp7X1by1K2fR+ZFIBbjOLdoLRSe8sl/m+Z4VSsI88HNUoXp7KMEb1QvewxXU1iVlxR4HLk/GU9vgHumZaknuNcDa8Fyv+mhgzQOYdFcUZ+sjrxMpqegBAkEoQxrSVhzIHOKUblSJQNgrCYwEVu3GmVbnxwHKQ6myrmLwhjvLZ6IcKnWT62Q8WnDT8kxs711w69kJocufRBCwnsokblQis4Moz0/J/GoWpu7GgIOLgCmzPji995DMYTMY01txVOYiX2J2nnpHvsYaT+WAnnAtqQbDzjP9IgwS992lq2Iuy669cXZ5QhHEfY5EA/lj4QBkVbVhmy+BbUMEasfJtsePACpCHK78gSFhZY5SypiH54KN3Hd1rDBSLNwBzxwqewgu9PMjA4+rUga+ZYMKkMw2wYNlgkmXc+JembKLtvb58ldDGUvuFRBzh8Yawpxvpv4UpIfvlqHqW/BCNrGun4Hpiow3g6XJukERgBzPISk8y3khjusz2bpdBGvqeoijN6+on5wrcQ1JxULpzMHWeKlrzSI/Ae+tzTlkSPx362LLix9ZHWYxTN/C3EAUjrvE/9N4HVmg6aiQ1gQ9t3K+WUaFGkan1TWCyFXPmCufwY87ifZupVMUPwac6xCNJgVS/wSaxfvE7+Xw3VV+LFHQ1GYFirq8=
+
+before_install:
+- sudo apt-get update
+- sudo apt-get install -o Dpkg::Options::="--force-confold" --force-yes -y docker-engine
+- sudo rm /usr/local/bin/docker-compose
+- curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
+- chmod +x docker-compose
+- sudo mv docker-compose /usr/local/bin
 
 addons:
   apt:
@@ -13,12 +31,7 @@ before_script:
 - ps aux --sort=-%mem | awk 'NR<=10{print $0}'
 
 script:
-  - travis_wait ./gradlew --max-workers 2 check --stacktrace
-env:
-  matrix:
-  - CI=true
-  global:
-  - secure: dy0epaXYbr3MLXOCmVnSqTTxOY2H7vLQwnz9N9qFHzuFOhXpOZKVQXc8ODw597T1j4GDP5qKChNL3GYQIjjemZHXf44n1AQwJ7X2Dkf1ezAtAJa7B4tN3Uf82XKySoQgI7pLIlFiY071n70cOg2jwNuCxBijWrdbe2FbwD/my4Lp9ogJn9yfOygOGMcsXHgaX7T0bbfAWZUW0QJ/cjp2/G9ZhpQwZQT1aqaCXDaupLLnySnCaazikbUqkec7UBxUIZAQArw5xN49JF2hOW7D3C/PoMdIs1ZA3TZ/EI0ViRBeR3G/qlLoiK/0MIn5j17pdPiBf21SKEOh4LfrBvCjmI8jtAFGHIGt2i03oGuJCneUZ98zvO+E/pKF5DHlEmuyC0IEVe+QuglxhAw0qkXJezyKprE6Bg6g1KzNyu5AN2fjs/DF6kESQXAu1p4HNxSLuJTcxcF5nzrSEbo9/66c2y+dB/Yk/Gfy1XrejZJ41dd4Sfnsb9oHFqluGZ4yHaHbRNurB/vWIL7XEPNgPjF3h/ovp9eRGrXuzNWxWFDmOuKtHJs5C0j/bq/rM0yF33pyboRk7lpslbNwSrDYjCapAR2gpnjJwu9/UH0F6UgyOA+PBk7kUfBZDyKuBW9wdIYSrZzJ7ltdc8ByE8FHy/UxmSNKYRDHETETMEJQX3ri9n0=
-  - secure: OpVtzmwvovDPItg7lpwOp7X1by1K2fR+ZFIBbjOLdoLRSe8sl/m+Z4VSsI88HNUoXp7KMEb1QvewxXU1iVlxR4HLk/GU9vgHumZaknuNcDa8Fyv+mhgzQOYdFcUZ+sjrxMpqegBAkEoQxrSVhzIHOKUblSJQNgrCYwEVu3GmVbnxwHKQ6myrmLwhjvLZ6IcKnWT62Q8WnDT8kxs711w69kJocufRBCwnsokblQis4Moz0/J/GoWpu7GgIOLgCmzPji995DMYTMY01txVOYiX2J2nnpHvsYaT+WAnnAtqQbDzjP9IgwS992lq2Iuy669cXZ5QhHEfY5EA/lj4QBkVbVhmy+BbUMEasfJtsePACpCHK78gSFhZY5SypiH54KN3Hd1rDBSLNwBzxwqewgu9PMjA4+rUga+ZYMKkMw2wYNlgkmXc+JembKLtvb58ldDGUvuFRBzh8Yawpxvpv4UpIfvlqHqW/BCNrGun4Hpiow3g6XJukERgBzPISk8y3khjusz2bpdBGvqeoijN6+on5wrcQ1JxULpzMHWeKlrzSI/Ae+tzTlkSPx362LLix9ZHWYxTN/C3EAUjrvE/9N4HVmg6aiQ1gQ9t3K+WUaFGkan1TWCyFXPmCufwY87ifZupVMUPwac6xCNJgVS/wSaxfvE7+Xw3VV+LFHQ1GYFirq8=
+- travis_wait ./gradlew --max-workers 2 check --stacktrace
+
 after_success:
 - "./gradlew bintrayUpload"
