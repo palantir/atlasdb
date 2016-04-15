@@ -25,6 +25,7 @@ apply from: 'gradle/versions.gradle'
 
 group = 'com.palantir.atlasdb'
 version = gitVersion()
+description = 'Transactional distributed database layer'
 
 task clean(type: Delete) {
     delete buildDir

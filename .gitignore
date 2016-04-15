@@ -31,4 +31,5 @@ atlasdb-cli/var/data/
 # Emacs temp files
 *~
 
+# Rocksdb data
 var/data/rocksdb
