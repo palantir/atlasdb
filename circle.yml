@@ -1,0 +1,17 @@
+machine:
+  java:
+    version:
+      oraclejdk8
+
+dependencies:
+  override:
+    - export TERM="dumb"; ./gradlew compileTestJava
+  cache_directories:
+    - ~/.gradle
+
+test:
+  override:
+    - ./gradlew -Dorg.gradle.jvmargs=-Xmx512m --max-workers 2 check
+  post:
+    - mkdir -p $CIRCLE_TEST_REPORTS/junit/
+    - find . -type f -regex ".*/build/test-results/TEST-.*\.xml" -exec cp {} $CIRCLE_TEST_REPORTS/junit/ \;
