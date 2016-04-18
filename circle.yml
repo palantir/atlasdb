@@ -22,7 +22,7 @@ dependencies:
 
 test:
   override:
-    - ./gradlew -Dorg.gradle.jvmargs=-Xmx512m check
+    - ./gradlew check
   post:
     - mkdir -p $CIRCLE_TEST_REPORTS/junit/
     - find . -type f -regex ".*/build/test-results/TEST-.*\.xml" -exec cp {} $CIRCLE_TEST_REPORTS/junit/ \;

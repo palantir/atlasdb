@@ -1,16 +1,11 @@
 version: "2"
 services:
-  cassandra:
-    hostname: "cassandra"
-    build: cassandra
+  db:
+    image: kiasaki/alpine-postgres
     environment:
-    - CASSANDRA_BROADCAST_ADDRESS=cassandra
-    - CASSANDRA_START_RPC=true
-    - _JAVA_OPTIONS=-Dcassandra.skip_wait_for_gossip_to_settle=0
-    ports:
-      - "9160:9160"
-      - "7199:7199"
-      - "9042:9042"
+      POSTGRES_PASSWORD: palantir
+      POSTGRES_USER: palantir
+      POSTGRES_DB: atlas
 
   timelock1:
     hostname: "timelock1"
@@ -20,7 +15,7 @@ services:
     ports:
       - "3828"
     depends_on:
-      - cassandra
+      - db
 
   timelock2:
     hostname: "timelock2"
@@ -30,7 +25,7 @@ services:
     ports:
       - "3828"
     depends_on:
-      - cassandra
+      - db
 
   timelock3:
     hostname: "timelock3"
@@ -40,5 +35,5 @@ services:
     ports:
       - "3828"
     depends_on:
-      - cassandra
+      - db
 

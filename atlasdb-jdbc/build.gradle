@@ -9,6 +9,8 @@ dependencies {
 
   compile "io.dropwizard:dropwizard-jackson:" + libVersions.dropwizard
   compile "org.jooq:jooq:3.6.4"
+  compile 'org.postgresql:postgresql:9.4.1208'
+
 
   processor "org.immutables:value:2.0.21"
   processor "com.google.auto.service:auto-service:1.0-rc2"

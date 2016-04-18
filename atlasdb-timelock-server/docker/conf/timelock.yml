@@ -11,13 +11,15 @@ server:
 
 atlasdb:
   keyValueService:
-    type: cassandra
-    servers:
-      - cassandra:9160
-    ssl: false
-    replicationFactor: 1
-    keyspace: timelockEte
-    safetyDisabled: true
+    type: jdbc
+    dataSourceConfig:
+      type: hikari
+      sqlDialect: POSTGRES
+      properties:
+        jdbcUrl: jdbc:postgresql://db/atlas
+        username: palantir
+        password: palantir
+
   leader:
     quorumSize: 2
     learnerLogDir: var/data/paxosLog/learner1
