@@ -120,7 +120,7 @@ public class CassandraVerifier {
 
     static void ensureKeyspaceExistsAndIsUpToDate(CassandraClientPool clientPool, CassandraKeyValueServiceConfig config) throws InvalidRequestException, TException, SchemaDisagreementException {
         try {
-            clientPool.runWithRetry(new FunctionCheckedException<Cassandra.Client, Void, TException>() {
+            clientPool.run(new FunctionCheckedException<Cassandra.Client, Void, TException>() {
                 @Override
                 public Void apply(Cassandra.Client client) throws TException {
                     KsDef originalKsDef = client.describe_keyspace(config.keyspace());
@@ -148,7 +148,6 @@ public class CassandraVerifier {
                     // if we got this far, we're done
                     return;
                 } catch (Exception f) {
-                    log.error("Got an exception while trying to use host %s to do initial keyspace setup. Exception: \n%s", host.toString(), f);
                     throw new TException(f);
                 }
             }

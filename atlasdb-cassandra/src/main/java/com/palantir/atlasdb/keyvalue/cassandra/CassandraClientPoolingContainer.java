@@ -44,7 +44,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
     private final AtomicLong count = new AtomicLong();
     private final GenericObjectPool<Client> clientPool;
 
-    public CassandraClientPoolingContainer(InetSocketAddress host, CassandraKeyValueServiceConfig config){
+    public CassandraClientPoolingContainer(InetSocketAddress host, CassandraKeyValueServiceConfig config) {
         this.host = host;
         this.config = config;
         this.clientPool = createClientPool();
@@ -52,6 +52,17 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
 
     public InetSocketAddress getHost() {
         return host;
+    }
+
+
+    // returns negative if not available; only expected use is debugging
+    protected int getPoolUtilization() {
+        return clientPool.getNumActive();
+    }
+
+    // returns negative if unbounded; only expected use is debugging
+    protected int getPoolSize() {
+        return clientPool.getMaxTotal();
     }
 
     @Override
@@ -81,9 +92,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
             resource = clientPool.borrowObject();
             return f.apply(resource);
         } catch (Exception e) {
-            if (e instanceof TTransportException
-                    || e instanceof TProtocolException
-                    || e instanceof NoSuchElementException) {
+            if (isInvalidClientConnection(e)) {
                 log.warn("Not reusing resource {} due to {}", resource, e);
                 shouldReuse = false;
             }
@@ -103,6 +112,12 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
                 }
             }
         }
+    }
+
+    private static boolean isInvalidClientConnection(Exception e) {
+        return e instanceof TTransportException
+                || e instanceof TProtocolException
+                || e instanceof NoSuchElementException;
     }
 
     private void invalidateQuietly(Client resource) {
@@ -157,5 +172,4 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
         poolConfig.setMaxWaitMillis(config.socketTimeoutMillis());
         return new GenericObjectPool<Client>(cassandraClientFactory, poolConfig);
     }
-
 }

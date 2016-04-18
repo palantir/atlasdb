@@ -1458,7 +1458,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     private void alterGcAndTombstone(final String keyspace, final TableReference tableRef, final int gcGraceSeconds, final float tombstoneThresholdRatio) {
         Preconditions.checkArgument(!Strings.isNullOrEmpty(keyspace), "keyspace:[%s] should not be null or empty.", keyspace);
-        Preconditions.checkArgument(!Strings.isNullOrEmpty(tableRef.getQualifiedName()), "tableName:[%s] should not be null or empty.", tableRef);
+        Preconditions.checkArgument(!Strings.isNullOrEmpty(tableRef.getQualifiedName()), "tableRef:[%s] should not be null or empty.", tableRef);
         Preconditions.checkArgument(gcGraceSeconds >= 0, "gc_grace_seconds:[%s] should not be negative.", gcGraceSeconds);
         Preconditions.checkArgument(tombstoneThresholdRatio >= 0.0f && tombstoneThresholdRatio <= 1.0f,
                 "tombstone_threshold_ratio:[%s] should be between [0.0, 1.0]", tombstoneThresholdRatio);
@@ -1484,7 +1484,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 }
             });
         } catch (Exception e) {
-            log.error("Exception encountered while setting gc_grace_seconds:{} and tombstone_threshold:{} for {}. {}",
+            log.error("Exception encountered while setting gc_grace_seconds:{} and tombstone_threshold:{} for {}.{}",
                     gcGraceSeconds,
                     tombstoneThresholdRatio,
                     keyspace,

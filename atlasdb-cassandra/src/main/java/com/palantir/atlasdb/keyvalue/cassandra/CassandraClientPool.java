@@ -21,6 +21,8 @@ import java.net.SocketTimeoutException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadLocalRandom;
@@ -59,6 +61,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.ClientCreationFailedException;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.concurrent.PTExecutors;
 
@@ -79,18 +82,18 @@ import com.palantir.common.concurrent.PTExecutors;
  **/
 public class CassandraClientPool {
     private static final Logger log = LoggerFactory.getLogger(CassandraClientPool.class);
-    private static long BANNED_HOST_BACKOFF_TIME_MS = TimeUnit.MINUTES.toMillis(5);
-    private static int MAX_TRIES = 3;
+    private static final long BANNED_HOST_BACKOFF_TIME_MS = TimeUnit.MINUTES.toMillis(5);
+    private static final int MAX_TRIES = 3;
 
-    RangeMap<LightweightOPPToken, List<InetSocketAddress>> tokenMap = ImmutableRangeMap.of();
-    Map<InetSocketAddress, Long> blacklistedHosts = Maps.newHashMap();
-    Map<InetSocketAddress, CassandraClientPoolingContainer> currentPools = Maps.newHashMap();
-    CassandraKeyValueServiceConfig config;
-    ScheduledThreadPoolExecutor refreshDaemon;
+    volatile RangeMap<LightweightOPPToken, List<InetSocketAddress>> tokenMap = ImmutableRangeMap.of();
+    Map<InetSocketAddress, Long> blacklistedHosts = Maps.newConcurrentMap();
+    Map<InetSocketAddress, CassandraClientPoolingContainer> currentPools = Maps.newConcurrentMap();
+    final CassandraKeyValueServiceConfig config;
+    final ScheduledThreadPoolExecutor refreshDaemon;
 
 
-    private class LightweightOPPToken implements Comparable<LightweightOPPToken> {
-        byte[] bytes;
+    public static class LightweightOPPToken implements Comparable<LightweightOPPToken> {
+        final byte[] bytes;
 
         public LightweightOPPToken(byte[] bytes) {
             this.bytes = bytes;
@@ -104,7 +107,7 @@ public class CassandraClientPool {
 
     public CassandraClientPool(CassandraKeyValueServiceConfig config) {
         this.config = config;
-        refreshDaemon = PTExecutors.newScheduledThreadPool(1, new ThreadFactoryBuilder().setDaemon(true).setNameFormat("CassandraClientPoolingContainerRefreshDaemon-%d").build());
+        refreshDaemon = PTExecutors.newScheduledThreadPool(1, new ThreadFactoryBuilder().setDaemon(true).setNameFormat("CassandraClientPoolRefresh-%d").build());
         refreshDaemon.scheduleWithFixedDelay(new Runnable() {
             @Override
             public void run() {
@@ -116,6 +119,7 @@ public class CassandraClientPool {
             }
         }, CassandraConstants.SECONDS_BETWEEN_GETTING_HOST_LIST, CassandraConstants.SECONDS_BETWEEN_GETTING_HOST_LIST, TimeUnit.SECONDS);
 
+        config.servers().forEach((server) -> currentPools.put(server, new CassandraClientPoolingContainer(server, config)));
         refreshPool(); // ensure we've initialized before returning
     }
 
@@ -128,7 +132,7 @@ public class CassandraClientPool {
     private void refreshPool() {
         checkAndUpdateBlacklist();
 
-        Set<InetSocketAddress> serversToAdd = config.servers();
+        Set<InetSocketAddress> serversToAdd = Sets.newHashSet(config.servers());
         Set<InetSocketAddress> serversToRemove = ImmutableSet.of();
 
         if (config.autoRefreshNodes()) {
@@ -139,7 +143,8 @@ public class CassandraClientPool {
                 }
             }
         }
-        Sets.difference(Sets.difference(serversToAdd, currentPools.keySet()), blacklistedHosts.keySet());
+
+        serversToAdd = Sets.difference(Sets.difference(serversToAdd, currentPools.keySet()), blacklistedHosts.keySet());
 
         if (!config.autoRefreshNodes()) { // (we would just add them back in)
             serversToRemove = Sets.difference(currentPools.keySet(), config.servers());
@@ -151,9 +156,32 @@ public class CassandraClientPool {
 
         if (!(serversToAdd.isEmpty() && serversToRemove.isEmpty())) { // if we made any changes
             sanityCheckRingConsistency();
-            if(!config.autoRefreshNodes()) { // grab new token mapping, if we didn't already do this before
+            if (!config.autoRefreshNodes()) { // grab new token mapping, if we didn't already do this before
                 refreshTokenRanges();
             }
+        }
+
+        log.debug("Cassandra pool refresh added hosts {}, removed hosts {}.", serversToAdd, serversToRemove);
+        debugLogStateOfPool();
+    }
+
+    private void debugLogStateOfPool() {
+        if (log.isDebugEnabled()) {
+            StringBuilder currentState = new StringBuilder();
+            currentState.append(
+                    String.format("POOL STATUS: Current blacklist = %s,\n current hosts in pool = %s\n",
+                    blacklistedHosts.keySet().toString(), currentPools.keySet().toString()));
+            for (Entry<InetSocketAddress, CassandraClientPoolingContainer> entry : currentPools.entrySet()) {
+                int activeCheckouts = entry.getValue().getPoolUtilization();
+                int totalAllowed = entry.getValue().getPoolSize();
+
+                currentState.append(
+                        String.format("\tPOOL STATUS: Pooled host %s has %s out of %s connections checked out.\n",
+                                entry.getKey(),
+                                activeCheckouts > 0? Integer.toString(activeCheckouts) : "(unknown)",
+                                totalAllowed > 0? Integer.toString(totalAllowed) : "(not bounded)"));
+            }
+            log.debug(currentState.toString());
         }
     }
 
@@ -162,9 +190,9 @@ public class CassandraClientPool {
         for (Map.Entry<InetSocketAddress, Long> blacklistedEntry : blacklistedHosts.entrySet()) {
             if (blacklistedEntry.getValue() + BANNED_HOST_BACKOFF_TIME_MS < System.currentTimeMillis()) {
                 InetSocketAddress host = blacklistedEntry.getKey();
-                if(isHostHealthy(host)) {
+                if (isHostHealthy(host)) {
                     blacklistedHosts.remove(host);
-                    log.error("Added host %s back into the pool after a waiting period and successful health check.", host);
+                    log.error("Added host {} back into the pool after a waiting period and successful health check.", host);
                 }
             }
         }
@@ -179,20 +207,22 @@ public class CassandraClientPool {
             CassandraClientPoolingContainer testingContainer = new CassandraClientPoolingContainer(host, config);
             testingContainer.runWithPooledResource(describeRing);
         } catch (Exception e) {
-            log.error("We tried to add %s back into the pool, but got an exception that caused to us distrust this host further.", host, e);
+            log.error("We tried to add {} back into the pool, but got an exception that caused to us distrust this host further.", host, e);
             return false;
         }
         return true;
     }
 
     private CassandraClientPoolingContainer getRandomGoodHost() {
-        Set<InetSocketAddress> livingHosts = Sets.difference(currentPools.keySet(), blacklistedHosts.keySet());
+        Map<InetSocketAddress, CassandraClientPoolingContainer> pools = currentPools;
+
+        Set<InetSocketAddress> livingHosts = Sets.difference(pools.keySet(), blacklistedHosts.keySet());
         if (livingHosts.isEmpty()) {
             log.error("There are no known live hosts in the connection pool. We're choosing one at random in a last-ditch attempt at forward progress.");
-            livingHosts = currentPools.keySet();
+            livingHosts = pools.keySet();
         }
 
-        return currentPools.get(livingHosts.toArray(new InetSocketAddress[0])[ThreadLocalRandom.current().nextInt(currentPools.size())]);
+        return pools.get(ImmutableList.copyOf(livingHosts).get(ThreadLocalRandom.current().nextInt(livingHosts.size())));
     }
 
     public InetSocketAddress getRandomHostForKey(byte[] key) {
@@ -315,7 +345,7 @@ public class CassandraClientPool {
             CassandraClientPoolingContainer hostPool = currentPools.get(specifiedHost);
 
             if (blacklistedHosts.containsKey(specifiedHost) || hostPool == null) {
-                log.warn("Randomly redirected a query intended for host %s because it was not currently a live member of the pool.", specifiedHost);
+                log.warn("Randomly redirected a query intended for host {} because it was not currently a live member of the pool.", specifiedHost);
                 hostPool = getRandomGoodHost();
             }
 
@@ -339,12 +369,7 @@ public class CassandraClientPool {
 
         @SuppressWarnings("unchecked")
     private <K extends Exception> void handleException(int numTries, InetSocketAddress host, Exception e) throws K {
-        if (e instanceof CassandraClientFactory.ClientCreationFailedException
-                || e instanceof TTransportException
-                || e instanceof TimedOutException
-                || e instanceof SocketTimeoutException
-                || e instanceof UnavailableException
-                || e instanceof InsufficientConsistencyException) {
+        if (isRetriableException(e)) {
             if (numTries >= MAX_TRIES) {
                 if (e instanceof TTransportException
                         && e.getCause() != null
@@ -358,8 +383,7 @@ public class CassandraClientPool {
                 throw (K) e;
             } else {
                 log.warn("Error occurred talking to cassandra. Attempt {} of {}.", numTries, MAX_TRIES, e);
-                if (e instanceof SocketTimeoutException
-                        || e instanceof UnavailableException) {
+                if (isConnectionException(e)) {
                     addToBlacklist(host);
                 }
             }
@@ -425,4 +449,19 @@ public class CassandraClientPool {
             CassandraVerifier.logErrorOrThrow(e.getMessage(), config.safetyDisabled());
         }
     }
+
+    private static boolean isConnectionException(Exception e) {
+        return e instanceof SocketTimeoutException
+                || e instanceof UnavailableException
+                || e instanceof NoSuchElementException;
+    }
+
+    private static boolean isRetriableException(Exception e) {
+        return isConnectionException(e)
+                || e instanceof ClientCreationFailedException
+                || e instanceof TTransportException
+                || e instanceof TimedOutException
+                || e instanceof InsufficientConsistencyException;
+    }
+
 }
