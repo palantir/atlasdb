@@ -13,7 +13,7 @@ before_script:
 - ps aux --sort=-%mem | awk 'NR<=10{print $0}'
 
 script:
-  - travis_wait ./gradlew --max-workers 2 check --stacktrace
+  - travis_wait ./gradlew --max-workers 2 check --stacktrace --continue
 env:
   matrix:
   - CI=true

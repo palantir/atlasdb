@@ -1371,7 +1371,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     } else {
                         contents = value.getContents();
                     }
-                    tableToMetadataContents.put(tableRef, contents);
+                    if (!CassandraConstants.HIDDEN_TABLES.contains(tableRef)) {
+                        tableToMetadataContents.put(tableRef, contents);
+                    }
                 }
             }
         } finally {
