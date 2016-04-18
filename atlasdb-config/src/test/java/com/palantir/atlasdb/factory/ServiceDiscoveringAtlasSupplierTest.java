@@ -71,6 +71,7 @@ public class ServiceDiscoveringAtlasSupplierTest {
 
     @Test
     public void returnDifferentTimestampServicesOnSubsequentCalls() {
+        // Need to get a newly-initialized timestamp service in case leadership changed between calls.
         ServiceDiscoveringAtlasSupplier supplier = new ServiceDiscoveringAtlasSupplier(kvsConfig);
         AutoServiceAnnotatedAtlasDbFactory.nextTimestampServiceToReturn(mock(TimestampService.class), mock(TimestampService.class));
 
