@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.timelock.server.modules.qualifiers;
 
-import static java.lang.annotation.RetentionPolicy.*;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 import java.lang.annotation.Retention;
 

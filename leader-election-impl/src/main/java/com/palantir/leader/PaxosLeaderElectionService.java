@@ -15,7 +15,7 @@
  */
 package com.palantir.leader;
 
-import static com.google.common.collect.ImmutableList.*;
+import static com.google.common.collect.ImmutableList.copyOf;
 
 import java.util.AbstractMap;
 import java.util.Collections;

@@ -23,8 +23,8 @@ import javax.inject.Singleton;
 
 import com.palantir.atlasdb.timelock.server.modules.ConfigModule;
 import com.palantir.atlasdb.timelock.server.modules.EnvironmentModule;
-import com.palantir.atlasdb.timelock.server.modules.TimeAndLockModule;
 import com.palantir.atlasdb.timelock.server.modules.LeaderElectionModule;
+import com.palantir.atlasdb.timelock.server.modules.TimeAndLockModule;
 import com.palantir.atlasdb.timelock.server.modules.qualifiers.Local;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.lock.RemoteLockService;

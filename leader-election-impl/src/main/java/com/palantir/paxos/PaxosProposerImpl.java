@@ -15,7 +15,7 @@
  */
 package com.palantir.paxos;
 
-import static com.google.common.collect.ImmutableList.*;
+import static com.google.common.collect.ImmutableList.copyOf;
 
 import java.util.Collections;
 import java.util.List;
