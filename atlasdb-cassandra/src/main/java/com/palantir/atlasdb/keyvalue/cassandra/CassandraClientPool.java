@@ -129,7 +129,7 @@ public class CassandraClientPool {
         currentPools.forEach((address, cassandraClientPoolingContainer) -> cassandraClientPoolingContainer.shutdownPooling());
     }
 
-    private void refreshPool() {
+    private synchronized void refreshPool() {
         checkAndUpdateBlacklist();
 
         Set<InetSocketAddress> serversToAdd = Sets.newHashSet(config.servers());
