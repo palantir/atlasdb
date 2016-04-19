@@ -73,8 +73,8 @@ public class TestSingleBackendCommand {
 
     @BeforeClass
     public static void setup() throws URISyntaxException {
-        SIMPLE_CONFIG_FILE = AbstractTestRunner.getResourcePath(InMemoryTestRunner.INMEMORY_CONFIG_FILENAME);
-        NESTED_CONFIG_FILE = Paths.get(TestSingleBackendCommand.class.getClassLoader().getResource("nested_rocksdb_config.yml").toURI()).toString();
+        SIMPLE_CONFIG_FILE = AbstractTestRunner.getResourcePath(InMemoryTestRunner.CONFIG_LOCATION);
+        NESTED_CONFIG_FILE = Paths.get(TestSingleBackendCommand.class.getClassLoader().getResource("nested_cli_test_config.yml").toURI()).toString();
     }
 
     @Test
