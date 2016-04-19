@@ -42,7 +42,6 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
-import com.palantir.common.pooling.PoolingContainer;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
 
@@ -64,20 +63,20 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     private long currentLimit = -1;
     @GuardedBy("this")
     private Throwable lastWriteException = null;
-    private final PoolingContainer<Client> clientPool;
+    private final CassandraClientPool clientPool;
 
     public static TimestampBoundStore create(CassandraKeyValueService kvs) {
         kvs.createTable(AtlasDbConstants.TIMESTAMP_TABLE, TIMESTAMP_TABLE_METADATA.persistToBytes());
         return new CassandraTimestampBoundStore(kvs.clientPool);
     }
 
-    private CassandraTimestampBoundStore(PoolingContainer<Client> clientPool) {
+    private CassandraTimestampBoundStore(CassandraClientPool clientPool) {
         this.clientPool = Preconditions.checkNotNull(clientPool);
     }
 
     @Override
     public synchronized long getUpperLimit() {
-        return clientPool.runWithPooledResource(new FunctionCheckedException<Client, Long, RuntimeException>() {
+        return clientPool.runWithRetry(new FunctionCheckedException<Client, Long, RuntimeException>() {
             @Override
             public Long apply(Client client) {
                 ByteBuffer rowName = getRowName();
@@ -104,7 +103,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
 
     @Override
     public synchronized void storeUpperLimit(final long limit) {
-        clientPool.runWithPooledResource(new FunctionCheckedException<Client, Void, RuntimeException>() {
+        clientPool.runWithRetry(new FunctionCheckedException<Client, Void, RuntimeException>() {
             @Override
             public Void apply(Client client) {
                 cas(client, currentLimit, limit);

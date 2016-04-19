@@ -25,6 +25,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.cassandra.thrift.Cassandra;
+import org.apache.cassandra.thrift.Cassandra.Client;
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
@@ -41,10 +42,12 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.annotation.Output;
+import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.util.Pair;
 import com.palantir.util.Visitor;
@@ -88,15 +91,21 @@ public class CassandraKeyValueServices {
     /**
      * This is a request from pbrown / FDEs; basically it's a pain to do DB surgery to get out of failed patch upgrades, the majority of which requires schema mutations; they would find it preferable to stop before starting the actual patch upgrade / setting APPLYING state.
      */
-    static void failQuickInInitializationIfClusterAlreadyInInconsistentState(Cassandra.Client client, boolean safetyDisabled, int schemaTimeoutMillis) {
-        if (safetyDisabled) {
+    static void failQuickInInitializationIfClusterAlreadyInInconsistentState(CassandraClientPool clientPool, CassandraKeyValueServiceConfig config) {
+        if (config.safetyDisabled()) {
             log.error("Skipped checking the cassandra cluster during initialization, because safety checks are disabled. Please re-enable safety checks when you are outside of your unusual migration period.");
             return;
         }
         String errorMessage = "While checking the cassandra cluster during initialization, we noticed schema versions could not settle. Failing quickly to avoid getting into harder to fix states (i.e. partially applied patch upgrades, etc). " +
                 "This state is in rare cases the correct one to be in; for instance schema versions will be incapable of settling in a cluster of heterogenous Cassandra 1.2/2.0 nodes. If that is the case, disable safety checks in your Cassandra KVS preferences.";
         try {
-            waitForSchemaVersions(client, "(none, just an initialization check)", schemaTimeoutMillis);
+            clientPool.run(new FunctionCheckedException<Cassandra.Client, Void, TException>() {
+                @Override
+                public Void apply(Client client) throws TException {
+                    waitForSchemaVersions(client, "(none, just an initialization check)", config.schemaMutationTimeoutMillis());
+                    return null;
+                }
+            });
         } catch (TException e) {
             throw new RuntimeException(errorMessage, e);
         } catch (IllegalStateException e) {
