@@ -25,6 +25,8 @@ test {
     }
     maxHeapSize = "1024m"
     include '**/*Suite.class'
+    maxParallelForks 2
+
 }
 
 jacocoTestReport {
