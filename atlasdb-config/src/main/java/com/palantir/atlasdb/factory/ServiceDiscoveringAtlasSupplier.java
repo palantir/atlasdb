@@ -45,7 +45,7 @@ public class ServiceDiscoveringAtlasSupplier {
                             "Have you annotated it with @AutoService(AtlasDbFactory.class)?"
                 ));
         keyValueService = memoize(() -> atlasFactory.createRawKeyValueService(config));
-        timestampService = memoize(() -> atlasFactory.createTimestampService(getKeyValueService()));
+        timestampService = () -> atlasFactory.createTimestampService(getKeyValueService());
     }
 
     public KeyValueService getKeyValueService() {
