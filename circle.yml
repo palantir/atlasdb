@@ -14,7 +14,8 @@ dependencies:
 
 test:
   override:
-    - ./gradlew --parallel check
+    - case $CIRCLE_NODE_INDEX in 0) ./gradlew --parallel check -x atlasdb-cassandra-tests:check ;; 1) ./gradlew --parallel atlasdb-cassandra-tests:check ;; esac:
+        parallel: true
   post:
     - mkdir -p $CIRCLE_TEST_REPORTS/junit/
     - find . -type f -regex ".*/build/test-results/TEST-.*\.xml" -exec cp {} $CIRCLE_TEST_REPORTS/junit/ \;
