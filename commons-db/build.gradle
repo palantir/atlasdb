@@ -32,7 +32,9 @@ dependencies {
   compile(group: 'org.postgresql', name: 'postgresql', version: libVersions.postgresql)
   { exclude( module: 'waffle-jna', ) }
 
-  compile(group: 'com.oracle.jdbc', name: 'ojdbc7', version: '12.1.0.2')
+  // Pulling version from oracle maven not functioning, using file dep instead
+  //compile(group: 'com.oracle.jdbc', name: 'ojdbc7', version: '12.1.0.2')
+  compile files('libs/com.oracle.jdbc:ojdbc7:12.1.0.2.jar')
   compile(group: 'com.zaxxer', name: 'HikariCP', version: libVersions.hikariCP)
   { exclude( group: 'org.slf4j', ) }
   compile(group: 'joda-time', name: 'joda-time', version: libVersions.joda_time)
