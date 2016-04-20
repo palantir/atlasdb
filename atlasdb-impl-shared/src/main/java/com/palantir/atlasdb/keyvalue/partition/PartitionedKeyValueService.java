@@ -20,6 +20,7 @@ import static com.palantir.atlasdb.keyvalue.partition.util.RequestCompletions.co
 import static com.palantir.atlasdb.keyvalue.partition.util.RequestCompletions.retryUntilSuccess;
 
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -44,6 +45,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
@@ -127,6 +129,11 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                 return overallResult;
             }
         });
+    }
+
+    @Override
+    public Map<byte[], Iterator<Map.Entry<Cell, Value>>> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows, ColumnRangeSelection columnRangeSelection, long timestamp) {
+        return KeyValueServices.filterGetRowsToColumnRange(this, tableRef, rows, columnRangeSelection, timestamp);
     }
 
     @Override

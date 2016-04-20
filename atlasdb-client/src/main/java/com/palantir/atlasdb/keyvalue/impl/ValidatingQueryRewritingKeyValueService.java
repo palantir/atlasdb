@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.impl;
 
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -34,6 +35,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -254,5 +256,10 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
             return;
         }
         delegate.truncateTables(tableRefs);
+    }
+
+    @Override
+    public Map<byte[], Iterator<Entry<Cell, Value>>> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows, ColumnRangeSelection columnRangeSelection, long timestamp) {
+        return delegate().getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp);
     }
 }

@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.partition.server;
 
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -27,6 +28,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
@@ -188,6 +190,12 @@ public class EndpointServer implements PartitionMapService, KeyValueService {
                 return kvs().getRows(tableRef, rows, columnSelection, timestamp);
             }
         });
+    }
+
+    @Override
+    @Idempotent
+    public Map<byte[], Iterator<Map.Entry<Cell, Value>>> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows, ColumnRangeSelection columnRangeSelection, long timestamp) {
+        return runPartitionMapReadOperation(input -> kvs().getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp));
     }
 
     @Override
@@ -502,5 +510,4 @@ public class EndpointServer implements PartitionMapService, KeyValueService {
             }
         });
     }
-
 }

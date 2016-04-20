@@ -16,11 +16,13 @@
 package com.palantir.atlasdb.keyvalue;
 
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -50,6 +52,9 @@ public interface NamespacedKeyValueService {
     @Idempotent
     Map<Cell, Value> getRows(TableReference tableRef, Iterable<byte[]> rows,
                              ColumnSelection columnSelection,long timestamp);
+
+    @Idempotent
+    Map<byte[], Iterator<Map.Entry<Cell, Value>>> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows, ColumnRangeSelection columnRangeSelection, long timestamp);
 
     @Idempotent
     Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell);

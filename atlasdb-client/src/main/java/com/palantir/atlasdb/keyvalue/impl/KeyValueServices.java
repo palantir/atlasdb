@@ -19,6 +19,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
+import java.util.SortedMap;
 import java.util.concurrent.ExecutorService;
 
 import org.slf4j.Logger;
@@ -27,9 +29,15 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
+import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
@@ -41,6 +49,7 @@ import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.BlockingWorkerPool;
+import com.palantir.util.crypto.Sha256Hash;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
@@ -145,5 +154,46 @@ public class KeyValueServices {
                 return Maps.immutableEntry(entry.getKey(), Value.create(entry.getValue(), timestamp));
             }
         });
+    }
+
+    // TODO: kill this when we can properly implement this on all KVSes
+    public static Map<byte[], Iterator<Map.Entry<Cell, Value>>> filterGetRowsToColumnRange(KeyValueService kvs, TableReference tableRef, Iterable<byte[]> rows, ColumnRangeSelection columnRangeSelection, long timestamp) {
+        Map<Cell, Value> allValues = kvs.getRows(tableRef, rows, ColumnSelection.all(), timestamp);
+        Map<Sha256Hash, byte[]> hashesToBytes = Maps.newHashMap();
+        Map<Sha256Hash, ImmutableSortedMap.Builder<byte[], Value>> rowsToColumns = Maps.newHashMap();
+        for (Map.Entry<Cell, Value> e : allValues.entrySet()) {
+            Sha256Hash rowHash = Sha256Hash.computeHash(e.getKey().getRowName());
+            if (!hashesToBytes.containsKey(rowHash)) {
+                hashesToBytes.put(rowHash, e.getKey().getRowName());
+            }
+            if (rowsToColumns.containsKey(rowHash)) {
+                rowsToColumns.get(rowHash).put(e.getKey().getColumnName(), e.getValue());
+            } else {
+                ImmutableSortedMap.Builder<byte[], Value> builder =
+                        ImmutableSortedMap.<byte[], Value>orderedBy(UnsignedBytes.lexicographicalComparator()).put(e.getKey().getColumnName(), e.getValue());
+                rowsToColumns.put(rowHash, builder);
+            }
+        }
+        Map<byte[], Iterator<Map.Entry<Cell, Value>>> results = Maps.newHashMap();
+        for (Map.Entry<Sha256Hash, ImmutableSortedMap.Builder<byte[], Value>> row : rowsToColumns.entrySet()) {
+            SortedMap<byte[], Value> map = row.getValue().build();
+            Set<Map.Entry<byte[], Value>> subMap;
+            if ((columnRangeSelection.getStartCol().length == 0) && (columnRangeSelection.getEndCol().length == 0)) {
+                subMap = map.entrySet();
+            } else if (columnRangeSelection.getStartCol().length == 0) {
+                subMap = map.headMap(columnRangeSelection.getEndCol()).entrySet();
+            } else if (columnRangeSelection.getEndCol().length == 0) {
+                subMap = map.tailMap(columnRangeSelection.getStartCol()).entrySet();
+            } else {
+                subMap = map.subMap(columnRangeSelection.getStartCol(), columnRangeSelection.getEndCol()).entrySet();
+            }
+            byte[] rowName = hashesToBytes.get(row.getKey());
+            if (!subMap.isEmpty()) {
+                results.put(hashesToBytes.get(row.getKey()),
+                        Iterators.transform(subMap.iterator(), e ->
+                                Iterables.getOnlyElement(ImmutableMap.of(Cell.create(rowName, e.getKey()), e.getValue()).entrySet())));
+            }
+        }
+        return results;
     }
 }

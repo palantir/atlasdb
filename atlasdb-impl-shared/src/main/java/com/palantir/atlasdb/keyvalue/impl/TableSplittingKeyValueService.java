@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.impl;
 
 import java.util.Collection;
 import java.util.IdentityHashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -32,6 +33,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -247,6 +249,11 @@ public class TableSplittingKeyValueService implements KeyValueService {
                                     ColumnSelection columnSelection,
                                     long timestamp) {
         return getDelegate(tableRef).getRows(tableRef, rows, columnSelection, timestamp);
+    }
+
+    @Override
+    public Map<byte[], Iterator<Entry<Cell, Value>>> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows, ColumnRangeSelection columnRangeSelection, long timestamp) {
+        return getDelegate(tableRef).getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp);
     }
 
     @Override

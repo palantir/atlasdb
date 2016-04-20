@@ -16,12 +16,14 @@
 package com.palantir.atlasdb.keyvalue.impl;
 
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -220,5 +222,10 @@ public class DualWriteKeyValueService implements KeyValueService {
     public void compactInternally(TableReference tableRef) {
         delegate1.compactInternally(tableRef);
         delegate2.compactInternally(tableRef);
+    }
+
+    @Override
+    public Map<byte[], Iterator<Map.Entry<Cell, Value>>> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows, ColumnRangeSelection columnRangeSelection, long timestamp) {
+        return delegate1.getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp);
     }
 }

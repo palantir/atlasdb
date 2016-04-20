@@ -1,12 +1,12 @@
 /**
  * Copyright 2015 Palantir Technologies
- *
+ * <p>
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * <p>
  * http://opensource.org/licenses/BSD-3-Clause
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -21,6 +21,8 @@ import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -71,6 +73,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -87,6 +90,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
@@ -301,10 +305,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                         SlicePredicate pred = new SlicePredicate();
                         pred.setSlice_range(slice);
 
-                        List<ByteBuffer> rowNames = Lists.newArrayListWithCapacity(batch.size());
-                        for (byte[] r : batch) {
-                            rowNames.add(ByteBuffer.wrap(r));
-                        }
+                        List<ByteBuffer> rowNames = wrap(rows);
 
                         ColumnParent colFam = new ColumnParent(internalTableName(tableRef));
                         Map<ByteBuffer, List<ColumnOrSuperColumn>> results = multigetInternal(client, tableRef, rowNames, colFam, pred, readConsistency);
@@ -328,6 +329,14 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
+    }
+
+    private List<ByteBuffer> wrap(List<byte[]> arrays) {
+        List<ByteBuffer> byteBuffers = Lists.newArrayListWithCapacity(arrays.size());
+        for (byte[] r : arrays) {
+            byteBuffers.add(ByteBuffer.wrap(r));
+        }
+        return byteBuffers;
     }
 
     private Map<Cell, Value> getRowsForSpecificColumns(final TableReference tableRef,
@@ -392,12 +401,12 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         for (Map.Entry<InetSocketAddress, List<Cell>> hostAndCells : partitionByHost(cells,
                                                                                Cells.getRowFunction()).entrySet()) {
             tasks.addAll(getLoadWithTsTasksForSingleHost(hostAndCells.getKey(),
-                                                         tableRef,
-                                                         hostAndCells.getValue(),
-                                                         startTs,
-                                                         loadAllTs,
-                                                         v,
-                                                         consistency));
+                    tableRef,
+                    hostAndCells.getValue(),
+                    startTs,
+                    loadAllTs,
+                    v,
+                    consistency));
         }
         runAllTasksCancelOnFailure(tasks);
     }
@@ -460,6 +469,183 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             }
         }
         return tasks;
+    }
+
+    @Override
+    public Map<byte[], Iterator<Entry<Cell, Value>>> getRowsColumnRange(TableReference tableRef,
+                                               Iterable<byte[]> rows,
+                                               ColumnRangeSelection columnRangeSelection,
+                                               long timestamp) {
+        Set<Entry<InetSocketAddress, List<byte[]>>> rowsByHost =
+                partitionByHost(rows, Functions.<byte[]>identity()).entrySet();
+        List<Callable<Map<byte[], Iterator<Entry<Cell, Value>>>>> tasks = Lists.newArrayListWithCapacity(rowsByHost.size());
+        for (final Map.Entry<InetSocketAddress, List<byte[]>> hostAndRows : rowsByHost) {
+            tasks.add(() ->
+                    getRowsColumnRangeIteratorForSingleHost(hostAndRows.getKey(), tableRef,
+                            hostAndRows.getValue(), columnRangeSelection, timestamp));
+        }
+        List<Map<byte[], Iterator<Entry<Cell, Value>>>> perHostResults = runAllTasksCancelOnFailure(tasks);
+        Map<byte[], Iterator<Entry<Cell, Value>>> result = Maps.newHashMapWithExpectedSize(Iterables.size(rows));
+        for (Map<byte[], Iterator<Entry<Cell, Value>>> perHostResult : perHostResults) {
+            result.putAll(perHostResult);
+        }
+        return result;
+    }
+
+    private Map<byte[], Iterator<Entry<Cell, Value>>> getRowsColumnRangeIteratorForSingleHost(InetSocketAddress host,
+                                                                                         TableReference tableRef,
+                                                                                         List<byte[]> rows,
+                                                                                         ColumnRangeSelection columnRangeSelection,
+                                                                                         long startTs) {
+        try {
+            RowColumnRangeExtractor.RowColumnRangeResult firstPage =
+                    getRowsColumnRangeForSingleHost(host, tableRef, rows, columnRangeSelection, startTs);
+
+            Map<byte[], LinkedHashMap<Cell, Value>> results = firstPage.results;
+            Map<byte[], Column> rowsToLastCompositeColumns = firstPage.rowsToLastCompositeColumns;
+            Map<byte[], byte[]> incompleteRowsToNextColumns = Maps.newHashMap();
+            for (byte[] row : rowsToLastCompositeColumns.keySet()) {
+                byte[] col = CassandraKeyValueServices.decomposeName(rowsToLastCompositeColumns.get(row)).getLhSide();
+                // If we read a version of the cell before our start timestamp, it will be the most recent version readable to
+                // us and we can continue to the next column. Otherwise we have to continue reading this column.
+                boolean completedCell = results.containsKey(row) && results.get(row).containsKey(Cell.create(row, col));
+                boolean endOfRange = isEndOfColumnRange(completedCell, col, columnRangeSelection.getEndCol());
+                if (!endOfRange) {
+                    byte[] nextCol = getNextColumnRangeColumn(completedCell, col);
+                    incompleteRowsToNextColumns.put(row, nextCol);
+                }
+            }
+
+            Map<byte[], Iterator<Entry<Cell, Value>>> ret = Maps.newHashMapWithExpectedSize(results.keySet().size());
+            for (byte[] row : rowsToLastCompositeColumns.keySet()) {
+                Iterator<Entry<Cell, Value>> resultIterator;
+                if (results.containsKey(row)) {
+                    resultIterator = results.get(row).entrySet().iterator();
+                } else {
+                    resultIterator = Collections.emptyIterator();
+                }
+                if (!incompleteRowsToNextColumns.containsKey(row)) {
+                    ret.put(row, resultIterator);
+                } else {
+                    ColumnRangeSelection newColumnRange = new ColumnRangeSelection(incompleteRowsToNextColumns.get(row),
+                            columnRangeSelection.getEndCol(), columnRangeSelection.getBatchHint());
+                    ret.put(row, Iterators.concat(resultIterator, getRowColumnRange(host, tableRef, row, newColumnRange, startTs)));
+                }
+            }
+            return ret;
+        } catch (Exception e) {
+            throw Throwables.throwUncheckedException(e);
+        }
+    }
+
+    private RowColumnRangeExtractor.RowColumnRangeResult getRowsColumnRangeForSingleHost(InetSocketAddress host,
+                                                             TableReference tableRef,
+                                                             List<byte[]> rows,
+                                                             ColumnRangeSelection columnRangeSelection,
+                                                             long startTs) {
+        try {
+            return clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Client, RowColumnRangeExtractor.RowColumnRangeResult, Exception>() {
+                @Override
+                public RowColumnRangeExtractor.RowColumnRangeResult apply(Client client) throws Exception {
+                    ByteBuffer start = columnRangeSelection.getStartCol().length == 0 ?
+                            ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY) :
+                            CassandraKeyValueServices.makeCompositeBuffer(columnRangeSelection.getStartCol(), startTs - 1);
+                    ByteBuffer end = columnRangeSelection.getEndCol().length == 0 ?
+                            ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY) :
+                            CassandraKeyValueServices.makeCompositeBuffer(RangeRequests.previousLexicographicName(columnRangeSelection.getEndCol()), -1);
+                    SliceRange slice = new SliceRange(start, end, false, columnRangeSelection.getBatchHint());
+                    SlicePredicate pred = new SlicePredicate();
+                    pred.setSlice_range(slice);
+
+                    ColumnParent colFam = new ColumnParent(internalTableName(tableRef));
+                    Map<ByteBuffer, List<ColumnOrSuperColumn>> results = multigetInternal(client, tableRef, wrap(rows), colFam, pred, readConsistency);
+
+                    RowColumnRangeExtractor extractor = new RowColumnRangeExtractor();
+                    extractor.extractResults(results, startTs, ColumnSelection.all());
+
+                    return extractor.getRowColumnRangeResult();
+                }
+
+                @Override
+                public String toString() {
+                    return "multiget_slice(" + tableRef.getQualifiedName() + ", " + rows.size() + " rows, " + columnRangeSelection.getBatchHint() + " max columns)";
+                }
+            });
+        } catch (Exception e) {
+            throw Throwables.throwUncheckedException(e);
+        }
+    }
+
+    private Iterator<Entry<Cell, Value>> getRowColumnRange(InetSocketAddress host, TableReference tableRef, final byte[] row,
+                                                           final ColumnRangeSelection columnRangeSelection, long startTs) {
+        return ClosableIterators.wrap(new AbstractPagingIterable<Entry<Cell, Value>, TokenBackedBasicResultsPage<Entry<Cell, Value>, byte[]>>() {
+            @Override
+            protected TokenBackedBasicResultsPage<Entry<Cell, Value>, byte[]> getFirstPage() throws Exception {
+                return page(columnRangeSelection.getStartCol());
+            }
+
+            @Override
+            protected TokenBackedBasicResultsPage<Entry<Cell, Value>, byte[]> getNextPage(TokenBackedBasicResultsPage<Entry<Cell, Value>, byte[]> previous) throws Exception {
+                return page(previous.getTokenForNextPage());
+            }
+
+            TokenBackedBasicResultsPage<Entry<Cell, Value>, byte[]> page(final byte[] startCol) throws Exception {
+                return clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Client, TokenBackedBasicResultsPage<Entry<Cell, Value>, byte[]>, Exception>() {
+                    @Override
+                    public TokenBackedBasicResultsPage<Entry<Cell, Value>, byte[]> apply(Client client) throws Exception {
+                        ByteBuffer start = startCol.length == 0 ?
+                                ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY) :
+                                CassandraKeyValueServices.makeCompositeBuffer(startCol, startTs - 1);
+                        ByteBuffer end = columnRangeSelection.getEndCol().length == 0 ?
+                                ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY) :
+                                CassandraKeyValueServices.makeCompositeBuffer(RangeRequests.previousLexicographicName(columnRangeSelection.getEndCol()), -1);
+                        SliceRange slice = new SliceRange(start, end, false, columnRangeSelection.getBatchHint());
+                        SlicePredicate pred = new SlicePredicate();
+                        pred.setSlice_range(slice);
+
+                        ByteBuffer rowByteBuffer = ByteBuffer.wrap(row);
+
+                        ColumnParent colFam = new ColumnParent(internalTableName(tableRef));
+                        Map<ByteBuffer, List<ColumnOrSuperColumn>> results = multigetInternal(client, tableRef,
+                                ImmutableList.of(rowByteBuffer), colFam, pred, readConsistency);
+                        if (results.isEmpty()) {
+                            return SimpleTokenBackedResultsPage.create(startCol, ImmutableList.<Entry<Cell, Value>>of(), false);
+                        }
+                        Map<Cell, Value> ret = Maps.newHashMap();
+                        new ValueExtractor(ret).extractResults(results, startTs, ColumnSelection.all());
+                        List<ColumnOrSuperColumn> values = Iterables.getOnlyElement(results.values());
+                        if (values.isEmpty()) {
+                            return SimpleTokenBackedResultsPage.create(startCol, ImmutableList.<Entry<Cell, Value>>of(), false);
+                        }
+                        ColumnOrSuperColumn lastColumn = values.get(values.size() - 1);
+                        byte[] lastCol = CassandraKeyValueServices.decomposeName(lastColumn.getColumn()).getLhSide();
+                        // Same idea as the getRows case to handle seeing only newer entries of a column
+                        boolean completedCell = ret.containsKey(Cell.create(row, lastCol));
+                        boolean endOfRange = isEndOfColumnRange(completedCell, lastCol, columnRangeSelection.getEndCol());
+                        byte[] nextCol = getNextColumnRangeColumn(completedCell, lastCol);
+                        return SimpleTokenBackedResultsPage.create(nextCol, ret.entrySet(), !endOfRange);
+                    }
+
+                    @Override
+                    public String toString() {
+                        return "multiget_slice(" + tableRef.getQualifiedName() + ", single row, " + columnRangeSelection.getBatchHint() + " batch hint)";
+                    }
+                });
+            }
+
+        }.iterator());
+    }
+
+    private boolean isEndOfColumnRange(boolean completedCell, byte[] lastCol, byte[] endCol) {
+        return completedCell && (RangeRequests.isLastRowName(lastCol) || Arrays.equals(RangeRequests.nextLexicographicName(lastCol), endCol));
+    }
+
+    private byte[] getNextColumnRangeColumn(boolean completedCell, byte[] lastCol) {
+        if (!completedCell) {
+            return lastCol;
+        } else {
+            return RangeRequests.nextLexicographicName(lastCol);
+        }
     }
 
     @Override

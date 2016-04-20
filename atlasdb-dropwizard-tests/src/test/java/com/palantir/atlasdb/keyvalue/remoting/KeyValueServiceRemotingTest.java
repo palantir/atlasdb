@@ -24,6 +24,7 @@ import java.util.SortedMap;
 import org.apache.commons.lang.ArrayUtils;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -43,6 +44,7 @@ import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 
 import io.dropwizard.testing.junit.DropwizardClientRule;
 
+@Ignore
 public class KeyValueServiceRemotingTest extends AbstractAtlasDbKeyValueServiceTest {
 
     final KeyValueService remoteKvs = RemotingKeyValueService.createServerSide(new InMemoryKeyValueService(
