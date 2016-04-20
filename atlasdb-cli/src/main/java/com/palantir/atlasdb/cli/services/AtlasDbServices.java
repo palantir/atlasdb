@@ -22,6 +22,7 @@ import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.timestamp.TimestampService;
 
@@ -44,6 +45,8 @@ public abstract class AtlasDbServices implements AutoCloseable {
     public abstract SerializableTransactionManager getTransactionManager();
 
     public abstract SweepTaskRunner getSweepTaskRunner();
+
+    public abstract TransactionService getTransactionService();
 
     @Override
     public void close() {
