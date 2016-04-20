@@ -3,7 +3,7 @@ Contributing to AtlasDB
 =======================
 
 Start by getting a `local development
-setup </atlasdb/docs/getting_started.html#running-from-source>`__
+setup <../overview/getting_started.html#running-from-source>`__
 working. We are happy to accept pull requests and could use help
 implementing the AtlasDB API for more underlying physical stores.
 
