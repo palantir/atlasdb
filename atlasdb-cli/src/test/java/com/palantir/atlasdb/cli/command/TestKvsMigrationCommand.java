@@ -39,7 +39,7 @@ import com.palantir.atlasdb.table.description.Schemas;
 public class TestKvsMigrationCommand {
 
     private KvsMigrationCommand getCommand(String[] args) throws URISyntaxException {
-        String filePath = AbstractTestRunner.getResourcePath(InMemoryTestRunner.INMEMORY_CONFIG_FILENAME);
+        String filePath = AbstractTestRunner.getResourcePath(InMemoryTestRunner.CONFIG_LOCATION);
         String[] initArgs = new String[] { "run", "-fc", filePath, "-mc", filePath };
         String[] fullArgs = ObjectArrays.concat(initArgs, args, String.class);
         return AbstractTestRunner.buildCli(KvsMigrationCommand.class).parse(fullArgs);

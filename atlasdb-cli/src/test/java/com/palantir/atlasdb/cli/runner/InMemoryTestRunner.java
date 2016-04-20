@@ -20,7 +20,7 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
 public class InMemoryTestRunner extends AbstractTestRunner {
 
-    public static final String INMEMORY_CONFIG_FILENAME = "inmemory_config.yml";
+    public static final String CONFIG_LOCATION = "cli_test_config.yml";
 
     public InMemoryTestRunner(Class<? extends SingleBackendCommand> cmdClass, String... args) {
         super(cmdClass, args);
@@ -28,7 +28,7 @@ public class InMemoryTestRunner extends AbstractTestRunner {
 
     @Override
     protected String getKvsConfigFileName() {
-        return INMEMORY_CONFIG_FILENAME;
+        return CONFIG_LOCATION;
     }
 
     @Override

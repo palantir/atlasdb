@@ -2,6 +2,9 @@ machine:
   java:
     version:
       oraclejdk8
+  environment:
+    _JAVA_OPTIONS: "-Xmx512m"
+    GRADLE_OPTS: '-Dorg.gradle.jvmargs="-Xmx512m -XX:+HeapDumpOnOutOfMemoryError"'
 
 dependencies:
   override:
@@ -11,7 +14,10 @@ dependencies:
 
 test:
   override:
-    - ./gradlew -Dorg.gradle.jvmargs=-Xmx512m --max-workers 2 check
+    - ./scripts/circle-ci/run-circle-tests.sh:
+        parallel: true
+
+
   post:
     - mkdir -p $CIRCLE_TEST_REPORTS/junit/
     - find . -type f -regex ".*/build/test-results/TEST-.*\.xml" -exec cp {} $CIRCLE_TEST_REPORTS/junit/ \;
