@@ -17,6 +17,10 @@ package com.palantir.timestamp;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -29,6 +33,7 @@ import org.jmock.Mockery;
 import org.junit.Test;
 
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.common.remoting.ServiceNotAvailableException;
 
 public class PersistentTimestampServiceTest {
     @Test
@@ -68,6 +73,25 @@ public class PersistentTimestampServiceTest {
         }
         
         m.assertIsSatisfied();
+    }
+
+    @Test
+    public void notThrowOnCreateIfBoundStoreIsInvalid() {
+        PersistentTimestampService.create(failingTimestampBoundStore());
+    }
+
+    @Test(expected = ServiceNotAvailableException.class)
+    public void throwOnTimestampRequestIfBoundStoreIsInvalid() {
+        PersistentTimestampService persistentTimestampService = PersistentTimestampService.create(failingTimestampBoundStore());
+
+        persistentTimestampService.getFreshTimestamp();
+    }
+
+    private TimestampBoundStore failingTimestampBoundStore() {
+        TimestampBoundStore timestampBoundStore = mock(TimestampBoundStore.class);
+        when(timestampBoundStore.getUpperLimit()).thenReturn(0L);
+        doThrow(new MultipleRunningTimestampServiceError("error")).when(timestampBoundStore).storeUpperLimit(anyLong());
+        return timestampBoundStore;
     }
 
     @Test
