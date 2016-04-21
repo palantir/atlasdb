@@ -2,32 +2,9 @@
 Contributing to AtlasDB
 =======================
 
-Start by getting a `local development
-setup </atlasdb/docs/getting_started.html#running-from-source>`__
-working. We are happy to accept pull requests and could use help
+Follow the steps provided in :ref:`running-from-source`.
+We are happy to accept pull requests and could use help
 implementing the AtlasDB API for more underlying physical stores.
-
-Release Schedule
-----------------
-
-We aim to release once a week, but may release faster to patch bugs or
-slower if there is low code churn. We are still setting up a formal
-branching model, but for now the ``develop`` branch serves as
-``develop`` and ``release`` (we have no ``release`` branch) and we merge
-releases into ``master``. This should change soon.
-
-Cutting for Release
--------------------
-
-1. Checkout the commit to tag for release (probably
-   ``git checkout origin/develop``).
-2. Tag the commit: ``git tag -a <version>``.
-3. Push the tag to Github:
-   ``git push origin <version>:refs/tags/<version>``.
-4. After a short wait you can publish the artifacts on Bintray by going
-   to the `AtlasDB
-   page <https://bintray.com/palantir/releases/atlasdb/view>`__. **Note:
-   You must have admin privledges on Bintray for this to work.**
 
 Contributing Docs
 =================

@@ -1,3 +1,5 @@
+.. _atlas-server-api:
+
 ================
 Atlas Server Api
 ================
