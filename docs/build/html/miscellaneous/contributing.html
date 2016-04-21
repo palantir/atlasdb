@@ -32,6 +32,7 @@
   
     <link rel="top" title="AtlasDB 0.3.34 documentation" href="../index.html"/>
         <link rel="up" title="Miscellaneous" href="index.html"/>
+        <link rel="next" title="Release Process" href="release-process.html"/>
         <link rel="prev" title="Miscellaneous" href="index.html"/> 
 
   
@@ -94,6 +95,7 @@
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">Miscellaneous</a><ul class="current">
 <li class="toctree-l2 current"><a class="current reference internal" href="">Contributing to AtlasDB</a></li>
+<li class="toctree-l2"><a class="reference internal" href="release-process.html">Release Process</a></li>
 </ul>
 </li>
 </ul>
@@ -135,33 +137,11 @@
             
   <div class="section" id="contributing-to-atlasdb">
 <h1>Contributing to AtlasDB<a class="headerlink" href="#contributing-to-atlasdb" title="Permalink to this headline">¶</a></h1>
-<p>Start by getting a <a class="reference external" href="/atlasdb/docs/getting_started.html#running-from-source">local development
-setup</a>
-working. We are happy to accept pull requests and could use help
+<p>Follow the steps provided in <a class="reference internal" href="../overview/getting_started.html#running-from-source"><span>Running from Source</span></a>.
+We are happy to accept pull requests and could use help
 implementing the AtlasDB API for more underlying physical stores.</p>
-<div class="section" id="release-schedule">
-<h2>Release Schedule<a class="headerlink" href="#release-schedule" title="Permalink to this headline">¶</a></h2>
-<p>We aim to release once a week, but may release faster to patch bugs or
-slower if there is low code churn. We are still setting up a formal
-branching model, but for now the <code class="docutils literal"><span class="pre">develop</span></code> branch serves as
-<code class="docutils literal"><span class="pre">develop</span></code> and <code class="docutils literal"><span class="pre">release</span></code> (we have no <code class="docutils literal"><span class="pre">release</span></code> branch) and we merge
-releases into <code class="docutils literal"><span class="pre">master</span></code>. This should change soon.</p>
-</div>
-<div class="section" id="cutting-for-release">
-<h2>Cutting for Release<a class="headerlink" href="#cutting-for-release" title="Permalink to this headline">¶</a></h2>
-<ol class="arabic simple">
-<li>Checkout the commit to tag for release (probably
-<code class="docutils literal"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">origin/develop</span></code>).</li>
-<li>Tag the commit: <code class="docutils literal"><span class="pre">git</span> <span class="pre">tag</span> <span class="pre">-a</span> <span class="pre">&lt;version&gt;</span></code>.</li>
-<li>Push the tag to Github:
-<code class="docutils literal"><span class="pre">git</span> <span class="pre">push</span> <span class="pre">origin</span> <span class="pre">&lt;version&gt;:refs/tags/&lt;version&gt;</span></code>.</li>
-<li>After a short wait you can publish the artifacts on Bintray by going
-to the <a class="reference external" href="https://bintray.com/palantir/releases/atlasdb/view">AtlasDB
-page</a>. <strong>Note:
-You must have admin privledges on Bintray for this to work.</strong></li>
-</ol>
 <div class="section" id="contributing-docs">
-<h3>Contributing Docs<a class="headerlink" href="#contributing-docs" title="Permalink to this headline">¶</a></h3>
+<h2>Contributing Docs<a class="headerlink" href="#contributing-docs" title="Permalink to this headline">¶</a></h2>
 <ol class="arabic simple">
 <li>Clone the git repository:
 <code class="docutils literal"><span class="pre">git</span> <span class="pre">clone</span> <span class="pre">git&#64;github.com:palantir/atlasdb.git;</span> <span class="pre">cd</span> <span class="pre">atlasdb</span></code>.</li>
@@ -176,13 +156,14 @@ You must have admin privledges on Bintray for this to work.</strong></li>
 <p>The docs are built using <a class="reference external" href="http://www.sphinx-doc.org/en/stable/index.html">Sphinx</a> and written in <a class="reference external" href="http://docutils.sourceforge.net/rst.html">.rst</a>.</p>
 </div>
 </div>
-</div>
 
 
           </div>
           <footer>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="release-process.html" class="btn btn-neutral float-right" title="Release Process">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="index.html" class="btn btn-neutral" title="Miscellaneous"><span class="fa fa-arrow-circle-left"></span> Previous</a>
