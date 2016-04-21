@@ -20,19 +20,25 @@ import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.jmock.Expectations;
 import org.jmock.Mockery;
 import org.junit.Test;
 
+import com.google.common.util.concurrent.Futures;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 
@@ -64,13 +70,22 @@ public class PersistentTimestampServiceTest {
 
     @Test
     public void incrementUpperLimitOnFirstFreshTimestampRequest() {
-        TimestampBoundStore timestampBoundStore = mock(TimestampBoundStore.class);
-        when(timestampBoundStore.getUpperLimit()).thenReturn(0L);
+        TimestampBoundStore timestampBoundStore = initialTimestampBoundStore();
         PersistentTimestampService persistentTimestampService = PersistentTimestampService.create(timestampBoundStore);
 
         persistentTimestampService.getFreshTimestamp();
 
         verify(timestampBoundStore).storeUpperLimit(PersistentTimestampService.ALLOCATION_BUFFER_SIZE);
+    }
+
+    @Test
+    public void multipleFreshTimestampRequestsShouldIncreaseUpperLimitOnlyOnce() {
+        TimestampBoundStore timestampBoundStore = initialTimestampBoundStore();
+        PersistentTimestampService persistentTimestampService = PersistentTimestampService.create(timestampBoundStore);
+
+        getFreshTimestampsInParallel(persistentTimestampService, 20);
+
+        verify(timestampBoundStore, times(1)).storeUpperLimit(PersistentTimestampService.ALLOCATION_BUFFER_SIZE);
     }
 
     @Test
@@ -83,13 +98,6 @@ public class PersistentTimestampServiceTest {
         PersistentTimestampService persistentTimestampService = PersistentTimestampService.create(failingTimestampBoundStore());
 
         persistentTimestampService.getFreshTimestamp();
-    }
-
-    private TimestampBoundStore failingTimestampBoundStore() {
-        TimestampBoundStore timestampBoundStore = mock(TimestampBoundStore.class);
-        when(timestampBoundStore.getUpperLimit()).thenReturn(0L);
-        doThrow(new MultipleRunningTimestampServiceError("error")).when(timestampBoundStore).storeUpperLimit(anyLong());
-        return timestampBoundStore;
     }
 
     @Test
@@ -131,5 +139,28 @@ public class PersistentTimestampServiceTest {
         }
 
         m.assertIsSatisfied();
+    }
+
+    private void getFreshTimestampsInParallel(PersistentTimestampService persistentTimestampService, int numTimes) {
+        ExecutorService executorService = Executors.newFixedThreadPool(numTimes / 2);
+        Set<Future<?>> futures = IntStream.range(0, numTimes)
+                .mapToObj(i -> executorService.submit(() -> {
+                    persistentTimestampService.getFreshTimestamp();
+                }))
+                .collect(Collectors.toSet());
+        futures.forEach(Futures::getUnchecked);
+    }
+
+    private TimestampBoundStore initialTimestampBoundStore() {
+        TimestampBoundStore timestampBoundStore = mock(TimestampBoundStore.class);
+        when(timestampBoundStore.getUpperLimit()).thenReturn(0L);
+        return timestampBoundStore;
+    }
+
+    private TimestampBoundStore failingTimestampBoundStore() {
+        TimestampBoundStore timestampBoundStore = mock(TimestampBoundStore.class);
+        when(timestampBoundStore.getUpperLimit()).thenReturn(0L);
+        doThrow(new MultipleRunningTimestampServiceError("error")).when(timestampBoundStore).storeUpperLimit(anyLong());
+        return timestampBoundStore;
     }
 }
