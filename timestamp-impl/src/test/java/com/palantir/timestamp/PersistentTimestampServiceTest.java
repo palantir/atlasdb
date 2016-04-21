@@ -37,20 +37,6 @@ import com.palantir.common.remoting.ServiceNotAvailableException;
 
 public class PersistentTimestampServiceTest {
     @Test
-    public void testCreation() {
-        Mockery m = new Mockery();
-        final TimestampBoundStore tbsMock = m.mock(TimestampBoundStore.class);
-        final long initialValue = 72;
-        m.checking(new Expectations() {{
-            oneOf(tbsMock).getUpperLimit();
-            will(returnValue(initialValue));
-            oneOf(tbsMock).storeUpperLimit(with(any(Long.class)));
-        }});
-        PersistentTimestampService.create(tbsMock);
-        m.assertIsSatisfied();
-    }
-    
-    @Test
     public void testFastForward() {
         Mockery m = new Mockery();
         final TimestampBoundStore tbsMock = m.mock(TimestampBoundStore.class);

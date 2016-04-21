@@ -51,27 +51,19 @@ public class PersistentTimestampService implements TimestampService {
     private long lastAllocatedTime;
 
     public static PersistentTimestampService create(TimestampBoundStore tbs) {
-        PersistentTimestampService ts = new PersistentTimestampService(
+        return create(
                 tbs,
-                tbs.getUpperLimit(),
                 new Clock() {
                     @Override
                     public long getTimeMillis() {
                         return System.currentTimeMillis();
                     }
                 });
-        return init(ts);
     }
 
     @VisibleForTesting
     protected static PersistentTimestampService create(TimestampBoundStore tbs, Clock clock) {
-        PersistentTimestampService ts = new PersistentTimestampService(tbs, tbs.getUpperLimit(), clock);
-        return init(ts);
-    }
-
-    private static PersistentTimestampService init(PersistentTimestampService ts) {
-        ts.allocateMoreTimestamps();
-        return ts;
+        return new PersistentTimestampService(tbs, tbs.getUpperLimit(), clock);
     }
 
     private PersistentTimestampService(TimestampBoundStore tbs, long lastUpperBound, Clock clock) {
