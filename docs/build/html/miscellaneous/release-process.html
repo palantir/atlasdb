@@ -7,7 +7,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Command Line Utilities &mdash; AtlasDB 0.3.34 documentation</title>
+  <title>Release Process &mdash; AtlasDB 0.3.34 documentation</title>
   
 
   
@@ -31,9 +31,8 @@
 
   
     <link rel="top" title="AtlasDB 0.3.34 documentation" href="../index.html"/>
-        <link rel="up" title="Cluster Management" href="index.html"/>
-        <link rel="next" title="Console" href="console.html"/>
-        <link rel="prev" title="Cluster Management" href="index.html"/> 
+        <link rel="up" title="Miscellaneous" href="index.html"/>
+        <link rel="prev" title="Contributing to AtlasDB" href="contributing.html"/> 
 
   
   <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js"></script>
@@ -88,14 +87,14 @@
 <li class="toctree-l2"><a class="reference internal" href="../configuration/cassandra_config.html">Cassandra Configuration</a></li>
 </ul>
 </li>
-<li class="toctree-l1 current"><a class="reference internal" href="index.html">Cluster Management</a><ul class="current">
-<li class="toctree-l2 current"><a class="current reference internal" href="">Command Line Utilities</a></li>
-<li class="toctree-l2"><a class="reference internal" href="console.html">Console</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cluster_management/index.html">Cluster Management</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../cluster_management/clis.html">Command Line Utilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../cluster_management/console.html">Console</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../miscellaneous/index.html">Miscellaneous</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../miscellaneous/contributing.html">Contributing to AtlasDB</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../miscellaneous/release-process.html">Release Process</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Miscellaneous</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="contributing.html">Contributing to AtlasDB</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="">Release Process</a></li>
 </ul>
 </li>
 </ul>
@@ -122,12 +121,12 @@
   <ul class="wy-breadcrumbs">
     <li><a href="../index.html">Docs</a> &raquo;</li>
       
-          <li><a href="index.html">Cluster Management</a> &raquo;</li>
+          <li><a href="index.html">Miscellaneous</a> &raquo;</li>
       
-    <li>Command Line Utilities</li>
+    <li>Release Process</li>
       <li class="wy-breadcrumbs-aside">
         
-          <a href="../_sources/cluster_management/clis.txt" rel="nofollow"> View page source</a>
+          <a href="../_sources/miscellaneous/release-process.txt" rel="nofollow"> View page source</a>
         
       </li>
   </ul>
@@ -135,18 +134,39 @@
 </div>
           <div role="main" class="document">
             
-  <div class="section" id="command-line-utilities">
-<h1>Command Line Utilities<a class="headerlink" href="#command-line-utilities" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="overview">
-<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
-<p>For certain pieces of common functionality AtlasDB offers command line
-scripts. These scripts can be used to help automate common maintance
-tasks as well as help resolve problems encountered during operation.</p>
+  <div class="section" id="release-process">
+<h1>Release Process<a class="headerlink" href="#release-process" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="release-schedule">
+<h2>Release Schedule<a class="headerlink" href="#release-schedule" title="Permalink to this headline">¶</a></h2>
+<p>We aim to release once a week, but may release faster to patch bugs or
+slower if there is low code churn. We are still setting up a formal
+branching model, but for now the <code class="docutils literal"><span class="pre">develop</span></code> branch serves as
+<code class="docutils literal"><span class="pre">develop</span></code> and <code class="docutils literal"><span class="pre">release</span></code> (we have no <code class="docutils literal"><span class="pre">release</span></code> branch) and we merge
+releases into <code class="docutils literal"><span class="pre">master</span></code>. This should change soon.</p>
 </div>
-<div class="section" id="writing-your-own">
-<h2>Writing Your Own<a class="headerlink" href="#writing-your-own" title="Permalink to this headline">¶</a></h2>
-<p>You can write a new CLI by extending <code class="docutils literal"><span class="pre">SingleBackendCommand.java</span></code> which
-offers default AtlasDB configuration and connection out of the box.</p>
+<div class="section" id="cutting-for-release">
+<h2>Cutting for Release<a class="headerlink" href="#cutting-for-release" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic">
+<li><p class="first">Checkout the commit to tag for release (probably
+<code class="docutils literal"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">origin/develop</span></code>).</p>
+</li>
+<li><p class="first">Tag the commit: <code class="docutils literal"><span class="pre">git</span> <span class="pre">tag</span> <span class="pre">-a</span> <span class="pre">&lt;version&gt;</span></code>.</p>
+</li>
+<li><p class="first">Push the tag to Github:
+<code class="docutils literal"><span class="pre">git</span> <span class="pre">push</span> <span class="pre">origin</span> <span class="pre">&lt;version&gt;:refs/tags/&lt;version&gt;</span></code>.</p>
+</li>
+<li><p class="first">After a short wait you can publish the artifacts on Bintray by going
+to the <a class="reference external" href="https://bintray.com/palantir/releases/atlasdb/view">AtlasDB
+page</a>.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">You must have admin privledges on Bintray for this to work.</p>
+</div>
+</li>
+<li><p class="first">Edit the release notes that will appear for editing on AtlasDB GitHub <a class="reference external" href="https://github.com/palantir/atlasdb/releases">releae
+page</a>.</p>
+</li>
+</ol>
 </div>
 </div>
 
@@ -156,10 +176,8 @@ offers default AtlasDB configuration and connection out of the box.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="console.html" class="btn btn-neutral float-right" title="Console">Next <span class="fa fa-arrow-circle-right"></span></a>
       
-      
-        <a href="index.html" class="btn btn-neutral" title="Cluster Management"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="contributing.html" class="btn btn-neutral" title="Contributing to AtlasDB"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
