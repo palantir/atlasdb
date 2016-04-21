@@ -10,8 +10,7 @@ config:
 
     atlasdb:
       keyValueService:
-        type: rocksdb
-        dataDir: var/data/rocksdb
+        type: memory
 
 otherConfig:
   - type: otherType

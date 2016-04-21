@@ -15,12 +15,8 @@
  */
 package com.palantir.atlasdb.cli.command;
 
-import java.util.Map;
-
-import com.google.common.base.Function;
-import com.google.common.collect.Maps;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
 import com.palantir.atlasdb.cli.services.AtlasDbServices;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -41,15 +37,9 @@ public class CleanTransactionRange extends SingleBackendCommand {
 
     @Option(name = {"-s", "--start"},
             title = "START_TIMESTAMP",
-            description = "Start timestamp; will cleanup transactions after this point",
+            description = "Start timestamp; will cleanup transactions after (but not including) this timestamp",
             required = true)
     long startTimestampExclusive;
-
-    @Option(name = {"-d", "--delete"},
-            description = "Actually delete the range from the transaction table; as opposed to just marking them as cleaned")
-    boolean delete;
-
-    final byte[] cleaned = TransactionConstants.getValueForTimestamp(TransactionConstants.CLEANED_COMMIT_TS);
 
     @Override
     public int execute(AtlasDbServices services) {
@@ -70,49 +60,40 @@ public class CleanTransactionRange extends SingleBackendCommand {
                 .build(),
                 Long.MAX_VALUE);
 
-        Map<Cell, byte[]> toClean = Maps.newHashMap();
-
+        Multimap<Cell, Long> toDelete = HashMultimap.create();
         long maxTimestamp = startTimestampExclusive;
         while (range.hasNext()) {
             RowResult<Value> row = range.next();
-            long startResult = TransactionConstants.getTimestampForValue(row.getRowName());
+            byte[] rowName = row.getRowName();
+            long startResult = TransactionConstants.getTimestampForValue(rowName);
             maxTimestamp = Math.max(maxTimestamp, startResult);
-            long endResult = 0L;
-            if (row.getOnlyColumnValue() != null) {
-                endResult = TransactionConstants.getTimestampForValue(row.getOnlyColumnValue().getContents());
-                maxTimestamp = Math.max(maxTimestamp, endResult);
-            } else {
+            
+            Value value;
+            try {
+                value = row.getOnlyColumnValue();
+            } catch (IllegalStateException e){
                 //this should never happen
-                System.out.printf("Error: Found a row in the transactions table that didn't have 1 and only 1 column value: start=%d", startResult);
+                System.out.printf("Error: Found a row in the transactions table that didn't have 1 and only 1 column value: start=%d\n", startResult);
+                continue;
             }
 
-            System.out.printf("Found and cleaning possibly inconsistent transaction: [start=%d, commit=%d]", startResult, endResult);
+            long endResult = TransactionConstants.getTimestampForValue(value.getContents());
+            maxTimestamp = Math.max(maxTimestamp, endResult);
+            System.out.printf("Found and cleaning possibly inconsistent transaction: [start=%d, commit=%d]\n", startResult, endResult);
 
-            for (Cell cell : row.getCellSet()) {
-                toClean.put(cell, cleaned);
-            }
+            Cell key = Cell.create(rowName, TransactionConstants.COMMIT_TS_COLUMN);
+            toDelete.put(key, value.getTimestamp());  //value.getTimestamp() should always be 0L but this is safer
         }
 
-        if (!toClean.isEmpty()) {
-            if (delete) {
-                Multimap<Cell, byte[]> toCleanMulti = Multimaps.forMap(toClean);
-                Multimap<Cell, Long> toDelete = Multimaps.transformValues(toCleanMulti, new Function<byte[], Long>() {
-                    public Long apply(byte[] in) {
-                        return TransactionConstants.getTimestampForValue(in);
-                    }
-                });
-                kvs.delete(TransactionConstants.TRANSACTION_TABLE, toDelete);
-                System.out.println("\nDelete completed.");
-            } else {
-                kvs.putUnlessExists(TransactionConstants.TRANSACTION_TABLE, toClean);
-                System.out.println("\nClean completed.");
-            }
+        if (!toDelete.isEmpty()) {
+            kvs.delete(TransactionConstants.TRANSACTION_TABLE, toDelete);
+            System.out.println("Delete completed.");
+            
+            pts.fastForwardTimestamp(maxTimestamp+1);
+            System.out.printf("Timestamp succesfully forwarded past all cleaned/deleted transactions to %d\n", maxTimestamp);
         } else {
             System.out.println("Found no transactions inside the given range to clean up or delete.");
         }
-
-        pts.fastForwardTimestamp(maxTimestamp);
-        System.out.printf("Timestamp succesfully forwarded past all cleaned/deleted transactions to {}", maxTimestamp);
 
         return 0;
     }
@@ -126,7 +107,7 @@ public class CleanTransactionRange extends SingleBackendCommand {
         }
 
         if (!(ts instanceof PersistentTimestampService)) {
-            System.err.printf("Error: Restoring timestamp service must be of type {}, but yours is {}",
+            System.err.printf("Error: Restoring timestamp service must be of type {}, but yours is {}\n",
                     PersistentTimestampService.class.toString(), ts.getClass().toString());
             isValid &= false;
         }

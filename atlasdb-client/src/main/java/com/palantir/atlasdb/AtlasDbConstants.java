@@ -42,7 +42,7 @@ public class AtlasDbConstants {
     public static final byte[] EMPTY_TABLE_METADATA = {}; // use carefully
     public static final byte[] GENERIC_TABLE_METADATA = new TableMetadata().persistToBytes();
 
-    public static final long SCRUBBER_RETRY_DELAY_MILLIS = 2000L;
+    public static final long SCRUBBER_RETRY_DELAY_MILLIS = 500L;
 
     public static final int MINIMUM_COMPRESSION_BLOCK_SIZE_KB = 4;
     public static final int DEFAULT_INDEX_COMPRESSION_BLOCK_SIZE_KB = 4;

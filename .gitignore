@@ -26,3 +26,8 @@ generated_testSrc/
 .factorypath
 out/
 atlasdb-cli/var/data/
+
+# Emacs temp files
+*~
+
+var/data/rocksdb

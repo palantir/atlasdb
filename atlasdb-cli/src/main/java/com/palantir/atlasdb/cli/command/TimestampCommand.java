@@ -36,7 +36,7 @@ public class TimestampCommand extends SingleBackendCommand {
     private boolean immutable;
     
     @Option(name = {"-d", "--date-time"},
-            description = "Return the earliest approximate wall clock time at which the immutable timestamp" +
+            description = "Return the earliest approximate wall clock datetime at which the immutable timestamp" +
                     " could have been used in a transaction.  Requires --immutable to be set")
     private boolean dateTime;
     
@@ -55,14 +55,14 @@ public class TimestampCommand extends SingleBackendCommand {
 
         if (immutable) {
         	long immutableTimestamp = services.getTransactionManager().getImmutableTimestamp();
-            System.out.println("Current immutable timestamp is: " + immutableTimestamp);
+            System.out.println("Most recent immutable timestamp is: " + immutableTimestamp);
             
             if (dateTime) {
                 long timeMillis = KeyValueServicePuncherStore.getMillisForTimestamp(
                         services.getKeyValueService(), immutableTimestamp);
                 DateTime dt = new DateTime(timeMillis);
                 String stringTime = ISODateTimeFormat.dateTimeNoMillis().print(dt);
-                System.out.printf("Real date time of immutable timestamp is: " + stringTime);
+                System.out.println("Wall clock datetime of immutable timestamp is: " + stringTime);
             }
         }
 

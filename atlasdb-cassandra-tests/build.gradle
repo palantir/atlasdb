@@ -31,6 +31,8 @@ test {
     }
     maxHeapSize = "1024m"
     include '**/*Suite.class'
+    maxParallelForks 2
+
     // We don't want to run ETEs not in the ETE containers.
     if (!Boolean.parseBoolean(System.getenv('ETE'))) {
         enabled = false

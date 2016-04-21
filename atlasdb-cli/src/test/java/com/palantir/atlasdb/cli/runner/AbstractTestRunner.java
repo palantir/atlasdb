@@ -20,6 +20,7 @@ import java.io.PrintStream;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.concurrent.Callable;
 
 import org.apache.commons.lang.ArrayUtils;
 
@@ -100,8 +101,8 @@ public abstract class AbstractTestRunner <S extends AtlasDbServices> implements 
         return Paths.get(AbstractTestRunner.class.getClassLoader().getResource(fileName).toURI()).toString();
     }
 
-    private static Cli<SingleBackendCommand> buildCli(Class<? extends SingleBackendCommand> cmd) {
-        Cli.CliBuilder<SingleBackendCommand> builder = Cli.<SingleBackendCommand>builder("tester")
+    public static <T extends Callable<Integer>> Cli<T> buildCli(Class<T> cmd) {
+        Cli.CliBuilder<T> builder = Cli.<T>builder("tester")
                 .withDescription("Testing " + cmd)
                 .withDefaultCommand(cmd)
                 .withCommands(cmd);

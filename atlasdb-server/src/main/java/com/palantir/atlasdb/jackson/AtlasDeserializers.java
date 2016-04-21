@@ -34,10 +34,10 @@ import com.google.common.collect.Maps;
 import com.google.common.primitives.Bytes;
 import com.google.protobuf.DynamicMessage;
 import com.google.protobuf.Message;
-import com.googlecode.protobuf.format.JsonFormat;
 import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.proto.fork.ForkedJsonFormat;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
@@ -219,9 +219,8 @@ public class AtlasDeserializers {
         case PROTO:
             Message.Builder builder = DynamicMessage.newBuilder(description.getProtoDescriptor());
             try {
-//                ForkedJsonFormat.merge(node.toString(), builder);
-                JsonFormat.merge(node.toString(), builder);
-            } catch (JsonFormat.ParseException e) {
+                ForkedJsonFormat.merge(node.toString(), builder);
+            } catch (ForkedJsonFormat.ParseException e) {
                 throw Throwables.rewrapAndThrowUncheckedException(e);
             }
             bytes = builder.build().toByteArray();

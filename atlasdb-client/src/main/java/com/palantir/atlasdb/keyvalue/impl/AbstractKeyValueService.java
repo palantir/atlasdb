@@ -201,7 +201,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
                                                              final long maximumBytesPerPartition,
                                                              final TableReference tableRef,
                                                              final Function<T, Long> sizingFunction) {
-        return partitionByCountAndBytes(iterable, maximumCountPerPartition, getMinimumDurationToTraceMillis(), tableRef.getQualifiedName(), sizingFunction);
+        return partitionByCountAndBytes(iterable, maximumCountPerPartition, maximumBytesPerPartition, tableRef.getQualifiedName(), sizingFunction);
     }
 
     protected <T> Iterable<List<T>> partitionByCountAndBytes(final Iterable<T> iterable,

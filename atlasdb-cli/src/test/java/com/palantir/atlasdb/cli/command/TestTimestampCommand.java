@@ -79,7 +79,7 @@ public class TestTimestampCommand {
             Scanner scanner = new Scanner(runner.run());
             final long fresh = Long.parseLong(scanner.findInLine("\\d+"));
             final long immutable = Long.parseLong(scanner.findInLine("\\d+"));
-            String immutableDateTime = scanner.findInLine("\\d+.*");
+            String immutableDateTime = scanner.findInLine("\\d+.*").trim();
             ISODateTimeFormat.dateTimeNoMillis().parseDateTime(immutableDateTime);
             Preconditions.checkArgument(immutable <= lockedTs);
             Preconditions.checkArgument(fresh > lockedTs);
@@ -91,7 +91,7 @@ public class TestTimestampCommand {
             scanner = new Scanner(runner.run());
             final long newFresh = Long.parseLong(scanner.findInLine("\\d+"));
             final long newImmutable = Long.parseLong(scanner.findInLine("\\d+"));
-            final String newImmutableDateTime = scanner.findInLine("\\d+.*");
+            final String newImmutableDateTime = scanner.findInLine("\\d+.*").trim();
             ISODateTimeFormat.dateTimeNoMillis().parseDateTime(newImmutableDateTime);
             Preconditions.checkArgument(newFresh > fresh);
             Preconditions.checkArgument(newImmutable > lockedTs);
