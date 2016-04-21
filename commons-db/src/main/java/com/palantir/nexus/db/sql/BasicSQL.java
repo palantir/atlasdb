@@ -40,6 +40,8 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.concurrent.ThreadNamingCallable;
+import com.palantir.db.oracle.OracleShim;
+import com.palantir.db.oracle.OracleShim.OracleBlob;
 import com.palantir.exception.PalantirInterruptedException;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.DBType;
@@ -47,13 +49,10 @@ import com.palantir.nexus.db.ResourceCreationLocation;
 import com.palantir.nexus.db.monitoring.timer.SqlTimer;
 import com.palantir.nexus.db.sql.BasicSQLString.FinalSQLString;
 import com.palantir.nexus.db.sql.monitoring.logger.SqlLoggers;
-import com.palantir.sql.Blobs;
 import com.palantir.sql.Connections;
 import com.palantir.sql.PreparedStatements;
 import com.palantir.sql.ResultSets;
 import com.palantir.util.sql.VerboseSQLException;
-
-import oracle.sql.BLOB;
 
 public abstract class BasicSQL {
 
@@ -145,7 +144,7 @@ public abstract class BasicSQL {
     private static final long POSTGRES_END_RANGE = new DateTime(294276, 1, 1, 0, 0, 0, 0).getMillis();
 
 
-    protected BlobCleanup setObject(Connection c, PreparedStatement ps, int i, Object obj) throws PalantirSqlException {
+    protected OracleBlob setObject(Connection c, PreparedStatement ps, int i, Object obj) throws PalantirSqlException {
         if (obj instanceof ByteArrayInputStream) {
             ByteArrayInputStream bais = (ByteArrayInputStream)obj;
             // Using #available is only okay for ByteArrayInputStream,
@@ -167,24 +166,6 @@ public abstract class BasicSQL {
             PreparedStatements.setObject(ps, i, obj);
         }
         return null;
-    }
-
-    protected static class BlobCleanup {
-        private final BLOB blob;
-
-        BlobCleanup(BLOB blob) throws PalantirSqlException {
-            Validate.notNull(blob);
-            assert Blobs.isTemporary(blob) : "blob must be temp blob to be freed"; //$NON-NLS-1$
-            this.blob = blob;
-        }
-
-        public void dispose() {
-            try {
-                BLOB.freeTemporary(blob);
-            } catch (Exception e) {
-                SqlLoggers.LOGGER.error("failed to free temp blob", e); //$NON-NLS-1$
-            }
-        }
     }
 
     /**
@@ -292,19 +273,23 @@ public abstract class BasicSQL {
             String sql, Object[] vs) throws PalantirSqlException {
         PreparedStatement ps;
         ps = Connections.prepareStatement(c, sql);
-        List<BlobCleanup> toClean = Lists.newArrayList();
+        List<OracleBlob> toClean = Lists.newArrayList();
         if (vs != null) {
             try {
                 for (int i=0; i < vs.length; i++) {
-                    BlobCleanup cleanup = setObject(c, ps, i+1, vs[i]);
+                    OracleBlob cleanup = setObject(c, ps, i+1, vs[i]);
                     if (cleanup != null) {
                         toClean.add(cleanup);
                     }
                 }
             } catch (Exception e) {
                 // if we throw, we need to clean up any blobs we have already made
-                for (BlobCleanup cleanupBlob : toClean) {
-                    cleanupBlob.dispose();
+                for (OracleBlob cleanupBlob : toClean) {
+                    try {
+                        cleanupBlob.freeTemporary();
+                    } catch (Exception e1) {
+                        SqlLoggers.LOGGER.error("failed to free temp blob", e1); //$NON-NLS-1$
+                    }
                 }
                 BasicSQLUtils.throwUncheckedIfSQLException(e);
                 throw Throwables.throwUncheckedException(e);
@@ -315,14 +300,14 @@ public abstract class BasicSQL {
 
     private static class BlobCleanupPreparedStatement implements InvocationHandler {
         final PreparedStatement ps;
-        final Collection<BlobCleanup> toCleanup;
+        final Collection<OracleBlob> toCleanup;
 
-        static PreparedStatement create(PreparedStatement ps, Collection<BlobCleanup> toCleanup) {
+        static PreparedStatement create(PreparedStatement ps, Collection<OracleBlob> toCleanup) {
             return (PreparedStatement)Proxy.newProxyInstance(PreparedStatement.class.getClassLoader(),
                 new Class<?>[] {PreparedStatement.class}, new BlobCleanupPreparedStatement(ps, toCleanup));
         }
 
-        private BlobCleanupPreparedStatement(PreparedStatement ps, Collection<BlobCleanup> toCleanup) {
+        private BlobCleanupPreparedStatement(PreparedStatement ps, Collection<OracleBlob> toCleanup) {
             Validate.notNull(ps);
             Validate.noNullElements(toCleanup);
             this.ps = ps;
@@ -332,8 +317,12 @@ public abstract class BasicSQL {
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
             if (method.getName().equals("close")) { //$NON-NLS-1$
-                for (BlobCleanup cleanup : toCleanup) {
-                    cleanup.dispose();
+                for (OracleBlob cleanup : toCleanup) {
+                    try {
+                        cleanup.freeTemporary();
+                    } catch (Exception e) {
+                        SqlLoggers.LOGGER.error("failed to free temp blob", e); //$NON-NLS-1$
+                    }
                 }
             }
             try {
@@ -747,7 +736,7 @@ public abstract class BasicSQL {
         BasicSQLUtils.runUninterruptably (new Callable<Void>() {
             @Override
             public Void call() throws PalantirSqlException {
-                List<BlobCleanup> cleanups = Lists.newArrayList();
+                List<OracleBlob> cleanups = Lists.newArrayList();
                 PreparedStatement ps = null;
                 SqlTimer.Handle timerKey = getSqlTimer().start("updateMany(" + vs.length + ")", sql.getKey(), sql.getQuery()); //$NON-NLS-1$ //$NON-NLS-2$
                 try {
@@ -755,7 +744,7 @@ public abstract class BasicSQL {
                     for (int i=0; i < vs.length; i++) {
                         for (int j=0; j < vs[i].length; j++) {
                             Object obj = vs[i][j];
-                            BlobCleanup cleanup = setObject(c, ps, j+1, obj);
+                            OracleBlob cleanup = setObject(c, ps, j+1, obj);
                             if (cleanup != null) {
                                 cleanups.add(cleanup);
                             }
@@ -769,8 +758,12 @@ public abstract class BasicSQL {
                 } finally {
                     closeSilently(ps);
                     timerKey.stop();
-                    for (BlobCleanup cleanup : cleanups) {
-                        cleanup.dispose();
+                    for (OracleBlob cleanup : cleanups) {
+                        try {
+                            cleanup.freeTemporary();
+                        } catch (Exception e) {
+                            SqlLoggers.LOGGER.error("failed to free temp blob", e); //$NON-NLS-1$
+                        }
                     }
                 }
                 return null;
@@ -808,13 +801,13 @@ public abstract class BasicSQL {
                 PreparedStatement ps = null;
 
                 SqlTimer.Handle timerKey = getSqlTimer().start("insertMany(" + vs.length + ")", sql.getKey(), sql.getQuery()); //$NON-NLS-1$ //$NON-NLS-2$
-                List<BlobCleanup> cleanups = Lists.newArrayList();
+                List<OracleBlob> cleanups = Lists.newArrayList();
                 try {
                     ps = c.prepareStatement(sql.getQuery());
                     for (int i=0; i < vs.length; i++) {
                         for (int j=0; j < vs[i].length; j++) {
                             Object obj = vs[i][j];
-                            BlobCleanup cleanup = setObject(c, ps, j+1, obj);
+                            OracleBlob cleanup = setObject(c, ps, j+1, obj);
                             if (cleanup != null) {
                                 cleanups.add(cleanup);
                             }
@@ -829,8 +822,12 @@ public abstract class BasicSQL {
                 } finally {
                     closeSilently(ps);
                     timerKey.stop();
-                    for (BlobCleanup cleanup : cleanups) {
-                        cleanup.dispose();
+                    for (OracleBlob cleanup : cleanups) {
+                        try {
+                            cleanup.freeTemporary();
+                        } catch (Exception e) {
+                            SqlLoggers.LOGGER.error("failed to free temp blob", e); //$NON-NLS-1$
+                        }
                     }
                 }
                 if (inserted == null || inserted.length != vs.length) {
@@ -858,5 +855,21 @@ public abstract class BasicSQL {
         } finally {
             closeSilently(ps);
         }
+    }
+
+    protected OracleShim getOracleShim() {
+        return new OracleShim() {
+            @Override
+            public OracleStructArray createOracleStructArray(String structType,
+                                                             String arrayType,
+                                                             List<Object[]> elements) {
+               throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public OracleBlob createOracleBlob(Connection c) throws SQLException {
+                throw new UnsupportedOperationException();
+            }
+        };
     }
 }

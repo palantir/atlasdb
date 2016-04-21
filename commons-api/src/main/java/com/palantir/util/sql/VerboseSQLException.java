@@ -27,10 +27,6 @@ public class VerboseSQLException extends SQLException {
             initCause(e.getNextException());
         }
         this.verboseErrorMessage = verboseErrorMessage;
-
-        if(System.getProperty("user.name").contains("bamboo")) {
-            printStackTrace(); // (authorized)
-        }
     }
 
     @Override

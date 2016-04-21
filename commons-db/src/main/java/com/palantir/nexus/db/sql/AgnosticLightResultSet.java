@@ -13,11 +13,14 @@ import com.palantir.util.Visitor;
  *
  */
 public interface AgnosticLightResultSet extends Iterable<AgnosticLightResultRow>, Closeable {
-    @Override
-    public void close();
-    public void visitAndClose(Visitor<? super AgnosticLightResultRow> visitor);
-    @Override
-    public Iterator<AgnosticLightResultRow> iterator();
 
-    public void setFetchSize(int fetchSize);
+    @Override
+    void close();
+
+    void visitAndClose(Visitor<? super AgnosticLightResultRow> visitor);
+
+    @Override
+    Iterator<AgnosticLightResultRow> iterator();
+
+    void setFetchSize(int fetchSize);
 }

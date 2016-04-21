@@ -1,7 +1,7 @@
 // -*- groovy -*-
 // METABUILD GENERATED metaconf/metaconf.groovy + metaconf/project/make.gradle.tmpl -> atlasdb/commons-proxy/make.gradle
 apply from: "${rootProject.projectDir}/before.gradle"
-sourceSets.main.java.srcDirs=[ file('src') ]
+sourceSets.main.java.srcDirs=[ file('src/main/java') ]
 sourceSets.main.resources.srcDirs=[  ]
 sourceSets.test.java.srcDirs=[  ]
 sourceSets.test.resources.srcDirs=[  ]

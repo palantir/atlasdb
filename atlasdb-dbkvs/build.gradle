@@ -4,5 +4,7 @@ dependencies {
   compile project(":atlasdb-client")
   compile project(":atlasdb-spi")
   compile project(':timestamp-impl')
+  compile project(':commons-db')
+  compile project(':commons-api')
 }
 

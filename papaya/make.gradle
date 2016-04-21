@@ -1,7 +1,7 @@
 // -*- groovy -*-
 // METABUILD GENERATED metaconf/metaconf.groovy + metaconf/project/make.gradle.tmpl -> atlasdb/papaya/make.gradle
 apply from: "${rootProject.projectDir}/before.gradle"
-sourceSets.main.java.srcDirs=[ file('src') ]
+sourceSets.main.java.srcDirs=[ file('src/main/java') ]
 sourceSets.main.resources.srcDirs=[  ]
 sourceSets.test.java.srcDirs=[ file('test-src') ]
 sourceSets.test.resources.srcDirs=[  ]

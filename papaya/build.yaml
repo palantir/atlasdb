@@ -10,7 +10,7 @@ jars:
   -
     name: atlasdb-papaya
     src:
-      - src
+      - src/main/java
   -
     name: atlasdb-papaya-test
     src:

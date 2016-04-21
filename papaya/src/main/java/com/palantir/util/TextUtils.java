@@ -1772,10 +1772,9 @@ public class TextUtils {
 
     /** QA-85036
      * Removes all UTF control characters from a the passed String,
-     * returning a new String EXCEPT a &#xD; which is equivalent to \r.
+     * returning a new String EXCEPT a &amp#xD; which is equivalent to \r.
      *
      * @see #cleanUTF8String(String)
-     * @param utf8String
      */
     public static String cleanUTF8StringWithPrejudice(String utf8String) {
 

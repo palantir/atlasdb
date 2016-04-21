@@ -10,4 +10,4 @@ jars:
   -
     name: commons-api
     src:
-      - src
+      - src/main/java

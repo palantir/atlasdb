@@ -16,18 +16,18 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.palantir.common.base.Throwables;
+import com.palantir.db.oracle.OracleShim.OracleBlob;
+import com.palantir.db.oracle.OracleShim.OracleStructArray;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.ResourceCreationLocation;
 import com.palantir.nexus.db.monitoring.timer.SqlTimer;
 import com.palantir.nexus.db.sql.BasicSQLString.FinalSQLString;
+import com.palantir.nexus.db.sql.monitoring.logger.SqlLoggers;
 import com.palantir.nexus.streaming.PTInputStream;
 import com.palantir.sql.PreparedStatements;
 import com.palantir.sql.ResultSets;
 import com.palantir.util.streams.PTStreams;
-
-import oracle.jdbc.OracleConnection;
-import oracle.sql.BLOB;
 
 /**
  * Routines for issuing SQL statements to the database.
@@ -35,7 +35,7 @@ import oracle.sql.BLOB;
  * All the methods deprecated in this class have alternatives in {@link PalantirSqlConnection}
  */
 public abstract class SQL extends BasicSQL {
-    private static final Logger sqlExceptionlog = LoggerFactory.getLogger("sqlException." + SQL.class.getName()); //$NON-NLS-1$
+    static final Logger sqlExceptionlog = LoggerFactory.getLogger("sqlException." + SQL.class.getName()); //$NON-NLS-1$
 
     /** key for the sql query to list tables with a given column. */
     static final String LIST_TABLES_WITH_COLUMN = "SQL_LIST_TABLES_WITH_COLUMN"; //$NON-NLS-1$
@@ -66,7 +66,7 @@ public abstract class SQL extends BasicSQL {
     public static final int POSTGRES_BLOB_READ_LIMIT = 100 * 1000 * 1000; // Postgres doesn't like to read more than ~2^28 bytes at once, so limit to something smaller
 
     @Override
-    protected BlobCleanup setObject(Connection c, PreparedStatement ps, int i, Object obj) {
+    protected OracleBlob setObject(Connection c, PreparedStatement ps, int i, Object obj) {
         if (obj instanceof byte[]) {
             byte[] bytes = (byte[]) obj;
             PTInputStream is = new PTInputStream(new ByteArrayInputStream(bytes), bytes.length);
@@ -74,7 +74,7 @@ public abstract class SQL extends BasicSQL {
         } else if (obj instanceof PTInputStream) {
             return handlePtInputStream(c, ps, i, (PTInputStream) obj);
         } else if (obj instanceof OracleStructArray) {
-            setOracleStructArray(c, ps, i, (OracleStructArray)obj);
+            setOracleStructArray(c, ps, i, (OracleStructArray) obj);
             return null;
         } else {
             return super.setObject(c, ps, i, obj);
@@ -85,7 +85,7 @@ public abstract class SQL extends BasicSQL {
     // JDBC driver.  We check for the limit and, if it's below, we read
     // the whole stream into a byte[] and set the object directly.
     private static final int ORACLE_BYTE_LOWER_LIMIT = 2000; // QA-70384
-    private BlobCleanup handlePtInputStream(Connection c, PreparedStatement ps, int i, PTInputStream is) {
+    private OracleBlob handlePtInputStream(Connection c, PreparedStatement ps, int i, PTInputStream is) {
         if (is.getLength() <= ORACLE_BYTE_LOWER_LIMIT) {
             try {
                 byte[] bytes = IOUtils.toByteArray(is, is.getLength());
@@ -109,28 +109,30 @@ public abstract class SQL extends BasicSQL {
         } else {
             DBType dbType = DBType.getTypeFromConnection(c);
             Validate.isTrue(dbType == DBType.ORACLE, "We only support blobs over 2GB on oracle (postgres only supports blobs up to 1G)"); //$NON-NLS-1$
-            BLOB blob;
+            OracleBlob oracleBlob;
             try {
-                blob = BLOB.createTemporary(getNativeOracleConnection(c),
-                        false, BLOB.DURATION_SESSION);
+                oracleBlob = getOracleShim().createOracleBlob(c);
             } catch (SQLException e){
                 sqlExceptionlog.info("Caught SQLException", e); //$NON-NLS-1$
                 throw PalantirSqlException.create(e);
             }
-            BlobCleanup ret = new BlobCleanup(blob);
             OutputStream os = null;
             try {
-                os = blob.setBinaryStream(0);
+                os = oracleBlob.setBinaryStream(0);
                 PTStreams.copy(is, os);
                 os.close();
-                ps.setBlob(i, blob);
+                ps.setBlob(i, oracleBlob.getBlob());
             } catch (Exception e) {
-                ret.dispose(); // dispose early if we aren't returning correctly
+                try {
+                    oracleBlob.freeTemporary();
+                } catch (Exception e1) {
+                    SqlLoggers.LOGGER.error("failed to free temp blob", e1); //$NON-NLS-1$
+                } // dispose early if we aren't returning correctly
                 throw Throwables.chain(PalantirSqlException.createForChaining(), Throwables.chain(new SQLException("failed to transfer blob over 2GB to the DB"), e)); //$NON-NLS-1$
             } finally {
                 IOUtils.closeQuietly(os);
             }
-            return ret;
+            return oracleBlob;
         }
     }
 
@@ -140,28 +142,10 @@ public abstract class SQL extends BasicSQL {
                                       OracleStructArray array) {
         Preconditions.checkArgument(DBType.getTypeFromConnection(c) == DBType.ORACLE);
         try {
-            c = getNativeOracleConnection(c);
             PreparedStatements.setObject(ps, paramIndex, array.toOracleArray(c));
         } catch (SQLException e) {
             throw BasicSQL.handleInterruptions(0, e);
         }
-    }
-
-    public static OracleConnection getNativeOracleConnection(Connection c) throws PalantirSqlException {
-        OracleConnection rawconn = null;
-
-        try {
-            if (c instanceof OracleConnection) {
-                rawconn = (OracleConnection)c;
-            } else if (c.isWrapperFor(OracleConnection.class)) {
-                rawconn = c.unwrap(OracleConnection.class);
-            }
-        } catch (SQLException e){
-            sqlExceptionlog.info("Caught SQLException", e); //$NON-NLS-1$
-            throw PalantirSqlException.create(e);
-        }
-
-        return rawconn;
     }
 
     public AgnosticLightResultSet fromResultSet(PreparedStatement preparedStatement,

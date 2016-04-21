@@ -24,20 +24,14 @@ public class PalantirSqlException extends PalantirRuntimeException {
     @Deprecated
     public PalantirSqlException(String message, Throwable t) {
         super(message, t);
-
-        debugLostSqlExceptionData();
     }
 
     protected PalantirSqlException(DO_NOT_SET_INITIAL_SQL_EXCEPTION i) {
         super();
-
-        debugLostSqlExceptionData();
     }
 
     protected PalantirSqlException(DO_NOT_SET_INITIAL_SQL_EXCEPTION i, String msg) {
         super(msg);
-
-        debugLostSqlExceptionData();
     }
 
     /**
@@ -45,20 +39,14 @@ public class PalantirSqlException extends PalantirRuntimeException {
      */
     protected PalantirSqlException(SET_INITIAL_SQL_EXCEPTION i) {
         super(new SQLException());
-
-        debugLostSqlExceptionData();
     }
 
     protected PalantirSqlException(SET_INITIAL_SQL_EXCEPTION i, String msg) {
         super(msg, new SQLException(msg));
-
-        debugLostSqlExceptionData();
     }
 
     protected PalantirSqlException(String msg, SQLException n) {
         super(msg, n);
-
-        debugLostSqlExceptionData();
     }
 
     public static PalantirSqlException create() {
@@ -80,12 +68,6 @@ public class PalantirSqlException extends PalantirRuntimeException {
 
     public static PalantirSqlException createForChaining(String msg) {
         return new PalantirSqlException(DO_NOT_SET_INITIAL_SQL_EXCEPTION.YES, msg);
-    }
-
-    private void debugLostSqlExceptionData() {
-        if(System.getProperty("user.name").contains("bamboo")) {
-            printStackTrace(); // (authorized)
-        }
     }
 }
 
