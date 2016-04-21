@@ -2,3 +2,7 @@ general:
   branches:
     ignore:
       - gh-pages # ignore docs branch
+
+test:
+  override:
+    - true
