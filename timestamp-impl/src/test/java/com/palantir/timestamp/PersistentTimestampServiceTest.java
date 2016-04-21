@@ -20,6 +20,7 @@ import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.concurrent.ExecutionException;
@@ -59,6 +60,17 @@ public class PersistentTimestampServiceTest {
         }
         
         m.assertIsSatisfied();
+    }
+
+    @Test
+    public void incrementUpperLimitOnFirstFreshTimestampRequest() {
+        TimestampBoundStore timestampBoundStore = mock(TimestampBoundStore.class);
+        when(timestampBoundStore.getUpperLimit()).thenReturn(0L);
+        PersistentTimestampService persistentTimestampService = PersistentTimestampService.create(timestampBoundStore);
+
+        persistentTimestampService.getFreshTimestamp();
+
+        verify(timestampBoundStore).storeUpperLimit(PersistentTimestampService.ALLOCATION_BUFFER_SIZE);
     }
 
     @Test
