@@ -190,6 +190,9 @@ public class PersistentTimestampService implements TimestampService {
             }
             long newVal = Math.min(upperLimit, lastVal + numTimestampsRequested);
             if (lastReturnedTimestamp.compareAndSet(lastVal, newVal)) {
+                if (isAllocationRequired(newVal, upperLimit)) {
+                    submitAllocationTask();
+                }
                 return TimestampRange.createInclusiveRange(lastVal + 1, newVal);
             }
         }

@@ -41,8 +41,12 @@ import org.junit.Test;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.remoting.ServiceNotAvailableException;
+import com.palantir.common.time.Clock;
 
 public class PersistentTimestampServiceTest {
+
+    private static final long TWO_MINUTES_IN_MILLIS = 120_000L;
+
     @Test
     public void testFastForward() {
         Mockery m = new Mockery();
@@ -66,6 +70,20 @@ public class PersistentTimestampServiceTest {
         }
         
         m.assertIsSatisfied();
+    }
+
+    @Test
+    public void incrementUpperLimitIfOneMinuteElapsedSinceLastUpdate() throws InterruptedException {
+        Clock clock = mock(Clock.class);
+        when(clock.getTimeMillis()).thenReturn(0L, TWO_MINUTES_IN_MILLIS, 2 * TWO_MINUTES_IN_MILLIS, 3 * TWO_MINUTES_IN_MILLIS);
+        TimestampBoundStore timestampBoundStore = initialTimestampBoundStore();
+        PersistentTimestampService persistentTimestampService = PersistentTimestampService.create(timestampBoundStore, clock);
+
+        persistentTimestampService.getFreshTimestamp();
+        Thread.sleep(10);
+        persistentTimestampService.getFreshTimestamp();
+        Thread.sleep(10);
+        verify(timestampBoundStore, times(2)).storeUpperLimit(anyLong());
     }
 
     @Test
