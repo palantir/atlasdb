@@ -98,7 +98,7 @@ public class PersistentTimestampService implements TimestampService {
 
     volatile Throwable allocationFailure = null;
     private void submitAllocationTask() {
-        if (isAllocationTaskSubmitted.compareAndSet(false, true)) {
+        if (isAllocationTaskSubmitted.compareAndSet(false, true) && isAllocationRequired(lastReturnedTimestamp.get(), upperLimitToHandOutInclusive.get())) {
             final Exception createdException = new Exception("allocation task called from here");
             executor.submit(new Runnable() {
                 @Override
@@ -129,8 +129,26 @@ public class PersistentTimestampService implements TimestampService {
         }
     }
 
-    private static boolean isAllocationRequired(long lastVal, long upperLimit) {
+    private boolean isAllocationRequired(long lastVal, long upperLimit) {
+        // we allocate new timestamps if we have less than half of our allocation buffer left
+        // or we haven't allocated timestamps in the last sixty seconds. The latter case
+        // exists in order to log errors faster against the class of bugs where your
+        // timestamp limit changed unexpectedly (usually, multiple TS against the same DB)
+        return exceededUpperLimit(lastVal, upperLimit)
+                || exceededHalfOfBuffer(lastVal, upperLimit)
+                || exceededLastAllocationTime();
+    }
+
+    private boolean exceededHalfOfBuffer(long lastVal, long upperLimit) {
         return (upperLimit - lastVal) <= ALLOCATION_BUFFER_SIZE / 2;
+    }
+
+    private boolean exceededUpperLimit(long lastVal, long upperLimit) {
+        return lastVal >= upperLimit;
+    }
+
+    private boolean exceededLastAllocationTime() {
+        return lastAllocatedTime + ONE_MINUTE_IN_MILLIS < clock.getTimeMillis();
     }
 
     @Override
@@ -172,14 +190,6 @@ public class PersistentTimestampService implements TimestampService {
             }
             long newVal = Math.min(upperLimit, lastVal + numTimestampsRequested);
             if (lastReturnedTimestamp.compareAndSet(lastVal, newVal)) {
-                // we allocate new timestamps if we have less than half of our allocation buffer left
-                // or we haven't allocated timestamps in the last sixty seconds. The latter case
-                // exists in order to log errors faster against the class of bugs where your
-                // timestamp limit changed unexpectedly (usually, multiple TS against the same DB)
-                if (isAllocationRequired(newVal, upperLimit) ||
-                        lastAllocatedTime + ONE_MINUTE_IN_MILLIS < clock.getTimeMillis()) {
-                    submitAllocationTask();
-                }
                 return TimestampRange.createInclusiveRange(lastVal + 1, newVal);
             }
         }
