@@ -26,6 +26,7 @@ import java.net.Socket;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.server.RMISocketFactory;
+import java.util.Set;
 
 import javax.management.Attribute;
 import javax.management.AttributeList;
@@ -53,6 +54,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 
 /**
  */
@@ -162,6 +164,11 @@ public final class JMXUtils {
         private final WeakReference<DynamicMBean> delegateRef;
         private final static ReferenceQueue<DynamicMBean> refQueue = new ReferenceQueue<DynamicMBean>();
 
+        // We use refSet to hold references to the weak references themselves.
+        // Without this it's possible that the weakref gets collected at the
+        // same time and is never enqueued!
+        private final static Set<WeakReference<DynamicMBean>> refSet = Sets.newConcurrentHashSet();
+
         static {
             final Runnable task = new Runnable() {
                 @Override
@@ -172,6 +179,7 @@ public final class JMXUtils {
                             @SuppressWarnings("unchecked")
                             final KeyedWeakReference<String, DynamicMBean> ref =
                                 (KeyedWeakReference<String, DynamicMBean>) refQueue.remove();
+                            refSet.remove(ref);
                             unregisterMBeanCatchAndLogExceptions(ref.getKey());
                         } catch (final InterruptedException e) {
                             // Stop the cleanup thread when interrupted.
@@ -190,6 +198,7 @@ public final class JMXUtils {
 
         public WeakMBeanHandler(final String objectName, final DynamicMBean delegate) {
             delegateRef = new KeyedWeakReference<String, DynamicMBean>(objectName, delegate, refQueue);
+            refSet.add(delegateRef);
         }
 
         public DynamicMBean delegate() {
