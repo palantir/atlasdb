@@ -143,12 +143,16 @@ public class PersistentTimestampServiceTest {
 
     private void getFreshTimestampsInParallel(PersistentTimestampService persistentTimestampService, int numTimes) {
         ExecutorService executorService = Executors.newFixedThreadPool(numTimes / 2);
-        Set<Future<?>> futures = IntStream.range(0, numTimes)
-                .mapToObj(i -> executorService.submit(() -> {
-                    persistentTimestampService.getFreshTimestamp();
-                }))
-                .collect(Collectors.toSet());
-        futures.forEach(Futures::getUnchecked);
+        try {
+            Set<Future<?>> futures = IntStream.range(0, numTimes)
+                    .mapToObj(i -> executorService.submit(() -> {
+                        persistentTimestampService.getFreshTimestamp();
+                    }))
+                    .collect(Collectors.toSet());
+            futures.forEach(Futures::getUnchecked);
+        } finally {
+            executorService.shutdown();
+        }
     }
 
     private TimestampBoundStore initialTimestampBoundStore() {
