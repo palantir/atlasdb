@@ -107,7 +107,7 @@ public class CleanTransactionRange extends SingleBackendCommand {
         }
 
         if (!(ts instanceof PersistentTimestampService)) {
-            System.err.printf("Error: Restoring timestamp service must be of type {}, but yours is {}\n",
+            System.err.printf("Error: Restoring timestamp service must be of type %s, but yours is %s\n",
                     PersistentTimestampService.class.toString(), ts.getClass().toString());
             isValid &= false;
         }

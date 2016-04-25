@@ -15,11 +15,9 @@
  */
 package com.palantir.atlasdb.cli.command;
 
-import java.io.IOException;
 import java.util.UUID;
 
 import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.cli.services.ServicesConfigModule;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.factory.Leaders;
 import com.palantir.leader.PaxosLeaderElectionService;
@@ -38,16 +36,11 @@ public class TruncatePaxosLog extends AbstractCommand {
     public Integer call() {
 
         // get leader config
-        ServicesConfigModule scm;
         LeaderConfig leaderConfig;
         try {
-            scm = getServicesConfigModule();
             leaderConfig = scm.provideAtlasDbConfig().leader().get();
         } catch (IllegalStateException e) {
             System.err.println("Error: Config file is missing required leader block configuration.");
-            return 1;
-        } catch (IOException e) {
-            System.err.println("Error: IOException thrown reading configuration file: " + e.getMessage());
             return 1;
         }
 
@@ -87,7 +80,9 @@ public class TruncatePaxosLog extends AbstractCommand {
             }
         }
         if (numSuccesses < quorumSize) {
-            System.err.println("Error: Failed because we could not talk to quorum servers to truncate this log correctly.");
+            System.err.println("Error: Failed because we could not talk to quorum servers to truncate this log correctly."
+                    + "  This error has likely occurred because you are recovering from having lost at least quorum number"
+                    + " of servers.  In this case you should take all services down and run the deletePaxosLog CLI against each of them.");
             return 1;
         }
 
