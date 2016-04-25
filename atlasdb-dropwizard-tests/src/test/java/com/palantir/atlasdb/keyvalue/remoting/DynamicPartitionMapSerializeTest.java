@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.util.NavigableMap;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -42,7 +41,6 @@ import com.palantir.common.concurrent.PTExecutors;
 
 import io.dropwizard.testing.junit.DropwizardClientRule;
 
-@Ignore
 public class DynamicPartitionMapSerializeTest {
 
     static final KeyValueService endpointKvs = new InMemoryKeyValueService(false);

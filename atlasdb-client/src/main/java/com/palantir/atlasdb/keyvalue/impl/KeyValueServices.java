@@ -41,6 +41,7 @@ import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
+import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
@@ -157,7 +158,7 @@ public class KeyValueServices {
     }
 
     // TODO: kill this when we can properly implement this on all KVSes
-    public static Map<byte[], Iterator<Map.Entry<Cell, Value>>> filterGetRowsToColumnRange(KeyValueService kvs, TableReference tableRef, Iterable<byte[]> rows, ColumnRangeSelection columnRangeSelection, long timestamp) {
+    public static Map<byte[], RowColumnRangeIterator> filterGetRowsToColumnRange(KeyValueService kvs, TableReference tableRef, Iterable<byte[]> rows, ColumnRangeSelection columnRangeSelection, long timestamp) {
         Map<Cell, Value> allValues = kvs.getRows(tableRef, rows, ColumnSelection.all(), timestamp);
         Map<Sha256Hash, byte[]> hashesToBytes = Maps.newHashMap();
         Map<Sha256Hash, ImmutableSortedMap.Builder<byte[], Value>> rowsToColumns = Maps.newHashMap();
@@ -174,7 +175,7 @@ public class KeyValueServices {
                 rowsToColumns.put(rowHash, builder);
             }
         }
-        Map<byte[], Iterator<Map.Entry<Cell, Value>>> results = Maps.newHashMap();
+        Map<byte[], RowColumnRangeIterator> results = Maps.newHashMap();
         for (Map.Entry<Sha256Hash, ImmutableSortedMap.Builder<byte[], Value>> row : rowsToColumns.entrySet()) {
             SortedMap<byte[], Value> map = row.getValue().build();
             Set<Map.Entry<byte[], Value>> subMap;
@@ -190,8 +191,8 @@ public class KeyValueServices {
             byte[] rowName = hashesToBytes.get(row.getKey());
             if (!subMap.isEmpty()) {
                 results.put(hashesToBytes.get(row.getKey()),
-                        Iterators.transform(subMap.iterator(), e ->
-                                Iterables.getOnlyElement(ImmutableMap.of(Cell.create(rowName, e.getKey()), e.getValue()).entrySet())));
+                        new LocalRowColumnRangeIterator(Iterators.transform(subMap.iterator(), e ->
+                                Iterables.getOnlyElement(ImmutableMap.of(Cell.create(rowName, e.getKey()), e.getValue()).entrySet()))));
             }
         }
         return results;

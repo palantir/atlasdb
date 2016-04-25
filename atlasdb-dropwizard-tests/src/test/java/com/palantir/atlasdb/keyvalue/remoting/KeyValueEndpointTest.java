@@ -18,7 +18,6 @@ package com.palantir.atlasdb.keyvalue.remoting;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -34,7 +33,6 @@ import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
 
 import io.dropwizard.testing.junit.DropwizardClientRule;
 
-@Ignore
 public class KeyValueEndpointTest extends AbstractAtlasDbKeyValueServiceTest {
 
     @Rule

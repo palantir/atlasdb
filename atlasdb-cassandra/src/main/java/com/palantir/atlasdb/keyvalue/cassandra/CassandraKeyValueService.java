@@ -96,6 +96,7 @@ import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
+import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
@@ -107,6 +108,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionManager
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
+import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.annotation.Idempotent;
@@ -472,31 +474,31 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     @Override
-    public Map<byte[], Iterator<Entry<Cell, Value>>> getRowsColumnRange(TableReference tableRef,
-                                               Iterable<byte[]> rows,
-                                               ColumnRangeSelection columnRangeSelection,
-                                               long timestamp) {
+    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef,
+                                                                  Iterable<byte[]> rows,
+                                                                  ColumnRangeSelection columnRangeSelection,
+                                                                  long timestamp) {
         Set<Entry<InetSocketAddress, List<byte[]>>> rowsByHost =
                 partitionByHost(rows, Functions.<byte[]>identity()).entrySet();
-        List<Callable<Map<byte[], Iterator<Entry<Cell, Value>>>>> tasks = Lists.newArrayListWithCapacity(rowsByHost.size());
+        List<Callable<Map<byte[], RowColumnRangeIterator>>> tasks = Lists.newArrayListWithCapacity(rowsByHost.size());
         for (final Map.Entry<InetSocketAddress, List<byte[]>> hostAndRows : rowsByHost) {
             tasks.add(() ->
                     getRowsColumnRangeIteratorForSingleHost(hostAndRows.getKey(), tableRef,
                             hostAndRows.getValue(), columnRangeSelection, timestamp));
         }
-        List<Map<byte[], Iterator<Entry<Cell, Value>>>> perHostResults = runAllTasksCancelOnFailure(tasks);
-        Map<byte[], Iterator<Entry<Cell, Value>>> result = Maps.newHashMapWithExpectedSize(Iterables.size(rows));
-        for (Map<byte[], Iterator<Entry<Cell, Value>>> perHostResult : perHostResults) {
+        List<Map<byte[], RowColumnRangeIterator>> perHostResults = runAllTasksCancelOnFailure(tasks);
+        Map<byte[], RowColumnRangeIterator> result = Maps.newHashMapWithExpectedSize(Iterables.size(rows));
+        for (Map<byte[], RowColumnRangeIterator> perHostResult : perHostResults) {
             result.putAll(perHostResult);
         }
         return result;
     }
 
-    private Map<byte[], Iterator<Entry<Cell, Value>>> getRowsColumnRangeIteratorForSingleHost(InetSocketAddress host,
-                                                                                         TableReference tableRef,
-                                                                                         List<byte[]> rows,
-                                                                                         ColumnRangeSelection columnRangeSelection,
-                                                                                         long startTs) {
+    private Map<byte[], RowColumnRangeIterator> getRowsColumnRangeIteratorForSingleHost(InetSocketAddress host,
+                                                                                        TableReference tableRef,
+                                                                                        List<byte[]> rows,
+                                                                                        ColumnRangeSelection columnRangeSelection,
+                                                                                        long startTs) {
         try {
             RowColumnRangeExtractor.RowColumnRangeResult firstPage =
                     getRowsColumnRangeForSingleHost(host, tableRef, rows, columnRangeSelection, startTs);
@@ -516,7 +518,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 }
             }
 
-            Map<byte[], Iterator<Entry<Cell, Value>>> ret = Maps.newHashMapWithExpectedSize(results.keySet().size());
+            Map<byte[], RowColumnRangeIterator> ret = Maps.newHashMapWithExpectedSize(results.keySet().size());
             for (byte[] row : rowsToLastCompositeColumns.keySet()) {
                 Iterator<Entry<Cell, Value>> resultIterator;
                 if (results.containsKey(row)) {
@@ -525,11 +527,11 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     resultIterator = Collections.emptyIterator();
                 }
                 if (!incompleteRowsToNextColumns.containsKey(row)) {
-                    ret.put(row, resultIterator);
+                    ret.put(row, new LocalRowColumnRangeIterator(resultIterator));
                 } else {
                     ColumnRangeSelection newColumnRange = new ColumnRangeSelection(incompleteRowsToNextColumns.get(row),
                             columnRangeSelection.getEndCol(), columnRangeSelection.getBatchHint());
-                    ret.put(row, Iterators.concat(resultIterator, getRowColumnRange(host, tableRef, row, newColumnRange, startTs)));
+                    ret.put(row, new LocalRowColumnRangeIterator(Iterators.concat(resultIterator, getRowColumnRange(host, tableRef, row, newColumnRange, startTs))));
                 }
             }
             return ret;

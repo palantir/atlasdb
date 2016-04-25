@@ -24,7 +24,6 @@ import java.util.SortedMap;
 import org.apache.commons.lang.ArrayUtils;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -32,19 +31,26 @@ import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.Iterables;
 import com.google.common.primitives.UnsignedBytes;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.Namespace;
+import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.AbstractAtlasDbKeyValueServiceTest;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.keyvalue.remoting.iterators.RemoteRowColumnRangeIterator;
 
 import io.dropwizard.testing.junit.DropwizardClientRule;
 
-@Ignore
 public class KeyValueServiceRemotingTest extends AbstractAtlasDbKeyValueServiceTest {
 
     final KeyValueService remoteKvs = RemotingKeyValueService.createServerSide(new InMemoryKeyValueService(
@@ -96,6 +102,25 @@ public class KeyValueServiceRemotingTest extends AbstractAtlasDbKeyValueServiceT
         JavaType rowResultType = mapper.getTypeFactory().constructParametrizedType(RowResult.class, RowResult.class, Value.class);
         RowResult<Value> rowResultDeserialized = mapper.readValue(serializedRowResult, rowResultType);
         assertEquals(rowResult, rowResultDeserialized);
+
+        RemoteRowColumnRangeIterator rowColumnRangeIterator = new RemoteRowColumnRangeIterator(TableReference.create(Namespace.create("ns"), "test_table"),
+                new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1), 100L, true,
+                ImmutableList.copyOf(ImmutableMap.of(cell, value).entrySet()));
+        String serializedRowColumnRangeIterator = mapper.writeValueAsString(rowColumnRangeIterator);
+        RowColumnRangeIterator rowColumnRangeIteratorDeserialized = mapper.readValue(serializedRowColumnRangeIterator, RowColumnRangeIterator.class);
+        Assert.assertTrue(rowColumnRangeIteratorDeserialized instanceof RemoteRowColumnRangeIterator);
+        assertEquals(rowColumnRangeIterator, rowColumnRangeIteratorDeserialized);
+
+        Map<byte[], RowColumnRangeIterator> rowColumnRange = ImmutableMap.of(row, rowColumnRangeIterator);
+        String serializedRowColumnRange = mapper.writerFor(
+                mapper.getTypeFactory().constructMapType(Map.class, byte[].class, RemoteRowColumnRangeIterator.class))
+                .writeValueAsString(rowColumnRange);
+        Map<byte[], RowColumnRangeIterator> rowColumnRangeDeserialized
+                = mapper.readValue(serializedRowColumnRange,
+                mapper.getTypeFactory().constructMapType(Map.class, byte[].class, RowColumnRangeIterator.class));
+        assertEquals(1, rowColumnRangeDeserialized.size());
+        Assert.assertArrayEquals(row, Iterables.getOnlyElement(rowColumnRangeDeserialized.keySet()));
+        assertEquals(rowColumnRangeIterator, Iterables.getOnlyElement(rowColumnRangeDeserialized.values()));
     }
 
     @Test

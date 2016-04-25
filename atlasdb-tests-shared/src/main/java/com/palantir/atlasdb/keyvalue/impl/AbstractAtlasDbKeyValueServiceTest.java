@@ -57,6 +57,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
+import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
@@ -161,7 +162,7 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         assertArrayEquals(value22, values.get(Cell.create(row2, column2)).getContents());
     }
 
-    private Map<Cell, Value> getValuesForRow(Map<byte[], Iterator<Entry<Cell, Value>>> values, byte[] row, int number) {
+    private Map<Cell, Value> getValuesForRow(Map<byte[], RowColumnRangeIterator> values, byte[] row, int number) {
         Map<Cell, Value> results = Maps.newHashMap();
 
         Iterator<Entry<Cell, Value>> it = Collections.emptyIterator();
@@ -180,7 +181,7 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
     @Test
     public void testGetRowColumnRange() {
         putTestDataForSingleTimestamp();
-        Map<byte[], Iterator<Entry<Cell, Value>>> values = keyValueService.getRowsColumnRange(TEST_TABLE,
+        Map<byte[], RowColumnRangeIterator> values = keyValueService.getRowsColumnRange(TEST_TABLE,
                 ImmutableList.of(row1),
                 new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1),
                 TEST_TIMESTAMP + 1);
@@ -220,7 +221,7 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
     @Test
     public void testGetRowColumnRangeHistorical() {
         putTestDataForMultipleTimestamps();
-        Map<byte[], Iterator<Entry<Cell, Value>>> values = keyValueService.getRowsColumnRange(TEST_TABLE,
+        Map<byte[], RowColumnRangeIterator> values = keyValueService.getRowsColumnRange(TEST_TABLE,
                 ImmutableList.of(row0),
                 new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1),
                 TEST_TIMESTAMP + 2);
@@ -251,7 +252,7 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
 
         // The initial multiget will get results for column0 only, then the next page for column1 will not include
         // the TEST_TIMESTAMP result so we have to get another page for column1.
-        Map<byte[], Iterator<Entry<Cell, Value>>> values = keyValueService.getRowsColumnRange(TEST_TABLE,
+        Map<byte[], RowColumnRangeIterator> values = keyValueService.getRowsColumnRange(TEST_TABLE,
                 ImmutableList.of(row1),
                 new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, RangeRequests.nextLexicographicName(column1), 2),
                 TEST_TIMESTAMP + 1);

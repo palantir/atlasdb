@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.keyvalue.api;
 
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
@@ -106,10 +105,10 @@ public interface KeyValueService extends AutoCloseable {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    Map<byte[], Iterator<Map.Entry<Cell, Value>>> getRowsColumnRange(@QueryParam("tableRef") TableReference tableRef,
-                                                                     Iterable<byte[]> rows,
-                                                                     @QueryParam("columnRangeSelection") ColumnRangeSelection columnRangeSelection,
-                                                                     @QueryParam("timestamp") long timestamp);
+    Map<byte[], RowColumnRangeIterator> getRowsColumnRange(@QueryParam("tableRef") TableReference tableRef,
+                                                           Iterable<byte[]> rows,
+                                                           @QueryParam("columnRangeSelection") ColumnRangeSelection columnRangeSelection,
+                                                           @QueryParam("timestamp") long timestamp);
 
     /**
      * Gets values from the key-value store.

@@ -20,6 +20,9 @@ import java.util.Arrays;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.encoding.PtBytes;
 
 public class ColumnRangeSelection implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -70,5 +73,21 @@ public class ColumnRangeSelection implements Serializable {
         result = 31 * result + Arrays.hashCode(endCol);
         result = 31 * result + batchHint;
         return result;
+    }
+
+    public static ColumnRangeSelection valueOf(String serialized) {
+        String[] split = serialized.split("\\s*,\\s*");
+        byte[] startCol = PtBytes.decodeBase64(split[0]);
+        byte[] endCol = PtBytes.decodeBase64(split[1]);
+        int batchHint = Integer.valueOf(split[2]);
+        return new ColumnRangeSelection(startCol, endCol, batchHint);
+    }
+
+    @Override
+    public String toString() {
+        String start = PtBytes.encodeBase64String(startCol);
+        String end = PtBytes.encodeBase64String(endCol);
+        String batch = String.valueOf(batchHint);
+        return Joiner.on(',').join(ImmutableList.of(start, end, batch));
     }
 }
