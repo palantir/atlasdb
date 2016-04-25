@@ -180,38 +180,38 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
     @Test
     public void testGetRowColumnRange() {
         putTestDataForSingleTimestamp();
-//        Map<byte[], Iterator<Entry<Cell, Value>>> values = keyValueService.getRowsColumnRange(TEST_TABLE,
-//                ImmutableList.of(row1),
-//                new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1),
-//                TEST_TIMESTAMP + 1);
-//        assertEquals(1, values.size());
-//        Map<Cell, Value> batchValues = getValuesForRow(values, row1, 1);
-//        assertEquals(1, batchValues.size());
-//        assertArrayEquals(batchValues.get(Cell.create(row1, column0)).getContents(), value10);
-//        values = keyValueService.getRowsColumnRange(TEST_TABLE,
-//                ImmutableList.of(row1),
-//                new ColumnRangeSelection(RangeRequests.nextLexicographicName(column0), PtBytes.EMPTY_BYTE_ARRAY, 1),
-//                TEST_TIMESTAMP + 1);
-//        assertEquals(1, values.size());
-//        batchValues = getValuesForRow(values, row1, 1);
-//        assertEquals(1, batchValues.size());
-//        assertArrayEquals(batchValues.get(Cell.create(row1, column2)).getContents(), value12);
-//        values = keyValueService.getRowsColumnRange(TEST_TABLE,
-//                ImmutableList.of(row1),
-//                new ColumnRangeSelection(RangeRequests.nextLexicographicName(column0), column2, 1),
-//                TEST_TIMESTAMP + 1);
-//        assertEquals(0, values.size());
-//        values = keyValueService.getRowsColumnRange(TEST_TABLE,
-//                ImmutableList.of(row1),
-//                new ColumnRangeSelection(RangeRequests.nextLexicographicName(column2), PtBytes.EMPTY_BYTE_ARRAY, 1),
-//                TEST_TIMESTAMP + 1);
-//        assertEquals(0, values.size());
         Map<byte[], Iterator<Entry<Cell, Value>>> values = keyValueService.getRowsColumnRange(TEST_TABLE,
+                ImmutableList.of(row1),
+                new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1),
+                TEST_TIMESTAMP + 1);
+        assertEquals(1, values.size());
+        Map<Cell, Value> batchValues = getValuesForRow(values, row1, 1);
+        assertEquals(1, batchValues.size());
+        assertArrayEquals(batchValues.get(Cell.create(row1, column0)).getContents(), value10);
+        values = keyValueService.getRowsColumnRange(TEST_TABLE,
+                ImmutableList.of(row1),
+                new ColumnRangeSelection(RangeRequests.nextLexicographicName(column0), PtBytes.EMPTY_BYTE_ARRAY, 1),
+                TEST_TIMESTAMP + 1);
+        assertEquals(1, values.size());
+        batchValues = getValuesForRow(values, row1, 1);
+        assertEquals(1, batchValues.size());
+        assertArrayEquals(batchValues.get(Cell.create(row1, column2)).getContents(), value12);
+        values = keyValueService.getRowsColumnRange(TEST_TABLE,
+                ImmutableList.of(row1),
+                new ColumnRangeSelection(RangeRequests.nextLexicographicName(column0), column2, 1),
+                TEST_TIMESTAMP + 1);
+        assertEquals(0, values.size());
+        values = keyValueService.getRowsColumnRange(TEST_TABLE,
+                ImmutableList.of(row1),
+                new ColumnRangeSelection(RangeRequests.nextLexicographicName(column2), PtBytes.EMPTY_BYTE_ARRAY, 1),
+                TEST_TIMESTAMP + 1);
+        assertEquals(0, values.size());
+        values = keyValueService.getRowsColumnRange(TEST_TABLE,
                 ImmutableList.of(row1),
                 new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, Integer.MAX_VALUE),
                 TEST_TIMESTAMP + 1);
         assertEquals(1, values.size());
-        Map<Cell, Value> batchValues = getValuesForRow(values, row1, 2);
+        batchValues = getValuesForRow(values, row1, 2);
         assertEquals(2, batchValues.size());
         assertArrayEquals(batchValues.get(Cell.create(row1, column0)).getContents(), value10);
         assertArrayEquals(batchValues.get(Cell.create(row1, column2)).getContents(), value12);
