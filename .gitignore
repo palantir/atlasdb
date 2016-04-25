@@ -18,6 +18,7 @@ fix-ivy.py
 .settings/
 .project
 build/
+!docs/build/
 .gradle
 bin/
 userdict.txt
