@@ -1,4 +1,0 @@
-[submodule "docs/build"]
-	path = docs/build
-	url = git@github.com:palantir/atlasdb.git
-	branch = gh-pages

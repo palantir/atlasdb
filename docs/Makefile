@@ -51,8 +51,9 @@ help:
 clean:
 	rm -rf $(BUILDDIR)/*
 
+# Turn warnings into errors with -W
 html:
-	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
+	$(SPHINXBUILD) -W -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
