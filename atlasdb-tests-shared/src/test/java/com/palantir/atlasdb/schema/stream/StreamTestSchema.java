@@ -41,6 +41,7 @@ public class StreamTestSchema implements AtlasSchema {
                 4000,
                 ExpirationStrategy.INDIVIDUALLY_SPECIFIED,
                 true,
+                true,
                 true);
 
         return schema;

@@ -32,9 +32,10 @@ public class StreamTables {
     public static final String HASH_TABLE_SUFFIX = "_stream_hash_idx";
     public static final String INDEX_TABLE_SUFFIX = "_stream_idx";
 
+    // todo can we remove this or at least rename it? It only generates the schema as if you had accepted all defaults and callers using the returned schema for other things could unknowingly blow away their changes
     public static void generateSchema(Schema schema, final String shortPrefix, final String longPrefix, final ValueType idType) {
         schema.addTableDefinition(shortPrefix + METADATA_TABLE_SUFFIX, getStreamMetadataDefinition(longPrefix, idType, ExpirationStrategy.NEVER, false, false));
-        schema.addTableDefinition(shortPrefix + VALUE_TABLE_SUFFIX, getStreamValueDefinition(longPrefix, idType, ExpirationStrategy.NEVER, false, false));
+        schema.addTableDefinition(shortPrefix + VALUE_TABLE_SUFFIX, getStreamValueDefinition(longPrefix, idType, ExpirationStrategy.NEVER, false, false, false));
         schema.addTableDefinition(shortPrefix + HASH_TABLE_SUFFIX, getStreamHashIdxDefinition(longPrefix, idType, ExpirationStrategy.NEVER, false));
         schema.addTableDefinition(shortPrefix + INDEX_TABLE_SUFFIX, getStreamIdxDefinition(longPrefix, idType, ExpirationStrategy.NEVER, false, false));
     }
@@ -92,7 +93,8 @@ public class StreamTables {
                                                            final ValueType idType,
                                                            final ExpirationStrategy expirationStrategy,
                                                            final boolean hashFirstRowComponent,
-                                                           final boolean isAppendHeavyAndReadLight) {
+                                                           final boolean isAppendHeavyAndReadLight,
+                                                           final boolean dbSideCompressionForBlocks) {
         return new TableDefinition() {{
             javaTableName(Renderers.CamelCase(longPrefix) + "StreamValue");
             rowName();
@@ -109,6 +111,9 @@ public class StreamTables {
             expirationStrategy(expirationStrategy);
             if (isAppendHeavyAndReadLight) {
                 appendHeavyAndReadLight();
+            }
+            if (dbSideCompressionForBlocks) {
+                explicitCompressionBlockSizeKB(GenericStreamStore.BLOCK_SIZE_IN_BYTES / 2);
             }
         }};
     }

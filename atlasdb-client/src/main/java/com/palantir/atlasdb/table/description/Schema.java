@@ -149,16 +149,20 @@ public class Schema {
      * into memory.
      */
     public void addStreamStoreDefinition(final String longName, String shortName, ValueType streamIdType, int inMemoryThreshold) {
-        addStreamStoreDefinition(longName, shortName, streamIdType, inMemoryThreshold, ExpirationStrategy.NEVER, false, false);
+        addStreamStoreDefinition(longName, shortName, streamIdType, inMemoryThreshold, ExpirationStrategy.NEVER, false, false, false);
     }
 
-    public void addStreamStoreDefinition(final String longName, String shortName, ValueType streamIdType, int inMemoryThreshold, ExpirationStrategy expirationStrategy, boolean hashFirstRowComponent, boolean isAppendHeavyAndReadLight) {
+    public void addStreamStoreDefinition(final String longName, String shortName, ValueType streamIdType, int inMemoryThreshold,
+                                         ExpirationStrategy expirationStrategy,
+                                         boolean hashFirstRowComponent,
+                                         boolean isAppendHeavyAndReadLight,
+                                         boolean dbSideCompressionForBlocks) {
         if (expirationStrategy == ExpirationStrategy.NEVER) {
             Preconditions.checkArgument(streamIdType.getJavaClassName().equals("long"), "Stream ids must be a long for persistent streams.");
         }
         final StreamStoreRenderer renderer = new StreamStoreRenderer(Renderers.CamelCase(longName), streamIdType, packageName, name, inMemoryThreshold, expirationStrategy);
         addTableDefinition(shortName + "_stream_metadata", StreamTables.getStreamMetadataDefinition(longName, streamIdType, expirationStrategy, hashFirstRowComponent, isAppendHeavyAndReadLight));
-        addTableDefinition(shortName + "_stream_value", StreamTables.getStreamValueDefinition(longName, streamIdType, expirationStrategy, hashFirstRowComponent, isAppendHeavyAndReadLight));
+        addTableDefinition(shortName + "_stream_value", StreamTables.getStreamValueDefinition(longName, streamIdType, expirationStrategy, hashFirstRowComponent, isAppendHeavyAndReadLight, dbSideCompressionForBlocks));
         addTableDefinition(shortName + "_stream_hash_aidx", StreamTables.getStreamHashIdxDefinition(longName, streamIdType, expirationStrategy, isAppendHeavyAndReadLight));
         addTableDefinition(shortName + "_stream_idx", StreamTables.getStreamIdxDefinition(longName, streamIdType, expirationStrategy, hashFirstRowComponent, isAppendHeavyAndReadLight));
 
