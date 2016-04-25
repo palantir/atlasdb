@@ -38,7 +38,7 @@ public class TruncatePaxosLog extends AbstractCommand {
         // get leader config
         LeaderConfig leaderConfig;
         try {
-            leaderConfig = scm.provideAtlasDbConfig().leader().get();
+            leaderConfig = getServiceConfigModule().provideAtlasDbConfig().leader().get();
         } catch (IllegalStateException e) {
             System.err.println("Error: Config file is missing required leader block configuration.");
             return 1;
@@ -57,7 +57,7 @@ public class TruncatePaxosLog extends AbstractCommand {
         PaxosLeaderElectionService leaderElectionService;
         try {
             leaderElectionService = (PaxosLeaderElectionService) Leaders.create(
-                    scm.provideServicesConfig().sslSocketFactory(),
+                    getServiceConfigModule().provideServicesConfig().sslSocketFactory(),
                     resource -> {},
                     leaderConfig);
         } catch (ClassCastException e) { //impossible currently as Paxos is only existing implementation

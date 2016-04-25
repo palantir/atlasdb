@@ -37,12 +37,12 @@ public abstract class SingleBackendCommand extends AbstractCommand {
     public abstract int execute(AtlasDbServices services);
 
     private AtlasDbServices connect() throws IOException {
-        return DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
+        return DaggerAtlasDbServices.builder().servicesConfigModule(getServiceConfigModule()).build();
     }
 
     @VisibleForTesting
     public <T extends AtlasDbServices> T connect(AtlasDbServicesFactory factory) throws IOException {
-        return factory.connect(scm);
+        return factory.connect(getServiceConfigModule());
     }
 
 }

@@ -37,15 +37,19 @@ public abstract class AbstractCommand implements Callable<Integer> {
             description = "field in the config yaml file that contains the atlasdb configuration root")
     private String configRoot = AtlasDbConfigs.ATLASDB_CONFIG_ROOT;
 
-    protected final ServicesConfigModule scm;
-
-    public AbstractCommand() {
-        try {
-            scm = ServicesConfigModule.create(configFile, configRoot);
-        } catch (IOException e) {
-            throw new RuntimeException(String.format("IOException thrown reading configuration file: ",
-                    configFile.getPath()), e);
+    private ServicesConfigModule scm;
+    
+    protected ServicesConfigModule getServiceConfigModule() {
+        if (scm == null) {
+            try {
+                scm = ServicesConfigModule.create(configFile, configRoot);
+            } catch (IOException e) {
+                throw new RuntimeException(String.format("IOException thrown reading configuration file: ",
+                        configFile.getPath()), e);
+            }
         }
+        
+        return scm;
     }
 
 }
