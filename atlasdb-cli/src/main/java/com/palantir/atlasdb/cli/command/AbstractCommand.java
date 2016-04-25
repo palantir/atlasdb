@@ -44,7 +44,7 @@ public abstract class AbstractCommand implements Callable<Integer> {
             try {
                 scm = ServicesConfigModule.create(configFile, configRoot);
             } catch (IOException e) {
-                throw new RuntimeException(String.format("IOException thrown reading configuration file: ",
+                throw new RuntimeException(String.format("IOException thrown reading configuration file: %s",
                         configFile.getPath()), e);
             }
         }
