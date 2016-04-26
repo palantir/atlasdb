@@ -31,13 +31,14 @@ import org.junit.runners.Suite.SuiteClasses;
         CQLKeyValueServiceTransactionTest.class,
         CassandraTimestampTest.class,
         CassandraKeyValueServiceSweeperTest.class,
-        CQLKeyValueServiceSweeperTest.class
+        CQLKeyValueServiceSweeperTest.class,
+        CassandraConnectionTest.class
 })
 public class CassandraTestSuite {
 
     @BeforeClass
     public static void setup() throws IOException, InterruptedException {
-        CassandraService.start(false);
+        CassandraService.start(CassandraService.AUTH_CONFIG);
     }
 
     @AfterClass
