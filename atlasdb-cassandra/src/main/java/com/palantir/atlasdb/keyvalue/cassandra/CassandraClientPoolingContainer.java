@@ -105,7 +105,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
         } finally {
             if (resource != null) {
                 if (shouldReuse) {
-                    log.info("Returning {} to pool", resource);
+                    log.debug("Returning {} to pool", resource);
                     clientPool.returnObject(resource);
                 } else {
                     invalidateQuietly(resource);
@@ -122,7 +122,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
 
     private void invalidateQuietly(Client resource) {
         try {
-            log.info("Discarding: {}", resource);
+            log.debug("Discarding: {}", resource);
             clientPool.invalidateObject(resource);
         } catch (Exception e) {
             // Ignore

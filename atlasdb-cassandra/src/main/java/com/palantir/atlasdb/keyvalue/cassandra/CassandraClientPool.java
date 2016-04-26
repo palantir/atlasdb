@@ -43,6 +43,7 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -451,18 +452,24 @@ public class CassandraClientPool {
         }
     }
 
-    private static boolean isConnectionException(Exception e) {
-        return e instanceof SocketTimeoutException
-                || e instanceof UnavailableException
-                || e instanceof NoSuchElementException;
+    @VisibleForTesting
+    static boolean isConnectionException(Throwable t) {
+        return t != null
+                && (t instanceof SocketTimeoutException
+                || t instanceof ClientCreationFailedException
+                || t instanceof UnavailableException
+                || t instanceof NoSuchElementException
+                || isConnectionException(t.getCause()));
     }
 
-    private static boolean isRetriableException(Exception e) {
-        return isConnectionException(e)
-                || e instanceof ClientCreationFailedException
-                || e instanceof TTransportException
-                || e instanceof TimedOutException
-                || e instanceof InsufficientConsistencyException;
+    @VisibleForTesting
+    static boolean isRetriableException(Throwable t) {
+        return t != null
+                && (t instanceof TTransportException
+                || t instanceof TimedOutException
+                || t instanceof InsufficientConsistencyException
+                || isConnectionException(t)
+                || isRetriableException(t.getCause()));
     }
 
 }
