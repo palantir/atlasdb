@@ -19,25 +19,21 @@ import java.io.IOException;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
 @RunWith(Suite.class)
 @SuiteClasses({
-        CassandraKeyValueServiceSerializableTransactionTest.class,
-        CassandraKeyValueServiceTransactionTest.class,
-        CQLKeyValueServiceSerializableTransactionTest.class,
-        CQLKeyValueServiceTransactionTest.class,
-        CassandraTimestampTest.class,
-        CassandraKeyValueServiceSweeperTest.class,
-        CQLKeyValueServiceSweeperTest.class
+        CassandraConnectionTest.class
 })
-public class CassandraTestSuite {
+@Ignore
+public class AuthenticationAndSSLTestSuite {
 
     @BeforeClass
     public static void setup() throws IOException, InterruptedException {
-        CassandraService.start(false);
+        CassandraService.start(true);
     }
 
     @AfterClass

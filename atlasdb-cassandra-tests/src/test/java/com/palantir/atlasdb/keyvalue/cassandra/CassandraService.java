@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 public final class CassandraService {
     private static final Logger log = LoggerFactory.getLogger(CassandraService.class);
     private static final String CASSANDRA_CONFIG = "./cassandra.yaml";
+    private static final String CASSANDRA_AUTH_CONFIG = "./cassandra-auth.yaml";
 
     private static CassandraDaemon daemon;
 
@@ -33,15 +34,15 @@ public final class CassandraService {
         // do not instantiate
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
         try {
-            CassandraService.start();
+            CassandraService.start(false);
         } catch (IOException e) {
             log.error("failed to start cassandra", e);
         }
     }
 
-    public static synchronized void start() throws IOException {
+    public static synchronized void start(boolean useAuth) throws IOException, InterruptedException {
         File tempDir;
         try {
             tempDir = Files.createTempDirectory("cassandra").toFile();
@@ -49,12 +50,14 @@ public final class CassandraService {
             throw new RuntimeException("Cannot create data directory.");
         }
         tempDir.deleteOnExit();
-        System.setProperty("cassandra.config", new File(CASSANDRA_CONFIG).toURI().toString());
+        String cassandraYaml = useAuth ? CASSANDRA_AUTH_CONFIG : CASSANDRA_CONFIG;
+        System.setProperty("cassandra.config", new File(cassandraYaml).toURI().toString());
         System.setProperty("cassandra.storagedir", tempDir.getPath());
 
         daemon = new CassandraDaemon(true);
         daemon.init(null);
         daemon.start();
+        Thread.sleep(5000); //give cassandra the chance to start up properly
     }
 
     public static synchronized void stop() {

@@ -45,6 +45,8 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
 
     public abstract String keyspace();
 
+    public abstract Optional<CassandraCredentialsConfig> credentials();
+
     public abstract boolean ssl();
 
     public abstract int replicationFactor();
