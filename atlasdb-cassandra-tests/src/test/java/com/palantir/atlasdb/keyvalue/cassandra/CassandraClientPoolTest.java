@@ -123,9 +123,9 @@ public class CassandraClientPoolTest {
 
     @Test
     public void testIsRetriableException() {
-        Assert.assertTrue(CassandraClientPool.isConnectionException(new TimedOutException()));
-        Assert.assertTrue(CassandraClientPool.isConnectionException(new TTransportException()));
-        Assert.assertTrue(CassandraClientPool.isConnectionException(new TTransportException(new SocketTimeoutException())));
+        Assert.assertTrue(CassandraClientPool.isRetriableException(new TimedOutException()));
+        Assert.assertTrue(CassandraClientPool.isRetriableException(new TTransportException()));
+        Assert.assertTrue(CassandraClientPool.isRetriableException(new TTransportException(new SocketTimeoutException())));
     }
 
 }
