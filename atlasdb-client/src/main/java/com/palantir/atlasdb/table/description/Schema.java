@@ -43,17 +43,12 @@ import com.google.common.collect.Ordering;
 import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ExpirationStrategy;
-import com.palantir.atlasdb.schema.stream.StreamTables;
-import com.palantir.atlasdb.stream.GenericStreamStore;
+import com.palantir.atlasdb.schema.stream.StreamStoreDefinition;
 import com.palantir.atlasdb.table.description.IndexDefinition.IndexType;
-import com.palantir.atlasdb.table.description.render.Renderers;
 import com.palantir.atlasdb.table.description.render.StreamStoreRenderer;
 import com.palantir.atlasdb.table.description.render.TableFactoryRenderer;
 import com.palantir.atlasdb.table.description.render.TableRenderer;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
-import com.palantir.common.base.Throwables;
-import com.palantir.util.file.DeleteOnCloseFileInputStream;
 
 /**
  * Defines a schema.
@@ -140,55 +135,16 @@ public class Schema {
     }
 
     /**
-     * @param longName
-     * @param shortName
-     * @param streamIdType
-     * @param inMemoryThreshold Normally streams are stored in temp files when they are loaded
-     * from the {@link GenericStreamStore} and wrapped in {@link DeleteOnCloseFileInputStream}.
-     * Streams that are smaller than this value will not be pulled into a file, but will be pulled
-     * into memory.
+     * Adds the given stream store to your schema.
+     *
+     * @param streamStoreDefinition You probably want to use a @{StreamStoreDefinitionBuilder} for convenience.
      */
-    public void addStreamStoreDefinition(final String longName, String shortName, ValueType streamIdType, int inMemoryThreshold) {
-        addStreamStoreDefinition(longName, shortName, streamIdType, inMemoryThreshold, ExpirationStrategy.NEVER, false, false, false);
-    }
+    public void addStreamStoreDefinition(StreamStoreDefinition streamStoreDefinition) {
+        streamStoreDefinition.getTables().forEach((tableName, definition) -> addTableDefinition(tableName, definition));
+        StreamStoreRenderer renderer = streamStoreDefinition.getRenderer(packageName, name);
+        Multimap<String, Supplier<OnCleanupTask>> streamStoreCleanupTasks = streamStoreDefinition.getCleanupTasks(packageName, name, renderer);
 
-    public void addStreamStoreDefinition(final String longName, String shortName, ValueType streamIdType, int inMemoryThreshold,
-                                         ExpirationStrategy expirationStrategy,
-                                         boolean hashFirstRowComponent,
-                                         boolean isAppendHeavyAndReadLight,
-                                         boolean dbSideCompressionForBlocks) {
-        if (expirationStrategy == ExpirationStrategy.NEVER) {
-            Preconditions.checkArgument(streamIdType.getJavaClassName().equals("long"), "Stream ids must be a long for persistent streams.");
-        }
-        final StreamStoreRenderer renderer = new StreamStoreRenderer(Renderers.CamelCase(longName), streamIdType, packageName, name, inMemoryThreshold, expirationStrategy);
-        addTableDefinition(shortName + "_stream_metadata", StreamTables.getStreamMetadataDefinition(longName, streamIdType, expirationStrategy, hashFirstRowComponent, isAppendHeavyAndReadLight));
-        addTableDefinition(shortName + "_stream_value", StreamTables.getStreamValueDefinition(longName, streamIdType, expirationStrategy, hashFirstRowComponent, isAppendHeavyAndReadLight, dbSideCompressionForBlocks));
-        addTableDefinition(shortName + "_stream_hash_aidx", StreamTables.getStreamHashIdxDefinition(longName, streamIdType, expirationStrategy, isAppendHeavyAndReadLight));
-        addTableDefinition(shortName + "_stream_idx", StreamTables.getStreamIdxDefinition(longName, streamIdType, expirationStrategy, hashFirstRowComponent, isAppendHeavyAndReadLight));
-
-        // We use reflection and wrap these in suppliers because these classes are generated classes that might not always exist.
-        addCleanupTask(shortName + "_stream_metadata", new Supplier<OnCleanupTask>() {
-            @Override
-            public OnCleanupTask get() {
-                try {
-                    Class<?> clazz = Class.forName(packageName + "." + renderer.getMetadataCleanupTaskClassName());
-                    return (OnCleanupTask) clazz.getConstructor().newInstance();
-                } catch (Exception e) {
-                    throw Throwables.rewrapAndThrowUncheckedException(e);
-                }
-            }
-        });
-        addCleanupTask(shortName + "_stream_idx", new Supplier<OnCleanupTask>() {
-            @Override
-            public OnCleanupTask get() {
-                try {
-                    Class<?> clazz = Class.forName(packageName + "." + renderer.getIndexCleanupTaskClassName());
-                    return (OnCleanupTask) clazz.getConstructor().newInstance();
-                } catch (Exception e) {
-                    throw Throwables.rewrapAndThrowUncheckedException(e);
-                }
-            }
-        });
+        cleanupTasks.putAll(streamStoreCleanupTasks);
         streamStoreRenderers.add(renderer);
     }
 

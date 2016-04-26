@@ -24,6 +24,7 @@ import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.persister.JsonNodePersister;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.atlasdb.schema.AtlasSchema;
+import com.palantir.atlasdb.schema.stream.StreamStoreDefinitionBuilder;
 import com.palantir.atlasdb.table.description.IndexDefinition;
 import com.palantir.atlasdb.table.description.IndexDefinition.IndexType;
 import com.palantir.atlasdb.table.description.Schema;
@@ -78,7 +79,7 @@ public class ProfileSchema implements AtlasSchema {
             rangeScanAllowed();
         }});
 
-        schema.addStreamStoreDefinition("user_photos", "user_photos", ValueType.VAR_LONG, 2 * 1024 * 1024);
+        schema.addStreamStoreDefinition(new StreamStoreDefinitionBuilder("user_photos", "user_photos", ValueType.VAR_LONG).build());
 
         return schema;
     }

@@ -44,6 +44,10 @@ abstract class AbstractDefinition {
         expirationStrategy = strategy;
     }
 
+    public ExpirationStrategy getExpirationStrategy() {
+        return expirationStrategy;
+    }
+
     public void sweepStrategy(SweepStrategy strategy) {
         this.sweepStrategy = strategy;
     }
