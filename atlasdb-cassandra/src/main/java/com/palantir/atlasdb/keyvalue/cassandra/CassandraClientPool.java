@@ -383,7 +383,7 @@ public class CassandraClientPool {
                 throw (K) e;
             } else {
                 log.warn("Error occurred talking to cassandra. Attempt {} of {}.", numTries, MAX_TRIES, e);
-                if (isConnectionException(e)) {
+                if (isOrContainsConnectionException(e)) {
                     addToBlacklist(host);
                 }
             }
@@ -456,8 +456,18 @@ public class CassandraClientPool {
                 || e instanceof NoSuchElementException;
     }
 
+    private static boolean isOrContainsConnectionException(Exception e) {
+        if (e == null) {
+            return false;
+        } else if (isConnectionException(e)) {
+            return true;
+        } else {
+            return isOrContainsConnectionException((Exception) e.getCause());
+        }
+    }
+
     private static boolean isRetriableException(Exception e) {
-        return isConnectionException(e)
+        return isOrContainsConnectionException(e)
                 || e instanceof ClientCreationFailedException
                 || e instanceof TTransportException
                 || e instanceof TimedOutException
