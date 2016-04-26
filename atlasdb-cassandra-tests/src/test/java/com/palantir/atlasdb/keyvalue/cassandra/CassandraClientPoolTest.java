@@ -16,12 +16,15 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.net.InetSocketAddress;
+import java.net.SocketTimeoutException;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.cassandra.thrift.Cassandra;
+import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.cassandra.thrift.TokenRange;
+import org.apache.thrift.transport.TTransportException;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -110,5 +113,19 @@ public class CassandraClientPoolTest {
         public List<TokenRange> apply (Cassandra.Client client) throws Exception {
             return client.describe_ring("atlasdb");
         }};
+
+    @Test
+    public void testIsConnectionException() {
+        Assert.assertFalse(CassandraClientPool.isConnectionException(new TimedOutException()));
+        Assert.assertFalse(CassandraClientPool.isConnectionException(new TTransportException()));
+        Assert.assertTrue(CassandraClientPool.isConnectionException(new TTransportException(new SocketTimeoutException())));
+    }
+
+    @Test
+    public void testIsRetriableException() {
+        Assert.assertTrue(CassandraClientPool.isRetriableException(new TimedOutException()));
+        Assert.assertTrue(CassandraClientPool.isRetriableException(new TTransportException()));
+        Assert.assertTrue(CassandraClientPool.isRetriableException(new TTransportException(new SocketTimeoutException())));
+    }
 
 }
