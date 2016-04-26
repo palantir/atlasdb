@@ -17,6 +17,9 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.nio.file.Files;
 
 import org.apache.cassandra.service.CassandraDaemon;
@@ -56,7 +59,7 @@ public final class CassandraService {
         daemon = new CassandraDaemon(true);
         daemon.init(null);
         daemon.start();
-        Thread.sleep(5000); //give cassandra the chance to start up properly
+        waitForDaemonToStart();
     }
 
     public static synchronized void stop() {
@@ -66,5 +69,33 @@ public final class CassandraService {
         }
         daemon.deactivate();
         daemon = null;
+    }
+
+    private static void waitForDaemonToStart() throws InterruptedException {
+        Thread checker = new Thread() {
+            @Override
+            public void run()
+            {
+                int port = 9160;
+                int iterationsToCheck = 10; // ~20s
+                while (iterationsToCheck-- > 0) {
+                    try {
+                        Socket socket = new Socket();
+                        InetSocketAddress endPoint = new InetSocketAddress(InetAddress.getLocalHost(), port);
+                        socket.connect(endPoint, 1000);
+                        socket.close();
+                        return;
+                    } catch(IOException e) {
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException e1) { /* fine */ }
+                    }
+                }
+            }
+        };
+
+        checker.setDaemon(false);
+        checker.start();
+        checker.join();
     }
 }

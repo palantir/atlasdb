@@ -30,7 +30,7 @@ import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 
 public class CassandraConnectionTest {
 
-    private static final CassandraCredentialsConfig DEFAULT_CASSANDRA_CREDS = ImmutableCassandraCredentialsConfig
+    static final CassandraCredentialsConfig DEFAULT_CASSANDRA_CREDS = ImmutableCassandraCredentialsConfig
             .builder()
             .username("cassandra")
             .password("cassandra")

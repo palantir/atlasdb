@@ -32,6 +32,7 @@ public class CQLKeyValueServiceTransactionTest extends AbstractTransactionTest {
                                 .addServers(new InetSocketAddress("localhost", 9042))
                                 .poolSize(20)
                                 .keyspace("atlasdb")
+                                .credentials(CassandraConnectionTest.DEFAULT_CASSANDRA_CREDS)
                                 .ssl(false)
                                 .replicationFactor(1)
                                 .mutationBatchCount(10000)
