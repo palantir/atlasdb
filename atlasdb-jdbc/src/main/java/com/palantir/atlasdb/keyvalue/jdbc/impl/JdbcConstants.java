@@ -59,4 +59,7 @@ public class JdbcConstants {
 
     public static final String MAX_TIMESTAMP = "max_timestamp";
     public static final Field<Long> T2_MAX_TIMESTAMP = field(TEMP_TABLE_2 + '.' + MAX_TIMESTAMP, Long.class);
+
+    // Postgres has a hard limit of 32767 values per insert.
+    public static final int MAX_VALUES_PER_BATCH = 3000;
 }

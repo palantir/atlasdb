@@ -31,6 +31,7 @@ import static com.palantir.atlasdb.keyvalue.jdbc.impl.JdbcConstants.A_TIMESTAMP;
 import static com.palantir.atlasdb.keyvalue.jdbc.impl.JdbcConstants.A_VALUE;
 import static com.palantir.atlasdb.keyvalue.jdbc.impl.JdbcConstants.COL_NAME;
 import static com.palantir.atlasdb.keyvalue.jdbc.impl.JdbcConstants.MAX_TIMESTAMP;
+import static com.palantir.atlasdb.keyvalue.jdbc.impl.JdbcConstants.MAX_VALUES_PER_BATCH;
 import static com.palantir.atlasdb.keyvalue.jdbc.impl.JdbcConstants.METADATA;
 import static com.palantir.atlasdb.keyvalue.jdbc.impl.JdbcConstants.RANGE_TABLE;
 import static com.palantir.atlasdb.keyvalue.jdbc.impl.JdbcConstants.ROW_NAME;
@@ -54,7 +55,9 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -88,6 +91,8 @@ import org.jooq.conf.RenderNameStyle;
 import org.jooq.conf.Settings;
 import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
@@ -131,8 +136,8 @@ public class JdbcKeyValueService implements KeyValueService {
     private final SQLDialect sqlDialect;
     private final DataSource dataSource;
     private final Settings settings;
-
     public final Table<Record> METADATA_TABLE;
+    private static final Logger LOGGER = LoggerFactory.getLogger(JdbcKeyValueService.class);
 
     private JdbcKeyValueService(String tablePrefix,
                                 SQLDialect sqlDialect,
@@ -471,7 +476,21 @@ public class JdbcKeyValueService implements KeyValueService {
                     TableReference tableRef = entry.getKey();
                     Map<Cell, byte[]> values = entry.getValue();
                     if (!values.isEmpty()) {
-                        putBatch(ctx, tableRef, new SingleTimestampPutBatch(values, timestamp), true);
+                        int numBatches = (values.size()/MAX_VALUES_PER_BATCH) + 1;
+                        LOGGER.debug("We have {} values to insert", values.size());
+                        LOGGER.debug("Inserting in {} batches", numBatches);
+                        List<Map<Cell, byte[]>> batchedValues = new ArrayList<>();
+                        for (int i = 0; i < numBatches; i++) {
+                            batchedValues.add(new HashMap<>());
+                        }
+                        int i = 0;
+                        for (Entry<Cell, byte[]> value : values.entrySet()) {
+                            batchedValues.get(i % numBatches).put(value.getKey(), value.getValue());
+                            i++;
+                        }
+                        for (Map<Cell, byte[]> batch : batchedValues) {
+                            putBatch(ctx, tableRef, new SingleTimestampPutBatch(batch, timestamp), true);
+                        }
                     }
                 }
                 return null;
