@@ -43,6 +43,7 @@ import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
+import com.palantir.atlasdb.versions.AtlasDbVersion;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.RemoteLockService;
@@ -68,15 +69,18 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
 
     @Override
     public InMemoryKeyValueService createRawKeyValueService(KeyValueServiceConfig config) {
+        AtlasDbVersion.ensureVersionReported();
         return new InMemoryKeyValueService(false);
     }
 
     @Override
     public TimestampService createTimestampService(KeyValueService rawKvs) {
+        AtlasDbVersion.ensureVersionReported();
         return new InMemoryTimestampService();
     }
 
     public static SerializableTransactionManager createInMemoryTransactionManager(AtlasSchema schema) {
+        AtlasDbVersion.ensureVersionReported();
         return createInMemoryTransactionManagerInternal(schema.getLatestSchema(), schema.getNamespace());
     }
 

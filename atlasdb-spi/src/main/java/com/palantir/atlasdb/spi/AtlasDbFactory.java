@@ -19,11 +19,10 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.timestamp.TimestampService;
 
 public interface AtlasDbFactory {
-
     String getType();
 
     KeyValueService createRawKeyValueService(KeyValueServiceConfig config);
 
     TimestampService createTimestampService(KeyValueService rawKvs);
-    
+
 }
