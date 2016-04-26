@@ -43,6 +43,7 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -383,7 +384,7 @@ public class CassandraClientPool {
                 throw (K) e;
             } else {
                 log.warn("Error occurred talking to cassandra. Attempt {} of {}.", numTries, MAX_TRIES, e);
-                if (isOrContainsConnectionException(e)) {
+                if (isConnectionException(e)) {
                     addToBlacklist(host);
                 }
             }
@@ -450,28 +451,24 @@ public class CassandraClientPool {
         }
     }
 
-    private static boolean isConnectionException(Exception e) {
-        return e instanceof SocketTimeoutException
-                || e instanceof UnavailableException
-                || e instanceof NoSuchElementException;
+    @VisibleForTesting
+    static boolean isConnectionException(Throwable t) {
+        return t != null
+                && (t instanceof SocketTimeoutException
+                || t instanceof ClientCreationFailedException
+                || t instanceof UnavailableException
+                || t instanceof NoSuchElementException
+                || isConnectionException(t.getCause()));
     }
 
-    private static boolean isOrContainsConnectionException(Exception e) {
-        if (e == null) {
-            return false;
-        } else if (isConnectionException(e)) {
-            return true;
-        } else {
-            return isOrContainsConnectionException((Exception) e.getCause());
-        }
-    }
-
-    private static boolean isRetriableException(Exception e) {
-        return isOrContainsConnectionException(e)
-                || e instanceof ClientCreationFailedException
-                || e instanceof TTransportException
-                || e instanceof TimedOutException
-                || e instanceof InsufficientConsistencyException;
+    @VisibleForTesting
+    static boolean isRetriableException(Throwable t) {
+        return t != null
+                && (t instanceof TTransportException
+                || t instanceof TimedOutException
+                || t instanceof InsufficientConsistencyException
+                || isConnectionException(t)
+                || isRetriableException(t.getCause()));
     }
 
 }
