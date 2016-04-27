@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -23,6 +24,9 @@ import org.junit.Ignore;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
+
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 
 @RunWith(Suite.class)
 @SuiteClasses({
@@ -32,6 +36,19 @@ import org.junit.runners.Suite.SuiteClasses;
 })
 @Ignore
 public class CQLTestSuite {
+    
+    static CassandraKeyValueServiceConfig CQLKVS_CONFIG = ImmutableCassandraKeyValueServiceConfig.builder()
+            .addServers(new InetSocketAddress("localhost", 9042))
+            .poolSize(20)
+            .keyspace("atlasdb")
+            .ssl(false)
+            .replicationFactor(1)
+            .mutationBatchCount(10000)
+            .mutationBatchSizeBytes(10000000)
+            .fetchBatchCount(1000)
+            .safetyDisabled(false)
+            .autoRefreshNodes(false)
+            .build();
 
     @BeforeClass
     public static void setup() throws IOException, InterruptedException {

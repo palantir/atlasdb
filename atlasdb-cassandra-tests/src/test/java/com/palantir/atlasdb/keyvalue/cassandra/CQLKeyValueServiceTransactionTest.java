@@ -15,10 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.net.InetSocketAddress;
-
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
-import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
 
@@ -27,19 +24,7 @@ public class CQLKeyValueServiceTransactionTest extends AbstractTransactionTest {
     @Override
     protected KeyValueService getKeyValueService() {
         return CQLKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(
-                        ImmutableCassandraKeyValueServiceConfig.builder()
-                                .addServers(new InetSocketAddress("localhost", 9042))
-                                .poolSize(20)
-                                .keyspace("atlasdb")
-                                .ssl(false)
-                                .replicationFactor(1)
-                                .mutationBatchCount(10000)
-                                .mutationBatchSizeBytes(10000000)
-                                .fetchBatchCount(1000)
-                                .safetyDisabled(true)
-                                .autoRefreshNodes(false)
-                                .build()));
+                CassandraKeyValueServiceConfigManager.createSimpleManager(CQLTestSuite.CQLKVS_CONFIG));
     }
 
     @Override
