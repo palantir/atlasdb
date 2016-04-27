@@ -17,6 +17,9 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.nio.file.Files;
 
 import org.apache.cassandra.service.CassandraDaemon;
@@ -25,7 +28,8 @@ import org.slf4j.LoggerFactory;
 
 public final class CassandraService {
     private static final Logger log = LoggerFactory.getLogger(CassandraService.class);
-    private static final String CASSANDRA_CONFIG = "./cassandra.yaml";
+    static final String DEFAULT_CONFIG = "./cassandra.yaml";
+    static final String AUTH_CONFIG = "./cassandra-auth.yaml";
 
     private static CassandraDaemon daemon;
 
@@ -33,15 +37,15 @@ public final class CassandraService {
         // do not instantiate
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
         try {
-            CassandraService.start();
+            CassandraService.start(DEFAULT_CONFIG);
         } catch (IOException e) {
             log.error("failed to start cassandra", e);
         }
     }
 
-    public static synchronized void start() throws IOException {
+    public static synchronized void start(String config) throws IOException, InterruptedException {
         File tempDir;
         try {
             tempDir = Files.createTempDirectory("cassandra").toFile();
@@ -49,12 +53,13 @@ public final class CassandraService {
             throw new RuntimeException("Cannot create data directory.");
         }
         tempDir.deleteOnExit();
-        System.setProperty("cassandra.config", new File(CASSANDRA_CONFIG).toURI().toString());
+        System.setProperty("cassandra.config", new File(config).toURI().toString());
         System.setProperty("cassandra.storagedir", tempDir.getPath());
 
         daemon = new CassandraDaemon(true);
         daemon.init(null);
         daemon.start();
+        waitForDaemonToStart();
     }
 
     public static synchronized void stop() {
@@ -64,5 +69,33 @@ public final class CassandraService {
         }
         daemon.deactivate();
         daemon = null;
+    }
+
+    private static void waitForDaemonToStart() throws InterruptedException {
+        Thread checker = new Thread() {
+            @Override
+            public void run()
+            {
+                int port = 9160;
+                int iterationsToCheck = 10; // ~20s
+                while (iterationsToCheck-- > 0) {
+                    try {
+                        Socket socket = new Socket();
+                        InetSocketAddress endPoint = new InetSocketAddress(InetAddress.getLocalHost(), port);
+                        socket.connect(endPoint, 1000);
+                        socket.close();
+                        return;
+                    } catch(IOException e) {
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException e1) { /* fine */ }
+                    }
+                }
+            }
+        };
+
+        checker.setDaemon(false);
+        checker.start();
+        checker.join();
     }
 }
