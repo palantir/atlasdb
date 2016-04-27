@@ -118,7 +118,7 @@ public class CassandraClientPool {
                     log.error("Failed to refresh Cassandra KVS pool. Extended periods of being unable to refresh will cause perf degradation.", t);
                 }
             }
-        }, CassandraConstants.SECONDS_BETWEEN_GETTING_HOST_LIST, CassandraConstants.SECONDS_BETWEEN_GETTING_HOST_LIST, TimeUnit.SECONDS);
+        }, config.poolRefreshIntervalSeconds(), config.poolRefreshIntervalSeconds(), TimeUnit.SECONDS);
 
         config.servers().forEach((server) -> currentPools.put(server, new CassandraClientPoolingContainer(server, config)));
         refreshPool(); // ensure we've initialized before returning

@@ -43,6 +43,11 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
         return 20;
     }
 
+    @Value.Default
+    public int poolRefreshIntervalSeconds() {
+        return 5 * 60;
+    }
+
     public abstract String keyspace();
 
     public abstract boolean ssl();

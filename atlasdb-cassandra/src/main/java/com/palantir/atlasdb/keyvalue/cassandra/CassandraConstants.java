@@ -35,7 +35,6 @@ public class CassandraConstants {
     public static final int DEFAULT_REPLICATION_FACTOR = 3;
     public static final int DEFAULT_THRIFT_PORT = 9160;
     public static final int DEFAULT_CQL_PORT = 9042;
-    static final int SECONDS_BETWEEN_GETTING_HOST_LIST = 600; // 10 min
     static final int SECONDS_WAIT_FOR_VERSIONS = 60;
     static final int MAX_TRUNCATION_ATTEMPTS = 3; // tied to an exponential timeout, be careful if you change it
 
