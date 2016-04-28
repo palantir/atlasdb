@@ -1,3 +1,5 @@
+import com.sun.org.apache.xalan.internal.xsltc.compiler.Copy
+
 buildscript {
     repositories { jcenter() }
     dependencies {
@@ -51,6 +53,13 @@ configurations.matching({ it.name in ['compile', 'runtime'] }).all {
     }
 }
 
+task prepareForEteTests(type: Copy, dependsOn: 'distTar') {
+    from distTar.outputs
+    into 'build/docker/'
+
+    rename { filename -> 'atlasdb-timelock-server-snapshot.tgz' }
+}
+
 distribution {
     serviceName 'atlasdb-timelock'
     mainClass 'com.palantir.atlasdb.timelock.server.TimeLockServer'
@@ -59,5 +68,3 @@ distribution {
 
 sourceCompatibility = '1.8'
 targetCompatibility = '1.8'
-version = "snapshot" // This is to generate a good distTar name
-

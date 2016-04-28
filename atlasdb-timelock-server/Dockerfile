@@ -4,9 +4,12 @@ RUN apk update && apk add libstdc++ bash
 
 EXPOSE 3828
 
-ADD build/distributions/atlasdb-timelock-snapshot.tgz /atlasdb
+ADD build/docker/atlasdb-timelock-server-snapshot.tgz /atlasdb
 
-ADD docker/conf/ /atlasdb/atlasdb-timelock-snapshot/var/conf
+# Remove possible version prefix
+RUN for file in atlasdb/*; do mv "$file" "atlasdb/atlasdb-timelock-server-snapshot"; done
 
-WORKDIR /atlasdb/atlasdb-timelock-snapshot/service/bin/
+ADD docker/conf/ /atlasdb/atlasdb-timelock-server-snapshot/var/conf
+
+WORKDIR /atlasdb/atlasdb-timelock-server-snapshot/service/bin/
 CMD bash -c './init.sh console'

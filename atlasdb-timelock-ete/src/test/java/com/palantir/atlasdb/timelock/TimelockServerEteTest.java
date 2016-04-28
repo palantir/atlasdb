@@ -48,7 +48,7 @@ public class TimelockServerEteTest {
             .saveLogsTo("container-logs")
             .build();
 
-    public static Gradle gradle = Gradle.ensureTaskHasRun(":atlasdb-timelock-server:distTar");
+    public static Gradle gradle = Gradle.ensureTaskHasRun(":atlasdb-timelock-server:prepareForEteTests");
 
     @ClassRule
     public static RuleChain rules = RuleChain
