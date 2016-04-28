@@ -21,6 +21,8 @@ dependencies {
     compile 'com.google.dagger:dagger:2.0.2'
 
     compile "org.rocksdb:rocksdbjni:4.1.0"
+    compile 'org.postgresql:postgresql:9.4.1208'
+
     compile 'org.apache.thrift:libthrift:0.9.1'
 
     processor 'org.immutables:value:2.0.21'
