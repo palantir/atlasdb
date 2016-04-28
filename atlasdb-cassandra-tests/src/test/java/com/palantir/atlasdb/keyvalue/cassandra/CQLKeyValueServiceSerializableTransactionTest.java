@@ -27,8 +27,7 @@ public class CQLKeyValueServiceSerializableTransactionTest extends
     @Override
     protected KeyValueService getKeyValueService() {
         return CQLKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(
-                        CassandraTestConfigs.cqlConfiguration));
+                CassandraKeyValueServiceConfigManager.createSimpleManager(CQLTestSuite.CQLKVS_CONFIG));
     }
 
     @Override

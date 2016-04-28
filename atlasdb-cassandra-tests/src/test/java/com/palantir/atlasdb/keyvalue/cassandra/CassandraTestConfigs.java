@@ -31,40 +31,5 @@ class CassandraTestConfigs {
     static final int THRIFT_PORT = 9160;
     static final int CQL_PORT = 9042;
 
-    static final CassandraKeyValueServiceConfig thriftConfigurationSafetyEnabled = ImmutableCassandraKeyValueServiceConfig.builder()
-            .addServers(new InetSocketAddress(CASSANDRA_HOST, THRIFT_PORT))
-            .poolSize(20)
-            .keyspace("atlasdb")
-            .ssl(false)
-            .replicationFactor(1)
-            .mutationBatchCount(10000)
-            .mutationBatchSizeBytes(10000000)
-            .fetchBatchCount(1000)
-            .safetyDisabled(true)
-            .autoRefreshNodes(false)
-            .build();
-    static final CassandraKeyValueServiceConfig thriftConfigurationSafetyDisabled = ImmutableCassandraKeyValueServiceConfig.builder()
-            .addServers(new InetSocketAddress(CASSANDRA_HOST, THRIFT_PORT))
-            .poolSize(20)
-            .keyspace("atlasdb")
-            .ssl(false)
-            .replicationFactor(1)
-            .mutationBatchCount(10000)
-            .mutationBatchSizeBytes(10000000)
-            .fetchBatchCount(1000)
-            .safetyDisabled(false)
-            .autoRefreshNodes(false)
-            .build();
-    static final CassandraKeyValueServiceConfig cqlConfiguration = ImmutableCassandraKeyValueServiceConfig.builder()
-            .addServers(new InetSocketAddress(CASSANDRA_HOST, CQL_PORT))
-            .poolSize(20)
-            .keyspace("atlasdb")
-            .ssl(false)
-            .replicationFactor(1)
-            .mutationBatchCount(10000)
-            .mutationBatchSizeBytes(10000000)
-            .fetchBatchCount(1000)
-            .safetyDisabled(true)
-            .autoRefreshNodes(false)
-            .build();
+
 }

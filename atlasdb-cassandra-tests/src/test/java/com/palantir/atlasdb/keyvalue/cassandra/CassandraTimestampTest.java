@@ -15,23 +15,40 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.net.InetSocketAddress;
+
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
 
 public class CassandraTimestampTest {
     private CassandraKeyValueService kv;
 
+    private static final CassandraKeyValueServiceConfig thriftConfigurationSafetyEnabled = ImmutableCassandraKeyValueServiceConfig.builder()
+            .addServers(new InetSocketAddress(CassandraTestConfigs.CASSANDRA_HOST, CassandraTestConfigs.THRIFT_PORT))
+            .poolSize(20)
+            .keyspace("atlasdb")
+            .ssl(false)
+            .replicationFactor(1)
+            .mutationBatchCount(10000)
+            .mutationBatchSizeBytes(10000000)
+            .fetchBatchCount(1000)
+            .safetyDisabled(true)
+            .autoRefreshNodes(false)
+            .build();
+
     @Before
     public void setUp() {
         kv = CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestConfigs.thriftConfigurationSafetyEnabled));
+                CassandraKeyValueServiceConfigManager.createSimpleManager(thriftConfigurationSafetyEnabled));
         kv.initializeFromFreshInstance();
         kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
     }
