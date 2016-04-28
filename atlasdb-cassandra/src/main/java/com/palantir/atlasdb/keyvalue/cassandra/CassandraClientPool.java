@@ -240,7 +240,7 @@ public class CassandraClientPool {
         if (liveOwnerHosts.isEmpty()) {
             log.warn("Perf / cluster stability issue. Token aware query routing has failed because there are no known " +
                     "live hosts that claim ownership of the given range. Falling back to choosing a random live node. " +
-                    "For debugging, our current ring view is: %s and our current host blacklist is %s", tokenMap, blacklistedHosts);
+                    "For debugging, our current ring view is: {} and our current host blacklist is {}", tokenMap, blacklistedHosts);
             return getRandomGoodHost().getHost();
         } else {
             return currentPools.get(ImmutableList.copyOf(liveOwnerHosts).get(ThreadLocalRandom.current().nextInt(liveOwnerHosts.size()))).getHost();
