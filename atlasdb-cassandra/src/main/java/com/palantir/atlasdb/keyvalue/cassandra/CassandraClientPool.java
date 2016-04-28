@@ -83,7 +83,6 @@ import com.palantir.common.concurrent.PTExecutors;
  **/
 public class CassandraClientPool {
     private static final Logger log = LoggerFactory.getLogger(CassandraClientPool.class);
-    private static final long BANNED_HOST_BACKOFF_TIME_MS = TimeUnit.MINUTES.toMillis(5);
     private static final int MAX_TRIES = 3;
 
     volatile RangeMap<LightweightOPPToken, List<InetSocketAddress>> tokenMap = ImmutableRangeMap.of();
@@ -189,7 +188,8 @@ public class CassandraClientPool {
     private void checkAndUpdateBlacklist() {
         // Check blacklist and re-integrate or continue to wait as necessary
         for (Map.Entry<InetSocketAddress, Long> blacklistedEntry : blacklistedHosts.entrySet()) {
-            if (blacklistedEntry.getValue() + BANNED_HOST_BACKOFF_TIME_MS < System.currentTimeMillis()) {
+            long backoffTimeMillis = TimeUnit.SECONDS.toMillis(config.unresponsiveHostBackoffTimeSeconds());
+            if (blacklistedEntry.getValue() + backoffTimeMillis < System.currentTimeMillis()) {
                 InetSocketAddress host = blacklistedEntry.getKey();
                 if (isHostHealthy(host)) {
                     blacklistedHosts.remove(host);
