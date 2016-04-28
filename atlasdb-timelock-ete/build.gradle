@@ -33,7 +33,7 @@ dependencies {
     testCompile 'ch.qos.logback:logback-classic:1.1.7'
 }
 
-test.dependsOn ':atlasdb-timelock-server:distTar'
+test.dependsOn ':atlasdb-timelock-server:prepareForEteTests'
 
 // This allows tests that require an artefact to exist to
 // decide whether to call gradle themselves or not
