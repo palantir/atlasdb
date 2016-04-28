@@ -155,6 +155,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
         CassandraClientFactory cassandraClientFactory =
                 new CassandraClientFactory(host,
                         config.keyspace(),
+                        config.credentials(),
                         config.ssl(),
                         config.socketTimeoutMillis(),
                         config.socketQueryTimeoutMillis());

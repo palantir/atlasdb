@@ -25,13 +25,15 @@ import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 
 @RunWith(Suite.class)
 @SuiteClasses({
+        CassandraConnectionTest.class,
         CassandraKeyValueServiceSerializableTransactionTest.class,
-        CassandraKeyValueServiceTransactionTest.class,
         CassandraKeyValueServiceSweeperTest.class,
+        CassandraKeyValueServiceTransactionTest.class,
         CassandraTimestampTest.class
 })
 public class CassandraTestSuite {
@@ -40,6 +42,10 @@ public class CassandraTestSuite {
             .addServers(new InetSocketAddress("localhost", 9160))
             .poolSize(20)
             .keyspace("atlasdb")
+            .credentials(ImmutableCassandraCredentialsConfig.builder()
+                    .username("cassandra")
+                    .password("cassandra")
+                    .build())
             .ssl(false)
             .replicationFactor(1)
             .mutationBatchCount(10000)
@@ -51,7 +57,7 @@ public class CassandraTestSuite {
 
     @BeforeClass
     public static void setup() throws IOException, InterruptedException {
-        CassandraService.start(CassandraService.DEFAULT_CONFIG);
+        CassandraService.start(CassandraService.AUTH_CONFIG);
     }
 
     @AfterClass
