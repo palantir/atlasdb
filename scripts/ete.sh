@@ -16,4 +16,4 @@ docker-compose build
 docker-compose up -t 0 --no-build -d 
 trap "on_exit" EXIT
 docker-compose logs &
-docker-compose run --rm ete ./gradlew atlasdb-cassandra-tests:test --console=plain --info --continue 
+docker-compose run ete ./gradlew atlasdb-cassandra-tests:test --console=plain --info --continue 
