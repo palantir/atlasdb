@@ -55,7 +55,6 @@ distribution {
     serviceName 'atlasdb-timelock'
     mainClass 'com.palantir.atlasdb.timelock.server.TimeLockServer'
     args 'server', 'var/conf/timelock.yml'
-    defaultJvmOpts '-Xmx512m'
 }
 
 sourceCompatibility = '1.8'
