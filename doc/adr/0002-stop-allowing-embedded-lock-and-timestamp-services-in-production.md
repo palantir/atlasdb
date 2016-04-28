@@ -20,4 +20,4 @@ There is no reason for this situation to arise in production. Lock and Timestamp
 
 ## Consequences
 
-1. We have to support a new, standalone server and all related consideratinos (e.g. versioning, healthchecks)
+1. We have to support a new, standalone server and all related considerations (e.g. versioning, healthchecks)
