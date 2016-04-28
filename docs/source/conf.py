@@ -284,3 +284,16 @@ texinfo_documents = [
 
 # If true, do not generate a @detailmenu in the "Top" node's menu.
 #texinfo_no_detailmenu = False
+
+# -- Options for the sphinx_rtd_theme -------------------------------------
+# These aren't very well documented ... but PR can be found below
+# https://github.com/snide/sphinx_rtd_theme/issues/231
+
+html_context = {
+    "display_github" : True,
+    "github_user": "palantir",
+    "github_repo": "atlasdb",
+    "github_version": "develop",
+    "conf_py_path": "/docs/source/",
+    "source_suffix": source_suffix
+}
