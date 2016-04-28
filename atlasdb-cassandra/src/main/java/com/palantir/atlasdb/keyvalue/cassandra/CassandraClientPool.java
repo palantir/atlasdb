@@ -83,7 +83,6 @@ import com.palantir.common.concurrent.PTExecutors;
  **/
 public class CassandraClientPool {
     private static final Logger log = LoggerFactory.getLogger(CassandraClientPool.class);
-    private static final long BANNED_HOST_BACKOFF_TIME_MS = TimeUnit.MINUTES.toMillis(5);
     private static final int MAX_TRIES = 3;
 
     volatile RangeMap<LightweightOPPToken, List<InetSocketAddress>> tokenMap = ImmutableRangeMap.of();
@@ -118,7 +117,7 @@ public class CassandraClientPool {
                     log.error("Failed to refresh Cassandra KVS pool. Extended periods of being unable to refresh will cause perf degradation.", t);
                 }
             }
-        }, CassandraConstants.SECONDS_BETWEEN_GETTING_HOST_LIST, CassandraConstants.SECONDS_BETWEEN_GETTING_HOST_LIST, TimeUnit.SECONDS);
+        }, config.poolRefreshIntervalSeconds(), config.poolRefreshIntervalSeconds(), TimeUnit.SECONDS);
 
         config.servers().forEach((server) -> currentPools.put(server, new CassandraClientPoolingContainer(server, config)));
         refreshPool(); // ensure we've initialized before returning
@@ -189,7 +188,8 @@ public class CassandraClientPool {
     private void checkAndUpdateBlacklist() {
         // Check blacklist and re-integrate or continue to wait as necessary
         for (Map.Entry<InetSocketAddress, Long> blacklistedEntry : blacklistedHosts.entrySet()) {
-            if (blacklistedEntry.getValue() + BANNED_HOST_BACKOFF_TIME_MS < System.currentTimeMillis()) {
+            long backoffTimeMillis = TimeUnit.SECONDS.toMillis(config.unresponsiveHostBackoffTimeSeconds());
+            if (blacklistedEntry.getValue() + backoffTimeMillis < System.currentTimeMillis()) {
                 InetSocketAddress host = blacklistedEntry.getKey();
                 if (isHostHealthy(host)) {
                     blacklistedHosts.remove(host);
@@ -240,7 +240,7 @@ public class CassandraClientPool {
         if (liveOwnerHosts.isEmpty()) {
             log.warn("Perf / cluster stability issue. Token aware query routing has failed because there are no known " +
                     "live hosts that claim ownership of the given range. Falling back to choosing a random live node. " +
-                    "For debugging, our current ring view is: %s and our current host blacklist is %s", tokenMap, blacklistedHosts);
+                    "For debugging, our current ring view is: {} and our current host blacklist is {}", tokenMap, blacklistedHosts);
             return getRandomGoodHost().getHost();
         } else {
             return currentPools.get(ImmutableList.copyOf(liveOwnerHosts).get(ThreadLocalRandom.current().nextInt(liveOwnerHosts.size()))).getHost();
