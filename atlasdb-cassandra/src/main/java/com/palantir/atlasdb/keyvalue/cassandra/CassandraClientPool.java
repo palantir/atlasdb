@@ -456,7 +456,6 @@ public class CassandraClientPool {
         return t != null
                 && (t instanceof SocketTimeoutException
                 || t instanceof ClientCreationFailedException
-                || t instanceof UnavailableException
                 || t instanceof NoSuchElementException
                 || isConnectionException(t.getCause()));
     }
@@ -466,6 +465,7 @@ public class CassandraClientPool {
         return t != null
                 && (t instanceof TTransportException
                 || t instanceof TimedOutException
+                || t instanceof UnavailableException
                 || t instanceof InsufficientConsistencyException
                 || isConnectionException(t)
                 || isRetriableException(t.getCause()));
