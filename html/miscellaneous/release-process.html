@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Contributing to AtlasDB &mdash; AtlasDB 0.3.34 documentation</title>
+  <title>Release Process &mdash; AtlasDB 0.3.34 documentation</title>
   
 
   
@@ -32,8 +32,7 @@
   
     <link rel="top" title="AtlasDB 0.3.34 documentation" href="../index.html"/>
         <link rel="up" title="Miscellaneous" href="index.html"/>
-        <link rel="next" title="Release Process" href="release-process.html"/>
-        <link rel="prev" title="Miscellaneous" href="index.html"/> 
+        <link rel="prev" title="Contributing to AtlasDB" href="contributing.html"/> 
 
   
   <script src="../_static/js/modernizr.min.js"></script>
@@ -89,10 +88,10 @@
 <li class="toctree-l1"><a class="reference internal" href="../configuration/index.html">Configuration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../cluster_management/index.html">Cluster Management</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">Miscellaneous</a><ul class="current">
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Contributing to AtlasDB</a><ul class="simple">
+<li class="toctree-l2"><a class="reference internal" href="contributing.html">Contributing to AtlasDB</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Release Process</a><ul class="simple">
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="release-process.html">Release Process</a></li>
 </ul>
 </li>
 </ul>
@@ -127,11 +126,11 @@
       
           <li><a href="index.html">Miscellaneous</a> &raquo;</li>
       
-    <li>Contributing to AtlasDB</li>
+    <li>Release Process</li>
       <li class="wy-breadcrumbs-aside">
         
           
-            <a href="../_sources/miscellaneous/contributing.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/miscellaneous/release-process.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -141,25 +140,39 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="contributing-to-atlasdb">
-<h1>Contributing to AtlasDB<a class="headerlink" href="#contributing-to-atlasdb" title="Permalink to this headline">¶</a></h1>
-<p>Follow the steps provided in <a class="reference internal" href="../overview/getting_started.html#running-from-source"><span class="std std-ref">Running from Source</span></a>.
-We are happy to accept pull requests and could use help
-implementing the AtlasDB API for more underlying physical stores.</p>
-<div class="section" id="contributing-docs">
-<h2>Contributing Docs<a class="headerlink" href="#contributing-docs" title="Permalink to this headline">¶</a></h2>
-<ol class="arabic simple">
-<li>Clone the git repository:
-<code class="docutils literal"><span class="pre">git</span> <span class="pre">clone</span> <span class="pre">git&#64;github.com:palantir/atlasdb.git;</span> <span class="pre">cd</span> <span class="pre">atlasdb</span></code>.</li>
-<li>Checkout the github-pages branch: <code class="docutils literal"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">gh-pages</span></code>.</li>
-<li>Install sphinx if you don&#8217;t have it.  Instructions can be found <a class="reference external" href="http://www.sphinx-doc.org/en/stable/install.html">here</a>.  The easiest option for Mac users will be using pip.</li>
-<li>Confirm you installtion is working by running <code class="docutils literal"><span class="pre">cd</span> <span class="pre">docs</span> <span class="pre">&amp;&amp;</span> <span class="pre">make</span> <span class="pre">html</span></code></li>
-<li>Existing pages can be found in <code class="docutils literal"><span class="pre">docs/source</span></code>. Create new pages by adding an .rst file to <code class="docutils literal"><span class="pre">docs/source</span></code> and then adding the file name to the appropriate .toctree in the parent file.</li>
-<li>Prior to checking in changes be sure to generate and check in the associated html files by running <code class="docutils literal"><span class="pre">make</span> <span class="pre">html</span></code> and <code class="docutils literal"><span class="pre">git</span> <span class="pre">add</span> <span class="pre">build/html/</span></code>.</li>
+  <div class="section" id="release-process">
+<h1>Release Process<a class="headerlink" href="#release-process" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="release-schedule">
+<h2>Release Schedule<a class="headerlink" href="#release-schedule" title="Permalink to this headline">¶</a></h2>
+<p>We aim to release once a week, but may release faster to patch bugs or
+slower if there is low code churn. We are still setting up a formal
+branching model, but for now the <code class="docutils literal"><span class="pre">develop</span></code> branch serves as
+<code class="docutils literal"><span class="pre">develop</span></code> and <code class="docutils literal"><span class="pre">release</span></code> (we have no <code class="docutils literal"><span class="pre">release</span></code> branch) and we merge
+releases into <code class="docutils literal"><span class="pre">master</span></code>. This should change soon.</p>
+</div>
+<div class="section" id="cutting-for-release">
+<h2>Cutting for Release<a class="headerlink" href="#cutting-for-release" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic">
+<li><p class="first">Checkout the commit to tag for release (probably
+<code class="docutils literal"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">origin/develop</span></code>).</p>
+</li>
+<li><p class="first">Tag the commit: <code class="docutils literal"><span class="pre">git</span> <span class="pre">tag</span> <span class="pre">-a</span> <span class="pre">&lt;version&gt;</span></code>.</p>
+</li>
+<li><p class="first">Push the tag to Github:
+<code class="docutils literal"><span class="pre">git</span> <span class="pre">push</span> <span class="pre">origin</span> <span class="pre">&lt;version&gt;:refs/tags/&lt;version&gt;</span></code>.</p>
+</li>
+<li><p class="first">After a short wait you can publish the artifacts on Bintray by going
+to the <a class="reference external" href="https://bintray.com/palantir/releases/atlasdb/view">AtlasDB
+page</a>.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">You must have admin privledges on Bintray for this to work.</p>
+</div>
+</li>
+<li><p class="first">Edit the release notes that will appear for editing on AtlasDB GitHub <a class="reference external" href="https://github.com/palantir/atlasdb/releases">release
+page</a>.</p>
+</li>
 </ol>
-<p>You can generate and view the docs locally by running
-<code class="docutils literal"><span class="pre">make</span> <span class="pre">html</span></code> and opening the built html files in <code class="docutils literal"><span class="pre">docs/build/html/</span></code> in your browser of choice.</p>
-<p>The docs are built using <a class="reference external" href="http://www.sphinx-doc.org/en/stable/index.html">Sphinx</a> and written in <a class="reference external" href="http://docutils.sourceforge.net/rst.html">.rst</a>.</p>
 </div>
 </div>
 
@@ -170,10 +183,8 @@ implementing the AtlasDB API for more underlying physical stores.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="release-process.html" class="btn btn-neutral float-right" title="Release Process" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
       
-      
-        <a href="index.html" class="btn btn-neutral" title="Miscellaneous" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="contributing.html" class="btn btn-neutral" title="Contributing to AtlasDB" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

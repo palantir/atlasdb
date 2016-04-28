@@ -1,7 +1,10 @@
+.. _getting-started:
+
 ===============
 Getting Started
 ===============
 
+.. _running-from-source:
 
 Running from Source
 ===================
@@ -52,5 +55,4 @@ done by running AtlasDbServer in the atlasdb-server project.
 
 This is dropwizard service that runs all the needed parts and doesn't
 force you to use the java client to get the benefits of atlas. See the
-`AtlasDB Server Api </atlasdb/docs/atlas_server_api.html>`__ for more
-details.
+:ref:`atlas-server-api` for more details.
