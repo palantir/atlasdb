@@ -17,6 +17,10 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.UnknownHostException;
 import java.nio.file.Files;
 
 import org.apache.cassandra.service.CassandraDaemon;
@@ -24,8 +28,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class CassandraService {
+    
     private static final Logger log = LoggerFactory.getLogger(CassandraService.class);
-    private static final String CASSANDRA_CONFIG = "./cassandra.yaml";
+    
+    static final String DEFAULT_CONFIG = "./cassandra.yaml";
 
     private static CassandraDaemon daemon;
 
@@ -33,15 +39,15 @@ public final class CassandraService {
         // do not instantiate
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
         try {
-            CassandraService.start();
+            CassandraService.start(DEFAULT_CONFIG);
         } catch (IOException e) {
             log.error("failed to start cassandra", e);
         }
     }
 
-    public static synchronized void start() throws IOException {
+    public static synchronized void start(String config) throws IOException, InterruptedException {
         File tempDir;
         try {
             tempDir = Files.createTempDirectory("cassandra").toFile();
@@ -49,12 +55,13 @@ public final class CassandraService {
             throw new RuntimeException("Cannot create data directory.");
         }
         tempDir.deleteOnExit();
-        System.setProperty("cassandra.config", new File(CASSANDRA_CONFIG).toURI().toString());
+        System.setProperty("cassandra.config", new File(config).toURI().toString());
         System.setProperty("cassandra.storagedir", tempDir.getPath());
 
         daemon = new CassandraDaemon(true);
         daemon.init(null);
         daemon.start();
+        waitForDaemonToStart();
     }
 
     public static synchronized void stop() {
@@ -64,5 +71,35 @@ public final class CassandraService {
         }
         daemon.deactivate();
         daemon = null;
+    }
+
+    private static void waitForDaemonToStart() throws InterruptedException {
+        Thread checker = new Thread() {
+            @Override
+            public void run()
+            {
+                int iterationsToCheck = 10; // ~20s
+                InetSocketAddress endPoint;
+                try {
+                    endPoint = new InetSocketAddress(InetAddress.getLocalHost(), 9160);
+                } catch (UnknownHostException e2) {
+                    endPoint = new InetSocketAddress("localhost", 9160);
+                }
+                while (iterationsToCheck-- > 0) {
+                    try (Socket socket = new Socket()) {
+                        socket.connect(endPoint, 1000);
+                        return;
+                    } catch(IOException e) {
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException e1) { /* fine */ }
+                    }
+                }
+            }
+        };
+
+        checker.setDaemon(false);
+        checker.start();
+        checker.join();
     }
 }

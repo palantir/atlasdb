@@ -20,6 +20,7 @@ import java.net.InetSocketAddress;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
@@ -29,15 +30,15 @@ import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 
 @RunWith(Suite.class)
 @SuiteClasses({
-        CassandraKeyValueServiceSerializableTransactionTest.class,
-        CassandraKeyValueServiceTransactionTest.class,
-        CassandraKeyValueServiceSweeperTest.class,
-        CassandraTimestampTest.class
+        CQLKeyValueServiceSerializableTransactionTest.class,
+        CQLKeyValueServiceTransactionTest.class,
+        CQLKeyValueServiceSweeperTest.class
 })
-public class CassandraTestSuite {
+@Ignore
+public class CQLTestSuite {
     
-    static CassandraKeyValueServiceConfig CKVS_CONFIG = ImmutableCassandraKeyValueServiceConfig.builder()
-            .addServers(new InetSocketAddress("localhost", 9160))
+    static CassandraKeyValueServiceConfig CQLKVS_CONFIG = ImmutableCassandraKeyValueServiceConfig.builder()
+            .addServers(new InetSocketAddress("localhost", 9042))
             .poolSize(20)
             .keyspace("atlasdb")
             .ssl(false)
