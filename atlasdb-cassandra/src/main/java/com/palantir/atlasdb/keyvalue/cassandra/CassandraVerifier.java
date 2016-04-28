@@ -148,7 +148,8 @@ public class CassandraVerifier {
             boolean someHostWasAbleToCreateTheKeyspace = false;
             for (InetSocketAddress host : config.servers()) { // try until we find a server that works
                 try {
-                    Client client = CassandraClientFactory.getClientInternal(host, config.ssl(), config.socketTimeoutMillis(), config.socketQueryTimeoutMillis());
+                    Client client = CassandraClientFactory.getClientInternal(host, config.credentials(),
+                            config.ssl(), config.socketTimeoutMillis(), config.socketQueryTimeoutMillis());
                     KsDef ks = new KsDef(config.keyspace(), CassandraConstants.NETWORK_STRATEGY, ImmutableList.<CfDef>of());
                     CassandraVerifier.checkAndSetReplicationFactor(client, ks, true, config.replicationFactor(), config.safetyDisabled());
                     ks.setDurable_writes(true);

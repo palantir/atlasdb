@@ -24,6 +24,8 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.docker.compose.DockerComposition;
 import com.palantir.docker.compose.connection.DockerPort;
@@ -32,8 +34,8 @@ import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 
 @RunWith(Suite.class)
 @SuiteClasses({
+        CassandraConnectionTest.class,
         CassandraKeyValueServiceSerializableTransactionTest.class,
-        CassandraKeyValueServiceTransactionTest.class,
         CassandraKeyValueServiceSweeperTest.class,
         CassandraTimestampTest.class,
         CassandraKeyValueServiceTest.class,
@@ -61,6 +63,10 @@ public class CassandraTestSuite {
                 .addServers(CASSANDRA_THRIFT_ADDRESS)
                 .poolSize(20)
                 .keyspace("atlasdb")
+                .credentials(ImmutableCassandraCredentialsConfig.builder()
+                        .username("cassandra")
+                        .password("cassandra")
+                        .build())
                 .ssl(false)
                 .replicationFactor(1)
                 .mutationBatchCount(10000)

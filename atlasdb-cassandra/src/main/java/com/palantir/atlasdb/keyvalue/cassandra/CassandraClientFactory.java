@@ -18,16 +18,21 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
+import java.util.Map;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
+import org.apache.cassandra.thrift.AuthenticationException;
+import org.apache.cassandra.thrift.AuthenticationRequest;
+import org.apache.cassandra.thrift.AuthorizationException;
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.Cassandra.Client;
 import org.apache.commons.pool2.BasePooledObjectFactory;
 import org.apache.commons.pool2.PooledObject;
 import org.apache.commons.pool2.impl.DefaultPooledObject;
+import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.transport.TFramedTransport;
@@ -37,9 +42,12 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Optional;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.common.collect.Maps;
+import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
 
 public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
     private static final Logger log = LoggerFactory.getLogger(CassandraClientFactory.class);
@@ -58,17 +66,20 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
 
     private final InetSocketAddress addr;
     private final String keyspace;
+    private final Optional<CassandraCredentialsConfig> creds;
     private final boolean isSsl;
     private final int socketTimeoutMillis;
     private final int socketQueryTimeoutMillis;
 
     public CassandraClientFactory(InetSocketAddress addr,
                                   String keyspace,
+                                  Optional<CassandraCredentialsConfig> creds,
                                   boolean isSsl,
                                   int socketTimeoutMillis,
                                   int socketQueryTimeoutMillis) {
         this.addr = addr;
         this.keyspace = keyspace;
+        this.creds = creds;
         this.isSsl = isSsl;
         this.socketTimeoutMillis = socketTimeoutMillis;
         this.socketQueryTimeoutMillis = socketQueryTimeoutMillis;
@@ -77,7 +88,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
     @Override
     public Client create() throws Exception {
         try {
-            return getClient(addr, keyspace, isSsl, socketTimeoutMillis, socketQueryTimeoutMillis);
+            return getClient(addr, keyspace, creds, isSsl, socketTimeoutMillis, socketQueryTimeoutMillis);
         } catch (Exception e) {
             String message = String.format("Failed to construct client for %s/%s", addr, keyspace);
             if (isSsl) {
@@ -89,13 +100,15 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
 
     private static Cassandra.Client getClient(InetSocketAddress addr,
                                               String keyspace,
+                                              Optional<CassandraCredentialsConfig> creds,
                                               boolean isSsl,
                                               int socketTimeoutMillis,
                                               int socketQueryTimeoutMillis) throws Exception {
-        Client ret = getClientInternal(addr, isSsl, socketTimeoutMillis, socketQueryTimeoutMillis);
+        Client ret = getClientInternal(addr, creds, isSsl, socketTimeoutMillis, socketQueryTimeoutMillis);;
         try {
             ret.set_keyspace(keyspace);
-            log.debug("Created new client for {}/{} {}", addr, keyspace, (isSsl ? "over SSL" : ""));
+            log.debug("Created new client for {}/{} {} {}", addr, keyspace, (isSsl ? "over SSL" : ""),
+                    creds.isPresent() ? " as user " + creds.get().username() : "");
             return ret;
         } catch (Exception e) {
             ret.getOutputProtocol().getTransport().close();
@@ -103,10 +116,11 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
         }
     }
 
-    public static Cassandra.Client getClientInternal(InetSocketAddress addr,
+    static Cassandra.Client getClientInternal(InetSocketAddress addr,
+                                                     Optional<CassandraCredentialsConfig> creds,
                                                      boolean isSsl,
                                                      int socketTimeoutMillis,
-                                                     int socketQueryTimeoutMillis) throws TTransportException {
+                                                     int socketQueryTimeoutMillis) throws TException {
         TSocket tSocket = new TSocket(addr.getHostString(), addr.getPort(), socketTimeoutMillis);
         tSocket.open();
         try {
@@ -135,7 +149,27 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
                 new TFramedTransport(tSocket, CassandraConstants.CLIENT_MAX_THRIFT_FRAME_SIZE_BYTES);
         TProtocol protocol = new TBinaryProtocol(tFramedTransport);
         Cassandra.Client client = new Cassandra.Client(protocol);
+
+        if (creds.isPresent()) {
+            try {
+                login(client, creds.get());
+            } catch (TException e) {
+                client.getOutputProtocol().getTransport().close();
+                log.error("Exception thrown attempting to authenticate with config provided credentials", e);
+                throw e;
+            }
+        }
+
         return client;
+    }
+
+    private static void login(Client client, CassandraCredentialsConfig config) throws AuthenticationException,
+                                                                                       AuthorizationException,
+                                                                                       TException {
+        Map<String, String> credsMap = Maps.newHashMap();
+        credsMap.put("username", config.username());
+        credsMap.put("password", config.password());
+        client.login(new AuthenticationRequest(credsMap));
     }
 
     @Override
