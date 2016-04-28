@@ -20,6 +20,7 @@ repositories {
 }
 
 checkstyle {
+    toolVersion = 6.17
     configFile rootProject.file('config/checkstyle/checkstyle.xml')
 }
 

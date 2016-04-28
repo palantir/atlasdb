@@ -32,27 +32,37 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.pooling.PoolingContainer;
 
 public class CassandraClientPoolingContainer implements PoolingContainer<Client> {
     private static final Logger log = LoggerFactory.getLogger(CassandraClientPoolingContainer.class);
 
-    private final InetSocketAddress addr;
-    private final String keyspace;
-    private final boolean isSsl;
-    private final int socketTimeoutMillis;
-    private final int socketQueryTimeoutMillis;
+    private final InetSocketAddress host;
+    private CassandraKeyValueServiceConfig config;
     private final AtomicLong count = new AtomicLong();
     private final GenericObjectPool<Client> clientPool;
 
-    private CassandraClientPoolingContainer(Builder builder){
-        this.addr = builder.addr;
-        this.isSsl = builder.isSsl;
-        this.keyspace = builder.keyspace;
-        this.socketTimeoutMillis = builder.socketTimeoutMillis;
-        this.socketQueryTimeoutMillis = builder.socketQueryTimeoutMillis;
-        this.clientPool = builder.clientPool;
+    public CassandraClientPoolingContainer(InetSocketAddress host, CassandraKeyValueServiceConfig config) {
+        this.host = host;
+        this.config = config;
+        this.clientPool = createClientPool();
+    }
+
+    public InetSocketAddress getHost() {
+        return host;
+    }
+
+
+    // returns negative if not available; only expected use is debugging
+    protected int getPoolUtilization() {
+        return clientPool.getNumActive();
+    }
+
+    // returns negative if unbounded; only expected use is debugging
+    protected int getPoolSize() {
+        return clientPool.getMaxTotal();
     }
 
     @Override
@@ -60,13 +70,13 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
             throws K {
         final String origName = Thread.currentThread().getName();
         Thread.currentThread().setName(origName
-                + " calling cassandra host " + addr
+                + " calling cassandra host " + host
                 + " started at " + new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").format(new Date())
                 + " - " + count.getAndIncrement());
         try {
             return runWithGoodResource(f);
         } catch (Throwable t) {
-            log.warn("Error occurred talking to host '{}': {}", addr, t.getMessage());
+            log.warn("Error occurred talking to host '{}': {}", host, t.getMessage());
             throw t;
         } finally {
             Thread.currentThread().setName(origName);
@@ -95,7 +105,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
         } finally {
             if (resource != null) {
                 if (shouldReuse) {
-                    log.info("Returning {} to pool", resource);
+                    log.debug("Returning {} to pool", resource);
                     clientPool.returnObject(resource);
                 } else {
                     invalidateQuietly(resource);
@@ -112,7 +122,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
 
     private void invalidateQuietly(Client resource) {
         try {
-            log.info("Discarding: {}", resource);
+            log.debug("Discarding: {}", resource);
             clientPool.invalidateObject(resource);
         } catch (Exception e) {
             // Ignore
@@ -130,83 +140,36 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
         clientPool.close();
     }
 
-    public static class Builder{
-        private final InetSocketAddress addr;
-
-        // default values are provided
-        private int poolSize = 20;
-        private String keyspace = "atlasdb";
-        private boolean isSsl = false;
-        private int socketTimeoutMillis = 2000;
-        private int socketQueryTimeoutMillis = 62000;
-
-        private GenericObjectPool<Client> clientPool;
-
-        public Builder(InetSocketAddress addr) {
-            this.addr = addr;
-        }
-
-        public Builder poolSize(int val){
-            poolSize = val;
-            return this;
-        }
-
-        public Builder keyspace(String val){
-            keyspace = val;
-            return this;
-        }
-
-        public Builder isSsl(boolean val){
-            isSsl = val;
-            return this;
-        }
-
-        public Builder socketTimeout(int val){
-            socketTimeoutMillis = val;
-            return this;
-        }
-
-        public Builder socketQueryTimeout(int val){
-            socketQueryTimeoutMillis = val;
-            return this;
-        }
-
-        private GenericObjectPool<Client> createClientPool() {
-            CassandraClientFactory cassandraClientFactory =
-                    new CassandraClientFactory(addr,
-                            keyspace,
-                            isSsl,
-                            socketTimeoutMillis,
-                            socketQueryTimeoutMillis);
-            GenericObjectPoolConfig config = new GenericObjectPoolConfig();
-            config.setMinIdle(poolSize);
-            config.setTestOnBorrow(true);
-            config.setBlockWhenExhausted(true);
-            // TODO: Should we make these configurable/are these intelligent values?
-            config.setMaxTotal(5 * poolSize);
-            config.setMaxIdle(5 * poolSize);
-            config.setMinEvictableIdleTimeMillis(TimeUnit.MILLISECONDS.convert(1, TimeUnit.MINUTES));
-            config.setTimeBetweenEvictionRunsMillis(TimeUnit.MILLISECONDS.convert(1, TimeUnit.MINUTES));
-            config.setNumTestsPerEvictionRun(-1); // Test all idle objects for eviction
-            config.setJmxNamePrefix(addr.getHostString());
-            config.setMaxWaitMillis(socketTimeoutMillis);
-            return new GenericObjectPool<Client>(cassandraClientFactory, config);
-        }
-
-        public CassandraClientPoolingContainer build(){
-            clientPool = createClientPool();
-            return new CassandraClientPoolingContainer(this);
-        }
-    }
-
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(getClass())
-                .add("addr", this.addr)
-                .add("keyspace", this.keyspace)
-                .add("isSsl", this.isSsl)
-                .add("socketTimeoutMillis", this.socketTimeoutMillis)
-                .add("socketQueryTimeoutMillis", this.socketQueryTimeoutMillis)
+                .add("host", this.host)
+                .add("keyspace", config.keyspace())
+                .add("isSsl", config.ssl())
+                .add("socketTimeoutMillis", config.socketTimeoutMillis())
+                .add("socketQueryTimeoutMillis", config.socketQueryTimeoutMillis())
                 .toString();
+    }
+
+    private GenericObjectPool<Client> createClientPool() {
+        CassandraClientFactory cassandraClientFactory =
+                new CassandraClientFactory(host,
+                        config.keyspace(),
+                        config.ssl(),
+                        config.socketTimeoutMillis(),
+                        config.socketQueryTimeoutMillis());
+        GenericObjectPoolConfig poolConfig = new GenericObjectPoolConfig();
+        poolConfig.setMinIdle(config.poolSize());
+        poolConfig.setTestOnBorrow(true);
+        poolConfig.setBlockWhenExhausted(true);
+        // TODO: Should we make these configurable/are these intelligent values?
+        poolConfig.setMaxTotal(5 * config.poolSize());
+        poolConfig.setMaxIdle(5 * config.poolSize());
+        poolConfig.setMinEvictableIdleTimeMillis(TimeUnit.MILLISECONDS.convert(1, TimeUnit.MINUTES));
+        poolConfig.setTimeBetweenEvictionRunsMillis(TimeUnit.MILLISECONDS.convert(1, TimeUnit.MINUTES));
+        poolConfig.setNumTestsPerEvictionRun(-1); // Test all idle objects for eviction
+        poolConfig.setJmxNamePrefix(host.getHostString());
+        poolConfig.setMaxWaitMillis(config.socketTimeoutMillis());
+        return new GenericObjectPool<Client>(cassandraClientFactory, poolConfig);
     }
 }

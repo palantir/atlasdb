@@ -1,5 +1,3 @@
-import com.sun.org.apache.xalan.internal.xsltc.compiler.Copy
-
 buildscript {
     repositories { jcenter() }
     dependencies {

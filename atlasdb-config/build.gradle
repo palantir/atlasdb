@@ -28,6 +28,7 @@ dependencies {
     testCompile(group: "org.jmock", name: "jmock", version: libVersions.jmock) {
         exclude group: 'org.hamcrest'
     }
+    testCompile 'org.mockito:mockito-core:1.10.19'
 }
 
 configurations.matching({ it.name in ['compile', 'runtime'] }).all {

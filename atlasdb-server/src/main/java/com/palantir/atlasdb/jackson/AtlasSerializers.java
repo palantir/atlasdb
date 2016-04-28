@@ -23,8 +23,8 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.protobuf.Message;
-import com.googlecode.protobuf.format.JsonFormat;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.proto.fork.ForkedJsonFormat;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
@@ -115,7 +115,7 @@ public class AtlasSerializers {
             break;
         case PROTO:
             Message proto = description.hydrateProto(AtlasSerializers.class.getClassLoader(), val);
-            String rawJson = JsonFormat.printToString(proto);
+            String rawJson = ForkedJsonFormat.printToString(proto);
             jgen.writeRawValue(rawJson);
             break;
         case VALUE_TYPE:

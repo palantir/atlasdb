@@ -18,6 +18,7 @@ fix-ivy.py
 .settings/
 .project
 build/
+docs/build/
 .gradle
 bin/
 userdict.txt
@@ -26,3 +27,8 @@ generated_testSrc/
 .factorypath
 out/
 atlasdb-cli/var/data/
+
+# Emacs temp files
+*~
+
+var/data/rocksdb

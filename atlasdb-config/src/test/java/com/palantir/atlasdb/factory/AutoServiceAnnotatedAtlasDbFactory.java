@@ -15,9 +15,13 @@
  */
 package com.palantir.atlasdb.factory;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.jmock.Mockery;
 
 import com.google.auto.service.AutoService;
+import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
@@ -29,7 +33,7 @@ public class AutoServiceAnnotatedAtlasDbFactory implements AtlasDbFactory {
 
     private static final Mockery context = new Mockery();
     private static final KeyValueService keyValueService = context.mock(KeyValueService.class);
-    private static final TimestampService timestampService = context.mock(TimestampService.class);
+    private static List<TimestampService> nextTimestampServices = new ArrayList<>();
 
 
     @Override
@@ -44,6 +48,10 @@ public class AutoServiceAnnotatedAtlasDbFactory implements AtlasDbFactory {
 
     @Override
     public TimestampService createTimestampService(KeyValueService rawKvs) {
-        return timestampService;
+        return nextTimestampServices.remove(0);
+    }
+
+    public static void nextTimestampServiceToReturn(TimestampService... timestampServices) {
+        nextTimestampServices = Lists.newArrayList(timestampServices);
     }
 }

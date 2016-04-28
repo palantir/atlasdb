@@ -173,7 +173,7 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
         flushExecutor.shutdown();
         try {
             if (flushExecutor.awaitTermination(1, TimeUnit.MINUTES)) {
-                log.info("Successfully terminated flush executor");
+                log.debug("Successfully terminated flush executor");
             } else {
                 log.warn("Timed out while waiting for flush executor termination");
                 List<Runnable> pendingTasks = flushExecutor.shutdownNow();

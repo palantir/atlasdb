@@ -26,7 +26,7 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.BaseEncoding;
-import com.palantir.atlasdb.cli.runner.RocksDbTestRunner;
+import com.palantir.atlasdb.cli.runner.InMemoryTestRunner;
 import com.palantir.atlasdb.cli.runner.SingleBackendCliTestRunner;
 import com.palantir.atlasdb.cli.services.AtlasDbServicesFactory;
 import com.palantir.atlasdb.cli.services.DaggerTestAtlasDbServices;
@@ -71,8 +71,8 @@ public class TestSweepCommand {
         };
     }
 
-    private RocksDbTestRunner makeRunner(String... args) {
-        return new RocksDbTestRunner(SweepCommand.class, args);
+    private InMemoryTestRunner makeRunner(String... args) {
+        return new InMemoryTestRunner(SweepCommand.class, args);
     }
 
     @Test

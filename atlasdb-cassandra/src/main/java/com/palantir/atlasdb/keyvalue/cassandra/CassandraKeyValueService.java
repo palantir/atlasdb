@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
@@ -29,7 +28,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.ReentrantLock;
@@ -49,7 +47,6 @@ import org.apache.cassandra.thrift.KeySlice;
 import org.apache.cassandra.thrift.KsDef;
 import org.apache.cassandra.thrift.Mutation;
 import org.apache.cassandra.thrift.NotFoundException;
-import org.apache.cassandra.thrift.SchemaDisagreementException;
 import org.apache.cassandra.thrift.SlicePredicate;
 import org.apache.cassandra.thrift.SliceRange;
 import org.apache.cassandra.thrift.UnavailableException;
@@ -61,12 +58,10 @@ import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Strings;
 import com.google.common.base.Supplier;
-import com.google.common.base.Verify;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
@@ -114,7 +109,6 @@ import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.exception.PalantirRuntimeException;
-import com.palantir.common.pooling.PoolingContainer;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -144,21 +138,14 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         }
     };
 
-    private static final int MAX_REQUEST_RETRIES = 10;
-    private static final int REQUEST_TRIES_BEFORE_RANDOMIZING = 2;
-
     private final CassandraKeyValueServiceConfigManager configManager;
-    private final CassandraClientPoolingManager cassandraClientPoolingManager;
     private final Optional<CassandraJmxCompactionManager> compactionManager;
-    protected final ManyClientPoolingContainer containerPoolToUpdate;
-    protected final ManyHostPoolingContainer<Client> clientPool;
+    protected final CassandraClientPool clientPool;
     private final ReentrantLock schemaMutationLock = new ReentrantLock(true);
 
     private ConsistencyLevel readConsistency = ConsistencyLevel.LOCAL_QUORUM;
     private final ConsistencyLevel writeConsistency = ConsistencyLevel.EACH_QUORUM;
     private final ConsistencyLevel deleteConsistency = ConsistencyLevel.ALL;
-
-    private TokenAwareMapper tokenAwareMapper;
 
     public static CassandraKeyValueService create(CassandraKeyValueServiceConfigManager configManager) {
         Optional<CassandraJmxCompactionManager> compactionManager = CassandraJmxCompaction.createJmxCompactionManager(configManager);
@@ -172,44 +159,15 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         super(AbstractKeyValueService.createFixedThreadPool("Atlas Cassandra KVS",
                 configManager.getConfig().poolSize() * configManager.getConfig().servers().size()));
         this.configManager = configManager;
-        this.containerPoolToUpdate = ManyClientPoolingContainer.create(configManager.getConfig());
-        this.clientPool = RetriableManyHostPoolingContainer.create(MAX_REQUEST_RETRIES, REQUEST_TRIES_BEFORE_RANDOMIZING, containerPoolToUpdate);
-        this.cassandraClientPoolingManager =
-                new PoolResizingCassandraClientPoolingManager(containerPoolToUpdate, clientPool, configManager);
+        this.clientPool = new CassandraClientPool(configManager.getConfig());
         this.compactionManager = compactionManager;
     }
 
     protected void init() {
-        int replicationFactor = configManager.getConfig().replicationFactor();
-        initializeFromFreshInstance(containerPoolToUpdate.getCurrentHosts(), replicationFactor);
-        poolingManager().submitHostRefreshTask();
-    }
-
-    public CassandraClientPoolingManager poolingManager() {
-        return cassandraClientPoolingManager;
-    }
-
-    // Resizes the thread pool when hosts are updated, since the number of hosts may have changed
-    private class PoolResizingCassandraClientPoolingManager extends CassandraClientPoolingManager {
-        public PoolResizingCassandraClientPoolingManager(ManyClientPoolingContainer containerPoolToUpdate,
-                                                         PoolingContainer<Client> clientPool,
-                                                         CassandraKeyValueServiceConfigManager configManager) {
-            super(containerPoolToUpdate, clientPool, configManager);
-        }
-
-        @Override
-        public void setHostsToCurrentHostNames() throws TException {
-            super.setHostsToCurrentHostNames();
-            resizeThreadPool();
-        }
-
-        private void resizeThreadPool() {
-            ThreadPoolExecutor threadPool = (ThreadPoolExecutor) executor;
-            CassandraKeyValueServiceConfig config = configManager.getConfig();
-            int threadPoolSize = config.poolSize() * config.servers().size();
-            threadPool.setCorePoolSize(threadPoolSize);
-            threadPool.setMaximumPoolSize(threadPoolSize);
-        }
+        clientPool.runOneTimeStartupChecks();
+        lowerConsistencyWhenSafe();
+        upgradeFromOlderInternalSchema();
+        CassandraKeyValueServices.failQuickInInitializationIfClusterAlreadyInInconsistentState(clientPool, configManager.getConfig());
     }
 
     @Override
@@ -217,139 +175,80 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         // we already did our init in our factory method
     }
 
-    protected void initializeFromFreshInstance(List<InetSocketAddress> addrList, int replicationFactor) {
-        Map<String, Throwable> errorsByHost = Maps.newHashMap();
-
-        final CassandraKeyValueServiceConfig config = configManager.getConfig();
-        boolean safetyDisabled = config.safetyDisabled();
-        String keyspace = config.keyspace();
-        boolean ssl = config.ssl();
-        int socketTimeoutMillis = config.socketTimeoutMillis();
-        int socketQueryTimeoutMillis = config.socketQueryTimeoutMillis();
-
-        for (InetSocketAddress addr : addrList) {
-            Cassandra.Client client = null;
-            try {
-                client = CassandraClientFactory.getClientInternal(addr, ssl, socketTimeoutMillis, socketQueryTimeoutMillis);
-
-                validatePartitioner(client);
-
-                Set<InetSocketAddress> currentHosts = cassandraClientPoolingManager.getCurrentHostsFromServer(client);
-                cassandraClientPoolingManager.setHostsToCurrentHostNames(currentHosts);
-
-                ensureKeyspaceExistsAndIsUpToDate(replicationFactor, safetyDisabled, keyspace, client);
-                client.set_keyspace(keyspace);
-
-                tokenAwareMapper = TokenAwareMapper.create(configManager, clientPool);
-                createTableInternal(client, CassandraConstants.METADATA_TABLE);
-                CassandraVerifier.sanityCheckRingConsistency(currentHosts, keyspace, ssl, safetyDisabled, socketTimeoutMillis, socketQueryTimeoutMillis);
-                upgradeFromOlderInternalSchema(client);
-                CassandraKeyValueServices.failQuickInInitializationIfClusterAlreadyInInconsistentState(client, config.safetyDisabled(), configManager.getConfig().schemaMutationTimeoutMillis());
-                return;
-            } catch (TException e) {
-                log.warn("failed to connect to host: " + addr, e);
-                errorsByHost.put(addr.toString(), e);
-            } finally {
-                if (client != null) {
-                    client.getOutputProtocol().getTransport().close();
-                }
-            }
-        }
-        throw new IllegalStateException(CassandraKeyValueServices.buildErrorMessage("Could not connect to any Cassandra hosts. Check the status of your cluster, and check your host list and SSL settings to make sure they match.", errorsByHost));
-    }
-
-    private void validatePartitioner(Cassandra.Client client) throws TException {
-        final CassandraKeyValueServiceConfig config = configManager.getConfig();
-        String partitioner = client.describe_partitioner();
-        if (!config.safetyDisabled()) {
-            Verify.verify(
-                    CassandraConstants.ALLOWED_PARTITIONERS.contains(partitioner),
-                    "Invalid partitioner. Allowed: %s, but partitioner is: %s",
-                    CassandraConstants.ALLOWED_PARTITIONERS,
-                    partitioner);
-        }
-    }
-
-    private void ensureKeyspaceExistsAndIsUpToDate(int replicationFactor,
-                                                   boolean safetyDisabled,
-                                                   String keyspace,
-                                                   Cassandra.Client client) throws InvalidRequestException, TException, SchemaDisagreementException {
+    private void upgradeFromOlderInternalSchema() {
         try {
-            KsDef originalKsDef = client.describe_keyspace(configManager.getConfig().keyspace());
-            KsDef modifiedKsDef = originalKsDef.deepCopy();
-            CassandraVerifier.checkAndSetReplicationFactor(client, modifiedKsDef, false, replicationFactor, safetyDisabled);
-            lowerConsistencyWhenSafe(client, modifiedKsDef, replicationFactor);
+            Map<TableReference, byte[]> metadataForTables = getMetadataForTables();
+            Map<TableReference, byte[]> tablesToUpgrade = Maps.newHashMapWithExpectedSize(metadataForTables.size());
 
-            if (!modifiedKsDef.equals(originalKsDef)) {
-                modifiedKsDef.setCf_defs(ImmutableList.<CfDef>of()); // Can't call system_update_keyspace to update replication factor if CfDefs are set
-                client.system_update_keyspace(modifiedKsDef);
-                CassandraKeyValueServices.waitForSchemaVersions(client, "(updating the existing keyspace)", configManager.getConfig().schemaMutationTimeoutMillis());
-            }
-        } catch (NotFoundException e) {
-            createKeyspace(replicationFactor, safetyDisabled, keyspace, client);
-        }
-    }
-
-    private void createKeyspace(int replicationFactor, boolean safetyDisabled, String keyspace, Cassandra.Client client)
-            throws InvalidRequestException, SchemaDisagreementException, TException {
-        KsDef ks = new KsDef(keyspace, CassandraConstants.NETWORK_STRATEGY, ImmutableList.<CfDef>of());
-        CassandraVerifier.checkAndSetReplicationFactor(client, ks, true, replicationFactor, safetyDisabled);
-        lowerConsistencyWhenSafe(client, ks, replicationFactor);
-        ks.setDurable_writes(true);
-        client.system_add_keyspace(ks);
-        CassandraKeyValueServices.waitForSchemaVersions(client, "(adding the initial empty keyspace)", configManager.getConfig().schemaMutationTimeoutMillis());
-    }
-
-    private void upgradeFromOlderInternalSchema(Client client) throws NotFoundException, InvalidRequestException, TException {
-        Map<TableReference, byte[]> metadataForTables = getMetadataForTables();
-        Map<TableReference, byte[]> tablesToUpgrade = Maps.newHashMapWithExpectedSize(metadataForTables.size());
-        String keyspace = configManager.getConfig().keyspace();
-
-        for (CfDef clusterSideCf : client.describe_keyspace(keyspace).getCf_defs()) {
-            TableReference tableRef = fromInternalTableName(clusterSideCf.getName());
-            if (metadataForTables.containsKey(tableRef)) {
-                byte[] clusterSideMetadata = metadataForTables.get(tableRef);
-                CfDef clientSideCf = getCfForTable(fromInternalTableName(clusterSideCf.getName()), clusterSideMetadata);
-                if (!CassandraKeyValueServices.isMatchingCf(clientSideCf, clusterSideCf)) { // mismatch; we have changed how we generate schema since we last persisted
-                    log.warn("Upgrading table {} to new internal Cassandra schema", tableRef);
-                    tablesToUpgrade.put(tableRef, clusterSideMetadata);
+            List<CfDef> knownCfs = clientPool.runWithRetry(new FunctionCheckedException<Cassandra.Client, List<CfDef>, TException>() {
+                @Override
+                public List<CfDef> apply(Client client) throws TException {
+                    return client.describe_keyspace(configManager.getConfig().keyspace()).getCf_defs();
                 }
-            } else if (!tableRef.equals(CassandraConstants.METADATA_TABLE)) { // only expected case
-                // Possible to get here from a race condition with another service starting up and performing schema upgrades concurrent with us doing this check
-                log.error("Found a table " + tableRef.getQualifiedName() + " that did not have persisted Atlas metadata."
-                        + "If you recently did a Palantir update, try waiting until schema upgrades are completed on all backend CLIs/services etc and restarting this service."
-                        + "If this error re-occurs on subsequent attempted startups, please contact Palantir support.");
-            }
-        }
+            });
 
-        // we are racing another service to do these same operations here, but they are idempotent / safe
-        if (!tablesToUpgrade.isEmpty()) {
-            putMetadataForTables(tablesToUpgrade);
+            for (CfDef clusterSideCf : knownCfs) {
+                TableReference tableRef = fromInternalTableName(clusterSideCf.getName());
+                if (metadataForTables.containsKey(tableRef)) {
+                    byte[] clusterSideMetadata = metadataForTables.get(tableRef);
+                    CfDef clientSideCf = getCfForTable(fromInternalTableName(clusterSideCf.getName()), clusterSideMetadata);
+                    if (!CassandraKeyValueServices.isMatchingCf(clientSideCf, clusterSideCf)) { // mismatch; we have changed how we generate schema since we last persisted
+                        log.warn("Upgrading table {} to new internal Cassandra schema", tableRef);
+                        tablesToUpgrade.put(tableRef, clusterSideMetadata);
+                    }
+                } else if (!tableRef.equals(CassandraConstants.METADATA_TABLE)) { // only expected case
+                    // Possible to get here from a race condition with another service starting up and performing schema upgrades concurrent with us doing this check
+                    log.error("Found a table " + tableRef.getQualifiedName() + " that did not have persisted Atlas metadata."
+                            + "If you recently did a Palantir update, try waiting until schema upgrades are completed on all backend CLIs/services etc and restarting this service."
+                            + "If this error re-occurs on subsequent attempted startups, please contact Palantir support.");
+                }
+            }
+
+            // we are racing another service to do these same operations here, but they are idempotent / safe
+            if (!tablesToUpgrade.isEmpty()) {
+                putMetadataForTables(tablesToUpgrade);
+            }
+        } catch (TException e) {
+            log.error("Couldn't upgrade from an older internal Cassandra schema. New table-related settings may not have taken effect.");
         }
     }
 
-    private void lowerConsistencyWhenSafe(Client client, KsDef ks, int desiredRf) {
+    private void lowerConsistencyWhenSafe() {
         Set<String> dcs;
+        Map<String, String> strategyOptions;
+        CassandraKeyValueServiceConfig config = configManager.getConfig();
+
         try {
-            dcs = CassandraVerifier.sanityCheckDatacenters(client, desiredRf, configManager.getConfig().safetyDisabled());
+            dcs = clientPool.runWithRetry(new FunctionCheckedException<Client, Set<String>, TException>() {
+                @Override
+                public Set<String> apply(Client client) throws TException {
+                    return CassandraVerifier.sanityCheckDatacenters(client, config.replicationFactor(), config.safetyDisabled());
+                }
+            });
+            KsDef ksDef = clientPool.runWithRetry(new FunctionCheckedException<Client, KsDef, TException>() {
+                @Override
+                public KsDef apply(Client client) throws TException {
+                    return client.describe_keyspace(config.keyspace());
+                }
+            });
+            strategyOptions = Maps.newHashMap(ksDef.getStrategy_options());
+
+            if (dcs.size() == 1) {
+                String dc = dcs.iterator().next();
+                if (strategyOptions.get(dc) != null) {
+                    int currentRF = Integer.parseInt(strategyOptions.get(dc));
+                    if (currentRF == config.replicationFactor()) {
+                        if (currentRF == 2) {
+                            log.info("Setting Read Consistency to ONE, as cluster has only one datacenter at RF2.");
+                            readConsistency = ConsistencyLevel.ONE;
+                        }
+                    }
+                }
+            }
         } catch (InvalidRequestException e) {
             return;
         } catch (TException e) {
             return;
-        }
-
-        Map<String, String> strategyOptions = Maps.newHashMap(ks.getStrategy_options());
-        if (dcs.size() == 1) {
-            String dc = dcs.iterator().next();
-            if (strategyOptions.get(dc) != null) {
-                int currentRF = Integer.parseInt(strategyOptions.get(dc));
-                if (currentRF == desiredRf) {
-                    if (currentRF == 2) {
-                        log.info("Setting Read Consistency to ONE, as cluster has only one datacenter at RF2.");
-                        readConsistency = ConsistencyLevel.ONE;
-                    }
-                }
-            }
         }
     }
 
@@ -359,10 +258,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             return getRowsForSpecificColumns(tableRef, rows, selection, startTs);
         }
 
-        Set<Entry<InetAddress, List<byte[]>>> rowsByHost =
+        Set<Entry<InetSocketAddress, List<byte[]>>> rowsByHost =
                 partitionByHost(rows, Functions.<byte[]>identity()).entrySet();
         List<Callable<Map<Cell, Value>>> tasks = Lists.newArrayListWithCapacity(rowsByHost.size());
-        for (final Map.Entry<InetAddress, List<byte[]>> hostAndRows : rowsByHost) {
+        for (final Map.Entry<InetSocketAddress, List<byte[]>> hostAndRows : rowsByHost) {
             tasks.add(new Callable<Map<Cell, Value>>() {
                 @Override
                 public Map<Cell, Value> call() {
@@ -378,7 +277,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         return result;
     }
 
-    private Map<Cell, Value> getRowsForSingleHost(final InetAddress host,
+    private Map<Cell, Value> getRowsForSingleHost(final InetSocketAddress host,
                                                   final TableReference tableRef,
                                                   final List<byte[]> rows,
                                                   final long startTs) {
@@ -388,7 +287,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             int fetchBatchCount = configManager.getConfig().fetchBatchCount();
             for (final List<byte[]> batch : Lists.partition(rows, fetchBatchCount)) {
                 rowCount += batch.size();
-                result.putAll(clientPool.runWithPooledResourceOnHost(host, new FunctionCheckedException<Client, Map<Cell, Value>, Exception>() {
+                result.putAll(clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Client, Map<Cell, Value>, Exception>() {
                     @Override
                     public Map<Cell, Value> apply(Client client) throws Exception {
                         // We want to get all the columns in the row so set start and end to empty.
@@ -484,7 +383,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                             ThreadSafeResultVisitor v,
                             ConsistencyLevel consistency) throws Exception {
         List<Callable<Void>> tasks = Lists.newArrayList();
-        for (Map.Entry<InetAddress, List<Cell>> hostAndCells : partitionByHost(cells,
+        for (Map.Entry<InetSocketAddress, List<Cell>> hostAndCells : partitionByHost(cells,
                                                                                Cells.getRowFunction()).entrySet()) {
             tasks.addAll(getLoadWithTsTasksForSingleHost(hostAndCells.getKey(),
                                                          tableRef,
@@ -498,7 +397,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     // TODO: after cassandra api change: handle different column select per row
-    private List<Callable<Void>> getLoadWithTsTasksForSingleHost(final InetAddress host,
+    private List<Callable<Void>> getLoadWithTsTasksForSingleHost(final InetSocketAddress host,
                                                                  final TableReference tableRef,
                                                                  Collection<Cell> cells,
                                                                  final long startTs,
@@ -526,7 +425,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 tasks.add(new Callable<Void>() {
                     @Override
                     public Void call() throws Exception {
-                        return clientPool.runWithPooledResourceOnHost(host, new FunctionCheckedException<Client, Void, Exception>() {
+                        return clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Client, Void, Exception>() {
                             @Override
                             public Void apply(Client client) throws Exception {
                                 ByteBuffer start = CassandraKeyValueServices.makeCompositeBuffer(col, startTs - 1);
@@ -594,9 +493,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     protected void putInternal(final TableReference tableRef,
                                Iterable<Map.Entry<Cell, Value>> values,
                                final int ttl) throws Exception {
-        Map<InetAddress, Map<Cell, Value>> cellsByHost = partitionMapByHost(values);
+        Map<InetSocketAddress, Map<Cell, Value>> cellsByHost = partitionMapByHost(values);
         List<Callable<Void>> tasks = Lists.newArrayListWithCapacity(cellsByHost.size());
-        for (final Map.Entry<InetAddress, Map<Cell, Value>> entry : cellsByHost.entrySet()) {
+        for (final Map.Entry<InetSocketAddress, Map<Cell, Value>> entry : cellsByHost.entrySet()) {
             tasks.add(new Callable<Void>() {
                 @Override
                 public Void call() throws Exception {
@@ -608,11 +507,11 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         runAllTasksCancelOnFailure(tasks);
     }
 
-    private void putForSingleHostInternal(final InetAddress host,
+    private void putForSingleHostInternal(final InetSocketAddress host,
                                           final TableReference tableRef,
                                           final Iterable<Map.Entry<Cell, Value>> values,
                                           final int ttl) throws Exception {
-        clientPool.runWithPooledResourceOnHost(host, new FunctionCheckedException<Client, Void, Exception>() {
+        clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Client, Void, Exception>() {
             @Override
             public Void apply(Client client) throws Exception {
                 final CassandraKeyValueServiceConfig config = configManager.getConfig();
@@ -667,17 +566,17 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 flattened.add(new TableCellAndValue(tableAndValues.getKey(), entry.getKey(), entry.getValue()));
             }
         }
-        Map<InetAddress, List<TableCellAndValue>> partitionedByHost =
+        Map<InetSocketAddress, List<TableCellAndValue>> partitionedByHost =
                 partitionByHost(flattened, TableCellAndValue.EXTRACT_ROW_NAME_FUNCTION);
 
         List<Callable<Void>> callables = Lists.newArrayList();
-        for (Map.Entry<InetAddress, List<TableCellAndValue>> entry : partitionedByHost.entrySet()) {
+        for (Map.Entry<InetSocketAddress, List<TableCellAndValue>> entry : partitionedByHost.entrySet()) {
             callables.addAll(getMultiPutTasksForSingleHost(entry.getKey(), entry.getValue(), timestamp));
         }
         runAllTasksCancelOnFailure(callables);
     }
 
-    private List<Callable<Void>> getMultiPutTasksForSingleHost(final InetAddress host,
+    private List<Callable<Void>> getMultiPutTasksForSingleHost(final InetSocketAddress host,
                                                                Collection<TableCellAndValue> values,
                                                                final long timestamp) {
         Iterable<List<TableCellAndValue>> partitioned =
@@ -715,12 +614,12 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         return tableRefs;
     }
 
-    private void multiPutForSingleHostInternal(final InetAddress host,
+    private void multiPutForSingleHostInternal(final InetSocketAddress host,
                                                final Set<TableReference> tableRefs,
                                                final List<TableCellAndValue> batch,
                                                long timestamp) throws Exception {
         final Map<ByteBuffer, Map<String, List<Mutation>>> map = convertToMutations(batch, timestamp);
-        clientPool.runWithPooledResourceOnHost(host, new FunctionCheckedException<Client, Void, Exception>() {
+        clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Client, Void, Exception>() {
             @Override
             public Void apply(Client client) throws Exception {
                 batchMutateInternal(client, tableRefs, map, writeConsistency);
@@ -853,7 +752,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         final Set<TableReference> tablesToTruncate = filterOutTrulyEmptyTables(tableRefs);
         if (!tablesToTruncate.isEmpty()) {
             try {
-                clientPool.runWithPooledResource(new FunctionCheckedException<Client, Void, Exception>() {
+                clientPool.runWithRetry(new FunctionCheckedException<Client, Void, Exception>() {
                     @Override
                     public Void apply(Client client) throws Exception {
                         for (TableReference tableRef : tablesToTruncate) {
@@ -863,7 +762,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                                 truncateInternal(client, tableRef);
                                 long duration = stopwatch.elapsed(TimeUnit.MILLISECONDS);
                                 if (duration > getMinimumDurationToTraceMillis()) {
-                                    log.error("Traced a call to " + tableRef + " that took " + duration + " ms."
+                                    log.error("Traced a call to " + tableRef.getQualifiedName() + " that took " + duration + " ms."
                                             + " It will appear in system_traces with UUID=" + CassandraKeyValueServices.convertCassandraByteBufferUUIDtoString(recv_trace));
                                 }
                             } else {
@@ -918,7 +817,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         for (final TableReference tableRef : tableRefs) {
             int results = 1;
             try {
-                results = clientPool.runWithPooledResource(new FunctionCheckedException<Client, Integer, Exception>() {
+                results = clientPool.run(new FunctionCheckedException<Client, Integer, Exception>() {
                     @Override
                     public Integer apply(Client client) throws Exception {
                         List<KeySlice> range_slices = client.get_range_slices(new ColumnParent(internalTableName(tableRef)), predicate, new KeyRange(1), deleteConsistency);
@@ -926,7 +825,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     }
                 });
             } catch (Exception e) {
-                log.error("Table " + tableRef + " could not be checked for emptiness. Proceeding with requested operation without optimization.");
+                log.warn("Table " + tableRef.getQualifiedName() + " could not be checked for emptiness. Proceeding with requested operation without optimization.", e);
             }
 
             if (results != 0) {
@@ -941,17 +840,17 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     @Override
     public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
-        Map<InetAddress, Map<Cell, Collection<Long>>> keysByHost = partitionMapByHost(keys.asMap().entrySet());
-        for (Map.Entry<InetAddress, Map<Cell, Collection<Long>>> entry : keysByHost.entrySet()) {
+        Map<InetSocketAddress, Map<Cell, Collection<Long>>> keysByHost = partitionMapByHost(keys.asMap().entrySet());
+        for (Map.Entry<InetSocketAddress, Map<Cell, Collection<Long>>> entry : keysByHost.entrySet()) {
             deleteOnSingleHost(entry.getKey(), tableRef, entry.getValue());
         }
     }
 
-    private void deleteOnSingleHost(final InetAddress host,
+    private void deleteOnSingleHost(final InetSocketAddress host,
                                     final TableReference tableRef,
                                     final Map<Cell, Collection<Long>> keys) {
         try {
-            clientPool.runWithPooledResourceOnHost(host, new FunctionCheckedException<Client, Void, Exception>() {
+            clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Client, Void, Exception>() {
                 @Override
                 public Void apply(Client client) throws Exception {
                     // Delete must delete in the order of timestamp and we don't trust batch_mutate to do it
@@ -1129,8 +1028,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     }
 
                     TokenBackedBasicResultsPage<RowResult<U>, byte[]> page(final byte[] startKey) throws Exception {
-                        InetAddress host = tokenAwareMapper.getRandomHostForKey(startKey);
-                        return clientPool.runWithPooledResourceOnHost(host, new FunctionCheckedException<Client, TokenBackedBasicResultsPage<RowResult<U>, byte[]>, Exception>() {
+                        InetSocketAddress host = clientPool.getRandomHostForKey(startKey);
+                        return clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Client, TokenBackedBasicResultsPage<RowResult<U>, byte[]>, Exception>() {
                             @Override
                             public TokenBackedBasicResultsPage<RowResult<U>, byte[]> apply(Client client) throws Exception {
                                 final byte[] endExclusive = rangeRequest.getEndExclusive();
@@ -1199,13 +1098,12 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
      *      through a single host checked out from the client pool, so reduced chance of schema disagreement issues
      *    - client-side in-memory lock to prevent misbehaving callers from shooting themselves in the foot
      *    - one less round trip
-     * @param tablesToDrop
      */
     @Override
     public void dropTables(final Set<TableReference> tablesToDrop) {
         try {
             trySchemaMutationLock();
-            clientPool.runWithPooledResource(new FunctionCheckedException<Client, Void, Exception>() {
+            clientPool.runWithRetry(new FunctionCheckedException<Client, Void, Exception>() {
                 @Override
                 public Void apply(Client client) throws Exception {
                     KsDef ks = client.describe_keyspace(configManager.getConfig().keyspace());
@@ -1243,20 +1141,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         createTables(ImmutableMap.of(tableRef, tableMetadata));
     }
 
-    // for tables internal / implementation specific to this KVS; these also don't get metadata in metadata table, nor do they show up in getTablenames
-    private void createTableInternal(Client client, final TableReference tableRef) throws InvalidRequestException, SchemaDisagreementException, TException, NotFoundException {
-        final CassandraKeyValueServiceConfig config = configManager.getConfig();
-        KsDef ks = client.describe_keyspace(config.keyspace());
-        for (CfDef cf : ks.getCf_defs()) {
-            if (cf.getName().equalsIgnoreCase(internalTableName(tableRef))) {
-                return;
-            }
-        }
-        CfDef cf = CassandraConstants.getStandardCfDef(config.keyspace(), internalTableName(tableRef));
-        client.system_add_column_family(cf);
-        CassandraKeyValueServices.waitForSchemaVersions(client, tableRef.getQualifiedName(), configManager.getConfig().schemaMutationTimeoutMillis());
-        return;
-    }
 
     /**
      * Main gains here vs. createTable:
@@ -1264,13 +1148,12 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
      *      through a single host checked out from the client pool, so reduced chance of schema disagreement issues
      *    - client-side in-memory lock to prevent misbehaving callers from shooting themselves in the foot
      *    - one less round trip
-     * @param tableNamesToTableMetadata
      */
     @Override
     public void createTables(final Map<TableReference, byte[]> tableNamesToTableMetadata) {
         try {
             trySchemaMutationLock();
-            clientPool.runWithPooledResource(new FunctionCheckedException<Client, Void, Exception>() {
+            clientPool.runWithRetry(new FunctionCheckedException<Client, Void, Exception>() {
                 @Override
                 public Void apply(Client client) throws Exception {
                     KsDef ks = client.describe_keyspace(configManager.getConfig().keyspace());
@@ -1315,7 +1198,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     private Set<TableReference> getAllTablenamesInternal() {
         final CassandraKeyValueServiceConfig config = configManager.getConfig();
         try {
-            return clientPool.runWithPooledResource(new FunctionCheckedException<Client, Set<TableReference>, Exception>() {
+            return clientPool.runWithRetry(new FunctionCheckedException<Client, Set<TableReference>, Exception>() {
+
                 @Override
                 public Set<TableReference> apply(Client client) throws Exception {
                     return FluentIterable.from(client.describe_keyspace(config.keyspace()).getCf_defs())
@@ -1345,8 +1229,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             return AtlasDbConstants.EMPTY_TABLE_METADATA;
         } else {
             if (!getAllTablenamesInternal().contains(tableRef)) {
-                log.error("While getting metadata, found a table, {}, with stored table metadata but no corresponding existing table in the underlying KVS. This is not necessarily a bug, but warrants further inquiry.", tableRef.getQualifiedName());
-            }
+                log.error("While getting metadata, found a table, {}, with stored table metadata " +
+                        "but no corresponding existing table in the underlying KVS. " +
+                        "This is not necessarily a bug, but warrants further inquiry.", tableRef.getQualifiedName());
+                }
             return v.getContents();
         }
     }
@@ -1362,40 +1248,22 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
                 for (Entry<Cell, Value> entry : cells) {
                     Value value = entry.getValue();
-
                     TableReference tableRef = TableReference.createUnsafe(new String(entry.getKey().getRowName()));
-
                     byte[] contents;
                     if (value == null) {
                         contents = AtlasDbConstants.EMPTY_TABLE_METADATA;
                     } else {
                         contents = value.getContents();
                     }
-                    tableToMetadataContents.put(tableRef, contents);
+                    if (!CassandraConstants.HIDDEN_TABLES.contains(tableRef)) {
+                        tableToMetadataContents.put(tableRef, contents);
+                    }
                 }
             }
         } finally {
             range.close();
         }
-
-        final Set<TableReference> tablesInDatabase = getAllTableNames();
-
-        Set<TableReference> tablesThatHaveMetadataButDontExist = Sets.difference(tableToMetadataContents.keySet(), tablesInDatabase);
-        if (!tablesThatHaveMetadataButDontExist.isEmpty()) {
-            log.error("While getting metadata for tables, we found the following tables that do not exist in the database, but are represented in the metadata table: " + tablesThatHaveMetadataButDontExist);
-        }
-
-        Set<TableReference> tablesThatExistButHaveNoMetadata = Sets.difference(tablesInDatabase, tableToMetadataContents.keySet());
-        if (!tablesThatExistButHaveNoMetadata.isEmpty()) {
-            log.error("While getting metadata for tables, we found the following tables that exist in the database, but have no matching metadata stored: " + tablesThatExistButHaveNoMetadata);
-        }
-
-        return ImmutableMap.copyOf(Maps.filterEntries(tableToMetadataContents, new Predicate<Entry<TableReference, byte[]>>() {
-            @Override
-            public boolean apply(Entry<TableReference, byte[]> input) {
-                return tablesInDatabase.contains(input.getKey());
-            }
-        }));
+        return tableToMetadataContents;
     }
 
     private Cell getMetadataCell(TableReference tableRef) { // would have preferred an explicit charset, but thrift uses default internally
@@ -1438,7 +1306,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 if (possiblyNeedToPerformSettingsChanges) {
                     trySchemaMutationLock();
                 }
-                clientPool.runWithPooledResource(new FunctionCheckedException<Client, Void, Exception>() {
+                clientPool.runWithRetry(new FunctionCheckedException<Client, Void, Exception>() {
                     @Override
                     public Void apply(Client client) throws Exception {
                         if (possiblyNeedToPerformSettingsChanges) {
@@ -1469,11 +1337,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     @Override
     public void close() {
-        clientPool.shutdownPooling();
+        clientPool.shutdown();
         if (compactionManager.isPresent()) {
             compactionManager.get().close();
         }
-        tokenAwareMapper.shutdown();
         super.close();
     }
 
@@ -1509,7 +1376,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     public void putUnlessExists(final TableReference tableRef, final Map<Cell, byte[]> values)
             throws KeyAlreadyExistsException {
         try {
-            clientPool.runWithPooledResource(new FunctionCheckedException<Client, Void, Exception>() {
+            clientPool.runWithRetry(new FunctionCheckedException<Client, Void, Exception>() {
                 @Override
                 public Void apply(Client client) throws Exception {
                     for (Map.Entry<Cell, byte[]> e : values.entrySet()) {
@@ -1567,7 +1434,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     @Override
     public void compactInternally(TableReference tableRef) {
-        Preconditions.checkArgument(!Strings.isNullOrEmpty(tableRef.getQualifiedName()), "tableName:[%s] should not be null or empty.", tableRef);
+        Preconditions.checkArgument(!Strings.isNullOrEmpty(tableRef.getQualifiedName()), "tableRef:[%s] should not be null or empty.", tableRef);
         CassandraKeyValueServiceConfig config = configManager.getConfig();
         if (!compactionManager.isPresent()) {
             log.error("No compaction client was configured, but compact was called. If you actually want to clear deleted data immediately " +
@@ -1598,7 +1465,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
         try {
             trySchemaMutationLock();
-            clientPool.runWithPooledResource(new FunctionCheckedException<Client, Void, Exception>() {
+            clientPool.runWithRetry(new FunctionCheckedException<Client, Void, Exception>() {
                 @Override
                 public Void apply(Client client) throws NotFoundException, InvalidRequestException, TException {
                     KsDef ks = client.describe_keyspace(keyspace);
@@ -1628,16 +1495,16 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         }
     }
 
-    private <V> Map<InetAddress, Map<Cell, V>> partitionMapByHost(Iterable<Map.Entry<Cell, V>> cells) {
-        Map<InetAddress, List<Map.Entry<Cell, V>>> partitionedByHost =
+    private <V> Map<InetSocketAddress, Map<Cell, V>> partitionMapByHost(Iterable<Map.Entry<Cell, V>> cells) {
+        Map<InetSocketAddress, List<Map.Entry<Cell, V>>> partitionedByHost =
                 partitionByHost(cells, new Function<Map.Entry<Cell, V>, byte[]>() {
                     @Override
                     public byte[] apply(Entry<Cell, V> entry) {
                         return entry.getKey().getRowName();
                     }
                 });
-        Map<InetAddress, Map<Cell, V>> cellsByHost = Maps.newHashMap();
-        for (Map.Entry<InetAddress, List<Map.Entry<Cell, V>>> hostAndCells : partitionedByHost.entrySet()) {
+        Map<InetSocketAddress, Map<Cell, V>> cellsByHost = Maps.newHashMap();
+        for (Map.Entry<InetSocketAddress, List<Map.Entry<Cell, V>>> hostAndCells : partitionedByHost.entrySet()) {
             Map<Cell, V> cellsForHost = Maps.newHashMapWithExpectedSize(hostAndCells.getValue().size());
             for (Map.Entry<Cell, V> entry : hostAndCells.getValue()) {
                 cellsForHost.put(entry.getKey(), entry.getValue());
@@ -1647,7 +1514,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         return cellsByHost;
     }
 
-    private <V> Map<InetAddress, List<V>> partitionByHost(Iterable<V> iterable, Function<V, byte[]> keyExtractor) {
+    private <V> Map<InetSocketAddress, List<V>> partitionByHost(Iterable<V> iterable, Function<V, byte[]> keyExtractor) {
         // Ensure that the same key goes to the same partition. This is important when writing multiple columns
         // to the same row, since this is a normally a single write in cassandra, whereas splitting the columns
         // into different requests results in multiple writes.
@@ -1655,9 +1522,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         for (V value : iterable) {
             partitionedByKey.put(ByteBuffer.wrap(keyExtractor.apply(value)), value);
         }
-        ListMultimap<InetAddress, V> valuesByHost = ArrayListMultimap.create();
+        ListMultimap<InetSocketAddress, V> valuesByHost = ArrayListMultimap.create();
         for (ByteBuffer key : partitionedByKey.keySet()) {
-            InetAddress host = tokenAwareMapper.getRandomHostForKey(key.array());
+            InetSocketAddress host = clientPool.getRandomHostForKey(key.array());
             valuesByHost.putAll(host, partitionedByKey.get(key));
         }
         return Multimaps.asMap(valuesByHost);
