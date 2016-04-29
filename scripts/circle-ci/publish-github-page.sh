@@ -19,7 +19,7 @@ git config user.name $CIRCLE_PROJECT_USERNAME
 # Add and commmit changes to gh-pages
 git add .
 
-if ! git commit -m "circle-publish: from $CIRCLE_BRANCH by build $CIRCLE_BUILD_NUM, can be found at $CIRCLE_BUILD_URL"; then
+if ! git commit -m "circle-publish: [skip ci] from $CIRCLE_BRANCH by build $CIRCLE_BUILD_NUM, can be found at $CIRCLE_BUILD_URL"; then
     echo "no docs changes, skipping deployment";
     exit 0;
 fi
