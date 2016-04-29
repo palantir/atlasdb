@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -x
+
 CASSANDRA=':atlasdb-cassandra-tests:check'
 SHARED=':atlasdb-tests-shared:check'
 
