@@ -402,7 +402,8 @@ public class CassandraClientPool {
         for (InetSocketAddress host : currentPools.keySet()) {
             Cassandra.Client client = null;
             try {
-                client = CassandraClientFactory.getClientInternal(host, config.ssl(), config.socketTimeoutMillis(), config.socketQueryTimeoutMillis());
+                client = CassandraClientFactory.getClientInternal(host, config.credentials(),
+                        config.ssl(), config.socketTimeoutMillis(), config.socketQueryTimeoutMillis());
                 try {
                     client.describe_keyspace(config.keyspace());
                 } catch (NotFoundException e) {

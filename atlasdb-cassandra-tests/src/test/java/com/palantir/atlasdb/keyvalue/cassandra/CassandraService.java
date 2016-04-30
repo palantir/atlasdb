@@ -32,6 +32,7 @@ public final class CassandraService {
     private static final Logger log = LoggerFactory.getLogger(CassandraService.class);
     
     static final String DEFAULT_CONFIG = "./cassandra.yaml";
+    static final String AUTH_CONFIG = "./cassandra-auth.yaml";
 
     private static CassandraDaemon daemon;
 
