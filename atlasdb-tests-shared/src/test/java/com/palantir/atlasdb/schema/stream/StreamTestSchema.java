@@ -33,15 +33,18 @@ public class StreamTestSchema implements AtlasSchema {
                 StreamTest.class.getPackage().getName() + ".generated",
                 Namespace.DEFAULT_NAMESPACE);
 
-        schema.addStreamStoreDefinition("stream_test", "stream_test", ValueType.VAR_LONG, 4000);
+        // test defaults
+        schema.addStreamStoreDefinition(new StreamStoreDefinitionBuilder("stream_test", "stream_test", ValueType.VAR_LONG).build());
+
+        // test all the things!
         schema.addStreamStoreDefinition(
-                "stream_test_with_hash",
-                "stream_test_with_hash",
-                ValueType.VAR_LONG,
-                4000,
-                ExpirationStrategy.INDIVIDUALLY_SPECIFIED,
-                true,
-                true);
+                new StreamStoreDefinitionBuilder("stream_test_with_hash", "stream_test_with_hash", ValueType.VAR_LONG)
+                    .inMemoryThreshold(4000)
+                    .expirationStrategy(ExpirationStrategy.INDIVIDUALLY_SPECIFIED)
+                    .compressBlocksInDb()
+                    .hashFirstRowComponent()
+                    .isAppendHeavyAndReadLight()
+                    .build());
 
         return schema;
     }

@@ -80,4 +80,5 @@ public class AtlasDbConstants {
     public static final boolean DEFAULT_ENABLE_SWEEP = false;
     public static final long DEFAULT_SWEEP_PAUSE_MILLIS = 5 * 1000;
     public static final int DEFAULT_SWEEP_BATCH_SIZE = 1000;
+    public static final int DEFAULT_STREAM_IN_MEMORY_THRESHOLD = 4 * 1024 * 1024;
 }
