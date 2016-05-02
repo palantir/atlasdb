@@ -23,8 +23,11 @@ import com.palantir.atlasdb.config.LeaderConfig;
 
 import io.airlift.airline.Command;
 
-@Command(name = "deletePaxosLog", description = "Delete the paxos log after restoring at least quorum leaders that lost their acceptor log")
+@Command(name = "deletePaxosLog", description = DeletePaxosLog.description)
 public class DeletePaxosLog extends AbstractCommand {
+
+    static final String description = "Delete the paxos log after restoring at least quorum leaders that lost their acceptor log.  "
+            + "This operation is destructive and if accidentally done while elected service is up, use the truncatePaxosLog command to recover";
 
     @Override
     public Integer call() {
