@@ -326,7 +326,7 @@ public final class LockServiceImplTest {
 
         server.unlock(resp2.getToken());
 
-        future.get(60, TimeUnit.MILLISECONDS);
+        future.get(150, TimeUnit.SECONDS);
 
         resp2 = server.lockWithFullLockResponse(LockClient.ANONYMOUS, hasLock2);
         server.unlock(resp2.getToken());
@@ -362,7 +362,7 @@ public final class LockServiceImplTest {
 
         server.unlock(resp2.getToken());
 
-        future.get(1000, TimeUnit.SECONDS);
+        future.get(150, TimeUnit.SECONDS);
 
         server.unlock(resp1.getToken());
 

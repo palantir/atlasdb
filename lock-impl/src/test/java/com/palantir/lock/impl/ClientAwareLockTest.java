@@ -387,7 +387,7 @@ public final class ClientAwareLockTest {
             /* Expected. */
         }
         knownClientReadLock.unlock();
-        future.get(10, TimeUnit.MILLISECONDS);
+        future.get(5, TimeUnit.SECONDS);
         anonymousWriteLock.unlock();
     }
 
