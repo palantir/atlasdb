@@ -27,3 +27,8 @@ deployment:
     owner: palantir
     commands:
       - ./scripts/circle-ci/publish-github-page.sh
+  bintray:
+    branch: master
+    owner: palantir
+    commands:
+      - ./gradlew bintrayUpload
