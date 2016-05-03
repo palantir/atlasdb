@@ -1,0 +1,22 @@
+version: '2'
+
+services:
+    cassandra:
+        image: com.palantir.docker/atlas-cassandra:2.2-v0.1
+        ports:
+        - "9160"
+        - "9042"
+        - "7199"
+        environment:
+        - LOCAL_JMX=no
+    ete:
+        image: java:8
+        links:
+        - cassandra
+        volumes:
+        - ~/.gradle:/root/.gradle
+        - ..:/atlas
+        working_dir: /atlas
+        command: echo
+        environment:
+        - ETE=true

@@ -15,21 +15,16 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
+/**
+ * Contains KVS instance for the Cassandra Testsuite
+ *
+ * Created by aloro on 12/04/2016.
+ */
+class CassandraTestConfigs {
+    static final String CASSANDRA_HOST = "cassandra";
 
-public class CQLKeyValueServiceTransactionTest extends AbstractTransactionTest {
+    static final int THRIFT_PORT = 9160;
+    static final int CQL_PORT = 9042;
 
-    @Override
-    protected KeyValueService getKeyValueService() {
-        return CQLKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CQLTestSuite.CQLKVS_CONFIG));
-    }
-
-    @Override
-    protected boolean supportsReverse() {
-        return false;
-    }
 
 }
