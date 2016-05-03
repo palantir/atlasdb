@@ -41,8 +41,10 @@ public class Gradle extends ExternalResource {
     @Override
     protected void before() throws Throwable {
         if (isRunningOutsideOfGradle()) {
-            System.out.println("You are not running in gradle, performing the required gradle command: " + command);
+            System.out.println("It looks like you are not running in gradle, performing the required gradle command: " + command);
             gradle(command);
+        } else {
+            System.out.println("You are running in gradle, allowing gradle task dependencies to make sure " + command + " is run");
         }
     }
 
