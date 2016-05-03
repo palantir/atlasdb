@@ -16,6 +16,7 @@ dependencies {
     compile project(':leader-election-impl')
     compile project(':atlasdb-config')
     compile project(':atlasdb-hikari')
+    compile project(':atlasdb-rocksdb')
 
     compile "io.dropwizard:dropwizard-core:" + libVersions.dropwizard
     compile 'com.google.dagger:dagger:2.0.2'
