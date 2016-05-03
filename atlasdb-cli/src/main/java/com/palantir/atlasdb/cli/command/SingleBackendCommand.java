@@ -15,32 +15,15 @@
  */
 package com.palantir.atlasdb.cli.command;
 
-import java.io.File;
 import java.io.IOException;
-import java.util.concurrent.Callable;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.cli.services.AtlasDbServices;
 import com.palantir.atlasdb.cli.services.AtlasDbServicesFactory;
 import com.palantir.atlasdb.cli.services.DaggerAtlasDbServices;
-import com.palantir.atlasdb.cli.services.ServicesConfigModule;
-import com.palantir.atlasdb.config.AtlasDbConfigs;
 import com.palantir.common.base.Throwables;
 
-import io.airlift.airline.Option;
-
-public abstract class SingleBackendCommand implements Callable<Integer> {
-
-    @Option(name = {"-c", "--config"},
-            title = "CONFIG PATH",
-            description = "path to yaml configuration file for atlasdb",
-            required = true)
-    private File configFile;
-
-    @Option(name = {"--config-root"},
-            title = "CONFIG ROOT",
-            description = "field in the config yaml file that contains the atlasdb configuration root")
-    private String configRoot = AtlasDbConfigs.ATLASDB_CONFIG_ROOT;
+public abstract class SingleBackendCommand extends AbstractCommand {
 
     @Override
     public Integer call() {
@@ -54,14 +37,12 @@ public abstract class SingleBackendCommand implements Callable<Integer> {
     public abstract int execute(AtlasDbServices services);
 
     private AtlasDbServices connect() throws IOException {
-        ServicesConfigModule scm = ServicesConfigModule.create(configFile, configRoot);
-        return DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
+        return DaggerAtlasDbServices.builder().servicesConfigModule(getServiceConfigModule()).build();
     }
 
     @VisibleForTesting
     public <T extends AtlasDbServices> T connect(AtlasDbServicesFactory factory) throws IOException {
-        ServicesConfigModule scm = ServicesConfigModule.create(configFile, configRoot);
-        return factory.connect(scm);
+        return factory.connect(getServiceConfigModule());
     }
 
 }
