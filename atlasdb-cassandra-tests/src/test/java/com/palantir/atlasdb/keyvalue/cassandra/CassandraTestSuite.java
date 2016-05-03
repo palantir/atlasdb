@@ -50,6 +50,6 @@ public class CassandraTestSuite {
 
     @BeforeClass
     public static void waitUntilCassandraIsUp() {
-        CassandraTestTools.waitTillServiceIsUp(CassandraTestConfigs.CASSANDRA_HOST, CassandraTestConfigs.THRIFT_PORT, Duration.millis(2000));
+        CassandraTestTools.waitTillServiceIsUp(CassandraTestConfigs.CASSANDRA_HOST, CassandraTestConfigs.THRIFT_PORT, Duration.millis(5000));
     }
 }
