@@ -26,8 +26,8 @@ publishing {
 }
 
 bintray {
-    user = System.getenv('BINTRAY_USER')
-    key = System.getenv('BINTRAY_KEY')
+    user = System.getenv('BINTRAY_USERNAME')
+    key = System.getenv('BINTRAY_PASSWORD')
     pkg {
         userOrg = 'palantir'
         repo = 'releases'
@@ -38,7 +38,7 @@ bintray {
 }
 
 bintrayUpload.onlyIf {
-    System.getenv('BINTRAY_USER') && System.getenv('BINTRAY_KEY') && project.version ==~ /\d+\.\d+\.\d+(-pre\d+)?/
+    System.getenv('BINTRAY_USERNAME') && System.getenv('BINTRAY_PASSWORD') && project.version ==~ /\d+\.\d+\.\d+(-pre\d+)?/
 }
 
 bintrayUpload.dependsOn { generatePomFileForBintrayPublication }
