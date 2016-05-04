@@ -9,7 +9,6 @@ if [ "${1:0:1}" = '-' ]; then
 	set -- cassandra -f "$@"
 fi
 
-PUBLIC="192.168.99.100"
 if [ "$1" = 'cassandra' ]; then
 	# TODO detect if this is a restart if necessary
 	: ${CASSANDRA_LISTEN_ADDRESS='auto'}
@@ -29,7 +28,11 @@ if [ "$1" = 'cassandra' ]; then
 	: ${CASSANDRA_SEEDS:="$CASSANDRA_BROADCAST_ADDRESS"}
 	
     sed -ri 's/(- seeds:) "127.0.0.1"/\1 "'"$CASSANDRA_SEEDS"'"/' "$CASSANDRA_CONFIG/cassandra.yaml"
-    sed -i "s/# JVM_OPTS=\"\$JVM_OPTS \-Djava.rmi.server.hostname=<public name>\"/JVM_OPTS=\"\$JVM_OPTS -Djava.rmi.server.hostname=$PUBLIC\"/" "$CASSANDRA_CONFIG/cassandra-env.sh"
+
+    ADDRESS="$(hostname -i)"
+    # Uncomment following line to use nodetool from external machine on a Mac
+    # ADDRESS=192.168.99.100
+    sed -i "s/# JVM_OPTS=\"\$JVM_OPTS \-Djava.rmi.server.hostname=<public name>\"/JVM_OPTS=\"\$JVM_OPTS -Djava.rmi.server.hostname=$ADDRESS\"/" "$CASSANDRA_CONFIG/cassandra-env.sh"
 
     for yaml in \
 		broadcast_address \
