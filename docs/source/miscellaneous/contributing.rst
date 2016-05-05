@@ -12,7 +12,7 @@ Contributing Docs
 The easiest way to contribute to docs is to edit them directly on GitHub using the link above:
 
 1. On GitHub you will see the .rst file rendered and can edit it directly in your browser and preview the changes!
-2. After making your edits you can submit a PR below the editor.  Please construt a simple commit message highlighting your changes and create a branch name preferably with the patter ``docs/*``.
+2. After making your edits you can submit a PR below the editor.  Please construct a simple commit message highlighting your changes and create a branch name preferably with the pattern ``docs/*``.
 
 If you would like to build the docs locally follow these steps:
 
