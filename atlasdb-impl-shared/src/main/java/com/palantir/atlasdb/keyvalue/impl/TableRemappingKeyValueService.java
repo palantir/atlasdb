@@ -114,7 +114,7 @@ public class TableRemappingKeyValueService extends ForwardingObject implements
         for (TableReference tableRef : tableRefs) {
             // Handles the edge case of deleting _namespace when clearing the kvs
             if (tableRef.getNamespace().equals(Namespace.EMPTY_NAMESPACE)
-                    && tableRef.getTablename().equals(AtlasDbConstants.NAMESPACE_TABLE)) {
+                    && tableRef.equals(AtlasDbConstants.NAMESPACE_TABLE)) {
                 break;
             }
             tableMapper.removeTable(tableRef);

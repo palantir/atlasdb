@@ -41,4 +41,9 @@ import com.palantir.common.annotation.Immutable;
         ConsistentRingRangeRequest otherCrrr = (ConsistentRingRangeRequest) other;
         return get().equals(otherCrrr.get());
     }
+
+    @Override
+    public int hashCode() {
+        return 13 + rangeRequest.hashCode();
+    }
 }

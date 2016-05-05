@@ -80,9 +80,9 @@ public class InMemoryPartitionMapService implements PartitionMapService {
     public synchronized long updateMapIfNewer(DynamicPartitionMap partitionMap) {
         lock.writeLock().lock();
 
-        final long originalVersion = this.partitionMap == null ? -1L : this.partitionMap.getVersion();
-
         try {
+            final long originalVersion = this.partitionMap == null ? -1L : this.partitionMap.getVersion();
+
             if (partitionMap.getVersion() > originalVersion) {
                 this.partitionMap = Preconditions.checkNotNull(partitionMap);
             }

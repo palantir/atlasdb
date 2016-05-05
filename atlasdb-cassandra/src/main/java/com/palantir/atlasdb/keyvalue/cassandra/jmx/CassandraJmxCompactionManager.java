@@ -64,7 +64,7 @@ public class CassandraJmxCompactionManager {
         long elapsedSeconds = stopWatch.elapsed(TimeUnit.SECONDS);
         long remainingTimeoutSeconds = timeoutInSeconds - elapsedSeconds;
         if (remainingTimeoutSeconds <= 0) {
-            throw new TimeoutException(String.format("Task execution timeout in {} seconds. Timeout seconds:{}.",
+            throw new TimeoutException(String.format("Task execution timeout in %d seconds. Timeout seconds:%d.",
                     elapsedSeconds, timeoutInSeconds));
         }
 
@@ -100,9 +100,9 @@ public class CassandraJmxCompactionManager {
 
         for (Future<Void> f : futures) {
             if (f.isCancelled()) {
-                log.error("Task execution timeouts in {} seconds. Timeout seconds:{}.", stopWatch.stop(), timeoutInSeconds);
-                throw new TimeoutException(String.format("Task execution timeouts in {} seconds. Timeout seconds:{}.",
-                        stopWatch.stop(), timeoutInSeconds));
+                log.error("Task execution timeouts in {} seconds. Timeout seconds:{}.", stopWatch.stop().elapsed(TimeUnit.SECONDS), timeoutInSeconds);
+                throw new TimeoutException(String.format("Task execution timeouts in %d seconds. Timeout seconds:%d.",
+                        stopWatch.elapsed(TimeUnit.SECONDS), timeoutInSeconds));
             }
 
             try {
@@ -125,9 +125,9 @@ public class CassandraJmxCompactionManager {
 
     public String getCompactionStatus() {
         StringBuilder sb = new StringBuilder();
-        sb.append(String.format("Jmx compaction information. Total number of Jmx clients: %d.\n", clients.size()));
+        sb.append(String.format("Jmx compaction information. Total number of Jmx clients: %d.%n", clients.size()));
         for (CassandraJmxCompactionClient client : clients) {
-            sb.append(String.format("%s compaction summary: %s\n", client, client.getCompactionStatus()));
+            sb.append(String.format("%s compaction summary: %s%n", client, client.getCompactionStatus()));
         }
         return sb.toString();
     }

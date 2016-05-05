@@ -71,8 +71,7 @@ public class OnlyWriteTempTablesTransaction extends ForwardingTransaction {
     }
 
     private void checkTableName(TableReference tableRef) {
-        String tableName = tableRef.getQualifiedName();
-        SweepStrategy sweepStrategy = sweepStrategies.get().get(tableName);
+        SweepStrategy sweepStrategy = sweepStrategies.get().get(tableRef);
         if (sweepStrategy == SweepStrategy.THOROUGH) {
             throw new IllegalStateException("Cannot read from a table with a thorough sweep strategy in a read only transaction.");
         }

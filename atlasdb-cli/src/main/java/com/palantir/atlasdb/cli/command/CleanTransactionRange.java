@@ -67,19 +67,19 @@ public class CleanTransactionRange extends SingleBackendCommand {
             byte[] rowName = row.getRowName();
             long startResult = TransactionConstants.getTimestampForValue(rowName);
             maxTimestamp = Math.max(maxTimestamp, startResult);
-            
+
             Value value;
             try {
                 value = row.getOnlyColumnValue();
             } catch (IllegalStateException e){
                 //this should never happen
-                System.out.printf("Error: Found a row in the transactions table that didn't have 1 and only 1 column value: start=%d\n", startResult);
+                System.out.printf("Error: Found a row in the transactions table that didn't have 1 and only 1 column value: start=%d%n", startResult);
                 continue;
             }
 
             long endResult = TransactionConstants.getTimestampForValue(value.getContents());
             maxTimestamp = Math.max(maxTimestamp, endResult);
-            System.out.printf("Found and cleaning possibly inconsistent transaction: [start=%d, commit=%d]\n", startResult, endResult);
+            System.out.printf("Found and cleaning possibly inconsistent transaction: [start=%d, commit=%d]%n", startResult, endResult);
 
             Cell key = Cell.create(rowName, TransactionConstants.COMMIT_TS_COLUMN);
             toDelete.put(key, value.getTimestamp());  //value.getTimestamp() should always be 0L but this is safer
@@ -88,9 +88,9 @@ public class CleanTransactionRange extends SingleBackendCommand {
         if (!toDelete.isEmpty()) {
             kvs.delete(TransactionConstants.TRANSACTION_TABLE, toDelete);
             System.out.println("Delete completed.");
-            
+
             pts.fastForwardTimestamp(maxTimestamp+1);
-            System.out.printf("Timestamp succesfully forwarded past all cleaned/deleted transactions to %d\n", maxTimestamp);
+            System.out.printf("Timestamp succesfully forwarded past all cleaned/deleted transactions to %d%n", maxTimestamp);
         } else {
             System.out.println("Found no transactions inside the given range to clean up or delete.");
         }
@@ -107,7 +107,7 @@ public class CleanTransactionRange extends SingleBackendCommand {
         }
 
         if (!(ts instanceof PersistentTimestampService)) {
-            System.err.printf("Error: Restoring timestamp service must be of type {}, but yours is {}\n",
+            System.err.printf("Error: Restoring timestamp service must be of type %s, but yours is %s%n",
                     PersistentTimestampService.class.toString(), ts.getClass().toString());
             isValid &= false;
         }
