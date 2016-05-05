@@ -37,7 +37,7 @@ import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 public class CQLTestSuite {
 
     static CassandraKeyValueServiceConfig CQLKVS_CONFIG = ImmutableCassandraKeyValueServiceConfig.builder()
-            .addServers(new InetSocketAddress(CassandraTestConfigs.CASSANDRA_HOST, CassandraTestConfigs.CQL_PORT))
+            .addServers(new InetSocketAddress(CassandraTestConfigs.CASSANDRA_DOCKER_HOST, CassandraTestConfigs.CQL_PORT))
             .poolSize(20)
             .keyspace("atlasdb")
             .ssl(false)
@@ -51,6 +51,6 @@ public class CQLTestSuite {
 
     @BeforeClass
     public static void waitUntilCassandraIsUp() {
-        CassandraTestTools.waitTillServiceIsUp(CassandraTestConfigs.CASSANDRA_HOST, CassandraTestConfigs.CQL_PORT, Duration.millis(2000));
+        CassandraTestTools.waitTillServiceIsUp(CassandraTestConfigs.CASSANDRA_DOCKER_HOST, CassandraTestConfigs.CQL_PORT, Duration.millis(2000));
     }
 }
