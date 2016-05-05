@@ -9,3 +9,4 @@ services:
         - "7199"
         environment:
         - LOCAL_JMX=no
+        network_mode: host
