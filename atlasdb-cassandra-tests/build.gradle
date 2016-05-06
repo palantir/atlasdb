@@ -1,5 +1,5 @@
 plugins{
-    id 'com.palantir.docker' version '0.6.0'
+    id 'com.palantir.docker' version '0.7.0'
 }
 
 apply plugin: 'org.inferred.processors'
@@ -15,7 +15,7 @@ dependencies {
   testCompile 'com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core
 
   testCompile 'org.mockito:mockito-core:1.9.5' 
-  testCompile 'com.palantir.docker.compose:docker-compose-rule:0.5.4'
+  testCompile 'com.palantir.docker.compose:docker-compose-rule:0.11.0'
 }
 
 jacoco {
@@ -32,11 +32,6 @@ test {
     maxHeapSize = "1024m"
     include '**/*Suite.class'
     maxParallelForks 2
-
-    // We don't want to run ETEs not in the ETE containers.
-    if (!Boolean.parseBoolean(System.getenv('ETE'))) {
-        enabled = false
-    }
 }
 
 jacocoTestReport {

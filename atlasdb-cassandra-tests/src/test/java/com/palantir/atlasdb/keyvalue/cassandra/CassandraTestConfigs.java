@@ -21,10 +21,9 @@ package com.palantir.atlasdb.keyvalue.cassandra;
  * Created by aloro on 12/04/2016.
  */
 class CassandraTestConfigs {
-    static final String CASSANDRA_HOST = "cassandra";
 
+    static final String CASSANDRA_DOCKER_HOST = "cassandra";
     static final int THRIFT_PORT = 9160;
     static final int CQL_PORT = 9042;
-
 
 }
