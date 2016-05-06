@@ -430,11 +430,10 @@ public class TieredKeyValueService implements KeyValueService {
      * reverseOrdering is true.
      */
     private static int compare(byte[] first, byte[] second, boolean reverseOrdering) {
-        int comparison = UnsignedBytes.lexicographicalComparator().compare(first, second);
         if (reverseOrdering) {
-            return -comparison;
+            return UnsignedBytes.lexicographicalComparator().compare(second, first);
         } else {
-            return comparison;
+            return UnsignedBytes.lexicographicalComparator().compare(first, second);
         }
     }
 

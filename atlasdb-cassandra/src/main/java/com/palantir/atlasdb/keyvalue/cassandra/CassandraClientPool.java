@@ -169,14 +169,14 @@ public class CassandraClientPool {
         if (log.isDebugEnabled()) {
             StringBuilder currentState = new StringBuilder();
             currentState.append(
-                    String.format("POOL STATUS: Current blacklist = %s,\n current hosts in pool = %s\n",
+                    String.format("POOL STATUS: Current blacklist = %s,%n current hosts in pool = %s%n",
                     blacklistedHosts.keySet().toString(), currentPools.keySet().toString()));
             for (Entry<InetSocketAddress, CassandraClientPoolingContainer> entry : currentPools.entrySet()) {
                 int activeCheckouts = entry.getValue().getPoolUtilization();
                 int totalAllowed = entry.getValue().getPoolSize();
 
                 currentState.append(
-                        String.format("\tPOOL STATUS: Pooled host %s has %s out of %s connections checked out.\n",
+                        String.format("\tPOOL STATUS: Pooled host %s has %s out of %s connections checked out.%n",
                                 entry.getKey(),
                                 activeCheckouts > 0? Integer.toString(activeCheckouts) : "(unknown)",
                                 totalAllowed > 0? Integer.toString(totalAllowed) : "(not bounded)"));

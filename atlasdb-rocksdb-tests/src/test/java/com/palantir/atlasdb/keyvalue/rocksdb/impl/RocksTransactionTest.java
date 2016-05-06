@@ -25,9 +25,9 @@ public class RocksTransactionTest extends AbstractTransactionTest {
     @Override
     public void setUp() throws Exception {
         db = RocksDbKeyValueService.create("testdb");
-        for (TableReference table : db.getAllTableNames()) {
-            if (!table.equals("default") && !table.equals("_metadata")) {
-                db.dropTable(table);
+        for (TableReference tableRef : db.getAllTableNames()) {
+            if (!tableRef.getNamespace().getName().equals("default") && !tableRef.getTablename().equals("_metadata")) {
+                db.dropTable(tableRef);
             }
         }
         super.setUp();

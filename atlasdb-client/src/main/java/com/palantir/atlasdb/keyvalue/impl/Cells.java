@@ -199,7 +199,7 @@ public class Cells {
         if (name == null) {
             return "null";
         }
-        return new String(BaseEncoding.base16().lowerCase().encode(name));
+        return BaseEncoding.base16().lowerCase().encode(name);
     }
 
     public static CellConflict createConflictWithMetadata(KeyValueService kv,

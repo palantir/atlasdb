@@ -47,9 +47,6 @@ public class RocksDbMXBeanImpl implements RocksDbMXBean {
     @Override
     public void forceCompaction(String tableName) {
         try (ColumnFamily cf = cfs.get(tableName)) {
-            if (cf == null) {
-                throw new IllegalArgumentException("Unknown table name: " + tableName);
-            }
             db.compactRange(cf.getHandle());
         } catch (RocksDBException e) {
             throw Throwables.propagate(e);
@@ -70,9 +67,6 @@ public class RocksDbMXBeanImpl implements RocksDbMXBean {
     @Override
     public String getProperty(String tableName, String property) {
         try (ColumnFamily cf = cfs.get(tableName)) {
-            if (cf == null) {
-                throw new IllegalArgumentException("Unknown table name: " + tableName);
-            }
             return db.getProperty(cf.getHandle(), property);
         } catch (RocksDBException e) {
             throw Throwables.propagate(e);

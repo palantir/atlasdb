@@ -82,8 +82,8 @@ public class CassandraConstants {
     static final String CFDEF_COMPRESSION_TYPE_KEY = "sstable_compression";
     static final String CFDEF_COMPRESSION_CHUNK_LENGTH_KEY = "chunk_length_kb";
 
-    public static TableReference NO_TABLE = TableReference.createWithEmptyNamespace("SYSTEM");
-    public static int NO_TTL = -1;
+    public static final TableReference NO_TABLE = TableReference.createWithEmptyNamespace("SYSTEM");
+    public static final int NO_TTL = -1;
 
     static final String LEVELED_COMPACTION_STRATEGY = "org.apache.cassandra.db.compaction.LeveledCompactionStrategy";
     static final String SIZE_TIERED_COMPACTION_STRATEGY = "org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy";

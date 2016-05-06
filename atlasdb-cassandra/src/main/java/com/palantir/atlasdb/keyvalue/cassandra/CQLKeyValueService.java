@@ -221,7 +221,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
             StringBuilder hostInfo = new StringBuilder();
             for (Host host : metadata.getAllHosts()) {
                 hostInfo.append(String.format(
-                        "Datatacenter: %s; Host: %s; Rack: %s\n",
+                        "Datatacenter: %s; Host: %s; Rack: %s%n",
                         host.getDatacenter(),
                         host.getAddress(),
                         host.getRack()));

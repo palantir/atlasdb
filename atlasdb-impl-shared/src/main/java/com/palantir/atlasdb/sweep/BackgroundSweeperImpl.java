@@ -21,7 +21,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
@@ -259,7 +261,8 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
     }
 
     private double getSweepPriority(SweepPriorityRowResult oldPriority, SweepPriorityRowResult newPriority) {
-        if (AtlasDbConstants.hiddenTables.contains(newPriority.getRowName().getFullTableName())) {
+        Stream<String> hiddenTableFullNames = AtlasDbConstants.hiddenTables.stream().map(tableRef -> tableRef.getQualifiedName());
+        if (hiddenTableFullNames.anyMatch(Predicate.isEqual(newPriority.getRowName().getFullTableName()))) {
             // Never sweep hidden tables
             return 0.0;
         }
@@ -373,7 +376,7 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
      */
     private boolean checkAndRepairTableDrop() {
         try {
-            Set<TableReference> tables = kvs.getAllTableNames();
+            Set<String> tables = kvs.getAllTableNames().stream().map(tableRef -> tableRef.getQualifiedName()).collect(Collectors.toSet());
             SweepProgressRowResult result = txManager.runTaskReadOnly(
                     new RuntimeTransactionTask<SweepProgressRowResult>() {
                 @Override

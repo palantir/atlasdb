@@ -74,4 +74,12 @@ class Range implements Iterable {
         Range other = (Range) obj
         return other.start == this.start && other.transactionToken == this.transactionToken
     }
+
+    @Override
+    public int hashCode() {
+        int hash = 1;
+        hash = hash * 13 + start.hashCode();
+        hash = hash * 31 + transactionToken.hashCode();
+        return hash;
+    }
 }
