@@ -91,7 +91,6 @@ public class CassandraClientPool {
     final CassandraKeyValueServiceConfig config;
     final ScheduledThreadPoolExecutor refreshDaemon;
 
-
     public static class LightweightOPPToken implements Comparable<LightweightOPPToken> {
         final byte[] bytes;
 
@@ -122,7 +121,6 @@ public class CassandraClientPool {
         config.servers().forEach((server) -> currentPools.put(server, new CassandraClientPoolingContainer(server, config)));
         refreshPool(); // ensure we've initialized before returning
     }
-
 
     public void shutdown() {
         refreshDaemon.shutdown();
@@ -207,7 +205,7 @@ public class CassandraClientPool {
         try {
             CassandraClientPoolingContainer testingContainer = new CassandraClientPoolingContainer(host, config);
             testingContainer.runWithPooledResource(describeRing);
-            testingContainer.runWithPooledResource(CassandraVerifier.healthCheck);
+            testingContainer.runWithPooledResource(validatePartitioner);
         } catch (Exception e) {
             log.error("We tried to add {} back into the pool, but got an exception that caused to us distrust this host further.", host, e);
             return false;
@@ -249,22 +247,6 @@ public class CassandraClientPool {
     }
 
     public void runOneTimeStartupChecks() {
-                final FunctionCheckedException<Cassandra.Client, Void, Exception> validatePartitioner = new FunctionCheckedException<Cassandra.Client, Void, Exception>() {
-            @Override
-            public Void apply(Cassandra.Client client) throws Exception {
-                CassandraVerifier.validatePartitioner(client, config);
-                return null;
-            }
-        };
-
-        final FunctionCheckedException<Cassandra.Client, Void, Exception> createInternalMetadataTable = new FunctionCheckedException<Cassandra.Client, Void, Exception>() {
-            @Override
-            public Void apply(Cassandra.Client client) throws Exception {
-                createTableInternal(client, CassandraConstants.METADATA_TABLE);
-                return null;
-            }
-        };
-
         try {
             CassandraVerifier.ensureKeyspaceExistsAndIsUpToDate(this, config);
         } catch (Exception e) {
@@ -514,5 +496,21 @@ public class CassandraClientPool {
                 || isConnectionException(t)
                 || isRetriableException(t.getCause()));
     }
+
+    final FunctionCheckedException<Cassandra.Client, Void, Exception> validatePartitioner = new FunctionCheckedException<Cassandra.Client, Void, Exception>() {
+        @Override
+        public Void apply(Cassandra.Client client) throws Exception {
+            CassandraVerifier.validatePartitioner(client, config);
+            return null;
+        }
+    };
+
+    final FunctionCheckedException<Cassandra.Client, Void, Exception> createInternalMetadataTable = new FunctionCheckedException<Cassandra.Client, Void, Exception>() {
+        @Override
+        public Void apply(Cassandra.Client client) throws Exception {
+            createTableInternal(client, CassandraConstants.METADATA_TABLE);
+            return null;
+        }
+    };
 
 }
