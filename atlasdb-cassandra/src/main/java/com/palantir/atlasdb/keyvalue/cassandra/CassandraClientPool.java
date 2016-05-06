@@ -207,6 +207,7 @@ public class CassandraClientPool {
         try {
             CassandraClientPoolingContainer testingContainer = new CassandraClientPoolingContainer(host, config);
             testingContainer.runWithPooledResource(describeRing);
+            testingContainer.runWithPooledResource(CassandraVerifier.healthCheck);
         } catch (Exception e) {
             log.error("We tried to add {} back into the pool, but got an exception that caused to us distrust this host further.", host, e);
             return false;
@@ -248,7 +249,7 @@ public class CassandraClientPool {
     }
 
     public void runOneTimeStartupChecks() {
-        final FunctionCheckedException<Cassandra.Client, Void, Exception> healthChecks = new FunctionCheckedException<Cassandra.Client, Void, Exception>() {
+                final FunctionCheckedException<Cassandra.Client, Void, Exception> validatePartitioner = new FunctionCheckedException<Cassandra.Client, Void, Exception>() {
             @Override
             public Void apply(Cassandra.Client client) throws Exception {
                 CassandraVerifier.validatePartitioner(client, config);
@@ -266,15 +267,58 @@ public class CassandraClientPool {
 
         try {
             CassandraVerifier.ensureKeyspaceExistsAndIsUpToDate(this, config);
+        } catch (Exception e) {
+            log.error("Startup checks failed, was not able to create the keyspace or ensure it already existed.");
+            throw new RuntimeException(e);
+        }
 
-            for (InetSocketAddress liveHost : Sets.difference(currentPools.keySet(), blacklistedHosts.keySet())) {
-                runOnHost(liveHost, healthChecks);
-                runOnHost(liveHost, createInternalMetadataTable);
+        Map<InetSocketAddress, Exception> completelyUnresponsiveHosts = Maps.newHashMap(), aliveButInvalidPartitionerHosts = Maps.newHashMap();
+        boolean thisHostResponded, atLeastOneHostResponded = false, atLeastOneHostSaidWeHaveAMetadataTable = false;
+        for (InetSocketAddress liveHost : Sets.difference(currentPools.keySet(), blacklistedHosts.keySet())) {
+            thisHostResponded = false;
+            try {
+                runOnHost(liveHost, CassandraVerifier.healthCheck);
+                thisHostResponded = true;
+                atLeastOneHostResponded = true;
+            } catch (Exception e) {
+                completelyUnresponsiveHosts.put(liveHost, e);
+                addToBlacklist(liveHost);
             }
 
-        } catch (Exception e) {
-            log.error("Startup checks failed.");
-            throw new RuntimeException(e);
+
+            if (thisHostResponded) {
+                try {
+                    runOnHost(liveHost, validatePartitioner);
+                } catch (Exception e) {
+                    aliveButInvalidPartitionerHosts.put(liveHost, e);
+                }
+
+                try {
+                    runOnHost(liveHost, createInternalMetadataTable);
+                    atLeastOneHostSaidWeHaveAMetadataTable = true;
+                } catch (Exception e) {
+                    // don't fail here, want to give the user all the errors at once at the end
+                }
+            }
+        }
+
+        StringBuilder errorBuilderForEntireCluster = new StringBuilder();
+        if (completelyUnresponsiveHosts.size() > 0) {
+            errorBuilderForEntireCluster.append("Performing routine startup checks, determined that the following hosts are unreachable for the following reasons: \n");
+            completelyUnresponsiveHosts.forEach((host, exception) ->
+                    errorBuilderForEntireCluster.append(String.format("\tHost: %s was marked unreachable via exception: %s%n", host.toString(), exception.toString())));
+        }
+
+        if (aliveButInvalidPartitionerHosts.size() > 0) {
+            errorBuilderForEntireCluster.append("Performing routine startup checks, determined that the following hosts were alive but are configured with an invalid partitioner: \n");
+            aliveButInvalidPartitionerHosts.forEach((host, exception) ->
+                    errorBuilderForEntireCluster.append(String.format("\tHost: %s was marked as invalid partitioner via exception: %s%n", host.toString(), exception.toString())));
+        }
+
+        if (atLeastOneHostResponded && atLeastOneHostSaidWeHaveAMetadataTable && aliveButInvalidPartitionerHosts.size() == 0) {
+            return;
+        } else {
+            throw new RuntimeException(errorBuilderForEntireCluster.toString());
         }
     }
 

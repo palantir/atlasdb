@@ -52,6 +52,14 @@ import com.palantir.common.collect.Maps2;
 public class CassandraVerifier {
     private static final Logger log = LoggerFactory.getLogger(CassandraVerifier.class);
 
+    static final FunctionCheckedException<Cassandra.Client, Void, Exception> healthCheck = new FunctionCheckedException<Cassandra.Client, Void, Exception>() {
+        @Override
+        public Void apply(Cassandra.Client client) throws Exception {
+            client.describe_version();
+            return null;
+        }
+    };
+
     static Set<String> sanityCheckDatacenters(Cassandra.Client client, int desiredRf, boolean safetyDisabled) throws InvalidRequestException, TException {
         Set<String> hosts = Sets.newHashSet();
         Multimap<String, String> dataCenterToRack = HashMultimap.create();
@@ -137,6 +145,7 @@ public class CassandraVerifier {
                 }
             });
         } catch (ClientCreationFailedException e) { // We can't use the pool yet because it does things like setting the keyspace of that connection for us
+            boolean someHostWasAbleToCreateTheKeyspace = false;
             for (InetSocketAddress host : config.servers()) { // try until we find a server that works
                 try {
                     Client client = CassandraClientFactory.getClientInternal(host, config.ssl(), config.socketTimeoutMillis(), config.socketQueryTimeoutMillis());
@@ -145,11 +154,18 @@ public class CassandraVerifier {
                     ks.setDurable_writes(true);
                     client.system_add_keyspace(ks);
                     CassandraKeyValueServices.waitForSchemaVersions(client, "(adding the initial empty keyspace)", config.schemaMutationTimeoutMillis());
-                    // if we got this far, we're done
-                    return;
+
+                    // if we got this far, we're done, no need to continue on other hosts
+                    someHostWasAbleToCreateTheKeyspace = true;
+                    break;
                 } catch (Exception f) {
-                    throw new TException(f);
+                    log.error("Couldn't use host {} to create keyspace, it returned exception \"{}\" during the attempt.", host, f);
                 }
+            }
+            if (someHostWasAbleToCreateTheKeyspace) {
+                return;
+            } else {
+                throw new TException("No host tried was able to create the keyspace requested.");
             }
         }
     }
