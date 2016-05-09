@@ -1167,7 +1167,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     for (TableReference table : tablesToCreate) {
                         CassandraVerifier.sanityCheckTableName(table);
 
-                        if (!existingTables.contains(table)) {
+                        TableReference lowerCaseTable = TableReference.createUnsafe(table.getQualifiedName().toLowerCase());
+                        if (!existingTables.contains(lowerCaseTable)) {
                             client.system_add_column_family(getCfForTable(table, tableNamesToTableMetadata.get(table)));
                         } else {
                             log.warn(String.format("Ignored call to create a table (%s) that already existed.", table));
