@@ -54,8 +54,6 @@ public class TableReference {
         this.tablename = tablename;
     }
 
-
-
     public Namespace getNamespace() {
         return namespace;
     }
