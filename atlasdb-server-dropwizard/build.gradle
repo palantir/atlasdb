@@ -1,5 +1,9 @@
 apply from: "../gradle/shared.gradle"
 
+apply plugin: 'application'
+mainClassName = 'com.palantir.atlasdb.server.AtlasDbServer'
+applicationName = 'atlas-server'
+
 dependencies {
     compile project(':atlasdb-server')
     compile project(':lock-impl')

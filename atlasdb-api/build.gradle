@@ -6,3 +6,14 @@ dependencies {
   compile 'org.apache.commons:commons-lang3:3.1'
   compile 'com.fasterxml.jackson.core:jackson-annotations:' + libVersions.jackson_annotation
 }
+
+task versionInfo << {
+  def metaInf = new File("${sourceSets.main.output.classesDir}/META-INF")
+  if (metaInf.mkdir()) {
+    def versionfile = new File(metaInf, "atlasdb.version")
+    versionfile.text = project.version
+  } else {
+    println "Unable to create directory: ${metaInf}"
+  }
+}
+compileJava.finalizedBy versionInfo
