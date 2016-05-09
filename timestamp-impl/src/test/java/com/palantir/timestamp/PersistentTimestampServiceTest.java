@@ -36,7 +36,9 @@ import java.util.stream.IntStream;
 
 import org.jmock.Expectations;
 import org.jmock.Mockery;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import com.google.common.util.concurrent.Futures;
 import com.palantir.common.concurrent.PTExecutors;
@@ -46,6 +48,9 @@ import com.palantir.common.time.Clock;
 public class PersistentTimestampServiceTest {
 
     private static final long TWO_MINUTES_IN_MILLIS = 120_000L;
+
+    @Rule
+    public final ExpectedException expectedException = ExpectedException.none();
 
     @Test
     public void testFastForward() {
@@ -107,14 +112,10 @@ public class PersistentTimestampServiceTest {
     }
 
     @Test
-    public void notThrowOnCreateIfBoundStoreIsInvalid() {
-        PersistentTimestampService.create(failingTimestampBoundStore());
-    }
-
-    @Test(expected = ServiceNotAvailableException.class)
-    public void throwOnTimestampRequestIfBoundStoreIsInvalid() {
+    public void throwOnTimestampRequestIfBoundStoreCannotStoreNewUpperLimit() {
         PersistentTimestampService persistentTimestampService = PersistentTimestampService.create(failingTimestampBoundStore());
 
+        expectedException.expect(ServiceNotAvailableException.class);
         persistentTimestampService.getFreshTimestamp();
     }
 
