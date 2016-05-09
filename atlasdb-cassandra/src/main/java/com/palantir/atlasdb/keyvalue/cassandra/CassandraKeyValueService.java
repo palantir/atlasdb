@@ -88,6 +88,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -1167,7 +1168,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     for (TableReference table : tablesToCreate) {
                         CassandraVerifier.sanityCheckTableName(table);
 
-                        if (!existingTables.contains(table)) {
+                        TableReference lowerCaseTable = TableReference.createUnsafe(table.getQualifiedName().toLowerCase());
+                        if (!existingTables.contains(lowerCaseTable)) {
                             client.system_add_column_family(getCfForTable(table, tableNamesToTableMetadata.get(table)));
                         } else {
                             log.warn(String.format("Ignored call to create a table (%s) that already existed.", table));
