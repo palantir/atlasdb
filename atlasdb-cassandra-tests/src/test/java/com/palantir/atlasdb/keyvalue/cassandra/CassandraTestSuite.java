@@ -28,7 +28,8 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.docker.compose.DockerComposition;
 import com.palantir.docker.compose.connection.DockerPort;
-import com.palantir.docker.compose.connection.waiting.HealthChecks;
+import com.palantir.docker.compose.connection.waiting.HealthCheck;
+import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 
 @RunWith(Suite.class)
 @SuiteClasses({
@@ -40,19 +41,22 @@ import com.palantir.docker.compose.connection.waiting.HealthChecks;
 })
 public class CassandraTestSuite {
 
+    public static final int THRIFT_PORT_NUMBER = 9160;
     @ClassRule
     public static final DockerComposition composition = DockerComposition.of("src/test/resources/docker-compose.yml")
-            .waitingForService("cassandra", HealthChecks.toHaveAllPortsOpen()).build();
+            .waitingForHostNetworkedPort(THRIFT_PORT_NUMBER, toBeOpen())
+            .build();
 
     static InetSocketAddress CASSANDRA_THRIFT_ADDRESS;
-    static CassandraKeyValueServiceConfig CKVS_CONFIG;
+
+    static CassandraKeyValueServiceConfig CASSANDRA_KVS_CONFIG;
 
     @BeforeClass
     public static void waitUntilCassandraIsUp() throws IOException, InterruptedException {
-        DockerPort port = composition.portOnContainerWithInternalMapping("cassandra", CassandraTestConfigs.THRIFT_PORT);
+        DockerPort port = composition.hostNetworkedPort(THRIFT_PORT_NUMBER);
         CASSANDRA_THRIFT_ADDRESS = new InetSocketAddress(port.getIp(), port.getExternalPort());
 
-        CKVS_CONFIG = ImmutableCassandraKeyValueServiceConfig.builder()
+        CASSANDRA_KVS_CONFIG = ImmutableCassandraKeyValueServiceConfig.builder()
                 .addServers(CASSANDRA_THRIFT_ADDRESS)
                 .poolSize(20)
                 .keyspace("atlasdb")
@@ -65,5 +69,9 @@ public class CassandraTestSuite {
                 .autoRefreshNodes(false)
                 .build();
 
+    }
+
+    private static HealthCheck<DockerPort> toBeOpen() {
+        return port -> SuccessOrFailure.fromBoolean(port.isListeningNow(), "" + "" + port + " was not open");
     }
 }
