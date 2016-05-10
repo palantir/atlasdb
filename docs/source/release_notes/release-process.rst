@@ -2,6 +2,11 @@
 Release Process
 ===============
 
+Release Notes
+================
+
+When you make a PR to Atlas, a release notes change must be made to record your change or an explicit reason given why it is unnecessary. At the same time, you should consider whether your change is breaking or not and update the version number appropriately based on the previous release number.
+
 Release Schedule
 ================
 
