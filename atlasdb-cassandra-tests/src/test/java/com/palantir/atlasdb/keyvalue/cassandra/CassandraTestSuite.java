@@ -15,16 +15,21 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 
-import org.joda.time.Duration;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
+import com.palantir.docker.compose.DockerComposition;
+import com.palantir.docker.compose.connection.DockerPort;
+import com.palantir.docker.compose.connection.waiting.HealthCheck;
+import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 
 @RunWith(Suite.class)
 @SuiteClasses({
@@ -36,21 +41,37 @@ import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 })
 public class CassandraTestSuite {
 
-    static CassandraKeyValueServiceConfig CKVS_CONFIG = ImmutableCassandraKeyValueServiceConfig.builder()
-            .addServers(new InetSocketAddress(CassandraTestConfigs.CASSANDRA_HOST, CassandraTestConfigs.THRIFT_PORT))
-            .poolSize(20)
-            .keyspace("atlasdb")
-            .ssl(false)
-            .replicationFactor(1)
-            .mutationBatchCount(10000)
-            .mutationBatchSizeBytes(10000000)
-            .fetchBatchCount(1000)
-            .safetyDisabled(false)
-            .autoRefreshNodes(false)
+    public static final int THRIFT_PORT_NUMBER = 9160;
+    @ClassRule
+    public static final DockerComposition composition = DockerComposition.of("src/test/resources/docker-compose.yml")
+            .waitingForHostNetworkedPort(THRIFT_PORT_NUMBER, toBeOpen())
             .build();
 
+    static InetSocketAddress CASSANDRA_THRIFT_ADDRESS;
+
+    static CassandraKeyValueServiceConfig CASSANDRA_KVS_CONFIG;
+
     @BeforeClass
-    public static void waitUntilCassandraIsUp() {
-        CassandraTestTools.waitTillServiceIsUp(CassandraTestConfigs.CASSANDRA_HOST, CassandraTestConfigs.THRIFT_PORT, Duration.millis(10000));
+    public static void waitUntilCassandraIsUp() throws IOException, InterruptedException {
+        DockerPort port = composition.hostNetworkedPort(THRIFT_PORT_NUMBER);
+        CASSANDRA_THRIFT_ADDRESS = new InetSocketAddress(port.getIp(), port.getExternalPort());
+
+        CASSANDRA_KVS_CONFIG = ImmutableCassandraKeyValueServiceConfig.builder()
+                .addServers(CASSANDRA_THRIFT_ADDRESS)
+                .poolSize(20)
+                .keyspace("atlasdb")
+                .ssl(false)
+                .replicationFactor(1)
+                .mutationBatchCount(10000)
+                .mutationBatchSizeBytes(10000000)
+                .fetchBatchCount(1000)
+                .safetyDisabled(false)
+                .autoRefreshNodes(false)
+                .build();
+
+    }
+
+    private static HealthCheck<DockerPort> toBeOpen() {
+        return port -> SuccessOrFailure.fromBoolean(port.isListeningNow(), "" + "" + port + " was not open");
     }
 }
