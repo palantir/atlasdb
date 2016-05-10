@@ -37,7 +37,7 @@ public abstract class AtlasDbServices implements AutoCloseable {
 
     public abstract TimestampService getTimestampService();
 
-    public abstract RemoteLockService getLockSerivce();
+    public abstract RemoteLockService getLockService();
 
     @Named("kvs")
     public abstract KeyValueService getKeyValueService();
