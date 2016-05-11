@@ -54,7 +54,7 @@ public class TestSingleBackendCommand {
             if (flag1 != null) {
                 services.getKeyValueService().getAllTableNames();
                 services.getTimestampService().getFreshTimestamp();
-                services.getLockSerivce().getMinLockedInVersionId("test-client");
+                services.getLockService().getMinLockedInVersionId("test-client");
                 services.getTransactionManager().getImmutableTimestamp();
             }
 

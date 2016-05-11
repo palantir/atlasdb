@@ -64,7 +64,7 @@ public class TestTimestampCommand {
     public void testBasicInvariants() throws Exception {
         try (SingleBackendCliTestRunner runner = makeRunner("-f", "-i", "-d")) {
             TestAtlasDbServices services = runner.connect(moduleFactory);
-            RemoteLockService rls = services.getLockSerivce();
+            RemoteLockService rls = services.getLockService();
             TimestampService tss = services.getTimestampService();
             LockClient client = services.getTestLockClient();
 
@@ -85,7 +85,7 @@ public class TestTimestampCommand {
             Preconditions.checkArgument(fresh > lockedTs);
             Preconditions.checkArgument(fresh < tss.getFreshTimestamp());
             scanner.close();
-            
+
             rls.unlock(token);
 
             scanner = new Scanner(runner.run());
