@@ -17,8 +17,8 @@ package com.palantir.atlasdb.config;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Iterator;
 
+import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -28,7 +28,8 @@ import com.google.common.base.Strings;
 import io.dropwizard.jackson.DiscoverableSubtypeResolver;
 
 public final class AtlasDbConfigs {
-    public static final String ATLASDB_CONFIG_ROOT = "atlasdb";
+
+    public static final String ATLASDB_CONFIG_ROOT = "/atlasdb";
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper(new YAMLFactory());
 
@@ -57,7 +58,7 @@ public final class AtlasDbConfigs {
 
     private static JsonNode getConfigNode(File configFile, String configRoot) throws IOException {
         JsonNode node = OBJECT_MAPPER.readTree(configFile);
-        JsonNode configNode = getConfigNodeUnsafe(node, configRoot);
+        JsonNode configNode = findRoot(node, configRoot);
 
         if (configNode == null) {
             throw new IllegalArgumentException("Could not find " + configRoot + " in yaml file " + configFile);
@@ -68,7 +69,7 @@ public final class AtlasDbConfigs {
 
     private static JsonNode getConfigNode(String fileContents, String configRoot) throws IOException {
         JsonNode node = OBJECT_MAPPER.readTree(fileContents);
-        JsonNode configNode = getConfigNodeUnsafe(node, configRoot);
+        JsonNode configNode = findRoot(node, configRoot);
 
         if (configNode == null) {
             throw new IllegalArgumentException("Could not find " + configRoot + " in given string");
@@ -77,26 +78,15 @@ public final class AtlasDbConfigs {
         return configNode;
     }
 
-    private static JsonNode getConfigNodeUnsafe(JsonNode node, String configRoot) {
+    private static JsonNode findRoot(JsonNode node, String configRoot) {
         if (Strings.isNullOrEmpty(configRoot)) {
             return node;
-        } else {
-            return findRoot(node, configRoot);
         }
-    }
 
-    private static JsonNode findRoot(JsonNode node, String configRoot) {
-        if (node.has(configRoot)) {
-            return node.get(configRoot);
-        } else {
-            Iterator<String> iter = node.fieldNames();
-            while (iter.hasNext()) {
-                JsonNode root = findRoot(node.get(iter.next()), configRoot);
-                if (root != null) {
-                    return root;
-                }
-            }
+        JsonNode root = node.at(JsonPointer.valueOf(configRoot));
+        if (root.isMissingNode()) {
             return null;
         }
+        return root;
     }
 }

@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.cli.runner;
 
+import java.net.URISyntaxException;
+
 import com.palantir.atlasdb.cli.services.AtlasDbServices;
 import com.palantir.atlasdb.cli.services.AtlasDbServicesFactory;
 
@@ -27,5 +29,9 @@ public interface SingleBackendCliTestRunner extends AutoCloseable {
     String run();
 
     String run(boolean failOnNonZeroExit, boolean singleLine);
+
+    // Commands are often not idempotent.  Calling this will clear any state
+    // held in the command class instance, but not the KVS
+    void freshCommand() throws URISyntaxException;
 
 }

@@ -31,6 +31,7 @@ public abstract class SingleBackendCommand extends AbstractCommand {
         try (AtlasDbServices services = connect()) {
             return execute(services);
         } catch (Exception e) {
+            e.printStackTrace();
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }
     }
