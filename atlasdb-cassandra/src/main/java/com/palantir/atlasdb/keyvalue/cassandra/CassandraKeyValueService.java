@@ -1449,7 +1449,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         final long perOperationNodeIdentifier = ThreadLocalRandom.current().nextLong(Long.MAX_VALUE - 2);
 
         try {
-            clientPool.runWithRetry(new FunctionCheckedException<Client, Void, Exception>() {
+            clientPool.runWithRetryWithBackoff(new FunctionCheckedException<Client, Void, Exception>() {
                 @Override
                 public Void apply(Client client) throws Exception {
                     Cell globalDdlLockCell = Cell.create(CassandraConstants.GLOBAL_DDL_LOCK.getBytes(), CassandraConstants.GLOBAL_DDL_LOCK_COLUMN_NAME.getBytes());
@@ -1541,7 +1541,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     public void schemaMutationUnlock(long perOperationNodeIdentifier) {
         try {
-            clientPool.runWithRetry(new FunctionCheckedException<Client, Void, Exception>() {
+            clientPool.runWithRetryWithBackoff(new FunctionCheckedException<Client, Void, Exception>() {
                 @Override
                 public Void apply(Client client) throws Exception {
                     Cell globalDdlLockCell = Cell.create(CassandraConstants.GLOBAL_DDL_LOCK.getBytes(), CassandraConstants.GLOBAL_DDL_LOCK_COLUMN_NAME.getBytes());
