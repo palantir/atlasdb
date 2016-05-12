@@ -1464,6 +1464,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     long timeSlept = 0;
 
                     while (!casResult.isSuccess()) { // could have a timeout controlling this level, confusing for users to set both timeouts though
+                        Stopwatch stopwatch = Stopwatch.createStarted();
+
                         if (casResult.getCurrent_valuesSize() == 0) { // never has been an existing lock
                             // special case, no one has ever made a lock ever before
                             // this becomes analogous to putUnlessExists now
@@ -1476,17 +1478,17 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                             expected = ImmutableList.of(lockColumnWithValue(Longs.toByteArray(CassandraConstants.GLOBAL_DDL_LOCK_CLEARED_VALUE)));
                         }
 
-                        if (timeSlept > configManager.getConfig().schemaMutationTimeoutMillis() * 4) { // possibly dead remote locker
+                        if (stopwatch.elapsed(TimeUnit.MILLISECONDS) > configManager.getConfig().schemaMutationTimeoutMillis() * 4) { // possibly dead remote locker
                             throw new TimeoutException(String.format("We have timed out waiting on the current schema mutation lock holder.  " +
                                     "We have tried to grab the lock for %d milliseconds unsuccessfully.  Please try restarting the AtlasDB client." +
                                     "If this occurs repeatedly it may indicate that the current lock holder has died without releasing the lock." +
-                                    "This will require manual intervention to repair, please contact support.", timeSlept));
+                                    "This will require manual intervention to repair, please contact support.", TimeUnit.MILLISECONDS));
                         }
 
 
                         long timeToSleep = CassandraConstants.TIME_BETWEEN_LOCK_ATTEMPT_ROUNDS_MILLIS * (long) Math.pow(2, timesAttempted++);
+
                         Thread.sleep(timeToSleep);
-                        timeSlept += timeToSleep;
 
                         casResult = writeLockWithCAS(client, rowName, expected, ourUpdate);
                     }
