@@ -1477,9 +1477,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                         }
 
                         if (timeSlept > configManager.getConfig().schemaMutationTimeoutMillis() * 4) { // possibly dead remote locker
-                            throw new TimeoutException(String.format("We have timed out waiting on the current lock holder.  We have tried " +
-                                    "to grab the lock for %d milliseconds unsuccessfully.  If this occurs repeatedly it may indicate that the " +
-                                    "current lock holder has died.", timeSlept));
+                            throw new TimeoutException(String.format("We have timed out waiting on the current schema mutation lock holder.  " +
+                                    "We have tried to grab the lock for %d milliseconds unsuccessfully.  Please try restarting the AtlasDB client." +
+                                    "If this occurs repeatedly it may indicate that the current lock holder has died without releasing the lock." +
+                                    "This will require manual intervention to repair, please contact support.", timeSlept));
                         }
 
 

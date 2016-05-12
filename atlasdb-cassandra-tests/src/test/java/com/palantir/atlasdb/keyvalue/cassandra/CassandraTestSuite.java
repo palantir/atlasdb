@@ -24,7 +24,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.docker.compose.DockerComposition;
 import com.palantir.docker.compose.connection.DockerPort;
@@ -50,7 +49,7 @@ public class CassandraTestSuite {
 
     static InetSocketAddress CASSANDRA_THRIFT_ADDRESS;
 
-    static CassandraKeyValueServiceConfig CASSANDRA_KVS_CONFIG;
+    static ImmutableCassandraKeyValueServiceConfig CASSANDRA_KVS_CONFIG;
 
     @BeforeClass
     public static void waitUntilCassandraIsUp() throws IOException, InterruptedException {
