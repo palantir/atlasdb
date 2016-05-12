@@ -26,11 +26,12 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 
 public class CassandraDbLockTest {
-    private CassandraKeyValueService kv;
+    private static final long GLOBAL_DDL_LOCK_NEVER_ALLOCATED_VALUE = Long.MAX_VALUE - 1;
+    private CassandraKeyValueService kvs;
 
     @Before
     public void setUp() {
-        kv = CassandraKeyValueService.create(
+        kvs = CassandraKeyValueService.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(
                         ImmutableCassandraKeyValueServiceConfig.builder()
                                 .addServers(new InetSocketAddress("localhost", 9160))
@@ -44,23 +45,23 @@ public class CassandraDbLockTest {
                                 .safetyDisabled(true)
                                 .autoRefreshNodes(true)
                                 .build()));
-        kv.initializeFromFreshInstance();
-        kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
+        kvs.initializeFromFreshInstance();
+        kvs.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
     }
 
     @After
     public void tearDown() {
-        kv.teardown();
+        kvs.teardown();
     }
 
     @Test
     public void testLockAndUnlockWithoutContention() {
-        long ourId = kv.waitForSchemaMutationLock();
-        kv.schemaMutationUnlock(ourId);
+        long ourId = kvs.waitForSchemaMutationLock();
+        kvs.schemaMutationUnlock(ourId);
     }
 
     @Test (expected = IllegalStateException.class)
     public void testBadUnlockFails() {
-        kv.schemaMutationUnlock(CassandraConstants.GLOBAL_DDL_LOCK_NEVER_ALLOCATED_VALUE);
+        kvs.schemaMutationUnlock(GLOBAL_DDL_LOCK_NEVER_ALLOCATED_VALUE);
     }
 }

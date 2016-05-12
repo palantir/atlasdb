@@ -1509,7 +1509,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 ImmutableList.of(ourLockUpdate), // update with our request id
                 ConsistencyLevel.SERIAL,
                 writeConsistency
-        )
+        );
     }
 
     private Column lockColumnWithValue(byte[] value) {
@@ -1521,7 +1521,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     public void schemaMutationUnlock(long perOperationNodeIdentifier) {
         try {
-            clientPool.runWithRetryWithBackoff(new FunctionCheckedException<Client, Void, Exception>() {
+            clientPool.runWithRetry(new FunctionCheckedException<Client, Void, Exception>() {
                 @Override
                 public Void apply(Client client) throws Exception {
                     Cell globalDdlLockCell = Cell.create(CassandraConstants.GLOBAL_DDL_LOCK.getBytes(), CassandraConstants.GLOBAL_DDL_LOCK_COLUMN_NAME.getBytes());
