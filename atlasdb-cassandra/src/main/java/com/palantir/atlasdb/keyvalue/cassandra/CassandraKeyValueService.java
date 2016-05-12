@@ -1449,26 +1449,21 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         final long perOperationNodeIdentifier = ThreadLocalRandom.current().nextLong(Long.MAX_VALUE - 2);
 
         try {
-            clientPool.runWithRetryWithBackoff(new FunctionCheckedException<Client, Void, Exception>() {
+            clientPool.runWithRetry(new FunctionCheckedException<Client, Void, Exception>() {
                 @Override
                 public Void apply(Client client) throws Exception {
                     Cell globalDdlLockCell = Cell.create(CassandraConstants.GLOBAL_DDL_LOCK.getBytes(), CassandraConstants.GLOBAL_DDL_LOCK_COLUMN_NAME.getBytes());
                     ByteBuffer rowName = ByteBuffer.wrap(globalDdlLockCell.getRowName());
                     Column ourUpdate = lockColumnWithValue(Longs.toByteArray(perOperationNodeIdentifier));
 
-                    CASResult casResult = client.cas(
-                            rowName, // key
-                            CassandraConstants.LOCK_TABLE.getQualifiedName(),
-                            ImmutableList.of(lockColumnWithValue(Longs.toByteArray(CassandraConstants.GLOBAL_DDL_LOCK_CLEARED_VALUE))), // expected previous
-                            ImmutableList.of(ourUpdate), // updates
-                            ConsistencyLevel.SERIAL,
-                            writeConsistency);
+                    List<Column> expected = ImmutableList.of(lockColumnWithValue(Longs.toByteArray(CassandraConstants.GLOBAL_DDL_LOCK_CLEARED_VALUE)));
 
-                    long lastRemoteSeen = CassandraConstants.GLOBAL_DDL_LOCK_NEVER_ALLOCATED_VALUE;
-                    int timesSeenSingleRemoteHost = 0;
+                    CASResult casResult = writeLockWithCAS(client, rowName, expected, ourUpdate);
+
+                    int timesAttempted = 0;
+                    long timeSlept = 0;
 
                     while (!casResult.isSuccess()) { // could have a timeout controlling this level, confusing for users to set both timeouts though
-                        List<Column> expected;
                         if (casResult.getCurrent_valuesSize() == 0) { // never has been an existing lock
                             // special case, no one has ever made a lock ever before
                             // this becomes analogous to putUnlessExists now
@@ -1478,47 +1473,21 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                             if (existingValue == null) {
                                 throw new IllegalStateException("Something is wrong with underlying locks. Consult support for guidance on manually examining and clearing locks from " + CassandraConstants.LOCK_TABLE + " table.");
                             }
-                            long remoteValue = Longs.fromByteArray(existingValue.getValue());
-
-                            if (remoteValue == CassandraConstants.GLOBAL_DDL_LOCK_CLEARED_VALUE) { // remote operation ended and it appears for now as if no one else is contending
-                                expected = ImmutableList.of(lockColumnWithValue(Longs.toByteArray(CassandraConstants.GLOBAL_DDL_LOCK_CLEARED_VALUE)));
-                            } else if (remoteValue == lastRemoteSeen) { // long lived or dead remote locker
-                                timesSeenSingleRemoteHost++;
-                                expected = ImmutableList.of(lockColumnWithValue(Longs.toByteArray(CassandraConstants.GLOBAL_DDL_LOCK_CLEARED_VALUE)));
-
-                                if (timesSeenSingleRemoteHost * CassandraConstants.TIME_BETWEEN_LOCK_ATTEMPT_ROUNDS_MILLIS > configManager.getConfig().schemaMutationTimeoutMillis() * 4) { // dead remote locker
-                                    // check current
-                                    Map<Cell, Value> currentValuesInDb = get(CassandraConstants.LOCK_TABLE, ImmutableMap.of(globalDdlLockCell, Long.MAX_VALUE));
-                                    long currentRemoteId = Longs.fromByteArray(currentValuesInDb.get(globalDdlLockCell).getContents());
-
-                                    if (currentRemoteId == lastRemoteSeen) {
-                                        // remote is dead, we waited long enough, we checked again, we have permission to replace it
-                                        // we're not the only one who has permission to replace it now, but that's fine
-                                        expected = ImmutableList.of(lockColumnWithValue(Longs.toByteArray(currentRemoteId)));
-                                    } else { // after waiting, it's either no one or a different remote now who won the lock before us
-                                        expected = ImmutableList.of(lockColumnWithValue(Longs.toByteArray(CassandraConstants.GLOBAL_DDL_LOCK_CLEARED_VALUE)));
-                                        if (!(remoteValue == CassandraConstants.GLOBAL_DDL_LOCK_CLEARED_VALUE)) {
-                                            lastRemoteSeen = currentRemoteId;
-                                        }
-                                        timesSeenSingleRemoteHost = 0;
-                                    }
-                                }
-                            } else { // new remote who won the lock before us
-                                expected = ImmutableList.of(lockColumnWithValue(Longs.toByteArray(CassandraConstants.GLOBAL_DDL_LOCK_CLEARED_VALUE))); // could get lucky and remote finishes cleanly before our next wait cycle
-                                lastRemoteSeen = remoteValue;
-                                timesSeenSingleRemoteHost = 0;
-                            }
+                            expected = ImmutableList.of(lockColumnWithValue(Longs.toByteArray(CassandraConstants.GLOBAL_DDL_LOCK_CLEARED_VALUE)));
                         }
 
-                        Thread.sleep(CassandraConstants.TIME_BETWEEN_LOCK_ATTEMPT_ROUNDS_MILLIS);
+                        if (timeSlept > configManager.getConfig().schemaMutationTimeoutMillis() * 4) { // possibly dead remote locker
+                            throw new TimeoutException(String.format("We have timed out waiting on the current lock holder.  We have tried " +
+                                    "to grab the lock for %d milliseconds unsuccessfully.  If this occurs repeatedly it may indicate that the " +
+                                    "current lock holder has died.", timeSlept));
+                        }
 
-                        casResult = client.cas(
-                                rowName, // key
-                                CassandraConstants.LOCK_TABLE.getQualifiedName(),
-                                expected, // expected previous
-                                ImmutableList.of(ourUpdate), // updates
-                                ConsistencyLevel.SERIAL,
-                                writeConsistency);
+
+                        long timeToSleep = CassandraConstants.TIME_BETWEEN_LOCK_ATTEMPT_ROUNDS_MILLIS * (long) Math.pow(2, timesAttempted++);
+                        Thread.sleep(timeToSleep);
+                        timeSlept += timeToSleep;
+
+                        casResult = writeLockWithCAS(client, rowName, expected, ourUpdate);
                     }
 
                     // we won the lock!
@@ -1530,6 +1499,17 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         }
 
         return perOperationNodeIdentifier;
+    }
+
+    private CASResult writeLockWithCAS(Client client, ByteBuffer rowName, List<Column> expectedValue, Column ourLockUpdate) throws TException {
+        return client.cas(
+                rowName, // key
+                CassandraConstants.LOCK_TABLE.getQualifiedName(),
+                expectedValue, // expected value currently holding
+                ImmutableList.of(ourLockUpdate), // update with our request id
+                ConsistencyLevel.SERIAL,
+                writeConsistency
+        )
     }
 
     private Column lockColumnWithValue(byte[] value) {
@@ -1547,13 +1527,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     Cell globalDdlLockCell = Cell.create(CassandraConstants.GLOBAL_DDL_LOCK.getBytes(), CassandraConstants.GLOBAL_DDL_LOCK_COLUMN_NAME.getBytes());
                     ByteBuffer rowName = ByteBuffer.wrap(globalDdlLockCell.getRowName());
 
-                    CASResult casResult = client.cas(
-                            rowName, // key
-                            CassandraConstants.LOCK_TABLE.getQualifiedName(),
-                            ImmutableList.of(lockColumnWithValue(Longs.toByteArray(perOperationNodeIdentifier))), // expected previous (our lock)
-                            ImmutableList.of(lockColumnWithValue(Longs.toByteArray(CassandraConstants.GLOBAL_DDL_LOCK_CLEARED_VALUE))), // updates (to Cleared Lock)
-                            ConsistencyLevel.SERIAL,
-                            writeConsistency);
+                    List<Column> ourExpectedLock = ImmutableList.of(lockColumnWithValue(Longs.toByteArray(perOperationNodeIdentifier)));
+                    Column clearedLock = lockColumnWithValue(Longs.toByteArray(CassandraConstants.GLOBAL_DDL_LOCK_CLEARED_VALUE));
+                    CASResult casResult = writeLockWithCAS(client, rowName, ourExpectedLock, clearedLock);
 
                     if (!casResult.isSuccess()) {
                         String remoteLock = "(unknown)";

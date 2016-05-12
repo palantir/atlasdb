@@ -373,7 +373,6 @@ public class CassandraClientPool {
        return runWithRetryOnHost(getRandomGoodHost().getHost(), f);
     }
 
-
     public <V, K extends Exception> V runWithRetryWithBackoff(FunctionCheckedException<Cassandra.Client, V, K> f) throws K {
         return runWithRetryOnHostWithBackoff(getRandomGoodHost().getHost(), f);
     }
