@@ -28,6 +28,7 @@ publishing {
 bintray {
     user = System.getenv('BINTRAY_USERNAME')
     key = System.getenv('BINTRAY_PASSWORD')
+    publish = true
     pkg {
         userOrg = 'palantir'
         repo = 'releases'
