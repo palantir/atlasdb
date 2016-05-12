@@ -52,7 +52,7 @@ public class CassandraDbLockTest {
     @Before
     public void setUp() {
         ImmutableCassandraKeyValueServiceConfig quickTimeoutConfig = CassandraTestSuite.CASSANDRA_KVS_CONFIG
-                .withSchemaMutationTimeoutMillis(1000);
+                .withSchemaMutationTimeoutMillis(500);
         kvs = CassandraKeyValueService.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(quickTimeoutConfig));
 
@@ -137,7 +137,7 @@ public class CassandraDbLockTest {
             });
             exception.expect(ExecutionException.class);
             exception.expectMessage("We have timed out waiting on the current schema mutation lock holder.");
-            exception.expectMessage("please contact support.");
+            exception.expectMessage("support");
             future.get(10, TimeUnit.SECONDS);
         } catch (Exception e) {
             throw e;

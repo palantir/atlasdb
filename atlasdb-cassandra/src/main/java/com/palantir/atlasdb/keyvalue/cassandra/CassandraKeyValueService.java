@@ -1461,10 +1461,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     CASResult casResult = writeLockWithCAS(client, rowName, expected, ourUpdate);
 
                     int timesAttempted = 0;
-                    long timeSlept = 0;
 
+                    Stopwatch stopwatch = Stopwatch.createStarted();
                     while (!casResult.isSuccess()) { // could have a timeout controlling this level, confusing for users to set both timeouts though
-                        Stopwatch stopwatch = Stopwatch.createStarted();
 
                         if (casResult.getCurrent_valuesSize() == 0) { // never has been an existing lock
                             // special case, no one has ever made a lock ever before
@@ -1481,8 +1480,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                         if (stopwatch.elapsed(TimeUnit.MILLISECONDS) > configManager.getConfig().schemaMutationTimeoutMillis() * 4) { // possibly dead remote locker
                             throw new TimeoutException(String.format("We have timed out waiting on the current schema mutation lock holder.  " +
                                     "We have tried to grab the lock for %d milliseconds unsuccessfully.  Please try restarting the AtlasDB client." +
-                                    "If this occurs repeatedly it may indicate that the current lock holder has died without releasing the lock." +
-                                    "This will require manual intervention to repair, please contact support.", TimeUnit.MILLISECONDS));
+                                    "If this occurs repeatedly it may indicate that the current lock holder has died without releasing the lock " +
+                                    "and will require manual intervention. This will require restarting all atlasDB clients and then using cqlsh " +
+                                    "to truncate the _locks table. Please contact support for help with this in important situations.", stopwatch.elapsed(TimeUnit.MILLISECONDS)));
                         }
 
 
