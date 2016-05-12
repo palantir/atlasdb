@@ -47,6 +47,11 @@ class AtlasConsoleServiceWrapper {
         slurp(service.getMetadata(table)) as Map
     }
 
+    def truncate(String table) throws IOException {
+        addToTransactionLog("truncate: " + table)
+        service.truncate(table)
+    }
+
     def getRows(query, TransactionToken token = this.token) throws IOException {
         addToTransactionLog("getRows: " + query.toString())
         abortIfError({ -> slurp(service.getRows(token, spit(query))) }, token)

@@ -34,6 +34,8 @@ public interface AtlasConsoleService {
 
     void delete(TransactionToken token, String data) throws IOException;
 
+    void truncate(String table) throws IOException;
+
     TransactionToken startTransaction();
 
     void commit(TransactionToken token);

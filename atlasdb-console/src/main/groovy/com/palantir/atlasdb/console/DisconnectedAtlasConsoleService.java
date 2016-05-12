@@ -61,6 +61,10 @@ public class DisconnectedAtlasConsoleService implements AtlasConsoleService {
     }
 
     @Override
+    public void truncate(String tableName) throws IOException {
+        fail();
+    }
+    @Override
     public TransactionToken startTransaction() {
         return fail();
     }
