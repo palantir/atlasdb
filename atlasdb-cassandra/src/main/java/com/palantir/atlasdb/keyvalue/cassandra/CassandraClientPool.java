@@ -276,7 +276,7 @@ public class CassandraClientPool {
                 }
 
                 try {
-                    runOnHost(liveHost, createInternalMetadataTable);
+                    runOnHost(liveHost, createInternalTables);
                     atLeastOneHostSaidWeHaveAMetadataTable = true;
                 } catch (Exception e) {
                     // don't fail here, want to give the user all the errors at once at the end
@@ -314,17 +314,24 @@ public class CassandraClientPool {
     }
 
     // for tables internal / implementation specific to this KVS; these also don't get metadata in metadata table, nor do they show up in getTablenames
-    private void createTableInternal(Client client, final TableReference tableRef) throws InvalidRequestException, SchemaDisagreementException, TException, NotFoundException {
-        KsDef ks = client.describe_keyspace(config.keyspace());
-        for (CfDef cf : ks.getCf_defs()) {
-            if (cf.getName().equalsIgnoreCase(internalTableName(tableRef))) {
-                return;
-            }
+    private void createTableInternal(Client client, TableReference tableRef) throws InvalidRequestException, SchemaDisagreementException, TException, NotFoundException {
+        if (tableAlreadyExists(client, internalTableName(tableRef))) {
+            return;
         }
         CfDef cf = CassandraConstants.getStandardCfDef(config.keyspace(), internalTableName(tableRef));
         client.system_add_column_family(cf);
         CassandraKeyValueServices.waitForSchemaVersions(client, tableRef.getQualifiedName(), config.schemaMutationTimeoutMillis());
         return;
+    }
+
+    private boolean tableAlreadyExists(Client client, String caseInsensitiveTableName) throws TException {
+        KsDef ks = client.describe_keyspace(config.keyspace());
+        for (CfDef cf : ks.getCf_defs()) {
+            if (cf.getName().equalsIgnoreCase(caseInsensitiveTableName)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void refreshTokenRanges() {
@@ -505,10 +512,11 @@ public class CassandraClientPool {
         }
     };
 
-    final FunctionCheckedException<Cassandra.Client, Void, Exception> createInternalMetadataTable = new FunctionCheckedException<Cassandra.Client, Void, Exception>() {
+    final FunctionCheckedException<Cassandra.Client, Void, Exception> createInternalTables = new FunctionCheckedException<Cassandra.Client, Void, Exception>() {
         @Override
         public Void apply(Cassandra.Client client) throws Exception {
             createTableInternal(client, CassandraConstants.METADATA_TABLE);
+            createTableInternal(client, CassandraConstants.LOCK_TABLE);
             return null;
         }
     };

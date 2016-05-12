@@ -24,7 +24,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.docker.compose.DockerComposition;
 import com.palantir.docker.compose.connection.DockerPort;
@@ -37,7 +36,8 @@ import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
         CassandraKeyValueServiceTransactionTest.class,
         CassandraKeyValueServiceSweeperTest.class,
         CassandraTimestampTest.class,
-        CassandraKeyValueServiceTest.class
+        CassandraKeyValueServiceTest.class,
+        CassandraDbLockTest.class
 })
 public class CassandraTestSuite {
 
@@ -45,11 +45,12 @@ public class CassandraTestSuite {
     @ClassRule
     public static final DockerComposition composition = DockerComposition.of("src/test/resources/docker-compose.yml")
             .waitingForHostNetworkedPort(THRIFT_PORT_NUMBER, toBeOpen())
+            .saveLogsTo("container-logs")
             .build();
 
     static InetSocketAddress CASSANDRA_THRIFT_ADDRESS;
 
-    static CassandraKeyValueServiceConfig CASSANDRA_KVS_CONFIG;
+    static ImmutableCassandraKeyValueServiceConfig CASSANDRA_KVS_CONFIG;
 
     @BeforeClass
     public static void waitUntilCassandraIsUp() throws IOException, InterruptedException {
