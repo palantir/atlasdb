@@ -40,6 +40,7 @@ public class CassandraTestSuite {
     @ClassRule
     public static final DockerComposition composition = DockerComposition.of("src/test/resources/docker-compose.yml")
             .waitingForHostNetworkedPort(THRIFT_PORT_NUMBER, toBeOpen())
+            .saveLogsTo("container-logs")
             .build();
 
     static InetSocketAddress CASSANDRA_THRIFT_ADDRESS;

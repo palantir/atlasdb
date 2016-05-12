@@ -15,12 +15,19 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.is;
+
+import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.IntStream;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -37,17 +44,23 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 public class CassandraDbLockTest {
     private static final long GLOBAL_DDL_LOCK_NEVER_ALLOCATED_VALUE = Long.MAX_VALUE - 1;
     private CassandraKeyValueService kvs;
+    private CassandraKeyValueService slowTimeoutKvs;
     private final ExecutorService executorService = Executors.newFixedThreadPool(4);
     public static final TableReference BAD_TABLE = TableReference.createFromFullyQualifiedName("foo.b@r");
     public static final TableReference GOOD_TABLE = TableReference.createFromFullyQualifiedName("foo.bar");
 
     @Before
     public void setUp() {
-        ImmutableCassandraKeyValueServiceConfig cassandraKvsConfig = CassandraTestSuite.CASSANDRA_KVS_CONFIG
+        ImmutableCassandraKeyValueServiceConfig quickTimeoutConfig = CassandraTestSuite.CASSANDRA_KVS_CONFIG
                 .withSchemaMutationTimeoutMillis(1000);
         kvs = CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(cassandraKvsConfig));
-        kvs.initializeFromFreshInstance();
+                CassandraKeyValueServiceConfigManager.createSimpleManager(quickTimeoutConfig));
+
+        ImmutableCassandraKeyValueServiceConfig slowTimeoutConfig = CassandraTestSuite.CASSANDRA_KVS_CONFIG
+                .withSchemaMutationTimeoutMillis(60 * 1000);
+        slowTimeoutKvs = CassandraKeyValueService.create(
+                CassandraKeyValueServiceConfigManager.createSimpleManager(slowTimeoutConfig));
+
         kvs.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
     }
 
@@ -73,19 +86,13 @@ public class CassandraDbLockTest {
     @Test
     public void testOnlyOneLockCanBeLockedAtATime() throws InterruptedException, ExecutionException, TimeoutException {
         long id = kvs.waitForSchemaMutationLock();
-        try {
-            Future future = asyncRunner(() -> kvs.waitForSchemaMutationLock());
-            exception.expect(TimeoutException.class);
-            future.get(3, TimeUnit.SECONDS);
-        } catch (Exception e) {
-            throw e;
-        } finally {
-            kvs.schemaMutationUnlock(id);
-        }
-    }
+        Future future = async(() -> kvs.schemaMutationUnlock(kvs.waitForSchemaMutationLock()));
+        Thread.sleep(3 * 1000);
+        assertThat(future.isDone(), is(false));
 
-    private Future asyncRunner(Runnable callable) {
-        return executorService.submit(callable);
+        kvs.schemaMutationUnlock(id);
+
+        future.get();
     }
 
     @Test
@@ -100,7 +107,7 @@ public class CassandraDbLockTest {
     @Test
     public void testUnlockIsSuccessful() throws InterruptedException, TimeoutException, ExecutionException {
         long id = kvs.waitForSchemaMutationLock();
-        Future future = asyncRunner(() -> {
+        Future future = async(() -> {
             long newId = kvs.waitForSchemaMutationLock();
             kvs.schemaMutationUnlock(newId);
         });
@@ -125,16 +132,41 @@ public class CassandraDbLockTest {
     public void testLocksTimeout() throws InterruptedException, ExecutionException, TimeoutException {
         long id = kvs.waitForSchemaMutationLock();
         try {
-            Future future = asyncRunner(() -> kvs.waitForSchemaMutationLock());
+            Future future = async(() -> {
+                kvs.schemaMutationUnlock(kvs.waitForSchemaMutationLock());
+            });
             exception.expect(ExecutionException.class);
             exception.expectMessage("We have timed out waiting on the current schema mutation lock holder.");
             exception.expectMessage("please contact support.");
-            //exception.expectCause(isA(TimeoutException.class));
             future.get(10, TimeUnit.SECONDS);
         } catch (Exception e) {
             throw e;
         } finally {
             kvs.schemaMutationUnlock(id);
         }
+    }
+
+    @Test
+    public void testCreatingMultipleTablesAtOnce() {
+        int threadCount =  16;
+        CyclicBarrier barrier = new CyclicBarrier(threadCount);
+        ForkJoinPool threadPool = new ForkJoinPool(threadCount);
+
+        threadPool.submit(() -> {
+            IntStream.range(0, threadCount).parallel().forEach(i -> {
+                try {
+                    barrier.await();
+                    slowTimeoutKvs.createTable(GOOD_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+                } catch (BrokenBarrierException | InterruptedException e) {
+                    // Do nothing
+                }
+            });
+        });
+
+        slowTimeoutKvs.dropTable(GOOD_TABLE);
+    }
+
+    private Future async(Runnable callable) {
+        return executorService.submit(callable);
     }
 }
