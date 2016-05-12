@@ -32,7 +32,7 @@ import com.palantir.timestamp.TimestampService;
 import io.airlift.airline.Command;
 import io.airlift.airline.Option;
 
-@Command(name = "cleanTransactionRange", description = "Clean a recently restored backup of a transaction table from an underlying database that lacks PITR backup semantics.")
+@Command(name = "clean-transactions", description = "Clean a recently restored backup of a transaction table from an underlying database that lacks PITR backup semantics.")
 public class CleanTransactionRange extends SingleBackendCommand {
 
     @Option(name = {"-s", "--start"},
