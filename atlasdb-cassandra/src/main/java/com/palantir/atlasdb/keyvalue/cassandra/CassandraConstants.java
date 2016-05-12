@@ -31,7 +31,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public class CassandraConstants {
     static final int LONG_RUNNING_QUERY_SOCKET_TIMEOUT_MILLIS = 62000;
-    public static final TableReference METADATA_TABLE = TableReference.createWithEmptyNamespace("_metadata");
     public static final int DEFAULT_REPLICATION_FACTOR = 3;
     public static final int DEFAULT_THRIFT_PORT = 9160;
     public static final int DEFAULT_CQL_PORT = 9042;
@@ -88,8 +87,20 @@ public class CassandraConstants {
     static final String LEVELED_COMPACTION_STRATEGY = "org.apache.cassandra.db.compaction.LeveledCompactionStrategy";
     static final String SIZE_TIERED_COMPACTION_STRATEGY = "org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy";
 
+
+    public static final TableReference METADATA_TABLE = TableReference.createWithEmptyNamespace("_metadata");
+    public static final TableReference LOCK_TABLE = TableReference.createWithEmptyNamespace("_locks");
     public static final Set<TableReference> HIDDEN_TABLES = ImmutableSet.of(
-            CassandraConstants.METADATA_TABLE, AtlasDbConstants.TIMESTAMP_TABLE);
+            AtlasDbConstants.TIMESTAMP_TABLE,
+            CassandraConstants.LOCK_TABLE,
+            CassandraConstants.METADATA_TABLE);
+
+    public static String GLOBAL_DDL_LOCK = "Global DDL lock";
+    public static String GLOBAL_DDL_LOCK_COLUMN_NAME = "id_with_lock";
+    public static long TIME_BETWEEN_LOCK_ATTEMPT_ROUNDS_MILLIS = 1000;
+    public static long GLOBAL_DDL_LOCK_CLEARED_VALUE = Long.MAX_VALUE;
+    public static long GLOBAL_DDL_LOCK_NEVER_ALLOCATED_VALUE = Long.MAX_VALUE - 1;
+
 
     // update CKVS.isMatchingCf if you update this method
     static CfDef getStandardCfDef(String keyspace, String internalTableName) {
