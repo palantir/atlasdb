@@ -378,16 +378,35 @@ public class CassandraClientPool {
         return runWithRetryOnHostWithBackoff(getRandomGoodHost().getHost(), f);
     }
 
+    private CassandraClientPoolingContainer getLivePoolFromHost(InetSocketAddress defaultHost) {
+        CassandraClientPoolingContainer hostPool = currentPools.get(defaultHost);
+
+        if (blacklistedHosts.containsKey(defaultHost) || hostPool == null) {
+            log.warn("Randomly redirected a query intended for host {} because it was not currently a live member of the pool.", defaultHost);
+            hostPool = getRandomGoodHost();
+        }
+
+        return hostPool;
+    }
 
     public <V, K extends Exception> V runWithRetryOnHost(InetSocketAddress specifiedHost, FunctionCheckedException<Cassandra.Client, V, K> f) throws K {
         int numTries = 0;
         while (true) {
-            CassandraClientPoolingContainer hostPool = currentPools.get(specifiedHost);
+            CassandraClientPoolingContainer hostPool = getLivePoolFromHost(specifiedHost);
 
-            if (blacklistedHosts.containsKey(specifiedHost) || hostPool == null) {
-                log.warn("Randomly redirected a query intended for host {} because it was not currently a live member of the pool.", specifiedHost);
-                hostPool = getRandomGoodHost();
+            try {
+                return hostPool.runWithPooledResource(f);
+            } catch (Exception e) {
+                numTries++;
+                this.<K>handleException(numTries, hostPool.getHost(), e);
             }
+        }
+    }
+
+    public <V, K extends Exception> V runWithRetryOnHostWithBackoff(InetSocketAddress specifiedHost, FunctionCheckedException<Cassandra.Client, V, K> f) throws K {
+        int numTries = 0;
+        while (true) {
+            CassandraClientPoolingContainer hostPool = getLivePoolFromHost(specifiedHost);
 
             try {
                 return hostPool.runWithPooledResource(f);
@@ -397,25 +416,6 @@ public class CassandraClientPool {
                 try {
                     Thread.sleep(numTries * 1000);
                 } catch (InterruptedException g) {}
-            }
-        }
-    }
-
-    public <V, K extends Exception> V runWithRetryOnHostWithBackoff(InetSocketAddress specifiedHost, FunctionCheckedException<Cassandra.Client, V, K> f) throws K {
-        int numTries = 0;
-        while (true) {
-            CassandraClientPoolingContainer hostPool = currentPools.get(specifiedHost);
-
-            if (blacklistedHosts.containsKey(specifiedHost) || hostPool == null) {
-                log.warn("Randomly redirected a query intended for host {} because it was not currently a live member of the pool.", specifiedHost);
-                hostPool = getRandomGoodHost();
-            }
-
-            try {
-                return hostPool.runWithPooledResource(f);
-            } catch (Exception e) {
-                numTries++;
-                this.<K>handleException(numTries, hostPool.getHost(), e);
             }
         }
     }
