@@ -4,7 +4,7 @@ apply from: '../gradle/shared.gradle'
 
 apply plugin: 'application'
 mainClassName = 'com.palantir.atlasdb.cli.AtlasCli'
-applicationName = 'atlas-cli'
+applicationName = 'atlasdb'
 
 dependencies {
   compile project(':atlasdb-server')

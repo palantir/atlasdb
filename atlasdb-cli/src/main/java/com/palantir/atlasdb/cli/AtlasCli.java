@@ -18,6 +18,8 @@ package com.palantir.atlasdb.cli;
 import java.util.concurrent.Callable;
 
 import com.palantir.atlasdb.cli.command.CleanTransactionRange;
+import com.palantir.atlasdb.cli.command.KvsMigrationCommand;
+import com.palantir.atlasdb.cli.command.SweepCommand;
 import com.palantir.atlasdb.cli.command.TimestampCommand;
 
 import io.airlift.airline.Cli;
@@ -26,10 +28,15 @@ import io.airlift.airline.Help;
 public class AtlasCli {
 
     private static Cli<Callable> buildCli() {
-        Cli.CliBuilder<Callable> builder = Cli.<Callable>builder("atlas-cli")
+        Cli.CliBuilder<Callable> builder = Cli.<Callable>builder("atlasdb")
                 .withDescription("Perform common AtlasDB tasks")
                 .withDefaultCommand(Help.class)
-                .withCommands(Help.class, TimestampCommand.class, CleanTransactionRange.class);
+                .withCommands(
+                        Help.class,
+                        TimestampCommand.class,
+                        CleanTransactionRange.class,
+                        SweepCommand.class,
+                        KvsMigrationCommand.class);
         return builder.build();
     }
 

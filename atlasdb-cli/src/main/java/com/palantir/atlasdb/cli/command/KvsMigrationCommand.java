@@ -37,7 +37,7 @@ import com.palantir.common.base.Throwables;
 import io.airlift.airline.Command;
 import io.airlift.airline.Option;
 
-@Command(name = "run", description = "Migrate your data from one key value service to another.")
+@Command(name = "migrate", description = "Migrate your data from one key value service to another.")
 public class KvsMigrationCommand implements Callable<Integer> {
     @Option(name = {"-fc", "--fromConfig"},
             title = "CONFIG PATH",
