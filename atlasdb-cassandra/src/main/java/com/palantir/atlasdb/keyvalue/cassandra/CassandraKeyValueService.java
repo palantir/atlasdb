@@ -165,6 +165,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     protected void init() {
         clientPool.runOneTimeStartupChecks();
+        createTable(CassandraConstants.METADATA_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA);
         lowerConsistencyWhenSafe();
         upgradeFromOlderInternalSchema();
         CassandraKeyValueServices.failQuickInInitializationIfClusterAlreadyInInconsistentState(clientPool, configManager.getConfig());
@@ -1283,7 +1284,12 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         internalPutMetadataForTables(tableRefToMetadata, true);
     }
 
-    private void internalPutMetadataForTables(final Map<TableReference, byte[]> tableNameToMetadata, final boolean possiblyNeedToPerformSettingsChanges) {
+    private void internalPutMetadataForTables(final Map<TableReference, byte[]> unfilteredTableNameToMetadata, final boolean possiblyNeedToPerformSettingsChanges) {
+        Map<TableReference, byte[]> tableNameToMetadata = Maps.filterValues(unfilteredTableNameToMetadata, Predicates.not(Predicates.equalTo(AtlasDbConstants.EMPTY_TABLE_METADATA)));
+        if (tableNameToMetadata.isEmpty()) {
+            return;
+        }
+
         final Map<Cell, byte[]> metadataRequestedForUpdate = Maps.newHashMapWithExpectedSize(tableNameToMetadata.size());
         for (Entry<TableReference, byte[]> tableEntry : tableNameToMetadata.entrySet()) {
             metadataRequestedForUpdate.put(getMetadataCell(tableEntry.getKey()), tableEntry.getValue());
