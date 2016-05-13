@@ -19,7 +19,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.Callable;
 
-import com.palantir.atlasdb.cli.services.ServicesConfigModule;
+import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
 
 import io.airlift.airline.Option;
@@ -37,19 +37,19 @@ public abstract class AbstractCommand implements Callable<Integer> {
             description = "field in the config yaml file that contains the atlasdb configuration root")
     private String configRoot = AtlasDbConfigs.ATLASDB_CONFIG_ROOT;
 
-    private ServicesConfigModule scm;
+    private AtlasDbConfig config;
     
-    protected ServicesConfigModule getServicesConfigModule() {
-        if (scm == null) {
+    protected AtlasDbConfig getAtlasDbConfig() {
+        if (config == null) {
             try {
-                scm = ServicesConfigModule.create(configFile, configRoot);
+                config = AtlasDbConfigs.load(configFile, configRoot);
             } catch (IOException e) {
                 throw new RuntimeException(String.format("IOException thrown reading configuration file: %s",
                         configFile.getPath()), e);
             }
         }
         
-        return scm;
+        return config;
     }
 
 }

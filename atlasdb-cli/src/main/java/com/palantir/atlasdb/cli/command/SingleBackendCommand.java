@@ -21,6 +21,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.cli.services.AtlasDbServices;
 import com.palantir.atlasdb.cli.services.AtlasDbServicesFactory;
 import com.palantir.atlasdb.cli.services.DaggerAtlasDbServices;
+import com.palantir.atlasdb.cli.services.ServicesConfigModule;
 import com.palantir.common.base.Throwables;
 
 public abstract class SingleBackendCommand extends AbstractCommand {
@@ -37,12 +38,13 @@ public abstract class SingleBackendCommand extends AbstractCommand {
     public abstract int execute(AtlasDbServices services);
 
     private AtlasDbServices connect() throws IOException {
-        return DaggerAtlasDbServices.builder().servicesConfigModule(getServicesConfigModule()).build();
+        ServicesConfigModule scm = ServicesConfigModule.create(getAtlasDbConfig());
+        return DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
     }
 
     @VisibleForTesting
     public <T extends AtlasDbServices> T connect(AtlasDbServicesFactory factory) throws IOException {
-        return factory.connect(getServicesConfigModule());
+        return factory.connect(ServicesConfigModule.create(getAtlasDbConfig()));
     }
 
 }
