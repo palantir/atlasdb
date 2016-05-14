@@ -122,7 +122,7 @@ public class CassandraDbLockTest {
         try {
             kvs.createTable(BAD_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
         } catch (Exception e) {
-            e.printStackTrace();
+            // failure expected
         }
         kvs.createTable(GOOD_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
         kvs.dropTable(GOOD_TABLE);
