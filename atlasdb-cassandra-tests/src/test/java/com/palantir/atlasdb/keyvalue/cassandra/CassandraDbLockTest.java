@@ -49,15 +49,18 @@ public class CassandraDbLockTest {
     public static final TableReference BAD_TABLE = TableReference.createFromFullyQualifiedName("foo.b@r");
     public static final TableReference GOOD_TABLE = TableReference.createFromFullyQualifiedName("foo.bar");
 
+    private static final int QUICK_TIMEOUT_MILLIS = 500;
+    private static final int SLOW_TIMEOUT_MILLIS = 60_000;
+
     @Before
     public void setUp() {
         ImmutableCassandraKeyValueServiceConfig quickTimeoutConfig = CassandraTestSuite.CASSANDRA_KVS_CONFIG
-                .withSchemaMutationTimeoutMillis(500);
+                .withSchemaMutationTimeoutMillis(QUICK_TIMEOUT_MILLIS);
         kvs = CassandraKeyValueService.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(quickTimeoutConfig));
 
         ImmutableCassandraKeyValueServiceConfig slowTimeoutConfig = CassandraTestSuite.CASSANDRA_KVS_CONFIG
-                .withSchemaMutationTimeoutMillis(60 * 1000);
+                .withSchemaMutationTimeoutMillis(SLOW_TIMEOUT_MILLIS);
         slowTimeoutKvs = CassandraKeyValueService.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(slowTimeoutConfig));
 
@@ -85,14 +88,26 @@ public class CassandraDbLockTest {
 
     @Test
     public void testOnlyOneLockCanBeLockedAtATime() throws InterruptedException, ExecutionException, TimeoutException {
-        long id = kvs.waitForSchemaMutationLock();
-        Future future = async(() -> kvs.schemaMutationUnlock(kvs.waitForSchemaMutationLock()));
-        Thread.sleep(3 * 1000);
-        assertThat(future.isDone(), is(false));
+        long firstLock = kvs.waitForSchemaMutationLock();
 
-        kvs.schemaMutationUnlock(id);
+        Future tryToAcquireSecondLock = async(() -> kvs.waitForSchemaMutationLock());
 
-        future.get();
+        Thread.sleep(CassandraKeyValueService.SCHEMA_MUTATION_TIMEOUT_MULTIPLIER * QUICK_TIMEOUT_MILLIS);
+        assertThatFutureDidNotSucceedYet(tryToAcquireSecondLock);
+
+        tryToAcquireSecondLock.cancel(true);
+        kvs.schemaMutationUnlock(firstLock);
+    }
+
+    private void assertThatFutureDidNotSucceedYet(Future future) throws InterruptedException {
+        if (future.isDone()) {
+            try {
+                future.get();
+                throw new AssertionError("Future task should have failed but finished successfully");
+            } catch (ExecutionException e) {
+                // if execution is done, we expect it to have failed
+            }
+        }
     }
 
     @Test

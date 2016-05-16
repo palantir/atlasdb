@@ -132,6 +132,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     static final Logger log = LoggerFactory.getLogger(CassandraKeyValueService.class);
 
+    public static final int SCHEMA_MUTATION_TIMEOUT_MULTIPLIER = 4;
+
     private static final Function<Entry<Cell, Value>, Long> ENTRY_SIZING_FUNCTION = new Function<Entry<Cell, Value>, Long>() {
         @Override
         public Long apply(Entry<Cell, Value> input) {
@@ -1483,7 +1485,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                             expected = ImmutableList.of(lockColumnWithValue(Longs.toByteArray(CassandraConstants.GLOBAL_DDL_LOCK_CLEARED_VALUE)));
                         }
 
-                        if (stopwatch.elapsed(TimeUnit.MILLISECONDS) > configManager.getConfig().schemaMutationTimeoutMillis() * 4) { // possibly dead remote locker
+                        if (stopwatch.elapsed(TimeUnit.MILLISECONDS) > configManager.getConfig().schemaMutationTimeoutMillis() * SCHEMA_MUTATION_TIMEOUT_MULTIPLIER) { // possibly dead remote locker
                             throw new TimeoutException(String.format("We have timed out waiting on the current schema mutation lock holder.  " +
                                     "We have tried to grab the lock for %d milliseconds unsuccessfully.  Please try restarting the AtlasDB client." +
                                     "If this occurs repeatedly it may indicate that the current lock holder has died without releasing the lock " +
