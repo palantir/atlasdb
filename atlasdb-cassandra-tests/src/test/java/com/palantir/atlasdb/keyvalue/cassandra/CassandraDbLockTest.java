@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
-
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutionException;
@@ -85,14 +82,15 @@ public class CassandraDbLockTest {
 
     @Test
     public void testOnlyOneLockCanBeLockedAtATime() throws InterruptedException, ExecutionException, TimeoutException {
-        long id = kvs.waitForSchemaMutationLock();
-        Future future = async(() -> kvs.schemaMutationUnlock(kvs.waitForSchemaMutationLock()));
+        long firstLock = kvs.waitForSchemaMutationLock();
+
+        Future tryToAcquireSecondLock = async(() -> kvs.waitForSchemaMutationLock());
+
         Thread.sleep(3 * 1000);
-        assertThat(future.isDone(), is(false));
+        assertThatFutureDidNotSucceedYet(tryToAcquireSecondLock);
 
-        kvs.schemaMutationUnlock(id);
-
-        future.get();
+        tryToAcquireSecondLock.cancel(true);
+        kvs.schemaMutationUnlock(firstLock);
     }
 
     @Test
@@ -168,5 +166,16 @@ public class CassandraDbLockTest {
 
     private Future async(Runnable callable) {
         return executorService.submit(callable);
+    }
+
+    private void assertThatFutureDidNotSucceedYet(Future future) throws InterruptedException {
+        if (future.isDone()) {
+            try {
+                future.get();
+                throw new AssertionError("Future task should have failed but finished successfully");
+            } catch (ExecutionException e) {
+                // if execution is done, we expect it to have failed
+            }
+        }
     }
 }
