@@ -13,8 +13,6 @@ behavior and performance tuning parameters.
 There is one main way to add a table to the schema, along with two
 variants.
 
-{%raw%}
-
 .. code:: java
 
     schema.addTableDefinition("table_name_here", new TableDefinition() {{
@@ -28,8 +26,6 @@ variants.
         ... //behavior/perf options
     }});
 
-{%endraw%}
-
 The ``addTableDefinition`` method takes two arguments: the name of the
 table to be used in the key-value store itself, and a table definition.
 The table name should be specified in snake\_case. The details of the
@@ -40,29 +36,21 @@ If there are multiple tables which will have the same definition but
 will have different names, the first variation of the table definition
 can be used:
 
-{%raw%}
-
 .. code:: java
 
     schema.addDefinitionForTables(ImmutableSet.of("table1_name", "table2_name"), new TableDefinition() {{
         ...
     }});
 
-{%endraw%}
-
 If the table should not exist for more than a transaction and is
 primarily to conserve server memory, then a table can be explicitly
 declared a temp table using the second variation:
-
-{%raw%}
 
 .. code:: java
 
     schema.addTempTableDefinition("temp_table_name", new TableDefinition() {{
         ...
     }});
-
-{%endraw%}
 
 The AtlasDB developers however strongly recommend against usage of this
 form, since they have not found it to be particularly useful in making
@@ -88,8 +76,6 @@ from multiple tables) a regular table must be defined for the index, and
 synchronization between the base table(s) and index must be done
 manually.
 
-{%raw%}
-
 .. code:: java
 
     schema.addIndexDefinition("index_name_here", new IndexDefinition(IndexType.ADDITIVE /* or .CELL_REFERENCING */) {{
@@ -102,8 +88,6 @@ manually.
         ... //behavior/perf options
     }});
 
-{%endraw%}
-
 Note that, in the case where the index should only get a row from the
 base table if some condition is met, the ``onCondition`` clause can be
 added to the index definition. The value of the cell with the specified
@@ -112,15 +96,11 @@ column is accessed by the ``_value`` term.
 If multiple indices should be defined for the same index definition,
 then the following variant can be used:
 
-{%raw%}
-
 .. code:: java
 
     schema.addAdditiveIndexesForDefinition(ImmutableSet.of("index1_name", "index2_name"), new IndexDefinition(...) {{
         ...
     }});
-
-{%endraw%}
 
 The AtlasDB Developers however strongly recommend against usage of this
 form, since they have not found it to be particularly useful in making
@@ -246,8 +226,7 @@ Optional parameter. Specifies that only rows which satisfy the specified
 boolean expression on the specified source column will be added to the
 index. The source column must be a valid component name from the source
 table, and the boolean expression must be a valid java expression, with
-``_value`` denoting the value of the source column. *Not available
-before* *3.12.4.3-r1*
+``_value`` denoting the value of the source column.
 
 Row Definitions
 ---------------
@@ -255,17 +234,17 @@ Row Definitions
 Each row is uniquely identified by its ``rowName``. Each ``rowName`` is
 composed of at least one ``rowComponent``. Therefore each row is
 uniquely identified by the permutation of its ``rowComponent`` values.
-Order matters. For example, the ``OBJECT_TABLE`` definition includes:
+Order matters. For example,
 
 .. code:: java
 
     rowName();
         rowComponent("object_id",           ValueType.FIXED_LONG);
-        rowComponent("realm_id",            ValueType.VAR_LONG); partition(REALM_PARTITIONER);
+        rowComponent("group_id",            ValueType.VAR_LONG); partition(GROUP_PARTITIONER);
         rowComponent("fragment_version_id", ValueType.VAR_LONG);
 
 This means that each row in this table is uniquely identified by a
-3-tuple consisting of an object ID, a realm ID, and a fragment version
+3-tuple consisting of an object ID, a group ID, and a fragment version
 ID.
 
 Only the last ``rowComponent`` of a ``rowName`` can be set to
@@ -304,8 +283,8 @@ partition, while spreading rows equally across all partitions.
     public UniformRowNamePartitioner uniform();
 
 By default, all row components use ``partition(uniform())``. If however,
-certain values are certain to be stored/access very often (the base
-realm of the object model, for example), they can have partitions
+certain values are certain to be stored/access very often (the group ids
+of the objects, in the above example), they can have partitions
 explicitly created for them by specifying ``explicit(...)``. Note that
 use of ``partition()`` assumes the order storage of rows; if there is no
 good way to partition the rows uniformly and range requests are not
