@@ -1,6 +1,6 @@
-=======================
+==========================
 Enabling Cassandra Tracing
-=======================
+==========================
 
 Overview
 ========
@@ -10,7 +10,7 @@ your cassandra cluster, you'll want to enable tracing.  To learn more
 about tracing itself check out datastax's `Request tracing in Cassandra 
 1.2 <http://www.datastax.com/dev/blog/tracing-in-cassandra-1-2>`__ and `TRACING <https://docs.datastax.com/en/cql/3.3/cql/cql_reference/tracing_r.html>`__.
 
-To enable tracing you need to provide a configraiton file called 
+To enable tracing you need to provide a configuration file called 
 ``atlasdb_tracing.prefs`` and place it in the user.dir directory of your 
 java process.
 
@@ -27,7 +27,7 @@ the following parameters:
 
     tracing_enabled: true           # self explanatory
     trace_probability: 1.0          # the probability we trace an eligible query
-    min_duration_to_log_ms: 1000    # when a query is traced the minimum amount of time it has to take for us to actually log it
+    min_duration_to_log_ms: 1000    # the minimum amount of time a traced query has to take to actually be logged
 
     # a comma separated list of tables whose queries are eligible for tracing
     # for namespaced tables the table entry must be <namespace>.<table>
