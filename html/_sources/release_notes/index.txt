@@ -1,9 +1,10 @@
 =============
-Miscellaneous
+Releases
 =============
 
 .. toctree::
    :maxdepth: 1
    :titlesonly:
 
-   contributing
+   release-notes
+   release-process

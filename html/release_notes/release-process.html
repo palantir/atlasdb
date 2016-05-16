@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Overview &mdash; AtlasDB 0.3.34 documentation</title>
+  <title>Release Process &mdash; AtlasDB 0.3.34 documentation</title>
   
 
   
@@ -33,8 +33,8 @@
 
   
     <link rel="top" title="AtlasDB 0.3.34 documentation" href="../index.html"/>
-        <link rel="next" title="Benefits" href="benefits.html"/>
-        <link rel="prev" title="Welcome to AtlasDB’s documentation!" href="../index.html"/> 
+        <link rel="up" title="Releases" href="index.html"/>
+        <link rel="prev" title="Changelog" href="release-notes.html"/> 
 
   
   <script src="../_static/js/modernizr.min.js"></script>
@@ -84,18 +84,19 @@
             
             
                 <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Overview</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="benefits.html">Benefits</a></li>
-<li class="toctree-l2"><a class="reference internal" href="atlas_server_api.html">Atlas Server Api</a></li>
-<li class="toctree-l2"><a class="reference internal" href="getting_started.html">Getting Started</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="../overview/index.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../schemas/index.html">Schemas</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../transactions/index.html">Transactions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../configuration/index.html">Configuration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../cluster_management/index.html">Cluster Management</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../miscellaneous/index.html">Miscellaneous</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../release_notes/index.html">Releases</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Releases</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="release-notes.html">Changelog</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Release Process</a><ul class="simple">
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 
             
@@ -126,11 +127,13 @@
   <ul class="wy-breadcrumbs">
     <li><a href="../index.html">Docs</a> &raquo;</li>
       
-    <li>Overview</li>
+          <li><a href="index.html">Releases</a> &raquo;</li>
+      
+    <li>Release Process</li>
       <li class="wy-breadcrumbs-aside">
         
           
-            <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/overview/index.rst" class="fa fa-github"> Edit on GitHub</a>
+            <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/release_notes/release-process.rst" class="fa fa-github"> Edit on GitHub</a>
           
         
       </li>
@@ -140,22 +143,43 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="overview">
-<h1>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="what-is-atlasdb">
-<h2>What is AtlasDB?<a class="headerlink" href="#what-is-atlasdb" title="Permalink to this headline">¶</a></h2>
-<p>AtlasDB is a transaction layer built on top of any generic key value
-store. Relational databases are good at OLTP (many small transactions)
-style queries and OLAP (ad-hoc large queries). AtlasDB doubles down on
-the OLTP style workflows at the expense of OLAP. Queries are very
-explicit and query time can easily be back of the enveloped.</p>
-<div class="toctree-wrapper compound">
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="benefits.html">Benefits</a></li>
-<li class="toctree-l1"><a class="reference internal" href="atlas_server_api.html">Atlas Server Api</a></li>
-<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a></li>
-</ul>
+  <div class="section" id="release-process">
+<h1>Release Process<a class="headerlink" href="#release-process" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="release-notes">
+<h2>Release Notes<a class="headerlink" href="#release-notes" title="Permalink to this headline">¶</a></h2>
+<p>When you make a PR to Atlas, a release notes change must be made to record your change or an explicit reason given why it is unnecessary. At the same time, you should consider whether your change is breaking or not and update the version number appropriately based on the previous release number.</p>
 </div>
+<div class="section" id="release-schedule">
+<h2>Release Schedule<a class="headerlink" href="#release-schedule" title="Permalink to this headline">¶</a></h2>
+<p>We aim to release once a week, but may release faster to patch bugs or
+slower if there is low code churn. We are still setting up a formal
+branching model, but for now the <code class="docutils literal"><span class="pre">develop</span></code> branch serves as
+<code class="docutils literal"><span class="pre">develop</span></code> and <code class="docutils literal"><span class="pre">release</span></code> (we have no <code class="docutils literal"><span class="pre">release</span></code> branch) and we merge
+releases into <code class="docutils literal"><span class="pre">master</span></code>. This should change soon.</p>
+</div>
+<div class="section" id="cutting-for-release">
+<h2>Cutting for Release<a class="headerlink" href="#cutting-for-release" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic">
+<li><p class="first">Checkout the commit to tag for release (probably
+<code class="docutils literal"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">origin/develop</span></code>).</p>
+</li>
+<li><p class="first">Tag the commit: <code class="docutils literal"><span class="pre">git</span> <span class="pre">tag</span> <span class="pre">-a</span> <span class="pre">&lt;version&gt;</span></code>.</p>
+</li>
+<li><p class="first">Push the tag to Github:
+<code class="docutils literal"><span class="pre">git</span> <span class="pre">push</span> <span class="pre">origin</span> <span class="pre">&lt;version&gt;:refs/tags/&lt;version&gt;</span></code>.</p>
+</li>
+<li><p class="first">After a short wait you can publish the artifacts on Bintray by going
+to the <a class="reference external" href="https://bintray.com/palantir/releases/atlasdb/view">AtlasDB
+page</a>.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">You must have admin privledges on Bintray for this to work.</p>
+</div>
+</li>
+<li><p class="first">Edit the release notes that will appear for editing on AtlasDB GitHub <a class="reference external" href="https://github.com/palantir/atlasdb/releases">release
+page</a>.</p>
+</li>
+</ol>
 </div>
 </div>
 
@@ -166,10 +190,8 @@ explicit and query time can easily be back of the enveloped.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="benefits.html" class="btn btn-neutral float-right" title="Benefits" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
       
-      
-        <a href="../index.html" class="btn btn-neutral" title="Welcome to AtlasDB’s documentation!" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="release-notes.html" class="btn btn-neutral" title="Changelog" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

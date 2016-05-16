@@ -18,3 +18,4 @@ Contents:
    configuration/index
    cluster_management/index
    miscellaneous/index
+   release_notes/index
