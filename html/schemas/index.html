@@ -155,7 +155,7 @@
 <h2>What to Expect<a class="headerlink" href="#what-to-expect" title="Permalink to this headline">¶</a></h2>
 <p>This guide should give you the basics on:</p>
 <ol class="arabic simple">
-<li>How an atlasdb schema file is organized.</li>
+<li>How an AtlasDB schema file is organized.</li>
 <li>What commands are available.</li>
 <li>When they can be used and what they do.</li>
 <li>How they translate to the underlying database.</li>
@@ -164,7 +164,7 @@
 <div class="section" id="background">
 <h2>Background<a class="headerlink" href="#background" title="Permalink to this headline">¶</a></h2>
 <p>Data in AtlasDB is stored as a series of key-value pairs, structured
-into tables, grouped into namespaces. An atlasdb <strong>schema</strong> defines a
+into tables, grouped into namespaces. An AtlasDB <strong>schema</strong> defines a
 set of named tables, and for each <strong>table</strong> defines the key-value pairs
 which can be stored, the kind of operations which can be performed, and
 any relations between tables which should be maintained. A <strong>namespace</strong>
@@ -195,7 +195,7 @@ one-key-to-many-rows SQL map. Another way to compare the two layouts is
 that both layout have defined rows and columns, but the named column
 layout allows a row to have a subset of the named columns, whereas the
 dynamic layout allows a row to have more than one full column set.</p>
-<p>There are four main operations which can be conducted against an atlasdb
+<p>There are four main operations which can be conducted against an AtlasDB
 table: get, getRange, put, and delete. The <strong>get</strong> operation retrieves
 all cell-value pairs with the specified row values. The <strong>getRange</strong>
 operation retrieves all cell-value pairs whose row values either fall
@@ -238,7 +238,7 @@ operation removes the specified cell-value pairs from the table.</p>
 <span class="p">}</span>
 </pre></div>
 </div>
-<p>Contrary to the standard SQL format, an atlasdb schema is written in
+<p>Contrary to the standard SQL format, an AtlasDB schema is written in
 java, in a java class, as a sequence of calls to a schema builder and
 anonymous inner classes. The java class is then run, which generates
 java classes for creating, accessing, and manipulating these tables.</p>
@@ -248,7 +248,7 @@ java classes for creating, accessing, and manipulating these tables.</p>
 buffer GeneratedMessages, and palantir Persistables.</p>
 <div class="section" id="primitive-valuetypes">
 <h4>Primitive ValueTypes<a class="headerlink" href="#primitive-valuetypes" title="Permalink to this headline">¶</a></h4>
-<p>For simple data types, atlasdb represents them by ValueType. Note that a
+<p>For simple data types, AtlasDB represents them by ValueType. Note that a
 java primitive type can have multiple ValueTypes associated with it.
 Each ValueType represents a different method of storing that type in the
 database, and thus affects storage efficiency and search
@@ -345,20 +345,20 @@ values, but the former will not.)</p>
 </div>
 <div class="section" id="protobufs-and-persistables">
 <h4>Protobufs and Persistables<a class="headerlink" href="#protobufs-and-persistables" title="Permalink to this headline">¶</a></h4>
-<p>For protobufs and persistables, atlasdb will handle persisting and
+<p>For protobufs and persistables, AtlasDB will handle persisting and
 hydrating objects to and from byte arrays. Otherwise, they function
 similarly to ValueType.BLOB. However, for structured data it is
 recommended that you store them as protobufs or persistables rather than
-BLOBs - this is because atlasdb can then extract component values from
+BLOBs - this is because AtlasDB can then extract component values from
 the structs to create indexes.</p>
 </div>
 </div>
 <div class="section" id="schema-objects">
 <h3>Schema Objects<a class="headerlink" href="#schema-objects" title="Permalink to this headline">¶</a></h3>
-<p>The atlasdb schema contains four kinds of top level objects - tables,
+<p>The AtlasDB schema contains four kinds of top level objects - tables,
 indexes, stream stores, and cleanup tasks.</p>
 <ul class="simple">
-<li><strong>Tables</strong> are the base structure for storing information in atlasdb.
+<li><strong>Tables</strong> are the base structure for storing information in AtlasDB.
 Similar to SQL tables in idea, with base layout described in the
 section above.</li>
 <li><strong>Indexes</strong> are tables which explicitly base their content off of a

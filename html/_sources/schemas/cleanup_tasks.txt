@@ -2,7 +2,7 @@
 Cleanup Tasks
 =============
 
-Cleanup tasks allow atlasdb to essentially implement ON DELETE CASCADE.
+Cleanup tasks allow AtlasDB to essentially implement ON DELETE CASCADE.
 If there is an index that marks usage of a shared resource, effectively
 reference counting this resource, then a cleanup task can be used to see
 if all references are gone and remove the resource if it is no longer

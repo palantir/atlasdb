@@ -150,13 +150,12 @@
 <h1>Tables and Indices<a class="headerlink" href="#tables-and-indices" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="tables">
 <h2>Tables<a class="headerlink" href="#tables" title="Permalink to this headline">¶</a></h2>
-<p>Tables are the base structure for storing data in atlasdb. Every table
+<p>Tables are the base structure for storing data in AtlasDB. Every table
 has a name, a row specification, a column-value specification, an
 optional set of constraints on the table, and an optional set of
 behavior and performance tuning parameters.</p>
 <p>There is one main way to add a table to the schema, along with two
 variants.</p>
-<p>{%raw%}</p>
 <div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">schema</span><span class="o">.</span><span class="n">addTableDefinition</span><span class="p">(</span><span class="s2">&quot;table_name_here&quot;</span><span class="p">,</span> <span class="n">new</span> <span class="n">TableDefinition</span><span class="p">()</span> <span class="p">{{</span>
     <span class="n">javaName</span><span class="p">(</span><span class="s2">&quot;JavaTableName&quot;</span><span class="p">);</span> <span class="o">//</span><span class="n">optional</span>
     <span class="n">rowName</span><span class="p">();</span>
@@ -169,7 +168,6 @@ variants.</p>
 <span class="p">}});</span>
 </pre></div>
 </div>
-<p>{%endraw%}</p>
 <p>The <code class="docutils literal"><span class="pre">addTableDefinition</span></code> method takes two arguments: the name of the
 table to be used in the key-value store itself, and a table definition.
 The table name should be specified in snake_case. The details of the
@@ -178,36 +176,32 @@ Definition&#8221; section.</p>
 <p>If there are multiple tables which will have the same definition but
 will have different names, the first variation of the table definition
 can be used:</p>
-<p>{%raw%}</p>
 <div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">schema</span><span class="o">.</span><span class="n">addDefinitionForTables</span><span class="p">(</span><span class="n">ImmutableSet</span><span class="o">.</span><span class="n">of</span><span class="p">(</span><span class="s2">&quot;table1_name&quot;</span><span class="p">,</span> <span class="s2">&quot;table2_name&quot;</span><span class="p">),</span> <span class="n">new</span> <span class="n">TableDefinition</span><span class="p">()</span> <span class="p">{{</span>
     <span class="o">...</span>
 <span class="p">}});</span>
 </pre></div>
 </div>
-<p>{%endraw%}</p>
 <p>If the table should not exist for more than a transaction and is
 primarily to conserve server memory, then a table can be explicitly
 declared a temp table using the second variation:</p>
-<p>{%raw%}</p>
 <div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">schema</span><span class="o">.</span><span class="n">addTempTableDefinition</span><span class="p">(</span><span class="s2">&quot;temp_table_name&quot;</span><span class="p">,</span> <span class="n">new</span> <span class="n">TableDefinition</span><span class="p">()</span> <span class="p">{{</span>
     <span class="o">...</span>
 <span class="p">}});</span>
 </pre></div>
 </div>
-<p>{%endraw%}</p>
 <p>The AtlasDB developers however strongly recommend against usage of this
 form, since they have not found it to be particularly useful in making
-atlasdb queries, and thus have never used it themselves, and thus have
+AtlasDB queries, and thus have never used it themselves, and thus have
 never tested to see if it actually works.</p>
 </div>
 <div class="section" id="indices">
 <h2>Indices<a class="headerlink" href="#indices" title="Permalink to this headline">¶</a></h2>
 <p>A common pattern in database schemas is to define an index table whose
 values are derived from and kept in sync with values from a base table.
-In standard RDBMS&#8217;s these are user-defined and db-managed, but atlasdb
+In standard RDBMS&#8217;s these are user-defined and db-managed, but AtlasDB
 [STRIKEOUT:is not so full-featured] requires you to think more carefully
 about performance.</p>
-<p>There are two kinds of indices which can be defined in atlasdb: additive
+<p>There are two kinds of indices which can be defined in AtlasDB: additive
 and cell-referencing. Both use the dynamic columns layout. For additive
 indices, each cell in the index is derived from a unique one row in the
 base table. For cell-referencing indices, each cell in the index is
@@ -216,7 +210,6 @@ more complicated index situations (e.g. indices whose rows are derived
 from multiple tables) a regular table must be defined for the index, and
 synchronization between the base table(s) and index must be done
 manually.</p>
-<p>{%raw%}</p>
 <div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">schema</span><span class="o">.</span><span class="n">addIndexDefinition</span><span class="p">(</span><span class="s2">&quot;index_name_here&quot;</span><span class="p">,</span> <span class="n">new</span> <span class="n">IndexDefinition</span><span class="p">(</span><span class="n">IndexType</span><span class="o">.</span><span class="n">ADDITIVE</span> <span class="o">/*</span> <span class="ow">or</span> <span class="o">.</span><span class="n">CELL_REFERENCING</span> <span class="o">*/</span><span class="p">)</span> <span class="p">{{</span>
     <span class="n">onTable</span><span class="p">(</span><span class="s2">&quot;base_table_name&quot;</span><span class="p">);</span>
     <span class="n">onCondition</span><span class="p">(</span><span class="s2">&quot;source_column&quot;</span><span class="p">,</span> <span class="s2">&quot; /* java boolean expression */ _value &gt; 100 &quot;</span><span class="p">);</span> <span class="o">//</span><span class="n">optional</span>
@@ -228,23 +221,20 @@ manually.</p>
 <span class="p">}});</span>
 </pre></div>
 </div>
-<p>{%endraw%}</p>
 <p>Note that, in the case where the index should only get a row from the
 base table if some condition is met, the <code class="docutils literal"><span class="pre">onCondition</span></code> clause can be
 added to the index definition. The value of the cell with the specified
 column is accessed by the <code class="docutils literal"><span class="pre">_value</span></code> term.</p>
 <p>If multiple indices should be defined for the same index definition,
 then the following variant can be used:</p>
-<p>{%raw%}</p>
 <div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">schema</span><span class="o">.</span><span class="n">addAdditiveIndexesForDefinition</span><span class="p">(</span><span class="n">ImmutableSet</span><span class="o">.</span><span class="n">of</span><span class="p">(</span><span class="s2">&quot;index1_name&quot;</span><span class="p">,</span> <span class="s2">&quot;index2_name&quot;</span><span class="p">),</span> <span class="n">new</span> <span class="n">IndexDefinition</span><span class="p">(</span><span class="o">...</span><span class="p">)</span> <span class="p">{{</span>
     <span class="o">...</span>
 <span class="p">}});</span>
 </pre></div>
 </div>
-<p>{%endraw%}</p>
 <p>The AtlasDB Developers however strongly recommend against usage of this
 form, since they have not found it to be particularly useful in making
-atlasdb queries, and thus have never used it themselves, and thus have
+AtlasDB queries, and thus have never used it themselves, and thus have
 never tested to so if it actually works.</p>
 <div class="section" id="additive">
 <h3>Additive<a class="headerlink" href="#additive" title="Permalink to this headline">¶</a></h3>
@@ -335,14 +325,14 @@ This section is usually at the end.</li>
 <p>This method specifies the name of the table to be used in generated java
 code for the schema. It should be specified in CamelCase and be as long
 as descriptive as is useful. If this method is not called, the value
-will be derived by converting the table&#8217;s atlasdb name from snake_case
+will be derived by converting the table&#8217;s AtlasDB name from snake_case
 to CamelCase.</p>
 <div class="section" id="index-specific-parameters">
 <h4>Index-specific Parameters<a class="headerlink" href="#index-specific-parameters" title="Permalink to this headline">¶</a></h4>
 <div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">onTable</span><span class="p">(</span><span class="n">String</span> <span class="n">name</span><span class="p">);</span>
 </pre></div>
 </div>
-<p>This method specifies the atlasdb name of the table which this index
+<p>This method specifies the AtlasDB name of the table which this index
 definition will derive its data from. This method is required for all
 IndexDefinitions.</p>
 <div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">onCondition</span><span class="p">(</span><span class="n">String</span> <span class="n">sourceColumn</span><span class="p">,</span> <span class="n">String</span> <span class="n">booleanExpression</span><span class="p">);</span>
@@ -352,8 +342,7 @@ IndexDefinitions.</p>
 boolean expression on the specified source column will be added to the
 index. The source column must be a valid component name from the source
 table, and the boolean expression must be a valid java expression, with
-<code class="docutils literal"><span class="pre">_value</span></code> denoting the value of the source column. <em>Not available
-before</em> <em>3.12.4.3-r1</em></p>
+<code class="docutils literal"><span class="pre">_value</span></code> denoting the value of the source column.</p>
 </div>
 </div>
 <div class="section" id="row-definitions">
@@ -361,15 +350,15 @@ before</em> <em>3.12.4.3-r1</em></p>
 <p>Each row is uniquely identified by its <code class="docutils literal"><span class="pre">rowName</span></code>. Each <code class="docutils literal"><span class="pre">rowName</span></code> is
 composed of at least one <code class="docutils literal"><span class="pre">rowComponent</span></code>. Therefore each row is
 uniquely identified by the permutation of its <code class="docutils literal"><span class="pre">rowComponent</span></code> values.
-Order matters. For example, the <code class="docutils literal"><span class="pre">OBJECT_TABLE</span></code> definition includes:</p>
+Order matters. For example,</p>
 <div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">rowName</span><span class="p">();</span>
     <span class="n">rowComponent</span><span class="p">(</span><span class="s2">&quot;object_id&quot;</span><span class="p">,</span>           <span class="n">ValueType</span><span class="o">.</span><span class="n">FIXED_LONG</span><span class="p">);</span>
-    <span class="n">rowComponent</span><span class="p">(</span><span class="s2">&quot;realm_id&quot;</span><span class="p">,</span>            <span class="n">ValueType</span><span class="o">.</span><span class="n">VAR_LONG</span><span class="p">);</span> <span class="n">partition</span><span class="p">(</span><span class="n">REALM_PARTITIONER</span><span class="p">);</span>
+    <span class="n">rowComponent</span><span class="p">(</span><span class="s2">&quot;group_id&quot;</span><span class="p">,</span>            <span class="n">ValueType</span><span class="o">.</span><span class="n">VAR_LONG</span><span class="p">);</span> <span class="n">partition</span><span class="p">(</span><span class="n">GROUP_PARTITIONER</span><span class="p">);</span>
     <span class="n">rowComponent</span><span class="p">(</span><span class="s2">&quot;fragment_version_id&quot;</span><span class="p">,</span> <span class="n">ValueType</span><span class="o">.</span><span class="n">VAR_LONG</span><span class="p">);</span>
 </pre></div>
 </div>
 <p>This means that each row in this table is uniquely identified by a
-3-tuple consisting of an object ID, a realm ID, and a fragment version
+3-tuple consisting of an object ID, a group ID, and a fragment version
 ID.</p>
 <p>Only the last <code class="docutils literal"><span class="pre">rowComponent</span></code> of a <code class="docutils literal"><span class="pre">rowName</span></code> can be set to
 <code class="docutils literal"><span class="pre">ValueType.STRING</span></code> or to <code class="docutils literal"><span class="pre">ValueType.BLOB</span></code> because values of these
@@ -401,18 +390,20 @@ partition, while spreading rows equally across all partitions.</p>
 </pre></div>
 </div>
 <p>By default, all row components use <code class="docutils literal"><span class="pre">partition(uniform())</span></code>. If however,
-certain values are certain to be stored/access very often (the base
-realm of the object model, for example), they can have partitions
+certain values are certain to be stored/access very often (the group ids
+of the objects, in the above example), they can have partitions
 explicitly created for them by specifying <code class="docutils literal"><span class="pre">explicit(...)</span></code>. Note that
 use of <code class="docutils literal"><span class="pre">partition()</span></code> assumes the order storage of rows; if there is no
 good way to partition the rows uniformly and range requests are not
 needed, then perhaps <code class="docutils literal"><span class="pre">partitionStrategy(PartitionStrategy.HASH)</span></code> is a
 better idea for your table.</p>
-<p>{{site.data.alerts.important}} The most significant component of any
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">The most significant component of any
 table is used by the partitioner to distribute data across the cluster.
 To avoid hot-spotting, the type of the first row component should NOT be
-a VAR_LONG, a VAR_SIGNED_LONG, or a SIZED_BLOB.
-{{site.data.alerts.end}}</p>
+a VAR_LONG, a VAR_SIGNED_LONG, or a SIZED_BLOB.</p>
+</div>
 <p>For a safe data distribution it is suggested the usage of
 <code class="docutils literal"><span class="pre">hashFirstRowComponent()</span></code>:</p>
 <div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">rowName</span><span class="p">();</span>
@@ -433,7 +424,7 @@ public void column(String columnName, String shortName, Class&lt;?&gt; protoOrPe
 <p>The column name is the name of the column that will be used in the
 generated java code and table metadata. The short name is a one or two
 character label which will be the actual name for the column when stored
-in atlasdb. Any ValueType may be used as the value for a column, as well
+in AtlasDB. Any ValueType may be used as the value for a column, as well
 as any protobuffer class or Persistable. AtlasDB will handle serializing
 and deserializing the proto/persistable to and from its byte array
 representation, and will optionally also compress the byte array to save
@@ -469,7 +460,7 @@ public void value(Class&lt;? extends GeneratedMessage&gt; proto, Compression com
 can be a primitive ValueType or protobuf (optionally compressed).</p>
 <p>If values are not needed for the table, specifying
 <code class="docutils literal"><span class="pre">value(ValueType.VAR_LONG)</span></code> and <code class="docutils literal"><span class="pre">maxValueSize(1)</span></code> is conventional.
-The max value size command is a performance hint for atlasdb.</p>
+The max value size command is a performance hint for AtlasDB.</p>
 </div>
 <div class="section" id="index-rows-and-columns">
 <h3>Index Rows and Columns<a class="headerlink" href="#index-rows-and-columns" title="Permalink to this headline">¶</a></h3>
@@ -520,7 +511,7 @@ Table Rows.</p>
 valid values specified by just type information. In these cases, it can
 be useful to explicitly express these constraints when defining the
 tables to ensure that code written against these tables do not violate
-them. The atlasdb schema allows three different types of constraints to
+them. The AtlasDB schema allows three different types of constraints to
 be defined: Foreign key constraints, table constraints, and row
 constraints. Note however, that these constraints are used mostly for
 staging and debugging environments only and will usually not be enabled
@@ -566,7 +557,7 @@ difficult.</li>
 <div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">cachePriority</span><span class="p">(</span><span class="n">CachePriority</span> <span class="n">priority</span> <span class="o">=</span> <span class="n">CachePriority</span><span class="o">.</span><span class="n">WARM</span><span class="p">);</span>
 </pre></div>
 </div>
-<p>Specifies the retention policy for caching atlasdb queries and their
+<p>Specifies the retention policy for caching AtlasDB queries and their
 results. Values are <strong>COLDEST, COLD, WARM, HOT, HOTTEST.</strong> The hotter
 the setting, the more queries and the longer they are stored.</p>
 <div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">dbCompressionRequested</span><span class="p">();</span>
@@ -578,8 +569,12 @@ compressed.</p>
 </pre></div>
 </div>
 <p>Specifies whether a table should be allowed to have range scans
-conducted on its rows. <em>NOTE: if this option is not selected, you will
-not be able to use the **getRange*</em> operation against your table!*</p>
+conducted on its rows.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">If this option is not selected, you will
+not be able to use the <strong>getRange</strong> operation against your table!</p>
+</div>
 <div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">negativeLookups</span><span class="p">();</span>
 </pre></div>
 </div>
