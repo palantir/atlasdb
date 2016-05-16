@@ -5,7 +5,7 @@ Streams
 Overview
 ========
 
-When storing large objects in an atlasdb database, the underlying
+When storing large objects in an AtlasDB database, the underlying
 database can impose limits on the size of the object and its performance
 characteristics. Postgres has a 1GB entry limit, and Cassandra generally
 does not like transmissions of over 30MB over the wire at a time. If it
@@ -27,7 +27,7 @@ The long name is the name of the stream store in the generated java
 code, the short name the prefix which will be used in the actual
 database tables. The stream id type argument specifies the ValueType of
 the id for each stored object. The in-memory threshold argument
-specifies the largest size object (in bytes) which atlasdb will cache in
+specifies the largest size object (in bytes) which AtlasDB will cache in
 memory in order to boost retrieval performance.
 
 Performance
@@ -47,4 +47,4 @@ A single stream of bytes may be stored multiple times and have many
 references to it, but will only be stored once under the covers. When
 all references to a stream are removed it will be cleaned up by the
 OnCleanupTask that is registered with the cleaner. See
-`Cleanup <Cleanup>`__ for more details
+`Cleanup <Cleanup>`__ for more details.

@@ -16,7 +16,7 @@ What to Expect
 
 This guide should give you the basics on:
 
-1. How an atlasdb schema file is organized.
+1. How an AtlasDB schema file is organized.
 2. What commands are available.
 3. When they can be used and what they do.
 4. How they translate to the underlying database.
@@ -25,7 +25,7 @@ Background
 ==========
 
 Data in AtlasDB is stored as a series of key-value pairs, structured
-into tables, grouped into namespaces. An atlasdb **schema** defines a
+into tables, grouped into namespaces. An AtlasDB **schema** defines a
 set of named tables, and for each **table** defines the key-value pairs
 which can be stored, the kind of operations which can be performed, and
 any relations between tables which should be maintained. A **namespace**
@@ -59,7 +59,7 @@ that both layout have defined rows and columns, but the named column
 layout allows a row to have a subset of the named columns, whereas the
 dynamic layout allows a row to have more than one full column set.
 
-There are four main operations which can be conducted against an atlasdb
+There are four main operations which can be conducted against an AtlasDB
 table: get, getRange, put, and delete. The **get** operation retrieves
 all cell-value pairs with the specified row values. The **getRange**
 operation retrieves all cell-value pairs whose row values either fall
@@ -104,7 +104,7 @@ Sample Schema File
         }
     }
 
-Contrary to the standard SQL format, an atlasdb schema is written in
+Contrary to the standard SQL format, an AtlasDB schema is written in
 java, in a java class, as a sequence of calls to a schema builder and
 anonymous inner classes. The java class is then run, which generates
 java classes for creating, accessing, and manipulating these tables.
@@ -118,7 +118,7 @@ buffer GeneratedMessages, and palantir Persistables.
 Primitive ValueTypes
 ~~~~~~~~~~~~~~~~~~~~
 
-For simple data types, atlasdb represents them by ValueType. Note that a
+For simple data types, AtlasDB represents them by ValueType. Note that a
 java primitive type can have multiple ValueTypes associated with it.
 Each ValueType represents a different method of storing that type in the
 database, and thus affects storage efficiency and search
@@ -164,20 +164,20 @@ values, but the former will not.)
 Protobufs and Persistables
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-For protobufs and persistables, atlasdb will handle persisting and
+For protobufs and persistables, AtlasDB will handle persisting and
 hydrating objects to and from byte arrays. Otherwise, they function
 similarly to ValueType.BLOB. However, for structured data it is
 recommended that you store them as protobufs or persistables rather than
-BLOBs - this is because atlasdb can then extract component values from
+BLOBs - this is because AtlasDB can then extract component values from
 the structs to create indexes.
 
 Schema Objects
 --------------
 
-The atlasdb schema contains four kinds of top level objects - tables,
+The AtlasDB schema contains four kinds of top level objects - tables,
 indexes, stream stores, and cleanup tasks.
 
--  **Tables** are the base structure for storing information in atlasdb.
+-  **Tables** are the base structure for storing information in AtlasDB.
    Similar to SQL tables in idea, with base layout described in the
    section above.
 -  **Indexes** are tables which explicitly base their content off of a

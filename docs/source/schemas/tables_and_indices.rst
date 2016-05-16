@@ -5,7 +5,7 @@ Tables and Indices
 Tables
 ======
 
-Tables are the base structure for storing data in atlasdb. Every table
+Tables are the base structure for storing data in AtlasDB. Every table
 has a name, a row specification, a column-value specification, an
 optional set of constraints on the table, and an optional set of
 behavior and performance tuning parameters.
@@ -54,7 +54,7 @@ declared a temp table using the second variation:
 
 The AtlasDB developers however strongly recommend against usage of this
 form, since they have not found it to be particularly useful in making
-atlasdb queries, and thus have never used it themselves, and thus have
+AtlasDB queries, and thus have never used it themselves, and thus have
 never tested to see if it actually works.
 
 Indices
@@ -62,11 +62,11 @@ Indices
 
 A common pattern in database schemas is to define an index table whose
 values are derived from and kept in sync with values from a base table.
-In standard RDBMS's these are user-defined and db-managed, but atlasdb
+In standard RDBMS's these are user-defined and db-managed, but AtlasDB
 [STRIKEOUT:is not so full-featured] requires you to think more carefully
 about performance.
 
-There are two kinds of indices which can be defined in atlasdb: additive
+There are two kinds of indices which can be defined in AtlasDB: additive
 and cell-referencing. Both use the dynamic columns layout. For additive
 indices, each cell in the index is derived from a unique one row in the
 base table. For cell-referencing indices, each cell in the index is
@@ -104,7 +104,7 @@ then the following variant can be used:
 
 The AtlasDB Developers however strongly recommend against usage of this
 form, since they have not found it to be particularly useful in making
-atlasdb queries, and thus have never used it themselves, and thus have
+AtlasDB queries, and thus have never used it themselves, and thus have
 never tested to so if it actually works.
 
 Additive
@@ -204,7 +204,7 @@ Definition Parameters
 This method specifies the name of the table to be used in generated java
 code for the schema. It should be specified in CamelCase and be as long
 as descriptive as is useful. If this method is not called, the value
-will be derived by converting the table's atlasdb name from snake\_case
+will be derived by converting the table's AtlasDB name from snake\_case
 to CamelCase.
 
 Index-specific Parameters
@@ -214,7 +214,7 @@ Index-specific Parameters
 
     public void onTable(String name);
 
-This method specifies the atlasdb name of the table which this index
+This method specifies the AtlasDB name of the table which this index
 definition will derive its data from. This method is required for all
 IndexDefinitions.
 
@@ -291,11 +291,11 @@ good way to partition the rows uniformly and range requests are not
 needed, then perhaps ``partitionStrategy(PartitionStrategy.HASH)`` is a
 better idea for your table.
 
-{{site.data.alerts.important}} The most significant component of any
-table is used by the partitioner to distribute data across the cluster.
-To avoid hot-spotting, the type of the first row component should NOT be
-a VAR\_LONG, a VAR\_SIGNED\_LONG, or a SIZED\_BLOB.
-{{site.data.alerts.end}}
+.. warning::
+   The most significant component of any
+   table is used by the partitioner to distribute data across the cluster.
+   To avoid hot-spotting, the type of the first row component should NOT be
+   a VAR\_LONG, a VAR\_SIGNED\_LONG, or a SIZED\_BLOB.
 
 For a safe data distribution it is suggested the usage of
 ``hashFirstRowComponent()``:
@@ -320,7 +320,7 @@ type referenced by each column is specified by a single command.
 The column name is the name of the column that will be used in the
 generated java code and table metadata. The short name is a one or two
 character label which will be the actual name for the column when stored
-in atlasdb. Any ValueType may be used as the value for a column, as well
+in AtlasDB. Any ValueType may be used as the value for a column, as well
 as any protobuffer class or Persistable. AtlasDB will handle serializing
 and deserializing the proto/persistable to and from its byte array
 representation, and will optionally also compress the byte array to save
@@ -363,7 +363,7 @@ can be a primitive ValueType or protobuf (optionally compressed).
 
 If values are not needed for the table, specifying
 ``value(ValueType.VAR_LONG)`` and ``maxValueSize(1)`` is conventional.
-The max value size command is a performance hint for atlasdb.
+The max value size command is a performance hint for AtlasDB.
 
 Index Rows and Columns
 ----------------------
@@ -421,7 +421,7 @@ Sometimes the set of valid values for a table is smaller than the set of
 valid values specified by just type information. In these cases, it can
 be useful to explicitly express these constraints when defining the
 tables to ensure that code written against these tables do not violate
-them. The atlasdb schema allows three different types of constraints to
+them. The AtlasDB schema allows three different types of constraints to
 be defined: Foreign key constraints, table constraints, and row
 constraints. Note however, that these constraints are used mostly for
 staging and debugging environments only and will usually not be enabled
@@ -472,7 +472,7 @@ across database shards.
 
     public void cachePriority(CachePriority priority = CachePriority.WARM);
 
-Specifies the retention policy for caching atlasdb queries and their
+Specifies the retention policy for caching AtlasDB queries and their
 results. Values are **COLDEST, COLD, WARM, HOT, HOTTEST.** The hotter
 the setting, the more queries and the longer they are stored.
 
@@ -488,8 +488,11 @@ compressed.
     public void rangeScanAllowed();
 
 Specifies whether a table should be allowed to have range scans
-conducted on its rows. *NOTE: if this option is not selected, you will
-not be able to use the **getRange** operation against your table!*
+conducted on its rows.
+
+.. note::
+   If this option is not selected, you will
+   not be able to use the **getRange** operation against your table!
 
 .. code:: java
 
