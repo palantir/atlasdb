@@ -76,9 +76,9 @@ public class CassandraKeyValueServices {
         StringBuilder sb = new StringBuilder();
         sb.append(String.format("Cassandra cluster cannot come to agreement on schema versions, after attempting to modify table %s.", tableName));
         for ( Entry<String, List<String>> version : versions.entrySet()) {
-            sb.append(String.format("\nAt schema version %s:", version.getKey()));
+            sb.append(String.format("%nAt schema version %s:", version.getKey()));
             for (String node: version.getValue()) {
-                sb.append(String.format("\n\tNode: %s", node));
+                sb.append(String.format("%n\tNode: %s", node));
             }
         }
         sb.append("\nFind the nodes above that diverge from the majority schema " +
@@ -198,7 +198,7 @@ public class CassandraKeyValueServices {
         for (Map.Entry<String, Throwable> entry : errorsByHost.entrySet()) {
             String host = entry.getKey();
             Throwable cause = entry.getValue();
-            result.append(String.format("Error on host %s:\n%s\n\n", host, cause));
+            result.append(String.format("Error on host %s:%n%s%n%n", host, cause));
         }
         return result.toString();
     }

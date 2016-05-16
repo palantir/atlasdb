@@ -31,11 +31,9 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public class CassandraConstants {
     static final int LONG_RUNNING_QUERY_SOCKET_TIMEOUT_MILLIS = 62000;
-    public static final TableReference METADATA_TABLE = TableReference.createWithEmptyNamespace("_metadata");
     public static final int DEFAULT_REPLICATION_FACTOR = 3;
     public static final int DEFAULT_THRIFT_PORT = 9160;
     public static final int DEFAULT_CQL_PORT = 9042;
-    static final int SECONDS_BETWEEN_GETTING_HOST_LIST = 600; // 10 min
     static final int SECONDS_WAIT_FOR_VERSIONS = 60;
     static final int MAX_TRUNCATION_ATTEMPTS = 3; // tied to an exponential timeout, be careful if you change it
 
@@ -83,14 +81,24 @@ public class CassandraConstants {
     static final String CFDEF_COMPRESSION_TYPE_KEY = "sstable_compression";
     static final String CFDEF_COMPRESSION_CHUNK_LENGTH_KEY = "chunk_length_kb";
 
-    public static TableReference NO_TABLE = TableReference.createWithEmptyNamespace("SYSTEM");
-    public static int NO_TTL = -1;
+    public static final TableReference NO_TABLE = TableReference.createWithEmptyNamespace("SYSTEM");
+    public static final int NO_TTL = -1;
 
     static final String LEVELED_COMPACTION_STRATEGY = "org.apache.cassandra.db.compaction.LeveledCompactionStrategy";
     static final String SIZE_TIERED_COMPACTION_STRATEGY = "org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy";
 
+
+    public static final TableReference METADATA_TABLE = TableReference.createWithEmptyNamespace("_metadata");
+    public static final TableReference LOCK_TABLE = TableReference.createWithEmptyNamespace("_locks");
     public static final Set<TableReference> HIDDEN_TABLES = ImmutableSet.of(
-            CassandraConstants.METADATA_TABLE, AtlasDbConstants.TIMESTAMP_TABLE);
+            AtlasDbConstants.TIMESTAMP_TABLE,
+            CassandraConstants.LOCK_TABLE,
+            CassandraConstants.METADATA_TABLE);
+
+    public static String GLOBAL_DDL_LOCK = "Global DDL lock";
+    public static String GLOBAL_DDL_LOCK_COLUMN_NAME = "id_with_lock";
+    public static long TIME_BETWEEN_LOCK_ATTEMPT_ROUNDS_MILLIS = 1000;
+    public static long GLOBAL_DDL_LOCK_CLEARED_VALUE = Long.MAX_VALUE;
 
     // update CKVS.isMatchingCf if you update this method
     static CfDef getStandardCfDef(String keyspace, String internalTableName) {

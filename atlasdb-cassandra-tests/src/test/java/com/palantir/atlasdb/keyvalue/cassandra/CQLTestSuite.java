@@ -1,12 +1,12 @@
 /**
  * Copyright 2015 Palantir Technologies
- *
+ * <p>
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * <p>
  * http://opensource.org/licenses/BSD-3-Clause
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,10 +15,9 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
 
-import org.junit.AfterClass;
+import org.joda.time.Duration;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.runner.RunWith;
@@ -36,9 +35,9 @@ import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 })
 @Ignore
 public class CQLTestSuite {
-    
+
     static CassandraKeyValueServiceConfig CQLKVS_CONFIG = ImmutableCassandraKeyValueServiceConfig.builder()
-            .addServers(new InetSocketAddress("localhost", 9042))
+            .addServers(new InetSocketAddress(CassandraTestConfigs.CASSANDRA_DOCKER_HOST, CassandraTestConfigs.CQL_PORT))
             .poolSize(20)
             .keyspace("atlasdb")
             .ssl(false)
@@ -51,13 +50,7 @@ public class CQLTestSuite {
             .build();
 
     @BeforeClass
-    public static void setup() throws IOException, InterruptedException {
-        CassandraService.start(CassandraService.DEFAULT_CONFIG);
+    public static void waitUntilCassandraIsUp() {
+        CassandraTestTools.waitTillServiceIsUp(CassandraTestConfigs.CASSANDRA_DOCKER_HOST, CassandraTestConfigs.CQL_PORT, Duration.millis(2000));
     }
-
-    @AfterClass
-    public static void stop() throws IOException {
-        CassandraService.stop();
-    }
-
 }

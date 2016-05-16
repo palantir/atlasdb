@@ -28,9 +28,9 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.Cassandra;
@@ -79,6 +79,7 @@ import com.google.common.collect.Ordering;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.TreeMultimap;
+import com.google.common.primitives.Longs;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -129,7 +130,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
  */
 public class CassandraKeyValueService extends AbstractKeyValueService {
 
-    private static final Logger log = LoggerFactory.getLogger(CassandraKeyValueService.class);
+    static final Logger log = LoggerFactory.getLogger(CassandraKeyValueService.class);
 
     private static final Function<Entry<Cell, Value>, Long> ENTRY_SIZING_FUNCTION = new Function<Entry<Cell, Value>, Long>() {
         @Override
@@ -141,7 +142,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     private final CassandraKeyValueServiceConfigManager configManager;
     private final Optional<CassandraJmxCompactionManager> compactionManager;
     protected final CassandraClientPool clientPool;
-    private final ReentrantLock schemaMutationLock = new ReentrantLock(true);
 
     private ConsistencyLevel readConsistency = ConsistencyLevel.LOCAL_QUORUM;
     private final ConsistencyLevel writeConsistency = ConsistencyLevel.EACH_QUORUM;
@@ -165,6 +165,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     protected void init() {
         clientPool.runOneTimeStartupChecks();
+        createTable(CassandraConstants.METADATA_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA);
         lowerConsistencyWhenSafe();
         upgradeFromOlderInternalSchema();
         CassandraKeyValueServices.failQuickInInitializationIfClusterAlreadyInInconsistentState(clientPool, configManager.getConfig());
@@ -196,7 +197,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                         log.warn("Upgrading table {} to new internal Cassandra schema", tableRef);
                         tablesToUpgrade.put(tableRef, clusterSideMetadata);
                     }
-                } else if (!tableRef.equals(CassandraConstants.METADATA_TABLE)) { // only expected case
+                } else if (!(tableRef.equals(CassandraConstants.METADATA_TABLE) || tableRef.equals(CassandraConstants.LOCK_TABLE))) { // only expected cases
                     // Possible to get here from a race condition with another service starting up and performing schema upgrades concurrent with us doing this check
                     log.error("Found a table " + tableRef.getQualifiedName() + " that did not have persisted Atlas metadata."
                             + "If you recently did a Palantir update, try waiting until schema upgrades are completed on all backend CLIs/services etc and restarting this service."
@@ -1101,8 +1102,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
      */
     @Override
     public void dropTables(final Set<TableReference> tablesToDrop) {
+        long lockId = waitForSchemaMutationLock();
+
         try {
-            trySchemaMutationLock();
             clientPool.runWithRetry(new FunctionCheckedException<Client, Void, Exception>() {
                 @Override
                 public Void apply(Client client) throws Exception {
@@ -1110,7 +1112,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     Set<TableReference> existingTables = Sets.newHashSet();
 
                     for (CfDef cf : ks.getCf_defs()) {
-                        existingTables.add(fromInternalTableName(cf.getName().toLowerCase()));
+                        existingTables.add(fromInternalTableName(cf.getName()));
                     }
 
                     for (TableReference table : tablesToDrop) {
@@ -1132,7 +1134,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         } finally {
-            schemaMutationLock.unlock();
+            schemaMutationUnlock(lockId);
         }
     }
 
@@ -1151,26 +1153,28 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
      */
     @Override
     public void createTables(final Map<TableReference, byte[]> tableNamesToTableMetadata) {
+        long lockId = waitForSchemaMutationLock();
+
         try {
-            trySchemaMutationLock();
             clientPool.runWithRetry(new FunctionCheckedException<Client, Void, Exception>() {
                 @Override
                 public Void apply(Client client) throws Exception {
                     KsDef ks = client.describe_keyspace(configManager.getConfig().keyspace());
                     Set<TableReference> tablesToCreate = tableNamesToTableMetadata.keySet();
-                    Set<TableReference> existingTables = Sets.newHashSet();
+                    Set<TableReference> existingTablesLowerCased = Sets.newHashSet();
 
                     for (CfDef cf : ks.getCf_defs()) {
-                        existingTables.add(fromInternalTableName(cf.getName().toLowerCase()));
+                        existingTablesLowerCased.add(fromInternalTableName(cf.getName().toLowerCase()));
                     }
 
                     for (TableReference table : tablesToCreate) {
                         CassandraVerifier.sanityCheckTableName(table);
 
-                        if (!existingTables.contains(table)) {
+                        TableReference tableRefLowerCased = TableReference.createUnsafe(table.getQualifiedName().toLowerCase());
+                        if (!existingTablesLowerCased.contains(tableRefLowerCased)) {
                             client.system_add_column_family(getCfForTable(table, tableNamesToTableMetadata.get(table)));
                         } else {
-                            log.warn(String.format("Ignored call to create a table (%s) that already existed.", table));
+                            log.warn(String.format("Ignored call to create a table (%s) that already existed (case insensitive).", table));
                         }
                     }
                     if (!tablesToCreate.isEmpty()) {
@@ -1184,7 +1188,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         } finally {
-            schemaMutationLock.unlock();
+            schemaMutationUnlock(lockId);
         }
 
         internalPutMetadataForTables(tableNamesToTableMetadata, false);
@@ -1280,7 +1284,12 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         internalPutMetadataForTables(tableRefToMetadata, true);
     }
 
-    private void internalPutMetadataForTables(final Map<TableReference, byte[]> tableNameToMetadata, final boolean possiblyNeedToPerformSettingsChanges) {
+    private void internalPutMetadataForTables(final Map<TableReference, byte[]> unfilteredTableNameToMetadata, final boolean possiblyNeedToPerformSettingsChanges) {
+        Map<TableReference, byte[]> tableNameToMetadata = Maps.filterValues(unfilteredTableNameToMetadata, Predicates.not(Predicates.equalTo(AtlasDbConstants.EMPTY_TABLE_METADATA)));
+        if (tableNameToMetadata.isEmpty()) {
+            return;
+        }
+
         final Map<Cell, byte[]> metadataRequestedForUpdate = Maps.newHashMapWithExpectedSize(tableNameToMetadata.size());
         for (Entry<TableReference, byte[]> tableEntry : tableNameToMetadata.entrySet()) {
             metadataRequestedForUpdate.put(getMetadataCell(tableEntry.getKey()), tableEntry.getValue());
@@ -1302,10 +1311,11 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         }
 
         if (!newMetadata.isEmpty()) {
+            long lockId = 0;
+            if (possiblyNeedToPerformSettingsChanges) {
+                lockId = waitForSchemaMutationLock();
+            }
             try {
-                if (possiblyNeedToPerformSettingsChanges) {
-                    trySchemaMutationLock();
-                }
                 clientPool.runWithRetry(new FunctionCheckedException<Client, Void, Exception>() {
                     @Override
                     public Void apply(Client client) throws Exception {
@@ -1325,7 +1335,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 throw Throwables.throwUncheckedException(e);
             } finally {
                 if (possiblyNeedToPerformSettingsChanges) {
-                    schemaMutationLock.unlock();
+                    schemaMutationUnlock(lockId);
                 }
             }
         }
@@ -1426,9 +1436,126 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         }
     }
 
-    private void trySchemaMutationLock() throws InterruptedException, TimeoutException {
-        if (!schemaMutationLock.tryLock(configManager.getConfig().schemaMutationTimeoutMillis(), TimeUnit.MILLISECONDS)) {
-            throw new TimeoutException("AtlasDB was unable to get a lock on Cassandra system schema mutations for your cluster. Likely cause: Service(s) performing heavy schema mutations in parallel, or extremely heavy Cassandra cluster load.");
+    /**
+     * Each locker generates a random ID per operation and uses a CAS operation as a DB-side lock.
+     *
+     * There are two special ID values used for book-keeping
+     * - one representing the lock being cleared
+     * - one representing a remote ID that is guaranteed to never be generated
+     * This is required because Cassandra CAS does not treat setting to null / empty as a delete,
+     * (though there is a to-do in their code to possibly add this)
+     * though it accepts an empty expected column to mean that non-existance was expected
+     * (see putUnlessExists for example, which has the luck of not having to ever deal with deleted values)
+     *
+     * I can't hold this against them though, because Atlas has a semi-similar problem with empty byte[] values meaning deleted internally.
+     *
+     * @return an ID to be passed into a subsequent unlock call
+     */
+    public long waitForSchemaMutationLock() {
+        final long perOperationNodeIdentifier = ThreadLocalRandom.current().nextLong(Long.MAX_VALUE - 2);
+
+        try {
+            clientPool.runWithRetry(new FunctionCheckedException<Client, Void, Exception>() {
+                @Override
+                public Void apply(Client client) throws Exception {
+                    Cell globalDdlLockCell = Cell.create(CassandraConstants.GLOBAL_DDL_LOCK.getBytes(), CassandraConstants.GLOBAL_DDL_LOCK_COLUMN_NAME.getBytes());
+                    ByteBuffer rowName = ByteBuffer.wrap(globalDdlLockCell.getRowName());
+                    Column ourUpdate = lockColumnWithValue(Longs.toByteArray(perOperationNodeIdentifier));
+
+                    List<Column> expected = ImmutableList.of(lockColumnWithValue(Longs.toByteArray(CassandraConstants.GLOBAL_DDL_LOCK_CLEARED_VALUE)));
+
+                    CASResult casResult = writeLockWithCAS(client, rowName, expected, ourUpdate);
+
+                    int timesAttempted = 0;
+
+                    Stopwatch stopwatch = Stopwatch.createStarted();
+                    while (!casResult.isSuccess()) { // could have a timeout controlling this level, confusing for users to set both timeouts though
+
+                        if (casResult.getCurrent_valuesSize() == 0) { // never has been an existing lock
+                            // special case, no one has ever made a lock ever before
+                            // this becomes analogous to putUnlessExists now
+                            expected = ImmutableList.<Column>of();
+                        } else {
+                            Column existingValue = Iterables.getOnlyElement(casResult.getCurrent_values(), null);
+                            if (existingValue == null) {
+                                throw new IllegalStateException("Something is wrong with underlying locks. Consult support for guidance on manually examining and clearing locks from " + CassandraConstants.LOCK_TABLE + " table.");
+                            }
+                            expected = ImmutableList.of(lockColumnWithValue(Longs.toByteArray(CassandraConstants.GLOBAL_DDL_LOCK_CLEARED_VALUE)));
+                        }
+
+                        if (stopwatch.elapsed(TimeUnit.MILLISECONDS) > configManager.getConfig().schemaMutationTimeoutMillis() * 4) { // possibly dead remote locker
+                            throw new TimeoutException(String.format("We have timed out waiting on the current schema mutation lock holder.  " +
+                                    "We have tried to grab the lock for %d milliseconds unsuccessfully.  Please try restarting the AtlasDB client." +
+                                    "If this occurs repeatedly it may indicate that the current lock holder has died without releasing the lock " +
+                                    "and will require manual intervention. This will require restarting all atlasDB clients and then using cqlsh " +
+                                    "to truncate the _locks table. Please contact support for help with this in important situations.", stopwatch.elapsed(TimeUnit.MILLISECONDS)));
+                        }
+
+
+                        long timeToSleep = CassandraConstants.TIME_BETWEEN_LOCK_ATTEMPT_ROUNDS_MILLIS * (long) Math.pow(2, timesAttempted++);
+
+                        Thread.sleep(timeToSleep);
+
+                        casResult = writeLockWithCAS(client, rowName, expected, ourUpdate);
+                    }
+
+                    // we won the lock!
+                    return null;
+                }
+            });
+        } catch (Exception e) {
+            throw Throwables.throwUncheckedException(e);
+        }
+
+        return perOperationNodeIdentifier;
+    }
+
+    private CASResult writeLockWithCAS(Client client, ByteBuffer rowName, List<Column> expectedValue, Column ourLockUpdate) throws TException {
+        return client.cas(
+                rowName, // key
+                CassandraConstants.LOCK_TABLE.getQualifiedName(),
+                expectedValue, // expected value currently holding
+                ImmutableList.of(ourLockUpdate), // update with our request id
+                ConsistencyLevel.SERIAL,
+                writeConsistency
+        );
+    }
+
+    private Column lockColumnWithValue(byte[] value) {
+        return new Column()
+                .setName(CassandraKeyValueServices.makeCompositeBuffer(CassandraConstants.GLOBAL_DDL_LOCK_COLUMN_NAME.getBytes(), AtlasDbConstants.TRANSACTION_TS).array())
+                .setValue(value) // expected previous
+                .setTimestamp(AtlasDbConstants.TRANSACTION_TS);
+    }
+
+    public void schemaMutationUnlock(long perOperationNodeIdentifier) {
+        try {
+            clientPool.runWithRetry(new FunctionCheckedException<Client, Void, Exception>() {
+                @Override
+                public Void apply(Client client) throws Exception {
+                    Cell globalDdlLockCell = Cell.create(CassandraConstants.GLOBAL_DDL_LOCK.getBytes(), CassandraConstants.GLOBAL_DDL_LOCK_COLUMN_NAME.getBytes());
+                    ByteBuffer rowName = ByteBuffer.wrap(globalDdlLockCell.getRowName());
+
+                    List<Column> ourExpectedLock = ImmutableList.of(lockColumnWithValue(Longs.toByteArray(perOperationNodeIdentifier)));
+                    Column clearedLock = lockColumnWithValue(Longs.toByteArray(CassandraConstants.GLOBAL_DDL_LOCK_CLEARED_VALUE));
+                    CASResult casResult = writeLockWithCAS(client, rowName, ourExpectedLock, clearedLock);
+
+                    if (!casResult.isSuccess()) {
+                        String remoteLock = "(unknown)";
+                        if (casResult.getCurrent_valuesSize() == 1) {
+                            Column column = Iterables.getOnlyElement(casResult.getCurrent_values(), null);
+                            if (column != null) {
+                                long remoteId = Longs.fromByteArray(column.getValue());
+                                remoteLock = (remoteId == CassandraConstants.GLOBAL_DDL_LOCK_CLEARED_VALUE) ? "(Cleared Value)" : Long.toString(remoteId);
+                            }
+                        }
+                        throw new IllegalStateException(String.format("Another process cleared our schema mutation lock from underneath us. Our ID, which we expected, was %s, the value we saw in the database was instead %s.", Long.toString(perOperationNodeIdentifier), remoteLock));
+                    }
+                    return null;
+                }
+            });
+        } catch (Exception e) {
+            throw Throwables.throwUncheckedException(e);
         }
     }
 
@@ -1463,8 +1590,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         Preconditions.checkArgument(tombstoneThresholdRatio >= 0.0f && tombstoneThresholdRatio <= 1.0f,
                 "tombstone_threshold_ratio:[%s] should be between [0.0, 1.0]", tombstoneThresholdRatio);
 
+        long lockId = waitForSchemaMutationLock();
         try {
-            trySchemaMutationLock();
             clientPool.runWithRetry(new FunctionCheckedException<Client, Void, Exception>() {
                 @Override
                 public Void apply(Client client) throws NotFoundException, InvalidRequestException, TException {
@@ -1491,7 +1618,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     tableRef,
                     e);
         } finally {
-            schemaMutationLock.unlock();
+            schemaMutationUnlock(lockId);
         }
     }
 

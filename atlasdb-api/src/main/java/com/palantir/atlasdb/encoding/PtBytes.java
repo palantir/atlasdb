@@ -30,7 +30,7 @@ public final class PtBytes {
 
     public static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
     public static final int SIZEOF_LONG = Long.SIZE / Byte.SIZE;
-    public static Ordering<byte[]> BYTES_COMPARATOR = Ordering.from(UnsignedBytes.lexicographicalComparator());
+    public static final Ordering<byte[]> BYTES_COMPARATOR = Ordering.from(UnsignedBytes.lexicographicalComparator());
 
     private static final Cache<String, byte[]> cache = CacheBuilder.newBuilder().maximumSize(5000).build();
 

@@ -83,7 +83,6 @@ import com.palantir.common.concurrent.PTExecutors;
  **/
 public class CassandraClientPool {
     private static final Logger log = LoggerFactory.getLogger(CassandraClientPool.class);
-    private static final long BANNED_HOST_BACKOFF_TIME_MS = TimeUnit.MINUTES.toMillis(5);
     private static final int MAX_TRIES = 3;
 
     volatile RangeMap<LightweightOPPToken, List<InetSocketAddress>> tokenMap = ImmutableRangeMap.of();
@@ -91,7 +90,6 @@ public class CassandraClientPool {
     Map<InetSocketAddress, CassandraClientPoolingContainer> currentPools = Maps.newConcurrentMap();
     final CassandraKeyValueServiceConfig config;
     final ScheduledThreadPoolExecutor refreshDaemon;
-
 
     public static class LightweightOPPToken implements Comparable<LightweightOPPToken> {
         final byte[] bytes;
@@ -118,12 +116,11 @@ public class CassandraClientPool {
                     log.error("Failed to refresh Cassandra KVS pool. Extended periods of being unable to refresh will cause perf degradation.", t);
                 }
             }
-        }, CassandraConstants.SECONDS_BETWEEN_GETTING_HOST_LIST, CassandraConstants.SECONDS_BETWEEN_GETTING_HOST_LIST, TimeUnit.SECONDS);
+        }, config.poolRefreshIntervalSeconds(), config.poolRefreshIntervalSeconds(), TimeUnit.SECONDS);
 
         config.servers().forEach((server) -> currentPools.put(server, new CassandraClientPoolingContainer(server, config)));
         refreshPool(); // ensure we've initialized before returning
     }
-
 
     public void shutdown() {
         refreshDaemon.shutdown();
@@ -170,14 +167,14 @@ public class CassandraClientPool {
         if (log.isDebugEnabled()) {
             StringBuilder currentState = new StringBuilder();
             currentState.append(
-                    String.format("POOL STATUS: Current blacklist = %s,\n current hosts in pool = %s\n",
+                    String.format("POOL STATUS: Current blacklist = %s,%n current hosts in pool = %s%n",
                     blacklistedHosts.keySet().toString(), currentPools.keySet().toString()));
             for (Entry<InetSocketAddress, CassandraClientPoolingContainer> entry : currentPools.entrySet()) {
                 int activeCheckouts = entry.getValue().getPoolUtilization();
                 int totalAllowed = entry.getValue().getPoolSize();
 
                 currentState.append(
-                        String.format("\tPOOL STATUS: Pooled host %s has %s out of %s connections checked out.\n",
+                        String.format("\tPOOL STATUS: Pooled host %s has %s out of %s connections checked out.%n",
                                 entry.getKey(),
                                 activeCheckouts > 0? Integer.toString(activeCheckouts) : "(unknown)",
                                 totalAllowed > 0? Integer.toString(totalAllowed) : "(not bounded)"));
@@ -189,7 +186,8 @@ public class CassandraClientPool {
     private void checkAndUpdateBlacklist() {
         // Check blacklist and re-integrate or continue to wait as necessary
         for (Map.Entry<InetSocketAddress, Long> blacklistedEntry : blacklistedHosts.entrySet()) {
-            if (blacklistedEntry.getValue() + BANNED_HOST_BACKOFF_TIME_MS < System.currentTimeMillis()) {
+            long backoffTimeMillis = TimeUnit.SECONDS.toMillis(config.unresponsiveHostBackoffTimeSeconds());
+            if (blacklistedEntry.getValue() + backoffTimeMillis < System.currentTimeMillis()) {
                 InetSocketAddress host = blacklistedEntry.getKey();
                 if (isHostHealthy(host)) {
                     blacklistedHosts.remove(host);
@@ -207,6 +205,7 @@ public class CassandraClientPool {
         try {
             CassandraClientPoolingContainer testingContainer = new CassandraClientPoolingContainer(host, config);
             testingContainer.runWithPooledResource(describeRing);
+            testingContainer.runWithPooledResource(validatePartitioner);
         } catch (Exception e) {
             log.error("We tried to add {} back into the pool, but got an exception that caused to us distrust this host further.", host, e);
             return false;
@@ -240,7 +239,7 @@ public class CassandraClientPool {
         if (liveOwnerHosts.isEmpty()) {
             log.warn("Perf / cluster stability issue. Token aware query routing has failed because there are no known " +
                     "live hosts that claim ownership of the given range. Falling back to choosing a random live node. " +
-                    "For debugging, our current ring view is: %s and our current host blacklist is %s", tokenMap, blacklistedHosts);
+                    "For debugging, our current ring view is: {} and our current host blacklist is {}", tokenMap, blacklistedHosts);
             return getRandomGoodHost().getHost();
         } else {
             return currentPools.get(ImmutableList.copyOf(liveOwnerHosts).get(ThreadLocalRandom.current().nextInt(liveOwnerHosts.size()))).getHost();
@@ -248,33 +247,60 @@ public class CassandraClientPool {
     }
 
     public void runOneTimeStartupChecks() {
-        final FunctionCheckedException<Cassandra.Client, Void, Exception> healthChecks = new FunctionCheckedException<Cassandra.Client, Void, Exception>() {
-            @Override
-            public Void apply(Cassandra.Client client) throws Exception {
-                CassandraVerifier.validatePartitioner(client, config);
-                return null;
-            }
-        };
-
-        final FunctionCheckedException<Cassandra.Client, Void, Exception> createInternalMetadataTable = new FunctionCheckedException<Cassandra.Client, Void, Exception>() {
-            @Override
-            public Void apply(Cassandra.Client client) throws Exception {
-                createTableInternal(client, CassandraConstants.METADATA_TABLE);
-                return null;
-            }
-        };
-
         try {
             CassandraVerifier.ensureKeyspaceExistsAndIsUpToDate(this, config);
+        } catch (Exception e) {
+            log.error("Startup checks failed, was not able to create the keyspace or ensure it already existed.");
+            throw new RuntimeException(e);
+        }
 
-            for (InetSocketAddress liveHost : Sets.difference(currentPools.keySet(), blacklistedHosts.keySet())) {
-                runOnHost(liveHost, healthChecks);
-                runOnHost(liveHost, createInternalMetadataTable);
+        Map<InetSocketAddress, Exception> completelyUnresponsiveHosts = Maps.newHashMap(), aliveButInvalidPartitionerHosts = Maps.newHashMap();
+        boolean thisHostResponded, atLeastOneHostResponded = false, atLeastOneHostSaidWeHaveALockTable = false;
+        for (InetSocketAddress liveHost : Sets.difference(currentPools.keySet(), blacklistedHosts.keySet())) {
+            thisHostResponded = false;
+            try {
+                runOnHost(liveHost, CassandraVerifier.healthCheck);
+                thisHostResponded = true;
+                atLeastOneHostResponded = true;
+            } catch (Exception e) {
+                completelyUnresponsiveHosts.put(liveHost, e);
+                addToBlacklist(liveHost);
             }
 
-        } catch (Exception e) {
-            log.error("Startup checks failed.");
-            throw new RuntimeException(e);
+
+            if (thisHostResponded) {
+                try {
+                    runOnHost(liveHost, validatePartitioner);
+                } catch (Exception e) {
+                    aliveButInvalidPartitionerHosts.put(liveHost, e);
+                }
+
+                try {
+                    runOnHost(liveHost, createInternalLockTable);
+                    atLeastOneHostSaidWeHaveALockTable = true;
+                } catch (Exception e) {
+                    // don't fail here, want to give the user all the errors at once at the end
+                }
+            }
+        }
+
+        StringBuilder errorBuilderForEntireCluster = new StringBuilder();
+        if (completelyUnresponsiveHosts.size() > 0) {
+            errorBuilderForEntireCluster.append("Performing routine startup checks, determined that the following hosts are unreachable for the following reasons: \n");
+            completelyUnresponsiveHosts.forEach((host, exception) ->
+                    errorBuilderForEntireCluster.append(String.format("\tHost: %s was marked unreachable via exception: %s%n", host.toString(), exception.toString())));
+        }
+
+        if (aliveButInvalidPartitionerHosts.size() > 0) {
+            errorBuilderForEntireCluster.append("Performing routine startup checks, determined that the following hosts were alive but are configured with an invalid partitioner: \n");
+            aliveButInvalidPartitionerHosts.forEach((host, exception) ->
+                    errorBuilderForEntireCluster.append(String.format("\tHost: %s was marked as invalid partitioner via exception: %s%n", host.toString(), exception.toString())));
+        }
+
+        if (atLeastOneHostResponded && atLeastOneHostSaidWeHaveALockTable && aliveButInvalidPartitionerHosts.size() == 0) {
+            return;
+        } else {
+            throw new RuntimeException(errorBuilderForEntireCluster.toString());
         }
     }
 
@@ -287,18 +313,25 @@ public class CassandraClientPool {
         return tableName.replaceFirst("\\.", "__");
     }
 
-    // for tables internal / implementation specific to this KVS; these also don't get metadata in metadata table, nor do they show up in getTablenames
-    private void createTableInternal(Client client, final TableReference tableRef) throws InvalidRequestException, SchemaDisagreementException, TException, NotFoundException {
-        KsDef ks = client.describe_keyspace(config.keyspace());
-        for (CfDef cf : ks.getCf_defs()) {
-            if (cf.getName().equalsIgnoreCase(internalTableName(tableRef))) {
-                return;
-            }
+    // for tables internal / implementation specific to this KVS; these also don't get metadata in metadata table, nor do they show up in getTablenames, nor does this use concurrency control
+    private void createTableInternal(Client client, TableReference tableRef) throws InvalidRequestException, SchemaDisagreementException, TException, NotFoundException {
+        if (tableAlreadyExists(client, internalTableName(tableRef))) {
+            return;
         }
         CfDef cf = CassandraConstants.getStandardCfDef(config.keyspace(), internalTableName(tableRef));
         client.system_add_column_family(cf);
         CassandraKeyValueServices.waitForSchemaVersions(client, tableRef.getQualifiedName(), config.schemaMutationTimeoutMillis());
         return;
+    }
+
+    private boolean tableAlreadyExists(Client client, String caseInsensitiveTableName) throws TException {
+        KsDef ks = client.describe_keyspace(config.keyspace());
+        for (CfDef cf : ks.getCf_defs()) {
+            if (cf.getName().equalsIgnoreCase(caseInsensitiveTableName)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void refreshTokenRanges() {
@@ -470,5 +503,21 @@ public class CassandraClientPool {
                 || isConnectionException(t)
                 || isRetriableException(t.getCause()));
     }
+
+    final FunctionCheckedException<Cassandra.Client, Void, Exception> validatePartitioner = new FunctionCheckedException<Cassandra.Client, Void, Exception>() {
+        @Override
+        public Void apply(Cassandra.Client client) throws Exception {
+            CassandraVerifier.validatePartitioner(client, config);
+            return null;
+        }
+    };
+
+    final FunctionCheckedException<Cassandra.Client, Void, Exception> createInternalLockTable = new FunctionCheckedException<Cassandra.Client, Void, Exception>() {
+        @Override
+        public Void apply(Cassandra.Client client) throws Exception {
+            createTableInternal(client, CassandraConstants.LOCK_TABLE);
+            return null;
+        }
+    };
 
 }

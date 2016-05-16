@@ -58,7 +58,7 @@ public class ImmutableTimestampSupplier implements Supplier<Long> {
 
     @Override
     public Long get() {
-        long ts = timestampService.getFreshTimestamp();
+        Long ts = timestampService.getFreshTimestamp();
         Long minLocked = lockService.getMinLockedInVersionId(lockClient.getClientId());
         return minLocked == null ? ts : minLocked;
     }

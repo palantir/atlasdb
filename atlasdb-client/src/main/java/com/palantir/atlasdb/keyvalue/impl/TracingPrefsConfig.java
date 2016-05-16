@@ -44,9 +44,10 @@ public class TracingPrefsConfig implements Runnable {
     public void run() {
         try {
             final File TRACING_PREF_FILE = new File(System.getProperty("user.dir") + java.io.File.separatorChar + TRACING_PREF_FILENAME);
+
             if (TRACING_PREF_FILE.exists()) {
-                try {
-                    tracingPrefConfig.load(new FileInputStream(TRACING_PREF_FILE));
+                try (FileInputStream fileStream = new FileInputStream(TRACING_PREF_FILE)) {
+                    tracingPrefConfig.load(fileStream);
                     tracingEnabled = Boolean.parseBoolean(tracingPrefConfig.getProperty("tracing_enabled", "false"));
                     tracingProbability = Double.parseDouble(tracingPrefConfig.getProperty("trace_probability", "1.0"));
                     tracingMinDurationToTraceMillis = Integer.parseInt(tracingPrefConfig.getProperty("min_duration_to_log_ms", "0"));

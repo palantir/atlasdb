@@ -24,6 +24,7 @@ import com.palantir.atlasdb.keyvalue.rocksdb.impl.ImmutableWriteOpts;
 import com.palantir.atlasdb.keyvalue.rocksdb.impl.RocksDbKeyValueService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.versions.AtlasDbVersion;
 import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.TimestampService;
 
@@ -36,6 +37,7 @@ public class RocksDbAtlasDbFactory implements AtlasDbFactory {
 
     @Override
     public RocksDbKeyValueService createRawKeyValueService(KeyValueServiceConfig config) {
+        AtlasDbVersion.ensureVersionReported();
         Preconditions.checkArgument(config instanceof RocksDbKeyValueServiceConfig,
                 "RocksDbAtlasDbFactory expects a configuration of type RocksDbKeyValueServiceConfig, found %s", config.getClass());
         RocksDbKeyValueServiceConfig rocksDbConfig = (RocksDbKeyValueServiceConfig) config;
@@ -49,6 +51,7 @@ public class RocksDbAtlasDbFactory implements AtlasDbFactory {
 
     @Override
     public TimestampService createTimestampService(KeyValueService rawKvs) {
+        AtlasDbVersion.ensureVersionReported();
         Preconditions.checkArgument(rawKvs instanceof RocksDbKeyValueService,
                 "TimestampService must be created from an instance of RocksDbKeyValueService, found %s", rawKvs.getClass());
         return PersistentTimestampService.create(SimpleKvsTimestampBoundStore.create(rawKvs));

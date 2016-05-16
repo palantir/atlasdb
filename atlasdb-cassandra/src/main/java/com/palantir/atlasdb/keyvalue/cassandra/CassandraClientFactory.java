@@ -95,7 +95,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
         Client ret = getClientInternal(addr, isSsl, socketTimeoutMillis, socketQueryTimeoutMillis);
         try {
             ret.set_keyspace(keyspace);
-            log.info("Created new client for {}/{} {}", addr, keyspace, (isSsl ? "over SSL" : ""));
+            log.debug("Created new client for {}/{} {}", addr, keyspace, (isSsl ? "over SSL" : ""));
             return ret;
         } catch (Exception e) {
             ret.getOutputProtocol().getTransport().close();
@@ -151,7 +151,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
     @Override
     public void destroyObject(PooledObject<Client> client) {
         client.getObject().getOutputProtocol().getTransport().close();
-        log.info("Closed transport for client {}", client.getObject());
+        log.debug("Closed transport for client {}", client.getObject());
     }
 
     static class ClientCreationFailedException extends RuntimeException {

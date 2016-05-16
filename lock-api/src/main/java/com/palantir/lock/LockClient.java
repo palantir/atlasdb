@@ -59,7 +59,7 @@ import com.google.common.base.Strings;
     /**
      * Returns a {@code LockClient} instance for the given client ID.
      *
-     * @throws IllegalArgumentException if {@code clientId} is {@code null} or
+     * Returns LockClient.ANONYMOUS if {@code clientId} is {@code null} or
      *         the empty string
      */
     public static LockClient of(String clientId) {

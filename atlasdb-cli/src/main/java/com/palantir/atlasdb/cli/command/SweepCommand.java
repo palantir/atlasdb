@@ -171,7 +171,7 @@ public class SweepCommand extends SingleBackendCommand {
     }
 
     private String encodeEndRow(Optional<byte[]> rowBytes) {
-        if (rowBytes.isPresent() && !rowBytes.equals(FIRST_ROW)) {
+        if (rowBytes.isPresent() && !Arrays.equals(rowBytes.get(), FIRST_ROW)) {
             return BaseEncoding.base16().encode(rowBytes.get());
         } else {
             return BaseEncoding.base16().encode(LAST_ROW);

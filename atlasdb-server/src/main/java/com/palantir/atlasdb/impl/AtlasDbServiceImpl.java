@@ -41,7 +41,6 @@ import com.palantir.atlasdb.api.TransactionToken;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
-import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
@@ -128,7 +127,7 @@ public class AtlasDbServiceImpl implements AtlasDbService {
         return runReadOnly(token, new RuntimeTransactionTask<RangeToken>() {
             @Override
             public RangeToken execute(Transaction t) {
-                int limit = range.getBatchSize();
+                int limit = range.getBatchSize() + 1;
                 RangeRequest request = RangeRequest.builder()
                     .startRowInclusive(range.getStartRow())
                     .endRowExclusive(range.getEndRow())
@@ -137,12 +136,13 @@ public class AtlasDbServiceImpl implements AtlasDbService {
                     .build();
                 BatchingVisitable<RowResult<byte[]>> visitable = t.getRange(getTableRef(range.getTableName()), request);
                 List<RowResult<byte[]>> results = BatchingVisitables.limit(visitable, limit).immutableCopy();
-                TableRowResult data = new TableRowResult(range.getTableName(), results);
                 if (results.size() == limit) {
-                    RowResult<byte[]> lastResult = results.get(limit - 1);
-                    TableRange nextRange = range.withStartRow(RangeRequests.nextLexicographicName(lastResult.getRowName()));
+                    TableRowResult data = new TableRowResult(range.getTableName(), results.subList(0, limit - 1));
+                    RowResult<byte[]> lastResultInBatch = results.get(limit - 1);
+                    TableRange nextRange = range.withStartRow(lastResultInBatch.getRowName());
                     return new RangeToken(data, nextRange);
                 } else {
+                    TableRowResult data = new TableRowResult(range.getTableName(), results);
                     return new RangeToken(data, null);
                 }
             }

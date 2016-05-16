@@ -281,8 +281,8 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
 
     public void dumpStats(PrintWriter writer) {
         Map<TableReference, TableStats> sortedStats = ImmutableSortedMap.copyOf(statsByTableName);
-        String headerFmt = "|| %-20s || %10s || %10s || %10s || %10s || %10s || %10s ||\n";
-        String rowFmt =    "|  %-20s |  %10s |  %10s |  %10s |  %10s |  %10s |  %10s |\n";
+        String headerFmt = "|| %-20s || %10s || %10s || %10s || %10s || %10s || %10s ||%n";
+        String rowFmt =    "|  %-20s |  %10s |  %10s |  %10s |  %10s |  %10s |  %10s |%n";
 
         writer.printf(
                 headerFmt,

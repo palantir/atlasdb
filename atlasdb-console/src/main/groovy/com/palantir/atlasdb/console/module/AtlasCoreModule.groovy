@@ -133,7 +133,7 @@ class AtlasCoreModule implements AtlasConsoleModule {
         return bindings;
     }
 
-    public connect(String yamlFilePath = null) {
+    public connect(String yamlFilePath) {
         AtlasDbConfig config = AtlasDbConfigs.load(new File(yamlFilePath));
         SerializableTransactionManager tm = TransactionManagers.create(config, Optional.<SSLSocketFactory>absent(), ImmutableSet.<Schema>of(),
                 new com.palantir.atlasdb.factory.TransactionManagers.Environment() {

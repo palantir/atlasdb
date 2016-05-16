@@ -229,9 +229,9 @@ public class CQLKeyValueServices {
         sb.append(String.format("Cassandra cluster cannot come to agreement on schema versions, during operation: %s.", encapsulatingOperationDescription));
 
         for ( Entry<UUID, Collection<InetAddress>> versionToPeer : peerInfo.asMap().entrySet()) {
-            sb.append(String.format("\nAt schema version %s:", versionToPeer.getKey()));
+            sb.append(String.format("%nAt schema version %s:", versionToPeer.getKey()));
             for (InetAddress peer: versionToPeer.getValue()) {
-                sb.append(String.format("\n\tNode: %s", peer));
+                sb.append(String.format("%n\tNode: %s", peer));
             }
         }
         sb.append("\nFind the nodes above that diverge from the majority schema " +
