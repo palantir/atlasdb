@@ -49,18 +49,15 @@ public class CassandraDbLockTest {
     public static final TableReference BAD_TABLE = TableReference.createFromFullyQualifiedName("foo.b@r");
     public static final TableReference GOOD_TABLE = TableReference.createFromFullyQualifiedName("foo.bar");
 
-    private static final int QUICK_TIMEOUT_MILLIS = 500;
-    private static final int SLOW_TIMEOUT_MILLIS = 60_000;
-
     @Before
     public void setUp() {
         ImmutableCassandraKeyValueServiceConfig quickTimeoutConfig = CassandraTestSuite.CASSANDRA_KVS_CONFIG
-                .withSchemaMutationTimeoutMillis(QUICK_TIMEOUT_MILLIS);
+                .withSchemaMutationTimeoutMillis(500);
         kvs = CassandraKeyValueService.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(quickTimeoutConfig));
 
         ImmutableCassandraKeyValueServiceConfig slowTimeoutConfig = CassandraTestSuite.CASSANDRA_KVS_CONFIG
-                .withSchemaMutationTimeoutMillis(SLOW_TIMEOUT_MILLIS);
+                .withSchemaMutationTimeoutMillis(60 * 1000);
         slowTimeoutKvs = CassandraKeyValueService.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(slowTimeoutConfig));
 
@@ -92,7 +89,7 @@ public class CassandraDbLockTest {
 
         Future tryToAcquireSecondLock = async(() -> kvs.waitForSchemaMutationLock());
 
-        Thread.sleep(CassandraKeyValueService.SCHEMA_MUTATION_TIMEOUT_MULTIPLIER * QUICK_TIMEOUT_MILLIS);
+        Thread.sleep(3 * 1000);
         assertThatFutureDidNotSucceedYet(tryToAcquireSecondLock);
 
         tryToAcquireSecondLock.cancel(true);
