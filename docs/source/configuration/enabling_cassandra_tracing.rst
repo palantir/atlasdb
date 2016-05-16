@@ -17,6 +17,10 @@ java process.
 When a query is traced you will see the following line your log file:
 ``Traced a call to <table-name> that took <duration> ms. It will appear in system_traces with UUID=<session-id-of-trace>``
 
+Generally it is important to note that tracing is expensive and can have 
+performance implications when reading/writing to cassandra, and thus the 
+use of it should be minimized.
+
 The Prefs File
 ==============
 
@@ -26,10 +30,18 @@ the following parameters:
 .. code:: properties
 
     tracing_enabled: true           # self explanatory
-    trace_probability: 1.0          # the probability we trace an eligible query
-    min_duration_to_log_ms: 1000    # the minimum amount of time a traced query has to take to actually be logged
+
+    # the probability we trace an eligible query
+    # this is a pre-filter and a good tool to use to ensure you're not tracing
+    # frequently enough to incur performance degradation
+    trace_probability: 1.0
 
     # a comma separated list of tables whose queries are eligible for tracing
     # for namespaced tables the table entry must be <namespace>.<table>
+    # like "trace_probability", this is also a pre-filter
     tables_to_trace: _transactions,namespaceOne.table_7,namespaceTwo.table_3    
 
+    # the minimum amount of time a traced query has to take to actually be logged
+    # this is a post-filter and so the trace is still done (and thus still incurs
+    # a performance hit) even if you do not log it
+    min_duration_to_log_ms: 1000
