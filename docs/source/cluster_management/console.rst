@@ -7,10 +7,10 @@ Overview
 
 The AtlasDB Console is intended for use by engineers interested in
 examining the internals of a running AtlasDB instance. It supports both
-simple and complex quieries on all tables in AtlasDB, as well as
+simple and complex queries on all tables in AtlasDB, as well as
 put/get/delete requests, tabular pretty print, and transactions. The
 primary high-level goals for AtlasDB Console are simplicity and ease of
-user. You can query AtlasDB Console using a Groovy shell or write
+use. You can query AtlasDB Console using a Groovy shell or write
 scripts as needed to obtain the information you are interested in. There
 is a lot of functionality built into this interface and you are able to
 perform both safe and destructive (read dangerous) operations.
