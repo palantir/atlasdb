@@ -166,6 +166,7 @@ public class PersistentTimestampService implements TimestampService {
         if (numTimestampsRequested > MAX_REQUEST_RANGE_SIZE) {
             numTimestampsRequested = MAX_REQUEST_RANGE_SIZE;
         }
+        boolean hasLogged = false;
         while (true) {
             long upperLimit = upperLimitToHandOutInclusive.get();
             long lastVal = lastReturnedTimestamp.get();
@@ -176,6 +177,10 @@ public class PersistentTimestampService implements TimestampService {
                     throw new ServiceNotAvailableException("This server is no longer valid because another is running.", possibleFailure);
                 } else if (possibleFailure != null) {
                     throw new RuntimeException("failed to allocate more timestamps", possibleFailure);
+                }
+                if (!hasLogged) {
+                    log.error("We haven't gotten enough timestamps from the DB", new RuntimeException());
+                    hasLogged = true;
                 }
                 if (Thread.interrupted()) {
                     Thread.currentThread().interrupt();
