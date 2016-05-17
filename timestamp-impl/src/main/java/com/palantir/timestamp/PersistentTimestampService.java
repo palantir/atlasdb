@@ -72,7 +72,7 @@ public class PersistentTimestampService implements TimestampService {
     }
 
     private synchronized void allocateMoreTimestamps() {
-        if (!shouldAllocateMoreTimestamps()) {
+        if (shouldNotAllocateMoreTimestamps()) {
             return;
         }
 
@@ -84,9 +84,9 @@ public class PersistentTimestampService implements TimestampService {
         allocationFailure = null;
     }
 
-    private boolean shouldAllocateMoreTimestamps() {
-        return isAllocationRequired(lastReturnedTimestamp.get(), upperLimitToHandOutInclusive.get())
-            && !(allocationFailure instanceof MultipleRunningTimestampServiceError);
+    private boolean shouldNotAllocateMoreTimestamps() {
+        return !isAllocationRequired(lastReturnedTimestamp.get(), upperLimitToHandOutInclusive.get())
+            || allocationFailure instanceof MultipleRunningTimestampServiceError;
     }
 
     private static void advanceAtomicLongToValue(AtomicLong toAdvance, long val) {

@@ -79,6 +79,14 @@ public class PersistentTimestampServiceTest {
         m.assertIsSatisfied();
     }
 
+    @Test(expected = ServiceNotAvailableException.class)
+    public void shouldAServiceNotAvailableExceptionIfMultipleTimestampSerivcesAreRunning() {
+        final TimestampBoundStore timestampBoundStore = timestampStoreFailingWith(new MultipleRunningTimestampServiceError("error"));
+
+        PersistentTimestampService persistentTimestampService = PersistentTimestampService.create(timestampBoundStore);
+        persistentTimestampService.getFreshTimestamp();
+    }
+
     @Test
     public void incrementUpperLimitIfOneMinuteElapsedSinceLastUpdate() throws InterruptedException {
         Clock clock = mock(Clock.class);
@@ -115,9 +123,9 @@ public class PersistentTimestampServiceTest {
 
     @Test
     public void throwOnTimestampRequestIfBoundStoreCannotStoreNewUpperLimit() {
-        PersistentTimestampService persistentTimestampService = PersistentTimestampService.create(failingTimestampBoundStore());
+        PersistentTimestampService persistentTimestampService = PersistentTimestampService.create(timestampStoreFailingWith(new RuntimeException()));
 
-        expectedException.expect(ServiceNotAvailableException.class);
+        expectedException.expect(RuntimeException.class);
         persistentTimestampService.getFreshTimestamp();
     }
 
@@ -188,10 +196,10 @@ public class PersistentTimestampServiceTest {
         return timestampBoundStore;
     }
 
-    private TimestampBoundStore failingTimestampBoundStore() {
+    private TimestampBoundStore timestampStoreFailingWith(Throwable throwable) {
         TimestampBoundStore timestampBoundStore = mock(TimestampBoundStore.class);
         when(timestampBoundStore.getUpperLimit()).thenReturn(0L);
-        doThrow(new MultipleRunningTimestampServiceError("error")).when(timestampBoundStore).storeUpperLimit(anyLong());
+        doThrow(throwable).when(timestampBoundStore).storeUpperLimit(anyLong());
         return timestampBoundStore;
     }
 }
