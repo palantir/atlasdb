@@ -125,13 +125,9 @@ public class PersistentTimestampService implements TimestampService {
     }
 
     private boolean isAllocationRequired(long lastVal, long upperLimit) {
-        // we allocate new timestamps if we have less than half of our allocation buffer left
-        // or we haven't allocated timestamps in the last sixty seconds. The latter case
-        // exists in order to log errors faster against the class of bugs where your
-        // timestamp limit changed unexpectedly (usually, multiple TS against the same DB)
         return exceededUpperLimit(lastVal, upperLimit)
                 || exceededHalfOfBuffer(lastVal, upperLimit)
-                || exceededLastAllocationTime();
+                || haveNotAllocatedForOneMinute();
     }
 
     private boolean exceededHalfOfBuffer(long lastVal, long upperLimit) {
@@ -142,7 +138,7 @@ public class PersistentTimestampService implements TimestampService {
         return lastVal >= upperLimit;
     }
 
-    private boolean exceededLastAllocationTime() {
+    private boolean haveNotAllocatedForOneMinute() {
         return lastAllocatedTime + ONE_MINUTE_IN_MILLIS < clock.getTimeMillis();
     }
 
