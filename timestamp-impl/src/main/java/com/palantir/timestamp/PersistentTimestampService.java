@@ -76,11 +76,17 @@ public class PersistentTimestampService implements TimestampService {
             return;
         }
 
+        if (allocationFailure instanceof MultipleRunningTimestampServiceError) {
+            // We cannot allocate timestamps anymore because another server is running.
+            return;
+        }
+
         long newLimit = lastReturnedTimestamp.get() + ALLOCATION_BUFFER_SIZE;
         store.storeUpperLimit(newLimit);
         // Prevent upper limit from falling behind stored upper limit.
         advanceAtomicLongToValue(upperLimitToHandOutInclusive, newLimit);
         lastAllocatedTime = clock.getTimeMillis();
+        allocationFailure = null;
     }
 
     private static void advanceAtomicLongToValue(AtomicLong toAdvance, long val) {
@@ -99,24 +105,23 @@ public class PersistentTimestampService implements TimestampService {
             @Override
             public void run() {
                 try {
-                    if (allocationFailure instanceof MultipleRunningTimestampServiceError) {
-                        // We cannot allocate timestamps anymore because another server is running.
-                        return;
-                    }
                     allocateMoreTimestamps();
-                    allocationFailure = null;
                 } catch (Throwable e) { // (authorized)
-                    if (allocationFailure != null
-                            && e.getClass().equals(allocationFailure.getClass())) {
-                        // QA-75825: don't keep logging error if we keep failing to allocate.
-                        log.info("Throwable while allocating timestamps.", e);
-                    } else {
-                        log.error("Throwable while allocating timestamps.", e);
-                    }
-                    allocationFailure = e;
+                    handleAllocationException(e);
                 }
             }
         });
+    }
+
+    private void handleAllocationException(Throwable e) {
+        if (allocationFailure != null
+                && e.getClass().equals(allocationFailure.getClass())) {
+            // QA-75825: don't keep logging error if we keep failing to allocate.
+            log.info("Throwable while allocating timestamps.", e);
+        } else {
+            log.error("Throwable while allocating timestamps.", e);
+        }
+        allocationFailure = e;
     }
 
     private boolean isAllocationRequired(long lastVal, long upperLimit) {
