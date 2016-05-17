@@ -35,6 +35,7 @@ import java.util.concurrent.TimeoutException;
 
 import org.jmock.Expectations;
 import org.jmock.Mockery;
+import org.jmock.lib.concurrent.Synchroniser;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -55,6 +56,7 @@ public class PersistentTimestampServiceTest {
     @Test
     public void testFastForward() {
         Mockery m = new Mockery();
+        m.setThreadingPolicy(new Synchroniser());
         final TimestampBoundStore tbsMock = m.mock(TimestampBoundStore.class);
         final long initialValue = 1234567L;
         final long futureTimestamp = 12345678L;
@@ -122,6 +124,7 @@ public class PersistentTimestampServiceTest {
     @Test
     public void testLimit() throws InterruptedException {
         Mockery m = new Mockery();
+        m.setThreadingPolicy(new Synchroniser());
         final TimestampBoundStore tbsMock = m.mock(TimestampBoundStore.class);
         final long initialValue = 72;
         m.checking(new Expectations() {{
@@ -156,8 +159,6 @@ public class PersistentTimestampServiceTest {
             f.cancel(true);
             exec.shutdown();
         }
-
-        m.assertIsSatisfied();
     }
 
     private void getFreshTimestampsInParallel(PersistentTimestampService persistentTimestampService, int numTimes) {
