@@ -1,12 +1,12 @@
 /**
  * Copyright 2015 Palantir Technologies
- *
+ * <p>
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * <p>
  * http://opensource.org/licenses/BSD-3-Clause
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -75,6 +75,10 @@ public class PersistentTimestampService implements TimestampService {
     }
 
     private synchronized void allocateMoreTimestamps() {
+        if (!isAllocationRequired(lastReturnedTimestamp.get(), upperLimitToHandOutInclusive.get())) {
+            return;
+        }
+
         long newLimit = lastReturnedTimestamp.get() + ALLOCATION_BUFFER_SIZE;
         store.storeUpperLimit(newLimit);
         // Prevent upper limit from falling behind stored upper limit.
@@ -91,36 +95,35 @@ public class PersistentTimestampService implements TimestampService {
     }
 
     volatile Throwable allocationFailure = null;
+
     private void submitAllocationTask() {
-        if (isAllocationTaskSubmitted.compareAndSet(false, true) && isAllocationRequired(lastReturnedTimestamp.get(), upperLimitToHandOutInclusive.get())) {
-            final Exception createdException = new Exception("allocation task called from here");
-            executor.submit(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        if (allocationFailure instanceof MultipleRunningTimestampServiceError) {
-                            // We cannot allocate timestamps anymore because another server is running.
-                            return;
-                        }
-                        allocateMoreTimestamps();
-                        lastAllocatedTime = clock.getTimeMillis();
-                        allocationFailure = null;
-                    } catch (Throwable e) { // (authorized)
-                        createdException.initCause(e);
-                        if (allocationFailure != null
-                                && e.getClass().equals(allocationFailure.getClass())) {
-                            // QA-75825: don't keep logging error if we keep failing to allocate.
-                            log.info("Throwable while allocating timestamps.", createdException);
-                        } else {
-                            log.error("Throwable while allocating timestamps.", createdException);
-                        }
-                        allocationFailure = e;
-                    } finally {
-                        isAllocationTaskSubmitted.set(false);
+        final Exception createdException = new Exception("allocation task called from here");
+        executor.submit(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    if (allocationFailure instanceof MultipleRunningTimestampServiceError) {
+                        // We cannot allocate timestamps anymore because another server is running.
+                        return;
                     }
+                    allocateMoreTimestamps();
+                    lastAllocatedTime = clock.getTimeMillis();
+                    allocationFailure = null;
+                } catch (Throwable e) { // (authorized)
+                    createdException.initCause(e);
+                    if (allocationFailure != null
+                            && e.getClass().equals(allocationFailure.getClass())) {
+                        // QA-75825: don't keep logging error if we keep failing to allocate.
+                        log.info("Throwable while allocating timestamps.", createdException);
+                    } else {
+                        log.error("Throwable while allocating timestamps.", createdException);
+                    }
+                    allocationFailure = e;
+                } finally {
+                    isAllocationTaskSubmitted.set(false);
                 }
-            });
-        }
+            }
+        });
     }
 
     private boolean isAllocationRequired(long lastVal, long upperLimit) {
@@ -191,7 +194,7 @@ public class PersistentTimestampService implements TimestampService {
             }
         }
     }
-    
+
     /**
      * Fast forwards the timestamp to the specified one so that no one can be served fresh timestamps prior
      * to it from now on.
