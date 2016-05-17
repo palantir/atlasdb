@@ -29,6 +29,7 @@ import com.google.common.base.Preconditions;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.common.time.Clock;
+import com.palantir.common.time.SystemClock;
 import com.palantir.exception.PalantirInterruptedException;
 
 @ThreadSafe
@@ -51,14 +52,7 @@ public class PersistentTimestampService implements TimestampService {
     private long lastAllocatedTime;
 
     public static PersistentTimestampService create(TimestampBoundStore tbs) {
-        return create(
-                tbs,
-                new Clock() {
-                    @Override
-                    public long getTimeMillis() {
-                        return System.currentTimeMillis();
-                    }
-                });
+        return create(tbs, new SystemClock());
     }
 
     @VisibleForTesting
