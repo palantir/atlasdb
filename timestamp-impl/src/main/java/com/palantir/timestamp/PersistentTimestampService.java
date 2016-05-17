@@ -48,6 +48,7 @@ public class PersistentTimestampService implements TimestampService {
 
     private Clock clock;
     private long lastAllocatedTime;
+    volatile Throwable allocationFailure = null;
 
     public static PersistentTimestampService create(TimestampBoundStore tbs) {
         return create(tbs, new SystemClock());
@@ -67,85 +68,14 @@ public class PersistentTimestampService implements TimestampService {
         lastAllocatedTime = clock.getTimeMillis();
     }
 
-    public long getUpperLimitTimestampToHandOutInclusive() {
-        return upperLimitToHandOutInclusive.get();
-    }
-
-    private synchronized void allocateMoreTimestamps() {
-        if (shouldNotAllocateMoreTimestamps()) {
-            return;
-        }
-
-        long newLimit = lastReturnedTimestamp.get() + ALLOCATION_BUFFER_SIZE;
-        store.storeUpperLimit(newLimit);
-        // Prevent upper limit from falling behind stored upper limit.
-        advanceAtomicLongToValue(upperLimitToHandOutInclusive, newLimit);
-        lastAllocatedTime = clock.getTimeMillis();
-        allocationFailure = null;
-    }
-
-    private boolean shouldNotAllocateMoreTimestamps() {
-        return !isAllocationRequired(lastReturnedTimestamp.get(), upperLimitToHandOutInclusive.get())
-            || allocationFailure instanceof MultipleRunningTimestampServiceError;
-    }
-
-    private static void advanceAtomicLongToValue(AtomicLong toAdvance, long val) {
-        while (true) {
-            long oldUpper = toAdvance.get();
-            if (val <= oldUpper || toAdvance.compareAndSet(oldUpper, val)) {
-                return;
-            }
-        }
-    }
-
-    volatile Throwable allocationFailure = null;
-
-    private void submitAllocationTask() {
-        executor.submit(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    allocateMoreTimestamps();
-                } catch (Throwable e) { // (authorized)
-                    handleAllocationException(e);
-                }
-            }
-        });
-    }
-
-    private void handleAllocationException(Throwable e) {
-        if (allocationFailure != null
-                && e.getClass().equals(allocationFailure.getClass())) {
-            // QA-75825: don't keep logging error if we keep failing to allocate.
-            log.info("Throwable while allocating timestamps.", e);
-        } else {
-            log.error("Throwable while allocating timestamps.", e);
-        }
-        allocationFailure = e;
-    }
-
-    private boolean isAllocationRequired(long lastVal, long upperLimit) {
-        return exceededUpperLimit(lastVal, upperLimit)
-                || exceededHalfOfBuffer(lastVal, upperLimit)
-                || haveNotAllocatedForOneMinute();
-    }
-
-    private boolean exceededHalfOfBuffer(long lastVal, long upperLimit) {
-        return (upperLimit - lastVal) <= ALLOCATION_BUFFER_SIZE / 2;
-    }
-
-    private boolean exceededUpperLimit(long lastVal, long upperLimit) {
-        return lastVal >= upperLimit;
-    }
-
-    private boolean haveNotAllocatedForOneMinute() {
-        return lastAllocatedTime + ONE_MINUTE_IN_MILLIS < clock.getTimeMillis();
-    }
-
     @Override
     public long getFreshTimestamp() {
         long ret = getFreshTimestamps(1).getLowerBound();
         return ret;
+    }
+
+    public long getUpperLimitTimestampToHandOutInclusive() {
+        return upperLimitToHandOutInclusive.get();
     }
 
     @Override
@@ -193,7 +123,7 @@ public class PersistentTimestampService implements TimestampService {
      * Fast forwards the timestamp to the specified one so that no one can be served fresh timestamps prior
      * to it from now on.
      *
-     * Sets the upper limit in the TimestampBoundStore as well as increases the minimum timestamp that can 
+     * Sets the upper limit in the TimestampBoundStore as well as increases the minimum timestamp that can
      * be allocated from this instantiation of the TimestampService moving forward.
      *
      * The caller of this is responsible for not using any of the fresh timestamps previously served to it,
@@ -205,9 +135,78 @@ public class PersistentTimestampService implements TimestampService {
         long upperLimit = timestamp + ALLOCATION_BUFFER_SIZE;
         store.storeUpperLimit(upperLimit);
         // Prevent upper limit from falling behind stored upper limit.
-        advanceAtomicLongToValue(upperLimitToHandOutInclusive, upperLimit);
+        setToAtLeast(upperLimitToHandOutInclusive, upperLimit);
 
         // Prevent ourselves from serving any of the bad (read: pre-fastForward) timestamps
-        advanceAtomicLongToValue(lastReturnedTimestamp, timestamp);
+        setToAtLeast(lastReturnedTimestamp, timestamp);
+    }
+
+    private synchronized void allocateMoreTimestamps() {
+        if (shouldNotAllocateMoreTimestamps()) {
+            return;
+        }
+
+        long newLimit = lastReturnedTimestamp.get() + ALLOCATION_BUFFER_SIZE;
+        store.storeUpperLimit(newLimit);
+        // Prevent upper limit from falling behind stored upper limit.
+        setToAtLeast(upperLimitToHandOutInclusive, newLimit);
+        lastAllocatedTime = clock.getTimeMillis();
+        allocationFailure = null;
+    }
+
+    private boolean shouldNotAllocateMoreTimestamps() {
+        return !isAllocationRequired(lastReturnedTimestamp.get(), upperLimitToHandOutInclusive.get())
+            || allocationFailure instanceof MultipleRunningTimestampServiceError;
+    }
+
+    private static void setToAtLeast(AtomicLong toAdvance, long val) {
+        while (true) {
+            long oldUpper = toAdvance.get();
+            if (val <= oldUpper || toAdvance.compareAndSet(oldUpper, val)) {
+                return;
+            }
+        }
+    }
+
+    private void submitAllocationTask() {
+        executor.submit(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    allocateMoreTimestamps();
+                } catch (Throwable e) { // (authorized)
+                    handleAllocationException(e);
+                }
+            }
+        });
+    }
+
+    private void handleAllocationException(Throwable e) {
+        if (allocationFailure != null
+                && e.getClass().equals(allocationFailure.getClass())) {
+            // QA-75825: don't keep logging error if we keep failing to allocate.
+            log.info("Throwable while allocating timestamps.", e);
+        } else {
+            log.error("Throwable while allocating timestamps.", e);
+        }
+        allocationFailure = e;
+    }
+
+    private boolean isAllocationRequired(long lastVal, long upperLimit) {
+        return exceededUpperLimit(lastVal, upperLimit)
+                || exceededHalfOfBuffer(lastVal, upperLimit)
+                || haveNotAllocatedForOneMinute();
+    }
+
+    private boolean exceededHalfOfBuffer(long lastVal, long upperLimit) {
+        return (upperLimit - lastVal) <= ALLOCATION_BUFFER_SIZE / 2;
+    }
+
+    private boolean exceededUpperLimit(long lastVal, long upperLimit) {
+        return lastVal >= upperLimit;
+    }
+
+    private boolean haveNotAllocatedForOneMinute() {
+        return lastAllocatedTime + ONE_MINUTE_IN_MILLIS < clock.getTimeMillis();
     }
 }
