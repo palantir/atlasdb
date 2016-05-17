@@ -95,7 +95,6 @@ public class PersistentTimestampService implements TimestampService {
     volatile Throwable allocationFailure = null;
 
     private void submitAllocationTask() {
-        final Exception createdException = new Exception("allocation task called from here");
         executor.submit(new Runnable() {
             @Override
             public void run() {
@@ -107,13 +106,12 @@ public class PersistentTimestampService implements TimestampService {
                     allocateMoreTimestamps();
                     allocationFailure = null;
                 } catch (Throwable e) { // (authorized)
-                    createdException.initCause(e);
                     if (allocationFailure != null
                             && e.getClass().equals(allocationFailure.getClass())) {
                         // QA-75825: don't keep logging error if we keep failing to allocate.
-                        log.info("Throwable while allocating timestamps.", createdException);
+                        log.info("Throwable while allocating timestamps.", e);
                     } else {
-                        log.error("Throwable while allocating timestamps.", createdException);
+                        log.error("Throwable while allocating timestamps.", e);
                     }
                     allocationFailure = e;
                 }
