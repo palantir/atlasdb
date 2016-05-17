@@ -83,6 +83,7 @@ public class PersistentTimestampService implements TimestampService {
         store.storeUpperLimit(newLimit);
         // Prevent upper limit from falling behind stored upper limit.
         advanceAtomicLongToValue(upperLimitToHandOutInclusive, newLimit);
+        lastAllocatedTime = clock.getTimeMillis();
     }
 
     private static void advanceAtomicLongToValue(AtomicLong toAdvance, long val) {
@@ -107,7 +108,6 @@ public class PersistentTimestampService implements TimestampService {
                         return;
                     }
                     allocateMoreTimestamps();
-                    lastAllocatedTime = clock.getTimeMillis();
                     allocationFailure = null;
                 } catch (Throwable e) { // (authorized)
                     createdException.initCause(e);
