@@ -16,6 +16,7 @@ Contents:
    overview/index
    schemas/index
    transactions/index
+   key_value_stores/index
    configuration/index
    cluster_management/index
    services/index
