@@ -7,5 +7,5 @@ dependencies {
   compile(group: "commons-lang", name: "commons-lang", version: libVersions.commons_lang)
   compile(group: "commons-io", name: "commons-io", version: "2.1")
 
-  testCompile(group: "org.mockito", name: "mockito-core", version: "1.9.5")
+  testCompile 'org.mockito:mockito-core:' + libVersions.mockito
 }
