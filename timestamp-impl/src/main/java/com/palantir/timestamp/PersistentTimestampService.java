@@ -72,12 +72,7 @@ public class PersistentTimestampService implements TimestampService {
     }
 
     private synchronized void allocateMoreTimestamps() {
-        if (!isAllocationRequired(lastReturnedTimestamp.get(), upperLimitToHandOutInclusive.get())) {
-            return;
-        }
-
-        if (allocationFailure instanceof MultipleRunningTimestampServiceError) {
-            // We cannot allocate timestamps anymore because another server is running.
+        if (!shouldAllocateMoreTimestamps()) {
             return;
         }
 
@@ -87,6 +82,11 @@ public class PersistentTimestampService implements TimestampService {
         advanceAtomicLongToValue(upperLimitToHandOutInclusive, newLimit);
         lastAllocatedTime = clock.getTimeMillis();
         allocationFailure = null;
+    }
+
+    private boolean shouldAllocateMoreTimestamps() {
+        return isAllocationRequired(lastReturnedTimestamp.get(), upperLimitToHandOutInclusive.get())
+            && !(allocationFailure instanceof MultipleRunningTimestampServiceError);
     }
 
     private static void advanceAtomicLongToValue(AtomicLong toAdvance, long val) {
