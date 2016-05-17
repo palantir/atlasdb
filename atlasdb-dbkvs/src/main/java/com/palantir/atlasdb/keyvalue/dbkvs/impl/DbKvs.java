@@ -1,7 +1,5 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
-import static com.sun.xml.internal.fastinfoset.alphabet.BuiltInRestrictedAlphabets.table;
-
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Comparator;
