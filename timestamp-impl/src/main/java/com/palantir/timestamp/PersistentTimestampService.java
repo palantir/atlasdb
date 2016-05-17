@@ -16,7 +16,6 @@
 package com.palantir.timestamp;
 
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.concurrent.ThreadSafe;
@@ -46,7 +45,6 @@ public class PersistentTimestampService implements TimestampService {
     private final AtomicLong upperLimitToHandOutInclusive;
 
     private final ExecutorService executor;
-    private final AtomicBoolean isAllocationTaskSubmitted;
 
     private Clock clock;
     private long lastAllocatedTime;
@@ -65,7 +63,6 @@ public class PersistentTimestampService implements TimestampService {
         lastReturnedTimestamp = new AtomicLong(lastUpperBound);
         upperLimitToHandOutInclusive = new AtomicLong(lastUpperBound);
         executor = PTExecutors.newSingleThreadExecutor(PTExecutors.newThreadFactory("Timestamp allocator", Thread.NORM_PRIORITY, true));
-        isAllocationTaskSubmitted = new AtomicBoolean(false);
         this.clock = clock;
         lastAllocatedTime = clock.getTimeMillis();
     }
@@ -119,8 +116,6 @@ public class PersistentTimestampService implements TimestampService {
                         log.error("Throwable while allocating timestamps.", createdException);
                     }
                     allocationFailure = e;
-                } finally {
-                    isAllocationTaskSubmitted.set(false);
                 }
             }
         });
