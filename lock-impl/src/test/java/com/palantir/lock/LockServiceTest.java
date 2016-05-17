@@ -38,7 +38,6 @@ import com.google.common.collect.Maps;
 import com.palantir.common.concurrent.InterruptibleFuture;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.common.proxy.SerializingProxy;
 import com.palantir.common.proxy.SimulatingServerProxy;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.util.Mutable;
