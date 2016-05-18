@@ -1,3 +1,18 @@
+/**
+ * Copyright 2015 Palantir Technologies
+ *
+ * Licensed under the BSD-3 License (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://opensource.org/licenses/BSD-3-Clause
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.palantir.atlasdb
 
 import org.gradle.testkit.runner.BuildResult
@@ -81,8 +96,6 @@ class AtlasPluginTests extends Specification {
         buildResult.task(':build').outcome == TaskOutcome.SUCCESS
         buildResult.task(':distTar').outcome == TaskOutcome.SUCCESS
         buildResult.task(':untar').outcome == TaskOutcome.SUCCESS
-
-        projectDir.eachFileRecurse { it -> println it}
 
         new File(projectDir, 'dist/service-name-0.1/service/bin/atlas').exists()
         exec('dist/service-name-0.1/service/bin/atlas').contains('usage:')

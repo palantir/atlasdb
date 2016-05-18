@@ -41,6 +41,7 @@ license {
     ext.year = Calendar.getInstance().get(Calendar.YEAR)
 
     include '**/*.java'
+    include '**/*.groovy'
     exclude '**/generated/**/*.java'
 }
 
