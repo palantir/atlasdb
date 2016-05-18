@@ -81,20 +81,21 @@ public class PersistentTimestampService implements TimestampService {
 
     @Override
     public synchronized TimestampRange getFreshTimestamps(int numTimestampsRequested) {
-        Preconditions.checkArgument(numTimestampsRequested > 0,
-                "Number of timestamps requested must be greater than zero, was %s",
-                numTimestampsRequested);
-
-        if (numTimestampsRequested > MAX_REQUEST_RANGE_SIZE) {
-            numTimestampsRequested = MAX_REQUEST_RANGE_SIZE;
-        }
-
-        long newTimestamp = lastReturnedTimestamp.get() + numTimestampsRequested;
+        int numTimestampsToHandOut = cleanUpRequest(numTimestampsRequested);
+        long newTimestamp = lastReturnedTimestamp.get() + numTimestampsToHandOut;
 
         ensureWeHaveEnoughTimestampsToHandOut(newTimestamp);
         TimestampRange newTimestampRange = handOut(newTimestamp);
         asynchronouslyTopUpTimestampPool();
         return newTimestampRange;
+    }
+
+    private int cleanUpRequest(int numTimestampsRequested) {
+        Preconditions.checkArgument(numTimestampsRequested > 0,
+                "Number of timestamps requested must be greater than zero, was %s",
+                numTimestampsRequested);
+
+        return Math.min(numTimestampsRequested, MAX_REQUEST_RANGE_SIZE);
     }
 
     private void asynchronouslyTopUpTimestampPool() {
