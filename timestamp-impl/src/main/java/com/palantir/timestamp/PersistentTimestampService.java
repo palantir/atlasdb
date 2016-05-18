@@ -91,25 +91,14 @@ public class PersistentTimestampService implements TimestampService {
         while (true) {
             long upperLimit = upperLimitToHandOutInclusive.get();
             long lastVal = lastReturnedTimestamp.get();
-            if (lastVal >= upperLimit) {
+            long newVal = lastVal + numTimestampsRequested;
+
+            if (newVal > upperLimit) {
                 submitAllocationTask();
-                Throwable possibleFailure = allocationFailure;
-                if (possibleFailure instanceof MultipleRunningTimestampServiceError) {
-                    throw new ServiceNotAvailableException("This server is no longer valid because another is running.", possibleFailure);
-                } else if (possibleFailure != null) {
-                    throw new RuntimeException("failed to allocate more timestamps", possibleFailure);
-                }
-                if (!hasLogged) {
-                    log.error("We haven't gotten enough timestamps from the DB", new RuntimeException());
-                    hasLogged = true;
-                }
-                if (Thread.interrupted()) {
-                    Thread.currentThread().interrupt();
-                    throw new PalantirInterruptedException("Interrupted while waiting for timestamp allocation.");
-                }
+                hasLogged = checkFailureConditions(hasLogged, allocationFailure);
                 continue;
             }
-            long newVal = Math.min(upperLimit, lastVal + numTimestampsRequested);
+
             if (lastReturnedTimestamp.compareAndSet(lastVal, newVal)) {
                 if (isAllocationRequired(newVal, upperLimit)) {
                     submitAllocationTask();
@@ -117,6 +106,23 @@ public class PersistentTimestampService implements TimestampService {
                 return TimestampRange.createInclusiveRange(lastVal + 1, newVal);
             }
         }
+    }
+
+    private boolean checkFailureConditions(boolean hasLogged, Throwable possibleFailure) {
+        if (possibleFailure instanceof MultipleRunningTimestampServiceError) {
+            throw new ServiceNotAvailableException("This server is no longer valid because another is running.", possibleFailure);
+        } else if (possibleFailure != null) {
+            throw new RuntimeException("failed to allocate more timestamps", possibleFailure);
+        }
+        if (!hasLogged) {
+            log.error("We haven't gotten enough timestamps from the DB", new RuntimeException());
+            hasLogged = true;
+        }
+        if (Thread.interrupted()) {
+            Thread.currentThread().interrupt();
+            throw new PalantirInterruptedException("Interrupted while waiting for timestamp allocation.");
+        }
+        return hasLogged;
     }
 
     /**
