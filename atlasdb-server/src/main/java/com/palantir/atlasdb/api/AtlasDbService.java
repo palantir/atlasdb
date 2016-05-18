@@ -94,6 +94,11 @@ public interface AtlasDbService {
 
     @Idempotent
     @POST
+    @Path("truncate-table/{tableName}")
+    void truncateTable(@PathParam("tableName") String tableName);
+
+    @Idempotent
+    @POST
     @Path("commit/{token}")
     void commit(@PathParam("token") TransactionToken token);
 
