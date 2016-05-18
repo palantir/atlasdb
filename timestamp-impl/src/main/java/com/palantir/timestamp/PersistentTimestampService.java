@@ -16,7 +16,6 @@
 package com.palantir.timestamp;
 
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.concurrent.ThreadSafe;
@@ -172,6 +171,7 @@ public class PersistentTimestampService implements TimestampService {
     }
 
     private synchronized void allocateMoreTimestamps() {
+        verifyThisIsTheOnlyRunningServer();
         try {
             long newLimit = lastReturnedTimestamp.get() + ALLOCATION_BUFFER_SIZE;
             store.storeUpperLimit(newLimit);
@@ -184,8 +184,14 @@ public class PersistentTimestampService implements TimestampService {
         }
     }
 
+    private void verifyThisIsTheOnlyRunningServer() {
+        if (previousAllocationFailure instanceof MultipleRunningTimestampServiceError) {
+            throw new ServiceNotAvailableException("This server is no longer valid because another is running.", previousAllocationFailure);
+        }
+    }
+
     private boolean shouldTopUpTimestampPool() {
-        return isAllocationRequired(lastReturnedTimestamp.get(), upperLimitToHandOutInclusive.get())
+        return topUpRequired()
             && !(allocationFailure instanceof MultipleRunningTimestampServiceError);
     }
 
@@ -198,27 +204,13 @@ public class PersistentTimestampService implements TimestampService {
         }
     }
 
-    private Future<?> submitAllocationTask() {
-        return executor.submit(new Runnable() {
-            @Override
-            public void run() {
-                allocateMoreTimestamps();
-            }
-        });
+    private boolean topUpRequired() {
+        return exceededHalfOfBuffer() || haveNotAllocatedForOneMinute();
     }
 
-    private boolean isAllocationRequired(long lastVal, long upperLimit) {
-        return exceededUpperLimit(lastVal, upperLimit)
-                || exceededHalfOfBuffer(lastVal, upperLimit)
-                || haveNotAllocatedForOneMinute();
-    }
-
-    private boolean exceededHalfOfBuffer(long lastVal, long upperLimit) {
-        return (upperLimit - lastVal) <= ALLOCATION_BUFFER_SIZE / 2;
-    }
-
-    private boolean exceededUpperLimit(long lastVal, long upperLimit) {
-        return lastVal >= upperLimit;
+    private boolean exceededHalfOfBuffer() {
+        long remainingTimestamps = upperLimitToHandOutInclusive.get() - lastReturnedTimestamp.get();
+        return remainingTimestamps <= ALLOCATION_BUFFER_SIZE / 2;
     }
 
     private boolean haveNotAllocatedForOneMinute() {
