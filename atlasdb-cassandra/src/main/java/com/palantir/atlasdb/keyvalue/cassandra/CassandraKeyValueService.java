@@ -239,7 +239,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 if (strategyOptions.get(dc) != null) {
                     int currentRF = Integer.parseInt(strategyOptions.get(dc));
                     if (currentRF == config.replicationFactor()) {
-                        if (currentRF == 2) {
+                        if (currentRF == 2 && config.clusterMeetsNormalConsistencyGuarantees()) {
                             log.info("Setting Read Consistency to ONE, as cluster has only one datacenter at RF2.");
                             readConsistency = ConsistencyLevel.ONE;
                         }
