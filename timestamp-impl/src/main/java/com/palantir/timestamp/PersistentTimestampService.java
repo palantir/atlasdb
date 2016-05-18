@@ -70,8 +70,7 @@ public class PersistentTimestampService implements TimestampService {
 
     @Override
     public long getFreshTimestamp() {
-        long ret = getFreshTimestamps(1).getLowerBound();
-        return ret;
+        return getFreshTimestamps(1).getLowerBound();
     }
 
     public long getUpperLimitTimestampToHandOutInclusive() {
