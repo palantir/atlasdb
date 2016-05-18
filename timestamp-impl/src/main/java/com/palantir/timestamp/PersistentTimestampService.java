@@ -33,13 +33,12 @@ import com.palantir.exception.PalantirInterruptedException;
 
 @ThreadSafe
 public class PersistentTimestampService implements TimestampService {
-    private static final Logger log = LoggerFactory.getLogger(PersistentTimestampService.class);
-
-    private static final int MAX_REQUEST_RANGE_SIZE = 10 * 1000;
     static final long ALLOCATION_BUFFER_SIZE = 1000 * 1000;
+    private static final Logger log = LoggerFactory.getLogger(PersistentTimestampService.class);
+    private static final int MAX_REQUEST_RANGE_SIZE = 10 * 1000;
     private static final int ONE_MINUTE_IN_MILLIS = 60000;
 
-    private final TimestampBoundStore store;
+    private final TimestampBoundStore timestampBoundStore;
 
     private final AtomicLong lastReturnedTimestamp;
     private final AtomicLong upperLimitToHandOutInclusive;
@@ -48,8 +47,16 @@ public class PersistentTimestampService implements TimestampService {
 
     private Clock clock;
     private long lastAllocatedTime;
-    private volatile Throwable allocationFailure = null;
     private volatile Throwable previousAllocationFailure = null;
+
+    private PersistentTimestampService(TimestampBoundStore tbs, long lastUpperBound, Clock clock) {
+        timestampBoundStore = tbs;
+        lastReturnedTimestamp = new AtomicLong(lastUpperBound);
+        upperLimitToHandOutInclusive = new AtomicLong(lastUpperBound);
+        executor = PTExecutors.newSingleThreadExecutor(PTExecutors.newThreadFactory("Timestamp allocator", Thread.NORM_PRIORITY, true));
+        this.clock = clock;
+        lastAllocatedTime = clock.getTimeMillis();
+    }
 
     public static PersistentTimestampService create(TimestampBoundStore tbs) {
         return create(tbs, new SystemClock());
@@ -60,36 +67,58 @@ public class PersistentTimestampService implements TimestampService {
         return new PersistentTimestampService(tbs, tbs.getUpperLimit(), clock);
     }
 
-    private PersistentTimestampService(TimestampBoundStore tbs, long lastUpperBound, Clock clock) {
-        store = tbs;
-        lastReturnedTimestamp = new AtomicLong(lastUpperBound);
-        upperLimitToHandOutInclusive = new AtomicLong(lastUpperBound);
-        executor = PTExecutors.newSingleThreadExecutor(PTExecutors.newThreadFactory("Timestamp allocator", Thread.NORM_PRIORITY, true));
-        this.clock = clock;
-        lastAllocatedTime = clock.getTimeMillis();
-    }
-
     @Override
     public long getFreshTimestamp() {
         return getFreshTimestamps(1).getLowerBound();
+    }
+
+    @Override
+    public synchronized TimestampRange getFreshTimestamps(int numTimestampsRequested) {
+        int numTimestampsToHandOut = cleanUpTimestampRequest(numTimestampsRequested);
+        long newTimestamp = lastReturnedTimestamp.get() + numTimestampsToHandOut;
+
+        ensureWeHaveEnoughTimestampsToHandOut(newTimestamp);
+        TimestampRange handedOut = handOut(newTimestamp);
+        asynchronouslyTopUpTimestampPool();
+        return handedOut;
+    }
+
+    /**
+     * Fast forwards the timestamp to the specified one so that no one can be served fresh timestamps prior
+     * to it from now on.
+     *
+     * Sets the upper limit in the TimestampBoundStore as well as increases the minimum timestamp that can
+     * be allocated from this instantiation of the TimestampService moving forward.
+     *
+     * The caller of this is responsible for not using any of the fresh timestamps previously served to it,
+     * and must call getFreshTimestamps() to ensure it is using timestamps after the fastforward point.
+     *
+     * @param timestamp
+     */
+    public synchronized void fastForwardTimestamp(long timestamp) {
+        long upperLimit = timestamp + ALLOCATION_BUFFER_SIZE;
+        timestampBoundStore.storeUpperLimit(upperLimit);
+        // Prevent upper limit from falling behind stored upper limit.
+        setToAtLeast(upperLimitToHandOutInclusive, upperLimit);
+
+        // Prevent ourselves from serving any of the bad (read: pre-fastForward) timestamps
+        setToAtLeast(lastReturnedTimestamp, timestamp);
     }
 
     public long getUpperLimitTimestampToHandOutInclusive() {
         return upperLimitToHandOutInclusive.get();
     }
 
-    @Override
-    public synchronized TimestampRange getFreshTimestamps(int numTimestampsRequested) {
-        int numTimestampsToHandOut = cleanUpRequest(numTimestampsRequested);
-        long newTimestamp = lastReturnedTimestamp.get() + numTimestampsToHandOut;
-
-        ensureWeHaveEnoughTimestampsToHandOut(newTimestamp);
-        TimestampRange newTimestampRange = handOut(newTimestamp);
-        asynchronouslyTopUpTimestampPool();
-        return newTimestampRange;
+    private static void setToAtLeast(AtomicLong toAdvance, long val) {
+        while (true) {
+            long oldUpper = toAdvance.get();
+            if (val <= oldUpper || toAdvance.compareAndSet(oldUpper, val)) {
+                return;
+            }
+        }
     }
 
-    private int cleanUpRequest(int numTimestampsRequested) {
+    private int cleanUpTimestampRequest(int numTimestampsRequested) {
         Preconditions.checkArgument(numTimestampsRequested > 0,
                 "Number of timestamps requested must be greater than zero, was %s",
                 numTimestampsRequested);
@@ -111,7 +140,7 @@ public class PersistentTimestampService implements TimestampService {
         return TimestampRange.createInclusiveRange(lastReturnedTimestamp.get() + 1, newTimestamp);
     }
 
-    private void ensureWeHaveEnoughTimestampsToHandOut(long newTimestamp) {
+    private synchronized void ensureWeHaveEnoughTimestampsToHandOut(long newTimestamp) {
         while(upperLimitToHandOutInclusive.get() < newTimestamp) {
             allocateMoreTimestamps();
         }
@@ -142,28 +171,6 @@ public class PersistentTimestampService implements TimestampService {
         previousAllocationFailure = failure;
     }
 
-    /**
-     * Fast forwards the timestamp to the specified one so that no one can be served fresh timestamps prior
-     * to it from now on.
-     *
-     * Sets the upper limit in the TimestampBoundStore as well as increases the minimum timestamp that can
-     * be allocated from this instantiation of the TimestampService moving forward.
-     *
-     * The caller of this is responsible for not using any of the fresh timestamps previously served to it,
-     * and must call getFreshTimestamps() to ensure it is using timestamps after the fastforward point.
-     *
-     * @param timestamp
-     */
-    public synchronized void fastForwardTimestamp(long timestamp) {
-        long upperLimit = timestamp + ALLOCATION_BUFFER_SIZE;
-        store.storeUpperLimit(upperLimit);
-        // Prevent upper limit from falling behind stored upper limit.
-        setToAtLeast(upperLimitToHandOutInclusive, upperLimit);
-
-        // Prevent ourselves from serving any of the bad (read: pre-fastForward) timestamps
-        setToAtLeast(lastReturnedTimestamp, timestamp);
-    }
-
     private synchronized void topUpTimestampPool() {
         if (shouldTopUpTimestampPool()) {
             allocateMoreTimestamps();
@@ -174,11 +181,10 @@ public class PersistentTimestampService implements TimestampService {
         verifyThisIsTheOnlyRunningServer();
         try {
             long newLimit = lastReturnedTimestamp.get() + ALLOCATION_BUFFER_SIZE;
-            store.storeUpperLimit(newLimit);
+            timestampBoundStore.storeUpperLimit(newLimit);
             // Prevent upper limit from falling behind stored upper limit.
             setToAtLeast(upperLimitToHandOutInclusive, newLimit);
             lastAllocatedTime = clock.getTimeMillis();
-            allocationFailure = null;
         } catch(Throwable e) {
             handleAllocationFailure(e);
         }
@@ -191,20 +197,6 @@ public class PersistentTimestampService implements TimestampService {
     }
 
     private boolean shouldTopUpTimestampPool() {
-        return topUpRequired()
-            && !(allocationFailure instanceof MultipleRunningTimestampServiceError);
-    }
-
-    private static void setToAtLeast(AtomicLong toAdvance, long val) {
-        while (true) {
-            long oldUpper = toAdvance.get();
-            if (val <= oldUpper || toAdvance.compareAndSet(oldUpper, val)) {
-                return;
-            }
-        }
-    }
-
-    private boolean topUpRequired() {
         return exceededHalfOfBuffer() || haveNotAllocatedForOneMinute();
     }
 
