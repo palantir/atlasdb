@@ -15,8 +15,16 @@
  */
 package com.palantir.atlasdb.cli.command;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+
+import org.apache.commons.lang.StringUtils;
+
+import com.google.common.base.Throwables;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.io.Files;
 import com.palantir.atlasdb.cli.services.AtlasDbServices;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -36,12 +44,21 @@ public class CleanTransactionRange extends SingleBackendCommand {
 
     @Option(name = {"-t", "--timestamp"},
             title = "TIMESTAMP",
-            description = "Timestamp for which all transactions with greater commit timestamps will be deleted",
-            required = true)
-    long backupTimestamp;
+            description = "Timestamp for which all transactions with greater commit timestamps will be deleted")
+    Long backupTimestamp;
+
+    @Option(name = {"-f", "--file"},
+            title = "TIMESTAMP_FILE",
+            description = "A file containing the timestamp for which all transactions with greater commit timestamps will be deleted")
+    File backupFile;
 
     @Override
     public int execute(AtlasDbServices services) {
+        validateOptions();
+        if (backupFile != null) {
+            setBackupTimestampFromFile();
+        }
+
         KeyValueService kvs = services.getKeyValueService();
 
         byte[] startRowInclusive = TransactionConstants.getValueForTimestamp(backupTimestamp);
@@ -88,4 +105,21 @@ public class CleanTransactionRange extends SingleBackendCommand {
         return 0;
     }
 
+    private void validateOptions() {
+        if ((backupTimestamp == null && backupFile == null)
+                || (backupTimestamp != null && backupFile != null)) {
+            throw new IllegalArgumentException("You must specify one and only one of either a timestamp or a timestamp file.");
+        }
+    }
+
+    private void setBackupTimestampFromFile() {
+        String backupTimestampString;
+        try {
+            backupTimestampString = StringUtils.strip(Files.readFirstLine(backupFile, StandardCharsets.UTF_8));
+        } catch (IOException e) {
+            System.err.printf("IOException thrown reading backup timestamp from file: %s\n", backupFile.getPath());
+            throw Throwables.propagate(e);
+        }
+        backupTimestamp = Long.parseLong(backupTimestampString);
+    }
 }
