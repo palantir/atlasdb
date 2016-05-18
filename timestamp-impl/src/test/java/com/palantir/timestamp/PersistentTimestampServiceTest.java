@@ -80,7 +80,7 @@ public class PersistentTimestampServiceTest {
     }
 
     @Test(expected = ServiceNotAvailableException.class)
-    public void shouldAServiceNotAvailableExceptionIfMultipleTimestampSerivcesAreRunning() {
+    public void shouldThrowAServiceNotAvailableExceptionIfMultipleTimestampSerivcesAreRunning() {
         final TimestampBoundStore timestampBoundStore = timestampStoreFailingWith(new MultipleRunningTimestampServiceError("error"));
 
         PersistentTimestampService persistentTimestampService = PersistentTimestampService.create(timestampBoundStore);
