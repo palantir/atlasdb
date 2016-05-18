@@ -32,6 +32,6 @@ configurations.matching({ it.name in ['compile', 'runtime'] }).all {
         force 'org.slf4j:slf4j-api:1.7.6'
         force 'org.xerial.snappy:snappy-java:' + libVersions.snappy
         force 'org.yaml:snakeyaml:1.12'
-        force 'commons-codec:commons-codec:1.6'
+        force 'commons-codec:commons-codec:' + libVersions.commons_codec
     }
 }

@@ -2,7 +2,7 @@
 |------------|---------|
 | [Apache Thrift, v. 0.9.1](https://thrift.apache.org/) | [Apache License, Version 2.0](http://www.apache.org/licenses/) |
 | [commons-cli, v. 1.3.1](https://commons.apache.org/) | [Apache License, Version 2.0](http://www.apache.org/licenses/) |
-| [commons-codec, v. 1.6](https://commons.apache.org/) | [Apache License, Version 2.0](http://www.apache.org/licenses/) |
+| [commons-codec, v. 1.10](https://commons.apache.org/) | [Apache License, Version 2.0](http://www.apache.org/licenses/) |
 | [commons-io, v. 2.6](http://commons.apache.org/) | [Apache License, Version 2.0](http://www.apache.org/licenses/) |
 | [commons-lang, v. 2.6, 3-3.1](http://commons.apache.org/) | [Apache License, Version 2.0](http://www.apache.org/licenses/) |
 | [commons-logging, v. 1.1.1](https://commons.apache.org/) | [Apache License, Version 2.0](http://www.apache.org/licenses/) |
