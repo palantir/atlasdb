@@ -93,7 +93,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
             return f.apply(resource);
         } catch (Exception e) {
             if (isInvalidClientConnection(e)) {
-                log.warn("Not reusing resource {} due to {}", resource, e.toString());
+                log.warn("Not reusing resource {} due to {}", resource, e.toString(), e);
                 shouldReuse = false;
             }
             if (e instanceof TTransportException
