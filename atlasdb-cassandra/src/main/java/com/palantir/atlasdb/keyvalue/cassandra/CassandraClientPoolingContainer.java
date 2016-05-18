@@ -76,7 +76,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
         try {
             return runWithGoodResource(f);
         } catch (Throwable t) {
-            log.warn("Error occurred talking to host '{}': {}", host, t.getMessage());
+            log.warn("Error occurred talking to host '{}': {}", host, t.toString());
             throw t;
         } finally {
             Thread.currentThread().setName(origName);
@@ -93,7 +93,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
             return f.apply(resource);
         } catch (Exception e) {
             if (isInvalidClientConnection(e)) {
-                log.warn("Not reusing resource {} due to {}", resource, e);
+                log.warn("Not reusing resource {} due to {}", resource, e.toString());
                 shouldReuse = false;
             }
             if (e instanceof TTransportException

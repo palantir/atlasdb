@@ -159,7 +159,7 @@ public class CassandraVerifier {
                     someHostWasAbleToCreateTheKeyspace = true;
                     break;
                 } catch (Exception f) {
-                    log.error("Couldn't use host {} to create keyspace, it returned exception \"{}\" during the attempt.", host, f);
+                    log.error("Couldn't use host {} to create keyspace, it returned exception \"{}\" during the attempt.", host, f.toString(), f);
                 }
             }
             if (someHostWasAbleToCreateTheKeyspace) {
