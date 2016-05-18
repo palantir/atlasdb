@@ -93,12 +93,17 @@ public class PersistentTimestampService implements TimestampService {
 
         ensureWeHaveEnoughTimestampsToHandOut(newTimestamp);
         TimestampRange newTimestampRange = handOut(newTimestamp);
-        asynchronouslyUpdateAllocatedTimestampsIfNecessary();
+        asynchronouslyTopUpTimestampPool();
         return newTimestampRange;
     }
 
-    private void asynchronouslyUpdateAllocatedTimestampsIfNecessary() {
-        submitAllocationTask();
+    private void asynchronouslyTopUpTimestampPool() {
+        executor.submit(new Runnable() {
+            @Override
+            public void run() {
+                topUpTimestampPool();
+            }
+        });
     }
 
     private TimestampRange handOut(long newTimestamp) {
@@ -159,11 +164,13 @@ public class PersistentTimestampService implements TimestampService {
         setToAtLeast(lastReturnedTimestamp, timestamp);
     }
 
-    private synchronized void allocateMoreTimestamps() {
-        if (shouldNotAllocateMoreTimestamps()) {
-            return;
+    private synchronized void topUpTimestampPool() {
+        if (shouldTopUpTimestampPool()) {
+            allocateMoreTimestamps();
         }
+    }
 
+    private synchronized void allocateMoreTimestamps() {
         try {
             long newLimit = lastReturnedTimestamp.get() + ALLOCATION_BUFFER_SIZE;
             store.storeUpperLimit(newLimit);
@@ -176,9 +183,9 @@ public class PersistentTimestampService implements TimestampService {
         }
     }
 
-    private boolean shouldNotAllocateMoreTimestamps() {
-        return !isAllocationRequired(lastReturnedTimestamp.get(), upperLimitToHandOutInclusive.get())
-            || allocationFailure instanceof MultipleRunningTimestampServiceError;
+    private boolean shouldTopUpTimestampPool() {
+        return isAllocationRequired(lastReturnedTimestamp.get(), upperLimitToHandOutInclusive.get())
+            && !(allocationFailure instanceof MultipleRunningTimestampServiceError);
     }
 
     private static void setToAtLeast(AtomicLong toAdvance, long val) {
