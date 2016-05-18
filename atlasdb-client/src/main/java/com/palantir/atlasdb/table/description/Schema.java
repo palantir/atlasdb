@@ -49,6 +49,7 @@ import com.palantir.atlasdb.table.description.render.StreamStoreRenderer;
 import com.palantir.atlasdb.table.description.render.TableFactoryRenderer;
 import com.palantir.atlasdb.table.description.render.TableRenderer;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.common.base.Throwables;
 
 /**
  * Defines a schema.
@@ -177,14 +178,22 @@ public class Schema {
      */
     public void validate() {
         // Try converting to metadata to see if any validation logic throws.
-        for (TableDefinition d : tableDefinitions.values()) {
-            d.toTableMetadata();
-            d.getConstraintMetadata();
+        for (Entry<String, TableDefinition> entry : tableDefinitions.entrySet()) {
+            try {
+                entry.getValue().validate();
+            } catch (Exception e) {
+                Throwables.rewrapAndThrowIfInstance("Failed to validate table " + entry.getKey(), e, RuntimeException.class);
+            }
         }
 
         for (Entry<String, IndexDefinition> indexEntry : indexDefinitions.entrySet()) {
             IndexDefinition d = indexEntry.getValue();
-            d.toIndexMetadata(indexEntry.getKey()).getTableMetadata();
+            try {
+                d.toIndexMetadata(indexEntry.getKey()).getTableMetadata();
+                d.validate();
+            } catch (Exception e) {
+                Throwables.rewrapAndThrowIfInstance("Failed to validate index " + indexEntry.getKey(), e, RuntimeException.class);
+            }
         }
 
         for (Entry<String, String> e : indexesByTable.entries()) {
