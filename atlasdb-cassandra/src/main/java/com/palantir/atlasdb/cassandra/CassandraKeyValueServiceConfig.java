@@ -82,6 +82,9 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
         return true;
     }
 
+    @Value.Default
+    public boolean clusterMeetsNormalConsistencyGuarantees() { return true; }
+
     /**
      * This is how long we will wait when we first open a socket to the cassandra server.
      * This should be long enough to enough to handle cross data center latency, but short enough
