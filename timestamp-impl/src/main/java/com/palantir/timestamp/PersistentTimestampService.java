@@ -98,7 +98,7 @@ public class PersistentTimestampService implements TimestampService {
 
     volatile Throwable allocationFailure = null;
     private void submitAllocationTask() {
-        if (isAllocationTaskSubmitted.compareAndSet(false, true) && isAllocationRequired(lastReturnedTimestamp.get(), upperLimitToHandOutInclusive.get())) {
+        if (isAllocationRequired(lastReturnedTimestamp.get(), upperLimitToHandOutInclusive.get()) && isAllocationTaskSubmitted.compareAndSet(false, true)) {
             final Exception createdException = new Exception("allocation task called from here");
             executor.submit(new Runnable() {
                 @Override
