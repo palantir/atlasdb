@@ -41,12 +41,12 @@ class AtlasPluginTests extends Specification {
         given:
         buildFile << '''
             plugins {
-                id 'com.palantir.java-distribution'
                 id 'com.palantir.atlasdb'
+                id 'com.palantir.java-distribution'
                 id 'java'
             }
             atlasdb {
-                atlasVersion '0.3.34'
+                atlasVersion '0.5.0'
             }
             version '0.1'
             distribution {
@@ -82,8 +82,30 @@ class AtlasPluginTests extends Specification {
         buildResult.task(':distTar').outcome == TaskOutcome.SUCCESS
         buildResult.task(':untar').outcome == TaskOutcome.SUCCESS
 
+        projectDir.eachFileRecurse { it -> println it}
+
         new File(projectDir, 'dist/service-name-0.1/service/bin/atlas').exists()
         exec('dist/service-name-0.1/service/bin/atlas').contains('usage:')
+    }
+
+    def 'plugin fails without atlasVersion' () {
+        given:
+        buildFile << '''
+            plugins {
+                id 'com.palantir.atlasdb'
+            }
+        '''.stripIndent()
+
+        when:
+        Exception ex;
+        try {
+           run('build', 'createAtlasScripts').build()
+        } catch (e) {
+            ex = e
+        }
+
+        then:
+        ex.toString().contains('atlasVersion')
     }
 
     private GradleRunner run(String... tasks) {
