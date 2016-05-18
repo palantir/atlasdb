@@ -16,6 +16,7 @@
 package com.palantir.timestamp;
 
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.concurrent.ThreadSafe;
@@ -48,7 +49,8 @@ public class PersistentTimestampService implements TimestampService {
 
     private Clock clock;
     private long lastAllocatedTime;
-    volatile Throwable allocationFailure = null;
+    private volatile Throwable allocationFailure = null;
+    private volatile Throwable previousAllocationFailure = null;
 
     public static PersistentTimestampService create(TimestampBoundStore tbs) {
         return create(tbs, new SystemClock());
@@ -78,7 +80,7 @@ public class PersistentTimestampService implements TimestampService {
     }
 
     @Override
-    public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
+    public synchronized TimestampRange getFreshTimestamps(int numTimestampsRequested) {
         Preconditions.checkArgument(numTimestampsRequested > 0,
                 "Number of timestamps requested must be greater than zero, was %s",
                 numTimestampsRequested);
@@ -86,42 +88,53 @@ public class PersistentTimestampService implements TimestampService {
         if (numTimestampsRequested > MAX_REQUEST_RANGE_SIZE) {
             numTimestampsRequested = MAX_REQUEST_RANGE_SIZE;
         }
-        boolean hasLogged = false;
-        while (true) {
-            long upperLimit = upperLimitToHandOutInclusive.get();
-            long lastVal = lastReturnedTimestamp.get();
-            long newVal = lastVal + numTimestampsRequested;
 
-            if (newVal > upperLimit) {
-                submitAllocationTask();
-                hasLogged = checkFailureConditions(hasLogged, allocationFailure);
-                continue;
-            }
+        long newTimestamp = lastReturnedTimestamp.get() + numTimestampsRequested;
 
-            if (lastReturnedTimestamp.compareAndSet(lastVal, newVal)) {
-                if (isAllocationRequired(newVal, upperLimit)) {
-                    submitAllocationTask();
-                }
-                return TimestampRange.createInclusiveRange(lastVal + 1, newVal);
-            }
+        ensureWeHaveEnoughTimestampsToHandOut(newTimestamp);
+        TimestampRange newTimestampRange = handOut(newTimestamp);
+        asynchronouslyUpdateAllocatedTimestampsIfNecessary();
+        return newTimestampRange;
+    }
+
+    private void asynchronouslyUpdateAllocatedTimestampsIfNecessary() {
+        submitAllocationTask();
+    }
+
+    private TimestampRange handOut(long newTimestamp) {
+        lastReturnedTimestamp.set(newTimestamp);
+        return TimestampRange.createInclusiveRange(lastReturnedTimestamp.get() + 1, newTimestamp);
+    }
+
+    private void ensureWeHaveEnoughTimestampsToHandOut(long newTimestamp) {
+        while(upperLimitToHandOutInclusive.get() < newTimestamp) {
+            allocateMoreTimestamps();
         }
     }
 
-    private boolean checkFailureConditions(boolean hasLogged, Throwable possibleFailure) {
-        if (possibleFailure instanceof MultipleRunningTimestampServiceError) {
-            throw new ServiceNotAvailableException("This server is no longer valid because another is running.", possibleFailure);
-        } else if (possibleFailure != null) {
-            throw new RuntimeException("failed to allocate more timestamps", possibleFailure);
+    private void handleAllocationFailure(Throwable failure) {
+        if (failure instanceof MultipleRunningTimestampServiceError) {
+            throw new ServiceNotAvailableException("This server is no longer valid because another is running.", failure);
         }
-        if (!hasLogged) {
-            log.error("We haven't gotten enough timestamps from the DB", new RuntimeException());
-            hasLogged = true;
+
+        if (failure != null) {
+            throw new RuntimeException("failed to allocate more timestamps", failure);
         }
+
         if (Thread.interrupted()) {
             Thread.currentThread().interrupt();
             throw new PalantirInterruptedException("Interrupted while waiting for timestamp allocation.");
         }
-        return hasLogged;
+
+        if (previousAllocationFailure != null
+                && failure.getClass().equals(previousAllocationFailure.getClass())) {
+            // QA-75825: don't keep logging error if we keep failing to allocate.
+            log.info("Throwable while allocating timestamps.", failure);
+        } else {
+            log.error("Throwable while allocating timestamps.", failure);
+        }
+
+        previousAllocationFailure = failure;
     }
 
     /**
@@ -151,12 +164,16 @@ public class PersistentTimestampService implements TimestampService {
             return;
         }
 
-        long newLimit = lastReturnedTimestamp.get() + ALLOCATION_BUFFER_SIZE;
-        store.storeUpperLimit(newLimit);
-        // Prevent upper limit from falling behind stored upper limit.
-        setToAtLeast(upperLimitToHandOutInclusive, newLimit);
-        lastAllocatedTime = clock.getTimeMillis();
-        allocationFailure = null;
+        try {
+            long newLimit = lastReturnedTimestamp.get() + ALLOCATION_BUFFER_SIZE;
+            store.storeUpperLimit(newLimit);
+            // Prevent upper limit from falling behind stored upper limit.
+            setToAtLeast(upperLimitToHandOutInclusive, newLimit);
+            lastAllocatedTime = clock.getTimeMillis();
+            allocationFailure = null;
+        } catch(Throwable e) {
+            handleAllocationFailure(e);
+        }
     }
 
     private boolean shouldNotAllocateMoreTimestamps() {
@@ -173,28 +190,13 @@ public class PersistentTimestampService implements TimestampService {
         }
     }
 
-    private void submitAllocationTask() {
-        executor.submit(new Runnable() {
+    private Future<?> submitAllocationTask() {
+        return executor.submit(new Runnable() {
             @Override
             public void run() {
-                try {
-                    allocateMoreTimestamps();
-                } catch (Throwable e) { // (authorized)
-                    handleAllocationException(e);
-                }
+                allocateMoreTimestamps();
             }
         });
-    }
-
-    private void handleAllocationException(Throwable e) {
-        if (allocationFailure != null
-                && e.getClass().equals(allocationFailure.getClass())) {
-            // QA-75825: don't keep logging error if we keep failing to allocate.
-            log.info("Throwable while allocating timestamps.", e);
-        } else {
-            log.error("Throwable while allocating timestamps.", e);
-        }
-        allocationFailure = e;
     }
 
     private boolean isAllocationRequired(long lastVal, long upperLimit) {
