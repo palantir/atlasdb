@@ -23,7 +23,6 @@ import javax.annotation.concurrent.ThreadSafe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.remoting.ServiceNotAvailableException;
@@ -48,21 +47,17 @@ public class PersistentTimestampService implements TimestampService {
     private long lastAllocatedTime;
     private volatile Throwable previousAllocationFailure = null;
 
-    private PersistentTimestampService(TimestampBoundStore tbs, Clock clock) {
-        executor = PTExecutors.newSingleThreadExecutor(PTExecutors.newThreadFactory("Timestamp allocator", Thread.NORM_PRIORITY, true));
+    protected PersistentTimestampService(PersistentUpperLimit persistentUpperLimit, Clock clock) {
+        this.persistentUpperLimit = persistentUpperLimit;
         this.clock = clock;
+
+        executor = PTExecutors.newSingleThreadExecutor(PTExecutors.newThreadFactory("Timestamp allocator", Thread.NORM_PRIORITY, true));
         lastAllocatedTime = clock.getTimeMillis();
-        persistentUpperLimit = new PersistentUpperLimit(tbs);
         lastReturnedTimestamp = new AtomicLong(persistentUpperLimit.get());
     }
 
     public static PersistentTimestampService create(TimestampBoundStore tbs) {
-        return create(tbs, new SystemClock());
-    }
-
-    @VisibleForTesting
-    protected static PersistentTimestampService create(TimestampBoundStore tbs, Clock clock) {
-        return new PersistentTimestampService(tbs, clock);
+        return new PersistentTimestampService(new PersistentUpperLimit(tbs), new SystemClock());
     }
 
     @Override

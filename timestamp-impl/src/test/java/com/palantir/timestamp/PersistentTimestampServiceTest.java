@@ -36,6 +36,7 @@ import java.util.concurrent.TimeoutException;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
 import org.jmock.lib.concurrent.Synchroniser;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -52,6 +53,16 @@ public class PersistentTimestampServiceTest {
 
     @Rule
     public final ExpectedException expectedException = ExpectedException.none();
+
+    private final TimestampBoundStore timestampBoundStore = mock(TimestampBoundStore.class);
+    private PersistentUpperLimit upperLimit;
+
+    @Before
+    public void setup() {
+        when(timestampBoundStore.getUpperLimit()).thenReturn(0L);
+        upperLimit = new PersistentUpperLimit(timestampBoundStore);
+    }
+
 
     @Test
     public void testFastForward() {
@@ -91,8 +102,7 @@ public class PersistentTimestampServiceTest {
     public void incrementUpperLimitIfOneMinuteElapsedSinceLastUpdate() throws InterruptedException {
         Clock clock = mock(Clock.class);
         when(clock.getTimeMillis()).thenReturn(0L, TWO_MINUTES_IN_MILLIS, 2 * TWO_MINUTES_IN_MILLIS, 3 * TWO_MINUTES_IN_MILLIS);
-        TimestampBoundStore timestampBoundStore = initialTimestampBoundStore();
-        PersistentTimestampService persistentTimestampService = PersistentTimestampService.create(timestampBoundStore, clock);
+        PersistentTimestampService persistentTimestampService = new PersistentTimestampService(upperLimit, clock);
 
         persistentTimestampService.getFreshTimestamp();
         Thread.sleep(10);
@@ -103,7 +113,6 @@ public class PersistentTimestampServiceTest {
 
     @Test
     public void incrementUpperLimitOnFirstFreshTimestampRequest() {
-        TimestampBoundStore timestampBoundStore = initialTimestampBoundStore();
         PersistentTimestampService persistentTimestampService = PersistentTimestampService.create(timestampBoundStore);
 
         persistentTimestampService.getFreshTimestamp();
@@ -113,7 +122,6 @@ public class PersistentTimestampServiceTest {
 
     @Test
     public void multipleFreshTimestampRequestsShouldIncreaseUpperLimitOnlyOnce() {
-        TimestampBoundStore timestampBoundStore = initialTimestampBoundStore();
         PersistentTimestampService persistentTimestampService = PersistentTimestampService.create(timestampBoundStore);
 
         getFreshTimestampsInParallel(persistentTimestampService, 20);
@@ -188,12 +196,6 @@ public class PersistentTimestampServiceTest {
         } finally {
             executorService.shutdown();
         }
-    }
-
-    private TimestampBoundStore initialTimestampBoundStore() {
-        TimestampBoundStore timestampBoundStore = mock(TimestampBoundStore.class);
-        when(timestampBoundStore.getUpperLimit()).thenReturn(0L);
-        return timestampBoundStore;
     }
 
     private TimestampBoundStore timestampStoreFailingWith(Throwable throwable) {
