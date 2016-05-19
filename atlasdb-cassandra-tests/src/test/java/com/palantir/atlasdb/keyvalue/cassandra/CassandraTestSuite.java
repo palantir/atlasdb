@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.concurrent.Callable;
 
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -24,7 +25,9 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.jayway.awaitility.Awaitility;
+import com.jayway.awaitility.Duration;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.docker.compose.DockerComposition;
@@ -76,6 +79,24 @@ public class CassandraTestSuite {
                 .autoRefreshNodes(false)
                 .build();
 
+        Awaitility.await()
+                .atMost(Duration.ONE_MINUTE)
+                .pollInterval(Duration.ONE_SECOND)
+                .until(canCreateKeyValueService());
+    }
+
+    private static Callable<Boolean> canCreateKeyValueService() {
+        return new Callable<Boolean>() {
+            @Override
+            public Boolean call() throws Exception {
+                try {
+                    CassandraKeyValueService.create(CassandraKeyValueServiceConfigManager.createSimpleManager(CASSANDRA_KVS_CONFIG));
+                    return true;
+                } catch (Exception e) {
+                    return false;
+                }
+            }
+        };
     }
 
     private static HealthCheck<DockerPort> toBeOpen() {
