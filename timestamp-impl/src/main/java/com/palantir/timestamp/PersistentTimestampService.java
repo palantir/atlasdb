@@ -35,13 +35,12 @@ import com.palantir.exception.PalantirInterruptedException;
 @ThreadSafe
 public class PersistentTimestampService implements TimestampService {
     static final long ALLOCATION_BUFFER_SIZE = 1000 * 1000;
+
     private static final Logger log = LoggerFactory.getLogger(PersistentTimestampService.class);
     private static final int MAX_REQUEST_RANGE_SIZE = 10 * 1000;
 
     private final PersistentUpperLimit persistentUpperLimit;
-
     private final AtomicLong lastReturnedTimestamp;
-
     private final ExecutorService executor;
 
     private volatile Throwable previousAllocationFailure = null;
