@@ -15,6 +15,14 @@
  */
 package com.palantir.atlasdb.cli.command;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+
+import org.apache.commons.lang.StringUtils;
+
+import com.google.common.base.Throwables;
+import com.google.common.io.Files;
 import com.palantir.atlasdb.cli.services.AtlasDbServices;
 import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.TimestampService;
@@ -22,19 +30,28 @@ import com.palantir.timestamp.TimestampService;
 import io.airlift.airline.Command;
 import io.airlift.airline.Option;
 
-@Command(name = "fastForwardTimestamp", description = "Fast forward the stored upper limit of a persistent timestamp"
-        + " service to the specified timestamp.  Is used in the restore process to ensure that all future timestamps used"
-        + " are explicity greater than any that may have been used to write data to the KVS before backing up the underlying storage.")
+@Command(name = "fast-forward", description = "Fast forward the stored upper limit of a persistent timestamp"
+        + " service to the specified timestamp.  Is used in the restore process to ensure that all future timestamps used are"
+        + " explicity greater than any that may have been used to write data to the KVS before backing up the underlying storage.")
 public class FastForwardTimestamp extends SingleBackendCommand {
 
     @Option(name = {"-t", "--timestamp"},
             title = "TIMESTAMP",
-            description = "The timestamp to fast forward the persistent timestamp service to",
-            required = true)
-    long timestamp;
+            description = "The timestamp to fast forward the persistent timestamp service to")
+    Long timestamp;
+
+    @Option(name = {"-f", "--file"},
+            title = "TIMESTAMP_FILE",
+            description = "A file containing the timestamp to fast forward the persistent timestamp service to")
+    File file;
 
     @Override
     public int execute(AtlasDbServices services) {
+        validateOptions();
+        if (file != null) {
+            setTimestampFromFile();
+        }
+
         TimestampService ts = services.getTimestampService();
         if (!(ts instanceof PersistentTimestampService)) {
             System.err.printf("Error: Timestamp service must be of type %s, but yours is %s\n",
@@ -48,5 +65,23 @@ public class FastForwardTimestamp extends SingleBackendCommand {
 
         return 0;
     }
+
+    private void validateOptions() {
+        if ((timestamp == null && file == null)
+                || (timestamp != null && file != null)) {
+            throw new IllegalArgumentException("You must specify one and only one of either a timestamp or a timestamp file.");
+        }
+    }
+
+    private void setTimestampFromFile() {
+        String timestampString;
+        try {
+            timestampString = StringUtils.strip(Files.readFirstLine(file, StandardCharsets.UTF_8));
+        } catch (IOException e) {
+            System.err.printf("IOException thrown reading timestamp from file: %s\n", file.getPath());
+            throw Throwables.propagate(e);
+        }
+        timestamp = Long.parseLong(timestampString);
+     }
 
 }
