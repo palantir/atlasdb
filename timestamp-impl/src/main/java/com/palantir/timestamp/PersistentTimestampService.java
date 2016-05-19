@@ -105,10 +105,6 @@ public class PersistentTimestampService implements TimestampService {
         setToAtLeast(lastReturnedTimestamp, timestamp);
     }
 
-    public long getUpperLimitTimestampToHandOutInclusive() {
-        return upperLimitToHandOutInclusive.get();
-    }
-
     private static void setToAtLeast(AtomicLong toAdvance, long val) {
         while (true) {
             long oldUpper = toAdvance.get();
