@@ -24,7 +24,7 @@ public class PersistentUpperLimit {
         cachedValue = tbs.getUpperLimit();
     }
 
-    public synchronized void store(long upperLimit) {
+    private synchronized void store(long upperLimit) {
         tbs.storeUpperLimit(upperLimit);
         cachedValue = upperLimit;
     }

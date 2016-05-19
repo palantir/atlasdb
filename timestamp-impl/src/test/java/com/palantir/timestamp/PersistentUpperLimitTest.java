@@ -30,26 +30,12 @@ public class PersistentUpperLimitTest {
     private final PersistentUpperLimit upperLimit = new PersistentUpperLimit(boundStore);
 
     @Test
-    public void shouldPersistANewUpperLimit() {
-        upperLimit.store(TIMESTAMP);
-
-        verify(boundStore).storeUpperLimit(TIMESTAMP);
-    }
-
-    @Test
     public void shouldStartWithTheCurrentStoredLimit() {
         when(boundStore.getUpperLimit()).thenReturn(TIMESTAMP);
 
         PersistentUpperLimit brandNewUpperLimit = new PersistentUpperLimit(boundStore);
 
         assertThat(brandNewUpperLimit.get(), is(TIMESTAMP));
-    }
-
-    @Test
-    public void shouldReturnTheNewUpperLimitAfterItHasBeenStored() {
-        upperLimit.store(TIMESTAMP);
-
-        assertThat(upperLimit.get(), is(TIMESTAMP));
     }
 
     @Test
@@ -62,7 +48,7 @@ public class PersistentUpperLimitTest {
 
     @Test
     public void shouldIncreaseTheUpperLimitIfTheNewLimitIsBigger() {
-        upperLimit.store(TIMESTAMP);
+        upperLimit.increaseToAtLeast(TIMESTAMP);
 
         upperLimit.increaseToAtLeast(TIMESTAMP + 1000);
         assertThat(upperLimit.get(), is(TIMESTAMP + 1000));
@@ -70,7 +56,7 @@ public class PersistentUpperLimitTest {
 
     @Test
     public void shouldNotIncreaseTheUpperLimitIfTheNewLimitIsSmaller() {
-        upperLimit.store(TIMESTAMP);
+        upperLimit.increaseToAtLeast(TIMESTAMP);
 
         upperLimit.increaseToAtLeast(TIMESTAMP - 1000);
         assertThat(upperLimit.get(), is(TIMESTAMP));
@@ -78,7 +64,7 @@ public class PersistentUpperLimitTest {
 
     @Test
     public void shouldPersistAnIncreasedTimestamp() {
-        upperLimit.store(TIMESTAMP);
+        upperLimit.increaseToAtLeast(TIMESTAMP);
 
         upperLimit.increaseToAtLeast(TIMESTAMP + 1000);
         verify(boundStore).storeUpperLimit(TIMESTAMP + 1000);
