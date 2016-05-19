@@ -98,38 +98,34 @@ public class PersistentTimestampService implements TimestampService {
 
     volatile Throwable allocationFailure = null;
     private void submitAllocationTask() {
-        if (isAllocationTaskSubmitted.compareAndSet(false, true)) {
-            if (isAllocationRequired(lastReturnedTimestamp.get(), upperLimitToHandOutInclusive.get())) {
-                final Exception createdException = new Exception("allocation task called from here");
-                executor.submit(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            if (allocationFailure instanceof MultipleRunningTimestampServiceError) {
-                                // We cannot allocate timestamps anymore because another server is running.
-                                return;
-                            }
-                            allocateMoreTimestamps();
-                            lastAllocatedTime = clock.getTimeMillis();
-                            allocationFailure = null;
-                        } catch (Throwable e) { // (authorized)
-                            createdException.initCause(e);
-                            if (allocationFailure != null
-                                    && e.getClass().equals(allocationFailure.getClass())) {
-                                // QA-75825: don't keep logging error if we keep failing to allocate.
-                                log.info("Throwable while allocating timestamps.", createdException);
-                            } else {
-                                log.error("Throwable while allocating timestamps.", createdException);
-                            }
-                            allocationFailure = e;
-                        } finally {
-                            isAllocationTaskSubmitted.set(false);
+        if (isAllocationRequired(lastReturnedTimestamp.get(), upperLimitToHandOutInclusive.get()) && isAllocationTaskSubmitted.compareAndSet(false, true)) {
+            final Exception createdException = new Exception("allocation task called from here");
+            executor.submit(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        if (allocationFailure instanceof MultipleRunningTimestampServiceError) {
+                            // We cannot allocate timestamps anymore because another server is running.
+                            return;
                         }
+                        allocateMoreTimestamps();
+                        lastAllocatedTime = clock.getTimeMillis();
+                        allocationFailure = null;
+                    } catch (Throwable e) { // (authorized)
+                        createdException.initCause(e);
+                        if (allocationFailure != null
+                                && e.getClass().equals(allocationFailure.getClass())) {
+                            // QA-75825: don't keep logging error if we keep failing to allocate.
+                            log.info("Throwable while allocating timestamps.", createdException);
+                        } else {
+                            log.error("Throwable while allocating timestamps.", createdException);
+                        }
+                        allocationFailure = e;
+                    } finally {
+                        isAllocationTaskSubmitted.set(false);
                     }
-                });
-            } else {
-                isAllocationTaskSubmitted.set(false);
-            }
+                }
+            });
         }
     }
 
