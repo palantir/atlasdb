@@ -90,8 +90,6 @@ public class PersistentTimestampService implements TimestampService {
      */
     public synchronized void fastForwardTimestamp(long timestamp) {
         long upperLimit = timestamp + ALLOCATION_BUFFER_SIZE;
-        persistentUpperLimit.store(upperLimit);
-        // Prevent upper limit from falling behind stored upper limit.
         persistentUpperLimit.increaseToAtLeast(upperLimit);
 
         // Prevent ourselves from serving any of the bad (read: pre-fastForward) timestamps
