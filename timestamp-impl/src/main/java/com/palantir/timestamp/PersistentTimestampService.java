@@ -83,17 +83,18 @@ public class PersistentTimestampService implements TimestampService {
      * @param timestamp
      */
     public synchronized void fastForwardTimestamp(long timestamp) {
+        // Prevent ourselves from serving any of the bad (read: pre-fastForward) timestamps
+        fastForwardLastReturnedTimestampTo(timestamp);
+
         long upperLimit = timestamp + ALLOCATION_BUFFER_SIZE;
         persistentUpperLimit.increaseToAtLeast(upperLimit);
 
-        // Prevent ourselves from serving any of the bad (read: pre-fastForward) timestamps
-        setToAtLeast(lastReturnedTimestamp, timestamp);
     }
 
-    private static void setToAtLeast(AtomicLong toAdvance, long val) {
+    private void fastForwardLastReturnedTimestampTo(long timestamp) {
         while (true) {
-            long oldUpper = toAdvance.get();
-            if (val <= oldUpper || toAdvance.compareAndSet(oldUpper, val)) {
+            long oldUpper = lastReturnedTimestamp.get();
+            if (timestamp <= oldUpper || lastReturnedTimestamp.compareAndSet(oldUpper, timestamp)) {
                 return;
             }
         }
