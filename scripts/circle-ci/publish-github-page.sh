@@ -13,7 +13,7 @@ make html || { echo "doc build failed, build should not pass"; exit 1; }
 cd build/
 # Just to report status of repo in the build output
 git status
-git config user.email "jboreiko@palantir.com"
+git config user.email "pd-atlasdb-team@palantir.com"
 git config user.name $CIRCLE_PROJECT_USERNAME
 
 # Add and commmit changes to gh-pages
