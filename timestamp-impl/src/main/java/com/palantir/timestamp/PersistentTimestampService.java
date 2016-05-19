@@ -41,7 +41,6 @@ public class PersistentTimestampService implements TimestampService {
     private final PersistentUpperLimit persistentUpperLimit;
 
     private final AtomicLong lastReturnedTimestamp;
-    private final AtomicLong upperLimitToHandOutInclusive;
 
     private final ExecutorService executor;
 
@@ -49,13 +48,12 @@ public class PersistentTimestampService implements TimestampService {
     private long lastAllocatedTime;
     private volatile Throwable previousAllocationFailure = null;
 
-    private PersistentTimestampService(TimestampBoundStore tbs, long lastUpperBound, Clock clock) {
-        lastReturnedTimestamp = new AtomicLong(lastUpperBound);
-        upperLimitToHandOutInclusive = new AtomicLong(lastUpperBound);
+    private PersistentTimestampService(TimestampBoundStore tbs, Clock clock) {
         executor = PTExecutors.newSingleThreadExecutor(PTExecutors.newThreadFactory("Timestamp allocator", Thread.NORM_PRIORITY, true));
         this.clock = clock;
         lastAllocatedTime = clock.getTimeMillis();
         persistentUpperLimit = new PersistentUpperLimit(tbs);
+        lastReturnedTimestamp = new AtomicLong(persistentUpperLimit.get());
     }
 
     public static PersistentTimestampService create(TimestampBoundStore tbs) {
@@ -64,7 +62,7 @@ public class PersistentTimestampService implements TimestampService {
 
     @VisibleForTesting
     protected static PersistentTimestampService create(TimestampBoundStore tbs, Clock clock) {
-        return new PersistentTimestampService(tbs, tbs.getUpperLimit(), clock);
+        return new PersistentTimestampService(tbs, clock);
     }
 
     @Override
@@ -99,7 +97,7 @@ public class PersistentTimestampService implements TimestampService {
         long upperLimit = timestamp + ALLOCATION_BUFFER_SIZE;
         persistentUpperLimit.store(upperLimit);
         // Prevent upper limit from falling behind stored upper limit.
-        setToAtLeast(upperLimitToHandOutInclusive, upperLimit);
+        persistentUpperLimit.increaseToAtLeast(upperLimit);
 
         // Prevent ourselves from serving any of the bad (read: pre-fastForward) timestamps
         setToAtLeast(lastReturnedTimestamp, timestamp);
@@ -137,7 +135,7 @@ public class PersistentTimestampService implements TimestampService {
     }
 
     private synchronized void ensureWeHaveEnoughTimestampsToHandOut(long newTimestamp) {
-        while(upperLimitToHandOutInclusive.get() < newTimestamp) {
+        while(persistentUpperLimit.get() < newTimestamp) {
             allocateMoreTimestamps();
         }
     }
@@ -177,9 +175,7 @@ public class PersistentTimestampService implements TimestampService {
         verifyThisIsTheOnlyRunningServer();
         try {
             long newLimit = lastReturnedTimestamp.get() + ALLOCATION_BUFFER_SIZE;
-            persistentUpperLimit.store(newLimit);
-            // Prevent upper limit from falling behind stored upper limit.
-            setToAtLeast(upperLimitToHandOutInclusive, newLimit);
+            persistentUpperLimit.increaseToAtLeast(newLimit);
             lastAllocatedTime = clock.getTimeMillis();
         } catch(Throwable e) {
             handleAllocationFailure(e);
@@ -197,7 +193,7 @@ public class PersistentTimestampService implements TimestampService {
     }
 
     private boolean exceededHalfOfBuffer() {
-        long remainingTimestamps = upperLimitToHandOutInclusive.get() - lastReturnedTimestamp.get();
+        long remainingTimestamps = persistentUpperLimit.get() - lastReturnedTimestamp.get();
         return remainingTimestamps <= ALLOCATION_BUFFER_SIZE / 2;
     }
 

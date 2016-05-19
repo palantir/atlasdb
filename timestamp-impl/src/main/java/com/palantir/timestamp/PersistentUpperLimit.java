@@ -17,12 +17,25 @@ package com.palantir.timestamp;
 
 public class PersistentUpperLimit {
     private final TimestampBoundStore tbs;
+    private volatile long cachedValue;
 
     public PersistentUpperLimit(TimestampBoundStore tbs) {
         this.tbs = tbs;
+        cachedValue = tbs.getUpperLimit();
     }
 
-    public void store(long upperLimit) {
+    public synchronized void store(long upperLimit) {
         tbs.storeUpperLimit(upperLimit);
+        cachedValue = upperLimit;
+    }
+
+    public long get() {
+        return cachedValue;
+    }
+
+    public synchronized void increaseToAtLeast(long minimum) {
+        if(cachedValue < minimum) {
+            store(minimum);
+        }
     }
 }
