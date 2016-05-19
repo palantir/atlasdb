@@ -23,22 +23,6 @@ Changelog
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
-v0.5.0
-=======
-
-.. list-table::
-    :widths: 5 40
-    :header-rows: 1
-
-    *   - Type
-        - Change
-
-    *   - |changed|
-        - Only bumping double minor version in artifacts for long-term stability fixes
-
-.. <<<<------------------------------------------------------------------------------------------------------------->>>>
-
-=======
 v0.4.1
 =======
 
@@ -63,5 +47,8 @@ v0.4.1
 
     *   - |fixed|
         - Fix potential race condition that could cause timestamp allocation to never complete.
+
+    *   - |changed|
+        - Only bumping double minor version in artifacts for long-term stability fixes
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
