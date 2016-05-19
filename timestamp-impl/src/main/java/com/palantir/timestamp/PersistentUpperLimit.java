@@ -49,7 +49,7 @@ public class PersistentUpperLimit {
         }
     }
 
-    public boolean hasNotBeenIncreasedFor(int time, TimeUnit unit) {
+    public boolean hasIncreasedWithin(int time, TimeUnit unit) {
         long durationInMillis = unit.toMillis(time);
         long timeSinceIncrease = clock.getTimeMillis() - lastIncreasedTime;
 

@@ -15,6 +15,8 @@
  */
 package com.palantir.timestamp;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
+
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -35,7 +37,6 @@ public class PersistentTimestampService implements TimestampService {
     static final long ALLOCATION_BUFFER_SIZE = 1000 * 1000;
     private static final Logger log = LoggerFactory.getLogger(PersistentTimestampService.class);
     private static final int MAX_REQUEST_RANGE_SIZE = 10 * 1000;
-    private static final int ONE_MINUTE_IN_MILLIS = 60000;
 
     private final PersistentUpperLimit persistentUpperLimit;
 
@@ -43,16 +44,12 @@ public class PersistentTimestampService implements TimestampService {
 
     private final ExecutorService executor;
 
-    private Clock clock;
-    private long lastAllocatedTime;
     private volatile Throwable previousAllocationFailure = null;
 
     protected PersistentTimestampService(PersistentUpperLimit persistentUpperLimit, Clock clock) {
         this.persistentUpperLimit = persistentUpperLimit;
-        this.clock = clock;
 
         executor = PTExecutors.newSingleThreadExecutor(PTExecutors.newThreadFactory("Timestamp allocator", Thread.NORM_PRIORITY, true));
-        lastAllocatedTime = clock.getTimeMillis();
         lastReturnedTimestamp = new AtomicLong(persistentUpperLimit.get());
     }
 
@@ -169,7 +166,6 @@ public class PersistentTimestampService implements TimestampService {
         try {
             long newLimit = lastReturnedTimestamp.get() + ALLOCATION_BUFFER_SIZE;
             persistentUpperLimit.increaseToAtLeast(newLimit);
-            lastAllocatedTime = clock.getTimeMillis();
         } catch(Throwable e) {
             handleAllocationFailure(e);
         }
@@ -191,6 +187,6 @@ public class PersistentTimestampService implements TimestampService {
     }
 
     private boolean haveNotAllocatedForOneMinute() {
-        return lastAllocatedTime + ONE_MINUTE_IN_MILLIS < clock.getTimeMillis();
+        return !persistentUpperLimit.hasIncreasedWithin(1, MINUTES);
     }
 }

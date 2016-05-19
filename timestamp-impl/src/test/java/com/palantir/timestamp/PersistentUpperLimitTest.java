@@ -85,7 +85,7 @@ public class PersistentUpperLimitTest {
 
         whenTheTimeIs(4, MINUTES);
 
-        assertThat(upperLimit.hasNotBeenIncreasedFor(2, MINUTES), is(false));
+        assertThat(upperLimit.hasIncreasedWithin(2, MINUTES), is(false));
     }
 
     @Test
@@ -96,7 +96,7 @@ public class PersistentUpperLimitTest {
 
         whenTheTimeIs(2, MINUTES);
 
-        assertThat(upperLimit.hasNotBeenIncreasedFor(2, MINUTES), is(true));
+        assertThat(upperLimit.hasIncreasedWithin(2, MINUTES), is(true));
     }
 
     private void whenTheTimeIs(long time, TimeUnit unit) {

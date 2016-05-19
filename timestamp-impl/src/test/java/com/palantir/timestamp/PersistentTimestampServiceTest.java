@@ -15,9 +15,16 @@
  */
 package com.palantir.timestamp;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
+
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.longThat;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -49,7 +56,7 @@ import com.palantir.common.time.Clock;
 
 public class PersistentTimestampServiceTest {
 
-    private static final long TWO_MINUTES_IN_MILLIS = 120000L;
+    private static final long ONE_MILLION = 1000 * 1000;
 
     @Rule
     public final ExpectedException expectedException = ExpectedException.none();
@@ -101,14 +108,23 @@ public class PersistentTimestampServiceTest {
 
     @Test
     public void incrementUpperLimitIfOneMinuteElapsedSinceLastUpdate() throws InterruptedException {
-        when(clock.getTimeMillis()).thenReturn(0L, TWO_MINUTES_IN_MILLIS, 2 * TWO_MINUTES_IN_MILLIS, 3 * TWO_MINUTES_IN_MILLIS);
+        givenTheTimeIs(0, MINUTES);
         PersistentTimestampService persistentTimestampService = new PersistentTimestampService(upperLimit, clock);
 
+        givenTheTimeIs(30, SECONDS);
         persistentTimestampService.getFreshTimestamp();
-        Thread.sleep(10);
+
+        verify(timestampBoundStore).storeUpperLimit(PersistentTimestampService.ALLOCATION_BUFFER_SIZE);
+
+        givenTheTimeIs(3, MINUTES);
         persistentTimestampService.getFreshTimestamp();
-        Thread.sleep(10);
-        verify(timestampBoundStore, times(2)).storeUpperLimit(anyLong());
+
+        verify(timestampBoundStore).storeUpperLimit(
+                longThat(is(greaterThan(PersistentTimestampService.ALLOCATION_BUFFER_SIZE))));
+    }
+
+    private void givenTheTimeIs(int time, TimeUnit unit) {
+        when(clock.getTimeMillis()).thenReturn(unit.toMillis(time));
     }
 
     @Test
@@ -165,7 +181,7 @@ public class PersistentTimestampServiceTest {
         });
 
         try {
-            f.get(10, TimeUnit.MILLISECONDS);
+            f.get(10, MILLISECONDS);
             fail("We should be blocking");
         } catch (ExecutionException e) {
             // we expect this failure because we can't allocate timestamps
