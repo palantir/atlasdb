@@ -36,12 +36,6 @@ v0.4.1
     *   - |improved|
         - We now have continuously updated release notes
 
-    *   - |improved|
-        - Atlas CLI code quality
-
-    *   - |fixed|
-        - C* 2.x schema mutation bug `431 <https://github.com/palantir/atlasdb/issues/431>`_ (`444 <https://github.com/palantir/atlasdb/issues/444>`_ not yet fixed)
-
     *   - |fixed|
         - Required projects are now Java 6 compliant
 
