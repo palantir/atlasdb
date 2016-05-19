@@ -38,7 +38,7 @@ public class PersistentTimestampService implements TimestampService {
     private static final int MAX_REQUEST_RANGE_SIZE = 10 * 1000;
     private static final int ONE_MINUTE_IN_MILLIS = 60000;
 
-    private final TimestampBoundStore timestampBoundStore;
+    private final PersistentUpperLimit persistentUpperLimit;
 
     private final AtomicLong lastReturnedTimestamp;
     private final AtomicLong upperLimitToHandOutInclusive;
@@ -50,12 +50,12 @@ public class PersistentTimestampService implements TimestampService {
     private volatile Throwable previousAllocationFailure = null;
 
     private PersistentTimestampService(TimestampBoundStore tbs, long lastUpperBound, Clock clock) {
-        timestampBoundStore = tbs;
         lastReturnedTimestamp = new AtomicLong(lastUpperBound);
         upperLimitToHandOutInclusive = new AtomicLong(lastUpperBound);
         executor = PTExecutors.newSingleThreadExecutor(PTExecutors.newThreadFactory("Timestamp allocator", Thread.NORM_PRIORITY, true));
         this.clock = clock;
         lastAllocatedTime = clock.getTimeMillis();
+        persistentUpperLimit = new PersistentUpperLimit(tbs);
     }
 
     public static PersistentTimestampService create(TimestampBoundStore tbs) {
@@ -97,7 +97,7 @@ public class PersistentTimestampService implements TimestampService {
      */
     public synchronized void fastForwardTimestamp(long timestamp) {
         long upperLimit = timestamp + ALLOCATION_BUFFER_SIZE;
-        timestampBoundStore.storeUpperLimit(upperLimit);
+        persistentUpperLimit.store(upperLimit);
         // Prevent upper limit from falling behind stored upper limit.
         setToAtLeast(upperLimitToHandOutInclusive, upperLimit);
 
@@ -177,7 +177,7 @@ public class PersistentTimestampService implements TimestampService {
         verifyThisIsTheOnlyRunningServer();
         try {
             long newLimit = lastReturnedTimestamp.get() + ALLOCATION_BUFFER_SIZE;
-            timestampBoundStore.storeUpperLimit(newLimit);
+            persistentUpperLimit.store(newLimit);
             // Prevent upper limit from falling behind stored upper limit.
             setToAtLeast(upperLimitToHandOutInclusive, newLimit);
             lastAllocatedTime = clock.getTimeMillis();
