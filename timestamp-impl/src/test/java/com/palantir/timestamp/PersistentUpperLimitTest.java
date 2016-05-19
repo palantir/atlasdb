@@ -15,6 +15,8 @@
  */
 package com.palantir.timestamp;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
@@ -22,18 +24,23 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.concurrent.TimeUnit;
+
 import org.junit.Test;
+
+import com.palantir.common.time.Clock;
 
 public class PersistentUpperLimitTest {
     private static final long TIMESTAMP = 12345L;
+    private final Clock clock = mock(Clock.class);
     private final TimestampBoundStore boundStore = mock(TimestampBoundStore.class);
-    private final PersistentUpperLimit upperLimit = new PersistentUpperLimit(boundStore);
+    private final PersistentUpperLimit upperLimit = new PersistentUpperLimit(boundStore, clock);
 
     @Test
     public void shouldStartWithTheCurrentStoredLimit() {
         when(boundStore.getUpperLimit()).thenReturn(TIMESTAMP);
 
-        PersistentUpperLimit brandNewUpperLimit = new PersistentUpperLimit(boundStore);
+        PersistentUpperLimit brandNewUpperLimit = new PersistentUpperLimit(boundStore, clock);
 
         assertThat(brandNewUpperLimit.get(), is(TIMESTAMP));
     }
@@ -69,4 +76,32 @@ public class PersistentUpperLimitTest {
         upperLimit.increaseToAtLeast(TIMESTAMP + 1000);
         verify(boundStore).storeUpperLimit(TIMESTAMP + 1000);
     }
+
+    @Test
+    public void shouldKnowIfItWasUpdateWithinACertainTimeframe() {
+        whenTheTimeIs(1, MINUTES);
+
+        upperLimit.increaseToAtLeast(TIMESTAMP);
+
+        whenTheTimeIs(4, MINUTES);
+
+        assertThat(upperLimit.hasNotBeenIncreasedFor(2, MINUTES), is(false));
+    }
+
+    @Test
+    public void shouldKnowIfItWasNotUpdateWithinACertainTimeframe() {
+        whenTheTimeIs(1, MINUTES);
+
+        upperLimit.increaseToAtLeast(TIMESTAMP);
+
+        whenTheTimeIs(2, MINUTES);
+
+        assertThat(upperLimit.hasNotBeenIncreasedFor(2, MINUTES), is(true));
+    }
+
+    private void whenTheTimeIs(long time, TimeUnit unit) {
+        when(clock.getTimeMillis()).thenReturn(unit.toMillis(time));
+    }
+
+
 }

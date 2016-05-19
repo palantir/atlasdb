@@ -57,7 +57,7 @@ public class PersistentTimestampService implements TimestampService {
     }
 
     public static PersistentTimestampService create(TimestampBoundStore tbs) {
-        return new PersistentTimestampService(new PersistentUpperLimit(tbs), new SystemClock());
+        return new PersistentTimestampService(new PersistentUpperLimit(tbs, new SystemClock()), new SystemClock());
     }
 
     @Override

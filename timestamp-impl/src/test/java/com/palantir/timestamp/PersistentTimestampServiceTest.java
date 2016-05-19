@@ -55,12 +55,13 @@ public class PersistentTimestampServiceTest {
     public final ExpectedException expectedException = ExpectedException.none();
 
     private final TimestampBoundStore timestampBoundStore = mock(TimestampBoundStore.class);
+    private final Clock clock = mock(Clock.class);
     private PersistentUpperLimit upperLimit;
 
     @Before
     public void setup() {
         when(timestampBoundStore.getUpperLimit()).thenReturn(0L);
-        upperLimit = new PersistentUpperLimit(timestampBoundStore);
+        upperLimit = new PersistentUpperLimit(timestampBoundStore, clock);
     }
 
 
@@ -100,7 +101,6 @@ public class PersistentTimestampServiceTest {
 
     @Test
     public void incrementUpperLimitIfOneMinuteElapsedSinceLastUpdate() throws InterruptedException {
-        Clock clock = mock(Clock.class);
         when(clock.getTimeMillis()).thenReturn(0L, TWO_MINUTES_IN_MILLIS, 2 * TWO_MINUTES_IN_MILLIS, 3 * TWO_MINUTES_IN_MILLIS);
         PersistentTimestampService persistentTimestampService = new PersistentTimestampService(upperLimit, clock);
 

@@ -15,18 +15,28 @@
  */
 package com.palantir.timestamp;
 
+import java.util.concurrent.TimeUnit;
+
+import com.palantir.common.time.Clock;
+
 public class PersistentUpperLimit {
     private final TimestampBoundStore tbs;
+    private final Clock clock;
     private volatile long cachedValue;
+    private long lastIncreasedTime;
 
-    public PersistentUpperLimit(TimestampBoundStore tbs) {
+    public PersistentUpperLimit(TimestampBoundStore tbs, Clock clock) {
         this.tbs = tbs;
+        this.clock = clock;
+
         cachedValue = tbs.getUpperLimit();
+        lastIncreasedTime = clock.getTimeMillis();
     }
 
     private synchronized void store(long upperLimit) {
         tbs.storeUpperLimit(upperLimit);
         cachedValue = upperLimit;
+        lastIncreasedTime = clock.getTimeMillis();
     }
 
     public long get() {
@@ -37,5 +47,12 @@ public class PersistentUpperLimit {
         if(cachedValue < minimum) {
             store(minimum);
         }
+    }
+
+    public boolean hasNotBeenIncreasedFor(int time, TimeUnit unit) {
+        long durationInMillis = unit.toMillis(time);
+        long timeSinceIncrease = clock.getTimeMillis() - lastIncreasedTime;
+
+        return timeSinceIncrease < durationInMillis;
     }
 }
