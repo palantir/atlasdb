@@ -810,7 +810,7 @@ public class TextUtils {
      * Changes a string to mixed case.  (First upper, then lower.)
      */
     public static String toMixedCase(String str) {
-        StringBuffer strbuf = new StringBuffer(str.toLowerCase());
+        StringBuilder strbuf = new StringBuilder(str.toLowerCase());
         strbuf.setCharAt(0, Character.toUpperCase(strbuf.charAt(0)));
         return strbuf.toString();
     }
@@ -1007,7 +1007,7 @@ public class TextUtils {
             return "";
         }
 
-        StringBuffer buf = new StringBuffer(10*count + delimiter.length()*(count-1));
+        StringBuilder buf = new StringBuilder(10*count + delimiter.length()*(count-1));
 
         for (int i = 0; i < count-1; i++) {
             buf.append(strList.get(i));
@@ -1027,7 +1027,7 @@ public class TextUtils {
         if (count == 0) {
             return "";
         }
-        StringBuffer buf = new StringBuffer(str.length()*count + delimiter.length()*(count-1));
+        StringBuilder buf = new StringBuilder(str.length()*count + delimiter.length()*(count-1));
 
         for (int i = 0; i < count-1; i++) {
             buf.append(str);
@@ -1490,7 +1490,7 @@ public class TextUtils {
             return null;
         }
 
-        StringBuffer sb = new StringBuffer(string.length());
+        StringBuilder sb = new StringBuilder(string.length());
         // true if last char was blank
         boolean lastWasBlankChar = false;
         int len = string.length();
@@ -1549,7 +1549,7 @@ public class TextUtils {
     }
 
     public static String simpleEscapeHtml(String string) {
-         StringBuffer sb = new StringBuffer(string.length());
+         StringBuilder sb = new StringBuilder(string.length());
             int len = string.length();
 
             char c;
@@ -1604,7 +1604,7 @@ public class TextUtils {
 
     public static String readFully(final InputStream is) throws IOException {
         final BufferedReader r = new BufferedReader( new InputStreamReader( is ) );
-        final StringBuffer buffer = new StringBuffer();
+        final StringBuilder buffer = new StringBuilder();
         for ( int c; 0 <= ( c = r.read() ); ) {
             buffer.append( (char) c );
         }
@@ -1618,7 +1618,7 @@ public class TextUtils {
     public static final String UNICODE_WHITESPACE = "\\p{Z}\\s";
 
     public static String escapeRegexUnicode(final String regex, final boolean useWildCards, final boolean subWhiteSpace){
-        final StringBuffer buffer = new StringBuffer( 5 * regex.length() );
+        final StringBuilder buffer = new StringBuilder( 5 * regex.length() );
 
         boolean skipWild = false;
         boolean skipWhite = false;
@@ -1649,7 +1649,7 @@ public class TextUtils {
     }
 
     public static String toUnicodeHex(final String s){
-        final StringBuffer buffer = new StringBuffer( 5 * s.length() );
+        final StringBuilder buffer = new StringBuilder( 5 * s.length() );
         for(int i = 0; i < s.length(); i++){
             buffer.append(toUnicodeHex(s.charAt( i )));
         }
@@ -1667,7 +1667,7 @@ public class TextUtils {
     }
 
     public static String escapeRegex(final String regex) {
-        final StringBuffer buffer = new StringBuffer( 3 * regex.length() );
+        final StringBuilder buffer = new StringBuilder( 3 * regex.length() );
         for ( int i = 0, length = regex.length(); i < length; i++ ) {
             final char c = regex.charAt( i );
             // Transform to hex (radix 16):
@@ -1684,7 +1684,7 @@ public class TextUtils {
     private static Pattern ESCAPED_HEX_PATTERN = Pattern.compile( "\\\\x([0-9a-fA-F]+)" );
 
     public static String unescapeRegex(final String regex) {
-        final StringBuffer buffer = new StringBuffer( regex.length() / 3 );
+        final StringBuilder buffer = new StringBuilder( regex.length() / 3 );
 
         int i = 0;
         final Matcher matcher = ESCAPED_HEX_PATTERN.matcher( regex );
