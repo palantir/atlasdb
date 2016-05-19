@@ -20,35 +20,20 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class CassandraDbLockTest extends AbstractCassandraLockTest {
-    @Before
+public class CassandraLegacyLockTest extends AbstractCassandraLockTest {
     @Override
+    @Before
     public void setUp() {
         super.setUp();
 
-        kvs.supportsCAS = true;
-        slowTimeoutKvs.supportsCAS = true;
+        kvs.supportsCAS = false;
+        slowTimeoutKvs.supportsCAS = false;
     }
 
-    @Test (expected = IllegalStateException.class)
-    public void testBadUnlockFails() {
-        kvs.schemaMutationUnlock(GLOBAL_DDL_LOCK_NEVER_ALLOCATED_VALUE);
-    }
-
-    @Test
-    public void testIdsAreRequestUnique() {
-        long id = kvs.waitForSchemaMutationLock();
-        kvs.schemaMutationUnlock(id);
-        long newId = kvs.waitForSchemaMutationLock();
-        kvs.schemaMutationUnlock(newId);
-        Assert.assertNotEquals(id, newId);
-    }
-
-    // has a different message than the other one
+    // it has a different timeout message
     @Test
     public void testLocksTimeout() throws InterruptedException, ExecutionException, TimeoutException {
         long id = kvs.waitForSchemaMutationLock();
@@ -57,8 +42,7 @@ public class CassandraDbLockTest extends AbstractCassandraLockTest {
                 kvs.schemaMutationUnlock(kvs.waitForSchemaMutationLock());
             });
             exception.expect(ExecutionException.class);
-            exception.expectMessage("We have timed out waiting on the current schema mutation lock holder.");
-            exception.expectMessage("support");
+            exception.expectMessage("unable to get a lock on Cassandra system schema mutations");
             future.get(10, TimeUnit.SECONDS);
         } catch (Exception e) {
             throw e;
@@ -66,4 +50,5 @@ public class CassandraDbLockTest extends AbstractCassandraLockTest {
             kvs.schemaMutationUnlock(id);
         }
     }
+
 }
