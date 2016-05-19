@@ -18,6 +18,7 @@ package com.palantir.timestamp;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyLong;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -90,7 +91,7 @@ public class PersistentTimestampServiceTest {
         Thread.sleep(10);
         persistentTimestampService.getFreshTimestamp();
         Thread.sleep(10);
-        verify(timestampBoundStore, times(2)).storeUpperLimit(anyLong());
+        verify(timestampBoundStore, atLeast(2)).storeUpperLimit(anyLong());
     }
 
     @Test
