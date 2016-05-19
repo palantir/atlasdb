@@ -18,6 +18,7 @@ package com.palantir.timestamp;
 import java.util.concurrent.TimeUnit;
 
 import com.palantir.common.time.Clock;
+import com.palantir.common.time.SystemClock;
 
 public class PersistentUpperLimit {
     private final TimestampBoundStore tbs;
@@ -31,6 +32,10 @@ public class PersistentUpperLimit {
 
         cachedValue = tbs.getUpperLimit();
         lastIncreasedTime = clock.getTimeMillis();
+    }
+
+    public PersistentUpperLimit(TimestampBoundStore boundStore) {
+        this(boundStore, new SystemClock());
     }
 
     private synchronized void store(long upperLimit) {

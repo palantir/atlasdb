@@ -28,8 +28,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.remoting.ServiceNotAvailableException;
-import com.palantir.common.time.Clock;
-import com.palantir.common.time.SystemClock;
 import com.palantir.exception.PalantirInterruptedException;
 
 @ThreadSafe
@@ -45,7 +43,7 @@ public class PersistentTimestampService implements TimestampService {
 
     private volatile Throwable previousAllocationFailure = null;
 
-    protected PersistentTimestampService(PersistentUpperLimit persistentUpperLimit, Clock clock) {
+    protected PersistentTimestampService(PersistentUpperLimit persistentUpperLimit) {
         this.persistentUpperLimit = persistentUpperLimit;
 
         executor = PTExecutors.newSingleThreadExecutor(PTExecutors.newThreadFactory("Timestamp allocator", Thread.NORM_PRIORITY, true));
@@ -53,7 +51,7 @@ public class PersistentTimestampService implements TimestampService {
     }
 
     public static PersistentTimestampService create(TimestampBoundStore tbs) {
-        return new PersistentTimestampService(new PersistentUpperLimit(tbs, new SystemClock()), new SystemClock());
+        return new PersistentTimestampService(new PersistentUpperLimit(tbs));
     }
 
     @Override
