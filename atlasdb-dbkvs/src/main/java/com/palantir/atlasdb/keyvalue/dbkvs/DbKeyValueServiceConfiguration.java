@@ -15,7 +15,39 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
+import org.immutables.value.Value;
+
+import com.fasterxml.jackson.annotation.JsonTypeName;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
+@JsonDeserialize(as = ImmutableDbKeyValueServiceConfiguration.class)
+@JsonSerialize(as = ImmutableDbKeyValueServiceConfiguration.class)
+@JsonTypeName(DbKeyValueServiceConfiguration.TYPE)
+@Value.Immutable
 public abstract class DbKeyValueServiceConfiguration implements KeyValueServiceConfig {
+
+    public static final String TYPE = "relational";
+
+    @Value.Default
+    public boolean oracleEnableEeFeatures() {
+        return false;
+    }
+
+    @Value.Default
+    public int getRangeConcurrency() {
+        return 64;
+    }
+
+    @Value.Default
+    public int postgresQueryPoolSize() {
+        return 64;
+    }
+
+    @Value.Default
+    public int postgresQueryBatchSize() {
+        return 256;
+    }
+
 }

@@ -51,7 +51,6 @@ import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.Atomics;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.AtlasSystemPropertyManager;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
@@ -78,18 +77,15 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 public class DbKvs extends AbstractKeyValueService {
     private static final Logger log = LoggerFactory.getLogger(DbKvs.class);
-    private final AtlasSystemPropertyManager systemProperties;
     private final DbTableFactory dbTables;
     private final PalantirSqlConnectionSupplier connections;
     private final JdbcHandler jdbcHandler;
 
     public DbKvs(ExecutorService executor,
-                 AtlasSystemPropertyManager systemProperties,
                  DbTableFactory dbTables,
                  PalantirSqlConnectionSupplier connections,
                  JdbcHandler jdbcHandler) {
         super(executor);
-        this.systemProperties = systemProperties;
         this.dbTables = dbTables;
         this.connections = connections;
         this.jdbcHandler = jdbcHandler;
@@ -738,7 +734,7 @@ public class DbKvs extends AbstractKeyValueService {
     private <T> T runDdl(TableReference tableRef, Function<DbDdlTable, T> runner) {
         ConnectionSupplier conns = new ConnectionSupplier(connections);
         try {
-            return runner.apply(dbTables.createDdl(tableRef.getQualifiedName(), conns, systemProperties));
+            return runner.apply(dbTables.createDdl(tableRef.getQualifiedName(), conns));
         } finally {
             conns.close();
         }

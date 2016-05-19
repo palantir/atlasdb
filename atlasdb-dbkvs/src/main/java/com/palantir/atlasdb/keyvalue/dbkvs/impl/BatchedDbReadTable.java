@@ -30,10 +30,9 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Queues;
-import com.palantir.atlasdb.AtlasSystemPropertyManager;
-import com.palantir.atlasdb.DeclaredAtlasSystemProperty;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfiguration;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.Throwables;
@@ -44,15 +43,15 @@ import com.palantir.nexus.db.sql.PalantirSqlConnection;
 public class BatchedDbReadTable extends AbstractDbReadTable {
     private static final Logger log = LoggerFactory.getLogger(BatchedDbReadTable.class);
     private final Executor exec;
-    private final AtlasSystemPropertyManager systemProperties;
+    private final DbKeyValueServiceConfiguration config;
 
     protected BatchedDbReadTable(ConnectionSupplier conns,
                                  DbQueryFactory queryFactory,
                                  Executor exec,
-                                 AtlasSystemPropertyManager systemProperties) {
+                                 DbKeyValueServiceConfiguration config) {
         super(conns, queryFactory);
         this.exec = exec;
-        this.systemProperties = systemProperties;
+        this.config = config;
     }
 
     @Override
@@ -171,6 +170,6 @@ public class BatchedDbReadTable extends AbstractDbReadTable {
     }
 
     private int getBatchSize() {
-        return systemProperties.getCachedSystemPropertyInteger(DeclaredAtlasSystemProperty.__ATLASDB_POSTGRES_QUERY_BATCH_SIZE);
+        return config.postgresQueryPoolSize();
     }
 }

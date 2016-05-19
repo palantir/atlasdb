@@ -20,8 +20,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import com.palantir.atlasdb.AtlasSystemPropertyManager;
-import com.palantir.atlasdb.DeclaredAtlasSystemProperty;
+import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfiguration;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresDdlTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresQueryFactory;
 import com.palantir.common.concurrent.NamedThreadFactory;
@@ -31,13 +30,12 @@ import com.palantir.nexus.db.DBType;
 
 public class PostgresDbTableFactory implements DbTableFactory {
 
-    private final AtlasSystemPropertyManager systemProperties;
+    private final DbKeyValueServiceConfiguration config;
     private final ExecutorService exec;
 
-    public PostgresDbTableFactory(AtlasSystemPropertyManager systemProperties) {
-        this.systemProperties = systemProperties;
-        int poolSize = systemProperties.getSystemPropertyInteger(
-                DeclaredAtlasSystemProperty.__ATLASDB_POSTGRES_QUERY_POOL_SIZE);
+    public PostgresDbTableFactory(DbKeyValueServiceConfiguration config) {
+        this.config = config;
+        int poolSize = config.postgresQueryPoolSize();
         this.exec = newFixedThreadPool(poolSize);
     }
 
@@ -57,13 +55,13 @@ public class PostgresDbTableFactory implements DbTableFactory {
     }
 
     @Override
-    public DbDdlTable createDdl(String tableName, ConnectionSupplier conns, AtlasSystemPropertyManager systemProperties) {
+    public DbDdlTable createDdl(String tableName, ConnectionSupplier conns) {
         return new PostgresDdlTable(tableName, conns);
     }
 
     @Override
     public DbReadTable createRead(String tableName, ConnectionSupplier conns, JdbcHandler jdbcHandler) {
-        return new BatchedDbReadTable(conns, new PostgresQueryFactory(tableName), exec, systemProperties);
+        return new BatchedDbReadTable(conns, new PostgresQueryFactory(tableName), exec, config);
     }
 
     @Override

@@ -18,9 +18,8 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.palantir.atlasdb.AtlasSystemPropertyManager;
-import com.palantir.atlasdb.DeclaredAtlasSystemProperty;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfiguration;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbDdlTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
@@ -35,18 +34,16 @@ public class OracleDdlTable implements DbDdlTable {
     private final String tableName;
     private final ConnectionSupplier conns;
     private final OverflowMigrationState migrationState;
-    private final AtlasSystemPropertyManager systemProperties;
-
-
+    private final DbKeyValueServiceConfiguration config;
 
     public OracleDdlTable(String tableName,
-                                  ConnectionSupplier conns,
-                                  OverflowMigrationState migrationState,
-                                  AtlasSystemPropertyManager systemProperties) {
+                          ConnectionSupplier conns,
+                          OverflowMigrationState migrationState,
+                          DbKeyValueServiceConfiguration config) {
         this.tableName = tableName;
         this.conns = conns;
         this.migrationState = migrationState;
-        this.systemProperties = systemProperties;
+        this.config = config;
     }
 
     @Override
@@ -130,7 +127,7 @@ public class OracleDdlTable implements DbDdlTable {
 
     @Override
     public void compactInternally() {
-        if (systemProperties.getCachedSystemPropertyBoolean(DeclaredAtlasSystemProperty.ORACLEDB_ENABLE_EE_FEATURES)) {
+        if (config.oracleEnableEeFeatures()) {
             try {
                 conns.get().executeUnregisteredQuery("ALTER TABLE pt_met_" + tableName + " MOVE ONLINE");
             } catch (PalantirSqlException e) {

@@ -22,7 +22,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.palantir.atlasdb.AtlasSystemPropertyManager;
+import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfiguration;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleDdlTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleOverflowQueryFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleOverflowWriteTable;
@@ -34,11 +34,14 @@ import com.palantir.nexus.db.sql.AgnosticResultSet;
 
 public class OracleDbTableFactory implements DbTableFactory {
     private final Cache<String, TableSize> tableSizeByTableName = CacheBuilder.newBuilder().build();
+    private final DbKeyValueServiceConfiguration config;
     private final Supplier<Long> overflowIds;
     private final OverflowMigrationState migrationState;
 
-    public OracleDbTableFactory(Supplier<Long> overflowIds,
+    public OracleDbTableFactory(DbKeyValueServiceConfiguration config,
+                                Supplier<Long> overflowIds,
                                 OverflowMigrationState migrationState) {
+        this.config = config;
         this.overflowIds = overflowIds;
         this.migrationState = migrationState;
     }
@@ -49,8 +52,8 @@ public class OracleDbTableFactory implements DbTableFactory {
     }
 
     @Override
-    public DbDdlTable createDdl(String tableName, ConnectionSupplier conns, AtlasSystemPropertyManager systemProperties) {
-        return new OracleDdlTable(tableName, conns, migrationState, systemProperties);
+    public DbDdlTable createDdl(String tableName, ConnectionSupplier conns) {
+        return new OracleDdlTable(tableName, conns, migrationState, config);
     }
 
     @Override
