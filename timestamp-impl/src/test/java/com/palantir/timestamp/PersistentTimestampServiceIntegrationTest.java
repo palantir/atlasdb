@@ -54,9 +54,7 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.common.time.Clock;
 
-public class PersistentTimestampServiceTest {
-
-    private static final long ONE_MILLION = 1000 * 1000;
+public class PersistentTimestampServiceIntegrationTest {
 
     @Rule
     public final ExpectedException expectedException = ExpectedException.none();
