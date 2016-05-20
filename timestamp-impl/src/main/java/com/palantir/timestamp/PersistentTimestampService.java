@@ -39,8 +39,6 @@ public class PersistentTimestampService implements TimestampService {
     private final ExecutorService executor;
     private final AvailableTimestamps availableTimestamps;
 
-    private volatile Throwable previousAllocationFailure = null;
-
     protected PersistentTimestampService(PersistentUpperLimit upperLimit, LastReturnedTimestamp lastReturnedTimestamp) {
         this.upperLimit = upperLimit;
         this.lastReturnedTimestamp = lastReturnedTimestamp;
