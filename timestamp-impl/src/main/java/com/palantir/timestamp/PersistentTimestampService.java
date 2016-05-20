@@ -18,7 +18,6 @@ package com.palantir.timestamp;
 import static java.util.concurrent.TimeUnit.MINUTES;
 
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.concurrent.ThreadSafe;
 
@@ -37,21 +36,23 @@ public class PersistentTimestampService implements TimestampService {
     private static final Logger log = LoggerFactory.getLogger(PersistentTimestampService.class);
     private static final int MAX_REQUEST_RANGE_SIZE = 10 * 1000;
 
-    private final PersistentUpperLimit persistentUpperLimit;
-    private final AtomicLong lastReturnedTimestamp;
+    private final PersistentUpperLimit upperLimit;
+    private final LastReturnedTimestamp lastReturnedTimestamp;
     private final ExecutorService executor;
 
     private volatile Throwable previousAllocationFailure = null;
 
-    protected PersistentTimestampService(PersistentUpperLimit persistentUpperLimit) {
-        this.persistentUpperLimit = persistentUpperLimit;
+    protected PersistentTimestampService(PersistentUpperLimit upperLimit, LastReturnedTimestamp lastReturnedTimestamp) {
+        this.upperLimit = upperLimit;
+        this.lastReturnedTimestamp = lastReturnedTimestamp;
 
         executor = PTExecutors.newSingleThreadExecutor(PTExecutors.newThreadFactory("Timestamp allocator", Thread.NORM_PRIORITY, true));
-        lastReturnedTimestamp = new AtomicLong(persistentUpperLimit.get());
     }
 
     public static PersistentTimestampService create(TimestampBoundStore tbs) {
-        return new PersistentTimestampService(new PersistentUpperLimit(tbs));
+        PersistentUpperLimit upperLimit = new PersistentUpperLimit(tbs);
+        LastReturnedTimestamp lastReturned = new LastReturnedTimestamp(upperLimit.get());
+        return new PersistentTimestampService(upperLimit, lastReturned);
     }
 
     @Override
@@ -83,21 +84,9 @@ public class PersistentTimestampService implements TimestampService {
      * @param timestamp
      */
     public synchronized void fastForwardTimestamp(long timestamp) {
-        // Prevent ourselves from serving any of the bad (read: pre-fastForward) timestamps
-        fastForwardLastReturnedTimestampTo(timestamp);
+        lastReturnedTimestamp.increaseToAtLeast(timestamp);
+        upperLimit.increaseToAtLeast(timestamp + ALLOCATION_BUFFER_SIZE);
 
-        long upperLimit = timestamp + ALLOCATION_BUFFER_SIZE;
-        persistentUpperLimit.increaseToAtLeast(upperLimit);
-
-    }
-
-    private void fastForwardLastReturnedTimestampTo(long timestamp) {
-        while (true) {
-            long oldUpper = lastReturnedTimestamp.get();
-            if (timestamp <= oldUpper || lastReturnedTimestamp.compareAndSet(oldUpper, timestamp)) {
-                return;
-            }
-        }
     }
 
     private int cleanUpTimestampRequest(int numTimestampsRequested) {
@@ -123,7 +112,7 @@ public class PersistentTimestampService implements TimestampService {
     }
 
     private synchronized void ensureWeHaveEnoughTimestampsToHandOut(long newTimestamp) {
-        while(persistentUpperLimit.get() < newTimestamp) {
+        while(upperLimit.get() < newTimestamp) {
             allocateMoreTimestamps();
         }
     }
@@ -163,7 +152,7 @@ public class PersistentTimestampService implements TimestampService {
         verifyThisIsTheOnlyRunningServer();
         try {
             long newLimit = lastReturnedTimestamp.get() + ALLOCATION_BUFFER_SIZE;
-            persistentUpperLimit.increaseToAtLeast(newLimit);
+            upperLimit.increaseToAtLeast(newLimit);
         } catch(Throwable e) {
             handleAllocationFailure(e);
         }
@@ -180,11 +169,11 @@ public class PersistentTimestampService implements TimestampService {
     }
 
     private boolean exceededHalfOfBuffer() {
-        long remainingTimestamps = persistentUpperLimit.get() - lastReturnedTimestamp.get();
+        long remainingTimestamps = upperLimit.get() - lastReturnedTimestamp.get();
         return remainingTimestamps <= ALLOCATION_BUFFER_SIZE / 2;
     }
 
     private boolean haveNotAllocatedForOneMinute() {
-        return !persistentUpperLimit.hasIncreasedWithin(1, MINUTES);
+        return !upperLimit.hasIncreasedWithin(1, MINUTES);
     }
 }

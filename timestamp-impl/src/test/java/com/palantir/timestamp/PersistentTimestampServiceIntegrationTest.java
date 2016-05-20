@@ -107,7 +107,7 @@ public class PersistentTimestampServiceIntegrationTest {
     @Test
     public void incrementUpperLimitIfOneMinuteElapsedSinceLastUpdate() throws InterruptedException {
         givenTheTimeIs(0, MINUTES);
-        PersistentTimestampService persistentTimestampService = new PersistentTimestampService(upperLimit);
+        PersistentTimestampService persistentTimestampService = new PersistentTimestampService(upperLimit, new LastReturnedTimestamp(upperLimit.get()));
 
         givenTheTimeIs(30, SECONDS);
         persistentTimestampService.getFreshTimestamp();
