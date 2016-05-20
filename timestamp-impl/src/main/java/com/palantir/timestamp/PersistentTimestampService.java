@@ -50,7 +50,6 @@ public class PersistentTimestampService implements TimestampService {
         int numTimestampsToHandOut = cleanUpTimestampRequest(numTimestampsRequested);
         long newTimestamp = availableTimestamps.lastHandedOut() + numTimestampsToHandOut;
 
-        ensureWeHaveEnoughTimestampsToHandOut(newTimestamp);
         TimestampRange handedOut = availableTimestamps.handOut(newTimestamp);
         asynchronouslyRefreshBuffer();
         return handedOut;
@@ -87,12 +86,6 @@ public class PersistentTimestampService implements TimestampService {
                 availableTimestamps.refreshBuffer();
             }
         });
-    }
-
-    private synchronized void ensureWeHaveEnoughTimestampsToHandOut(long newTimestamp) {
-        while(!availableTimestamps.contains(newTimestamp)) {
-            availableTimestamps.allocateMoreTimestamps();
-        }
     }
 
 }

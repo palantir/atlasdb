@@ -15,8 +15,9 @@
  */
 package com.palantir.timestamp;
 
-import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.MINUTES;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,6 +28,7 @@ import com.palantir.exception.PalantirInterruptedException;
 public class AvailableTimestamps {
     static final long ALLOCATION_BUFFER_SIZE = 1000 * 1000;
     private static final long MINIMUM_BUFFER = ALLOCATION_BUFFER_SIZE / 2;
+    private static final long MAX_RANGE_SIZE = 10 * 1000;
 
     private static final Logger log = LoggerFactory.getLogger(AvailableTimestamps.class);
 
@@ -39,16 +41,48 @@ public class AvailableTimestamps {
         this.upperLimit = upperLimit;
     }
 
-    public boolean contains(long newTimestamp) {
-        return newTimestamp <= upperLimit.get();
+    public synchronized TimestampRange handOut(long timestamp) {
+        TimestampRange desiredRange = TimestampRange.createInclusiveRange(lastReturnedTimestamp.get() + 1, timestamp);
+
+        checkArgument(
+                timestamp > lastHandedOut(),
+                "Could not hand out timestamp '%s' as it was earlier than the last handed out timestamp: %s",
+                timestamp, lastHandedOut());
+
+        checkArgument(
+                desiredRange.size() < MAX_RANGE_SIZE,
+                "Can only hand out %s timestamps at a time. Fulfilling the request for %s would require handing out %s timestamps",
+                MAX_RANGE_SIZE, timestamp, desiredRange.size());
+
+        allocateEnoughTimestampsFor(timestamp);
+        lastReturnedTimestamp.increaseToAtLeast(timestamp);
+
+        return desiredRange;
     }
 
-    public void allocateMoreTimestamps() {
+    private void allocateEnoughTimestampsFor(long timestamp) {
         try {
-            upperLimit.increaseToAtLeast(lastReturnedTimestamp.get() + ALLOCATION_BUFFER_SIZE);
+            upperLimit.increaseToAtLeast(timestamp);
         } catch(Throwable e) {
             handleAllocationFailure(e);
         }
+    }
+
+    public synchronized long lastHandedOut() {
+        return lastReturnedTimestamp.get();
+    }
+
+    public synchronized void refreshBuffer() {
+        long buffer = upperLimit.get() - lastReturnedTimestamp.get();
+
+        if(buffer < MINIMUM_BUFFER || !upperLimit.hasIncreasedWithin(1, MINUTES)) {
+            allocateEnoughTimestampsFor(lastHandedOut() + ALLOCATION_BUFFER_SIZE);
+        }
+    }
+
+    public void fastForwardTo(long newMinimum) {
+        lastReturnedTimestamp.increaseToAtLeast(newMinimum);
+        upperLimit.increaseToAtLeast(newMinimum + ALLOCATION_BUFFER_SIZE);
     }
 
     private synchronized void handleAllocationFailure(Throwable failure) {
@@ -74,34 +108,5 @@ public class AvailableTimestamps {
         }
 
         previousAllocationFailure = failure;
-    }
-
-    public TimestampRange handOut(long timestamp) {
-        if(!this.contains(timestamp)) {
-            throw new IllegalArgumentException(format(
-                    "Could not hand out timestamp '%d' as it was outside of the available range: %d - %d",
-                    timestamp, lastReturnedTimestamp.get(), upperLimit.get()));
-        }
-
-        TimestampRange range = TimestampRange.createInclusiveRange(lastReturnedTimestamp.get() + 1, timestamp);
-        lastReturnedTimestamp.increaseToAtLeast(timestamp);
-        return range;
-    }
-
-    public synchronized long lastHandedOut() {
-        return lastReturnedTimestamp.get();
-    }
-
-    public synchronized void refreshBuffer() {
-        long buffer = upperLimit.get() - lastReturnedTimestamp.get();
-
-        if(buffer < MINIMUM_BUFFER || !upperLimit.hasIncreasedWithin(1, MINUTES)) {
-            allocateMoreTimestamps();
-        }
-    }
-
-    public void fastForwardTo(long newMinimum) {
-        lastReturnedTimestamp.increaseToAtLeast(newMinimum);
-        upperLimit.increaseToAtLeast(newMinimum + ALLOCATION_BUFFER_SIZE);
     }
 }

@@ -31,8 +31,8 @@ import org.junit.rules.ExpectedException;
 
 public class AvailableTimestampsTest {
 
-    public static final long LAST_RETURNED = 10L;
     public static final long UPPER_LIMIT = 1000 * 1000;
+    public static final long LAST_RETURNED =  UPPER_LIMIT - 1000;
 
     @Rule
     public ExpectedException exception = ExpectedException.none();
@@ -44,29 +44,6 @@ public class AvailableTimestampsTest {
             lastReturnedTimestamp,
             persistentUpperLimit
     );
-
-    @Test public void
-    shouldContainATimestampSmallerThanTheUpperLimit() {
-        assertThat(availableTimestamps.contains(UPPER_LIMIT - 10), is(true));
-    }
-
-    @Test public void
-    shouldNotContainATimestampBiggerThanTheUpperLimit() {
-        assertThat(availableTimestamps.contains(UPPER_LIMIT + 10), is(false));
-    }
-
-    @Test public void
-    shouldContainATimestampEqualToTheUpperLimit() {
-        assertThat(availableTimestamps.contains(UPPER_LIMIT), is(true));
-    }
-
-    @Test public void
-    shouldBeAbleToMakeMoreTimestampsAvailable() {
-        availableTimestamps.allocateMoreTimestamps();
-        verify(persistentUpperLimit).increaseToAtLeast(
-                lastReturnedTimestamp.get() + AvailableTimestamps.ALLOCATION_BUFFER_SIZE
-        );
-    }
 
     @Test public void
     shouldRefreshTheBufferIfHalfOfItIsUsedUp() {
@@ -97,14 +74,28 @@ public class AvailableTimestampsTest {
     }
 
     @Test public void
-    shouldNotHandOutTimestampsGreaterThanTheMaximum() {
+    shouldIncreaseTheMaximumToHandOutNewTimestamps() {
+        assertThat(availableTimestamps.handOut(UPPER_LIMIT + 10).getUpperBound(), is(UPPER_LIMIT + 10));
+
+        verify(persistentUpperLimit).increaseToAtLeast(UPPER_LIMIT + 10);
+    }
+
+    @Test public void
+    shouldNotHandOutMoreThanTenThousandTimestampsAtATime() {
         exception.expect(IllegalArgumentException.class);
+        exception.expectMessage("Can only hand out 10000 timestamps at a time");
+        exception.expectMessage("1050000");
 
-        exception.expectMessage(String.valueOf(UPPER_LIMIT + 10));
-        exception.expectMessage(String.valueOf(LAST_RETURNED));
-        exception.expectMessage(String.valueOf(UPPER_LIMIT));
+        availableTimestamps.handOut(1050000);
+    }
 
-        availableTimestamps.handOut(UPPER_LIMIT + 10);
+    @Test public void
+    shouldNotHandOutATimestampEarlierThanTheLastHandedOutTimestamp() {
+        exception.expect(IllegalArgumentException.class);
+        exception.expectMessage("Could not hand out timestamp '1'");
+        exception.expectMessage("earlier than the last handed out timestamp: " + LAST_RETURNED);
+
+        availableTimestamps.handOut(1);
     }
 
     @Test public void
