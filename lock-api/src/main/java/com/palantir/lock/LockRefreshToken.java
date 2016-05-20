@@ -83,6 +83,6 @@ public final class LockRefreshToken implements Serializable {
 
     @Override
     public String toString() {
-        return "LockRefreshToken [tokenId=" + tokenId + "]";
+        return "LockRefreshToken [tokenId=" + tokenId.toString(Character.MAX_RADIX) + "]";
     }
 }
