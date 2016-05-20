@@ -26,8 +26,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.common.remoting.ServiceNotAvailableException;
-import com.palantir.exception.PalantirInterruptedException;
 
 @ThreadSafe
 public class PersistentTimestampService implements TimestampService {
@@ -39,12 +37,15 @@ public class PersistentTimestampService implements TimestampService {
     private final PersistentUpperLimit upperLimit;
     private final LastReturnedTimestamp lastReturnedTimestamp;
     private final ExecutorService executor;
+    private final AvailableTimestamps availableTimestamps;
 
     private volatile Throwable previousAllocationFailure = null;
 
     protected PersistentTimestampService(PersistentUpperLimit upperLimit, LastReturnedTimestamp lastReturnedTimestamp) {
         this.upperLimit = upperLimit;
         this.lastReturnedTimestamp = lastReturnedTimestamp;
+
+        this.availableTimestamps = new AvailableTimestamps(lastReturnedTimestamp, upperLimit);
 
         executor = PTExecutors.newSingleThreadExecutor(PTExecutors.newThreadFactory("Timestamp allocator", Thread.NORM_PRIORITY, true));
     }
@@ -112,55 +113,14 @@ public class PersistentTimestampService implements TimestampService {
     }
 
     private synchronized void ensureWeHaveEnoughTimestampsToHandOut(long newTimestamp) {
-        while(upperLimit.get() < newTimestamp) {
-            allocateMoreTimestamps();
+        while(!availableTimestamps.contains(newTimestamp)) {
+            availableTimestamps.allocateMoreTimestamps();
         }
-    }
-
-    private void handleAllocationFailure(Throwable failure) {
-        if (failure instanceof MultipleRunningTimestampServiceError) {
-            throw new ServiceNotAvailableException("This server is no longer valid because another is running.", failure);
-        }
-
-        if (failure != null) {
-            throw new RuntimeException("failed to allocate more timestamps", failure);
-        }
-
-        if (Thread.interrupted()) {
-            Thread.currentThread().interrupt();
-            throw new PalantirInterruptedException("Interrupted while waiting for timestamp allocation.");
-        }
-
-        if (previousAllocationFailure != null
-                && failure.getClass().equals(previousAllocationFailure.getClass())) {
-            // QA-75825: don't keep logging error if we keep failing to allocate.
-            log.info("Throwable while allocating timestamps.", failure);
-        } else {
-            log.error("Throwable while allocating timestamps.", failure);
-        }
-
-        previousAllocationFailure = failure;
     }
 
     private synchronized void topUpTimestampPool() {
         if (shouldTopUpTimestampPool()) {
-            allocateMoreTimestamps();
-        }
-    }
-
-    private synchronized void allocateMoreTimestamps() {
-        verifyThisIsTheOnlyRunningServer();
-        try {
-            long newLimit = lastReturnedTimestamp.get() + ALLOCATION_BUFFER_SIZE;
-            upperLimit.increaseToAtLeast(newLimit);
-        } catch(Throwable e) {
-            handleAllocationFailure(e);
-        }
-    }
-
-    private void verifyThisIsTheOnlyRunningServer() {
-        if (previousAllocationFailure instanceof MultipleRunningTimestampServiceError) {
-            throw new ServiceNotAvailableException("This server is no longer valid because another is running.", previousAllocationFailure);
+            availableTimestamps.allocateMoreTimestamps();
         }
     }
 
