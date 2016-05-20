@@ -3,6 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
+===================================
 Welcome to AtlasDB's documentation!
 ===================================
 
@@ -17,5 +18,6 @@ Contents:
    transactions/index
    configuration/index
    cluster_management/index
+   services/index
    miscellaneous/index
    release_notes/index
