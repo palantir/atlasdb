@@ -15,14 +15,20 @@
  */
 package com.palantir.atlasdb.cli.command;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.List;
 import java.util.Scanner;
 
-import org.joda.time.format.ISODateTimeFormat;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.Lists;
 import com.palantir.atlasdb.cli.runner.InMemoryTestRunner;
 import com.palantir.atlasdb.cli.runner.SingleBackendCliTestRunner;
 import com.palantir.atlasdb.cli.services.AtlasDbServicesFactory;
@@ -43,6 +49,9 @@ public class TestTimestampCommand {
     private static LockDescriptor lock;
     private static AtlasDbServicesFactory moduleFactory;
 
+    private static final String TIMESTAMP_FILE_PATH = "test.timestamp";
+    private static final File TIMESTAMP_FILE = new File(TIMESTAMP_FILE_PATH);
+
     @BeforeClass
     public static void setup() throws Exception {
         lock = StringLockDescriptor.of("lock");
@@ -56,46 +65,101 @@ public class TestTimestampCommand {
         };
     }
 
+    @AfterClass
+    public static void cleanUp() {
+        if (TIMESTAMP_FILE.exists()){
+            TIMESTAMP_FILE.delete();
+        }
+    }
+
+    @Test
+    public void testFreshToStdOut() throws Exception {
+        genericTest(false, false);
+    }
+
+    @Test
+    public void testImmutableToStdOut() throws Exception {
+        genericTest(true, false);
+    }
+
+    @Test
+    public void testFreshToFile() throws Exception {
+        genericTest(false, true);
+    }
+
+    @Test
+    public void testImmutableToFile() throws Exception {
+        genericTest(true, true);
+    }
+
     private SingleBackendCliTestRunner makeRunner(String... args) {
         return new InMemoryTestRunner(TimestampCommand.class, args);
     }
 
-    @Test
-    public void testBasicInvariants() throws Exception {
-        try (SingleBackendCliTestRunner runner = makeRunner("-f", "-i", "-d")) {
+    private void genericTest(boolean isImmutable, boolean isToFile) throws Exception {
+        List<String> cliArgs = Lists.newArrayList();//"-d"); //always test datetime
+        if (isImmutable) {
+            cliArgs.add("-i");
+        }
+        if (isToFile) {
+            cliArgs.add("-f");
+            cliArgs.add(TIMESTAMP_FILE_PATH);
+        }
+
+        try (SingleBackendCliTestRunner runner = makeRunner(cliArgs.toArray(new String[0]))) {
             TestAtlasDbServices services = runner.connect(moduleFactory);
             RemoteLockService rls = services.getLockService();
             TimestampService tss = services.getTimestampService();
             LockClient client = services.getTestLockClient();
 
-            long lockedTs = tss.getFreshTimestamp();
+            long immutableTs = tss.getFreshTimestamp();
             LockRequest request = LockRequest.builder(ImmutableSortedMap.of(
                     lock, LockMode.WRITE))
-                    .withLockedInVersionId(lockedTs).doNotBlock().build();
+                    .withLockedInVersionId(immutableTs).doNotBlock().build();
             LockRefreshToken token = rls.lock(client.getClientId(), request);
-
-            runner.run();
-
-            Scanner scanner = new Scanner(runner.run());
-            final long fresh = Long.parseLong(scanner.findInLine("\\d+"));
-            final long immutable = Long.parseLong(scanner.findInLine("\\d+"));
-            String immutableDateTime = scanner.findInLine("\\d+.*").trim();
-            ISODateTimeFormat.dateTimeNoMillis().parseDateTime(immutableDateTime);
-            Preconditions.checkArgument(immutable <= lockedTs);
-            Preconditions.checkArgument(fresh > lockedTs);
-            Preconditions.checkArgument(fresh < tss.getFreshTimestamp());
-            scanner.close();
+            long lastFreshTs = tss.getFreshTimestamps(1000).getUpperBound();
+            runAndVerify(runner, tss, isImmutable, isToFile, immutableTs, lastFreshTs);
 
             rls.unlock(token);
+            lastFreshTs = tss.getFreshTimestamps(1000).getUpperBound();
+            // there are no locks so we now expect immutable to just be a fresh 
+            runAndVerify(runner, tss, false, isToFile, lastFreshTs, lastFreshTs);
+        }
+    }
 
-            scanner = new Scanner(runner.run());
-            final long newFresh = Long.parseLong(scanner.findInLine("\\d+"));
-            final long newImmutable = Long.parseLong(scanner.findInLine("\\d+"));
-            final String newImmutableDateTime = scanner.findInLine("\\d+.*").trim();
-            ISODateTimeFormat.dateTimeNoMillis().parseDateTime(newImmutableDateTime);
-            Preconditions.checkArgument(newFresh > fresh);
-            Preconditions.checkArgument(newImmutable > lockedTs);
-            scanner.close();
+    private void runAndVerify(SingleBackendCliTestRunner runner, TimestampService tss,
+            boolean isImmutable, boolean isToFile, long immutableTs, long lastFreshTs) 
+                    throws IOException {
+        // prep
+        if (isToFile && TIMESTAMP_FILE.exists()) {
+            TIMESTAMP_FILE.delete();
+        }
+
+        // run the stuff
+        long timestamp;
+        //String datetime;
+        Scanner scanner = new Scanner(runner.run(true, false));
+        if (!isToFile) {
+            timestamp = Long.parseLong(scanner.findInLine("\\d+"));
+            //datetime = scanner.findInLine("\\d+.*").trim();
+        } else {
+            Preconditions.checkArgument(TIMESTAMP_FILE.exists(), "Timestamp file doesn't exist.");
+            List<String> lines = Files.readAllLines(TIMESTAMP_FILE.toPath(), StandardCharsets.UTF_8);
+            timestamp = Long.parseLong(lines.get(0));
+            //datetime = lines.get(1).trim();
+        }
+        scanner.close();
+
+        // verify correctness
+        //ISODateTimeFormat.dateTimeNoMillis().parseDateTime(datetime);
+        if (isImmutable) {
+            Preconditions.checkArgument(timestamp == immutableTs);
+            Preconditions.checkArgument(timestamp < lastFreshTs);
+            Preconditions.checkArgument(timestamp < tss.getFreshTimestamp());
+        } else {
+            Preconditions.checkArgument(timestamp > immutableTs);
+            Preconditions.checkArgument(timestamp > lastFreshTs);
+            Preconditions.checkArgument(timestamp < tss.getFreshTimestamp());
         }
     }
 
