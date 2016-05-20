@@ -15,6 +15,8 @@
  */
 package com.palantir.timestamp;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,6 +25,7 @@ import com.palantir.exception.PalantirInterruptedException;
 
 public class AvailableTimestamps {
     static final long ALLOCATION_BUFFER_SIZE = 1000 * 1000;
+    private static final long MINIMUM_BUFFER = ALLOCATION_BUFFER_SIZE / 2;
 
     private static final Logger log = LoggerFactory.getLogger(AvailableTimestamps.class);
 
@@ -72,4 +75,15 @@ public class AvailableTimestamps {
         previousAllocationFailure = failure;
     }
 
+    public void handOut(long timestamp) {
+        lastReturnedTimestamp.increaseToAtLeast(timestamp);
+    }
+
+    public synchronized void refreshBuffer() {
+        long buffer = upperLimit.get() - lastReturnedTimestamp.get();
+
+        if(buffer < MINIMUM_BUFFER || !upperLimit.hasIncreasedWithin(1, MINUTES)) {
+            allocateMoreTimestamps();
+        }
+    }
 }
