@@ -131,7 +131,7 @@ public class OracleDdlTable implements DbDdlTable {
             try {
                 conns.get().executeUnregisteredQuery("ALTER TABLE pt_met_" + tableName + " MOVE ONLINE");
             } catch (PalantirSqlException e) {
-                log.warn("Tried to clean up " + tableName + " bloat after a sweep operation, "
+                log.error("Tried to clean up " + tableName + " bloat after a sweep operation, "
                         + "but underlying Oracle database or configuration does not support this "
                         + "(Enterprise Edition that requires this user to be able to perform DDL operations) feature online. "
                         + "Since this can't be automated in your configuration, good practice would be do to occasional offline manual maintenance "
