@@ -37,12 +37,17 @@ public abstract class AbstractCommand implements Callable<Integer> {
             description = "field in the config yaml file that contains the atlasdb configuration root")
     private String configRoot = AtlasDbConfigs.ATLASDB_CONFIG_ROOT;
 
+    @Option(name = {"--root-is-path"},
+            title = "CONFIG PATH",
+            description = "if set, means the value specified by --config-root is a full path to the field, not just the field")
+    private boolean isPath;
+
     private AtlasDbConfig config;
     
     protected AtlasDbConfig getAtlasDbConfig() {
         if (config == null) {
             try {
-                config = AtlasDbConfigs.load(configFile, configRoot);
+                config = AtlasDbConfigs.load(configFile, configRoot, isPath);
             } catch (IOException e) {
                 throw new RuntimeException(String.format("IOException thrown reading configuration file: %s",
                         configFile.getPath()), e);

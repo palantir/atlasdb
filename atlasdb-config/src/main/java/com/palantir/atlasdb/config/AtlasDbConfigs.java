@@ -19,6 +19,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
 
+import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -39,9 +40,18 @@ public final class AtlasDbConfigs {
     }
 
     public static AtlasDbConfig load(File configFile, String configRoot) throws IOException {
+        return load(configFile, configRoot, false);
+    }
+
+    public static AtlasDbConfig load(File configFile, String configRoot, boolean rootIsPath) throws IOException {
         ObjectMapper configMapper = new ObjectMapper(new YAMLFactory());
         configMapper.setSubtypeResolver(new DiscoverableSubtypeResolver());
-        JsonNode rootNode = getConfigNode(configMapper, configFile, configRoot);
+        JsonNode rootNode;
+        if (rootIsPath) {
+             rootNode = getConfigNodeAtPath(configMapper, configFile, configRoot);
+        } else {
+            rootNode = getConfigNode(configMapper, configFile, configRoot);
+        }
         return configMapper.treeToValue(rootNode, AtlasDbConfig.class);
     }
 
@@ -55,6 +65,19 @@ public final class AtlasDbConfigs {
                 return rootNode;
             }
             throw new IllegalArgumentException("Could not find " + configRoot + " in yaml file " + configFile);
+        }
+    }
+
+    private static JsonNode getConfigNodeAtPath(ObjectMapper configMapper, File configFile, String configPath) throws IOException {
+        JsonNode node = configMapper.readTree(configFile);
+        if (Strings.isNullOrEmpty(configPath)) {
+            return node;
+        } else {
+            JsonNode root = node.at(JsonPointer.valueOf(configPath));
+            if (root.isMissingNode()) {
+                throw new IllegalArgumentException("Could not find " + configPath + " in yaml file " + configFile);
+            }
+            return root;
         }
     }
 
