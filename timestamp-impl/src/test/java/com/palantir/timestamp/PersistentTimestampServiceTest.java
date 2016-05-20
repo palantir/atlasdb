@@ -19,6 +19,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.atMost;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -92,6 +93,18 @@ public class PersistentTimestampServiceTest {
         persistentTimestampService.getFreshTimestamp();
         Thread.sleep(10);
         verify(timestampBoundStore, atLeast(2)).storeUpperLimit(anyLong());
+    }
+
+    @Test
+    public void doNotIncrementUpperLimitTooManyTimes() {
+        // In the current implementation, it is possible for a single call to getFreshTimestamp to invoke storeUpperLimit more than once.
+        // However, the number of such invocations should not be massive
+        TimestampBoundStore timestampBoundStore = initialTimestampBoundStore();
+        PersistentTimestampService persistentTimestampService = PersistentTimestampService.create(timestampBoundStore);
+
+        persistentTimestampService.getFreshTimestamp();
+
+        verify(timestampBoundStore, atMost(2)).storeUpperLimit(anyLong());
     }
 
     @Test
