@@ -15,6 +15,7 @@
  */
 package com.palantir.timestamp;
 
+import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.MINUTES;
 
 import org.slf4j.Logger;
@@ -42,7 +43,7 @@ public class AvailableTimestamps {
         return newTimestamp <= upperLimit.get();
     }
 
-    public synchronized void allocateMoreTimestamps() {
+    public void allocateMoreTimestamps() {
         try {
             upperLimit.increaseToAtLeast(lastReturnedTimestamp.get() + ALLOCATION_BUFFER_SIZE);
         } catch(Throwable e) {
@@ -50,7 +51,7 @@ public class AvailableTimestamps {
         }
     }
 
-    private void handleAllocationFailure(Throwable failure) {
+    private synchronized void handleAllocationFailure(Throwable failure) {
         if (failure instanceof MultipleRunningTimestampServiceError) {
             throw new ServiceNotAvailableException("This server is no longer valid because another is running.", failure);
         }
@@ -75,8 +76,20 @@ public class AvailableTimestamps {
         previousAllocationFailure = failure;
     }
 
-    public void handOut(long timestamp) {
+    public TimestampRange handOut(long timestamp) {
+        if(!this.contains(timestamp)) {
+            throw new IllegalArgumentException(format(
+                    "Could not hand out timestamp '%d' as it was outside of the available range: %d - %d",
+                    timestamp, lastReturnedTimestamp.get(), upperLimit.get()));
+        }
+
+        TimestampRange range = TimestampRange.createInclusiveRange(lastReturnedTimestamp.get() + 1, timestamp);
         lastReturnedTimestamp.increaseToAtLeast(timestamp);
+        return range;
+    }
+
+    public synchronized long lastHandedOut() {
+        return lastReturnedTimestamp.get();
     }
 
     public synchronized void refreshBuffer() {
@@ -85,5 +98,10 @@ public class AvailableTimestamps {
         if(buffer < MINIMUM_BUFFER || !upperLimit.hasIncreasedWithin(1, MINUTES)) {
             allocateMoreTimestamps();
         }
+    }
+
+    public void fastForwardTo(long newMinimum) {
+        lastReturnedTimestamp.increaseToAtLeast(newMinimum);
+        upperLimit.increaseToAtLeast(newMinimum + ALLOCATION_BUFFER_SIZE);
     }
 }

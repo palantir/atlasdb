@@ -79,8 +79,8 @@ public class PersistentTimestampServiceIntegrationTest {
         final long futureTimestamp = 12345678L;
         m.checking(new Expectations() {{
             oneOf(tbsMock).getUpperLimit(); will(returnValue(initialValue));
-            oneOf(tbsMock).storeUpperLimit(initialValue + PersistentTimestampService.ALLOCATION_BUFFER_SIZE);
-            oneOf(tbsMock).storeUpperLimit(futureTimestamp + PersistentTimestampService.ALLOCATION_BUFFER_SIZE);
+            oneOf(tbsMock).storeUpperLimit(initialValue + AvailableTimestamps.ALLOCATION_BUFFER_SIZE);
+            oneOf(tbsMock).storeUpperLimit(futureTimestamp + AvailableTimestamps.ALLOCATION_BUFFER_SIZE);
         }});
 
         final PersistentTimestampService ptsService = PersistentTimestampService.create(tbsMock);
@@ -112,13 +112,13 @@ public class PersistentTimestampServiceIntegrationTest {
         givenTheTimeIs(30, SECONDS);
         persistentTimestampService.getFreshTimestamp();
 
-        verify(timestampBoundStore).storeUpperLimit(PersistentTimestampService.ALLOCATION_BUFFER_SIZE);
+        verify(timestampBoundStore).storeUpperLimit(AvailableTimestamps.ALLOCATION_BUFFER_SIZE);
 
         givenTheTimeIs(3, MINUTES);
         persistentTimestampService.getFreshTimestamp();
 
         verify(timestampBoundStore).storeUpperLimit(
-                longThat(is(greaterThan(PersistentTimestampService.ALLOCATION_BUFFER_SIZE))));
+                longThat(is(greaterThan(AvailableTimestamps.ALLOCATION_BUFFER_SIZE))));
     }
 
     private void givenTheTimeIs(int time, TimeUnit unit) {
@@ -131,7 +131,7 @@ public class PersistentTimestampServiceIntegrationTest {
 
         persistentTimestampService.getFreshTimestamp();
 
-        verify(timestampBoundStore).storeUpperLimit(PersistentTimestampService.ALLOCATION_BUFFER_SIZE);
+        verify(timestampBoundStore).storeUpperLimit(AvailableTimestamps.ALLOCATION_BUFFER_SIZE);
     }
 
     @Test
@@ -140,7 +140,7 @@ public class PersistentTimestampServiceIntegrationTest {
 
         getFreshTimestampsInParallel(persistentTimestampService, 20);
 
-        verify(timestampBoundStore, times(1)).storeUpperLimit(PersistentTimestampService.ALLOCATION_BUFFER_SIZE);
+        verify(timestampBoundStore, times(1)).storeUpperLimit(AvailableTimestamps.ALLOCATION_BUFFER_SIZE);
     }
 
     @Test
@@ -165,7 +165,7 @@ public class PersistentTimestampServiceIntegrationTest {
 
         // Use up all initially-allocated timestamps.
         final TimestampService tsService = PersistentTimestampService.create(tbsMock);
-        for (int i = 1; i <= PersistentTimestampService.ALLOCATION_BUFFER_SIZE; ++i) {
+        for (int i = 1; i <= AvailableTimestamps.ALLOCATION_BUFFER_SIZE; ++i) {
             assertEquals(initialValue+i, tsService.getFreshTimestamp());
         }
 

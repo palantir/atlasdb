@@ -15,36 +15,22 @@
  */
 package com.palantir.timestamp;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
-
 import java.util.concurrent.ExecutorService;
 
 import javax.annotation.concurrent.ThreadSafe;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.palantir.common.concurrent.PTExecutors;
 
 @ThreadSafe
 public class PersistentTimestampService implements TimestampService {
-    static final long ALLOCATION_BUFFER_SIZE = 1000 * 1000;
-
-    private static final Logger log = LoggerFactory.getLogger(PersistentTimestampService.class);
     private static final int MAX_REQUEST_RANGE_SIZE = 10 * 1000;
 
-    private final PersistentUpperLimit upperLimit;
-    private final LastReturnedTimestamp lastReturnedTimestamp;
     private final ExecutorService executor;
     private final AvailableTimestamps availableTimestamps;
 
     protected PersistentTimestampService(PersistentUpperLimit upperLimit, LastReturnedTimestamp lastReturnedTimestamp) {
-        this.upperLimit = upperLimit;
-        this.lastReturnedTimestamp = lastReturnedTimestamp;
-
         this.availableTimestamps = new AvailableTimestamps(lastReturnedTimestamp, upperLimit);
-
         executor = PTExecutors.newSingleThreadExecutor(PTExecutors.newThreadFactory("Timestamp allocator", Thread.NORM_PRIORITY, true));
     }
 
@@ -62,11 +48,11 @@ public class PersistentTimestampService implements TimestampService {
     @Override
     public synchronized TimestampRange getFreshTimestamps(int numTimestampsRequested) {
         int numTimestampsToHandOut = cleanUpTimestampRequest(numTimestampsRequested);
-        long newTimestamp = lastReturnedTimestamp.get() + numTimestampsToHandOut;
+        long newTimestamp = availableTimestamps.lastHandedOut() + numTimestampsToHandOut;
 
         ensureWeHaveEnoughTimestampsToHandOut(newTimestamp);
-        TimestampRange handedOut = handOut(newTimestamp);
-        asynchronouslyTopUpTimestampPool();
+        TimestampRange handedOut = availableTimestamps.handOut(newTimestamp);
+        asynchronouslyRefreshBuffer();
         return handedOut;
     }
 
@@ -80,12 +66,10 @@ public class PersistentTimestampService implements TimestampService {
      * The caller of this is responsible for not using any of the fresh timestamps previously served to it,
      * and must call getFreshTimestamps() to ensure it is using timestamps after the fastforward point.
      *
-     * @param timestamp
+     * @param newMinimumTimestamp
      */
-    public synchronized void fastForwardTimestamp(long timestamp) {
-        lastReturnedTimestamp.increaseToAtLeast(timestamp);
-        upperLimit.increaseToAtLeast(timestamp + ALLOCATION_BUFFER_SIZE);
-
+    public synchronized void fastForwardTimestamp(long newMinimumTimestamp) {
+        availableTimestamps.fastForwardTo(newMinimumTimestamp);
     }
 
     private int cleanUpTimestampRequest(int numTimestampsRequested) {
@@ -96,18 +80,13 @@ public class PersistentTimestampService implements TimestampService {
         return Math.min(numTimestampsRequested, MAX_REQUEST_RANGE_SIZE);
     }
 
-    private void asynchronouslyTopUpTimestampPool() {
+    private void asynchronouslyRefreshBuffer() {
         executor.submit(new Runnable() {
             @Override
             public void run() {
-                topUpTimestampPool();
+                availableTimestamps.refreshBuffer();
             }
         });
-    }
-
-    private TimestampRange handOut(long newTimestamp) {
-        lastReturnedTimestamp.set(newTimestamp);
-        return TimestampRange.createInclusiveRange(lastReturnedTimestamp.get() + 1, newTimestamp);
     }
 
     private synchronized void ensureWeHaveEnoughTimestampsToHandOut(long newTimestamp) {
@@ -116,22 +95,4 @@ public class PersistentTimestampService implements TimestampService {
         }
     }
 
-    private synchronized void topUpTimestampPool() {
-        if (shouldTopUpTimestampPool()) {
-            availableTimestamps.allocateMoreTimestamps();
-        }
-    }
-
-    private boolean shouldTopUpTimestampPool() {
-        return exceededHalfOfBuffer() || haveNotAllocatedForOneMinute();
-    }
-
-    private boolean exceededHalfOfBuffer() {
-        long remainingTimestamps = upperLimit.get() - lastReturnedTimestamp.get();
-        return remainingTimestamps <= ALLOCATION_BUFFER_SIZE / 2;
-    }
-
-    private boolean haveNotAllocatedForOneMinute() {
-        return !upperLimit.hasIncreasedWithin(1, MINUTES);
-    }
 }
