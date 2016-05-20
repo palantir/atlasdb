@@ -60,14 +60,6 @@ public class AvailableTimestamps {
         return desiredRange;
     }
 
-    private void allocateEnoughTimestampsFor(long timestamp) {
-        try {
-            upperLimit.increaseToAtLeast(timestamp);
-        } catch(Throwable e) {
-            handleAllocationFailure(e);
-        }
-    }
-
     public synchronized long lastHandedOut() {
         return lastReturnedTimestamp.get();
     }
@@ -80,9 +72,17 @@ public class AvailableTimestamps {
         }
     }
 
-    public void fastForwardTo(long newMinimum) {
+    public synchronized void fastForwardTo(long newMinimum) {
         lastReturnedTimestamp.increaseToAtLeast(newMinimum);
         upperLimit.increaseToAtLeast(newMinimum + ALLOCATION_BUFFER_SIZE);
+    }
+
+    private void allocateEnoughTimestampsFor(long timestamp) {
+        try {
+            upperLimit.increaseToAtLeast(timestamp);
+        } catch(Throwable e) {
+            handleAllocationFailure(e);
+        }
     }
 
     private synchronized void handleAllocationFailure(Throwable failure) {

@@ -20,8 +20,10 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.core.Is.is;
+import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.longThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -64,6 +66,16 @@ public class AvailableTimestampsTest {
         verify(persistentUpperLimit).increaseToAtLeast(
                 longThat(is(greaterThan(UPPER_LIMIT)))
         );
+    }
+
+    @Test public void
+    shouldNotRefreshTheBufferIfMoreThanHalfIsLeftAndWeHaveUpdatedRecently() {
+        when(persistentUpperLimit.hasIncreasedWithin(1, MINUTES)).thenReturn(true);
+        when(persistentUpperLimit.get()).thenReturn(2 * UPPER_LIMIT);
+
+        availableTimestamps.refreshBuffer();
+
+        verify(persistentUpperLimit, never()).increaseToAtLeast(anyLong());
     }
 
     @Test public void
