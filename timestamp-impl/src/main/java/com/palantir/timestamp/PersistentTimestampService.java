@@ -67,7 +67,7 @@ public class PersistentTimestampService implements TimestampService {
      *
      * @param newMinimumTimestamp
      */
-    public synchronized void fastForwardTimestamp(long newMinimumTimestamp) {
+    public void fastForwardTimestamp(long newMinimumTimestamp) {
         availableTimestamps.fastForwardTo(newMinimumTimestamp);
     }
 

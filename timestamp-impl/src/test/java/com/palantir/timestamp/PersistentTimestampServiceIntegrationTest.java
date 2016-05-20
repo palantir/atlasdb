@@ -1,5 +1,5 @@
 /**
- * Copyright 2015 Palantir Technologies
+ * Copyright 2016 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,207 +15,138 @@
  */
 package com.palantir.timestamp;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.longThat;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.hamcrest.Matchers.lessThan;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
+import java.util.Set;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
-import org.jmock.Expectations;
-import org.jmock.Mockery;
-import org.jmock.lib.concurrent.Synchroniser;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import com.google.common.collect.Lists;
-import com.google.common.util.concurrent.Futures;
-import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.remoting.ServiceNotAvailableException;
-import com.palantir.common.time.Clock;
 
 public class PersistentTimestampServiceIntegrationTest {
+    private static final long ONE_MILLION = 1000 * 1000;
+    private static final long TWO_MILLION = 2 * ONE_MILLION;
 
     @Rule
-    public final ExpectedException expectedException = ExpectedException.none();
+    public ExpectedException exception = ExpectedException.none();
 
-    private final TimestampBoundStore timestampBoundStore = mock(TimestampBoundStore.class);
-    private final Clock clock = mock(Clock.class);
-    private PersistentUpperLimit upperLimit;
+    private InMemoryTimestampBoundStore timestampBoundStore = new InMemoryTimestampBoundStore();
+    private PersistentTimestampService persistentTimestampService = PersistentTimestampService.create(timestampBoundStore);
+    private ExecutorService executor = Executors.newFixedThreadPool(16);
 
-    @Before
-    public void setup() {
-        when(timestampBoundStore.getUpperLimit()).thenReturn(0L);
-        upperLimit = new PersistentUpperLimit(timestampBoundStore, clock);
+    @Test public void
+    tiemstampsAreReturnedInOrder() {
+        List<Long> timestamps = new ArrayList<>();
+
+        timestamps.add(persistentTimestampService.getFreshTimestamp());
+        timestamps.add(persistentTimestampService.getFreshTimestamp());
+        timestamps.add(persistentTimestampService.getFreshTimestamp());
+
+        assertThat(timestamps, contains(1L, 2L, 3L));
+    }
+
+    @Test public void
+    canRequestTimestampRangesInOrder() {
+        List<TimestampRange> timestampRanges = new ArrayList<>();
+
+        timestampRanges.add(persistentTimestampService.getFreshTimestamps(10));
+        timestampRanges.add(persistentTimestampService.getFreshTimestamps(10));
+
+        long firstUpperBound = timestampRanges.get(0).getUpperBound();
+        long secondLowerBound = timestampRanges.get(1).getLowerBound();
+
+        assertThat(firstUpperBound, is(lessThan(secondLowerBound)));
     }
 
 
-    @Test
-    public void testFastForward() {
-        Mockery m = new Mockery();
-        m.setThreadingPolicy(new Synchroniser());
-        final TimestampBoundStore tbsMock = m.mock(TimestampBoundStore.class);
-        final long initialValue = 1234567L;
-        final long futureTimestamp = 12345678L;
-        m.checking(new Expectations() {{
-            oneOf(tbsMock).getUpperLimit(); will(returnValue(initialValue));
-            oneOf(tbsMock).storeUpperLimit(initialValue + AvailableTimestamps.ALLOCATION_BUFFER_SIZE);
-            oneOf(tbsMock).storeUpperLimit(futureTimestamp + AvailableTimestamps.ALLOCATION_BUFFER_SIZE);
-        }});
-
-        final PersistentTimestampService ptsService = PersistentTimestampService.create(tbsMock);
-        for (int i = 1; i <= 1000; i++) {
-            assertEquals(initialValue+i, ptsService.getFreshTimestamp());
+    @Test public void
+    canRequestMoreTimestampsThanAreAllocatedAtOnce() {
+        for(int i = 0; i < ONE_MILLION / 1000; i++) {
+            persistentTimestampService.getFreshTimestamps(1000);
         }
 
-        ptsService.fastForwardTimestamp(futureTimestamp);
-        for (int i = 1; i <= 1000; i++) {
-            assertEquals(futureTimestamp+i, ptsService.getFreshTimestamp());
-        }
-
-        m.assertIsSatisfied();
+        assertThat(persistentTimestampService.getFreshTimestamp(), is(ONE_MILLION + 1));
     }
 
-    @Test(expected = ServiceNotAvailableException.class)
-    public void shouldThrowAServiceNotAvailableExceptionIfMultipleTimestampSerivcesAreRunning() {
-        final TimestampBoundStore timestampBoundStore = timestampStoreFailingWith(new MultipleRunningTimestampServiceError("error"));
+    @Test public void
+    willNotHandOutTimestampsEarlierThanAFastForward() {
+        persistentTimestampService.fastForwardTimestamp(TWO_MILLION);
 
-        PersistentTimestampService persistentTimestampService = PersistentTimestampService.create(timestampBoundStore);
-        persistentTimestampService.getFreshTimestamp();
+        assertThat(
+                persistentTimestampService.getFreshTimestamp(),
+                is(greaterThan(TWO_MILLION)));
     }
 
-    @Test
-    public void incrementUpperLimitIfOneMinuteElapsedSinceLastUpdate() throws InterruptedException {
-        givenTheTimeIs(0, MINUTES);
-        PersistentTimestampService persistentTimestampService = new PersistentTimestampService(upperLimit, new LastReturnedTimestamp(upperLimit.get()));
+    @Test public void
+    canReturnManyUniqueTimestampsInParallel() throws InterruptedException {
+        Set<Long> timestamps = new ConcurrentSkipListSet<>();
 
-        givenTheTimeIs(30, SECONDS);
-        persistentTimestampService.getFreshTimestamp();
-
-        verify(timestampBoundStore).storeUpperLimit(AvailableTimestamps.ALLOCATION_BUFFER_SIZE);
-
-        givenTheTimeIs(3, MINUTES);
-        persistentTimestampService.getFreshTimestamp();
-
-        verify(timestampBoundStore).storeUpperLimit(
-                longThat(is(greaterThan(AvailableTimestamps.ALLOCATION_BUFFER_SIZE))));
-    }
-
-    private void givenTheTimeIs(int time, TimeUnit unit) {
-        when(clock.getTimeMillis()).thenReturn(unit.toMillis(time));
-    }
-
-    @Test
-    public void incrementUpperLimitOnFirstFreshTimestampRequest() {
-        PersistentTimestampService persistentTimestampService = PersistentTimestampService.create(timestampBoundStore);
-
-        persistentTimestampService.getFreshTimestamp();
-
-        verify(timestampBoundStore).storeUpperLimit(AvailableTimestamps.ALLOCATION_BUFFER_SIZE);
-    }
-
-    @Test
-    public void multipleFreshTimestampRequestsShouldIncreaseUpperLimitOnlyOnce() {
-        PersistentTimestampService persistentTimestampService = PersistentTimestampService.create(timestampBoundStore);
-
-        getFreshTimestampsInParallel(persistentTimestampService, 20);
-
-        verify(timestampBoundStore, times(1)).storeUpperLimit(AvailableTimestamps.ALLOCATION_BUFFER_SIZE);
-    }
-
-    @Test
-    public void throwOnTimestampRequestIfBoundStoreCannotStoreNewUpperLimit() {
-        PersistentTimestampService persistentTimestampService = PersistentTimestampService.create(timestampStoreFailingWith(new RuntimeException()));
-
-        expectedException.expect(RuntimeException.class);
-        persistentTimestampService.getFreshTimestamp();
-    }
-
-    @Test
-    public void testLimit() throws InterruptedException {
-        Mockery m = new Mockery();
-        m.setThreadingPolicy(new Synchroniser());
-        final TimestampBoundStore tbsMock = m.mock(TimestampBoundStore.class);
-        final long initialValue = 72;
-        m.checking(new Expectations() {{
-            oneOf(tbsMock).getUpperLimit(); will(returnValue(initialValue));
-            oneOf(tbsMock).storeUpperLimit(with(any(Long.class)));
-            // Throws exceptions after here, which will prevent allocating more timestamps.
-        }});
-
-        // Use up all initially-allocated timestamps.
-        final TimestampService tsService = PersistentTimestampService.create(tbsMock);
-        for (int i = 1; i <= AvailableTimestamps.ALLOCATION_BUFFER_SIZE; ++i) {
-            assertEquals(initialValue+i, tsService.getFreshTimestamp());
-        }
-
-        ExecutorService exec = PTExecutors.newSingleThreadExecutor();
-        Future<?> f = exec.submit(new Runnable() {
+        repeat(TWO_MILLION, new Runnable() {
             @Override
             public void run() {
-                // This will block.
-                tsService.getFreshTimestamp();
+                timestamps.add(persistentTimestampService.getFreshTimestamp());
             }
         });
 
-        try {
-            f.get(10, MILLISECONDS);
-            fail("We should be blocking");
-        } catch (ExecutionException e) {
-            // we expect this failure because we can't allocate timestamps
-        } catch (TimeoutException e) {
-            // We expect this timeout, as we're blocking.
-        } finally {
-            f.cancel(true);
-            exec.shutdown();
-        }
+        assertThat(timestamps.size(), is((int) TWO_MILLION));
     }
 
-    private void getFreshTimestampsInParallel(PersistentTimestampService persistentTimestampService, int numTimes) {
-        ExecutorService executorService = Executors.newFixedThreadPool(numTimes / 2);
-        try {
-            List<Future<Long>> futures = Lists.newArrayListWithExpectedSize(numTimes);
-            for (int i = 0; i < numTimes; i++) {
-                Future<Long> future = executorService.submit(new Callable<Long>() {
-                    @Override
-                    public Long call() throws Exception {
-                        return persistentTimestampService.getFreshTimestamp();
-                    }
-                });
-                futures.add(future);
-            }
-            for (int i = 0; i < futures.size(); i++) {
-                Futures.getUnchecked(futures.get(i));
-            }
-        } finally {
-            executorService.shutdown();
-        }
+    @Test(expected = ServiceNotAvailableException.class) public void
+    throwsAserviceNotAvailableExceptionIfThereAreMultipleServersRunning() {
+        timestampBoundStore.pretendMultipleServersAreRunning();
+
+        persistentTimestampService.getFreshTimestamp();
     }
 
-    private TimestampBoundStore timestampStoreFailingWith(Throwable throwable) {
-        TimestampBoundStore timestampBoundStore = mock(TimestampBoundStore.class);
-        when(timestampBoundStore.getUpperLimit()).thenReturn(0L);
-        doThrow(throwable).when(timestampBoundStore).storeUpperLimit(anyLong());
-        return timestampBoundStore;
+    @Test public void
+    shouldRethrowAllocationExceptions() {
+        final IllegalArgumentException failure = new IllegalArgumentException();
+        exception.expect(RuntimeException.class);
+        exception.expectCause(is(failure));
+
+        timestampBoundStore.failWith(failure);
+
+        persistentTimestampService.getFreshTimestamp();
+    }
+
+    @Test public void
+    shouldNotTryToStoreANewBoundIfMultipleServicesAreRunning() {
+        timestampBoundStore.pretendMultipleServersAreRunning();
+
+        getTimestampAndIgnoreErrors();
+        getTimestampAndIgnoreErrors();
+
+        assertThat(timestampBoundStore.numberOfAllocations(), is(lessThan(2)));
+    }
+
+    private void repeat(long count, Runnable task) throws InterruptedException {
+        for(int i = 0; i < count; i++) {
+            executor.submit(task);
+        }
+
+        executor.shutdown();
+        executor.awaitTermination(10, SECONDS);
+
+    }
+
+    private void getTimestampAndIgnoreErrors() {
+        try {
+            persistentTimestampService.getFreshTimestamp();
+        } catch (Exception e) {
+            // expected
+        }
     }
 }
