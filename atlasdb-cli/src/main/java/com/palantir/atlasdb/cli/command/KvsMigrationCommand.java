@@ -125,12 +125,12 @@ public class KvsMigrationCommand implements Callable<Integer> {
 	}
 
     public AtlasDbServices connectFromServices() throws IOException {
-        ServicesConfigModule scm = ServicesConfigModule.create(fromConfigFile, configRoot);
+        ServicesConfigModule scm = ServicesConfigModule.create(fromConfigFile, configRoot, false);
         return DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
     }
 
     public AtlasDbServices connectToServices() throws IOException {
-        ServicesConfigModule scm = ServicesConfigModule.create(toConfigFile, configRoot);
+        ServicesConfigModule scm = ServicesConfigModule.create(toConfigFile, configRoot, false);
         return DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
     }
 
