@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.Queue;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -25,6 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.ImmutableList;
+import com.google.common.io.Closer;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.Throwables;
@@ -49,7 +52,7 @@ public class LazyClosableIterator<T> extends AbstractIterator<T> implements Clos
                 if (futures.isEmpty()) {
                     return endOfData();
                 }
-                currentIter = removeNext();
+                currentIter = getClosableIterator(futures.remove());
             }
             if (currentIter.hasNext()) {
                 return currentIter.next();
@@ -61,17 +64,30 @@ public class LazyClosableIterator<T> extends AbstractIterator<T> implements Clos
 
     @Override
     public void close() {
-        if (currentIter != null) {
-            currentIter.close();
-        }
-        while (!futures.isEmpty()) {
-            futures.peek().cancel(true);
-            removeNext().close();
+        try (Closer closer = Closer.create()) {
+            if (currentIter != null) {
+                closer.register(currentIter);
+            }
+            while (!futures.isEmpty()) {
+                try {
+                    futures.peek().cancel(true);
+                } finally {
+                    Future<ClosableIterator<T>> future = futures.remove();
+                    Closeable closeable = new Closeable() {
+                        @Override
+                        public void close() throws IOException {
+                            getClosableIterator(future).close();
+                        }
+                    };
+                    closer.register(closeable);
+                }
+            }
+        } catch (IOException e) {
+            throw Throwables.rewrapAndThrowUncheckedException(e);
         }
     }
 
-    private ClosableIterator<T> removeNext() {
-        Future<ClosableIterator<T>> future = futures.remove();
+    private ClosableIterator<T> getClosableIterator(Future<ClosableIterator<T>> future) {
         try {
             return future.get();
         } catch (CancellationException e) {
