@@ -754,8 +754,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     @Override
-    public void truncateTables(final Set<TableReference> tableRefs) {
-        final Set<TableReference> tablesToTruncate = filterOutTrulyEmptyTables(tableRefs);
+    public void truncateTables(final Set<TableReference> tablesToTruncate) {
         if (!tablesToTruncate.isEmpty()) {
             try {
                 clientPool.runWithRetry(new FunctionCheckedException<Client, Void, Exception>() {
@@ -812,36 +811,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 break;
             }
         }
-    }
-
-    private Set<TableReference> filterOutTrulyEmptyTables(Set<TableReference> tableRefs) {
-        final Set<TableReference> nonEmptyTables = Sets.newHashSet();
-        SliceRange slice = new SliceRange(ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY), ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY), false, Integer.MAX_VALUE);
-        final SlicePredicate predicate = new SlicePredicate();
-        predicate.setSlice_range(slice);
-
-        for (final TableReference tableRef : tableRefs) {
-            int results = 1;
-            try {
-                results = clientPool.run(new FunctionCheckedException<Client, Integer, Exception>() {
-                    @Override
-                    public Integer apply(Client client) throws Exception {
-                        List<KeySlice> range_slices = client.get_range_slices(new ColumnParent(internalTableName(tableRef)), predicate, new KeyRange(1), deleteConsistency);
-                        return range_slices.size();
-                    }
-                });
-            } catch (Exception e) {
-                log.warn("Table " + tableRef.getQualifiedName() + " could not be checked for emptiness. Proceeding with requested operation without optimization.", e);
-            }
-
-            if (results != 0) {
-                nonEmptyTables.add(tableRef);
-            } else {
-                log.info("Table " + tableRef + " is empty and the requested operation will be skipped.");
-            }
-        }
-
-        return nonEmptyTables;
     }
 
     @Override
