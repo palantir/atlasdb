@@ -50,4 +50,9 @@ public abstract class DbKeyValueServiceConfiguration implements KeyValueServiceC
         return 256;
     }
 
+    @Override
+    public final String type() {
+        return TYPE;
+    }
+
 }
