@@ -61,4 +61,7 @@ v0.4.1
     *   - |fixed|
         - Required projects are now Java 6 compliant
 
+    *   - |fixed|
+        - Fix potential race condition that could cause timestamp allocation to never complete.
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
