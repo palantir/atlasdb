@@ -16,18 +16,16 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.net.InetSocketAddress;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.cassandra.thrift.Cassandra;
+import org.apache.cassandra.thrift.Cassandra.Client;
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.EndpointDetails;
 import org.apache.cassandra.thrift.InvalidRequestException;
 import org.apache.cassandra.thrift.KsDef;
-import org.apache.cassandra.thrift.NotFoundException;
 import org.apache.cassandra.thrift.SchemaDisagreementException;
 import org.apache.cassandra.thrift.TokenRange;
 import org.apache.commons.lang.Validate;
@@ -35,85 +33,37 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Verify;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.ClientCreationFailedException;
+import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.collect.Maps2;
 
 
 public class CassandraVerifier {
     private static final Logger log = LoggerFactory.getLogger(CassandraVerifier.class);
 
-    // This method exists to verify a particularly nasty bug where cassandra doesn't have a
-    // consistent ring across all of it's nodes.  One node will think it owns more than the others
-    // think it does and they will not send writes to it, but it will respond to requests
-    // acting like it does.
-    protected static void sanityCheckRingConsistency(Set<InetSocketAddress> currentAddrs, String keyspace, boolean isSsl, boolean safetyDisabled, int socketTimeoutMillis, int socketQueryTimeoutMillis) {
-        Multimap<Set<TokenRange>, InetSocketAddress> tokenRangesToHost = HashMultimap.create();
-        for (InetSocketAddress addr : currentAddrs) {
-            Cassandra.Client client = null;
-            try {
-                client = CassandraClientFactory.getClientInternal(addr, isSsl, socketTimeoutMillis, socketQueryTimeoutMillis);
-                try {
-                    client.describe_keyspace(keyspace);
-                } catch (NotFoundException e) {
-                    log.info("Tried to check ring consistency for node {} before keyspace was fully setup; aborting check for now.", addr, e);
-                    return;
-                }
-                tokenRangesToHost.put(ImmutableSet.copyOf(client.describe_ring(keyspace)), addr);
-            } catch (Exception e) {
-                log.warn("failed to get ring info from host: {}", addr, e);
-            } finally {
-                if (client != null) {
-                    client.getOutputProtocol().getTransport().close();
-                }
-            }
-        }
-
-        if (tokenRangesToHost.isEmpty()) {
-            log.error("Failed to get ring info for entire Cassandra cluster ({}); ring could not be checked for consistency.", keyspace);
-            return;
-        }
-
-        if (tokenRangesToHost.keySet().size() == 1) {
-            return;
-        }
-
-        RuntimeException e = new IllegalStateException("Hosts have differing ring descriptions.  This can lead to inconsistent reads and lost data. ");
-        log.error("QA-86204 " + e.getMessage() + tokenRangesToHost, e);
-
-        if (tokenRangesToHost.size() > 2) {
-            for (Entry<Set<TokenRange>, Collection<InetSocketAddress>> entry : tokenRangesToHost.asMap().entrySet()) {
-                if (entry.getValue().size() == 1) {
-                    log.error("Host: " + entry.getValue().iterator().next() +
-                            " disagrees with the other nodes about the ring state.");
-                }
-            }
-        }
-
-        if (tokenRangesToHost.keySet().size() == 2) {
-            ImmutableList<Set<TokenRange>> sets = ImmutableList.copyOf(tokenRangesToHost.keySet());
-            Set<TokenRange> set1 = sets.get(0);
-            Set<TokenRange> set2 = sets.get(1);
-            log.error("Hosts are split.  group1: " + tokenRangesToHost.get(set1) +
-                    " group2: " + tokenRangesToHost.get(set2));
-        }
-
-        logErrorOrThrow(e.getMessage(), safetyDisabled);
-    }
-
     static Set<String> sanityCheckDatacenters(Cassandra.Client client, int desiredRf, boolean safetyDisabled) throws InvalidRequestException, TException {
-        ensureTestKeyspaceExists(client);
         Set<String> hosts = Sets.newHashSet();
-
         Multimap<String, String> dataCenterToRack = HashMultimap.create();
-        List<TokenRange> ring = client.describe_ring(CassandraConstants.SIMPLE_RF_TEST_KEYSPACE);
-        for (TokenRange tokenRange : ring) {
+
+        List<String> existingKeyspaces = Lists.transform(client.describe_keyspaces(), KsDef::getName);
+        if (!existingKeyspaces.contains(CassandraConstants.SIMPLE_RF_TEST_KEYSPACE)) {
+            client.system_add_keyspace(
+                    new KsDef(CassandraConstants.SIMPLE_RF_TEST_KEYSPACE, CassandraConstants.SIMPLE_STRATEGY, ImmutableList.<CfDef>of())
+                    .setStrategy_options(ImmutableMap.of(CassandraConstants.REPLICATION_FACTOR_OPTION, "1")));
+        }
+        List<TokenRange> ring =  client.describe_ring(CassandraConstants.SIMPLE_RF_TEST_KEYSPACE);
+
+        for (TokenRange tokenRange: ring) {
             for (EndpointDetails details : tokenRange.getEndpoint_details()) {
                 dataCenterToRack.put(details.datacenter, details.rack);
                 hosts.add(details.host);
@@ -140,13 +90,13 @@ public class CassandraVerifier {
         return dataCenterToRack.keySet();
     }
 
-    static void sanityCheckTableName(String table) {
-        Validate.isTrue(!(table.startsWith("_") && table.contains("."))
-                || AtlasDbConstants.hiddenTables.contains(table)
-                || table.startsWith(AtlasDbConstants.NAMESPACE_PREFIX), "invalid tableName: " + table);
+    static void sanityCheckTableName(String tableName) {
+        Validate.isTrue(!(tableName.startsWith("_") && tableName.contains("."))
+                || AtlasDbConstants.hiddenTables.contains(tableName)
+                || tableName.startsWith(AtlasDbConstants.NAMESPACE_PREFIX), "invalid tableName: " + tableName);
     }
 
-    private static void logErrorOrThrow(String errorMessage, boolean safetyDisabled) {
+    static void logErrorOrThrow(String errorMessage, boolean safetyDisabled) {
         String safetyMessage = " This would have normally resulted in Palantir exiting, however safety checks have been disabled.";
         if (safetyDisabled) {
             log.error(errorMessage + safetyMessage);
@@ -155,27 +105,52 @@ public class CassandraVerifier {
         }
     }
 
-    /*
-     * This keyspace exists because we need a way to pull the datacenter information and they only
-     * way to do it is if you have a valid keyspace set up.  We will pull the info from here
-     * so we can accurately create the actually NetworkTopologyStrategy keyspace.
-     */
-    private static void ensureTestKeyspaceExists(Cassandra.Client client) {
-        try {
-            try {
-                client.describe_keyspace(CassandraConstants.SIMPLE_RF_TEST_KEYSPACE);
-                return;
-            } catch (NotFoundException e) {
-                // need to create key space
-            }
-            KsDef testKs = new KsDef(CassandraConstants.SIMPLE_RF_TEST_KEYSPACE, CassandraConstants.SIMPLE_STRATEGY, ImmutableList.<CfDef>of());
-            testKs.setStrategy_options(ImmutableMap.of(CassandraConstants.REPLICATION_FACTOR_OPTION, "1"));
-            client.system_add_keyspace(testKs);
-        } catch (Exception e) {
-            log.warn(e.getMessage(), e);
+    static void validatePartitioner(Cassandra.Client client, CassandraKeyValueServiceConfig config) throws TException {
+        String partitioner = client.describe_partitioner();
+        if (!config.safetyDisabled()) {
+            Verify.verify(
+                    CassandraConstants.ALLOWED_PARTITIONERS.contains(partitioner),
+                    "Invalid partitioner. Allowed: %s, but partitioner is: %s",
+                    CassandraConstants.ALLOWED_PARTITIONERS,
+                    partitioner);
         }
     }
 
+    static void ensureKeyspaceExistsAndIsUpToDate(CassandraClientPool clientPool, CassandraKeyValueServiceConfig config) throws InvalidRequestException, TException, SchemaDisagreementException {
+        try {
+            clientPool.run(new FunctionCheckedException<Cassandra.Client, Void, TException>() {
+                @Override
+                public Void apply(Cassandra.Client client) throws TException {
+                    KsDef originalKsDef = client.describe_keyspace(config.keyspace());
+                    KsDef modifiedKsDef = originalKsDef.deepCopy();
+                    CassandraVerifier.checkAndSetReplicationFactor(client, modifiedKsDef, false, config.replicationFactor(), config.safetyDisabled());
+
+                    if (!modifiedKsDef.equals(originalKsDef)) {
+                        modifiedKsDef.setCf_defs(ImmutableList.<CfDef>of()); // Can't call system_update_keyspace to update replication factor if CfDefs are set
+                        client.system_update_keyspace(modifiedKsDef);
+                        CassandraKeyValueServices.waitForSchemaVersions(client, "(updating the existing keyspace)", config.schemaMutationTimeoutMillis());
+                    }
+
+                    return null;
+                }
+            });
+        } catch (ClientCreationFailedException e) { // We can't use the pool yet because it does things like setting the keyspace of that connection for us
+            for (InetSocketAddress host : config.servers()) { // try until we find a server that works
+                try {
+                    Client client = CassandraClientFactory.getClientInternal(host, config.ssl(), config.socketTimeoutMillis(), config.socketQueryTimeoutMillis());
+                    KsDef ks = new KsDef(config.keyspace(), CassandraConstants.NETWORK_STRATEGY, ImmutableList.<CfDef>of());
+                    CassandraVerifier.checkAndSetReplicationFactor(client, ks, true, config.replicationFactor(), config.safetyDisabled());
+                    ks.setDurable_writes(true);
+                    client.system_add_keyspace(ks);
+                    CassandraKeyValueServices.waitForSchemaVersions(client, "(adding the initial empty keyspace)", config.schemaMutationTimeoutMillis());
+                    // if we got this far, we're done
+                    return;
+                } catch (Exception f) {
+                    throw new TException(f);
+                }
+            }
+        }
+    }
 
     static void checkAndSetReplicationFactor(Cassandra.Client client, KsDef ks, boolean freshInstance, int desiredRf, boolean safetyDisabled)
             throws InvalidRequestException, SchemaDisagreementException, TException {
@@ -224,33 +199,11 @@ public class CassandraVerifier {
         int currentRF = Integer.parseInt(strategyOptions.get(dc));
 
         // We need to worry about user not running repair and user skipping replication levels.
-        if (currentRF == 1 && desiredRf == 2) {
-            log.error("Upping AtlasDB replication factor from 1 to 2. User should run " +
-                    "`nodetool repair` on cluster if they have not already!");
-            strategyOptions.put(dc, String.valueOf(desiredRf));
-            ks.setStrategy_options(strategyOptions);
-        } else if (currentRF == 1 && desiredRf == CassandraConstants.DEFAULT_REPLICATION_FACTOR) {
-            log.error("Upping AtlasDB replication factor from 1 " +
-                    "to 3 is NOT allowed directly.\n" +
-                    "Increase replication factor to 2 first, then run `nodetool repair`. If it succeeds, increase replication factor to 3, and run `nodetool repair`");
-        } else if (currentRF == 2 && desiredRf == CassandraConstants.DEFAULT_REPLICATION_FACTOR) {
-            strategyOptions.put(dc, String.valueOf(desiredRf));
-            ks.setStrategy_options(strategyOptions);
-            ks.setCf_defs(ImmutableList.<CfDef>of());
-            client.system_update_keyspace(ks);
-            log.warn("Updating AtlasDB replication factor from " + currentRF + " to " + desiredRf +
-                    " process are NOT completed!" +
-                    " User may want to run `nodetool repair` to make all replicas consistent.");
-        } else if (currentRF > desiredRf) { // We are moving to a lower RF, this should be always safe from a consistency rule standpoint
-            log.error("Reducing AtlasDB replication factor from " + currentRF + " to " + desiredRf + ". User may want to run `nodetool cleanup` to remove excess replication.");
-            strategyOptions.put(dc, String.valueOf(desiredRf));
-            ks.setStrategy_options(strategyOptions);
-            ks.setCf_defs(ImmutableList.<CfDef>of());
-            client.system_update_keyspace(ks);
-        } else if (currentRF == desiredRf) {
-            log.info("Did not change AtlasDB replication factor.");
-        } else {
-            logErrorOrThrow("We only support replication up to 3.  Attempted to go from " + currentRF + " to " + desiredRf + ".", safetyDisabled);
+        if (currentRF != desiredRf) {
+            throw new UnsupportedOperationException("Your current Cassandra keyspace (" + ks.getName() +
+                    ") has a replication factor not matching your Atlas Cassandra configuration. " +
+                    "Change them to match, but be mindful of what steps you'll need to " +
+                    "take to correctly repair or cleanup existing data in your cluster.");
         }
     }
 }

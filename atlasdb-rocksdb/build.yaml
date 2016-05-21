@@ -1,0 +1,14 @@
+# -*- yaml -*-
+# METABUILD GENERATED metaconf/metaconf.groovy + metaconf/project/build.yaml.tmpl -> atlasdb/atlasdb-rocksdb/build.yaml
+meta:
+  name: AtlasdbRocksdb
+  use_legacy_revision: true
+  source_target_version: 1.8
+  skip_dist: true
+jars:
+  -
+    name: atlasdb-rocksdb
+    src:
+      - src/main/java
+      - generated_src
+      - src/main/resources

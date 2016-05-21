@@ -1,0 +1,34 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- METABUILD GENERATED metaconf/metaconf.groovy + metaconf/project/ivy.xml.tmpl -> atlasdb/lock-api/ivy.xml -->
+<?xml-stylesheet type="text/xsl" href="/ivy-doc.xsl"?>
+<ivy-module xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            version="1.4"
+            xsi:noNamespaceSchemaLocation="http://incubator.apache.org/ivy/schemas/ivy.xsd">
+  <info organisation="palantir" module="lock-api"/>
+  <configurations>
+    <conf name="default"/>
+    <conf name="test" extends="default"/>
+    <conf name="eclipse"/>
+  </configurations>
+  <publications>
+    <artifact name="lock-api" type="jar" conf="default"/>
+    <artifact name="lock-api" type="source" ext="zip" conf="default"/>
+  </publications>
+  <dependencies>
+    <dependency org="javax.ws.rs" name="javax.ws.rs-api" rev="2.0.1"
+                transitive="true" conf="test,default,eclipse-&gt;default">
+    </dependency>
+    <dependency org="com.fasterxml.jackson.core" name="jackson-annotations" rev="2.5.0"
+                transitive="true" conf="test,default,eclipse-&gt;default">
+    </dependency>
+    <dependency org="com.fasterxml.jackson.core" name="jackson-databind" rev="2.5.3"
+                transitive="true" conf="test,default,eclipse-&gt;default">
+    </dependency>
+    <dependency org="junit" name="junit" rev="4.11"
+                transitive="true" conf="test,eclipse-&gt;default">
+    </dependency>
+    <dependency org="palantir" name="atlasdb-commons" rev="3.13.3.1-pacman_patching.+"
+                transitive="true" conf="test-&gt;test;default-&gt;default">
+    </dependency>
+  </dependencies>
+</ivy-module>

@@ -1,0 +1,135 @@
+// -*- groovy -*-
+// METABUILD GENERATED metaconf/metaconf.groovy + metaconf/project/make.gradle.tmpl -> atlasdb/atlasdb-cassandra/make.gradle
+apply from: "${rootProject.projectDir}/before.gradle"
+sourceSets.main.java.srcDirs=[ file('src/main/java'),file('generated_src') ]
+sourceSets.main.resources.srcDirs=[ file('src/main/resources') ]
+sourceSets.test.java.srcDirs=[ file('src/test/java') ]
+sourceSets.test.resources.srcDirs=[  ]
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
+configurations.create('test').extendsFrom(configurations.testRuntime)
+jar {
+  baseName 'atlasdb-cassandra'
+  exclude '.gitkeep'
+  doFirst {
+    manifest {
+      from rootProject.ext.standardManifest
+      def jarList = processJarListForManifest(sourceSets.main.compileClasspath)
+      if (!jarList.isEmpty()) {
+        attributes.put('Class-Path', jarList.join(' '))
+      }
+    }
+  }
+  doLast {
+    rootProject.ext.pgdevArtifactNames.add(archiveName)
+  }
+}
+task testJar(type: Jar) {
+  baseName 'atlasdb-cassandra-test'
+  from sourceSets.test.output
+  exclude '.gitkeep'
+  ext.is_test = true
+  doFirst {
+    manifest {
+      from rootProject.ext.standardManifest
+      def jarList = processJarListForManifest(sourceSets.test.compileClasspath)
+      if (!jarList.isEmpty()) {
+        attributes.put('Class-Path', jarList.join(' '))
+      }
+    }
+  }
+  doLast {
+    rootProject.ext.pgdevArtifactNames.add(archiveName)
+  }
+}
+assemble.dependsOn testJar
+task mainSourcesZip(type: Zip) {
+  baseName 'atlasdb-cassandra'
+  from sourceSets.main.allSource
+}
+assemble.dependsOn mainSourcesZip
+task testSourcesZip(type: Zip) {
+  baseName 'atlasdb-cassandra-test'
+  from sourceSets.test.allSource
+}
+assemble.dependsOn testSourcesZip
+dependencies {
+  test sourceSets.test.output
+  compile(group: 'javax.validation', name: 'validation-api', version: '1.1.0.Final', configuration: 'default')
+  compile(group: 'net.java.dev.jna', name: 'jna-platform', version: '4.1.0', configuration: 'default')
+  {
+    transitive = false
+  }
+  compile(group: 'io.netty', name: 'netty-all', version: '4.0.27.Final', configuration: 'default')
+  {
+    transitive = false
+  }
+  compile(group: 'org.apache.cassandra', name: 'cassandra-thrift', version: '2.2.0', configuration: 'default')
+  {
+    transitive = false
+  }
+  compile(group: 'com.codahale.metrics', name: 'metrics-core', version: '3.0.2', configuration: 'default')
+  {
+    transitive = false
+  }
+  compile(group: 'com.googlecode.json-simple', name: 'json-simple', version: '1.1.1', configuration: 'default')
+  {
+    exclude(
+      module: 'junit',
+    )
+  }
+  compile(group: 'log4j', name: 'log4j', version: '1.2.17', configuration: 'default')
+  {
+    transitive = false
+  }
+  compile(group: 'com.datastax.cassandra', name: 'cassandra-driver-core', version: '2.2.0-rc3', configuration: 'default')
+  {
+    exclude(
+      module: 'guava',
+    )
+  }
+  compile(group: 'com.google.guava', name: 'guava', version: '18.0', configuration: 'default')
+  compile(group: 'org.apache.commons', name: 'commons-pool2', version: '2.4.2', configuration: 'default')
+  compile(group: 'org.immutables', name: 'value', version: '2.0.21', configuration: 'default')
+  compile(group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-guava', version: '2.5.3', configuration: 'default')
+  {
+    exclude(
+      module: 'guava',
+    )
+  }
+  compile(group: 'commons-cli', name: 'commons-cli', version: '1.2', configuration: 'default')
+  {
+    transitive = false
+  }
+  compile(group: 'commons-codec', name: 'commons-codec', version: '1.9', configuration: 'default')
+  {
+    transitive = false
+  }
+  compile(group: 'joda-time', name: 'joda-time', version: '2.9.2', configuration: 'default')
+  compile(group: 'org.yaml', name: 'snakeyaml', version: '1.13', configuration: 'default')
+  compile(group: 'org.slf4j', name: 'slf4j-api', version: '1.7.5', configuration: 'default')
+  testCompile(group: 'junit', name: 'junit', version: '4.11', configuration: 'default')
+  compile(group: 'org.apache.thrift', name: 'libthrift', version: '0.9.2', configuration: 'default')
+  {
+    transitive = false
+  }
+  testCompile(project(path: ':atlasdb-client', configuration: 'test'))
+  compile(project(path: ':atlasdb-client', configuration: 'default'))
+  testCompile(project(path: ':atlasdb-spi', configuration: 'test'))
+  compile(project(path: ':atlasdb-spi', configuration: 'default'))
+  testCompile(project(path: ':timestamp-impl', configuration: 'test'))
+  compile(project(path: ':timestamp-impl', configuration: 'default'))
+}
+configurations.all {
+  resolutionStrategy {
+    force 'com.fasterxml.jackson.core:jackson-databind:2.5.3'
+    force 'com.fasterxml.jackson.core:jackson-core:2.5.3'
+    force 'org.xerial.snappy:snappy-java:1.1.1.7'
+    force 'org.apache.thrift:libthrift:0.9.2'
+    force 'org.slf4j:slf4j-api:1.7.5'
+    force 'commons-codec:commons-codec:1.9'
+    force 'junit:junit:4.11'
+    force 'org.yaml:snakeyaml:1.13'
+  }
+}
+apply from: "${rootProject.projectDir}/after.gradle"

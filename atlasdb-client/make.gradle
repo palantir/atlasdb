@@ -1,0 +1,98 @@
+// -*- groovy -*-
+// METABUILD GENERATED metaconf/metaconf.groovy + metaconf/project/make.gradle.tmpl -> atlasdb/atlasdb-client/make.gradle
+apply from: "${rootProject.projectDir}/before.gradle"
+sourceSets.main.java.srcDirs=[ file('src/main/java') ]
+sourceSets.main.resources.srcDirs=[  ]
+sourceSets.test.java.srcDirs=[  ]
+sourceSets.test.resources.srcDirs=[  ]
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
+configurations.create('test').extendsFrom(configurations.testRuntime)
+jar {
+  baseName 'atlasdb-client'
+  exclude '.gitkeep'
+  doFirst {
+    manifest {
+      from rootProject.ext.standardManifest
+      def jarList = processJarListForManifest(sourceSets.main.compileClasspath)
+      if (!jarList.isEmpty()) {
+        attributes.put('Class-Path', jarList.join(' '))
+      }
+    }
+  }
+  doLast {
+    rootProject.ext.pgdevArtifactNames.add(archiveName)
+  }
+}
+task testJar(type: Jar) {
+  baseName 'atlasdb-client-test'
+  from sourceSets.test.output
+  exclude '.gitkeep'
+  ext.is_test = true
+  doFirst {
+    manifest {
+      from rootProject.ext.standardManifest
+      def jarList = processJarListForManifest(sourceSets.test.compileClasspath)
+      if (!jarList.isEmpty()) {
+        attributes.put('Class-Path', jarList.join(' '))
+      }
+    }
+  }
+  doLast {
+    rootProject.ext.pgdevArtifactNames.add(archiveName)
+  }
+}
+assemble.dependsOn testJar
+task mainSourcesZip(type: Zip) {
+  baseName 'atlasdb-client'
+  from sourceSets.main.allSource
+}
+assemble.dependsOn mainSourcesZip
+task testSourcesZip(type: Zip) {
+  baseName 'atlasdb-client-test'
+  from sourceSets.test.allSource
+}
+assemble.dependsOn testSourcesZip
+dependencies {
+  test sourceSets.test.output
+  compile(group: 'com.googlecode.json-simple', name: 'json-simple', version: '1.1.1', configuration: 'default')
+  {
+    exclude(
+      module: 'junit',
+    )
+  }
+  compile(group: 'commons-lang', name: 'commons-lang', version: '2.6', configuration: 'default')
+  compile(group: 'org.xerial.snappy', name: 'snappy-java', version: '1.1.1.7', configuration: 'default')
+  compile(group: 'com.googlecode.protobuf-java-format', name: 'protobuf-java-format', version: '1.2', configuration: 'default')
+  compile(group: 'com.google.protobuf', name: 'protobuf-java', version: '2.6.0', configuration: 'default')
+  compile(group: 'com.netflix.feign', name: 'feign-jackson', version: '8.6.1', configuration: 'default')
+  {
+    exclude(
+      module: 'jackson-databind',
+    )
+  }
+  compile(group: 'com.netflix.feign', name: 'feign-jaxrs', version: '8.6.1', configuration: 'default')
+  {
+    exclude(
+      module: 'jsr311-api',
+    )
+  }
+  compile(group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.5.3', configuration: 'default')
+  compile(group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.5.3', configuration: 'default')
+  compile(group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-guava', version: '2.5.3', configuration: 'default')
+  {
+    exclude(
+      module: 'guava',
+    )
+  }
+  testCompile(group: 'junit', name: 'junit', version: '4.11', configuration: 'default')
+  testCompile(project(path: ':atlasdb-commons', configuration: 'test'))
+  compile(project(path: ':atlasdb-commons', configuration: 'default'))
+  testCompile(project(path: ':atlasdb-api', configuration: 'test'))
+  compile(project(path: ':atlasdb-api', configuration: 'default'))
+  testCompile(project(path: ':atlasdb-client-protobufs', configuration: 'test'))
+  compile(project(path: ':atlasdb-client-protobufs', configuration: 'default'))
+  testCompile(project(path: ':atlasdb-spi', configuration: 'test'))
+  compile(project(path: ':atlasdb-spi', configuration: 'default'))
+}
+apply from: "${rootProject.projectDir}/after.gradle"

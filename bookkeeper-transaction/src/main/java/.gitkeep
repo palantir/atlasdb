@@ -1,0 +1,2 @@
+METABUILD GENERATED metaconf/metaconf.groovy + metaconf/project/gitkeep.tmpl -> atlasdb/bookkeeper-transaction/src/main/java/.gitkeep
+METABUILD GENERATED metaconf/metaconf.groovy + metaconf/project/gitkeep.tmpl -> atlasdb/bookkeeper-transaction/src/test/java/.gitkeep

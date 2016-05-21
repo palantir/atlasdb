@@ -1,0 +1,68 @@
+// -*- groovy -*-
+// METABUILD GENERATED metaconf/metaconf.groovy + metaconf/project/make.gradle.tmpl -> atlasdb/atlasdb-rocksdb/make.gradle
+apply from: "${rootProject.projectDir}/before.gradle"
+sourceSets.main.java.srcDirs=[ file('src/main/java'),file('generated_src') ]
+sourceSets.main.resources.srcDirs=[ file('src/main/resources') ]
+sourceSets.test.java.srcDirs=[  ]
+sourceSets.test.resources.srcDirs=[  ]
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
+configurations.create('test').extendsFrom(configurations.testRuntime)
+jar {
+  baseName 'atlasdb-rocksdb'
+  exclude '.gitkeep'
+  doFirst {
+    manifest {
+      from rootProject.ext.standardManifest
+      def jarList = processJarListForManifest(sourceSets.main.compileClasspath)
+      if (!jarList.isEmpty()) {
+        attributes.put('Class-Path', jarList.join(' '))
+      }
+    }
+  }
+  doLast {
+    rootProject.ext.pgdevArtifactNames.add(archiveName)
+  }
+}
+task testJar(type: Jar) {
+  baseName 'atlasdb-rocksdb-test'
+  from sourceSets.test.output
+  exclude '.gitkeep'
+  ext.is_test = true
+  doFirst {
+    manifest {
+      from rootProject.ext.standardManifest
+      def jarList = processJarListForManifest(sourceSets.test.compileClasspath)
+      if (!jarList.isEmpty()) {
+        attributes.put('Class-Path', jarList.join(' '))
+      }
+    }
+  }
+  doLast {
+    rootProject.ext.pgdevArtifactNames.add(archiveName)
+  }
+}
+assemble.dependsOn testJar
+task mainSourcesZip(type: Zip) {
+  baseName 'atlasdb-rocksdb'
+  from sourceSets.main.allSource
+}
+assemble.dependsOn mainSourcesZip
+task testSourcesZip(type: Zip) {
+  baseName 'atlasdb-rocksdb-test'
+  from sourceSets.test.allSource
+}
+assemble.dependsOn testSourcesZip
+dependencies {
+  test sourceSets.test.output
+  compile(group: 'org.rocksdb', name: 'rocksdbjni', version: '4.1.0', configuration: 'default')
+  testCompile(group: 'junit', name: 'junit', version: '4.11', configuration: 'default')
+  compile(group: 'org.immutables', name: 'value', version: '2.0.21', configuration: 'default')
+  testCompile(project(path: ':atlasdb-client', configuration: 'test'))
+  compile(project(path: ':atlasdb-client', configuration: 'default'))
+  testCompile(project(path: ':atlasdb-spi', configuration: 'test'))
+  compile(project(path: ':atlasdb-spi', configuration: 'default'))
+  testCompile(project(path: ':timestamp-impl', configuration: 'test'))
+  compile(project(path: ':timestamp-impl', configuration: 'default'))
+}
+apply from: "${rootProject.projectDir}/after.gradle"

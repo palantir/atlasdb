@@ -1,0 +1,68 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- METABUILD GENERATED metaconf/metaconf.groovy + metaconf/project/ivy.xml.tmpl -> atlasdb/atlasdb-client/ivy.xml -->
+<?xml-stylesheet type="text/xsl" href="/ivy-doc.xsl"?>
+<ivy-module xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            version="1.4"
+            xsi:noNamespaceSchemaLocation="http://incubator.apache.org/ivy/schemas/ivy.xsd">
+  <info organisation="palantir" module="atlasdb-client"/>
+  <configurations>
+    <conf name="default"/>
+    <conf name="test" extends="default"/>
+    <conf name="eclipse"/>
+  </configurations>
+  <publications>
+    <artifact name="atlasdb-client" type="jar" conf="default"/>
+    <artifact name="atlasdb-client" type="source" ext="zip" conf="default"/>
+  </publications>
+  <dependencies>
+    <dependency org="com.googlecode.json-simple" name="json-simple" rev="1.1.1"
+                transitive="true" conf="test,default,eclipse-&gt;default">
+      <exclude org="*" module="junit"/>
+    </dependency>
+    <dependency org="commons-lang" name="commons-lang" rev="2.6"
+                transitive="true" conf="test,default,eclipse-&gt;default">
+    </dependency>
+    <dependency org="org.xerial.snappy" name="snappy-java" rev="1.1.1.7"
+                transitive="true" conf="test,default,eclipse-&gt;default">
+    </dependency>
+    <dependency org="com.googlecode.protobuf-java-format" name="protobuf-java-format" rev="1.2"
+                transitive="true" conf="test,default,eclipse-&gt;default">
+    </dependency>
+    <dependency org="com.google.protobuf" name="protobuf-java" rev="2.6.0"
+                transitive="true" conf="test,default,eclipse-&gt;default">
+    </dependency>
+    <dependency org="com.netflix.feign" name="feign-jackson" rev="8.6.1"
+                transitive="true" conf="test,default,eclipse-&gt;default">
+      <exclude org="*" module="jackson-databind"/>
+    </dependency>
+    <dependency org="com.netflix.feign" name="feign-jaxrs" rev="8.6.1"
+                transitive="true" conf="test,default,eclipse-&gt;default">
+      <exclude org="*" module="jsr311-api"/>
+    </dependency>
+    <dependency org="com.fasterxml.jackson.core" name="jackson-databind" rev="2.5.3"
+                transitive="true" conf="test,default,eclipse-&gt;default">
+    </dependency>
+    <dependency org="com.fasterxml.jackson.core" name="jackson-core" rev="2.5.3"
+                transitive="true" conf="test,default,eclipse-&gt;default">
+    </dependency>
+    <dependency org="com.fasterxml.jackson.datatype" name="jackson-datatype-guava" rev="2.5.3"
+                transitive="true" conf="test,default,eclipse-&gt;default">
+      <exclude org="*" module="guava"/>
+    </dependency>
+    <dependency org="junit" name="junit" rev="4.11"
+                transitive="true" conf="test,eclipse-&gt;default">
+    </dependency>
+    <dependency org="palantir" name="atlasdb-commons" rev="3.13.3.1-pacman_patching.+"
+                transitive="true" conf="test-&gt;test;default-&gt;default">
+    </dependency>
+    <dependency org="palantir" name="atlasdb-api" rev="3.13.3.1-pacman_patching.+"
+                transitive="true" conf="test-&gt;test;default-&gt;default">
+    </dependency>
+    <dependency org="palantir" name="atlasdb-client-protobufs" rev="3.13.3.1-pacman_patching.+"
+                transitive="true" conf="test-&gt;test;default-&gt;default">
+    </dependency>
+    <dependency org="palantir" name="atlasdb-spi" rev="3.13.3.1-pacman_patching.+"
+                transitive="true" conf="test-&gt;test;default-&gt;default">
+    </dependency>
+  </dependencies>
+</ivy-module>

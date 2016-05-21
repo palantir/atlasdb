@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- METABUILD GENERATED metaconf/metaconf.groovy + metaconf/project/ivy.xml.tmpl -> atlasdb/leader-election-api-protobufs/ivy.xml -->
+<?xml-stylesheet type="text/xsl" href="/ivy-doc.xsl"?>
+<ivy-module xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            version="1.4"
+            xsi:noNamespaceSchemaLocation="http://incubator.apache.org/ivy/schemas/ivy.xsd">
+  <info organisation="palantir" module="leader-election-api-protobufs"/>
+  <configurations>
+    <conf name="default"/>
+    <conf name="test" extends="default"/>
+    <conf name="eclipse"/>
+  </configurations>
+  <publications>
+    <artifact name="leader-election-api-protobufs" type="jar" conf="default"/>
+    <artifact name="leader-election-api-protobufs" type="source" ext="zip" conf="default"/>
+  </publications>
+  <dependencies>
+    <dependency org="com.google.protobuf" name="protobuf-java" rev="2.6.0"
+                transitive="true" conf="test,default,eclipse-&gt;default">
+    </dependency>
+  </dependencies>
+</ivy-module>

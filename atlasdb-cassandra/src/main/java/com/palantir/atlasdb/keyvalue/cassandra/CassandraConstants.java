@@ -34,7 +34,6 @@ public class CassandraConstants {
     public static final int DEFAULT_REPLICATION_FACTOR = 3;
     public static final int DEFAULT_THRIFT_PORT = 9160;
     public static final int DEFAULT_CQL_PORT = 9042;
-    static final int SECONDS_BETWEEN_GETTING_HOST_LIST = 600; // 10 min
     static final int SECONDS_WAIT_FOR_VERSIONS = 60;
 
     static final int ABSOLUTE_MINIMUM_NUMBER_OF_TOKENS_PER_NODE = 32;

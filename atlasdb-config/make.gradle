@@ -1,0 +1,99 @@
+// -*- groovy -*-
+// METABUILD GENERATED metaconf/metaconf.groovy + metaconf/project/make.gradle.tmpl -> atlasdb/atlasdb-config/make.gradle
+apply from: "${rootProject.projectDir}/before.gradle"
+sourceSets.main.java.srcDirs=[ file('src/main/java'),file('generated_src') ]
+sourceSets.main.resources.srcDirs=[ file('src/main/resources') ]
+sourceSets.test.java.srcDirs=[  ]
+sourceSets.test.resources.srcDirs=[  ]
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
+configurations.create('test').extendsFrom(configurations.testRuntime)
+jar {
+  baseName 'atlasdb-config'
+  exclude '.gitkeep'
+  doFirst {
+    manifest {
+      from rootProject.ext.standardManifest
+      def jarList = processJarListForManifest(sourceSets.main.compileClasspath)
+      if (!jarList.isEmpty()) {
+        attributes.put('Class-Path', jarList.join(' '))
+      }
+    }
+  }
+  doLast {
+    rootProject.ext.pgdevArtifactNames.add(archiveName)
+  }
+}
+task testJar(type: Jar) {
+  baseName 'atlasdb-config-test'
+  from sourceSets.test.output
+  exclude '.gitkeep'
+  ext.is_test = true
+  doFirst {
+    manifest {
+      from rootProject.ext.standardManifest
+      def jarList = processJarListForManifest(sourceSets.test.compileClasspath)
+      if (!jarList.isEmpty()) {
+        attributes.put('Class-Path', jarList.join(' '))
+      }
+    }
+  }
+  doLast {
+    rootProject.ext.pgdevArtifactNames.add(archiveName)
+  }
+}
+assemble.dependsOn testJar
+task mainSourcesZip(type: Zip) {
+  baseName 'atlasdb-config'
+  from sourceSets.main.allSource
+}
+assemble.dependsOn mainSourcesZip
+task testSourcesZip(type: Zip) {
+  baseName 'atlasdb-config-test'
+  from sourceSets.test.allSource
+}
+assemble.dependsOn testSourcesZip
+dependencies {
+  test sourceSets.test.output
+  compile(group: 'com.netflix.feign', name: 'feign-jackson', version: '8.6.1', configuration: 'default')
+  {
+    exclude(
+      module: 'jackson-databind',
+    )
+  }
+  compile(group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.5.3', configuration: 'default')
+  compile(group: 'com.netflix.feign', name: 'feign-jaxrs', version: '8.6.1', configuration: 'default')
+  {
+    exclude(
+      module: 'jsr311-api',
+    )
+  }
+  compile(group: 'com.netflix.feign', name: 'feign-okhttp', version: '8.6.1', configuration: 'default')
+  compile(group: 'javax.validation', name: 'validation-api', version: '1.1.0.Final', configuration: 'default')
+  testCompile(group: 'junit', name: 'junit', version: '4.11', configuration: 'default')
+  compile(group: 'org.immutables', name: 'value', version: '2.0.21', configuration: 'default')
+  compile(group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-guava', version: '2.5.3', configuration: 'default')
+  {
+    exclude(
+      module: 'guava',
+    )
+  }
+  testCompile(project(path: ':atlasdb-spi', configuration: 'test'))
+  compile(project(path: ':atlasdb-spi', configuration: 'default'))
+  testCompile(project(path: ':atlasdb-impl-shared', configuration: 'test'))
+  compile(project(path: ':atlasdb-impl-shared', configuration: 'default'))
+  testCompile(project(path: ':leader-election-impl', configuration: 'test'))
+  compile(project(path: ':leader-election-impl', configuration: 'default'))
+  testCompile(project(path: ':lock-impl', configuration: 'test'))
+  compile(project(path: ':lock-impl', configuration: 'default'))
+}
+configurations.all {
+  resolutionStrategy {
+    force 'com.google.code.findbugs:jsr305:1.3.9'
+    force 'org.slf4j:slf4j-api:1.7.5'
+    force 'com.fasterxml.jackson.core:jackson-databind:2.5.3'
+    force 'com.fasterxml.jackson.core:jackson-core:2.5.3'
+    force 'org.apache.commons:commons-lang3:3.1'
+  }
+}
+apply from: "${rootProject.projectDir}/after.gradle"

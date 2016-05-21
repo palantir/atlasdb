@@ -1,0 +1,3 @@
+METABUILD GENERATED metaconf/metaconf.groovy + metaconf/project/gitkeep.tmpl -> atlasdb/atlasdb-rocksdb/src/main/java/.gitkeep
+METABUILD GENERATED metaconf/metaconf.groovy + metaconf/project/gitkeep.tmpl -> atlasdb/atlasdb-rocksdb/generated_src/.gitkeep
+METABUILD GENERATED metaconf/metaconf.groovy + metaconf/project/gitkeep.tmpl -> atlasdb/atlasdb-rocksdb/src/main/resources/.gitkeep

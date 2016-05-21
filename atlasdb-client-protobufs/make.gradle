@@ -1,0 +1,61 @@
+// -*- groovy -*-
+// METABUILD GENERATED metaconf/metaconf.groovy + metaconf/project/make.gradle.tmpl -> atlasdb/atlasdb-client-protobufs/make.gradle
+apply from: "${rootProject.projectDir}/before.gradle"
+sourceSets.main.java.srcDirs=[ file('src/main/java') ]
+sourceSets.main.resources.srcDirs=[  ]
+sourceSets.test.java.srcDirs=[  ]
+sourceSets.test.resources.srcDirs=[  ]
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
+configurations.create('test').extendsFrom(configurations.testRuntime)
+jar {
+  baseName 'atlasdb-client-protobufs'
+  exclude '.gitkeep'
+  doFirst {
+    manifest {
+      from rootProject.ext.standardManifest
+      def jarList = processJarListForManifest(sourceSets.main.compileClasspath)
+      if (!jarList.isEmpty()) {
+        attributes.put('Class-Path', jarList.join(' '))
+      }
+    }
+  }
+  doLast {
+    rootProject.ext.pgdevArtifactNames.add(archiveName)
+  }
+}
+task testJar(type: Jar) {
+  baseName 'atlasdb-client-protobufs-test'
+  from sourceSets.test.output
+  exclude '.gitkeep'
+  ext.is_test = true
+  doFirst {
+    manifest {
+      from rootProject.ext.standardManifest
+      def jarList = processJarListForManifest(sourceSets.test.compileClasspath)
+      if (!jarList.isEmpty()) {
+        attributes.put('Class-Path', jarList.join(' '))
+      }
+    }
+  }
+  doLast {
+    rootProject.ext.pgdevArtifactNames.add(archiveName)
+  }
+}
+assemble.dependsOn testJar
+task mainSourcesZip(type: Zip) {
+  baseName 'atlasdb-client-protobufs'
+  from sourceSets.main.allSource
+}
+assemble.dependsOn mainSourcesZip
+task testSourcesZip(type: Zip) {
+  baseName 'atlasdb-client-protobufs-test'
+  from sourceSets.test.allSource
+}
+assemble.dependsOn testSourcesZip
+dependencies {
+  test sourceSets.test.output
+  compile(group: 'com.google.protobuf', name: 'protobuf-java', version: '2.6.0', configuration: 'default')
+  testCompile(group: 'junit', name: 'junit', version: '4.11', configuration: 'default')
+}
+apply from: "${rootProject.projectDir}/after.gradle"

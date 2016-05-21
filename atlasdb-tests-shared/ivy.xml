@@ -1,0 +1,33 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- METABUILD GENERATED metaconf/metaconf.groovy + metaconf/project/ivy.xml.tmpl -> atlasdb/atlasdb-tests-shared/ivy.xml -->
+<?xml-stylesheet type="text/xsl" href="/ivy-doc.xsl"?>
+<ivy-module xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            version="1.4"
+            xsi:noNamespaceSchemaLocation="http://incubator.apache.org/ivy/schemas/ivy.xsd">
+  <info organisation="palantir" module="atlasdb-tests-shared"/>
+  <configurations>
+    <conf name="default"/>
+    <conf name="test" extends="default"/>
+    <conf name="eclipse"/>
+  </configurations>
+  <publications>
+    <artifact name="atlasdb-tests-shared" type="jar" conf="default"/>
+    <artifact name="atlasdb-tests-shared" type="source" ext="zip" conf="default"/>
+    <artifact name="atlasdb-tests-shared-test" type="jar" conf="test"/>
+    <artifact name="atlasdb-tests-shared-test" type="source" ext="zip" conf="test"/>
+  </publications>
+  <dependencies>
+    <dependency org="org.jmock" name="jmock" rev="2.5.1"
+                transitive="false" conf="test,eclipse-&gt;default">
+    </dependency>
+    <dependency org="junit" name="junit" rev="4.11"
+                transitive="true" conf="test,default,eclipse-&gt;default">
+    </dependency>
+    <dependency org="palantir" name="atlasdb-impl-shared" rev="3.13.3.1-pacman_patching.+"
+                transitive="true" conf="test-&gt;test;default-&gt;default">
+    </dependency>
+    <dependency org="palantir" name="atlasdb-config" rev="3.13.3.1-pacman_patching.+"
+                transitive="true" conf="test-&gt;test;default-&gt;default">
+    </dependency>
+  </dependencies>
+</ivy-module>

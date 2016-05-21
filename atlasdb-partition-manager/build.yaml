@@ -1,0 +1,12 @@
+# -*- yaml -*-
+# METABUILD GENERATED metaconf/metaconf.groovy + metaconf/project/build.yaml.tmpl -> atlasdb/atlasdb-partition-manager/build.yaml
+meta:
+  name: AtlasdbPartitionManager
+  use_legacy_revision: true
+  source_target_version: 1.8
+  skip_dist: true
+jars:
+  -
+    name: atlasdb-partition-manager
+    src:
+      - src/main/java

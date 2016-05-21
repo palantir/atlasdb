@@ -1,0 +1,1 @@
+METABUILD GENERATED metaconf/metaconf.groovy + metaconf/project/gitkeep.tmpl -> atlasdb/atlasdb-partition-manager/src/main/java/.gitkeep

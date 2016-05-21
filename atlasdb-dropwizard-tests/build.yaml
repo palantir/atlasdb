@@ -1,0 +1,14 @@
+# -*- yaml -*-
+# METABUILD GENERATED metaconf/metaconf.groovy + metaconf/project/build.yaml.tmpl -> atlasdb/atlasdb-dropwizard-tests/build.yaml
+meta:
+  name: AtlasdbDropwizardTests
+  use_legacy_revision: true
+  source_target_version: 1.8
+  skip_dist: true
+jars:
+  -
+    name: atlasdb-dropwizard-tests-test
+    src:
+      - src/test/java
+    is_test: true
+    ivy_conf: test

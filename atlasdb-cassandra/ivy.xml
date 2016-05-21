@@ -1,0 +1,98 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- METABUILD GENERATED metaconf/metaconf.groovy + metaconf/project/ivy.xml.tmpl -> atlasdb/atlasdb-cassandra/ivy.xml -->
+<?xml-stylesheet type="text/xsl" href="/ivy-doc.xsl"?>
+<ivy-module xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            version="1.4"
+            xsi:noNamespaceSchemaLocation="http://incubator.apache.org/ivy/schemas/ivy.xsd">
+  <info organisation="palantir" module="atlasdb-cassandra"/>
+  <configurations>
+    <conf name="default"/>
+    <conf name="test" extends="default"/>
+    <conf name="eclipse"/>
+  </configurations>
+  <publications>
+    <artifact name="atlasdb-cassandra" type="jar" conf="default"/>
+    <artifact name="atlasdb-cassandra" type="source" ext="zip" conf="default"/>
+    <artifact name="atlasdb-cassandra-test" type="jar" conf="test"/>
+    <artifact name="atlasdb-cassandra-test" type="source" ext="zip" conf="test"/>
+  </publications>
+  <dependencies>
+    <dependency org="javax.validation" name="validation-api" rev="1.1.0.Final"
+                transitive="true" conf="test,default,eclipse-&gt;default">
+    </dependency>
+    <dependency org="net.java.dev.jna" name="jna-platform" rev="4.1.0"
+                transitive="false" conf="test,default,eclipse-&gt;default">
+    </dependency>
+    <dependency org="io.netty" name="netty-all" rev="4.0.27.Final"
+                transitive="false" conf="test,default,eclipse-&gt;default">
+    </dependency>
+    <dependency org="org.apache.cassandra" name="cassandra-thrift" rev="2.2.0"
+                transitive="false" conf="test,default,eclipse-&gt;default">
+    </dependency>
+    <dependency org="com.codahale.metrics" name="metrics-core" rev="3.0.2"
+                transitive="false" conf="test,default,eclipse-&gt;default">
+    </dependency>
+    <dependency org="com.googlecode.json-simple" name="json-simple" rev="1.1.1"
+                transitive="true" conf="test,default,eclipse-&gt;default">
+      <exclude org="*" module="junit"/>
+    </dependency>
+    <dependency org="log4j" name="log4j" rev="1.2.17"
+                transitive="false" conf="test,default,eclipse-&gt;default">
+    </dependency>
+    <dependency org="com.datastax.cassandra" name="cassandra-driver-core" rev="2.2.0-rc3"
+                transitive="true" conf="test,default,eclipse-&gt;default">
+      <exclude org="*" module="guava"/>
+    </dependency>
+    <dependency org="com.google.guava" name="guava" rev="18.0"
+                transitive="true" conf="test,default,eclipse-&gt;default">
+    </dependency>
+    <dependency org="org.apache.commons" name="commons-pool2" rev="2.4.2"
+                transitive="true" conf="test,default,eclipse-&gt;default">
+    </dependency>
+    <dependency org="org.immutables" name="value" rev="2.0.21"
+                transitive="true" conf="test,default,eclipse-&gt;default">
+    </dependency>
+    <dependency org="com.fasterxml.jackson.datatype" name="jackson-datatype-guava" rev="2.5.3"
+                transitive="true" conf="test,default,eclipse-&gt;default">
+      <exclude org="*" module="guava"/>
+    </dependency>
+    <dependency org="commons-cli" name="commons-cli" rev="1.2"
+                transitive="false" conf="test,default,eclipse-&gt;default">
+    </dependency>
+    <dependency org="commons-codec" name="commons-codec" rev="1.9"
+                transitive="false" conf="test,default,eclipse-&gt;default">
+    </dependency>
+    <dependency org="joda-time" name="joda-time" rev="2.9.2"
+                transitive="true" conf="test,default,eclipse-&gt;default">
+    </dependency>
+    <dependency org="org.yaml" name="snakeyaml" rev="1.13"
+                transitive="true" conf="test,default,eclipse-&gt;default">
+    </dependency>
+    <dependency org="org.slf4j" name="slf4j-api" rev="1.7.5"
+                transitive="true" conf="test,default,eclipse-&gt;default">
+    </dependency>
+    <dependency org="junit" name="junit" rev="4.11"
+                transitive="true" conf="test,eclipse-&gt;default">
+    </dependency>
+    <dependency org="org.apache.thrift" name="libthrift" rev="0.9.2"
+                transitive="false" conf="test,default,eclipse-&gt;default">
+    </dependency>
+    <dependency org="palantir" name="atlasdb-client" rev="3.13.3.1-pacman_patching.+"
+                transitive="true" conf="test-&gt;test;default-&gt;default">
+    </dependency>
+    <dependency org="palantir" name="atlasdb-spi" rev="3.13.3.1-pacman_patching.+"
+                transitive="true" conf="test-&gt;test;default-&gt;default">
+    </dependency>
+    <dependency org="palantir" name="timestamp-impl" rev="3.13.3.1-pacman_patching.+"
+                transitive="true" conf="test-&gt;test;default-&gt;default">
+    </dependency>
+      <override org="com.fasterxml.jackson.core" module="jackson-databind" rev="2.5.3"/>
+      <override org="com.fasterxml.jackson.core" module="jackson-core" rev="2.5.3"/>
+      <override org="org.xerial.snappy" module="snappy-java" rev="1.1.1.7"/>
+      <override org="org.apache.thrift" module="libthrift" rev="0.9.2"/>
+      <override org="org.slf4j" module="slf4j-api" rev="1.7.5"/>
+      <override org="commons-codec" module="commons-codec" rev="1.9"/>
+      <override org="junit" module="junit" rev="4.11"/>
+      <override org="org.yaml" module="snakeyaml" rev="1.13"/>
+  </dependencies>
+</ivy-module>

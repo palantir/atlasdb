@@ -1,0 +1,141 @@
+// -*- groovy -*-
+// METABUILD GENERATED metaconf/metaconf.groovy + metaconf/project/make.gradle.tmpl -> atlasdb/atlasdb-cassandra-tests/make.gradle
+apply from: "${rootProject.projectDir}/before.gradle"
+sourceSets.main.java.srcDirs=[  ]
+sourceSets.main.resources.srcDirs=[  ]
+sourceSets.test.java.srcDirs=[ file('src/test/java') ]
+sourceSets.test.resources.srcDirs=[ file('src/test/resources') ]
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
+configurations.create('test').extendsFrom(configurations.testRuntime)
+jar {
+  baseName 'atlasdb-cassandra-tests'
+  exclude '.gitkeep'
+  doFirst {
+    manifest {
+      from rootProject.ext.standardManifest
+      def jarList = processJarListForManifest(sourceSets.main.compileClasspath)
+      if (!jarList.isEmpty()) {
+        attributes.put('Class-Path', jarList.join(' '))
+      }
+    }
+  }
+  doLast {
+    rootProject.ext.pgdevArtifactNames.add(archiveName)
+  }
+}
+task testJar(type: Jar) {
+  baseName 'atlasdb-cassandra-tests-test'
+  from sourceSets.test.output
+  exclude '.gitkeep'
+  ext.is_test = true
+  doFirst {
+    manifest {
+      from rootProject.ext.standardManifest
+      def jarList = processJarListForManifest(sourceSets.test.compileClasspath)
+      if (!jarList.isEmpty()) {
+        attributes.put('Class-Path', jarList.join(' '))
+      }
+    }
+  }
+  doLast {
+    rootProject.ext.pgdevArtifactNames.add(archiveName)
+  }
+}
+assemble.dependsOn testJar
+task mainSourcesZip(type: Zip) {
+  baseName 'atlasdb-cassandra-tests'
+  from sourceSets.main.allSource
+}
+assemble.dependsOn mainSourcesZip
+task testSourcesZip(type: Zip) {
+  baseName 'atlasdb-cassandra-tests-test'
+  from sourceSets.test.allSource
+}
+assemble.dependsOn testSourcesZip
+dependencies {
+  test sourceSets.test.output
+  testCompile(group: 'org.mockito', name: 'mockito-core', version: '1.9.5', configuration: 'default')
+  {
+    transitive = false
+  }
+  testCompile(group: 'junit', name: 'junit', version: '4.11', configuration: 'default')
+  compile(group: 'org.apache.cassandra', name: 'cassandra-all', version: '2.2.0', configuration: 'default')
+  {
+    exclude(
+      module: 'cassandra-thrift',
+    )
+    exclude(
+      module: 'metrics-core',
+    )
+    exclude(
+      group: 'ch.qos.logback',
+    )
+    exclude(
+      module: 'log4j-over-slf4j',
+    )
+    exclude(
+      module: 'jcl-over-slf4j',
+    )
+    exclude(
+      module: 'json-simple',
+    )
+    exclude(
+      group: 'com.google.guava',
+    )
+    exclude(
+      group: 'commons-cli',
+    )
+    exclude(
+      group: 'commons-codec',
+    )
+    exclude(
+      module: 'junit',
+    )
+    exclude(
+      module: 'slf4j-api',
+    )
+    exclude(
+      module: 'libthrift',
+    )
+    exclude(
+      module: 'snakeyaml',
+    )
+    exclude(
+      module: 'joda-time',
+    )
+    exclude(
+      module: 'guava',
+    )
+    exclude(
+      module: 'validation-api',
+    )
+    exclude(
+      group: 'net.java.dev.jna',
+    )
+    exclude(
+      group: 'io.netty',
+    )
+    exclude(
+      group: 'com.thinkaurelius.thrift',
+    )
+  }
+  compile(group: 'com.thinkaurelius.thrift', name: 'thrift-server', version: '0.3.7', configuration: 'default')
+  testCompile(project(path: ':atlasdb-cassandra', configuration: 'test'))
+  compile(project(path: ':atlasdb-cassandra', configuration: 'default'))
+  testCompile(project(path: ':atlasdb-tests-shared', configuration: 'test'))
+  compile(project(path: ':atlasdb-tests-shared', configuration: 'default'))
+}
+configurations.all {
+  resolutionStrategy {
+    force 'com.fasterxml.jackson.core:jackson-databind:2.5.3'
+    force 'com.fasterxml.jackson.core:jackson-core:2.5.3'
+    force 'org.xerial.snappy:snappy-java:1.1.1.7'
+    force 'org.apache.thrift:libthrift:0.9.2'
+    force 'org.slf4j:slf4j-api:1.7.5'
+    force 'commons-codec:commons-codec:1.9'
+    force 'junit:junit:4.11'
+    force 'org.yaml:snakeyaml:1.13'
+  }
+}
+apply from: "${rootProject.projectDir}/after.gradle"

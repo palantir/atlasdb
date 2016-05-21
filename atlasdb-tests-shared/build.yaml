@@ -1,0 +1,20 @@
+# -*- yaml -*-
+# METABUILD GENERATED metaconf/metaconf.groovy + metaconf/project/build.yaml.tmpl -> atlasdb/atlasdb-tests-shared/build.yaml
+meta:
+  name: AtlasdbTestsShared
+  use_legacy_revision: true
+  source_target_version: 1.8
+  skip_dist: true
+jars:
+  -
+    name: atlasdb-tests-shared
+    src:
+      - src/main/java
+  -
+    name: atlasdb-tests-shared-test
+    src:
+      - src/test/java
+    depends:
+      - atlasdb-tests-shared
+    is_test: true
+    ivy_conf: test

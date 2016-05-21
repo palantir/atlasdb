@@ -1,0 +1,20 @@
+# -*- yaml -*-
+# METABUILD GENERATED metaconf/metaconf.groovy + metaconf/project/build.yaml.tmpl -> atlasdb/commons-executors/build.yaml
+meta:
+  name: CommonsExecutors
+  use_legacy_revision: true
+  source_target_version: 1.6
+  skip_dist: true
+jars:
+  -
+    name: commons-executors
+    src:
+      - src/main/java
+  -
+    name: commons-executors-test
+    src:
+      - src/test/java
+    depends:
+      - commons-executors
+    is_test: true
+    ivy_conf: test

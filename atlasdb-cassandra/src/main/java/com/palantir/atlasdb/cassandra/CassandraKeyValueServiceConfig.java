@@ -48,6 +48,16 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
         return "atlasdb";
     }
 
+    @Value.Default
+    public int poolRefreshIntervalSeconds() {
+        return 5 * 60;
+    }
+
+    @Value.Default
+    public int unresponsiveHostBackoffTimeSeconds() {
+        return 2 * 60;
+    }
+
     public abstract boolean ssl();
 
     public abstract int replicationFactor();

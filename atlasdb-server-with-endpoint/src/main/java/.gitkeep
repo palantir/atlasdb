@@ -1,0 +1,1 @@
+METABUILD GENERATED metaconf/metaconf.groovy + metaconf/project/gitkeep.tmpl -> atlasdb/atlasdb-server-with-endpoint/src/main/java/.gitkeep

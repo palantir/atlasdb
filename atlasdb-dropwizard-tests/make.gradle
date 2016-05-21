@@ -1,0 +1,108 @@
+// -*- groovy -*-
+// METABUILD GENERATED metaconf/metaconf.groovy + metaconf/project/make.gradle.tmpl -> atlasdb/atlasdb-dropwizard-tests/make.gradle
+apply from: "${rootProject.projectDir}/before.gradle"
+sourceSets.main.java.srcDirs=[  ]
+sourceSets.main.resources.srcDirs=[  ]
+sourceSets.test.java.srcDirs=[ file('src/test/java') ]
+sourceSets.test.resources.srcDirs=[  ]
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
+configurations.create('test').extendsFrom(configurations.testRuntime)
+jar {
+  baseName 'atlasdb-dropwizard-tests'
+  exclude '.gitkeep'
+  doFirst {
+    manifest {
+      from rootProject.ext.standardManifest
+      def jarList = processJarListForManifest(sourceSets.main.compileClasspath)
+      if (!jarList.isEmpty()) {
+        attributes.put('Class-Path', jarList.join(' '))
+      }
+    }
+  }
+  doLast {
+    rootProject.ext.pgdevArtifactNames.add(archiveName)
+  }
+}
+task testJar(type: Jar) {
+  baseName 'atlasdb-dropwizard-tests-test'
+  from sourceSets.test.output
+  exclude '.gitkeep'
+  ext.is_test = true
+  doFirst {
+    manifest {
+      from rootProject.ext.standardManifest
+      def jarList = processJarListForManifest(sourceSets.test.compileClasspath)
+      if (!jarList.isEmpty()) {
+        attributes.put('Class-Path', jarList.join(' '))
+      }
+    }
+  }
+  doLast {
+    rootProject.ext.pgdevArtifactNames.add(archiveName)
+  }
+}
+assemble.dependsOn testJar
+task mainSourcesZip(type: Zip) {
+  baseName 'atlasdb-dropwizard-tests'
+  from sourceSets.main.allSource
+}
+assemble.dependsOn mainSourcesZip
+task testSourcesZip(type: Zip) {
+  baseName 'atlasdb-dropwizard-tests-test'
+  from sourceSets.test.allSource
+}
+assemble.dependsOn testSourcesZip
+dependencies {
+  test sourceSets.test.output
+  testCompile(group: 'io.dropwizard', name: 'dropwizard-testing', version: '0.8.2', configuration: 'default')
+  {
+    exclude(
+      module: 'junit',
+    )
+    exclude(
+      module: 'jsr305',
+    )
+    exclude(
+      module: 'slf4j-api',
+    )
+    exclude(
+      group: 'joda-time',
+      module: 'joda-time',
+    )
+    exclude(
+      module: 'jackson-core',
+    )
+    exclude(
+      module: 'jackson-databind',
+    )
+    exclude(
+      module: 'jackson-datatype-guava',
+    )
+  }
+  compile(group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-guava', version: '2.5.3', configuration: 'default')
+  {
+    exclude(
+      module: 'guava',
+    )
+  }
+  compile(group: 'com.google.guava', name: 'guava', version: '18.0', configuration: 'default')
+  compile(group: 'org.slf4j', name: 'slf4j-api', version: '1.7.5', configuration: 'default')
+  compile(group: 'com.google.code.findbugs', name: 'jsr305', version: '1.3.9', configuration: 'default')
+  compile(group: 'com.netflix.feign', name: 'feign-jackson', version: '8.6.1', configuration: 'default')
+  {
+    exclude(
+      module: 'jackson-databind',
+    )
+  }
+  compile(group: 'com.netflix.feign', name: 'feign-jaxrs', version: '8.6.1', configuration: 'default')
+  compile(group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.5.3', configuration: 'default')
+  compile(group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.5.3', configuration: 'default')
+  testCompile(group: 'org.hamcrest', name: 'hamcrest-core', version: '1.3', configuration: 'default')
+  testCompile(group: 'org.hamcrest', name: 'hamcrest-library', version: '1.3', configuration: 'default')
+  testCompile(group: 'junit', name: 'junit', version: '4.11', configuration: 'default')
+  compile(group: 'joda-time', name: 'joda-time', version: '2.9.2', configuration: 'default')
+  testCompile(project(path: ':atlasdb-tests-shared', configuration: 'test'))
+  compile(project(path: ':atlasdb-tests-shared', configuration: 'default'))
+}
+apply from: "${rootProject.projectDir}/after.gradle"

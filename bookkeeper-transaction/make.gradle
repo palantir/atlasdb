@@ -1,0 +1,78 @@
+// -*- groovy -*-
+// METABUILD GENERATED metaconf/metaconf.groovy + metaconf/project/make.gradle.tmpl -> atlasdb/bookkeeper-transaction/make.gradle
+apply from: "${rootProject.projectDir}/before.gradle"
+sourceSets.main.java.srcDirs=[ file('src/main/java') ]
+sourceSets.main.resources.srcDirs=[  ]
+sourceSets.test.java.srcDirs=[ file('src/test/java') ]
+sourceSets.test.resources.srcDirs=[  ]
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
+configurations.create('test').extendsFrom(configurations.testRuntime)
+jar {
+  baseName 'bookkeeper-transaction'
+  exclude '.gitkeep'
+  doFirst {
+    manifest {
+      from rootProject.ext.standardManifest
+      def jarList = processJarListForManifest(sourceSets.main.compileClasspath)
+      if (!jarList.isEmpty()) {
+        attributes.put('Class-Path', jarList.join(' '))
+      }
+    }
+  }
+  doLast {
+    rootProject.ext.pgdevArtifactNames.add(archiveName)
+  }
+}
+task testJar(type: Jar) {
+  baseName 'bookkeeper-transaction-test'
+  from sourceSets.test.output
+  exclude '.gitkeep'
+  ext.is_test = true
+  doFirst {
+    manifest {
+      from rootProject.ext.standardManifest
+      def jarList = processJarListForManifest(sourceSets.test.compileClasspath)
+      if (!jarList.isEmpty()) {
+        attributes.put('Class-Path', jarList.join(' '))
+      }
+    }
+  }
+  doLast {
+    rootProject.ext.pgdevArtifactNames.add(archiveName)
+  }
+}
+assemble.dependsOn testJar
+task mainSourcesZip(type: Zip) {
+  baseName 'bookkeeper-transaction'
+  from sourceSets.main.allSource
+}
+assemble.dependsOn mainSourcesZip
+task testSourcesZip(type: Zip) {
+  baseName 'bookkeeper-transaction-test'
+  from sourceSets.test.allSource
+}
+assemble.dependsOn testSourcesZip
+dependencies {
+  test sourceSets.test.output
+  compile(group: 'org.apache.bookkeeper', name: 'bookkeeper-server', version: '4.3.1', configuration: 'default')
+  {
+    exclude(
+      module: 'junit',
+    )
+  }
+  testCompile(group: 'junit', name: 'junit', version: '4.11', configuration: 'default')
+  testCompile(project(path: ':atlasdb-impl-shared', configuration: 'test'))
+  compile(project(path: ':atlasdb-impl-shared', configuration: 'default'))
+}
+configurations.all {
+  resolutionStrategy {
+    force 'org.slf4j:slf4j-api:1.7.5'
+    force 'log4j:log4j:1.2.16'
+    force 'org.slf4j:slf4j-log4j12:1.6.4'
+    force 'io.netty:netty:3.9.4.Final'
+    force 'commons-lang:commons-lang:2.6'
+    force 'commons-logging:commons-logging:1.1.1'
+  }
+}
+apply from: "${rootProject.projectDir}/after.gradle"

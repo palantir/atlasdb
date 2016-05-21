@@ -112,10 +112,10 @@ public abstract class AbstractExpiringStreamStore<ID> extends AbstractGenericStr
     private void storeBlocksFromStream(ID id, InputStream stream, long duration, TimeUnit durationUnit) throws IOException {
         // We need to use a buffered stream here because we assume each read will fill the whole buffer.
         stream = new BufferedInputStream(stream);
-        byte[] bytesToStore = new byte[BLOCK_SIZE_IN_BYTES];
         long blockNumber = 0;
 
         while (true) {
+            byte[] bytesToStore = new byte[BLOCK_SIZE_IN_BYTES];
             int length = ByteStreams.read(stream, bytesToStore, 0, BLOCK_SIZE_IN_BYTES);
             // Store only relevant data if it only filled a partial block
             if (length == 0) {

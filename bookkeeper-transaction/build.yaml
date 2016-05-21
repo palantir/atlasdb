@@ -1,0 +1,20 @@
+# -*- yaml -*-
+# METABUILD GENERATED metaconf/metaconf.groovy + metaconf/project/build.yaml.tmpl -> atlasdb/bookkeeper-transaction/build.yaml
+meta:
+  name: BookkeeperTransaction
+  use_legacy_revision: true
+  source_target_version: 1.8
+  skip_dist: true
+jars:
+  -
+    name: bookkeeper-transaction
+    src:
+      - src/main/java
+  -
+    name: bookkeeper-transaction-test
+    src:
+      - src/test/java
+    depends:
+      - bookkeeper-transaction
+    is_test: true
+    ivy_conf: test

@@ -1,0 +1,4 @@
+METABUILD GENERATED metaconf/metaconf.groovy + metaconf/project/gitkeep.tmpl -> atlasdb/atlasdb-cassandra/src/main/java/.gitkeep
+METABUILD GENERATED metaconf/metaconf.groovy + metaconf/project/gitkeep.tmpl -> atlasdb/atlasdb-cassandra/generated_src/.gitkeep
+METABUILD GENERATED metaconf/metaconf.groovy + metaconf/project/gitkeep.tmpl -> atlasdb/atlasdb-cassandra/src/test/java/.gitkeep
+METABUILD GENERATED metaconf/metaconf.groovy + metaconf/project/gitkeep.tmpl -> atlasdb/atlasdb-cassandra/src/main/resources/.gitkeep
