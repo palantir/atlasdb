@@ -33,6 +33,8 @@ v0.6.0
     *   - Type
         - Change
 
+    *   - |fixed|
+        - A potential race condition could cause timestamp allocation to never complete on a particular node.
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
@@ -62,19 +64,11 @@ v0.4.1
     *   - Type
         - Change
 
-    *   - |improved|
-        - We now have continuously updated release notes
-
-    *   - |improved|
-        - Atlas CLI code quality
-
     *   - |fixed|
-        - C* 2.x schema mutation bug `431 <https://github.com/palantir/atlasdb/issues/431>`_ (`444 <https://github.com/palantir/atlasdb/issues/444>`_ not yet fixed)
+        - Prevent _metadata tables from triggering the Cassandra 2.x schema mutation bug `431 <https://github.com/palantir/atlasdb/issues/431>`_ (`444 <https://github.com/palantir/atlasdb/issues/444>`_ not yet fixed)
 
     *   - |fixed|
         - Required projects are now Java 6 compliant
 
-    *   - |fixed|
-        - Fix potential race condition that could cause timestamp allocation to never complete.
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
