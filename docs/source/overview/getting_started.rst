@@ -18,6 +18,34 @@ Running from Source
 There are some examples of how to write queries in the `github examples
 directory <https://github.com/palantir/atlasdb/tree/develop/examples>`__.
 
+Running Tests Locally through Gradle
+====================================
+Running atlas tests require to have ``docker`` and ``docker-compose`` installed on the machine where they are running. Instructions for different operating systems can be found `here <https://docs.docker.com/engine/installation/>`__
+
+Instructions for MacOS
+----------------------
+Mac users will need to install `docker-machine` and a virtualization environment as well to be able to run docker. Virtualbox is used in the example Simplified set-up instructions are as follow:
+
+1. Install ``docker-machine``, ``docker`` and ``docker-compose``
+   
+   .. code:: bash
+   
+      brew install docker docker-machine docker-compose
+
+2. Set up a ``docker-machine`` for Virtualbox (named ``atlas`` in the example, name can be chosen freely by the user)
+
+   .. code:: bash
+   
+      docker-machine create atlas --driver virtualbox
+
+3. Set up the environment:
+   
+   .. code:: bash
+   
+      eval $(docker-machine env atlas)  
+   
+   These environment variables need to be always set before running the tests.
+
 Depending on Published Artifacts
 ================================
 
