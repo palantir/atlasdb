@@ -26,6 +26,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang.Validate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
@@ -49,7 +51,6 @@ import com.palantir.atlasdb.table.description.render.StreamStoreRenderer;
 import com.palantir.atlasdb.table.description.render.TableFactoryRenderer;
 import com.palantir.atlasdb.table.description.render.TableRenderer;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
-import com.palantir.common.base.Throwables;
 
 /**
  * Defines a schema.
@@ -61,6 +62,8 @@ import com.palantir.common.base.Throwables;
  * tables in a type-safe fashion.
  */
 public class Schema {
+    private static final Logger log = LoggerFactory.getLogger(AbstractDefinition.class);
+
     private final String name;
     private final String packageName;
     private final Namespace namespace;
@@ -182,7 +185,8 @@ public class Schema {
             try {
                 entry.getValue().validate();
             } catch (Exception e) {
-                Throwables.rewrapAndThrowIfInstance("Failed to validate table " + entry.getKey(), e, RuntimeException.class);
+                log.error("Failed to validate table {}.", entry.getKey());
+                throw e;
             }
         }
 
@@ -192,7 +196,8 @@ public class Schema {
                 d.toIndexMetadata(indexEntry.getKey()).getTableMetadata();
                 d.validate();
             } catch (Exception e) {
-                Throwables.rewrapAndThrowIfInstance("Failed to validate index " + indexEntry.getKey(), e, RuntimeException.class);
+                log.error("Failed to validate index {}.", indexEntry.getKey());
+                throw e;
             }
         }
 

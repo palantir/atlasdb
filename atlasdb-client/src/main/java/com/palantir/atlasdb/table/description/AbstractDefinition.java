@@ -15,9 +15,7 @@
  */
 package com.palantir.atlasdb.table.description;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePriority;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ExpirationStrategy;
@@ -26,9 +24,6 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrat
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
 abstract class AbstractDefinition {
-
-    private static final Logger log = LoggerFactory.getLogger(AbstractDefinition.class);
-
     private static final ImmutableSet<ValueType> CRITICAL_ROW_TYPES = ImmutableSet.of(
             ValueType.VAR_LONG,
             ValueType.VAR_SIGNED_LONG,
@@ -121,15 +116,16 @@ abstract class AbstractDefinition {
 
     protected abstract ConflictHandler defaultConflictHandler();
 
-    protected static boolean canHotspotIfFirstRowComp(NameComponentDescription firstRowComp) {
-        if (CRITICAL_ROW_TYPES.contains(firstRowComp.getType())) {
-            log.error("First row component {} of type {} might cause hot-spotting with the partitioner in Cassandra. " +
-                            "If you anticipate never running on Cassandra or have explicitly handled potential hot-spotting issues " +
-                            "then this error can be safely ignored by adding ignoreHotspottingChecks() to the table schema.",
-                    firstRowComp.getComponentName(), firstRowComp.getType());
-            return true;
+    void validateFirstRowComp(NameComponentDescription comp) {
+        if (ignoreHotspottingChecks) {
+            return;
         }
-        return false;
+
+        Preconditions.checkState(!CRITICAL_ROW_TYPES.contains(comp.getType()),
+                "First row component %s of type %s might cause hot-spotting with the partitioner in Cassandra. " +
+                        "If you anticipate never running on Cassandra or have explicitly handled potential hot-spotting issues " +
+                        "then this error can be safely ignored by adding ignoreHotspottingChecks() to the table schema.",
+                comp.getComponentName(), comp.getType());
     }
 }
 

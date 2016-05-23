@@ -174,11 +174,8 @@ public class IndexDefinition extends AbstractDefinition {
     }
 
     public void validate() {
-        if (!ignoreHotspottingChecks) {
-            Preconditions.checkState(!rowComponents.isEmpty(), "No row components specified.");
-            Preconditions.checkState(!canHotspotIfFirstRowComp(rowComponents.get(0).getRowKeyDescription()),
-                    "Hot-spotting check failed! See the error log for more details.");
-        }
+        Preconditions.checkState(!rowComponents.isEmpty(), "No row components specified.");
+        validateFirstRowComp(rowComponents.get(0).getRowKeyDescription());
     }
 
     private State state = State.NONE;

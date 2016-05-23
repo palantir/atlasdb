@@ -219,11 +219,8 @@ public class TableDefinition extends AbstractDefinition {
     public void validate() {
         toTableMetadata();
         getConstraintMetadata();
-        if (!ignoreHotspottingChecks) {
-            Preconditions.checkState(!rowNameComponents.isEmpty(), "No row name components defined.");
-            Preconditions.checkState(!canHotspotIfFirstRowComp(rowNameComponents.get(0)),
-                    "Hot-spotting check failed! See the error log for more details.");
-        }
+        Preconditions.checkState(!rowNameComponents.isEmpty(), "No row name components defined.");
+        validateFirstRowComp(rowNameComponents.get(0));
     }
 
     private enum State {
