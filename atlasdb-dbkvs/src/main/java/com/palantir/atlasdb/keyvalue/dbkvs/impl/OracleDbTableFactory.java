@@ -35,13 +35,16 @@ import com.palantir.nexus.db.sql.AgnosticResultSet;
 public class OracleDbTableFactory implements DbTableFactory {
     private final Cache<String, TableSize> tableSizeByTableName = CacheBuilder.newBuilder().build();
     private final DbKeyValueServiceConfiguration config;
+    private final JdbcHandler jdbcHandler;
     private final Supplier<Long> overflowIds;
     private final OverflowMigrationState migrationState;
 
     public OracleDbTableFactory(DbKeyValueServiceConfiguration config,
+                                JdbcHandler jdbcHandler,
                                 Supplier<Long> overflowIds,
                                 OverflowMigrationState migrationState) {
         this.config = config;
+        this.jdbcHandler = jdbcHandler;
         this.overflowIds = overflowIds;
         this.migrationState = migrationState;
     }
@@ -57,7 +60,7 @@ public class OracleDbTableFactory implements DbTableFactory {
     }
 
     @Override
-    public DbReadTable createRead(String tableName, ConnectionSupplier conns, JdbcHandler jdbcHandler) {
+    public DbReadTable createRead(String tableName, ConnectionSupplier conns) {
         TableSize tableSize = getTableSize(conns, tableName);
         DbQueryFactory queryFactory;
         switch (tableSize) {

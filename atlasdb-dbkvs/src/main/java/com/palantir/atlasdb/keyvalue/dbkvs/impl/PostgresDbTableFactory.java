@@ -25,7 +25,6 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresDdlTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresQueryFactory;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.db.oracle.JdbcHandler;
 import com.palantir.nexus.db.DBType;
 
 public class PostgresDbTableFactory implements DbTableFactory {
@@ -60,7 +59,7 @@ public class PostgresDbTableFactory implements DbTableFactory {
     }
 
     @Override
-    public DbReadTable createRead(String tableName, ConnectionSupplier conns, JdbcHandler jdbcHandler) {
+    public DbReadTable createRead(String tableName, ConnectionSupplier conns) {
         return new BatchedDbReadTable(conns, new PostgresQueryFactory(tableName), exec, config);
     }
 
