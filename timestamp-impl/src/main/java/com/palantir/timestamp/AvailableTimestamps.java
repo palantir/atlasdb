@@ -85,13 +85,16 @@ public class AvailableTimestamps {
         }
     }
 
-    private synchronized void handleAllocationFailure(Throwable failure) {
-        if (failure instanceof MultipleRunningTimestampServiceError) {
-            throw new ServiceNotAvailableException("This server is no longer valid because another is running.", failure);
+    private synchronized void handleAllocationFailure(Throwable newFailure) {
+        Throwable oldFailure = previousAllocationFailure;
+        previousAllocationFailure = newFailure;
+
+        if (newFailure instanceof MultipleRunningTimestampServiceError) {
+            throw new ServiceNotAvailableException("This server is no longer valid because another is running.", newFailure);
         }
 
-        if (failure != null) {
-            throw new RuntimeException("failed to allocate more timestamps", failure);
+        if (newFailure != null) {
+            throw new RuntimeException("failed to allocate more timestamps", newFailure);
         }
 
         if (Thread.interrupted()) {
@@ -99,14 +102,12 @@ public class AvailableTimestamps {
             throw new PalantirInterruptedException("Interrupted while waiting for timestamp allocation.");
         }
 
-        if (previousAllocationFailure != null
-                && failure.getClass().equals(previousAllocationFailure.getClass())) {
+        if (oldFailure != null
+                && newFailure.getClass().equals(oldFailure.getClass())) {
             // QA-75825: don't keep logging error if we keep failing to allocate.
-            log.info("Throwable while allocating timestamps.", failure);
+            log.info("Throwable while allocating timestamps.", newFailure);
         } else {
-            log.error("Throwable while allocating timestamps.", failure);
+            log.error("Throwable while allocating timestamps.", newFailure);
         }
-
-        previousAllocationFailure = failure;
     }
 }
