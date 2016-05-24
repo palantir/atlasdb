@@ -22,23 +22,18 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import org.junit.Before;
 import org.junit.Test;
 
 public class PersistentTimestampServiceTest {
 
     private static final long INITIAL_TIMESTAMP = 12345L;
+    private static final long TIMESTAMP = 100 * 1000;
+    private static final TimestampRange SINGLE_TIMESTAMP_RANGE = TimestampRange.createInclusiveRange(TIMESTAMP, TIMESTAMP);
+
     private static final TimestampRange RANGE = TimestampRange.createInclusiveRange(100, 200);
 
     private AvailableTimestamps availableTimestamps = mock(AvailableTimestamps.class);
     private PersistentTimestampService timestampService = new PersistentTimestampService(availableTimestamps);
-
-    @Before
-    public void setupAvailableTimestamps() {
-        when(availableTimestamps.lastHandedOut()).thenReturn(INITIAL_TIMESTAMP);
-        when(availableTimestamps.handOut(INITIAL_TIMESTAMP + 1)).thenReturn(
-                TimestampRange.createInclusiveRange(INITIAL_TIMESTAMP + 1, INITIAL_TIMESTAMP + 1));
-    }
 
     @Test
     public void
@@ -49,6 +44,8 @@ public class PersistentTimestampServiceTest {
 
     @Test
     public void shouldRequestABufferRefreshAfterEveryTimestampRequest() throws InterruptedException {
+        when(availableTimestamps.handOutTimestamps(1)).thenReturn(SINGLE_TIMESTAMP_RANGE);
+
         timestampService.getFreshTimestamp();
         Thread.sleep(10);
         verify(availableTimestamps).refreshBuffer();
@@ -56,11 +53,11 @@ public class PersistentTimestampServiceTest {
 
     @Test
     public void shouldLimitRequestsTo10000Timestamps() throws InterruptedException {
-        when(availableTimestamps.handOut(anyLong())).thenReturn(RANGE);
+        when(availableTimestamps.handOutTimestamps(anyLong())).thenReturn(RANGE);
 
         timestampService.getFreshTimestamps(20000);
 
-        verify(availableTimestamps).handOut(INITIAL_TIMESTAMP + 10000);
+        verify(availableTimestamps).handOutTimestamps(10000);
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -70,21 +67,17 @@ public class PersistentTimestampServiceTest {
 
     @Test
     public void shouldRequestTheRightTimestampFromTheAvailableTimestamps() {
-        when(availableTimestamps.handOut(INITIAL_TIMESTAMP + 10))
-                .thenReturn(RANGE);
+        when(availableTimestamps.handOutTimestamps(10)).thenReturn(RANGE);
+
         assertThat(timestampService.getFreshTimestamps(10), is(RANGE));
     }
 
     @Test
     public void shouldRequestOnlyRequestASingleTimestampIfOnGetFreshTimestamp() {
-        when(availableTimestamps.handOut(INITIAL_TIMESTAMP + 1))
-                .thenReturn(singletonRange(INITIAL_TIMESTAMP + 1));
+        when(availableTimestamps.handOutTimestamps(1)).thenReturn(SINGLE_TIMESTAMP_RANGE);
 
-        assertThat(timestampService.getFreshTimestamp(), is(INITIAL_TIMESTAMP + 1));
+        assertThat(timestampService.getFreshTimestamp(), is(TIMESTAMP));
     }
 
-    private TimestampRange singletonRange(long value) {
-        return TimestampRange.createInclusiveRange(value, value);
-    }
 }
 

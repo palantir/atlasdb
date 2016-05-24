@@ -28,7 +28,7 @@ import com.palantir.exception.PalantirInterruptedException;
 public class AvailableTimestamps {
     static final long ALLOCATION_BUFFER_SIZE = 1000 * 1000;
     private static final long MINIMUM_BUFFER = ALLOCATION_BUFFER_SIZE / 2;
-    private static final long MAX_RANGE_SIZE = 10 * 1000;
+    private static final long MAX_TIMESTAMPS_TO_HAND_OUT = 10 * 1000;
 
     private static final Logger log = LoggerFactory.getLogger(AvailableTimestamps.class);
 
@@ -41,27 +41,27 @@ public class AvailableTimestamps {
         this.upperLimit = upperLimit;
     }
 
-    public synchronized TimestampRange handOutTimestamps(int numberToHandOut) {
+    public synchronized TimestampRange handOutTimestamps(long numberToHandOut) {
+        checkArgument(
+                numberToHandOut < MAX_TIMESTAMPS_TO_HAND_OUT,
+                "Can only hand out %s timestamps at a time, but %s were requested",
+                MAX_TIMESTAMPS_TO_HAND_OUT, numberToHandOut);
+
         return handOut(lastHandedOut() + numberToHandOut);
     }
 
-    public synchronized TimestampRange handOut(long timestamp) {
-        TimestampRange desiredRange = TimestampRange.createInclusiveRange(lastReturnedTimestamp.get() + 1, timestamp);
-
+    private synchronized TimestampRange handOut(long timestamp) {
         checkArgument(
                 timestamp > lastHandedOut(),
                 "Could not hand out timestamp '%s' as it was earlier than the last handed out timestamp: %s",
                 timestamp, lastHandedOut());
 
-        checkArgument(
-                desiredRange.size() < MAX_RANGE_SIZE,
-                "Can only hand out %s timestamps at a time. Fulfilling the request for %s would require handing out %s timestamps",
-                MAX_RANGE_SIZE, timestamp, desiredRange.size());
+        TimestampRange rangeToHandOut = TimestampRange.createInclusiveRange(lastReturnedTimestamp.get() + 1, timestamp);
 
         allocateEnoughTimestampsFor(timestamp);
         lastReturnedTimestamp.increaseToAtLeast(timestamp);
 
-        return desiredRange;
+        return rangeToHandOut;
     }
 
     public synchronized long lastHandedOut() {

@@ -64,7 +64,7 @@ public class AvailableTimestampsTest {
 
     @Test public void
     shouldRefreshTheBufferIfHalfOfItIsUsedUp() {
-        availableTimestamps.handOut(UPPER_LIMIT - 10);
+        availableTimestamps.handOutTimestamps(INITIAL_REMAINING_TIMESTAMPS - 10);
         availableTimestamps.refreshBuffer();
 
         verify(persistentUpperLimit).increaseToAtLeast(
@@ -94,15 +94,10 @@ public class AvailableTimestampsTest {
     }
 
     @Test public void
-    shouldHandOutTheCorrectRange() {
-        final TimestampRange timestampRange = availableTimestamps.handOut(LAST_RETURNED + 10);
-        assertThat(timestampRange.getLowerBound(), is(LAST_RETURNED + 1));
-        assertThat(timestampRange.getUpperBound(), is(LAST_RETURNED + 10));
-    }
-
-    @Test public void
     shouldIncreaseTheMaximumToHandOutNewTimestamps() {
-        assertThat(availableTimestamps.handOut(UPPER_LIMIT + 10).getUpperBound(), is(UPPER_LIMIT + 10));
+        assertThat(
+                availableTimestamps.handOutTimestamps(INITIAL_REMAINING_TIMESTAMPS + 10).getUpperBound(),
+                is(UPPER_LIMIT + 10));
 
         verify(persistentUpperLimit).increaseToAtLeast(UPPER_LIMIT + 10);
     }
@@ -111,18 +106,9 @@ public class AvailableTimestampsTest {
     shouldNotHandOutMoreThanTenThousandTimestampsAtATime() {
         exception.expect(IllegalArgumentException.class);
         exception.expectMessage("Can only hand out 10000 timestamps at a time");
-        exception.expectMessage("1050000");
+        exception.expectMessage("20000");
 
-        availableTimestamps.handOut(1050000);
-    }
-
-    @Test public void
-    shouldNotHandOutATimestampEarlierThanTheLastHandedOutTimestamp() {
-        exception.expect(IllegalArgumentException.class);
-        exception.expectMessage("Could not hand out timestamp '1'");
-        exception.expectMessage("earlier than the last handed out timestamp: " + LAST_RETURNED);
-
-        availableTimestamps.handOut(1);
+        availableTimestamps.handOutTimestamps(20*1000);
     }
 
     @Test public void
