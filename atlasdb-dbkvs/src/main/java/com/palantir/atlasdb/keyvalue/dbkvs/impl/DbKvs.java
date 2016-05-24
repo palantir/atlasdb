@@ -70,7 +70,7 @@ import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.AgnosticLightResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
-import com.palantir.nexus.db.sql.PalantirSqlConnection;
+import com.palantir.nexus.db.sql.SqlConnection;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -78,12 +78,12 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 public class DbKvs extends AbstractKeyValueService {
     private static final Logger log = LoggerFactory.getLogger(DbKvs.class);
     private final DbTableFactory dbTables;
-    private final PalantirSqlConnectionSupplier connections;
+    private final SqlConnectionSupplier connections;
     private final JdbcHandler jdbcHandler;
 
     public DbKvs(ExecutorService executor,
                  DbTableFactory dbTables,
-                 PalantirSqlConnectionSupplier connections,
+                 SqlConnectionSupplier connections,
                  JdbcHandler jdbcHandler) {
         super(executor);
         this.dbTables = dbTables;
@@ -601,9 +601,9 @@ public class DbKvs extends AbstractKeyValueService {
 
     @Override
     public Set<TableReference> getAllTableNames() {
-        return run(new Function<PalantirSqlConnection, Set<TableReference>>() {
+        return run(new Function<SqlConnection, Set<TableReference>>() {
             @Override
-            public Set<TableReference> apply(PalantirSqlConnection conn) {
+            public Set<TableReference> apply(SqlConnection conn) {
                 AgnosticResultSet results = conn.selectResultSetUnregisteredQuery(
                         "SELECT table_name FROM pt_metropolis_table_meta");
                 Set<TableReference> ret = Sets.newHashSetWithExpectedSize(results.size());
@@ -638,10 +638,10 @@ public class DbKvs extends AbstractKeyValueService {
 
     @Override
     public Map<TableReference, byte[]> getMetadataForTables() {
-        return run(new Function<PalantirSqlConnection, Map<TableReference, byte[]>>() {
+        return run(new Function<SqlConnection, Map<TableReference, byte[]>>() {
             @Override
             @SuppressWarnings("deprecation")
-            public Map<TableReference, byte[]> apply(PalantirSqlConnection conn) {
+            public Map<TableReference, byte[]> apply(SqlConnection conn) {
                 AgnosticResultSet results = conn.selectResultSetUnregisteredQuery(
                         "SELECT table_name, value FROM pt_metropolis_table_meta");
                 Map<TableReference, byte[]> ret = Maps.newHashMapWithExpectedSize(results.size());
@@ -709,8 +709,8 @@ public class DbKvs extends AbstractKeyValueService {
         });
     }
 
-    private <T> T run(Function<PalantirSqlConnection, T> runner) {
-        PalantirSqlConnection conn = connections.get();
+    private <T> T run(Function<SqlConnection, T> runner) {
+        SqlConnection conn = connections.get();
         try {
             return runner.apply(conn);
         } finally {
@@ -761,7 +761,7 @@ public class DbKvs extends AbstractKeyValueService {
     private <T> T runWriteForceAutocommit(final TableReference tableRef, final Function<DbWriteTable, T> runner) {
         final ConnectionSupplier conns = new ConnectionSupplier(connections);
         try {
-            PalantirSqlConnection conn = conns.get();
+            SqlConnection conn = conns.get();
             boolean autocommit;
             try {
                 autocommit = conn.getUnderlyingConnection().getAutoCommit();
@@ -791,7 +791,7 @@ public class DbKvs extends AbstractKeyValueService {
         Thread writeThread = new Thread(new Runnable() {
             @Override
             public void run() {
-                PalantirSqlConnection freshConn = conns.getFresh();
+                SqlConnection freshConn = conns.getFresh();
                 try {
                     result.set(runner.apply(dbTables.createWrite(tableRef.getQualifiedName(), new ConnectionSupplier(Suppliers.ofInstance(freshConn)))));
                 } finally {

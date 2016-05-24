@@ -15,8 +15,6 @@
  */
 package com.palantir.nexus.db.sql;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -25,21 +23,14 @@ import com.palantir.exception.PalantirInterruptedException;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.SQLString.RegisteredSQLString;
 
-public interface PalantirSqlConnection {
-    public void executeUnregisteredQuery(String sql, Object... vs) throws PalantirSqlException;
+public interface PalantirSqlConnection extends SqlConnection {
     public int executeUnregisteredQueryCountRows(String sql, Object... vs) throws PalantirSqlException;
-    public PreparedStatement execute(String key, Object... vs) throws PalantirSqlException;
-    public PreparedStatement execute(RegisteredSQLString sql, Object... vs) throws PalantirSqlException;
     public int executeCountRows(String key, Object... vs) throws PalantirSqlException;
     public int executeCountRows(RegisteredSQLString sql, Object... vs) throws PalantirSqlException;
-    public long selectCount(String tableName) throws PalantirSqlException, PalantirInterruptedException;
-    public long selectCount(String tableName, String whereClause, Object... vs) throws PalantirSqlException, PalantirInterruptedException;
-    public boolean selectExistsUnregisteredQuery(String sql, Object... vs) throws PalantirSqlException, PalantirInterruptedException;
-    public boolean selectExists(String key, Object... vs) throws PalantirSqlException, PalantirInterruptedException;
-    public boolean selectExists(final RegisteredSQLString sql, Object... vs) throws PalantirSqlException, PalantirInterruptedException;
-    public int selectIntegerUnregisteredQuery(String sql, Object... vs) throws PalantirSqlException, PalantirInterruptedException;
-    public int selectInteger(String key, Object... vs) throws PalantirSqlException, PalantirInterruptedException;
-    public int selectInteger(final RegisteredSQLString sql, Object... vs) throws PalantirSqlException, PalantirInterruptedException;
+    public int updateCountRowsUnregisteredQuery(String sql, Object... vs) throws PalantirSqlException;
+    public int insertOneCountRowsUnregisteredQuery(String sql, Object... vs) throws PalantirSqlException;
+    public int insertOneCountRows(String key, Object... vs) throws PalantirSqlException;
+    public int insertOneCountRows(final RegisteredSQLString sql, final Object... vs) throws PalantirSqlException;
 
     /**
      * Returns the long value of the first field selected given a query.
@@ -97,33 +88,6 @@ public interface PalantirSqlConnection {
      */
     public Long selectLongWithDefault(RegisteredSQLString sql, Long defaultVal, Object... vs) throws PalantirSqlException, PalantirInterruptedException;
 
-    public AgnosticLightResultSet selectLightResultSetUnregisteredQuery(String sql, Object... vs) throws PalantirSqlException, PalantirInterruptedException;
-    public AgnosticLightResultSet selectLightResultSet(String key, Object... vs) throws PalantirSqlException, PalantirInterruptedException;
-    public AgnosticLightResultSet selectLightResultSet(RegisteredSQLString sql, Object... vs) throws PalantirSqlException, PalantirInterruptedException;
-    public AgnosticResultSet selectResultSetUnregisteredQuery(String sql, Object...vs) throws PalantirSqlException, PalantirInterruptedException;
-    public AgnosticResultSet selectResultSet(String key, Object... vs) throws PalantirSqlException, PalantirInterruptedException;
-    public AgnosticResultSet selectResultSet(RegisteredSQLString sql, Object... vs) throws PalantirSqlException, PalantirInterruptedException;
-    public boolean updateUnregisteredQuery(String sql, Object... vs) throws PalantirSqlException;
-    public boolean update(String key, Object... vs) throws PalantirSqlException;
-    public boolean update(final RegisteredSQLString sql, Object... vs) throws PalantirSqlException;
-    public int updateCountRowsUnregisteredQuery(String sql, Object... vs) throws PalantirSqlException;
-    public int updateCountRows(String key, Object... vs) throws PalantirSqlException;
-    public int updateCountRows(RegisteredSQLString sql, Object... vs) throws PalantirSqlException;
-    public void updateManyUnregisteredQuery(String sql) throws PalantirSqlException;
-    public void updateManyUnregisteredQuery(String sql, Iterable<Object[]> list) throws PalantirSqlException;
-    public void updateMany(String key) throws PalantirSqlException;
-    public void updateMany(String key, Iterable<Object[]> list) throws PalantirSqlException;
-    public void updateMany(RegisteredSQLString sql) throws PalantirSqlException;
-    public void updateMany(RegisteredSQLString sql, Iterable<Object[]> list) throws PalantirSqlException;
-    public boolean insertOneUnregisteredQuery(String sql, Object... vs) throws PalantirSqlException;
-    public boolean insertOne(String key, Object... vs) throws PalantirSqlException;
-    public boolean insertOne(RegisteredSQLString sql, Object... vs) throws PalantirSqlException;
-    public int insertOneCountRowsUnregisteredQuery(String sql, Object... vs) throws PalantirSqlException;
-    public int insertOneCountRows(String key, Object... vs) throws PalantirSqlException;
-    public int insertOneCountRows(final RegisteredSQLString sql, final Object... vs) throws PalantirSqlException;
-    public boolean insertManyUnregisteredQuery(String sql, Iterable<Object[]> list) throws PalantirSqlException;
-    public boolean insertMany(String key, Iterable<Object[]> list) throws PalantirSqlException;
-    public boolean insertMany(RegisteredSQLString sql, Iterable<Object[]> list) throws PalantirSqlException;
     /**
      * Clears out any existing rows in PT_TEMP_IDS and inserts the caller's list of temp ids.
      * All users of this temp table should use this function, so that multiple uses within the
@@ -171,6 +135,4 @@ public interface PalantirSqlConnection {
      * @return the current wall clock time.
      */
     public long getTimestamp();
-
-    public Connection getUnderlyingConnection() throws PalantirSqlException;
 }

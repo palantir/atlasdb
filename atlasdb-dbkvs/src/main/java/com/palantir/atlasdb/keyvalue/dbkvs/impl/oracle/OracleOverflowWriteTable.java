@@ -36,7 +36,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbWriteTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.ExceptionCheck;
-import com.palantir.nexus.db.sql.PalantirSqlConnection;
+import com.palantir.nexus.db.sql.SqlConnection;
 
 public class OracleOverflowWriteTable implements DbWriteTable {
     private static final Logger log = LoggerFactory.getLogger(OracleOverflowWriteTable.class);
@@ -174,7 +174,7 @@ public class OracleOverflowWriteTable implements DbWriteTable {
         default:
             throw new EnumConstantNotPresentException(OverflowMigrationState.class, migrationState.name());
         }
-        PalantirSqlConnection conn = conns.get();
+        SqlConnection conn = conns.get();
         try {
             log.info("Got connection for delete on table {}: {}, autocommit={}", tableName, conn.getUnderlyingConnection(), conn.getUnderlyingConnection().getAutoCommit());
         } catch (PalantirSqlException e) {
