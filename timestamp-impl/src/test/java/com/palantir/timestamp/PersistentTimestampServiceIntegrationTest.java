@@ -15,7 +15,7 @@
  */
 package com.palantir.timestamp;
 
-import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.concurrent.TimeUnit.MINUTES;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeoutException;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -99,17 +100,17 @@ public class PersistentTimestampServiceIntegrationTest {
     }
 
     @Test public void
-    canReturnManyUniqueTimestampsInParallel() throws InterruptedException {
-        Set<Long> timestamps = new ConcurrentSkipListSet<>();
+    canReturnManyUniqueTimestampsInParallel() throws InterruptedException, TimeoutException {
+        Set<Long> uniqueTimestamps = new ConcurrentSkipListSet<>();
 
         repeat(TWO_MILLION, new Runnable() {
             @Override
             public void run() {
-                timestamps.add(persistentTimestampService.getFreshTimestamp());
+                uniqueTimestamps.add(persistentTimestampService.getFreshTimestamp());
             }
         });
 
-        assertThat(timestamps.size(), is((int) TWO_MILLION));
+        assertThat(uniqueTimestamps.size(), is((int) TWO_MILLION));
     }
 
     @Test(expected = ServiceNotAvailableException.class) public void
@@ -140,14 +141,17 @@ public class PersistentTimestampServiceIntegrationTest {
         assertThat(timestampBoundStore.numberOfAllocations(), is(lessThan(2)));
     }
 
-    private void repeat(long count, Runnable task) throws InterruptedException {
+    private void repeat(long count, Runnable task) throws InterruptedException, TimeoutException {
         for(int i = 0; i < count; i++) {
             executor.submit(task);
         }
 
         executor.shutdown();
-        executor.awaitTermination(10, SECONDS);
+        executor.awaitTermination(1, MINUTES);
 
+        if(!executor.isTerminated()) {
+            throw new TimeoutException("Timed out waiting for the executor to terminate");
+        }
     }
 
     private void getTimestampAndIgnoreErrors() {
