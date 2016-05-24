@@ -112,6 +112,11 @@ public class AvailableTimestampsTest {
     }
 
     @Test public void
+    shouldHandOutExactlyTenThousandTimestamps() {
+        availableTimestamps.handOutTimestamps(10*1000);
+    }
+
+    @Test public void
     canFastForwardToANewMinimumTimestamp() {
         long newMinimum = 2 * UPPER_LIMIT;
         availableTimestamps.fastForwardTo(newMinimum);

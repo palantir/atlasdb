@@ -59,7 +59,7 @@ public class PersistentTimestampServiceIntegrationTest {
     }
 
     @Test public void
-    canRequestTimestampRangesInOrder() {
+    timestampRangesAreReturnedInNonOverlappingOrder() {
         List<TimestampRange> timestampRanges = new ArrayList<>();
 
         timestampRanges.add(persistentTimestampService.getFreshTimestamps(10));
@@ -79,6 +79,14 @@ public class PersistentTimestampServiceIntegrationTest {
         }
 
         assertThat(persistentTimestampService.getFreshTimestamp(), is(ONE_MILLION + 1));
+    }
+
+    @Test public void
+    shouldLimitRequestsForMoreThanTenThousandTimestamps() {
+        assertThat(
+                persistentTimestampService.getFreshTimestamps(100 * 1000).size(),
+                is(10 * 1000L)
+        );
     }
 
     @Test public void

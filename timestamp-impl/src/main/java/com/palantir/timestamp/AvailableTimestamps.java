@@ -43,7 +43,7 @@ public class AvailableTimestamps {
 
     public synchronized TimestampRange handOutTimestamps(long numberToHandOut) {
         checkArgument(
-                numberToHandOut < MAX_TIMESTAMPS_TO_HAND_OUT,
+                numberToHandOut <= MAX_TIMESTAMPS_TO_HAND_OUT,
                 "Can only hand out %s timestamps at a time, but %s were requested",
                 MAX_TIMESTAMPS_TO_HAND_OUT, numberToHandOut);
 
