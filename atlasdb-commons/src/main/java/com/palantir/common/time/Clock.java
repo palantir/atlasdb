@@ -24,5 +24,4 @@ public interface Clock {
      *         System.currentTimeMillis().
      */
     public long getTimeMillis();
-
 }
