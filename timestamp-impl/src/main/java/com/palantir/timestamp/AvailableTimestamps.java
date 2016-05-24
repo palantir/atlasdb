@@ -50,16 +50,16 @@ public class AvailableTimestamps {
         return handOutTimestamp(lastHandedOut() + numberToHandOut);
     }
 
-    private synchronized TimestampRange handOutTimestamp(long timestamp) {
+    private synchronized TimestampRange handOutTimestamp(long targetTimestamp) {
         checkArgument(
-                timestamp > lastHandedOut(),
+                targetTimestamp > lastHandedOut(),
                 "Could not hand out timestamp '%s' as it was earlier than the last handed out timestamp: %s",
-                timestamp, lastHandedOut());
+                targetTimestamp, lastHandedOut());
 
-        TimestampRange rangeToHandOut = TimestampRange.createInclusiveRange(lastReturnedTimestamp.get() + 1, timestamp);
+        TimestampRange rangeToHandOut = TimestampRange.createInclusiveRange(lastReturnedTimestamp.get() + 1, targetTimestamp);
 
-        allocateEnoughTimestampsFor(timestamp);
-        lastReturnedTimestamp.increaseToAtLeast(timestamp);
+        allocateEnoughTimestampsToHandOut(targetTimestamp);
+        lastReturnedTimestamp.increaseToAtLeast(targetTimestamp);
 
         return rangeToHandOut;
     }
@@ -72,7 +72,7 @@ public class AvailableTimestamps {
         long buffer = upperLimit.get() - lastReturnedTimestamp.get();
 
         if(buffer < MINIMUM_BUFFER || !upperLimit.hasIncreasedWithin(1, MINUTES)) {
-            allocateEnoughTimestampsFor(lastHandedOut() + ALLOCATION_BUFFER_SIZE);
+            allocateEnoughTimestampsToHandOut(lastHandedOut() + ALLOCATION_BUFFER_SIZE);
         }
     }
 
@@ -81,7 +81,7 @@ public class AvailableTimestamps {
         upperLimit.increaseToAtLeast(newMinimum + ALLOCATION_BUFFER_SIZE);
     }
 
-    private void allocateEnoughTimestampsFor(long timestamp) {
+    private void allocateEnoughTimestampsToHandOut(long timestamp) {
         try {
             upperLimit.increaseToAtLeast(timestamp);
         } catch(Throwable e) {
