@@ -64,7 +64,7 @@ public class AvailableTimestamps {
         return rangeToHandOut;
     }
 
-    public synchronized long lastHandedOut() {
+    private long lastHandedOut() {
         return lastReturnedTimestamp.get();
     }
 
