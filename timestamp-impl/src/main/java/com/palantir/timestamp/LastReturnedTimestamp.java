@@ -22,11 +22,6 @@ public class LastReturnedTimestamp {
         this.timestamp = timestamp;
     }
 
-    public synchronized void set(long newTimestamp) {
-        this.timestamp = newTimestamp;
-
-    }
-
     public synchronized void increaseToAtLeast(long newTimestamp) {
         this.timestamp = Math.max(this.timestamp, newTimestamp);
     }
