@@ -29,17 +29,18 @@ public class PersistentTimestampService implements TimestampService {
     private final ExecutorService executor;
     private final AvailableTimestamps availableTimestamps;
 
-    public PersistentTimestampService(AvailableTimestamps availableTimestamps) {
+    public PersistentTimestampService(AvailableTimestamps availableTimestamps, ExecutorService executor) {
         this.availableTimestamps = availableTimestamps;
-        executor = PTExecutors.newSingleThreadExecutor(PTExecutors.newThreadFactory("Timestamp allocator", Thread.NORM_PRIORITY, true));
+        this.executor = executor;
     }
 
     public static PersistentTimestampService create(TimestampBoundStore tbs) {
         PersistentUpperLimit upperLimit = new PersistentUpperLimit(tbs);
         LastReturnedTimestamp lastReturned = new LastReturnedTimestamp(upperLimit.get());
         AvailableTimestamps availableTimestamps = new AvailableTimestamps(lastReturned, upperLimit);
+        ExecutorService executor = PTExecutors.newSingleThreadExecutor(PTExecutors.newThreadFactory("Timestamp allocator", Thread.NORM_PRIORITY, true));
 
-        return new PersistentTimestampService(availableTimestamps);
+        return new PersistentTimestampService(availableTimestamps, executor);
     }
 
     @Override

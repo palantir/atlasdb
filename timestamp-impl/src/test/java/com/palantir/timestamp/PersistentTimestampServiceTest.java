@@ -15,12 +15,17 @@
  */
 package com.palantir.timestamp;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import org.junit.Test;
 
@@ -33,7 +38,8 @@ public class PersistentTimestampServiceTest {
     private static final TimestampRange RANGE = TimestampRange.createInclusiveRange(100, 200);
 
     private AvailableTimestamps availableTimestamps = mock(AvailableTimestamps.class);
-    private PersistentTimestampService timestampService = new PersistentTimestampService(availableTimestamps);
+    private ExecutorService executor = Executors.newSingleThreadExecutor();
+    private PersistentTimestampService timestampService = new PersistentTimestampService(availableTimestamps, executor);
 
     @Test
     public void
@@ -47,7 +53,7 @@ public class PersistentTimestampServiceTest {
         when(availableTimestamps.handOut(1)).thenReturn(SINGLE_TIMESTAMP_RANGE);
 
         timestampService.getFreshTimestamp();
-        Thread.sleep(10);
+        waitForExecutorToFinish();
         verify(availableTimestamps).refreshBuffer();
     }
 
@@ -77,6 +83,11 @@ public class PersistentTimestampServiceTest {
         when(availableTimestamps.handOut(1)).thenReturn(SINGLE_TIMESTAMP_RANGE);
 
         assertThat(timestampService.getFreshTimestamp(), is(TIMESTAMP));
+    }
+
+    private void waitForExecutorToFinish() throws InterruptedException {
+        executor.shutdown();
+        executor.awaitTermination(10, SECONDS);
     }
 
 }
