@@ -19,6 +19,7 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.longThat;
@@ -35,6 +36,7 @@ public class AvailableTimestampsTest {
 
     public static final long UPPER_LIMIT = 1000 * 1000;
     public static final long LAST_RETURNED =  UPPER_LIMIT - 1000;
+    public static final long INITIAL_REMAINING_TIMESTAMPS = UPPER_LIMIT - LAST_RETURNED;
 
     @Rule
     public ExpectedException exception = ExpectedException.none();
@@ -46,6 +48,19 @@ public class AvailableTimestampsTest {
             lastReturnedTimestamp,
             persistentUpperLimit
     );
+
+    @Test
+    public void shouldBeAbleToHandOutNonOverLappingTimestampRanges() {
+        TimestampRange first = availableTimestamps.handOutTimestamps(10);
+        TimestampRange second = availableTimestamps.handOutTimestamps(10);
+
+        assertThat(first.getUpperBound(), is(lessThan(second.getUpperBound())));
+    }
+
+    @Test
+    public void shouldHandOutRangesOfTheCorrectSize() {
+        assertThat(availableTimestamps.handOutTimestamps(10).size(), is(10L));
+    }
 
     @Test public void
     shouldRefreshTheBufferIfHalfOfItIsUsedUp() {

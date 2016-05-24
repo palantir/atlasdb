@@ -41,6 +41,10 @@ public class AvailableTimestamps {
         this.upperLimit = upperLimit;
     }
 
+    public synchronized TimestampRange handOutTimestamps(int numberToHandOut) {
+        return handOut(lastHandedOut() + numberToHandOut);
+    }
+
     public synchronized TimestampRange handOut(long timestamp) {
         TimestampRange desiredRange = TimestampRange.createInclusiveRange(lastReturnedTimestamp.get() + 1, timestamp);
 
