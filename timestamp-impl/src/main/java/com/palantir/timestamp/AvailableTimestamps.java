@@ -41,16 +41,16 @@ public class AvailableTimestamps {
         this.upperLimit = upperLimit;
     }
 
-    public synchronized TimestampRange handOutTimestamps(long numberToHandOut) {
+    public synchronized TimestampRange handOut(long numberToHandOut) {
         checkArgument(
                 numberToHandOut <= MAX_TIMESTAMPS_TO_HAND_OUT,
                 "Can only hand out %s timestamps at a time, but %s were requested",
                 MAX_TIMESTAMPS_TO_HAND_OUT, numberToHandOut);
 
-        return handOut(lastHandedOut() + numberToHandOut);
+        return handOutTimestamp(lastHandedOut() + numberToHandOut);
     }
 
-    private synchronized TimestampRange handOut(long timestamp) {
+    private synchronized TimestampRange handOutTimestamp(long timestamp) {
         checkArgument(
                 timestamp > lastHandedOut(),
                 "Could not hand out timestamp '%s' as it was earlier than the last handed out timestamp: %s",

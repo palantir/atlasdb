@@ -50,7 +50,7 @@ public class PersistentTimestampService implements TimestampService {
     @Override
     public synchronized TimestampRange getFreshTimestamps(int numTimestampsRequested) {
         int numTimestampsToHandOut = cleanUpTimestampRequest(numTimestampsRequested);
-        TimestampRange handedOut = availableTimestamps.handOutTimestamps(numTimestampsToHandOut);
+        TimestampRange handedOut = availableTimestamps.handOut(numTimestampsToHandOut);
         asynchronouslyRefreshBuffer();
         return handedOut;
     }

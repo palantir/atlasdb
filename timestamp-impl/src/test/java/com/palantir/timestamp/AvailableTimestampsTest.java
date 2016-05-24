@@ -51,20 +51,20 @@ public class AvailableTimestampsTest {
 
     @Test
     public void shouldBeAbleToHandOutNonOverLappingTimestampRanges() {
-        TimestampRange first = availableTimestamps.handOutTimestamps(10);
-        TimestampRange second = availableTimestamps.handOutTimestamps(10);
+        TimestampRange first = availableTimestamps.handOut(10);
+        TimestampRange second = availableTimestamps.handOut(10);
 
         assertThat(first.getUpperBound(), is(lessThan(second.getUpperBound())));
     }
 
     @Test
     public void shouldHandOutRangesOfTheCorrectSize() {
-        assertThat(availableTimestamps.handOutTimestamps(10).size(), is(10L));
+        assertThat(availableTimestamps.handOut(10).size(), is(10L));
     }
 
     @Test public void
     shouldRefreshTheBufferIfHalfOfItIsUsedUp() {
-        availableTimestamps.handOutTimestamps(INITIAL_REMAINING_TIMESTAMPS - 10);
+        availableTimestamps.handOut(INITIAL_REMAINING_TIMESTAMPS - 10);
         availableTimestamps.refreshBuffer();
 
         verify(persistentUpperLimit).increaseToAtLeast(
@@ -96,7 +96,7 @@ public class AvailableTimestampsTest {
     @Test public void
     shouldIncreaseTheMaximumToHandOutNewTimestamps() {
         assertThat(
-                availableTimestamps.handOutTimestamps(INITIAL_REMAINING_TIMESTAMPS + 10).getUpperBound(),
+                availableTimestamps.handOut(INITIAL_REMAINING_TIMESTAMPS + 10).getUpperBound(),
                 is(UPPER_LIMIT + 10));
 
         verify(persistentUpperLimit).increaseToAtLeast(UPPER_LIMIT + 10);
@@ -108,12 +108,12 @@ public class AvailableTimestampsTest {
         exception.expectMessage("Can only hand out 10000 timestamps at a time");
         exception.expectMessage("20000");
 
-        availableTimestamps.handOutTimestamps(20*1000);
+        availableTimestamps.handOut(20*1000);
     }
 
     @Test public void
     shouldHandOutExactlyTenThousandTimestamps() {
-        availableTimestamps.handOutTimestamps(10*1000);
+        availableTimestamps.handOut(10*1000);
     }
 
     @Test public void

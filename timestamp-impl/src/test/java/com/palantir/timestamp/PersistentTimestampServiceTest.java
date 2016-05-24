@@ -44,7 +44,7 @@ public class PersistentTimestampServiceTest {
 
     @Test
     public void shouldRequestABufferRefreshAfterEveryTimestampRequest() throws InterruptedException {
-        when(availableTimestamps.handOutTimestamps(1)).thenReturn(SINGLE_TIMESTAMP_RANGE);
+        when(availableTimestamps.handOut(1)).thenReturn(SINGLE_TIMESTAMP_RANGE);
 
         timestampService.getFreshTimestamp();
         Thread.sleep(10);
@@ -53,11 +53,11 @@ public class PersistentTimestampServiceTest {
 
     @Test
     public void shouldLimitRequestsTo10000Timestamps() throws InterruptedException {
-        when(availableTimestamps.handOutTimestamps(anyLong())).thenReturn(RANGE);
+        when(availableTimestamps.handOut(anyLong())).thenReturn(RANGE);
 
         timestampService.getFreshTimestamps(20000);
 
-        verify(availableTimestamps).handOutTimestamps(10000);
+        verify(availableTimestamps).handOut(10000);
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -67,14 +67,14 @@ public class PersistentTimestampServiceTest {
 
     @Test
     public void shouldRequestTheRightTimestampFromTheAvailableTimestamps() {
-        when(availableTimestamps.handOutTimestamps(10)).thenReturn(RANGE);
+        when(availableTimestamps.handOut(10)).thenReturn(RANGE);
 
         assertThat(timestampService.getFreshTimestamps(10), is(RANGE));
     }
 
     @Test
     public void shouldRequestOnlyRequestASingleTimestampIfOnGetFreshTimestamp() {
-        when(availableTimestamps.handOutTimestamps(1)).thenReturn(SINGLE_TIMESTAMP_RANGE);
+        when(availableTimestamps.handOut(1)).thenReturn(SINGLE_TIMESTAMP_RANGE);
 
         assertThat(timestampService.getFreshTimestamp(), is(TIMESTAMP));
     }
