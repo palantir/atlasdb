@@ -20,11 +20,11 @@ directory <https://github.com/palantir/atlasdb/tree/develop/examples>`__.
 
 Running Tests Locally
 =====================
-Running atlas tests require to have ``docker`` and ``docker-compose`` installed on the machine where they are running. Instructions for different operating systems can be found `here <https://docs.docker.com/engine/installation/>`__
+Running atlas tests requires ``docker`` and ``docker-compose`` to be installed on the machine where they are running. Instructions for different operating systems can be found `here <https://docs.docker.com/engine/installation/>`__
 
 Instructions for MacOS
 ----------------------
-Mac users will need to install `docker-machine` and a virtualization environment as well to be able to run docker. Virtualbox is used in the example Simplified set-up instructions are as follow:
+Mac users will need to install `docker-machine` and a virtualization environment as well to be able to run docker. Virtualbox is used in this example. Simplified set-up instructions are as follows:
 
 1. Install ``docker-machine``, ``docker`` and ``docker-compose``
    
@@ -44,7 +44,7 @@ Mac users will need to install `docker-machine` and a virtualization environment
    
       eval $(docker-machine env atlas)  
    
-   These environment variables need to be always set before running the tests through `gradle`, or set manually as environment variables for the launch configurations in any IDE.
+   These environment variables need to always be set before running the tests through `gradle`, or set manually as environment variables for the launch configurations in any IDE.
 
 Depending on Published Artifacts
 ================================
