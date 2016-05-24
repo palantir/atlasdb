@@ -55,6 +55,8 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
 
     public abstract String keyspace();
 
+    public abstract Optional<CassandraCredentialsConfig> credentials();
+
     public abstract boolean ssl();
 
     public abstract int replicationFactor();
@@ -81,6 +83,9 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     public boolean autoRefreshNodes() {
         return true;
     }
+
+    @Value.Default
+    public boolean clusterMeetsNormalConsistencyGuarantees() { return true; }
 
     /**
      * This is how long we will wait when we first open a socket to the cassandra server.

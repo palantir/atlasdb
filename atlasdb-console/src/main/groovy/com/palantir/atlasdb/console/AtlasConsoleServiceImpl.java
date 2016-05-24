@@ -57,6 +57,11 @@ public class AtlasConsoleServiceImpl implements AtlasConsoleService {
     }
 
     @Override
+    public void truncate(String table) throws IOException {
+        service.truncateTable(table);
+    }
+
+    @Override
     public String getRows(TransactionToken token, String data) throws IOException {
         TableRowSelection rows = fromJson(data, TableRowSelection.class);
         TableRowResult result = service.getRows(token, rows);

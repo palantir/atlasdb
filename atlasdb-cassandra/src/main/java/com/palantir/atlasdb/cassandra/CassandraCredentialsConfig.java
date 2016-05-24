@@ -13,11 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.transaction.service;
+package com.palantir.atlasdb.cassandra;
 
-public interface WriteAheadLogManager {
-    WriteAheadLog create();
+import org.immutables.value.Value;
 
-    // The retrieved log is always closed
-    WriteAheadLog retrieve(long logId);
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
+@JsonDeserialize(as = ImmutableCassandraCredentialsConfig.class)
+@JsonSerialize(as = ImmutableCassandraCredentialsConfig.class)
+@Value.Immutable
+public interface CassandraCredentialsConfig {
+
+    public String username();
+    
+    public String password();
+    
 }

@@ -41,7 +41,6 @@
 # Add type filters for classes that are commonly accidentally imported.
 /instance/org.eclipse.jdt.ui/org.eclipse.jdt.ui.typefilter.enabled=org.apache.hadoop.thirdparty.*;\
 org.elasticsearch.common.*;\
-com.bookkeeper_jarjar.*;\
 *shaded*;\
 com.impossibl.postgres.utils.guava.*;
 

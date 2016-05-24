@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.net.InetSocketAddress;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -148,7 +149,8 @@ public class CassandraVerifier {
             boolean someHostWasAbleToCreateTheKeyspace = false;
             for (InetSocketAddress host : config.servers()) { // try until we find a server that works
                 try {
-                    Client client = CassandraClientFactory.getClientInternal(host, config.ssl(), config.socketTimeoutMillis(), config.socketQueryTimeoutMillis());
+                    Client client = CassandraClientFactory.getClientInternal(host, config.credentials(),
+                            config.ssl(), config.socketTimeoutMillis(), config.socketQueryTimeoutMillis());
                     KsDef ks = new KsDef(config.keyspace(), CassandraConstants.NETWORK_STRATEGY, ImmutableList.<CfDef>of());
                     CassandraVerifier.checkAndSetReplicationFactor(client, ks, true, config.replicationFactor(), config.safetyDisabled());
                     ks.setDurable_writes(true);
@@ -159,7 +161,7 @@ public class CassandraVerifier {
                     someHostWasAbleToCreateTheKeyspace = true;
                     break;
                 } catch (Exception f) {
-                    log.error("Couldn't use host {} to create keyspace, it returned exception \"{}\" during the attempt.", host, f);
+                    log.error("Couldn't use host {} to create keyspace, it returned exception \"{}\" during the attempt.", host, f.toString(), f);
                 }
             }
             if (someHostWasAbleToCreateTheKeyspace) {
@@ -224,4 +226,30 @@ public class CassandraVerifier {
                     "take to correctly repair or cleanup existing data in your cluster.");
         }
     }
+
+    final static FunctionCheckedException<Cassandra.Client, Boolean, UnsupportedOperationException> underlyingCassandraClusterSupportsCASOperations = new FunctionCheckedException<Client, Boolean, UnsupportedOperationException>() {
+        @Override
+        public Boolean apply(Client client) throws UnsupportedOperationException {
+            try {
+                String versionString = client.describe_version();
+                String[] components = versionString.split("\\.");
+                if (components.length != 3) {
+                    throw new UnsupportedOperationException(String.format("Illegal version of Thrift protocol detected; expected format '#.#.#', got '%s'", Arrays.toString(components)));
+                }
+                int majorVersion = Integer.parseInt(components[0]);
+                int minorVersion = Integer.parseInt(components[1]);
+                int patchVersion = Integer.parseInt(components[2]);
+
+                // see cassandra's 'interface/cassandra.thrift'
+                if (majorVersion >= 19 && minorVersion >= 37 && patchVersion >= 0) {
+                    return true;
+                } else {
+                    return false;
+                }
+            } catch (TException e) {
+                throw new UnsupportedOperationException("Couldn't determine underlying cassandra version; received an exception while checking the thrift version.", e);
+            }
+        }
+    };
+
 }

@@ -23,7 +23,7 @@ Changelog
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
-v0.4.1
+v0.6.0
 =======
 
 .. list-table::
@@ -35,5 +35,14 @@ v0.4.1
 
     *   - |improved|
         - We now have continuously updated release notes
+
+    *   - |fixed|
+        - Required projects are now Java 6 compliant
+
+    *   - |fixed|
+        - Fix potential race condition that could cause timestamp allocation to never complete.
+
+    *   - |changed|
+        - Only bumping double minor version in artifacts for long-term stability fixes
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
