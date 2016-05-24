@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
+import javax.naming.OperationNotSupportedException;
+
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
@@ -31,11 +33,11 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
     public KeyValueService createRawKeyValueService(KeyValueServiceConfig config) {
         Preconditions.checkArgument(config instanceof DbKeyValueServiceConfiguration,
                 "DbAtlasDbFactory expects a configuration of type DbKeyValueServiceConfiguration, found %s", config.getClass());
-        return null;
+        throw new UnsupportedOperationException("Cannot instantiate a relational key value service.");
     }
 
     @Override
     public TimestampService createTimestampService(KeyValueService rawKvs) {
-        return null;
+        throw new UnsupportedOperationException("Cannot instantiate a TimestampService from a relational key value service.");
     }
 }
