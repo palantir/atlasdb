@@ -1,0 +1,9 @@
+apply from: "../gradle/shared.gradle"
+
+dependencies {
+  compile project(":atlasdb-commons")
+
+  compile 'com.google.guava:guava:' + libVersions.guava
+  compile group: 'org.slf4j', name: 'slf4j-api', version: libVersions.slf4j  
+  compile 'com.google.code.findbugs:jsr305:' + libVersions.findbugs
+}

@@ -1,0 +1,5 @@
+apply from: "../gradle/shared.gradle"
+
+dependencies {
+  compile group: 'org.slf4j', name: 'slf4j-api', version: libVersions.slf4j
+}
