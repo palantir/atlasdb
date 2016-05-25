@@ -48,7 +48,7 @@ public final class AtlasDbConfigs {
         configMapper.setSubtypeResolver(new DiscoverableSubtypeResolver());
         JsonNode rootNode;
         if (rootIsPath) {
-             rootNode = getConfigNodeAtPath(configMapper, configFile, configRoot);
+            rootNode = getConfigNodeAtPath(configMapper, configFile, configRoot);
         } else {
             rootNode = getConfigNode(configMapper, configFile, configRoot);
         }
