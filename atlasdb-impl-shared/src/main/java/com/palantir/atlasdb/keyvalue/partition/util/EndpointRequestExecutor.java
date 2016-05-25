@@ -34,7 +34,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 @ThreadSafe public class EndpointRequestExecutor {
     // This is a SOFT limit and might be sometimes exceeded due to
     // race conditions.
-    private static final int MAX_TASKS_PER_ENDPOINT = 32;
+    public static final int MAX_TASKS_PER_ENDPOINT = 32;
     private static final Logger log = LoggerFactory.getLogger(EndpointRequestExecutor.class);
 
     private final ConcurrentMap<Future<?>, KeyValueService> endpointByFuture;
