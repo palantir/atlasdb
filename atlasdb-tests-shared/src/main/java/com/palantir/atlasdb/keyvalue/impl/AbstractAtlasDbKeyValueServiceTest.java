@@ -677,15 +677,6 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         keyValueService.delete(TEST_TABLE, ImmutableMultimap.of(cell, TEST_TIMESTAMP + 1));
     }
 
-    @Test
-    public void repeatedTest() throws Exception {
-        for(int i = 0; i < 300; i++) {
-            System.out.println("\ni=" + i);
-            setUp();
-            testCannotModifyValuesAfterWrite();
-        }
-    }
-
     protected void putTestDataForMultipleTimestamps() {
         keyValueService.put(TEST_TABLE,
                 ImmutableMap.of(Cell.create(row0, column0), value0_t0), TEST_TIMESTAMP);
