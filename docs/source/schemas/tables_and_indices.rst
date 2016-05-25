@@ -5,15 +5,13 @@ Tables and Indices
 Tables
 ======
 
-Tables are the base structure for storing data in atlasdb. Every table
+Tables are the base structure for storing data in AtlasDB. Every table
 has a name, a row specification, a column-value specification, an
 optional set of constraints on the table, and an optional set of
 behavior and performance tuning parameters.
 
 There is one main way to add a table to the schema, along with two
 variants.
-
-{%raw%}
 
 .. code:: java
 
@@ -28,8 +26,6 @@ variants.
         ... //behavior/perf options
     }});
 
-{%endraw%}
-
 The ``addTableDefinition`` method takes two arguments: the name of the
 table to be used in the key-value store itself, and a table definition.
 The table name should be specified in snake\_case. The details of the
@@ -40,21 +36,15 @@ If there are multiple tables which will have the same definition but
 will have different names, the first variation of the table definition
 can be used:
 
-{%raw%}
-
 .. code:: java
 
     schema.addDefinitionForTables(ImmutableSet.of("table1_name", "table2_name"), new TableDefinition() {{
         ...
     }});
 
-{%endraw%}
-
 If the table should not exist for more than a transaction and is
 primarily to conserve server memory, then a table can be explicitly
 declared a temp table using the second variation:
-
-{%raw%}
 
 .. code:: java
 
@@ -62,11 +52,9 @@ declared a temp table using the second variation:
         ...
     }});
 
-{%endraw%}
-
 The AtlasDB developers however strongly recommend against usage of this
 form, since they have not found it to be particularly useful in making
-atlasdb queries, and thus have never used it themselves, and thus have
+AtlasDB queries, and thus have never used it themselves, and thus have
 never tested to see if it actually works.
 
 Indices
@@ -74,11 +62,11 @@ Indices
 
 A common pattern in database schemas is to define an index table whose
 values are derived from and kept in sync with values from a base table.
-In standard RDBMS's these are user-defined and db-managed, but atlasdb
+In standard RDBMS's these are user-defined and db-managed, but AtlasDB
 [STRIKEOUT:is not so full-featured] requires you to think more carefully
 about performance.
 
-There are two kinds of indices which can be defined in atlasdb: additive
+There are two kinds of indices which can be defined in AtlasDB: additive
 and cell-referencing. Both use the dynamic columns layout. For additive
 indices, each cell in the index is derived from a unique one row in the
 base table. For cell-referencing indices, each cell in the index is
@@ -87,8 +75,6 @@ more complicated index situations (e.g. indices whose rows are derived
 from multiple tables) a regular table must be defined for the index, and
 synchronization between the base table(s) and index must be done
 manually.
-
-{%raw%}
 
 .. code:: java
 
@@ -102,8 +88,6 @@ manually.
         ... //behavior/perf options
     }});
 
-{%endraw%}
-
 Note that, in the case where the index should only get a row from the
 base table if some condition is met, the ``onCondition`` clause can be
 added to the index definition. The value of the cell with the specified
@@ -112,19 +96,15 @@ column is accessed by the ``_value`` term.
 If multiple indices should be defined for the same index definition,
 then the following variant can be used:
 
-{%raw%}
-
 .. code:: java
 
     schema.addAdditiveIndexesForDefinition(ImmutableSet.of("index1_name", "index2_name"), new IndexDefinition(...) {{
         ...
     }});
 
-{%endraw%}
-
 The AtlasDB Developers however strongly recommend against usage of this
 form, since they have not found it to be particularly useful in making
-atlasdb queries, and thus have never used it themselves, and thus have
+AtlasDB queries, and thus have never used it themselves, and thus have
 never tested to so if it actually works.
 
 Additive
@@ -224,7 +204,7 @@ Definition Parameters
 This method specifies the name of the table to be used in generated java
 code for the schema. It should be specified in CamelCase and be as long
 as descriptive as is useful. If this method is not called, the value
-will be derived by converting the table's atlasdb name from snake\_case
+will be derived by converting the table's AtlasDB name from snake\_case
 to CamelCase.
 
 Index-specific Parameters
@@ -234,7 +214,7 @@ Index-specific Parameters
 
     public void onTable(String name);
 
-This method specifies the atlasdb name of the table which this index
+This method specifies the AtlasDB name of the table which this index
 definition will derive its data from. This method is required for all
 IndexDefinitions.
 
@@ -246,8 +226,7 @@ Optional parameter. Specifies that only rows which satisfy the specified
 boolean expression on the specified source column will be added to the
 index. The source column must be a valid component name from the source
 table, and the boolean expression must be a valid java expression, with
-``_value`` denoting the value of the source column. *Not available
-before* *3.12.4.3-r1*
+``_value`` denoting the value of the source column.
 
 Row Definitions
 ---------------
@@ -255,17 +234,17 @@ Row Definitions
 Each row is uniquely identified by its ``rowName``. Each ``rowName`` is
 composed of at least one ``rowComponent``. Therefore each row is
 uniquely identified by the permutation of its ``rowComponent`` values.
-Order matters. For example, the ``OBJECT_TABLE`` definition includes:
+Order matters. For example,
 
 .. code:: java
 
     rowName();
         rowComponent("object_id",           ValueType.FIXED_LONG);
-        rowComponent("realm_id",            ValueType.VAR_LONG); partition(REALM_PARTITIONER);
+        rowComponent("group_id",            ValueType.VAR_LONG); partition(GROUP_PARTITIONER);
         rowComponent("fragment_version_id", ValueType.VAR_LONG);
 
 This means that each row in this table is uniquely identified by a
-3-tuple consisting of an object ID, a realm ID, and a fragment version
+3-tuple consisting of an object ID, a group ID, and a fragment version
 ID.
 
 Only the last ``rowComponent`` of a ``rowName`` can be set to
@@ -304,19 +283,19 @@ partition, while spreading rows equally across all partitions.
     public UniformRowNamePartitioner uniform();
 
 By default, all row components use ``partition(uniform())``. If however,
-certain values are certain to be stored/access very often (the base
-realm of the object model, for example), they can have partitions
+certain values are certain to be stored/access very often (the group ids
+of the objects, in the above example), they can have partitions
 explicitly created for them by specifying ``explicit(...)``. Note that
 use of ``partition()`` assumes the order storage of rows; if there is no
 good way to partition the rows uniformly and range requests are not
 needed, then perhaps ``partitionStrategy(PartitionStrategy.HASH)`` is a
 better idea for your table.
 
-{{site.data.alerts.important}} The most significant component of any
-table is used by the partitioner to distribute data across the cluster.
-To avoid hot-spotting, the type of the first row component should NOT be
-a VAR\_LONG, a VAR\_SIGNED\_LONG, or a SIZED\_BLOB.
-{{site.data.alerts.end}}
+.. warning::
+   The most significant component of any
+   table is used by the partitioner to distribute data across the cluster.
+   To avoid hot-spotting, the type of the first row component should NOT be
+   a VAR\_LONG, a VAR\_SIGNED\_LONG, or a SIZED\_BLOB.
 
 For a safe data distribution it is suggested the usage of
 ``hashFirstRowComponent()``:
@@ -341,7 +320,7 @@ type referenced by each column is specified by a single command.
 The column name is the name of the column that will be used in the
 generated java code and table metadata. The short name is a one or two
 character label which will be the actual name for the column when stored
-in atlasdb. Any ValueType may be used as the value for a column, as well
+in AtlasDB. Any ValueType may be used as the value for a column, as well
 as any protobuffer class or Persistable. AtlasDB will handle serializing
 and deserializing the proto/persistable to and from its byte array
 representation, and will optionally also compress the byte array to save
@@ -384,7 +363,7 @@ can be a primitive ValueType or protobuf (optionally compressed).
 
 If values are not needed for the table, specifying
 ``value(ValueType.VAR_LONG)`` and ``maxValueSize(1)`` is conventional.
-The max value size command is a performance hint for atlasdb.
+The max value size command is a performance hint for AtlasDB.
 
 Index Rows and Columns
 ----------------------
@@ -442,7 +421,7 @@ Sometimes the set of valid values for a table is smaller than the set of
 valid values specified by just type information. In these cases, it can
 be useful to explicitly express these constraints when defining the
 tables to ensure that code written against these tables do not violate
-them. The atlasdb schema allows three different types of constraints to
+them. The AtlasDB schema allows three different types of constraints to
 be defined: Foreign key constraints, table constraints, and row
 constraints. Note however, that these constraints are used mostly for
 staging and debugging environments only and will usually not be enabled
@@ -493,7 +472,7 @@ across database shards.
 
     public void cachePriority(CachePriority priority = CachePriority.WARM);
 
-Specifies the retention policy for caching atlasdb queries and their
+Specifies the retention policy for caching AtlasDB queries and their
 results. Values are **COLDEST, COLD, WARM, HOT, HOTTEST.** The hotter
 the setting, the more queries and the longer they are stored.
 
@@ -509,8 +488,11 @@ compressed.
     public void rangeScanAllowed();
 
 Specifies whether a table should be allowed to have range scans
-conducted on its rows. *NOTE: if this option is not selected, you will
-not be able to use the **getRange** operation against your table!*
+conducted on its rows.
+
+.. note::
+   If this option is not selected, you will
+   not be able to use the **getRange** operation against your table!
 
 .. code:: java
 

@@ -1,0 +1,28 @@
+apply from: "../gradle/shared.gradle"
+
+dependencies {
+  compile project(":commons-api")
+  compile project(":commons-proxy")
+  compile project(":papaya")
+
+  compile(group: 'commons-dbutils', name: 'commons-dbutils', version: libVersions.commons_dbutils)
+  compile(group: 'commons-lang', name: 'commons-lang', version: libVersions.commons_lang)
+  compile(group: 'commons-io', name: 'commons-io', version: libVersions.commons_io)
+  compile(group: 'log4j', name: 'log4j', version: libVersions.log4j)
+  { transitive = false }
+  compile(group: 'com.mchange', name: 'c3p0', version: libVersions.c3p0)
+
+  // Danger, Will Robinson!
+  //
+  // This driver has historically low code quality and should be considered a high-risk update.
+  // Severe performance regressions in 1202,3,4.
+  // Severe correctness issues in 1204,5,6.
+  // Update with care and caution.
+  compile(group: 'org.postgresql', name: 'postgresql', version: libVersions.postgresql)
+  { exclude( module: 'waffle-jna', ) }
+
+  compile(group: 'com.zaxxer', name: 'HikariCP', version: libVersions.hikariCP)
+  { exclude( group: 'org.slf4j', ) }
+  compile(group: 'joda-time', name: 'joda-time', version: libVersions.joda_time)
+  testCompile(group: 'junit', name: 'junit', version: libVersions.junit)
+}

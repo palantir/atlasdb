@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.concurrent.Callable;
 
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -24,6 +25,10 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
+import com.jayway.awaitility.Awaitility;
+import com.jayway.awaitility.Duration;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.docker.compose.DockerComposition;
 import com.palantir.docker.compose.connection.DockerPort;
@@ -32,12 +37,13 @@ import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 
 @RunWith(Suite.class)
 @SuiteClasses({
+        CassandraConnectionTest.class,
         CassandraKeyValueServiceSerializableTransactionTest.class,
-        CassandraKeyValueServiceTransactionTest.class,
         CassandraKeyValueServiceSweeperTest.class,
         CassandraTimestampTest.class,
         CassandraKeyValueServiceTest.class,
-        CassandraDbLockTest.class
+        CassandraDbLockTest.class,
+        CassandraLegacyLockTest.class
 })
 public class CassandraTestSuite {
 
@@ -61,6 +67,10 @@ public class CassandraTestSuite {
                 .addServers(CASSANDRA_THRIFT_ADDRESS)
                 .poolSize(20)
                 .keyspace("atlasdb")
+                .credentials(ImmutableCassandraCredentialsConfig.builder()
+                        .username("cassandra")
+                        .password("cassandra")
+                        .build())
                 .ssl(false)
                 .replicationFactor(1)
                 .mutationBatchCount(10000)
@@ -70,6 +80,24 @@ public class CassandraTestSuite {
                 .autoRefreshNodes(false)
                 .build();
 
+        Awaitility.await()
+                .atMost(Duration.ONE_MINUTE)
+                .pollInterval(Duration.ONE_SECOND)
+                .until(canCreateKeyValueService());
+    }
+
+    private static Callable<Boolean> canCreateKeyValueService() {
+        return new Callable<Boolean>() {
+            @Override
+            public Boolean call() throws Exception {
+                try {
+                    CassandraKeyValueService.create(CassandraKeyValueServiceConfigManager.createSimpleManager(CASSANDRA_KVS_CONFIG));
+                    return true;
+                } catch (Exception e) {
+                    return false;
+                }
+            }
+        };
     }
 
     private static HealthCheck<DockerPort> toBeOpen() {

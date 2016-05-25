@@ -31,6 +31,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.Cassandra;
@@ -143,6 +144,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     private final Optional<CassandraJmxCompactionManager> compactionManager;
     protected final CassandraClientPool clientPool;
 
+    protected boolean supportsCAS = false;
+    private final ReentrantLock schemaMutationLockForEarlierVersionsOfCassandra = new ReentrantLock(true);
+
     private ConsistencyLevel readConsistency = ConsistencyLevel.LOCAL_QUORUM;
     private final ConsistencyLevel writeConsistency = ConsistencyLevel.EACH_QUORUM;
     private final ConsistencyLevel deleteConsistency = ConsistencyLevel.ALL;
@@ -165,6 +169,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     protected void init() {
         clientPool.runOneTimeStartupChecks();
+        supportsCAS = clientPool.runWithRetry(CassandraVerifier.underlyingCassandraClusterSupportsCASOperations);
         createTable(CassandraConstants.METADATA_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA);
         lowerConsistencyWhenSafe();
         upgradeFromOlderInternalSchema();
@@ -239,7 +244,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 if (strategyOptions.get(dc) != null) {
                     int currentRF = Integer.parseInt(strategyOptions.get(dc));
                     if (currentRF == config.replicationFactor()) {
-                        if (currentRF == 2) {
+                        if (currentRF == 2 && config.clusterMeetsNormalConsistencyGuarantees()) {
                             log.info("Setting Read Consistency to ONE, as cluster has only one datacenter at RF2.");
                             readConsistency = ConsistencyLevel.ONE;
                         }
@@ -749,8 +754,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     @Override
-    public void truncateTables(final Set<TableReference> tableRefs) {
-        final Set<TableReference> tablesToTruncate = filterOutTrulyEmptyTables(tableRefs);
+    public void truncateTables(final Set<TableReference> tablesToTruncate) {
         if (!tablesToTruncate.isEmpty()) {
             try {
                 clientPool.runWithRetry(new FunctionCheckedException<Client, Void, Exception>() {
@@ -807,36 +811,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 break;
             }
         }
-    }
-
-    private Set<TableReference> filterOutTrulyEmptyTables(Set<TableReference> tableRefs) {
-        final Set<TableReference> nonEmptyTables = Sets.newHashSet();
-        SliceRange slice = new SliceRange(ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY), ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY), false, Integer.MAX_VALUE);
-        final SlicePredicate predicate = new SlicePredicate();
-        predicate.setSlice_range(slice);
-
-        for (final TableReference tableRef : tableRefs) {
-            int results = 1;
-            try {
-                results = clientPool.run(new FunctionCheckedException<Client, Integer, Exception>() {
-                    @Override
-                    public Integer apply(Client client) throws Exception {
-                        List<KeySlice> range_slices = client.get_range_slices(new ColumnParent(internalTableName(tableRef)), predicate, new KeyRange(1), deleteConsistency);
-                        return range_slices.size();
-                    }
-                });
-            } catch (Exception e) {
-                log.warn("Table " + tableRef.getQualifiedName() + " could not be checked for emptiness. Proceeding with requested operation without optimization.", e);
-            }
-
-            if (results != 0) {
-                nonEmptyTables.add(tableRef);
-            } else {
-                log.info("Table " + tableRef + " is empty and the requested operation will be skipped.");
-            }
-        }
-
-        return nonEmptyTables;
     }
 
     @Override
@@ -1455,6 +1429,18 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         final long perOperationNodeIdentifier = ThreadLocalRandom.current().nextLong(Long.MAX_VALUE - 2);
 
         try {
+            if (!supportsCAS) {
+                TimeoutException timeoutException = new TimeoutException("AtlasDB was unable to get a lock on Cassandra system schema mutations for your cluster. Likely cause: Service(s) performing heavy schema mutations in parallel, or extremely heavy Cassandra cluster load.");
+                try {
+                    if (!schemaMutationLockForEarlierVersionsOfCassandra.tryLock(configManager.getConfig().schemaMutationTimeoutMillis(), TimeUnit.MILLISECONDS)) {
+                        throw timeoutException;
+                    }
+                } catch (InterruptedException e) {
+                    throw timeoutException;
+                }
+                return 0;
+            }
+
             clientPool.runWithRetry(new FunctionCheckedException<Client, Void, Exception>() {
                 @Override
                 public Void apply(Client client) throws Exception {
@@ -1529,6 +1515,11 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     public void schemaMutationUnlock(long perOperationNodeIdentifier) {
+        if (!supportsCAS) {
+            schemaMutationLockForEarlierVersionsOfCassandra.unlock();
+            return;
+        }
+
         try {
             clientPool.runWithRetry(new FunctionCheckedException<Client, Void, Exception>() {
                 @Override

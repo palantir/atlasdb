@@ -7,4 +7,3 @@ Miscellaneous
    :titlesonly:
 
    contributing
-   release-process

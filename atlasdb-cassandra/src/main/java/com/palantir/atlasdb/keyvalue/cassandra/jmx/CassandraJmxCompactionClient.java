@@ -120,7 +120,7 @@ public class CassandraJmxCompactionClient {
             storageServiceProxy.forceKeyspaceCompaction(true, keyspace, tableRef.getQualifiedName());
             log.info("Compaction for {}.{} completed in {}", keyspace, tableRef, stopWatch.stop());
         } catch (Exception e) {
-            log.error("Failed to compaction {}.{}.", keyspace, tableRef, e);
+            log.error("Failed to compact {}.{}.", keyspace, tableRef, e);
             Throwables.propagateIfPossible(e);
             return false;
         }

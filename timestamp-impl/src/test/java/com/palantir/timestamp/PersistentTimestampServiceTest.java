@@ -18,6 +18,8 @@ package com.palantir.timestamp;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyLong;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.atMost;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -35,6 +37,7 @@ import java.util.concurrent.TimeoutException;
 
 import org.jmock.Expectations;
 import org.jmock.Mockery;
+import org.jmock.lib.concurrent.Synchroniser;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -55,6 +58,7 @@ public class PersistentTimestampServiceTest {
     @Test
     public void testFastForward() {
         Mockery m = new Mockery();
+        m.setThreadingPolicy(new Synchroniser());
         final TimestampBoundStore tbsMock = m.mock(TimestampBoundStore.class);
         final long initialValue = 1234567L;
         final long futureTimestamp = 12345678L;
@@ -88,7 +92,19 @@ public class PersistentTimestampServiceTest {
         Thread.sleep(10);
         persistentTimestampService.getFreshTimestamp();
         Thread.sleep(10);
-        verify(timestampBoundStore, times(2)).storeUpperLimit(anyLong());
+        verify(timestampBoundStore, atLeast(2)).storeUpperLimit(anyLong());
+    }
+
+    @Test
+    public void doNotIncrementUpperLimitTooManyTimes() {
+        // In the current implementation, it is possible for a single call to getFreshTimestamp to invoke storeUpperLimit more than once.
+        // However, the number of such invocations should not be massive
+        TimestampBoundStore timestampBoundStore = initialTimestampBoundStore();
+        PersistentTimestampService persistentTimestampService = PersistentTimestampService.create(timestampBoundStore);
+
+        persistentTimestampService.getFreshTimestamp();
+
+        verify(timestampBoundStore, atMost(2)).storeUpperLimit(anyLong());
     }
 
     @Test
@@ -122,6 +138,7 @@ public class PersistentTimestampServiceTest {
     @Test
     public void testLimit() throws InterruptedException {
         Mockery m = new Mockery();
+        m.setThreadingPolicy(new Synchroniser());
         final TimestampBoundStore tbsMock = m.mock(TimestampBoundStore.class);
         final long initialValue = 72;
         m.checking(new Expectations() {{
@@ -156,8 +173,6 @@ public class PersistentTimestampServiceTest {
             f.cancel(true);
             exec.shutdown();
         }
-
-        m.assertIsSatisfied();
     }
 
     private void getFreshTimestampsInParallel(PersistentTimestampService persistentTimestampService, int numTimes) {

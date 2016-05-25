@@ -90,7 +90,7 @@ public class CassandraKeyValueServiceConfigManager {
                         // If any execution of the task encounters an exception, subsequent executions are suppressed for
                         // ScheduledExecutorService.scheduleWithFixedDelay() we're catching Throwable (e.g. OutOfMemoryError,
                         // NPE, SocketException, Cassandra network error, etc.) to ensure the task doesn't get killed.
-                        log.error("CassandraKeyValueServiceConfigManager encountered {}\n{}", t.getMessage(), t);
+                        log.error("CassandraKeyValueServiceConfigManager encountered {}", t.toString(), t);
                     }
                 }
             }, initDelay, refreshInterval, TimeUnit.MILLISECONDS);
