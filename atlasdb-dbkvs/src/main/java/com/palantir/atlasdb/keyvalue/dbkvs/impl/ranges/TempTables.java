@@ -27,9 +27,9 @@ import com.google.common.primitives.UnsignedBytes;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.AgnosticResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
-import com.palantir.nexus.db.sql.SqlConnection;
 import com.palantir.nexus.db.sql.SQLString;
 import com.palantir.nexus.db.sql.SQLString.RegisteredSQLString;
+import com.palantir.nexus.db.sql.SqlConnection;
 
 public class TempTables {
     private static final Logger log = LoggerFactory.getLogger(TempTables.class);
