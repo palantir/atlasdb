@@ -34,7 +34,7 @@ public class PostgresDbTableFactory implements DbTableFactory {
 
     public PostgresDbTableFactory(DbKeyValueServiceConfiguration config) {
         this.config = config;
-        int poolSize = config.postgresQueryPoolSize();
+        int poolSize = config.poolSize();
         this.exec = newFixedThreadPool(poolSize);
     }
 

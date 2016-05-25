@@ -127,7 +127,7 @@ public class OracleDdlTable implements DbDdlTable {
 
     @Override
     public void compactInternally() {
-        if (config.oracleEnableEeFeatures()) {
+        if (config.enableOracleEnterpriseFeatures()) {
             try {
                 conns.get().executeUnregisteredQuery("ALTER TABLE pt_met_" + tableName + " MOVE ONLINE");
             } catch (PalantirSqlException e) {

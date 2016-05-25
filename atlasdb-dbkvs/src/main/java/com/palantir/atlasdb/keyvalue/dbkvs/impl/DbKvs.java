@@ -27,7 +27,6 @@ import java.util.NavigableMap;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -59,6 +58,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfiguration;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.DbKvsGetRanges;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
@@ -76,13 +76,15 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 public class DbKvs extends AbstractKeyValueService {
     private static final Logger log = LoggerFactory.getLogger(DbKvs.class);
+    private final DbKeyValueServiceConfiguration config;
     private final DbTableFactory dbTables;
     private final SqlConnectionSupplier connections;
 
-    public DbKvs(ExecutorService executor,
+    public DbKvs(DbKeyValueServiceConfiguration config,
                  DbTableFactory dbTables,
                  SqlConnectionSupplier connections) {
-        super(executor);
+        super(AbstractKeyValueService.createFixedThreadPool("Atlas Relational KVS", config.poolSize()));
+        this.config = config;
         this.dbTables = dbTables;
         this.connections = connections;
     }
@@ -216,9 +218,6 @@ public class DbKvs extends AbstractKeyValueService {
         });
     }
 
-    private static final int INSERT_PARTITION_COUNT = 1000;
-    private static final long INSERT_PARTITION_BYTES = 2048 * 1024;
-
     public Function<Entry<Cell, byte[]>, Long> getByteSizingFunction() {
         return new Function<Entry<Cell, byte[]>, Long>(){
             @Override
@@ -239,7 +238,7 @@ public class DbKvs extends AbstractKeyValueService {
 
     private void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp, boolean idempotent) {
         final Iterable<List<Entry<Cell, byte[]>>> batches = partitionByCountAndBytes(
-                values.entrySet(), INSERT_PARTITION_COUNT, INSERT_PARTITION_BYTES, tableRef, getByteSizingFunction());
+                values.entrySet(), config.mutationBatchCount(), config.mutationBatchSizeBytes(), tableRef, getByteSizingFunction());
         runWrite(tableRef, new Function<DbWriteTable, Void>() {
             @Override
             public Void apply(DbWriteTable table) {
@@ -316,7 +315,7 @@ public class DbKvs extends AbstractKeyValueService {
     @Override
     public void putWithTimestamps(TableReference tableRef, final Multimap<Cell, Value> cellValues) throws KeyAlreadyExistsException {
         final Iterable<List<Entry<Cell, Value>>> batches = partitionByCountAndBytes(
-                cellValues.entries(), INSERT_PARTITION_COUNT, INSERT_PARTITION_BYTES, tableRef, getValueSizingFunction());
+                cellValues.entries(), config.mutationBatchCount(), config.mutationBatchSizeBytes(), tableRef, getValueSizingFunction());
         runWrite(tableRef, new Function<DbWriteTable, Void>() {
             @Override
             public Void apply(DbWriteTable table) {

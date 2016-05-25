@@ -170,6 +170,6 @@ public class BatchedDbReadTable extends AbstractDbReadTable {
     }
 
     private int getBatchSize() {
-        return config.postgresQueryBatchSize();
+        return config.fetchBatchSize();
     }
 }

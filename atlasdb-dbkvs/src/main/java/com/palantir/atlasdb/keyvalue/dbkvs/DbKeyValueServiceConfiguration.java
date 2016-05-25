@@ -31,23 +31,28 @@ public abstract class DbKeyValueServiceConfiguration implements KeyValueServiceC
     public static final String TYPE = "relational";
 
     @Value.Default
-    public boolean oracleEnableEeFeatures() {
+    public boolean enableOracleEnterpriseFeatures() {
         return false;
     }
 
     @Value.Default
-    public int getRangeConcurrency() {
+    public int poolSize() {
         return 64;
     }
 
     @Value.Default
-    public int postgresQueryPoolSize() {
-        return 64;
-    }
-
-    @Value.Default
-    public int postgresQueryBatchSize() {
+    public int fetchBatchSize() {
         return 256;
+    }
+
+    @Value.Default
+    public int mutationBatchCount() {
+        return 1000;
+    }
+
+    @Value.Default
+    public int mutationBatchSizeBytes() {
+        return 2 * 1024 * 1024;
     }
 
     @Override
