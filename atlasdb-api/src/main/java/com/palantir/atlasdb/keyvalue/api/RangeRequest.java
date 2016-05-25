@@ -118,7 +118,7 @@ import com.palantir.util.Pair;
      * An empty set of column names means that all columns are selected.
      */
     @Nonnull public SortedSet<byte[]> getColumnNames() {
-        return cloneSet(columns);
+        return columns;
     }
 
     public boolean containsColumn(byte[] col) {
