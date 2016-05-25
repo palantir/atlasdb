@@ -17,23 +17,14 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import org.immutables.value.Value;
 
-import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.nexus.db.sql.BasicSQL;
 
-@JsonDeserialize(as = ImmutableDbKeyValueServiceConfiguration.class)
-@JsonSerialize(as = ImmutableDbKeyValueServiceConfiguration.class)
-@JsonTypeName(DbKeyValueServiceConfiguration.TYPE)
+@JsonDeserialize(as = ImmutableDbSharedConfig.class)
+@JsonSerialize(as = ImmutableDbSharedConfig.class)
 @Value.Immutable
-public abstract class DbKeyValueServiceConfiguration implements KeyValueServiceConfig {
-
-    public static final String TYPE = "relational";
-
-    @Value.Default
-    public boolean enableOracleEnterpriseFeatures() {
-        return false;
-    }
+public abstract class DbSharedConfig {
 
     @Value.Default
     public int poolSize() {
@@ -53,11 +44,6 @@ public abstract class DbKeyValueServiceConfiguration implements KeyValueServiceC
     @Value.Default
     public int mutationBatchSizeBytes() {
         return 2 * 1024 * 1024;
-    }
-
-    @Override
-    public final String type() {
-        return TYPE;
     }
 
 }
