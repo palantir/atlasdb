@@ -17,8 +17,13 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
+import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.common.base.Visitors;
+import com.palantir.nexus.db.pool.HikariCPConnectionManager;
+import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.TimestampService;
 
 public class DbAtlasDbFactory implements AtlasDbFactory {
@@ -36,6 +41,14 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
 
     @Override
     public TimestampService createTimestampService(KeyValueService rawKvs) {
-        throw new UnsupportedOperationException("Cannot instantiate a TimestampService from a relational key value service.");
+        Preconditions.checkArgument(rawKvs instanceof DbKvs, "DbAtlasDbFactory expects a raw kvs of type DbKvs, found %s", rawKvs.getClass());
+        DbKvs dbkvs = (DbKvs) rawKvs;
+        return PersistentTimestampService.create(
+                new InDbTimestampBoundStore(
+                        new HikariCPConnectionManager(
+                                dbkvs.getConfig().connection(),
+                                Visitors.emptyVisitor())
+                )
+        );
     }
 }

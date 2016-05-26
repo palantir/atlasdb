@@ -58,7 +58,7 @@ import com.zaxxer.hikari.util.DriverDataSource;
  *
  * @author dstipp
  */
-class HikariCPConnectionManager extends BaseConnectionManager {
+public class HikariCPConnectionManager extends BaseConnectionManager {
     private static final Logger log = LoggerFactory.getLogger(HikariCPConnectionManager.class);
 
     // TODO: Make this delay configurable?

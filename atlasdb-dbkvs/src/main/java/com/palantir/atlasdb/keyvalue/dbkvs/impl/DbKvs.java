@@ -81,7 +81,7 @@ public class DbKvs extends AbstractKeyValueService {
     private final SqlConnectionSupplier connections;
 
     public static DbKvs create(DbKeyValueServiceConfig config) {
-        return new DbKvs(config, config.tableFactorySupplier().get(), config.sqlConnectionSupplier());
+        return new DbKvs(config, config.tableFactorySupplier().get(), config.sqlConnectionSupplier().get());
     }
 
     private DbKvs(DbKeyValueServiceConfig config,
@@ -91,6 +91,10 @@ public class DbKvs extends AbstractKeyValueService {
         this.config = config;
         this.dbTables = dbTables;
         this.connections = connections;
+    }
+
+    public DbKeyValueServiceConfig getConfig() {
+        return config;
     }
 
     @Override

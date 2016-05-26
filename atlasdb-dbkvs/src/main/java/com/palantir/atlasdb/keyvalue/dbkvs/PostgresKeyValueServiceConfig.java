@@ -23,7 +23,6 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbTableFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.PostgresDbTableFactory;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.SqlConnectionSupplier;
 
 @JsonDeserialize(as = ImmutablePostgresKeyValueServiceConfig.class)
 @JsonSerialize(as = ImmutablePostgresKeyValueServiceConfig.class)
@@ -36,12 +35,6 @@ public abstract class PostgresKeyValueServiceConfig extends DbKeyValueServiceCon
     @Override
     public Supplier<DbTableFactory> tableFactorySupplier() {
         return () -> new PostgresDbTableFactory(shared());
-    }
-
-    @Value.Default
-    @Override
-    public SqlConnectionSupplier sqlConnectionSupplier() {
-        throw new RuntimeException("unimplemented -- waiting on pooling");
     }
 
     @Override
