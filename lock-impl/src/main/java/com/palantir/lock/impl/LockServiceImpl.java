@@ -896,6 +896,13 @@ import com.palantir.util.Pair;
     private <T extends ExpiringToken> void reapLocks(BlockingQueue<T> queue,
             ConcurrentMap<T, HeldLocks<T>> heldLocksMap) {
         while (true) {
+            // shutdownNow() sends interrupt signal to the running threads to terminate them.
+            // If interrupt signal happens right after try {} catch (InterruptedException),
+            // the interrupt state MIGHT be swallowed in catch (Throwable t) {}; so threads will
+            // miss the shutdown signal.
+            if (isShutDown) {
+                break;
+            }
             try {
                 T token = null;
                 try {
