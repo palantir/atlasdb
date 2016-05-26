@@ -28,13 +28,9 @@ test:
     - find . -type f -regex ".*/build/test-results/TEST-.*\.xml" -exec cp {} $CIRCLE_TEST_REPORTS/junit/ \;
 
 deployment:
-  github-pages:
-    branch: develop
-    owner: palantir
-    commands:
-      - ./scripts/circle-ci/publish-github-page.sh
-  bintray:
+  publish:
     tag: /[0-9]+(\.[0-9]+){2}/
     owner: palantir
     commands:
+      - ./scripts/circle-ci/publish-github-page.sh
       - ./gradlew bintrayUpload -x test
