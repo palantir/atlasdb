@@ -1,0 +1,40 @@
+machine:
+  pre:
+    - curl -sSL https://s3.amazonaws.com/circle-downloads/install-circleci-docker.sh | bash -s -- 1.10.0
+  java:
+    version:
+      oraclejdk8
+  environment:
+    _JAVA_OPTIONS: "-Xmx512m"
+    GRADLE_OPTS: '-Dorg.gradle.jvmargs="-Xmx512m -XX:+HeapDumpOnOutOfMemoryError"'
+  services:
+    - docker
+
+dependencies:
+  pre:
+    - sudo pip install docker-compose
+  override:
+    - export TERM="dumb"; ./gradlew compileTestJava
+    - sudo pip install sphinx sphinx_rtd_theme
+  cache_directories:
+    - ~/.gradle
+
+test:
+  override:
+    - ./scripts/circle-ci/run-circle-tests.sh:
+        parallel: true
+  post:
+    - mkdir -p $CIRCLE_TEST_REPORTS/junit/
+    - find . -type f -regex ".*/build/test-results/TEST-.*\.xml" -exec cp {} $CIRCLE_TEST_REPORTS/junit/ \;
+
+deployment:
+  github-pages:
+    branch: develop
+    owner: palantir
+    commands:
+      - ./scripts/circle-ci/publish-github-page.sh
+  bintray:
+    tag: /[0-9]+(\.[0-9]+){2}/
+    owner: palantir
+    commands:
+      - ./gradlew bintrayUpload -x test
