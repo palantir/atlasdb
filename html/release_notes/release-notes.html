@@ -162,7 +162,7 @@
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>A potential race condition could cause timestamp allocation to never complete on a particular node.</td>
+<td>A potential race condition could cause timestamp allocation to never complete on a particular node (#462)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>An innocuous error was logged once for each TransactionManager about not being able to allocate
@@ -170,6 +170,9 @@ enough timestamps. The error has been downgraded to INFO and made less scary.</t
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Serializable Transactions that read a column selection could consistently report conflicts when there were none.</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>An excessively long Cassandra related logline was sometimes printed (#501)</td>
 </tr>
 </tbody>
 </table>
