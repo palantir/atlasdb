@@ -82,7 +82,8 @@ import com.palantir.common.concurrent.PTExecutors;
  **/
 public class CassandraClientPool {
     private static final Logger log = LoggerFactory.getLogger(CassandraClientPool.class);
-    private static final int MAX_TRIES = 3;
+    private static final int MAX_TRIES_SAME_HOST = 2;
+    private static final int MAX_TRIES_TOTAL = 6;
 
     volatile RangeMap<LightweightOPPToken, List<InetSocketAddress>> tokenMap = ImmutableRangeMap.of();
     Map<InetSocketAddress, Long> blacklistedHosts = Maps.newConcurrentMap();
@@ -101,6 +102,11 @@ public class CassandraClientPool {
         @Override
         public int compareTo(LightweightOPPToken other) {
             return UnsignedBytes.lexicographicalComparator().compare(this.bytes, other.bytes);
+        }
+
+        @Override
+        public String toString() {
+            return BaseEncoding.base16().encode(bytes);
         }
     }
 
@@ -153,6 +159,19 @@ public class CassandraClientPool {
             currentPools.put(newServer, new CassandraClientPoolingContainer(newServer, config));
         }
 
+        for (InetSocketAddress removedServerAddress : serversToRemove) {
+            CassandraClientPoolingContainer removedServer = currentPools.get(removedServerAddress);
+            if (removedServer != null) {
+                try {
+                    removedServer.shutdownPooling();
+                } catch (Exception e) {
+                    log.warn("While removing a host ({}) from the pool, we were unable to gently cleanup resources.", removedServerAddress, e);
+                }
+
+                currentPools.remove(removedServerAddress);
+            }
+        }
+
         if (!(serversToAdd.isEmpty() && serversToRemove.isEmpty())) { // if we made any changes
             sanityCheckRingConsistency();
             if (!config.autoRefreshNodes()) { // grab new token mapping, if we didn't already do this before
@@ -203,12 +222,17 @@ public class CassandraClientPool {
     }
 
     private boolean isHostHealthy(InetSocketAddress host) {
+        CassandraClientPoolingContainer testingContainer = null;
         try {
-            CassandraClientPoolingContainer testingContainer = new CassandraClientPoolingContainer(host, config);
+            testingContainer = new CassandraClientPoolingContainer(host, config);
             testingContainer.runWithPooledResource(describeRing);
         } catch (Exception e) {
             log.error("We tried to add {} back into the pool, but got an exception that caused to us distrust this host further.", host, e);
             return false;
+        } finally {
+            if (testingContainer != null) {
+                testingContainer.shutdownPooling();
+            }
         }
         return true;
     }
@@ -369,7 +393,7 @@ public class CassandraClientPool {
         @SuppressWarnings("unchecked")
     private <K extends Exception> void handleException(int numTries, InetSocketAddress host, Exception e) throws K {
         if (isRetriableException(e)) {
-            if (numTries >= MAX_TRIES) {
+            if (numTries >= MAX_TRIES_TOTAL) {
                 if (e instanceof TTransportException
                         && e.getCause() != null
                         && (e.getCause().getClass() == SocketException.class)) {
@@ -381,8 +405,8 @@ public class CassandraClientPool {
                 }
                 throw (K) e;
             } else {
-                log.warn("Error occurred talking to cassandra. Attempt {} of {}.", numTries, MAX_TRIES, e);
-                if (isConnectionException(e)) {
+                log.warn("Error occurred talking to cassandra. Attempt {} of {}.", numTries, MAX_TRIES_TOTAL, e);
+                if (isConnectionException(e) && numTries >= MAX_TRIES_SAME_HOST) {
                     addToBlacklist(host);
                 }
             }
