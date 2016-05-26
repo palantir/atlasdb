@@ -35,6 +35,14 @@ v0.6.0
 
     *   - |fixed|
         - A potential race condition could cause timestamp allocation to never complete on a particular node.
+
+    *   - |fixed|
+        - An innocuous error was logged once for each TransactionManager about not being able to allocate 
+          enough timestamps. The error has been downgraded to INFO and made less scary.
+
+    *   - |fixed|
+        - Serializable Transactions that read a column selection could consistently report conflicts when there were none.
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
