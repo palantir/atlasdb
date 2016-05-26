@@ -39,11 +39,13 @@ import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.SharedMetricRegistries;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.palantir.common.visitor.Visitor;
 import com.palantir.nexus.db.DBType;
-import com.palantir.nexus.db.manager.DBConfig;
-import com.palantir.nexus.db.manager.DBConfigConnectionParameter;
 import com.palantir.nexus.db.manager.DatabaseConstants;
+import com.palantir.nexus.db.pool.config.ConnectionConfig;
+import com.palantir.nexus.db.pool.config.ConnectionProtocol;
+import com.palantir.nexus.db.pool.config.ImmutableConnectionConfig;
 import com.palantir.nexus.db.sql.ExceptionCheck;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
@@ -62,9 +64,8 @@ class HikariCPConnectionManager extends BaseConnectionManager {
     // TODO: Make this delay configurable?
     private static final long COOLDOWN_MILLISECONDS = 30000;
 
-    private final DBConfig dbConfig;
+    private ConnectionConfig dbConfig;
     private final Visitor<Connection> onAcquireVisitor;
-    private final KeystoreManager keystoreManager;
 
     private enum StateType {
         // Base state at construction.  Nothing is set.
@@ -98,12 +99,9 @@ class HikariCPConnectionManager extends BaseConnectionManager {
 
     private volatile State state = new State(StateType.ZERO, 0, null, null, null);
 
-    public HikariCPConnectionManager(DBConfig dbConfig,
-                                     Visitor<Connection> onAcquireVisitor,
-                                     KeystoreManager keystoreManager) {
+    public HikariCPConnectionManager(ConnectionConfig dbConfig, Visitor<Connection> onAcquireVisitor) {
         this.dbConfig = Preconditions.checkNotNull(dbConfig);
         this.onAcquireVisitor = onAcquireVisitor;
-        this.keystoreManager = keystoreManager;
     }
 
     @Override
@@ -253,7 +251,7 @@ class HikariCPConnectionManager extends BaseConnectionManager {
         boolean isValid = false;
         Statement stmt = conn.createStatement();
         try {
-            ResultSet rs = stmt.executeQuery(dbConfig.getType().getTestQuery());
+            ResultSet rs = stmt.executeQuery(dbConfig.getDbType().getTestQuery());
             isValid = rs.next();
             rs.close();
         } finally {
@@ -301,7 +299,7 @@ class HikariCPConnectionManager extends BaseConnectionManager {
     }
 
     private State initialState() throws SQLException {
-        if (dbConfig.getType() == null) {
+        if (dbConfig.getDbType() == null) {
             throw new DBMgrConfigurationException(
                     "Missing required configuration parameter specifying database type.");
         } else if (dbConfig.getDbLogin() == null) {
@@ -316,7 +314,11 @@ class HikariCPConnectionManager extends BaseConnectionManager {
         HikariConfig config = new HikariConfig();
 
         // additional connection properties will go in here
-        Properties props = JdbcConfig.getPropertiesFromDbConfig(dbConfig);
+        Properties props = JdbcConfig.getPropertiesFromDbConfig(
+                dbConfig.getDbLogin(),
+                dbConfig.getDbPassword(),
+                dbConfig.getSocketTimeoutSeconds(),
+                dbConfig.getConnectionTimeoutSeconds());
 
         /*
          * This /has/ to be done before initDataSource(Properties) as it updates the JDBC URL.
@@ -337,7 +339,7 @@ class HikariCPConnectionManager extends BaseConnectionManager {
 
         // Set light-weight test query to run on connections checked out from pool.
         // TODO: See if driver supports JDBC4 (isValid()) and use it.
-        config.setConnectionTestQuery(dbConfig.getType().getTestQuery());
+        config.setConnectionTestQuery(dbConfig.getDbType().getTestQuery());
 
         initPoolProperties(config, props);
 
@@ -445,7 +447,7 @@ class HikariCPConnectionManager extends BaseConnectionManager {
      * @param props
      */
     private void initPoolSsl(Properties props) {
-        if (dbConfig.getType() == DBType.ORACLE) {
+        if (dbConfig.getDbType() == DBType.ORACLE) {
             try {
                 initPoolSslOracle(props);
             } catch (Exception e) {
@@ -545,12 +547,13 @@ class HikariCPConnectionManager extends BaseConnectionManager {
         /*
          * If the protocol has been set to "tcps," setup a trust store.
          */
-        String sProtocol = dbConfig.getConnectionParameter(DBConfigConnectionParameter.PROTOCOL);
+        ConnectionProtocol sProtocol = dbConfig.getProtocol();
         log.info("DB Protocol is set to " + sProtocol);
 
-        if (sProtocol != null && sProtocol.equalsIgnoreCase("tcps")) {
+        if (sProtocol == ConnectionProtocol.TCPS) {
             // Create the truststore
-            File clientTrustore = new File("./security/Client_Truststore");
+            Preconditions.checkArgument(dbConfig.getTruststorePath().isPresent());
+            File clientTrustore = new File(dbConfig.getTruststorePath().get());
 
             if (clientTrustore.exists()) {
                 props.setProperty("javax.net.ssl.trustStore", clientTrustore.getAbsolutePath());
@@ -560,44 +563,52 @@ class HikariCPConnectionManager extends BaseConnectionManager {
             }
 
             // server_dn_matching
-            String sMatchServerDN = dbConfig.getConnectionParameter(DBConfigConnectionParameter.MATCH_SERVER_DN);
-            if (sMatchServerDN != null && sMatchServerDN.length() > 0) {
+            String sMatchServerDN = dbConfig.getMatchServerDn();
+            if (!Strings.isNullOrEmpty(sMatchServerDN)) {
                 props.setProperty("oracle.net.ssl_server_dn_match", "true");
                 log.info("Will require the server certificate DB to match: " + sMatchServerDN);
 
                 // modify the config to have a URL suffix
-                dbConfig.setUrlSuffix(DatabaseConstants.DB_ORACLE_SECURITY_SUFFIX);
+                dbConfig = ImmutableConnectionConfig.builder().from(dbConfig)
+                        .urlSuffix(DatabaseConstants.DB_ORACLE_SECURITY_SUFFIX)
+                        .build();
             } else {
                 // set the closer if we don't have a dn to match
-                dbConfig.setUrlSuffix(DatabaseConstants.DB_ORACLE_NO_SECURITY_SUFFIX);
+                dbConfig = ImmutableConnectionConfig.builder().from(dbConfig)
+                        .urlSuffix(DatabaseConstants.DB_ORACLE_NO_SECURITY_SUFFIX)
+                        .build();
             }
 
             /*
              * Enable client SSL certificate support. "two-way" SSL in Oracle parlance.
              */
             if (dbConfig.getTwoWaySsl()) {
-                props.setProperty("javax.net.ssl.keyStore", keystoreManager.getKeystorePath());
-                props.setProperty("javax.net.ssl.keyStorePassword", keystoreManager.getKeystorePassword());
+                Preconditions.checkArgument(dbConfig.getKeystorePath().isPresent());
+                Preconditions.checkArgument(dbConfig.getKeystorePassword().isPresent());
+                props.setProperty("javax.net.ssl.keyStore", dbConfig.getKeystorePath().get());
+                props.setProperty("javax.net.ssl.keyStorePassword", dbConfig.getKeystorePassword().get());
             }
         } else {
             /*
              * Set no security suffix if security isn't enabled.
              */
-            dbConfig.setUrlSuffix(DatabaseConstants.DB_ORACLE_NO_SECURITY_SUFFIX);
+            dbConfig = ImmutableConnectionConfig.builder().from(dbConfig)
+                    .urlSuffix(DatabaseConstants.DB_ORACLE_NO_SECURITY_SUFFIX)
+                    .build();
 
             /*
              * Ensure a PROTOCOL is set.  Default to "tcp" if none is set.
              */
             if (sProtocol == null) {
-                dbConfig.addConnectionParameter(
-                        DBConfigConnectionParameter.PROTOCOL,
-                        DatabaseConstants.DEFAULT_DB_CONNECTION_PARAM_PROTOCOL);
+                dbConfig = ImmutableConnectionConfig.builder().from(dbConfig)
+                        .protocol(ConnectionProtocol.TCP)
+                        .build();
             }
         }
     }
 
     @Override
     public DBType getDbType() {
-        return dbConfig.getType();
+        return dbConfig.getDbType();
     }
 }
