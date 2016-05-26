@@ -328,11 +328,6 @@ public class Schema {
         }
     }
 
-    public void addCleanupTask(String tableName, OnCleanupTask task) {
-        String fullTableName = Schemas.getFullTableName(tableName, namespace);
-        cleanupTasks.put(fullTableName, Suppliers.ofInstance(task));
-    }
-
     public void addCleanupTask(String rawTableName, Supplier<OnCleanupTask> task) {
         cleanupTasks.put(rawTableName, task);
     }
