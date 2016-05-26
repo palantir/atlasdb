@@ -19,12 +19,12 @@ import java.io.Closeable;
 
 import com.google.common.base.Supplier;
 import com.palantir.exception.PalantirSqlException;
-import com.palantir.nexus.db.sql.PalantirSqlConnection;
+import com.palantir.nexus.db.sql.SqlConnection;
 
-public interface PalantirSqlConnectionSupplier extends Supplier<PalantirSqlConnection>, Closeable {
+public interface SqlConnectionSupplier extends Supplier<SqlConnection>, Closeable {
 
     @Override
-    public PalantirSqlConnection get();
+    public SqlConnection get();
 
     @Override
     public void close() throws PalantirSqlException;

@@ -21,19 +21,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Supplier;
-import com.palantir.nexus.db.sql.PalantirSqlConnection;
+import com.palantir.nexus.db.sql.SqlConnection;
 
-public class ConnectionSupplier implements PalantirSqlConnectionSupplier {
+public class ConnectionSupplier implements SqlConnectionSupplier {
     private static final Logger log = LoggerFactory.getLogger(ConnectionSupplier.class);
-    private volatile PalantirSqlConnection sharedConnection;
-    private final Supplier<PalantirSqlConnection> delegate;
+    private volatile SqlConnection sharedConnection;
+    private final Supplier<SqlConnection> delegate;
 
-    public ConnectionSupplier(Supplier<PalantirSqlConnection> delegate) {
+    public ConnectionSupplier(Supplier<SqlConnection> delegate) {
         this.delegate = delegate;
     }
 
     @Override
-    public PalantirSqlConnection get() {
+    public SqlConnection get() {
         if (sharedConnection == null) {
             sharedConnection = getFresh();
         }
@@ -46,7 +46,7 @@ public class ConnectionSupplier implements PalantirSqlConnectionSupplier {
      *
      * @return
      */
-    public PalantirSqlConnection getFresh() {
+    public SqlConnection getFresh() {
         close();
         return delegate.get();
     }

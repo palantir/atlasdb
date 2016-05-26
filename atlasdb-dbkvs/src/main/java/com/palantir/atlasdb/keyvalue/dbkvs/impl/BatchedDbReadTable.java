@@ -38,7 +38,7 @@ import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.Throwables;
 import com.palantir.nexus.db.sql.AgnosticLightResultRow;
 import com.palantir.nexus.db.sql.AgnosticLightResultSet;
-import com.palantir.nexus.db.sql.PalantirSqlConnection;
+import com.palantir.nexus.db.sql.SqlConnection;
 
 public class BatchedDbReadTable extends AbstractDbReadTable {
     private static final Logger log = LoggerFactory.getLogger(BatchedDbReadTable.class);
@@ -144,7 +144,7 @@ public class BatchedDbReadTable extends AbstractDbReadTable {
 
     @Override
     protected ClosableIterator<AgnosticLightResultRow> run(FullQuery query) {
-        final PalantirSqlConnection freshConn = conns.getFresh();
+        final SqlConnection freshConn = conns.getFresh();
         try {
             final AgnosticLightResultSet results = freshConn.selectLightResultSetUnregisteredQuery(
                     query.getQuery(), query.getArgs());
@@ -170,6 +170,6 @@ public class BatchedDbReadTable extends AbstractDbReadTable {
     }
 
     private int getBatchSize() {
-        return config.postgresQueryBatchSize();
+        return config.fetchBatchSize();
     }
 }

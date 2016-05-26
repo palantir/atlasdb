@@ -51,7 +51,7 @@ import com.palantir.common.collect.IterableView;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.sql.BasicSQLUtils;
-import com.palantir.nexus.db.sql.PalantirSqlConnection;
+import com.palantir.nexus.db.sql.SqlConnection;
 import com.palantir.sql.Connections;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.Pair;
@@ -68,11 +68,11 @@ public class DbKvsGetRanges {
     private static final byte[] LARGEST_NAME = Cells.createLargestCellForRow(new byte[] {0}).getColumnName();
     private final DbKvs kvs;
     private final DBType dbType;
-    private final Supplier<PalantirSqlConnection> connectionSupplier;
+    private final Supplier<SqlConnection> connectionSupplier;
 
     public DbKvsGetRanges(DbKvs kvs,
                           DBType dbType,
-                          Supplier<PalantirSqlConnection> connectionSupplier) {
+                          Supplier<SqlConnection> connectionSupplier) {
         this.kvs = kvs;
         this.dbType = dbType;
         this.connectionSupplier = connectionSupplier;
@@ -101,7 +101,7 @@ public class DbKvsGetRanges {
         }
 
         TimingState timer = logTimer.begin("Table: " + tableRef.getQualifiedName() + " get_page");
-        final PalantirSqlConnection conn = connectionSupplier.get();
+        final SqlConnection conn = connectionSupplier.get();
         try {
             final boolean oldAutoCommitFlag = setAutoCommitFlag(conn, false);
             try {
@@ -115,7 +115,7 @@ public class DbKvsGetRanges {
         }
     }
 
-    private boolean setAutoCommitFlag(final PalantirSqlConnection conn, final boolean autoCommitFlag) {
+    private boolean setAutoCommitFlag(final SqlConnection conn, final boolean autoCommitFlag) {
         return BasicSQLUtils.runUninterruptably(new Callable<Boolean>() {
             @Override
             public Boolean call() throws PalantirSqlException  {
@@ -130,7 +130,7 @@ public class DbKvsGetRanges {
                                                                              List<RangeRequest> requests,
                                                                              long timestamp,
                                                                              Multimap<String, Object[]> argListByQuery,
-                                                                             final PalantirSqlConnection conn) {
+                                                                             final SqlConnection conn) {
         TempTables.truncateRowTable(conn);
         for (String query : argListByQuery.keySet()) {
             final Collection<Object[]> argLists = argListByQuery.get(query);
@@ -267,7 +267,7 @@ public class DbKvsGetRanges {
         })).filter(Predicates.not(RowResults.<Value>createIsEmptyPredicate()));
     }
 
-    private static void closeSql(PalantirSqlConnection conn) {
+    private static void closeSql(SqlConnection conn) {
         Connection underlyingConnection = conn.getUnderlyingConnection();
         if (underlyingConnection != null) {
             try {

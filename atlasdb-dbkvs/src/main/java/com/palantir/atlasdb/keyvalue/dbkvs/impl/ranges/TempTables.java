@@ -27,27 +27,27 @@ import com.google.common.primitives.UnsignedBytes;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.AgnosticResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
-import com.palantir.nexus.db.sql.PalantirSqlConnection;
 import com.palantir.nexus.db.sql.SQLString;
 import com.palantir.nexus.db.sql.SQLString.RegisteredSQLString;
+import com.palantir.nexus.db.sql.SqlConnection;
 
 public class TempTables {
     private static final Logger log = LoggerFactory.getLogger(TempTables.class);
 
     private TempTables() { /* empty */ }
 
-    private static void executeInstrumentedSql(PalantirSqlConnection c, RegisteredSQLString query, String identifier, Stopwatch stopwatch) {
+    private static void executeInstrumentedSql(SqlConnection c, RegisteredSQLString query, String identifier, Stopwatch stopwatch) {
         c.execute(query);
         log.info(identifier + " took " + stopwatch.elapsed(TimeUnit.MILLISECONDS) + " ms.");
         stopwatch.reset().start();
     }
 
-    static void truncateRowTable(PalantirSqlConnection sql) throws PalantirSqlException {
+    static void truncateRowTable(SqlConnection sql) throws PalantirSqlException {
         Stopwatch stopwatch = Stopwatch.createStarted();
         executeInstrumentedSql(sql, SQL_MET_TEMP_ROW_TRUNCATE, "truncateRowTable", stopwatch);
     }
 
-    static TreeMultimap<Integer, byte[]> getRowsForBatches(PalantirSqlConnection c) {
+    static TreeMultimap<Integer, byte[]> getRowsForBatches(SqlConnection c) {
         AgnosticResultSet results = c.selectResultSet(SQL_MET_ROW_TEMP_GET_ALL);
         TreeMultimap<Integer, byte[]> ret = TreeMultimap.create(
                 Ordering.natural(),
