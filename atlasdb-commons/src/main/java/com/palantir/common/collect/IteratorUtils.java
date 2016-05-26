@@ -37,7 +37,7 @@ import com.google.common.collect.UnmodifiableIterator;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.base.Visitors;
 import com.palantir.util.Pair;
-import com.palantir.util.Visitor;
+import com.palantir.common.visitor.Visitor;
 
 public class IteratorUtils {
 

@@ -1,0 +1,91 @@
+// -*- groovy -*-
+// METABUILD GENERATED metaconf/metaconf.groovy + metaconf/project/make.gradle.tmpl -> atlasdb/atlasdb-dbkvs-hikari/make.gradle
+apply from: "${rootProject.projectDir}/before.gradle"
+sourceSets.main.java.srcDirs=[ file('src/main/java') ]
+sourceSets.main.resources.srcDirs=[  ]
+sourceSets.test.java.srcDirs=[  ]
+sourceSets.test.resources.srcDirs=[  ]
+sourceCompatibility = '1.6'
+targetCompatibility = '1.6'
+archivesBaseName="atlasdb-dbkvs-hikari"
+configurations.create('test').extendsFrom(configurations.testRuntime)
+jar {
+  baseName 'atlasdb-dbkvs-hikari'
+  exclude '.gitkeep'
+  doFirst {
+    manifest {
+      from rootProject.ext.standardManifest
+      def jarList = processJarListForManifest(sourceSets.main.compileClasspath)
+      if (!jarList.isEmpty()) {
+        attributes.put('Class-Path', jarList.join(' '))
+      }
+    }
+  }
+  doLast {
+    recordArtifactName(archiveName, archivePath)
+  }
+}
+task testJar(type: Jar) {
+  baseName 'atlasdb-dbkvs-hikari-test'
+  from sourceSets.test.output
+  exclude '.gitkeep'
+  ext.is_test = true
+  doFirst {
+    manifest {
+      from rootProject.ext.standardManifest
+      def jarList = processJarListForManifest(sourceSets.test.compileClasspath)
+      if (!jarList.isEmpty()) {
+        attributes.put('Class-Path', jarList.join(' '))
+      }
+    }
+  }
+  doLast {
+    recordArtifactName(archiveName, archivePath)
+  }
+}
+assemble.dependsOn testJar
+task mainSourcesZip(type: Zip) {
+  baseName 'atlasdb-dbkvs-hikari'
+  from sourceSets.main.allSource
+}
+assemble.dependsOn mainSourcesZip
+task testSourcesZip(type: Zip) {
+  baseName 'atlasdb-dbkvs-hikari-test'
+  from sourceSets.test.allSource
+}
+assemble.dependsOn testSourcesZip
+def sourceSetEmpty(def sourceSet) {
+  return sourceSet.allSource.isEmpty() ||
+    (sourceSet.allSource.files.size() == 1 &&
+    sourceSet.allSource.singleFile.name.equals(".gitkeep"))
+}
+publishing {
+publications {
+  ivy(IvyPublication) {
+    if (!sourceSetEmpty(sourceSets.main)) {
+      artifact(mainSourcesZip) {
+        name "atlasdb-dbkvs-hikari"
+        extension "zip"
+        type "source"
+        conf "default"
+      }
+    }
+    if (!sourceSetEmpty(sourceSets.test)) {
+      artifact(testSourcesZip) {
+        name "atlasdb-dbkvs-hikari-test"
+        extension "zip"
+        type "source"
+        conf "test"
+      }
+    }
+  }
+}
+}
+dependencies {
+  test sourceSets.test.output
+  compile(group: 'com.codahale.metrics', name: 'metrics-core', version: '3.0.2', configuration: 'default')
+  compile(group: 'org.immutables', name: 'value', version: '2.0.21', configuration: 'default')
+  testCompile(project(path: ':commons-db', configuration: 'test'))
+  compile(project(path: ':commons-db', configuration: 'default'))
+}
+apply from: "${rootProject.projectDir}/after.gradle"

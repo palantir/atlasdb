@@ -53,7 +53,7 @@ import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.util.Visitor;
+import com.palantir.common.visitor.Visitor;
 
 public class CQLKeyValueServices {
     private static final Logger log = LoggerFactory.getLogger(CQLKeyValueService.class); // not a typo

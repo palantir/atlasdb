@@ -13,14 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.util;
-
+package com.palantir.common.visitor;
 
 
 /**
  * This redefines {@link #visit(Object)} to throw no checked exceptions.
  *
- * @see com.palantir.util.Visitor
+ * @see Visitor
  *
  */
 public interface Visitor<T> extends VisitorCheckedException<T, RuntimeException> {

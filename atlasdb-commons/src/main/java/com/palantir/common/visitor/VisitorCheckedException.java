@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.util;
+package com.palantir.common.visitor;
 
 public interface VisitorCheckedException<T, K extends Exception> {
     public void visit(T obj) throws K;

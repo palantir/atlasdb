@@ -24,7 +24,7 @@ import org.apache.commons.lang.Validate;
 
 import com.palantir.nexus.db.chunked.ChunkedRowVisitor;
 import com.palantir.nexus.db.sql.SQLString.RegisteredSQLString;
-import com.palantir.util.Visitor;
+import com.palantir.common.visitor.Visitor;
 
 public interface PalantirSqlConnectionRunner {
     public static abstract class SequenceEnabledSqlRunnerCheckedException<T, K extends Exception> {

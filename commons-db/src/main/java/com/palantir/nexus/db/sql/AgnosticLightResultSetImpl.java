@@ -35,7 +35,7 @@ import com.palantir.nexus.db.monitoring.timer.SqlTimer;
 import com.palantir.nexus.db.sql.BasicSQLString.FinalSQLString;
 import com.palantir.sql.ResultSets;
 import com.palantir.util.AssertUtils;
-import com.palantir.util.Visitor;
+import com.palantir.common.visitor.Visitor;
 
 /**
  * This result set only loads one row at a time, and thus provides a
