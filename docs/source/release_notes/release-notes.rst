@@ -34,7 +34,7 @@ v0.6.0
         - Change
 
     *   - |fixed|
-        - A potential race condition could cause timestamp allocation to never complete on a particular node.
+        - A potential race condition could cause timestamp allocation to never complete on a particular node (#462)
 
     *   - |fixed|
         - An innocuous error was logged once for each TransactionManager about not being able to allocate 
@@ -42,6 +42,9 @@ v0.6.0
 
     *   - |fixed|
         - Serializable Transactions that read a column selection could consistently report conflicts when there were none.
+    
+    *   - |fixed|
+        - An excessively long Cassandra related logline was sometimes printed (#501)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
