@@ -1,0 +1,6 @@
+apply from: '../gradle/shared.gradle'
+
+dependencies {
+  compile project(':commons-db')
+  compile 'com.codahale.metrics:metrics-core:3.0.2'
+}

@@ -27,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.palantir.common.base.Throwables;
+import com.palantir.common.visitor.Visitor;
 import com.palantir.exception.PalantirInterruptedException;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.DBType;
@@ -35,7 +36,6 @@ import com.palantir.nexus.db.monitoring.timer.SqlTimer;
 import com.palantir.nexus.db.sql.BasicSQLString.FinalSQLString;
 import com.palantir.sql.ResultSets;
 import com.palantir.util.AssertUtils;
-import com.palantir.common.visitor.Visitor;
 
 /**
  * This result set only loads one row at a time, and thus provides a
