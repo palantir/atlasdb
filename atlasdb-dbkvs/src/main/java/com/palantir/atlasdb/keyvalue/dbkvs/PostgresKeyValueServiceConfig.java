@@ -24,11 +24,6 @@ import com.google.common.base.Supplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbTableFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.PostgresDbTableFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.SqlConnectionSupplier;
-import com.palantir.nexus.db.sql.BasicSQL;
-import com.palantir.nexus.db.sql.SQL;
-import com.palantir.nexus.db.sql.SqlConnection;
-import com.palantir.nexus.db.sql.SqlConnectionHelper;
-import com.palantir.nexus.db.sql.SqlConnectionImpl;
 
 @JsonDeserialize(as = ImmutablePostgresKeyValueServiceConfig.class)
 @JsonSerialize(as = ImmutablePostgresKeyValueServiceConfig.class)
