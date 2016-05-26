@@ -123,7 +123,7 @@ public class DbKvsGetRanges {
                 Connections.setAutoCommit(conn.getUnderlyingConnection(), autoCommitFlag);
                 return status;
             }
-        }, "metro setAutoCommit"); //$NON-NLS-1$
+        }, "metro setAutoCommit", conn.getUnderlyingConnection()); //$NON-NLS-1$
     }
 
     private Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstPagesFromDb(TableReference tableRef,
