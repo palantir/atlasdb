@@ -142,7 +142,7 @@ public class Schema {
     public void addStreamStoreDefinition(StreamStoreDefinition streamStoreDefinition) {
         streamStoreDefinition.getTables().forEach((tableName, definition) -> addTableDefinition(tableName, definition));
         StreamStoreRenderer renderer = streamStoreDefinition.getRenderer(packageName, name);
-        Multimap<String, Supplier<OnCleanupTask>> streamStoreCleanupTasks = streamStoreDefinition.getCleanupTasks(packageName, name, renderer);
+        Multimap<String, Supplier<OnCleanupTask>> streamStoreCleanupTasks = streamStoreDefinition.getCleanupTasks(packageName, name, renderer, namespace);
 
         cleanupTasks.putAll(streamStoreCleanupTasks);
         streamStoreRenderers.add(renderer);

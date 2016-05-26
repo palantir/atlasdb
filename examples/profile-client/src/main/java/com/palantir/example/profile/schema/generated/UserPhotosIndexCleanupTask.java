@@ -6,12 +6,17 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
 public class UserPhotosIndexCleanupTask implements OnCleanupTask {
 
-    private final ProfileTableFactory tables = ProfileTableFactory.of();
+    private final ProfileTableFactory tables;
+
+    public UserPhotosIndexCleanupTask(Namespace namespace) {
+        tables = ProfileTableFactory.of(namespace);
+    }
 
     @Override
     public boolean cellsCleanedUp(Transaction t, Set<Cell> cells) {
