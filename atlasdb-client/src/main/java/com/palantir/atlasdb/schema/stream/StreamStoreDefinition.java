@@ -21,6 +21,7 @@ import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
+import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ExpirationStrategy;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
@@ -53,7 +54,7 @@ public class StreamStoreDefinition {
         return new StreamStoreRenderer(Renderers.CamelCase(longName), idType, packageName, name, inMemoryThreshold, expirationStrategy);
     }
 
-    public Multimap<String, Supplier<OnCleanupTask>> getCleanupTasks(String packageName, String name, StreamStoreRenderer renderer) {
+    public Multimap<String, Supplier<OnCleanupTask>> getCleanupTasks(String packageName, String name, StreamStoreRenderer renderer, Namespace namespace) {
         Multimap<String, Supplier<OnCleanupTask>> cleanupTasks = ArrayListMultimap.create();
 
         // We use reflection and wrap these in suppliers because these classes are generated classes that might not always exist.
@@ -62,7 +63,11 @@ public class StreamStoreDefinition {
             public OnCleanupTask get() {
                 try {
                     Class<?> clazz = Class.forName(packageName + "." + renderer.getMetadataCleanupTaskClassName());
-                    return (OnCleanupTask) clazz.getConstructor().newInstance();
+                    try {
+                        return (OnCleanupTask) clazz.getConstructor(Namespace.class).newInstance(namespace);
+                    } catch (Exception e) {
+                        return (OnCleanupTask) clazz.getConstructor().newInstance();
+                    }
                 } catch (Exception e) {
                     throw Throwables.rewrapAndThrowUncheckedException(e);
                 }
@@ -74,7 +79,11 @@ public class StreamStoreDefinition {
             public OnCleanupTask get() {
                 try {
                     Class<?> clazz = Class.forName(packageName + "." + renderer.getIndexCleanupTaskClassName());
-                    return (OnCleanupTask) clazz.getConstructor().newInstance();
+                    try {
+                        return (OnCleanupTask) clazz.getConstructor(Namespace.class).newInstance(namespace);
+                    } catch (Exception e) {
+                        return (OnCleanupTask) clazz.getConstructor().newInstance();
+                    }
                 } catch (Exception e) {
                     throw Throwables.rewrapAndThrowUncheckedException(e);
                 }
