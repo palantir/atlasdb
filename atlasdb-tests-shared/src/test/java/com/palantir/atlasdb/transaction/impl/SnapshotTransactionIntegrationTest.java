@@ -51,16 +51,16 @@ public class SnapshotTransactionIntegrationTest extends AtlasDbTestCase {
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void shouldForbidEmptyRows() {
+    public void forbidEmptyRows() {
         TableReference table = TableReference.create(Namespace.DEFAULT_NAMESPACE, BLOB_ONLY_TABLE_NAME);
 
         putCells(table, ImmutableMap.of(blobCell, PtBytes.EMPTY_BYTE_ARRAY));
     }
 
     @Test
-    public void rowsWithEmptyObjectsShouldBeVisible() {
+    public void allowRowsWithEmptyObjects() {
         TableReference table = TableReference.create(Namespace.DEFAULT_NAMESPACE, BLOB_AND_VALUE_TABLE_NAME);
-        putCells(table, ImmutableMap.of(otherCell, PtBytes.toBytes(123L)));
+        putCells(table, ImmutableMap.of(blobCell, PtBytes.EMPTY_BYTE_ARRAY, otherCell, PtBytes.toBytes(123L)));
 
         RowResult<byte[]> rowResult = getRowResult(table, blobCell.getRowName());
 

@@ -18,6 +18,7 @@ package com.palantir.atlasdb.transaction.impl;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +34,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nullable;
 
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -949,14 +951,30 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     @Override
     public void put(TableReference tableRef, Map<Cell, byte[]> values) {
-        // validate
+        Set<List<Byte>> emptyRows = emptyRows(values);
+        if (!emptyRows.isEmpty()) {
+            throw new IllegalArgumentException("Cannot insert a row where all values are empty");
+        }
+        put(tableRef, values, Cell.INVALID_TTL, Cell.INVALID_TTL_TYPE);
+    }
+
+    private Set<List<Byte>> emptyRows(Map<Cell, byte[]> values) {
+        Set<List<Byte>> rowsWithEmptyEntries = new HashSet<>();
+        Set<List<Byte>> rowsWithNonEmptyEntries = new HashSet<>();
+
         for (Entry<Cell, byte[]> cellEntry : values.entrySet()) {
+            List<Byte> rowName = asByteList(cellEntry.getKey().getRowName());
             if (cellEntry.getValue().length == 0) {
-                throw new IllegalArgumentException("put values cannot be empty");
+                rowsWithEmptyEntries.add(rowName);
+            } else {
+                rowsWithNonEmptyEntries.add(rowName);
             }
         }
+        return Sets.difference(rowsWithEmptyEntries, rowsWithNonEmptyEntries);
+    }
 
-        put(tableRef, values, Cell.INVALID_TTL, Cell.INVALID_TTL_TYPE);
+    private List<Byte> asByteList(byte[] byteArray) {
+        return Arrays.asList(ArrayUtils.toObject(byteArray));
     }
 
     public void put(TableReference tableRef, Map<Cell, byte[]> values, long ttlDuration, TimeUnit ttlUnit) {
