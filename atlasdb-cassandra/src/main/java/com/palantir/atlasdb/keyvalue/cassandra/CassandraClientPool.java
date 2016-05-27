@@ -18,14 +18,26 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.cassandra.thrift.*;
+import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.Cassandra.Client;
+import org.apache.cassandra.thrift.CfDef;
+import org.apache.cassandra.thrift.InvalidRequestException;
+import org.apache.cassandra.thrift.KsDef;
+import org.apache.cassandra.thrift.NotFoundException;
+import org.apache.cassandra.thrift.SchemaDisagreementException;
+import org.apache.cassandra.thrift.TimedOutException;
+import org.apache.cassandra.thrift.TokenRange;
+import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
@@ -33,7 +45,16 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
-import com.google.common.collect.*;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableRangeMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Range;
+import com.google.common.collect.RangeMap;
+import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedBytes;
@@ -199,6 +220,7 @@ public class CassandraClientPool {
 
     private void addToBlacklist(InetSocketAddress badHost) {
         blacklistedHosts.put(badHost, System.currentTimeMillis());
+        log.info("Blacklisted host '{}'", badHost);
     }
 
     private boolean isHostHealthy(InetSocketAddress host) {
