@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.Semaphore;
 
 import javax.annotation.Nullable;
 
@@ -479,6 +480,7 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                 final EndpointRequestCompletionService<Void> execSvc = EndpointRequestExecutor.newService(executor);
                 final QuorumTracker<Void, Map.Entry<Cell, Value>> tracker = QuorumTracker.of(
                         cellValues.entries(), input.getWriteEntriesParameters(cellValues));
+                final Semaphore semaphore = new Semaphore(EndpointRequestExecutor.MAX_TASKS_PER_ENDPOINT);
 
                 input.runForCellsWrite(tableRef.getQualifiedName(), cellValues, new Function<Pair<KeyValueService, Multimap<Cell, Value>>, Void>() {
                     @Override
@@ -486,7 +488,12 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                         Future<Void> future = execSvc.submit(new Callable<Void>() {
                             @Override
                             public Void call() throws Exception {
-                                e.lhSide.putWithTimestamps(tableRef, e.rhSide);
+                                semaphore.acquire();
+                                try {
+                                    e.lhSide.putWithTimestamps(tableRef, e.rhSide);
+                                } finally {
+                                    semaphore.release();
+                                }
                                 return null;
                             }
                         }, e.lhSide);
@@ -496,6 +503,11 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
                 });
 
                 completeWriteRequest(tracker, execSvc);
+                try {
+                    semaphore.acquire(EndpointRequestExecutor.MAX_TASKS_PER_ENDPOINT);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
                 return null;
             }
         });
