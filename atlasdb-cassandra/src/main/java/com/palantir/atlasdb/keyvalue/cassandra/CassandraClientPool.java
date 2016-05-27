@@ -128,7 +128,7 @@ public class CassandraClientPool {
             }
         }
 
-        serversToAdd = Sets.difference(Sets.difference(serversToAdd, currentPools.keySet()), blacklistedHosts.keySet());
+        serversToAdd = Sets.difference(serversToAdd, currentPools.keySet());
 
         if (!config.autoRefreshNodes()) { // (we would just add them back in)
             serversToRemove = Sets.difference(currentPools.keySet(), config.servers());
@@ -139,16 +139,7 @@ public class CassandraClientPool {
         }
 
         for (InetSocketAddress removedServerAddress : serversToRemove) {
-            CassandraClientPoolingContainer removedServer = currentPools.get(removedServerAddress);
-            if (removedServer != null) {
-                try {
-                    removedServer.shutdownPooling();
-                } catch (Exception e) {
-                    log.warn("While removing a host ({}) from the pool, we were unable to gently cleanup resources.", removedServerAddress, e);
-                }
-
-                currentPools.remove(removedServerAddress);
-            }
+            removePool(removedServerAddress);
         }
 
         if (!(serversToAdd.isEmpty() && serversToRemove.isEmpty())) { // if we made any changes
@@ -160,6 +151,15 @@ public class CassandraClientPool {
 
         log.debug("Cassandra pool refresh added hosts {}, removed hosts {}.", serversToAdd, serversToRemove);
         debugLogStateOfPool();
+    }
+
+    private void removePool(InetSocketAddress removedServerAddress) {
+        try {
+            currentPools.get(removedServerAddress).shutdownPooling();
+        } catch (Exception e) {
+            log.warn("While removing a host ({}) from the pool, we were unable to gently cleanup resources.", removedServerAddress, e);
+        }
+        currentPools.remove(removedServerAddress);
     }
 
     private void debugLogStateOfPool() {
@@ -270,9 +270,9 @@ public class CassandraClientPool {
         try {
             CassandraVerifier.ensureKeyspaceExistsAndIsUpToDate(this, config);
 
-            for (InetSocketAddress liveHost : Sets.difference(currentPools.keySet(), blacklistedHosts.keySet())) {
-                runOnHost(liveHost, healthChecks);
-                runOnHost(liveHost, createInternalMetadataTable);
+            for (InetSocketAddress host : currentPools.keySet()) {
+                runOnHost(host, healthChecks);
+                runOnHost(host, createInternalMetadataTable);
             }
 
         } catch (Exception e) {
