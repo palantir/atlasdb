@@ -655,6 +655,13 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         }
     }
 
+    @Test (expected = IllegalArgumentException.class)
+    public void disallowPutOnEmptyObject() {
+        final Cell cell = Cell.create("row1".getBytes(), "column1".getBytes());
+        Transaction t1 = txManager.createNewTransaction();
+        t1.put(TABLE, ImmutableMap.of(cell, new byte[0]));
+    }
+
     private HeldLocksToken getFakeHeldLocksToken() {
         ImmutableSortedMap.Builder<LockDescriptor, LockMode> builder =
                 ImmutableSortedMap.naturalOrder();
