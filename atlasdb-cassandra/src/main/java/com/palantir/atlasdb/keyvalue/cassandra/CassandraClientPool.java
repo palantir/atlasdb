@@ -154,6 +154,7 @@ public class CassandraClientPool {
     }
 
     private void removePool(InetSocketAddress removedServerAddress) {
+        blacklistedHosts.remove(removedServerAddress);
         try {
             currentPools.get(removedServerAddress).shutdownPooling();
         } catch (Exception e) {
@@ -201,19 +202,13 @@ public class CassandraClientPool {
     }
 
     private boolean isHostHealthy(InetSocketAddress host) {
-        CassandraClientPoolingContainer testingContainer = null;
         try {
-            testingContainer = new CassandraClientPoolingContainer(host, config);
-            testingContainer.runWithPooledResource(describeRing);
+            currentPools.get(host).runWithPooledResource(describeRing);
+            return true;
         } catch (Exception e) {
             log.error("We tried to add {} back into the pool, but got an exception that caused to us distrust this host further.", host, e);
             return false;
-        } finally {
-            if (testingContainer != null) {
-                testingContainer.shutdownPooling();
-            }
         }
-        return true;
     }
 
     private CassandraClientPoolingContainer getRandomGoodHost() {
