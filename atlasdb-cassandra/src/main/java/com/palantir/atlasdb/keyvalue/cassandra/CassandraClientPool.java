@@ -219,6 +219,7 @@ public class CassandraClientPool {
 
     private void addToBlacklist(InetSocketAddress badHost) {
         blacklistedHosts.put(badHost, System.currentTimeMillis());
+        log.info("Blacklisted host '{}'", badHost);
     }
 
     private boolean isHostHealthy(InetSocketAddress host) {
