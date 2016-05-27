@@ -26,6 +26,8 @@ import com.palantir.db.oracle.JdbcHandler;
 @Value.Immutable
 public abstract class OracleKeyValueServiceConfig extends DbKeyValueServiceConfig {
 
+    public static final String TYPE = "oracle";
+
     public abstract JdbcHandler jdbcHandler();
 
     public abstract Supplier<Long> overflowIds();
@@ -45,6 +47,11 @@ public abstract class OracleKeyValueServiceConfig extends DbKeyValueServiceConfi
                 enableOracleEnterpriseFeatures(),
                 overflowIds(),
                 overflowMigrationState());
+    }
+
+    @Override
+    public final String type() {
+        return TYPE;
     }
 
 }
