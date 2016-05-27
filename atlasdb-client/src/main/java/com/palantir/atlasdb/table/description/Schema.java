@@ -30,6 +30,7 @@ import org.apache.commons.lang.Validate;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSortedSet;
@@ -325,6 +326,10 @@ public class Schema {
                 os.close();
             }
         }
+    }
+
+    public void addCleanupTask(String rawTableName, OnCleanupTask task) {
+        cleanupTasks.put(rawTableName, Suppliers.ofInstance(task));
     }
 
     public void addCleanupTask(String rawTableName, Supplier<OnCleanupTask> task) {
