@@ -18,14 +18,26 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.cassandra.thrift.*;
+import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.Cassandra.Client;
+import org.apache.cassandra.thrift.CfDef;
+import org.apache.cassandra.thrift.InvalidRequestException;
+import org.apache.cassandra.thrift.KsDef;
+import org.apache.cassandra.thrift.NotFoundException;
+import org.apache.cassandra.thrift.SchemaDisagreementException;
+import org.apache.cassandra.thrift.TimedOutException;
+import org.apache.cassandra.thrift.TokenRange;
+import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
@@ -33,7 +45,16 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
-import com.google.common.collect.*;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableRangeMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Range;
+import com.google.common.collect.RangeMap;
+import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedBytes;
@@ -127,7 +148,7 @@ public class CassandraClientPool {
             }
         }
 
-        serversToAdd = Sets.difference(Sets.difference(serversToAdd, currentPools.keySet()), blacklistedHosts.keySet());
+        serversToAdd = Sets.difference(serversToAdd, currentPools.keySet());
 
         if (!config.autoRefreshNodes()) { // (we would just add them back in)
             serversToRemove = Sets.difference(currentPools.keySet(), config.servers());
@@ -138,16 +159,7 @@ public class CassandraClientPool {
         }
 
         for (InetSocketAddress removedServerAddress : serversToRemove) {
-            CassandraClientPoolingContainer removedServer = currentPools.get(removedServerAddress);
-            if (removedServer != null) {
-                try {
-                    removedServer.shutdownPooling();
-                } catch (Exception e) {
-                    log.warn("While removing a host ({}) from the pool, we were unable to gently cleanup resources.", removedServerAddress, e);
-                }
-
-                currentPools.remove(removedServerAddress);
-            }
+            removePool(removedServerAddress);
         }
 
         if (!(serversToAdd.isEmpty() && serversToRemove.isEmpty())) { // if we made any changes
@@ -159,6 +171,15 @@ public class CassandraClientPool {
 
         log.debug("Cassandra pool refresh added hosts {}, removed hosts {}.", serversToAdd, serversToRemove);
         debugLogStateOfPool();
+    }
+
+    private void removePool(InetSocketAddress removedServerAddress) {
+        try {
+            currentPools.get(removedServerAddress).shutdownPooling();
+        } catch (Exception e) {
+            log.warn("While removing a host ({}) from the pool, we were unable to gently cleanup resources.", removedServerAddress, e);
+        }
+        currentPools.remove(removedServerAddress);
     }
 
     private void debugLogStateOfPool() {
@@ -260,27 +281,27 @@ public class CassandraClientPool {
 
         Map<InetSocketAddress, Exception> completelyUnresponsiveHosts = Maps.newHashMap(), aliveButInvalidPartitionerHosts = Maps.newHashMap();
         boolean thisHostResponded, atLeastOneHostResponded = false, atLeastOneHostSaidWeHaveALockTable = false;
-        for (InetSocketAddress liveHost : Sets.difference(currentPools.keySet(), blacklistedHosts.keySet())) {
+        for (InetSocketAddress host : currentPools.keySet()) {
             thisHostResponded = false;
             try {
-                runOnHost(liveHost, CassandraVerifier.healthCheck);
+                runOnHost(host, CassandraVerifier.healthCheck);
                 thisHostResponded = true;
                 atLeastOneHostResponded = true;
             } catch (Exception e) {
-                completelyUnresponsiveHosts.put(liveHost, e);
-                addToBlacklist(liveHost);
+                completelyUnresponsiveHosts.put(host, e);
+                addToBlacklist(host);
             }
 
 
             if (thisHostResponded) {
                 try {
-                    runOnHost(liveHost, validatePartitioner);
+                    runOnHost(host, validatePartitioner);
                 } catch (Exception e) {
-                    aliveButInvalidPartitionerHosts.put(liveHost, e);
+                    aliveButInvalidPartitionerHosts.put(host, e);
                 }
 
                 try {
-                    runOnHost(liveHost, createInternalLockTable);
+                    runOnHost(host, createInternalLockTable);
                     atLeastOneHostSaidWeHaveALockTable = true;
                 } catch (Exception e) {
                     // don't fail here, want to give the user all the errors at once at the end
