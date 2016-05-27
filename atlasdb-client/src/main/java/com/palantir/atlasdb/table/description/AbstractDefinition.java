@@ -15,7 +15,9 @@
  */
 package com.palantir.atlasdb.table.description;
 
-import com.google.common.base.Preconditions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePriority;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ExpirationStrategy;
@@ -24,6 +26,7 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrat
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
 abstract class AbstractDefinition {
+    private static final Logger log = LoggerFactory.getLogger(AbstractDefinition.class);
     private static final ImmutableSet<ValueType> CRITICAL_ROW_TYPES = ImmutableSet.of(
             ValueType.VAR_LONG,
             ValueType.VAR_SIGNED_LONG,
@@ -121,11 +124,14 @@ abstract class AbstractDefinition {
             return;
         }
 
-        Preconditions.checkState(!CRITICAL_ROW_TYPES.contains(comp.getType()),
+        if (CRITICAL_ROW_TYPES.contains(comp.getType())) {
+            log.error(
                 "First row component %s of type %s might cause hot-spotting with the partitioner in Cassandra. " +
-                        "If you anticipate never running on Cassandra or have explicitly handled potential hot-spotting issues " +
-                        "then this error can be safely ignored by adding ignoreHotspottingChecks() to the table schema.",
+                "If you anticipate never running on Cassandra or have explicitly handled potential hot-spotting issues " +
+                "then this error can be safely ignored by adding ignoreHotspottingChecks() to the table schema." +
+                "In a future release atlas will fail to start if there are hotspotting issues that have not been ignored.",
                 comp.getComponentName(), comp.getType());
+        }
     }
 }
 
