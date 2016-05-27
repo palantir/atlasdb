@@ -15,7 +15,7 @@ dependencies {
   testCompile 'com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core
 
   testCompile 'org.mockito:mockito-core:' + libVersions.mockito
-  testCompile 'com.palantir.docker.compose:docker-compose-rule:0.12.0'
+  testCompile 'com.palantir.docker.compose:docker-compose-rule:' + libVersions.dockerComposeRule
 }
 
 jacoco {

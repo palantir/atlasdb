@@ -18,21 +18,15 @@ dependencies {
     compile project(':atlasdb-hikari')
     compile project(':atlasdb-rocksdb')
 
+
+    compile(group: 'junit', name: 'junit', version: libVersions.junit) {
+        exclude group: 'org.hamcrest'
+    }
     compile "io.dropwizard:dropwizard-core:" + libVersions.dropwizard
     compile 'com.google.dagger:dagger:2.0.2'
 
-    runtime(project(':atlasdb-cassandra')) {
-        exclude(module:'log4j-over-slf4j')
-        exclude(module:'jcl-over-slf4j')
-        exclude(module:'json-simple')
-        exclude(module:'metrics-core')
-        exclude(module:'logback-core')
-        exclude(module:'logback-classic')
-        exclude(module:'joda-time')
-        exclude(module:'snakeyaml')
-        exclude(module:'hibernate-validator')
-        exclude(module:'libthrift')
-    }
+    compile "org.rocksdb:rocksdbjni:4.1.0"
+    compile 'org.postgresql:postgresql:9.4.1208'
 
     compile 'org.apache.thrift:libthrift:0.9.1'
 
@@ -45,10 +39,7 @@ dependencies {
         }
     }
 
-    testCompile project(':atlasdb-ete-test-utils')
-
     testCompile "io.dropwizard:dropwizard-testing:" + libVersions.dropwizard
-    testCompile 'com.palantir.docker.compose:docker-compose-rule:' + libVersions.dockerComposeRule
 }
 
 
@@ -69,7 +60,7 @@ task prepareForEteTests(type: Copy, dependsOn: 'distTar') {
     from distTar.outputs
     into 'build/docker/'
 
-    rename { filename -> 'atlasdb-todos-snapshot.tgz' }
+    rename { filename -> 'atlasdb-timelock-server-snapshot.tgz' }
 }
 
 distribution {

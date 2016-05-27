@@ -1,39 +1,32 @@
-version: "2"
+version: '2'
+
 services:
-  db:
-    image: kiasaki/alpine-postgres
+  cassandra:
+    image: com.palantir.docker/atlas-cassandra:2.2-v0.1
+    ports:
+      - "9160"
+      - "9042"
+      - "7199"
     environment:
-      POSTGRES_PASSWORD: palantir
-      POSTGRES_USER: palantir
-      POSTGRES_DB: atlas
+      - LOCAL_JMX=no
 
-  timelock1:
-    hostname: "timelock1"
-    build: ../atlasdb-timelock-server
+  todo1:
+    build: .
     environment:
-      - HOSTNAME=timelock1
+      - ME=todo1
     ports:
       - "3828"
-    depends_on:
-      - db
 
-  timelock2:
-    hostname: "timelock2"
-    build: ../atlasdb-timelock-server
+  todo2:
+    build: .
     environment:
-      - HOSTNAME=timelock2
-    ports:
-      - "3828"
+      - ME=todo2
     depends_on:
-      - db
+      - todo1
 
-  timelock3:
-    hostname: "timelock3"
-    build: ../atlasdb-timelock-server
+  todo3:
+    build: .
     environment:
-      - HOSTNAME=timelock3
-    ports:
-      - "3828"
+      - ME=todo3
     depends_on:
-      - db
-
+      - todo1

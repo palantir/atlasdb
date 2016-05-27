@@ -32,6 +32,7 @@ import org.junit.rules.RuleChain;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.ete.Gradle;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.docker.compose.DockerComposition;
 import com.palantir.docker.compose.connection.DockerPort;
