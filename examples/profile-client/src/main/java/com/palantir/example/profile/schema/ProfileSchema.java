@@ -59,6 +59,7 @@ public class ProfileSchema implements AtlasSchema {
             dynamicColumns();
                 componentFromRow("id", ValueType.UUID);
             rangeScanAllowed();
+            ignoreHotspottingChecks();
         }});
 
         schema.addIndexDefinition("created", new IndexDefinition(IndexType.CELL_REFERENCING) {{
@@ -68,6 +69,7 @@ public class ProfileSchema implements AtlasSchema {
             dynamicColumns();
                 componentFromRow("id", ValueType.UUID);
             rangeScanAllowed();
+            ignoreHotspottingChecks();
         }});
 
         schema.addIndexDefinition("cookies", new IndexDefinition(IndexType.CELL_REFERENCING) {{

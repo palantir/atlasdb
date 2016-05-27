@@ -18,9 +18,6 @@ package com.palantir.atlasdb.table.description;
 import java.util.List;
 import java.util.Set;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -43,9 +40,6 @@ import com.palantir.common.persist.Persistable;
  * Can be thought of as a builder for {@link TableMetadata} objects.
  */
 public class TableDefinition extends AbstractDefinition {
-
-    private static final ImmutableSet<ValueType> CRITICAL_ROW_TYPES = ImmutableSet.of(ValueType.VAR_LONG, ValueType.VAR_SIGNED_LONG, ValueType.SIZED_BLOB);
-    private static final Logger log = LoggerFactory.getLogger(TableDefinition.class);
 
     @Override
     protected ConflictHandler defaultConflictHandler() {
@@ -121,9 +115,6 @@ public class TableDefinition extends AbstractDefinition {
 
     public void rowComponent(String componentName, ValueType valueType, ValueByteOrder valueByteOrder) {
         Preconditions.checkState(state == State.DEFINING_ROW_NAME);
-        if (rowNameComponents.isEmpty() && CRITICAL_ROW_TYPES.contains(valueType)) {
-            log.error("First row component {} of type {} might cause hot-spotting with the partitioner in Cassandra.", componentName, valueType);
-        }
         rowNameComponents.add(new NameComponentDescription(componentName, valueType, valueByteOrder));
     }
 
@@ -201,46 +192,6 @@ public class TableDefinition extends AbstractDefinition {
         constraintBuilder.addForeignKeyConstraint(constraint);
     }
 
-    public void explicitCompressionRequested(){
-        explicitCompressionRequested = true;
-    }
-
-    public boolean isExplicitCompressionRequested(){
-        return explicitCompressionRequested;
-    }
-
-    public void explicitCompressionBlockSizeKB(int blockSizeKB) {
-        explicitCompressionBlockSizeKB = blockSizeKB;
-    }
-
-    public int getExplicitCompressionBlockSize() {
-        return explicitCompressionBlockSizeKB;
-    }
-
-    public void appendHeavyAndReadLight() {
-        appendHeavyAndReadLight = true;
-    }
-
-    public boolean isAppendHeavyAndReadLight() {
-        return appendHeavyAndReadLight;
-    }
-
-    public void rangeScanAllowed() {
-        rangeScanAllowed = true;
-    }
-
-    public boolean isRangeScanAllowed() {
-        return rangeScanAllowed;
-    }
-
-    public void negativeLookups() {
-        negativeLookups = true;
-    }
-
-    public boolean hasNegativeLookups() {
-        return negativeLookups;
-    }
-
     public void maxValueSize(int size) {
         maxValueSize = size;
     }
@@ -265,6 +216,13 @@ public class TableDefinition extends AbstractDefinition {
         return javaTableName;
     }
 
+    public void validate() {
+        toTableMetadata();
+        getConstraintMetadata();
+        Preconditions.checkState(!rowNameComponents.isEmpty(), "No row name components defined.");
+        validateFirstRowComp(rowNameComponents.get(0));
+    }
+
     private enum State {
         NONE,
         DEFINING_ROW_NAME,
@@ -283,11 +241,6 @@ public class TableDefinition extends AbstractDefinition {
     private List<NameComponentDescription> dynamicColumnNameComponents = Lists.newArrayList();
     private ColumnValueDescription dynamicColumnValue = null;
     private ConstraintMetadata.Builder constraintBuilder = ConstraintMetadata.builder();
-    private boolean explicitCompressionRequested = false;
-    private int explicitCompressionBlockSizeKB = 0;
-    private boolean rangeScanAllowed = false;
-    private boolean negativeLookups = false;
-    private boolean appendHeavyAndReadLight = false;
     private Set<String> fixedColumnShortNames = Sets.newHashSet();
     private Set<String> fixedColumnLongNames = Sets.newHashSet();
     private boolean noColumns = false;

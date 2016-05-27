@@ -90,26 +90,28 @@ public class StreamTableDefinitionBuilder {
                 if (appendHeavyAndReadLight) {
                     appendHeavyAndReadLight();
                 }
+                ignoreHotspottingChecks();
             }};
 
         case INDEX:
             return new TableDefinition() {{
-            javaTableName(streamTableType.getJavaClassName(prefix));
-            rowName();
+                javaTableName(streamTableType.getJavaClassName(prefix));
+                rowName();
                 if (hashFirstRowComponent) {
                     hashFirstRowComponent();
                 }
                 rowComponent("id",            idType);
-            dynamicColumns();
+                dynamicColumns();
                 columnComponent("reference", ValueType.SIZED_BLOB);
                 value(ValueType.VAR_LONG);
-            conflictHandler(ConflictHandler.IGNORE_ALL);
-            maxValueSize(1);
-            explicitCompressionRequested();
-            expirationStrategy(expirationStrategy);
-            if (appendHeavyAndReadLight) {
-                appendHeavyAndReadLight();
-            }
+                conflictHandler(ConflictHandler.IGNORE_ALL);
+                maxValueSize(1);
+                explicitCompressionRequested();
+                expirationStrategy(expirationStrategy);
+                if (appendHeavyAndReadLight) {
+                    appendHeavyAndReadLight();
+                }
+                ignoreHotspottingChecks();
         }};
 
         case METADATA:
@@ -130,6 +132,7 @@ public class StreamTableDefinitionBuilder {
                 if (appendHeavyAndReadLight) {
                     appendHeavyAndReadLight();
                 }
+                ignoreHotspottingChecks();
             }};
 
         case VALUE:
@@ -153,6 +156,7 @@ public class StreamTableDefinitionBuilder {
                 if (dbSideCompressionForBlocks) {
                     explicitCompressionBlockSizeKB(GenericStreamStore.BLOCK_SIZE_IN_BYTES / 2);
                 }
+                ignoreHotspottingChecks();
             }};
 
         default:
