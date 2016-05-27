@@ -16,6 +16,7 @@
 package com.palantir.nexus.db.sql;
 
 import java.io.ByteArrayInputStream;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -34,6 +35,7 @@ import com.palantir.common.concurrent.ThreadNamingCallable;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.SQLConstants;
+import com.palantir.nexus.db.ThreadConfinedProxy;
 import com.palantir.nexus.db.sql.monitoring.logger.SqlLoggers;
 import com.palantir.util.TextUtils;
 
@@ -251,25 +253,38 @@ public class BasicSQLUtils {
         return out.toString();
     }
 
+    private static final Logger cancelLogger = LogManager.getLogger("SQLUtils.cancel"); //$NON-NLS-1$
+
     /** Helper method for wrapping quick calls that don't appreciate being interrupted.
      * Passes all exceptions and errors back to the client.
-     * Runs in another thread - do not acquire connections from within the callable (it will fail). Should only use
-     * for low-level type stuff.
+     * Runs in another thread - do not acquire connections from within the callable (it will fail).
+     * N.B. (DCohen) Despite the claim in the previous line, there is code that acquires connections from within the callable successfully.
+     * Unclear why this is bad.  {@link com.palantir.nexus.db.sql.id.DbSequenceBackedIdGenerator#generate(long[])}
+     *
+     * Should only use low-level type stuff.
+     *
+     * This method takes a connection, which the callable intends to use,
+     * essentially declaring that the child thread now owns
+     * this connection.
      */
-    private static final Logger cancelLogger = LogManager.getLogger("SQLUtils.cancel"); //$NON-NLS-1$
-    public static <T> T runUninterruptably(final Callable<T> callable, String threadString) throws PalantirSqlException {
-        Future<T> future = BasicSQL.executeService.submit(ThreadNamingCallable.wrapWithThreadName(new Callable<T>() {
-            @Override
-            public T call() throws Exception {
-                if(Thread.currentThread().isInterrupted()) {
-                    cancelLogger.error("Threadpool thread has interrupt flag set!"); //$NON-NLS-1$
-                    //we want to clear the interrupted status here -
-                    //we cancel via the prepared statement, not interrupts
-                    Thread.interrupted();
-                }
-                return callable.call();
-            }
-        }, threadString, ThreadNamingCallable.Type.APPEND));
+    public static <T> T runUninterruptably(final Callable<T> callable, String threadString,
+                                           final @Nullable Connection connection) throws PalantirSqlException {
+        Future<T> future = BasicSQL.executeService.submit(ThreadNamingCallable.wrapWithThreadName(
+                ThreadConfinedProxy.threadLendingCallable(connection,
+                        new Callable<T>() {
+                            @Override
+                            public T call() throws Exception {
+
+                                if(Thread.currentThread().isInterrupted()) {
+                                    cancelLogger.error("Threadpool thread has interrupt flag set!"); //$NON-NLS-1$
+                                    //we want to clear the interrupted status here -
+                                    //we cancel via the prepared statement, not interrupts
+                                    Thread.interrupted();
+                                }
+                                return callable.call();
+                            }
+                        }),
+                threadString, ThreadNamingCallable.Type.APPEND));
 
         boolean interrupted = false;
         T result = null;

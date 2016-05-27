@@ -73,7 +73,7 @@ public final class SingleConnectionTransactionService implements TransactionServ
                 Connections.commit(connection.getUnderlyingConnection());
                 return null;
             }
-        }, "atlas SQL commit"); //$NON-NLS-1$
+        }, "atlas SQL commit", connection.getUnderlyingConnection()); //$NON-NLS-1$
     }
 
     private Cell getTransactionCell(long startTimestamp) {

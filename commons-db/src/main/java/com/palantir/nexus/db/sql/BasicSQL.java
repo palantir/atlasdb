@@ -405,7 +405,9 @@ public abstract class BasicSQL {
                     }
                 }
             }
-        }, sql.toString());
+        },
+                sql.toString(),
+                /* We no longer have a connection to worry about */ null);
     }
 
     private static <T> T runCancellablyInternal(final PreparedStatement ps, ResultSetVisitor<T> visitor, final FinalSQLString sql,
@@ -476,7 +478,7 @@ public abstract class BasicSQL {
                 public PreparedStatement call() throws Exception {
                     return createPreparedStatement(c, query.getQuery(), vs);
                 }
-            }, "SQL createPreparedStatement");
+            }, "SQL createPreparedStatement", c);
             return visitor.visit(ps);
         } catch (PalantirSqlException sqle) {
             throw wrapSQLExceptionWithVerboseLogging(sqle, query.getQuery(), vs);
@@ -543,7 +545,7 @@ public abstract class BasicSQL {
                     }
                 }, "execute", autoClose); //$NON-NLS-1$
             }
-        }, sql.toString());
+        }, sql.toString(), c);
     }
 
     protected boolean selectExistsInternal(final Connection c,
@@ -740,7 +742,7 @@ public abstract class BasicSQL {
                     }
                 }, "update", autoClose); //$NON-NLS-1$
             }
-        }, sql.toString());
+        }, sql.toString(), c);
     }
 
     protected void updateMany(final Connection c, final FinalSQLString sql, final Object vs[][])
@@ -783,7 +785,7 @@ public abstract class BasicSQL {
                 }
                 return null;
             }
-        }, sql.toString());
+        }, sql.toString(), c);
     }
 
     protected int insertOneCountRowsInternal(final Connection c,
@@ -802,7 +804,7 @@ public abstract class BasicSQL {
                     }
                 }, "insertOne"); //$NON-NLS-1$
             }
-        }, sql.toString());
+        }, sql.toString(), c);
     }
 
     public boolean insertMany(final Connection c, final FinalSQLString sql, final Object vs[][]) throws PalantirSqlException {
@@ -858,7 +860,7 @@ public abstract class BasicSQL {
                 }
                 return true;
             }
-        }, sql.toString());
+        }, sql.toString(), c);
     }
 
     protected int updateCountRowsInternal(Connection c, FinalSQLString sql,
