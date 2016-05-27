@@ -161,21 +161,17 @@ public class CachingTransaction extends ForwardingTransaction {
 
     @Override
     final public void delete(TableReference tableRef, Set<Cell> cells) {
-        if (cells.isEmpty()) {
-            log.info("Attempted delete on '{}' table with empty cells", tableRef);
-            return;
-        }
-        put(tableRef, Cells.constantValueMap(cells, PtBytes.EMPTY_BYTE_ARRAY));
+        super.delete(tableRef, cells);
+        addToColCache(tableRef, Cells.constantValueMap(cells, PtBytes.EMPTY_BYTE_ARRAY));
     }
 
     @Override
     public void put(TableReference tableRef, Map<Cell, byte[]> values) {
-        if (values.isEmpty()) {
-            log.info("Attempted put on '{}' table with empty cells", tableRef);
-            return;
-        }
-
         super.put(tableRef, values);
+        addToColCache(tableRef, values);
+    }
+
+    private void addToColCache(TableReference tableRef, Map<Cell, byte[]> values) {
         Map<Cell, byte[]> colCache = getColCacheForTable(tableRef);
         for (Map.Entry<Cell, byte[]> e : values.entrySet()) {
             byte[] value = e.getValue();

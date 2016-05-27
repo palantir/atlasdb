@@ -943,7 +943,19 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     @Override
+    final public void delete(TableReference tableRef, Set<Cell> cells) {
+        put(tableRef, Cells.constantValueMap(cells, PtBytes.EMPTY_BYTE_ARRAY), Cell.INVALID_TTL, Cell.INVALID_TTL_TYPE);
+    }
+
+    @Override
     public void put(TableReference tableRef, Map<Cell, byte[]> values) {
+        // validate
+        for (Entry<Cell, byte[]> cellEntry : values.entrySet()) {
+            if (cellEntry.getValue().length == 0) {
+                throw new IllegalArgumentException("put values cannot be empty");
+            }
+        }
+
         put(tableRef, values, Cell.INVALID_TTL, Cell.INVALID_TTL_TYPE);
     }
 

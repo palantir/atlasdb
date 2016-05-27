@@ -204,6 +204,10 @@ public abstract class AbstractTransactionTest {
         t.put(tableRef, map);
     }
 
+    protected void delete(Transaction t, String rowName, String columnName) {
+        t.delete(TEST_TABLE, ImmutableSet.of(Cell.create(PtBytes.toBytes(rowName), PtBytes.toBytes(columnName))));
+    }
+
     protected String get(Transaction t,
                          String rowName,
                          String columnName) {
@@ -886,7 +890,7 @@ public abstract class AbstractTransactionTest {
         put(t, "row1", "col1", "v5");
         put(t, "row1", "col3", "v6");
         put(t, "row3", "col1", "v7");
-        put(t, "row2", "col1", "");
+        delete(t, "row2", "col1");
         put(t, "row2", "col2", "v8");
 
         final Map<Cell, byte[]> vals = Maps.newHashMap();
@@ -975,7 +979,7 @@ public abstract class AbstractTransactionTest {
         put(t, "row1", "col1", "v5"); // this put is checked to exist
         put(t, "row1", "col3", "v6"); // it is checked there are 3 cells for this
         put(t, "row3", "col1", "v7");
-        put(t, "row2", "col1", ""); // this delete is checked
+        delete(t, "row2", "col1"); // this delete is checked
         put(t, "row2", "col2", "v8");
         latch2.countDown();
         futureTask.get();
@@ -1024,24 +1028,13 @@ public abstract class AbstractTransactionTest {
     }
 
     @Test
-    public void testNullDelete() {
+    public void testDelete() {
         getManager().runTaskWithRetry(new TransactionTask<Void, RuntimeException>() {
             @Override
             public Void execute(Transaction t) throws RuntimeException {
                 put(t, "row1", "col1", "v1");
                 assertEquals("v1", get(t, "row1", "col1"));
-                put(t, "row1", "col1", null);
-                assertEquals(null, get(t, "row1", "col1"));
-                return null;
-            }
-        });
-
-        getManager().runTaskWithRetry(new TransactionTask<Void, RuntimeException>() {
-            @Override
-            public Void execute(Transaction t) throws RuntimeException {
-                put(t, "row1", "col1", "v1");
-                assertEquals("v1", get(t, "row1", "col1"));
-                put(t, "row1", "col1", "");
+                delete(t, "row1", "col1");
                 assertEquals(null, get(t, "row1", "col1"));
                 return null;
             }
@@ -1058,7 +1051,7 @@ public abstract class AbstractTransactionTest {
         getManager().runTaskWithRetry(new TxTask() {
             @Override
             public Void execute(Transaction t) throws RuntimeException {
-                put(t, "row1", "col1", "");
+                delete(t, "row1", "col1");
                 return null;
             }
         });
@@ -1082,7 +1075,7 @@ public abstract class AbstractTransactionTest {
         getManager().runTaskWithRetry(new TxTask() {
             @Override
             public Void execute(Transaction t) throws RuntimeException {
-                put(t, "row1", "col1", null);
+                delete(t, "row1", "col1");
                 return null;
             }
         });

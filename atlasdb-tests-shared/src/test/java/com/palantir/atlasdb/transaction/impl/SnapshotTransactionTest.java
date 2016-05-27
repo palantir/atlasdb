@@ -579,8 +579,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         final Cell cell = Cell.create("row1".getBytes(), "column1".getBytes());
         Transaction t1 = txManager.createNewTransaction();
         Transaction t2 = txManager.createNewTransaction();
-        t1.put(TABLE, ImmutableMap.of(cell, PtBytes.EMPTY_BYTE_ARRAY));
-        t2.put(TABLE, ImmutableMap.of(cell, PtBytes.EMPTY_BYTE_ARRAY));
+        t1.delete(TABLE, ImmutableSet.of(cell));
+        t2.delete(TABLE, ImmutableSet.of(cell));
         t1.commit();
         t2.commit();
     }
@@ -591,7 +591,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         final Cell cell = Cell.create("row1".getBytes(), "column1".getBytes());
         Transaction t1 = txManager.createNewTransaction();
         Transaction t2 = txManager.createNewTransaction();
-        t1.put(TABLE, ImmutableMap.of(cell, PtBytes.EMPTY_BYTE_ARRAY));
+        t1.delete(TABLE, ImmutableSet.of(cell));
         t2.put(TABLE, ImmutableMap.of(cell, new byte[1]));
         t1.commit();
         try {
@@ -603,7 +603,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         t1 = txManager.createNewTransaction();
         t2 = txManager.createNewTransaction();
-        t1.put(TABLE, ImmutableMap.of(cell, PtBytes.EMPTY_BYTE_ARRAY));
+        t1.delete(TABLE, ImmutableSet.of(cell));
         t2.put(TABLE, ImmutableMap.of(cell, new byte[1]));
         t2.commit();
         try {
@@ -615,7 +615,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         t1 = txManager.createNewTransaction();
         t2 = txManager.createNewTransaction();
-        t2.put(TABLE, ImmutableMap.of(cell, PtBytes.EMPTY_BYTE_ARRAY));
+        t2.delete(TABLE, ImmutableSet.of(cell));
         t1.put(TABLE, ImmutableMap.of(cell, new byte[1]));
         t2.commit();
         try {
@@ -627,7 +627,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         t1 = txManager.createNewTransaction();
         t2 = txManager.createNewTransaction();
-        t2.put(TABLE, ImmutableMap.of(cell, PtBytes.EMPTY_BYTE_ARRAY));
+        t2.delete(TABLE, ImmutableSet.of(cell));
         t1.put(TABLE, ImmutableMap.of(cell, new byte[1]));
         t1.commit();
         try {
@@ -644,8 +644,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         final Cell cell = Cell.create("row1".getBytes(), "column1".getBytes());
         Transaction t1 = txManager.createNewTransaction();
         Transaction t2 = txManager.createNewTransaction();
-        t1.put(TABLE, ImmutableMap.of(cell, PtBytes.EMPTY_BYTE_ARRAY));
-        t2.put(TABLE, ImmutableMap.of(cell, PtBytes.EMPTY_BYTE_ARRAY));
+        t1.delete(TABLE, ImmutableSet.of(cell));
+        t2.delete(TABLE, ImmutableSet.of(cell));
         t1.commit();
         try {
             t2.commit();
