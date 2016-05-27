@@ -23,6 +23,25 @@ Changelog
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
+v0.7.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *   - Type
+        - Change
+
+    *   - |changed|
+        - Atlas cannot currently distinguish between empty and deleted cells. We now explicitly disallow
+          inserting an empty (size = 0) value into a cell by throwing an ``IllegalArgumentException``.
+          See #156 for context around this decision. (Note that this is a breaking change.)
+
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
 v0.6.0
 =======
 
@@ -37,12 +56,12 @@ v0.6.0
         - A potential race condition could cause timestamp allocation to never complete on a particular node (#462)
 
     *   - |fixed|
-        - An innocuous error was logged once for each TransactionManager about not being able to allocate 
+        - An innocuous error was logged once for each TransactionManager about not being able to allocate
           enough timestamps. The error has been downgraded to INFO and made less scary.
 
     *   - |fixed|
         - Serializable Transactions that read a column selection could consistently report conflicts when there were none.
-    
+
     *   - |fixed|
         - An excessively long Cassandra related logline was sometimes printed (#501)
 
