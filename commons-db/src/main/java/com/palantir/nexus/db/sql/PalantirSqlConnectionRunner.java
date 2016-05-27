@@ -22,9 +22,9 @@ import javax.annotation.Nonnull;
 
 import org.apache.commons.lang.Validate;
 
+import com.palantir.common.visitor.Visitor;
 import com.palantir.nexus.db.chunked.ChunkedRowVisitor;
 import com.palantir.nexus.db.sql.SQLString.RegisteredSQLString;
-import com.palantir.util.Visitor;
 
 public interface PalantirSqlConnectionRunner {
     public static abstract class SequenceEnabledSqlRunnerCheckedException<T, K extends Exception> {

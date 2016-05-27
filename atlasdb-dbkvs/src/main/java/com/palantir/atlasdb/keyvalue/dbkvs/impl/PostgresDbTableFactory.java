@@ -20,7 +20,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfiguration;
+import com.palantir.atlasdb.keyvalue.dbkvs.DbSharedConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresDdlTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresQueryFactory;
 import com.palantir.common.concurrent.NamedThreadFactory;
@@ -29,10 +29,10 @@ import com.palantir.nexus.db.DBType;
 
 public class PostgresDbTableFactory implements DbTableFactory {
 
-    private final DbKeyValueServiceConfiguration config;
+    private final DbSharedConfig config;
     private final ExecutorService exec;
 
-    public PostgresDbTableFactory(DbKeyValueServiceConfiguration config) {
+    public PostgresDbTableFactory(DbSharedConfig config) {
         this.config = config;
         int poolSize = config.poolSize();
         this.exec = newFixedThreadPool(poolSize);

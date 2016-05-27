@@ -13,24 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.common.base;
+package com.palantir.nexus.db.pool;
 
-import com.palantir.common.visitor.Visitor;
+import com.palantir.exception.PalantirSqlException;
 
 /**
- * Useful methods for Visitor.
- * @author dcohen
- *
+ * Exception type thrown by the {@link DBMgr} when it is misconfigured.
  */
-public class Visitors {
+public class DBMgrConfigurationException extends PalantirSqlException {
+    private static final long serialVersionUID = 1L;
 
-    /**
-     * Return a visitor that does nothing.
-     */
-    public static <T> Visitor<T> emptyVisitor() {
-        return new Visitor<T>() {
-            @Override
-            public void visit(T ignored) {/*Does nothing*/}
-        };
+    public DBMgrConfigurationException(String msg) {
+        super(PalantirSqlException.DO_NOT_SET_INITIAL_SQL_EXCEPTION.YES, msg);
+    }
+
+    public DBMgrConfigurationException(String msg, Throwable cause) {
+        super(PalantirSqlException.DO_NOT_SET_INITIAL_SQL_EXCEPTION.YES, msg);
+        initCause(cause);
     }
 }

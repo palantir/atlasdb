@@ -13,24 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.common.base;
+package com.palantir.nexus.db.manager;
 
-import com.palantir.common.visitor.Visitor;
+public enum DBConfigConnectionParameter {
+    DBNAME,
+    HOST,
+    MATCH_SERVER_DN,
+    PORT,
+    PROTOCOL,
+    SID,
 
-/**
- * Useful methods for Visitor.
- * @author dcohen
- *
- */
-public class Visitors {
-
-    /**
-     * Return a visitor that does nothing.
-     */
-    public static <T> Visitor<T> emptyVisitor() {
-        return new Visitor<T>() {
-            @Override
-            public void visit(T ignored) {/*Does nothing*/}
-        };
-    }
+    ;
 }

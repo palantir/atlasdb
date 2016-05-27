@@ -19,7 +19,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfiguration;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbDdlTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
@@ -34,16 +33,16 @@ public class OracleDdlTable implements DbDdlTable {
     private final String tableName;
     private final ConnectionSupplier conns;
     private final OverflowMigrationState migrationState;
-    private final DbKeyValueServiceConfiguration config;
+    private final boolean enableOracleEnterpriseFeatures;
 
     public OracleDdlTable(String tableName,
                           ConnectionSupplier conns,
                           OverflowMigrationState migrationState,
-                          DbKeyValueServiceConfiguration config) {
+                          boolean enableOracleEnterpriseFeatures) {
         this.tableName = tableName;
         this.conns = conns;
         this.migrationState = migrationState;
-        this.config = config;
+        this.enableOracleEnterpriseFeatures = enableOracleEnterpriseFeatures;
     }
 
     @Override
@@ -127,7 +126,7 @@ public class OracleDdlTable implements DbDdlTable {
 
     @Override
     public void compactInternally() {
-        if (config.enableOracleEnterpriseFeatures()) {
+        if (enableOracleEnterpriseFeatures) {
             try {
                 conns.get().executeUnregisteredQuery("ALTER TABLE pt_met_" + tableName + " MOVE ONLINE");
             } catch (PalantirSqlException e) {

@@ -49,7 +49,7 @@ import com.palantir.util.sql.SqlStats;
  *
  * @author jweel
  */
-final class SqlConnectionHelper {
+public final class SqlConnectionHelper {
 
     private static final Logger log = LogManager.getLogger(SqlConnectionHelper.class);
     private static final int TEMP_IDS_LOGGING_THRESHOLD = 100000;

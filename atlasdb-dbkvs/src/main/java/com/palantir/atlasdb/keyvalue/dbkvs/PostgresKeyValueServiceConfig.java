@@ -20,39 +20,28 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.google.common.base.Supplier;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbTableFactory;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.PostgresDbTableFactory;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.SqlConnectionSupplier;
 
-@JsonDeserialize(as = ImmutableDbKeyValueServiceConfiguration.class)
-@JsonSerialize(as = ImmutableDbKeyValueServiceConfiguration.class)
-@JsonTypeName(DbKeyValueServiceConfiguration.TYPE)
+@JsonDeserialize(as = ImmutablePostgresKeyValueServiceConfig.class)
+@JsonSerialize(as = ImmutablePostgresKeyValueServiceConfig.class)
+@JsonTypeName(PostgresKeyValueServiceConfig.TYPE)
 @Value.Immutable
-public abstract class DbKeyValueServiceConfiguration implements KeyValueServiceConfig {
+public abstract class PostgresKeyValueServiceConfig extends DbKeyValueServiceConfig {
 
-    public static final String TYPE = "relational";
+    public static final String TYPE = "postgres";
 
-    @Value.Default
-    public boolean enableOracleEnterpriseFeatures() {
-        return false;
+    @Override
+    public Supplier<DbTableFactory> tableFactorySupplier() {
+        return () -> new PostgresDbTableFactory(shared());
     }
 
     @Value.Default
-    public int poolSize() {
-        return 64;
-    }
-
-    @Value.Default
-    public int fetchBatchSize() {
-        return 256;
-    }
-
-    @Value.Default
-    public int mutationBatchCount() {
-        return 1000;
-    }
-
-    @Value.Default
-    public int mutationBatchSizeBytes() {
-        return 2 * 1024 * 1024;
+    @Override
+    public SqlConnectionSupplier sqlConnectionSupplier() {
+        throw new RuntimeException("unimplemented -- waiting on pooling");
     }
 
     @Override

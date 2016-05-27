@@ -13,24 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.common.base;
+package com.palantir.common.visitor;
 
-import com.palantir.common.visitor.Visitor;
 
 /**
- * Useful methods for Visitor.
- * @author dcohen
+ * This redefines {@link #visit(Object)} to throw no checked exceptions.
+ *
+ * @see Visitor
  *
  */
-public class Visitors {
-
-    /**
-     * Return a visitor that does nothing.
-     */
-    public static <T> Visitor<T> emptyVisitor() {
-        return new Visitor<T>() {
-            @Override
-            public void visit(T ignored) {/*Does nothing*/}
-        };
-    }
+public interface Visitor<T> extends VisitorCheckedException<T, RuntimeException> {
+    @Override
+    public void visit(T obj);
 }
