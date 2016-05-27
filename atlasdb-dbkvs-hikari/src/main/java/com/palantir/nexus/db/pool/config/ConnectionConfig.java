@@ -25,7 +25,6 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.io.Files;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.manager.DBConfigConnectionParameter;
 
