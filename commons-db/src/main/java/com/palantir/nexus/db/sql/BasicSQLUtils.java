@@ -255,18 +255,29 @@ public class BasicSQLUtils {
 
     private static final Logger cancelLogger = LogManager.getLogger("SQLUtils.cancel"); //$NON-NLS-1$
 
-    /** Helper method for wrapping quick calls that don't appreciate being interrupted.
-     * Passes all exceptions and errors back to the client.
-     * Runs in another thread - do not acquire connections from within the callable (it will fail).
-     * N.B. (DCohen) Despite the claim in the previous line, there is code that acquires connections from within the callable successfully.
-     * Unclear why this is bad.  {@link com.palantir.nexus.db.sql.id.DbSequenceBackedIdGenerator#generate(long[])}
-     *
-     * Should only use low-level type stuff.
-     *
-     * This method takes a connection, which the callable intends to use,
-     * essentially declaring that the child thread now owns
-     * this connection.
+
+    /**
+     * @Deprecated DCohen will remove after updating consumers to use the new version.
      */
+    @Deprecated
+    public static <T> T runUninterruptably(final Callable<T> callable, String threadString
+                                           ) throws PalantirSqlException {
+        return runUninterruptably(callable, threadString, null);
+    }
+
+
+        /** Helper method for wrapping quick calls that don't appreciate being interrupted.
+         * Passes all exceptions and errors back to the client.
+         * Runs in another thread - do not acquire connections from within the callable (it will fail).
+         * N.B. (DCohen) Despite the claim in the previous line, there is code that acquires connections from within the callable successfully.
+         * Unclear why this is bad.  {@link com.palantir.nexus.db.sql.id.DbSequenceBackedIdGenerator#generate(long[])}
+         *
+         * Should only use low-level type stuff.
+         *
+         * This method takes a connection, which the callable intends to use,
+         * essentially declaring that the child thread now owns
+         * this connection.
+         */
     public static <T> T runUninterruptably(final Callable<T> callable, String threadString,
                                            final @Nullable Connection connection) throws PalantirSqlException {
         Future<T> future = BasicSQL.executeService.submit(ThreadNamingCallable.wrapWithThreadName(

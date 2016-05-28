@@ -505,14 +505,21 @@ public final class SqlConnectionHelper {
     private boolean checkRepeatedInsert(PalantirSqlException e, Connection c, String tableName, Iterable<Long> tempIds) {
         AgnosticResultSet results = selectResultSetUnregisteredQuery(c, "SELECT id FROM " + tableName);
         Set<Long> attempt = Sets.newHashSet(tempIds);
-        Set<Long> current = results.rows().stream().map(r -> r.getLong("id")).collect(Collectors.toSet());
+        Set<Long> current = Sets.newHashSet();
+        for (AgnosticResultRow row: results.rows()) {
+            current.add(row.getLong("id"));
+        }
         if (attempt.equals(current)) {
             String message = String.format("Tried to insert %s temp IDs into table %s, but that exact set of temp IDs was already there",
                     attempt.size(), tableName);
             throw new RuntimeException(message, e);
         } else {
-            String message = String.format("Tried to insert %s temp IDs into table %s, but %s temp IDs were already there",
-                    attempt.size(), tableName, current.size());
+            Set<Long> onlyInAttempt = Sets.difference(attempt, current);
+            Set<Long> onlyInCurrent = Sets.difference(current, attempt);
+            String message = String.format(
+                    "Tried to insert %s temp IDs into table %s, but %s temp IDs were already there.  %s were only in our attempt, while " +
+                            "%s were only in the set already present.",
+                    attempt.size(), tableName, current.size(), onlyInAttempt.size(), onlyInCurrent.size());
             throw new RuntimeException(message, e);
         }
     }
