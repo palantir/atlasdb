@@ -55,12 +55,12 @@ public class ThreadConfinedProxyTest extends Assert {
 
             @Override
             public void run() {
-            List<String> subjectInChildThread = inputReference.get();
-            subjectInChildThread.add(testString);
-            if (Iterables.getOnlyElement(subjectInChildThread).equals(testString)) {
-                outputReference.set(Boolean.TRUE);
-            }
-        }});
+                List<String> subjectInChildThread = inputReference.get();
+                subjectInChildThread.add(testString);
+                if (Iterables.getOnlyElement(subjectInChildThread).equals(testString)) {
+                    outputReference.set(Boolean.TRUE);
+                }
+            }});
 
         @SuppressWarnings("unchecked")
         List<String> subject = ThreadConfinedProxy.newProxyInstance(List.class, new ArrayList<String>(),
@@ -81,12 +81,12 @@ public class ThreadConfinedProxyTest extends Assert {
         Thread childThread = new Thread(new Runnable() {
             @Override
             public void run() {
-            outputReference.set(true);
-            List<String> subjectInChildThread = inputReference.get();
-            subjectInChildThread.add(testString);
-            // Should fail
-            outputReference.set(false);
-        }});
+                outputReference.set(true);
+                List<String> subjectInChildThread = inputReference.get();
+                subjectInChildThread.add(testString);
+                // Should fail
+                outputReference.set(false);
+            }});
 
         @SuppressWarnings("unchecked")
         List<String> subject = ThreadConfinedProxy.newProxyInstance(List.class, new ArrayList<String>(),
@@ -110,14 +110,14 @@ public class ThreadConfinedProxyTest extends Assert {
         Thread childThread = new Thread(new Runnable() {
             @Override
             public void run() {
-            outputReference.compareAndSet(0, 1);
-            List<String> subjectInChildThread = inputReference.get();
-            ThreadConfinedProxy.changeThread(subjectInChildThread, mainThread, Thread.currentThread());
-            subjectInChildThread.add(testString);
-            if (Iterables.getOnlyElement(subjectInChildThread).equals(testString)) {
-                outputReference.compareAndSet(1, 2);
-            }
-        }});
+                outputReference.compareAndSet(0, 1);
+                List<String> subjectInChildThread = inputReference.get();
+                ThreadConfinedProxy.changeThread(subjectInChildThread, mainThread, Thread.currentThread());
+                subjectInChildThread.add(testString);
+                if (Iterables.getOnlyElement(subjectInChildThread).equals(testString)) {
+                    outputReference.compareAndSet(1, 2);
+                }
+            }});
 
         @SuppressWarnings("unchecked")
         List<String> subject = ThreadConfinedProxy.newProxyInstance(List.class, new ArrayList<String>(),
@@ -142,11 +142,11 @@ public class ThreadConfinedProxyTest extends Assert {
         Thread otherThread = new Thread(new Runnable() {
             @Override
             public void run() {
-            outputReference.compareAndSet(3, 4);
-            List<String> subjectInChildThread = inputReference.get();
-            ThreadConfinedProxy.changeThread(subjectInChildThread, mainThread, Thread.currentThread());
-            outputReference.compareAndSet(4, 5);
-        }});
+                outputReference.compareAndSet(3, 4);
+                List<String> subjectInChildThread = inputReference.get();
+                ThreadConfinedProxy.changeThread(subjectInChildThread, mainThread, Thread.currentThread());
+                outputReference.compareAndSet(4, 5);
+            }});
 
         otherThread.start();
         otherThread.join(10000);
@@ -175,15 +175,15 @@ public class ThreadConfinedProxyTest extends Assert {
         Thread childThread = new Thread(new Runnable() {
             @Override
             public void run() {
-            outputReference.compareAndSet(0, 1);
-            List<String> subjectInChildThread = inputReference.get();
-            ThreadConfinedProxy.changeThread(subjectInChildThread, mainThread, Thread.currentThread());
-            subjectInChildThread.add(testString);
-            if (Iterables.getOnlyElement(subjectInChildThread).equals(testString)) {
-                outputReference.compareAndSet(1, 2);
-            }
-            ThreadConfinedProxy.changeThread(subjectInChildThread, Thread.currentThread(), mainThread);
-        }});
+                outputReference.compareAndSet(0, 1);
+                List<String> subjectInChildThread = inputReference.get();
+                ThreadConfinedProxy.changeThread(subjectInChildThread, mainThread, Thread.currentThread());
+                subjectInChildThread.add(testString);
+                if (Iterables.getOnlyElement(subjectInChildThread).equals(testString)) {
+                    outputReference.compareAndSet(1, 2);
+                }
+                ThreadConfinedProxy.changeThread(subjectInChildThread, Thread.currentThread(), mainThread);
+            }});
 
         @SuppressWarnings("unchecked")
         List<String> subject = ThreadConfinedProxy.newProxyInstance(List.class, new ArrayList<String>(),
@@ -211,15 +211,15 @@ public class ThreadConfinedProxyTest extends Assert {
         Thread childThread = new Thread(new Runnable() {
             @Override
             public void run() {
-            outputReference.compareAndSet(0, 1);
-            List<String> subjectInChildThread = inputReference.get();
-            ThreadConfinedProxy.changeThread(subjectInChildThread, mainThread, Thread.currentThread());
-            subjectInChildThread.add(testString);
-            if (Iterables.getOnlyElement(subjectInChildThread).equals(testString)) {
-                outputReference.compareAndSet(1, 2);
-            }
-            ThreadConfinedProxy.changeThread(subjectInChildThread, Thread.currentThread(), mainThread);
-        }});
+                outputReference.compareAndSet(0, 1);
+                List<String> subjectInChildThread = inputReference.get();
+                ThreadConfinedProxy.changeThread(subjectInChildThread, mainThread, Thread.currentThread());
+                subjectInChildThread.add(testString);
+                if (Iterables.getOnlyElement(subjectInChildThread).equals(testString)) {
+                    outputReference.compareAndSet(1, 2);
+                }
+                ThreadConfinedProxy.changeThread(subjectInChildThread, Thread.currentThread(), mainThread);
+            }});
 
         // Make sure subject is wrapped in proxies, including multiple ThreadConfinedProxy objects, and also does not start with a
         // ThreadConfinedProxy
