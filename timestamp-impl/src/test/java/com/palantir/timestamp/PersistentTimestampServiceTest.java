@@ -89,10 +89,17 @@ public class PersistentTimestampServiceTest {
         PersistentTimestampService persistentTimestampService = PersistentTimestampService.create(timestampBoundStore, clock);
 
         persistentTimestampService.getFreshTimestamp();
-        Thread.sleep(10);
         persistentTimestampService.getFreshTimestamp();
-        Thread.sleep(10);
-        verify(timestampBoundStore, atLeast(2)).storeUpperLimit(anyLong());
+        Awaitility
+                .await()
+                .ignoreExceptionsMatching(e -> e.getCause() instanceof TooLittleActualInvocations)
+                .until(() -> {
+                    try {
+                        verify(timestampBoundStore, atLeast(2)).storeUpperLimit(anyLong());
+                    } catch (TooLittleActualInvocations e) {
+                        throw new RuntimeException(e);
+                    }
+                });
     }
 
     @Test
