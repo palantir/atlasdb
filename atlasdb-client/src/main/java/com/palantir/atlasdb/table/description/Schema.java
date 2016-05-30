@@ -62,7 +62,7 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
  * tables in a type-safe fashion.
  */
 public class Schema {
-    private static final Logger log = LoggerFactory.getLogger(AbstractDefinition.class);
+    private static final Logger log = LoggerFactory.getLogger(Schema.class);
 
     private final String name;
     private final String packageName;
