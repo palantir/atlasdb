@@ -60,6 +60,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.DbKvsConstants;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.DbKvsGetRanges;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
@@ -666,7 +667,7 @@ public class DbKvs extends AbstractKeyValueService {
             @Override
             public Set<TableReference> apply(SqlConnection conn) {
                 AgnosticResultSet results = conn.selectResultSetUnregisteredQuery(
-                        "SELECT table_name FROM " + config.shared().metadataTableName());
+                        "SELECT table_name FROM " + DbKvsConstants.METADATA_TABLE_NAME);
                 Set<TableReference> ret = Sets.newHashSetWithExpectedSize(results.size());
                 for (AgnosticResultRow row : results.rows()) {
                     ret.add(TableReference.createUnsafe(row.getString("table_name")));
@@ -704,7 +705,7 @@ public class DbKvs extends AbstractKeyValueService {
             @SuppressWarnings("deprecation")
             public Map<TableReference, byte[]> apply(SqlConnection conn) {
                 AgnosticResultSet results = conn.selectResultSetUnregisteredQuery(
-                        "SELECT table_name, value FROM " + config.shared().metadataTableName());
+                        "SELECT table_name, value FROM " + DbKvsConstants.METADATA_TABLE_NAME);
                 Map<TableReference, byte[]> ret = Maps.newHashMapWithExpectedSize(results.size());
                 for (AgnosticResultRow row : results.rows()) {
                     ret.put(TableReference.createUnsafe(row.getString("table_name")), row.getBytes("value"));

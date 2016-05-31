@@ -20,7 +20,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
-import com.palantir.atlasdb.keyvalue.dbkvs.OracleKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.DbKvsConstants;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 
 public class SimpleDbMetadataTable implements DbMetadataTable {
@@ -39,7 +39,7 @@ public class SimpleDbMetadataTable implements DbMetadataTable {
     @Override
     public boolean exists() {
         return conns.get().selectExistsUnregisteredQuery(
-                "SELECT 1 FROM " + config.shared().metadataTableName() + " WHERE table_name = ?",
+                "SELECT 1 FROM " + DbKvsConstants.METADATA_TABLE_NAME + " WHERE table_name = ?",
                 tableName);
     }
 
@@ -47,7 +47,7 @@ public class SimpleDbMetadataTable implements DbMetadataTable {
     @SuppressWarnings("deprecation")
     public byte[] getMetadata() {
         AgnosticResultSet results = conns.get().selectResultSetUnregisteredQuery(
-                "SELECT value FROM " + config.shared().metadataTableName() + " WHERE table_name = ?",
+                "SELECT value FROM " + DbKvsConstants.METADATA_TABLE_NAME + " WHERE table_name = ?",
                 tableName);
         if (results.size() < 1) {
             return PtBytes.EMPTY_BYTE_ARRAY;
@@ -62,7 +62,7 @@ public class SimpleDbMetadataTable implements DbMetadataTable {
     public void putMetadata(byte[] metadata) {
         Preconditions.checkArgument(exists(), "Table %s does not exist.", tableName);
         conns.get().updateUnregisteredQuery(
-                "UPDATE " + config.shared().metadataTableName() + " SET value = ? WHERE table_name = ?",
+                "UPDATE " + DbKvsConstants.METADATA_TABLE_NAME + " SET value = ? WHERE table_name = ?",
                 metadata,
                 tableName);
     }

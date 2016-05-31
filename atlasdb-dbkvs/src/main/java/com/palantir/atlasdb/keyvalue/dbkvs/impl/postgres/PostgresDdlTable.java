@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.palantir.atlasdb.keyvalue.dbkvs.DbKvsConstants;
 import com.palantir.atlasdb.keyvalue.dbkvs.PostgresKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbDdlTable;
@@ -43,7 +44,7 @@ public class PostgresDdlTable implements DbDdlTable {
     @Override
     public void create(byte[] tableMetadata) {
         if (conns.get().selectExistsUnregisteredQuery(
-                "SELECT 1 FROM " + config.shared().metadataTableName() + " WHERE table_name = ?",
+                "SELECT 1 FROM " + DbKvsConstants.METADATA_TABLE_NAME + " WHERE table_name = ?",
                 tableName)) {
             return;
         }
@@ -57,7 +58,7 @@ public class PostgresDdlTable implements DbDdlTable {
                 ")",
                 "already exists");
         conns.get().insertOneUnregisteredQuery(
-                "INSERT INTO " + config.shared().metadataTableName() + " (table_name, table_size) VALUES (?, ?)",
+                "INSERT INTO " + DbKvsConstants.METADATA_TABLE_NAME + " (table_name, table_size) VALUES (?, ?)",
                 tableName,
                 TableSize.RAW.getId());
     }
@@ -66,7 +67,7 @@ public class PostgresDdlTable implements DbDdlTable {
     public void drop() {
         executeIgnoringError("DROP TABLE " + prefixedTableName(), "does not exist");
         conns.get().executeUnregisteredQuery(
-                "DELETE FROM " + config.shared().metadataTableName() + " WHERE table_name = ?", tableName);
+                "DELETE FROM " + DbKvsConstants.METADATA_TABLE_NAME + " WHERE table_name = ?", tableName);
     }
 
     @Override

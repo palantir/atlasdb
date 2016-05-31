@@ -26,11 +26,6 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 public abstract class DbSharedConfig {
 
     @Value.Default
-    public String metadataTableName() {
-        return "_metadata";
-    }
-
-    @Value.Default
     public String tablePrefix() {
         return "a_";
     }
