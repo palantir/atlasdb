@@ -3,6 +3,8 @@ Changelog
 *********
 
 .. role:: changetype
+.. role:: changetype-breaking
+    :class: changetype changetype-breaking
 .. role:: changetype-new
     :class: changetype changetype-new
 .. role:: changetype-fixed
@@ -12,6 +14,7 @@ Changelog
 .. role:: changetype-improved
     :class: changetype changetype-improved
 
+.. |breaking| replace:: :changetype-breaking:`BREAKING`
 .. |new| replace:: :changetype-new:`NEW`
 .. |fixed| replace:: :changetype-fixed:`FIXED`
 .. |changed| replace:: :changetype-changed:`CHANGED`
@@ -33,7 +36,7 @@ v0.7.0
     *   - Type
         - Change
 
-    *   - |changed|
+    *   - |breaking|
         - Inserting an empty (size = 0) value into a ``Cell`` will now throw an ``IllegalArgumentException``. (#156)
 
           Atlas cannot currently distinguish between empty and deleted cells. In previous versions of Atlas, inserting
