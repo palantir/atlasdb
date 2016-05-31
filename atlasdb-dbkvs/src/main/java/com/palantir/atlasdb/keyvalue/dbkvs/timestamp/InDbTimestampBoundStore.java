@@ -146,7 +146,7 @@ public final class InDbTimestampBoundStore implements TimestampBoundStore {
     }
 
     private Long readLimit(Connection c) throws SQLException {
-        String sql = "SELECT last_allocated FROM pt_metropolis_ts FOR UPDATE";
+        String sql = "SELECT last_allocated FROM _ts FOR UPDATE";
         QueryRunner run = new QueryRunner();
         return run.query(c, sql, new ResultSetHandler<Long>() {
             @Override
@@ -162,7 +162,7 @@ public final class InDbTimestampBoundStore implements TimestampBoundStore {
 
     private void writeLimit(Connection c, long limit) throws SQLException {
         QueryRunner run = new QueryRunner();
-        String updateTs = "UPDATE pt_metropolis_ts SET last_allocated = ?";
+        String updateTs = "UPDATE _ts SET last_allocated = ?";
         PreparedStatement statement = c.prepareStatement(updateTs);
         statement.setLong(1, limit);
         statement.executeUpdate();
@@ -171,7 +171,7 @@ public final class InDbTimestampBoundStore implements TimestampBoundStore {
 
     private void createLimit(Connection c, long limit) throws SQLException {
         QueryRunner run = new QueryRunner();
-        run.update(c, "INSERT INTO pt_metropolis_ts (last_allocated) VALUES (?)", limit);
+        run.update(c, "INSERT INTO _ts (last_allocated) VALUES (?)", limit);
     }
 
     private DBType getDbType(Connection c) {
