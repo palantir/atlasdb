@@ -17,6 +17,8 @@ package com.palantir.nexus.db.pool;
 
 import java.io.File;
 import java.lang.management.ManagementFactory;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -24,6 +26,10 @@ import java.sql.Statement;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.TimeZone;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 
 import javax.management.JMX;
@@ -39,6 +45,10 @@ import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.SharedMetricRegistries;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.visitor.Visitor;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.manager.DBConfig;
@@ -58,6 +68,28 @@ import com.zaxxer.hikari.util.DriverDataSource;
  */
 class HikariCPConnectionManager extends BaseConnectionManager {
     private static final Logger log = LoggerFactory.getLogger(HikariCPConnectionManager.class);
+
+    private Supplier<String> resolveIP = new Supplier<String>() {
+        @Override
+        public String get() {
+            final String host = dbConfig.getConnectionParameter(DBConfigConnectionParameter.HOST);
+            String ip;
+            ExecutorService executorService = PTExecutors.newSingleThreadExecutor();
+            try {
+                FutureTask<String> resolveIP = new FutureTask<>(() -> InetAddress.getByName(host).getHostAddress());
+                executorService.execute(resolveIP);
+                ip = resolveIP.get(10, TimeUnit.SECONDS);
+            } catch (Exception e) {
+                ip = "could not be resolved";
+            } finally {
+                executorService.shutdown();
+            }
+            return ip;
+        }
+    };
+
+    private volatile String lastIp = "not yet initialized";
+    Supplier<String> nameResolver = Suppliers.memoizeWithExpiration(resolveIP, 30, TimeUnit.SECONDS);
 
     // TODO: Make this delay configurable?
     private static final long COOLDOWN_MILLISECONDS = 30000;
@@ -142,7 +174,24 @@ class HikariCPConnectionManager extends BaseConnectionManager {
         }
     }
 
+    private void logResolutionStateChanges() {
+        if (log.isInfoEnabled()) {
+            String host = dbConfig.getConnectionParameter(DBConfigConnectionParameter.HOST);
+            String ip = nameResolver.get();
+            if (!ip.equals(lastIp)) {
+                synchronized (this) {
+                    if (!ip.equals(lastIp)) {
+                        log.info("Attempting to get a connection, current DB server ({}) resolves to ({}); was previously ({})", host, ip, lastIp);
+                        lastIp = ip;
+                    }
+                }
+            }
+        }
+    }
+
     private Connection getConnectionInternal() throws SQLException {
+        logResolutionStateChanges();
+
         while (true) {
             // Volatile read state to see if we can get through here without
             // locking.
