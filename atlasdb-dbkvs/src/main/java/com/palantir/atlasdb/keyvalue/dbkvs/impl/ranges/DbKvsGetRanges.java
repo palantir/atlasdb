@@ -164,17 +164,17 @@ public class DbKvsGetRanges {
         List<Object> args = Lists.newArrayList();
         args.add(queryNum);
         if (reverse) {
-            extraWhere = " met.row_name <= ? ";
+            extraWhere = " table.row_name <= ? ";
         } else {
-            extraWhere = " met.row_name >= ? ";
+            extraWhere = " table.row_name >= ? ";
         }
         args.add(startRow);
 
         if (endRow.length > 0) {
             if (reverse) {
-                extraWhere += " AND met.row_name > ? ";
+                extraWhere += " AND table.row_name > ? ";
             } else {
-                extraWhere += " AND met.row_name < ? ";
+                extraWhere += " AND table.row_name < ? ";
             }
             args.add(endRow);
         }
@@ -191,8 +191,8 @@ public class DbKvsGetRanges {
             String query = String.format(
                     SIMPLE_ROW_SELECT_TEMPLATE,
                     tableName,
-                    tableName,
-                    tableName,
+                    prefixTableName(tableName),
+                    prefixTableName(tableName),
                     extraWhere,
                     order);
             String limitQuery = BasicSQLUtils.limitQuery(query, numRowsToGet, args, dbType);
@@ -200,7 +200,7 @@ public class DbKvsGetRanges {
         }
     }
     /**
-     * This method expects the input to be sorted by rowname ASC for both rowsForBatches and
+     * This tablehod expects the input to be sorted by rowname ASC for both rowsForBatches and
      * cellsByRow.
      */
     private Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> breakUpByBatch(List<RangeRequest> requests,
@@ -280,7 +280,13 @@ public class DbKvsGetRanges {
     }
 
     private String getSimpleRowSelectOneQueryPostgres(String tableName, String minMax, String extraWhere, String order) {
-        return String.format(SIMPLE_ROW_SELECT_ONE_POSTGRES_TEMPLATE, tableName, tableName, tableName, extraWhere, order);
+        return String.format(
+                SIMPLE_ROW_SELECT_ONE_POSTGRES_TEMPLATE,
+                tableName,
+                prefixTableName(tableName),
+                prefixTableName(tableName),
+                extraWhere,
+                order);
     }
 
     private String getSimpleRowSelectOneQueryOracle(String tableName,
@@ -290,32 +296,36 @@ public class DbKvsGetRanges {
         return String.format(
                 SIMPLE_ROW_SELECT_ONE_ORACLE_TEMPLATE,
                 tableName,
-                tableName,
+                prefixTableName(tableName),
                 minMax,
-                tableName,
+                prefixTableName(tableName),
                 extraWhere);
+    }
+
+    private String prefixTableName(String tableName) {
+        return kvs.getConfig().shared().tablePrefix() + tableName;
     }
 
     private static final String SIMPLE_ROW_SELECT_TEMPLATE =
             " /* SQL_MET_SIMPLE_ROW_SELECT_TEMPLATE (%s) */ " +
-                    " SELECT /*+ INDEX(met pk_pt_met_%s) */ " +
+                    " SELECT /*+ INDEX(table pk_%s) */ " +
                     "   DISTINCT row_name, ? as batch_num " +
-                    " FROM pt_met_%s met " +
+                    " FROM %s table " +
                     " WHERE %s " +
                     " ORDER BY row_name %s ";
 
     private static final String SIMPLE_ROW_SELECT_ONE_POSTGRES_TEMPLATE =
             " /* SQL_MET_SIMPLE_ROW_SELECT_ONE_TEMPLATE_PSQL (%s) */ " +
-                    " SELECT /*+ INDEX(met pk_pt_met_%s) */ " +
+                    " SELECT /*+ INDEX(table pk_%s) */ " +
                     "   DISTINCT row_name, ? as batch_num " +
-                    " FROM pt_met_%s met " +
+                    " FROM %s table " +
                     " WHERE %s " +
                     " ORDER BY row_name %s LIMIT 1";
 
     private static final String SIMPLE_ROW_SELECT_ONE_ORACLE_TEMPLATE =
             " /* SQL_MET_SIMPLE_ROW_SELECT_ONE_TEMPLATE_ORA (%s) */ " +
-                    " SELECT /*+ INDEX(met pk_pt_met_%s) */ " +
+                    " SELECT /*+ INDEX(table pk_%s) */ " +
                     "   %s(row_name) as row_name, ? as batch_num " +
-                    " FROM pt_met_%s met " +
+                    " FROM %s table " +
                     " WHERE %s";
 }

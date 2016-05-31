@@ -30,6 +30,16 @@ public abstract class OracleKeyValueServiceConfig extends DbKeyValueServiceConfi
 
     public abstract JdbcHandler jdbcHandler();
 
+    @Value.Default
+    public String singleOverflowTable() {
+        return "atlas_overflow";
+    }
+
+    @Value.Default
+    public String overflowTablePrefix() {
+        return "ao_";
+    }
+
     public abstract Supplier<Long> overflowIds();
 
     public abstract OverflowMigrationState overflowMigrationState();
@@ -41,12 +51,7 @@ public abstract class OracleKeyValueServiceConfig extends DbKeyValueServiceConfi
 
     @Override
     public Supplier<DbTableFactory> tableFactorySupplier() {
-        return () -> new OracleDbTableFactory(
-                shared(),
-                jdbcHandler(),
-                enableOracleEnterpriseFeatures(),
-                overflowIds(),
-                overflowMigrationState());
+        return () -> new OracleDbTableFactory(this);
     }
 
     @Override
