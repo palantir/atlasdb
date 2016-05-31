@@ -15,25 +15,12 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
-import java.sql.Connection;
-
 import org.immutables.value.Value;
 
 import com.google.common.base.Supplier;
-import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbTableFactory;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.SqlConnectionSupplier;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
-import com.palantir.common.base.Visitors;
-import com.palantir.nexus.db.monitoring.timer.SqlTimer;
-import com.palantir.nexus.db.monitoring.timer.SqlTimers;
-import com.palantir.nexus.db.pool.HikariCPConnectionManager;
-import com.palantir.nexus.db.pool.ReentrantManagedConnectionSupplier;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
-import com.palantir.nexus.db.sql.SQL;
-import com.palantir.nexus.db.sql.SqlConnection;
-import com.palantir.nexus.db.sql.SqlConnectionHelper;
-import com.palantir.nexus.db.sql.SqlConnectionImpl;
 
 public abstract class DbKeyValueServiceConfig implements KeyValueServiceConfig {
 
@@ -46,49 +33,5 @@ public abstract class DbKeyValueServiceConfig implements KeyValueServiceConfig {
 
     @Value.Derived
     public abstract Supplier<DbTableFactory> tableFactorySupplier();
-
-    @Value.Default
-    public Supplier<SqlConnectionSupplier> sqlConnectionSupplier() {
-        return () -> createConnectionSupplier();
-    }
-
-    private SqlConnectionSupplier createConnectionSupplier() {
-        HikariCPConnectionManager connManager = new HikariCPConnectionManager(connection(), Visitors.emptyVisitor());
-        ReentrantManagedConnectionSupplier connSupplier = new ReentrantManagedConnectionSupplier(connManager);
-        Supplier<Connection> supplier = () -> connSupplier.get();
-        SQL sql = new SQL() {
-            @Override
-            protected SqlConfig getSqlConfig() {
-                return new SqlConfig() {
-                    @Override
-                    public boolean isSqlCancellationDisabled() {
-                        return false;
-                    }
-
-                    protected Iterable<SqlTimer> getSqlTimers() {
-                        return ImmutableList.of(
-                                SqlTimers.createDurationSqlTimer(),
-                                SqlTimers.createSqlStatsSqlTimer());
-                    }
-
-                    @Override
-                    final public SqlTimer getSqlTimer() {
-                        return SqlTimers.createCombinedSqlTimer(getSqlTimers());
-                    }
-                };
-            }
-        };
-        return new SqlConnectionSupplier() {
-            @Override
-            public SqlConnection get() {
-                return new SqlConnectionImpl(supplier, new SqlConnectionHelper(sql));
-            }
-
-            @Override
-            public void close() {
-                connSupplier.close();
-            }
-        };
-    }
 
 }
