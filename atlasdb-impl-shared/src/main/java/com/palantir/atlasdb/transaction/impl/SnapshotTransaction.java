@@ -949,14 +949,16 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     @Override
     public void put(TableReference tableRef, Map<Cell, byte[]> values) {
-        // validate
+        ensureNoEmptyValues(values);
+        put(tableRef, values, Cell.INVALID_TTL, Cell.INVALID_TTL_TYPE);
+    }
+
+    private void ensureNoEmptyValues(Map<Cell, byte[]> values) {
         for (Entry<Cell, byte[]> cellEntry : values.entrySet()) {
             if (cellEntry.getValue().length == 0) {
-                throw new IllegalArgumentException("put values cannot be empty");
+                throw new IllegalArgumentException("AtlasDB does not currently support inserting empty (zero-byte) values.");
             }
         }
-
-        put(tableRef, values, Cell.INVALID_TTL, Cell.INVALID_TTL_TYPE);
     }
 
     public void put(TableReference tableRef, Map<Cell, byte[]> values, long ttlDuration, TimeUnit ttlUnit) {
