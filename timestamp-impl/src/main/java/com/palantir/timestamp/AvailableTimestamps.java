@@ -101,8 +101,7 @@ public class AvailableTimestamps {
             throw new RuntimeException("failed to allocate more timestamps", newFailure);
         }
 
-        if (Thread.interrupted()) {
-            Thread.currentThread().interrupt();
+        if (Thread.currentThread().isInterrupted()) {
             throw new PalantirInterruptedException("Interrupted while waiting for timestamp allocation.");
         }
 
