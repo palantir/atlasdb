@@ -20,6 +20,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.HashMultimap;
@@ -41,6 +43,8 @@ import io.airlift.airline.Option;
         + "from an underlying database that lacks PITR backup semantics.  Deletes all transactions with a "
         + "commit timestamp greater than the timestamp provided.")
 public class CleanTransactionRange extends SingleBackendCommand {
+
+    private static final Logger log = LoggerFactory.getLogger(CleanTransactionRange.class);
 
     @Option(name = {"-t", "--timestamp"},
             title = "TIMESTAMP",
@@ -80,7 +84,7 @@ public class CleanTransactionRange extends SingleBackendCommand {
                 value = row.getOnlyColumnValue();
             } catch (IllegalStateException e){
                 //this should never happen
-                System.err.printf("Error: Found a row in the transactions table that didn't have 1 and only 1 column value: start=%d\n", startTs);
+                log.error("Found a row in the transactions table that didn't have 1 and only 1 column value: start={}", startTs);
                 continue;
             }
 
@@ -89,7 +93,7 @@ public class CleanTransactionRange extends SingleBackendCommand {
                 continue; // this is a valid transaction
             }
 
-            System.out.printf("Found and cleaning possibly inconsistent transaction: [start=%d, commit=%d]\n", startTs, commitTs);
+            log.info("Found and cleaning possibly inconsistent transaction: [start={}, commit={}]", startTs, commitTs);
 
             Cell key = Cell.create(rowName, TransactionConstants.COMMIT_TS_COLUMN);
             toDelete.put(key, value.getTimestamp());  //value.getTimestamp() should always be 0L but this is safer
@@ -97,9 +101,9 @@ public class CleanTransactionRange extends SingleBackendCommand {
 
         if (!toDelete.isEmpty()) {
             kvs.delete(TransactionConstants.TRANSACTION_TABLE, toDelete);
-            System.out.println("Delete completed.");
+            log.info("Delete completed.");
         } else {
-            System.out.println("Found no transactions after the given timestamp to delete.");
+            log.info("Found no transactions after the given timestamp to delete.");
         }
 
         return 0;
@@ -117,7 +121,7 @@ public class CleanTransactionRange extends SingleBackendCommand {
         try {
             backupTimestampString = StringUtils.strip(Files.readFirstLine(backupFile, StandardCharsets.UTF_8));
         } catch (IOException e) {
-            System.err.printf("IOException thrown reading backup timestamp from file: %s\n", backupFile.getPath());
+            log.error("IOException thrown reading backup timestamp from file: {}", backupFile.getPath());
             throw Throwables.propagate(e);
         }
         backupTimestamp = Long.parseLong(backupTimestampString);

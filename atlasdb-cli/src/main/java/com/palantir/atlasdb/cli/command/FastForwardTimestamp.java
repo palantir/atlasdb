@@ -20,6 +20,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Throwables;
 import com.google.common.io.Files;
@@ -34,6 +36,8 @@ import io.airlift.airline.Option;
         + " service to the specified timestamp.  Is used in the restore process to ensure that all future timestamps used are"
         + " explicity greater than any that may have been used to write data to the KVS before backing up the underlying storage.")
 public class FastForwardTimestamp extends SingleBackendCommand {
+
+    private static final Logger log = LoggerFactory.getLogger(FastForwardTimestamp.class);
 
     @Option(name = {"-t", "--timestamp"},
             title = "TIMESTAMP",
@@ -54,14 +58,14 @@ public class FastForwardTimestamp extends SingleBackendCommand {
 
         TimestampService ts = services.getTimestampService();
         if (!(ts instanceof PersistentTimestampService)) {
-            System.err.printf("Error: Timestamp service must be of type %s, but yours is %s\n",
+            log.error("Timestamp service must be of type {}, but yours is {}.  Exiting.",
                     PersistentTimestampService.class.toString(), ts.getClass().toString());
             return 1;
         }
         PersistentTimestampService pts = (PersistentTimestampService) ts;
 
         pts.fastForwardTimestamp(timestamp);
-        System.out.printf("Timestamp succesfully forwarded to %d\n", timestamp);
+        log.info("Timestamp succesfully forwarded to {}", timestamp);
 
         return 0;
     }
@@ -78,7 +82,7 @@ public class FastForwardTimestamp extends SingleBackendCommand {
         try {
             timestampString = StringUtils.strip(Files.readFirstLine(file, StandardCharsets.UTF_8));
         } catch (IOException e) {
-            System.err.printf("IOException thrown reading timestamp from file: %s\n", file.getPath());
+            log.error("IOException thrown reading timestamp from file: {}", file.getPath());
             throw Throwables.propagate(e);
         }
         timestamp = Long.parseLong(timestampString);
