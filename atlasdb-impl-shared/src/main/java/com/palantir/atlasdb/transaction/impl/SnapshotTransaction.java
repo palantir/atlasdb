@@ -961,7 +961,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
     }
 
-    public void put(TableReference tableRef, Map<Cell, byte[]> values, long ttlDuration, TimeUnit ttlUnit) {
+    private void put(TableReference tableRef, Map<Cell, byte[]> values, long ttlDuration, TimeUnit ttlUnit) {
         Preconditions.checkArgument(!AtlasDbConstants.hiddenTables.contains(tableRef));
         // todo (clockfort) also check if valid table for TTL
         if (ttlDuration != Cell.INVALID_TTL && ttlUnit != Cell.INVALID_TTL_TYPE) {
