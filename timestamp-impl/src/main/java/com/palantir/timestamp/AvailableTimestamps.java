@@ -34,7 +34,7 @@ public class AvailableTimestamps {
 
     private final LastReturnedTimestamp lastReturnedTimestamp;
     private final PersistentUpperLimit upperLimit;
-    private volatile Throwable previousAllocationFailure;
+    private Throwable previousAllocationFailure;
 
     public AvailableTimestamps(LastReturnedTimestamp lastReturnedTimestamp, PersistentUpperLimit upperLimit) {
         this.lastReturnedTimestamp = lastReturnedTimestamp;
