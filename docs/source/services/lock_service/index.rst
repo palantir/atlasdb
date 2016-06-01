@@ -14,5 +14,4 @@ A description of Paxos can be found on `Wikipedia <https://github.com/palantir/a
 
    overview
    installation
-   configuration
    leader_election
