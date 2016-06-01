@@ -17,12 +17,15 @@ package com.palantir.timestamp;
 
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.concurrent.GuardedBy;
+
 import com.palantir.common.time.Clock;
 import com.palantir.common.time.SystemClock;
 
 public class PersistentUpperLimit {
     private final TimestampBoundStore tbs;
     private final Clock clock;
+    @GuardedBy("this")
     private volatile long cachedValue;
     private volatile long lastIncreasedTime;
 
