@@ -153,7 +153,7 @@ public abstract class ConnectionConfig {
                 Preconditions.checkArgument(getKeystorePassword().isPresent(), "two way ssl requires a keystore password");
             }
         } else {
-            Preconditions.checkArgument(getTwoWaySsl(), "two way ssl cannot be enabled without enabling tcps");
+            Preconditions.checkArgument(!getTwoWaySsl(), "two way ssl cannot be enabled without enabling tcps");
         }
     }
 
