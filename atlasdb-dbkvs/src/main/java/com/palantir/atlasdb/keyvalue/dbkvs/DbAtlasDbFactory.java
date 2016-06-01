@@ -43,10 +43,12 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
     public TimestampService createTimestampService(KeyValueService rawKvs) {
         Preconditions.checkArgument(rawKvs instanceof DbKvs, "DbAtlasDbFactory expects a raw kvs of type DbKvs, found %s", rawKvs.getClass());
         DbKvs dbkvs = (DbKvs) rawKvs;
+        Preconditions.checkArgument(dbkvs.getConfig().connection().isPresent(),
+                "Connection configuration is not present. You must have a connection block in your atlas config.");
         return PersistentTimestampService.create(
                 new InDbTimestampBoundStore(
                         new HikariCPConnectionManager(
-                                dbkvs.getConfig().connection(),
+                                dbkvs.getConfig().connection().get(),
                                 Visitors.emptyVisitor())
                 )
         );

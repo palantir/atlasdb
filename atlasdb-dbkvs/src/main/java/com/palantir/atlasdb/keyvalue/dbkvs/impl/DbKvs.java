@@ -90,7 +90,9 @@ public class DbKvs extends AbstractKeyValueService {
     private final SqlConnectionSupplier connections;
 
     public static DbKvs create(DbKeyValueServiceConfig config) {
-        HikariCPConnectionManager connManager = new HikariCPConnectionManager(config.connection(), Visitors.emptyVisitor());
+        Preconditions.checkArgument(config.connection().isPresent(),
+                "Connection configuration is not present. You must have a connection block in your atlas config.");
+        HikariCPConnectionManager connManager = new HikariCPConnectionManager(config.connection().get(), Visitors.emptyVisitor());
         ReentrantManagedConnectionSupplier connSupplier = new ReentrantManagedConnectionSupplier(connManager);
         SqlConnectionSupplier sqlConnSupplier = getSimpleTimedSqlConnectionSupplier(connSupplier);
 
