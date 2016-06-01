@@ -19,11 +19,13 @@ import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
@@ -45,6 +47,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableRangeMap;
@@ -243,7 +246,7 @@ public class CassandraClientPool {
             livingHosts = pools.keySet();
         }
 
-        return pools.get(ImmutableList.copyOf(livingHosts).get(ThreadLocalRandom.current().nextInt(livingHosts.size())));
+        return pools.get(getRandomHostByActiveConnections(Maps.filterKeys(currentPools, livingHosts::contains)));
     }
 
     public InetSocketAddress getRandomHostForKey(byte[] key) {
@@ -264,8 +267,12 @@ public class CassandraClientPool {
             log.debug("Current ring view is: {} and our current host blacklist is {}", tokenMap, blacklistedHosts);
             return getRandomGoodHost().getHost();
         } else {
-            return currentPools.get(ImmutableList.copyOf(liveOwnerHosts).get(ThreadLocalRandom.current().nextInt(liveOwnerHosts.size()))).getHost();
+            return getRandomHostByActiveConnections(Maps.filterKeys(currentPools, liveOwnerHosts::contains));
         }
+    }
+
+    private static InetSocketAddress getRandomHostByActiveConnections(Map<InetSocketAddress, CassandraClientPoolingContainer> pools) {
+        return WeightedHosts.create(pools).getRandomHost();
     }
 
     public void runOneTimeStartupChecks() {
@@ -418,7 +425,8 @@ public class CassandraClientPool {
         return runOnHost(getRandomGoodHost().getHost(), f);
     }
 
-    public <V, K extends Exception> V runOnHost(InetSocketAddress specifiedHost, FunctionCheckedException<Cassandra.Client, V, K> f) throws K {
+    private <V, K extends Exception> V runOnHost(InetSocketAddress specifiedHost,
+                                                 FunctionCheckedException<Cassandra.Client, V, K> f) throws K {
         CassandraClientPoolingContainer hostPool = currentPools.get(specifiedHost);
         return hostPool.runWithPooledResource(f);
     }
@@ -543,4 +551,63 @@ public class CassandraClientPool {
         }
     };
 
+    /**
+     * Weights hosts inversely by the number of active connections. {@link #getRandomHost()} should then be used to
+     * pick a random host
+     */
+    @VisibleForTesting
+    static class WeightedHosts {
+        final TreeMap<Integer, InetSocketAddress> hosts;
+
+        private WeightedHosts(TreeMap<Integer, InetSocketAddress> hosts) {
+            this.hosts = hosts;
+        }
+
+        static WeightedHosts create(Map<InetSocketAddress, CassandraClientPoolingContainer> pools) {
+            Preconditions.checkArgument(!pools.isEmpty(), "pools should be non-empty");
+            return new WeightedHosts(buildHostsWeightedByActiveConnections(pools));
+        }
+
+        /**
+         * The key for a host is the open upper bound of the weight. Since the domain is intended to be contiguous, the
+         * closed lower bound of that weight is the key of the previous entry.
+         * <p>
+         * The closed lower bound of the first entry is 0.
+         * <p>
+         * Every weight is guaranteed to be non-zero in size. That is, every key is guaranteed to be at least one larger
+         * than the previous key.
+         */
+        private static TreeMap<Integer, InetSocketAddress> buildHostsWeightedByActiveConnections(
+                Map<InetSocketAddress, CassandraClientPoolingContainer> pools) {
+
+            Map<InetSocketAddress, Integer> activeConnectionsByHost = new HashMap<>(pools.size());
+            int totalActiveConnections = 0;
+            for (InetSocketAddress host : pools.keySet()) {
+                int activeConnections = Math.max(pools.get(host).getPoolUtilization(), 0);
+                activeConnectionsByHost.put(host, activeConnections);
+                totalActiveConnections += activeConnections;
+            }
+
+            int lowerBoundInclusive = 0;
+            TreeMap<Integer, InetSocketAddress> weightedHosts = new TreeMap<>();
+            for (Entry<InetSocketAddress, Integer> entry : activeConnectionsByHost.entrySet()) {
+                // We want the weight to be inversely proportional to the number of active connections so that we pick
+                // less-active hosts. We add 1 to make sure that all ranges are non-empty
+                int weight = totalActiveConnections - entry.getValue() + 1;
+                weightedHosts.put(lowerBoundInclusive + weight, entry.getKey());
+                lowerBoundInclusive += weight;
+            }
+            return weightedHosts;
+        }
+
+        InetSocketAddress getRandomHost() {
+            int index = ThreadLocalRandom.current().nextInt(hosts.lastKey());
+            return getRandomHostInternal(index);
+        }
+
+        // This basically exists for testing
+        InetSocketAddress getRandomHostInternal(int index) {
+            return hosts.higherEntry(index).getValue();
+        }
+    }
 }
