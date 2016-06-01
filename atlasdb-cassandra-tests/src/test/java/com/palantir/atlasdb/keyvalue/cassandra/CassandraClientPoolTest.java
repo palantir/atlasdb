@@ -24,7 +24,6 @@ import java.util.Map.Entry;
 import java.util.TreeMap;
 
 import org.apache.cassandra.thrift.Cassandra;
-import org.apache.cassandra.thrift.Cassandra.Client;
 import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.cassandra.thrift.TokenRange;
 import org.apache.thrift.transport.TTransportException;
@@ -115,7 +114,7 @@ public class CassandraClientPoolTest {
         kv.clientPool.blacklistedHosts.clear();
     }
 
-    private FunctionCheckedException<Cassandra.Client, List<TokenRange>, Exception> describeRing = new FunctionCheckedException<Client, List<TokenRange>, Exception>() {
+    private FunctionCheckedException<Cassandra.Client, List<TokenRange>, Exception> describeRing = new FunctionCheckedException<Cassandra.Client, List<TokenRange>, Exception>() {
         @Override
         public List<TokenRange> apply (Cassandra.Client client) throws Exception {
             return client.describe_ring("atlasdb");

@@ -86,7 +86,11 @@ import com.palantir.common.concurrent.PTExecutors;
  **/
 public class CassandraClientPool {
     private static final Logger log = LoggerFactory.getLogger(CassandraClientPool.class);
-    private static final int MAX_TRIES_SAME_HOST = 2;
+    /**
+     * This is the maximum number of times we'll accept connection failures to one host before blacklisting it. Note
+     * that subsequent hosts we try in the same call will actually be blacklisted after one connection failure
+     */
+    private static final int MAX_TRIES_SAME_HOST = 3;
     private static final int MAX_TRIES_TOTAL = 6;
 
     volatile RangeMap<LightweightOPPToken, List<InetSocketAddress>> tokenMap = ImmutableRangeMap.of();
