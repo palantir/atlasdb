@@ -85,14 +85,17 @@ public abstract class ConnectionConfig {
 
     @Value.Derived
     public ImmutableMap<DBConfigConnectionParameter, String> getConnectionParameters() {
-        return ImmutableMap.<DBConfigConnectionParameter, String>builder()
-                .put(DBConfigConnectionParameter.DBNAME, getDbName())
-                .put(DBConfigConnectionParameter.HOST, getHost())
-                .put(DBConfigConnectionParameter.MATCH_SERVER_DN, getMatchServerDn())
-                .put(DBConfigConnectionParameter.PORT, Integer.toString(getPort()))
-                .put(DBConfigConnectionParameter.PROTOCOL, getProtocol().getUrlString())
-                .put(DBConfigConnectionParameter.SID, getSid())
-                .build();
+        ImmutableMap.Builder<DBConfigConnectionParameter, String> builder =
+                ImmutableMap.<DBConfigConnectionParameter, String>builder()
+                        .put(DBConfigConnectionParameter.DBNAME, getDbName())
+                        .put(DBConfigConnectionParameter.HOST, getHost())
+                        .put(DBConfigConnectionParameter.MATCH_SERVER_DN, getMatchServerDn())
+                        .put(DBConfigConnectionParameter.PORT, Integer.toString(getPort()))
+                        .put(DBConfigConnectionParameter.PROTOCOL, getProtocol().getUrlString());
+        if (getSid().isPresent()) {
+            builder.put(DBConfigConnectionParameter.SID, getSid().get());
+        }
+        return builder.build();
     }
 
     public abstract String getDbName();
@@ -101,7 +104,7 @@ public abstract class ConnectionConfig {
     public abstract DBType getDbType();
     public abstract String getHost();
     public abstract int getPort();
-    public abstract String getSid();
+    public abstract Optional<String> getSid();
 
     @Value.Default
     public String getMatchServerDn() {
