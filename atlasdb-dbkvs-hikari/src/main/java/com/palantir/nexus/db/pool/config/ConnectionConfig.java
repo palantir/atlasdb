@@ -87,29 +87,30 @@ public abstract class ConnectionConfig {
     public ImmutableMap<DBConfigConnectionParameter, String> getConnectionParameters() {
         ImmutableMap.Builder<DBConfigConnectionParameter, String> builder =
                 ImmutableMap.<DBConfigConnectionParameter, String>builder()
-                        .put(DBConfigConnectionParameter.DBNAME, getDbName())
                         .put(DBConfigConnectionParameter.HOST, getHost())
-                        .put(DBConfigConnectionParameter.MATCH_SERVER_DN, getMatchServerDn())
                         .put(DBConfigConnectionParameter.PORT, Integer.toString(getPort()))
                         .put(DBConfigConnectionParameter.PROTOCOL, getProtocol().getUrlString());
+        if (getDbName().isPresent()) {
+            builder.put(DBConfigConnectionParameter.DBNAME, getDbName().get());
+        }
         if (getSid().isPresent()) {
             builder.put(DBConfigConnectionParameter.SID, getSid().get());
+        }
+        if (getMatchServerDn().isPresent()) {
+            builder.put(DBConfigConnectionParameter.MATCH_SERVER_DN, getMatchServerDn().get());
         }
         return builder.build();
     }
 
-    public abstract String getDbName();
     public abstract String getDbLogin();
     public abstract String getDbPassword();
     public abstract DBType getDbType();
     public abstract String getHost();
     public abstract int getPort();
-    public abstract Optional<String> getSid();
 
-    @Value.Default
-    public String getMatchServerDn() {
-        return "";
-    }
+    public abstract Optional<String> getDbName();
+    public abstract Optional<String> getSid();
+    public abstract Optional<String> getMatchServerDn();
 
     @Value.Default
     public ConnectionProtocol getProtocol() {
@@ -154,6 +155,17 @@ public abstract class ConnectionConfig {
             }
         } else {
             Preconditions.checkArgument(!getTwoWaySsl(), "two way ssl cannot be enabled without enabling tcps");
+        }
+
+        switch (getDbType()) {
+            case ORACLE:
+                Preconditions.checkArgument(getSid().isPresent(), "Running with oracle requires specifying a site identifier (sid)");
+                break;
+            case POSTGRESQL:
+                Preconditions.checkArgument(getDbName().isPresent(), "Running with postgres requires specifying a database name (dbName)");
+                break;
+            case H2_MEMORY:
+                break;
         }
     }
 

@@ -39,7 +39,6 @@ import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.SharedMetricRegistries;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
 import com.palantir.common.visitor.Visitor;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.manager.DatabaseConstants;
@@ -563,8 +562,8 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
             }
 
             // server_dn_matching
-            String sMatchServerDN = connConfig.getMatchServerDn();
-            if (!Strings.isNullOrEmpty(sMatchServerDN)) {
+            if (connConfig.getMatchServerDn().isPresent()) {
+                String sMatchServerDN = connConfig.getMatchServerDn().get();
                 props.setProperty("oracle.net.ssl_server_dn_match", "true");
                 log.info("Will require the server certificate DB to match: " + sMatchServerDN);
 
