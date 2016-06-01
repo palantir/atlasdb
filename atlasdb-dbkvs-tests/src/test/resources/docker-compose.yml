@@ -1,0 +1,14 @@
+version: '2'
+
+services:
+  cassandra:
+    image: kiasaki/alpine-postgres
+    environment:
+       POSTGRES_PASSWORD: palantir
+       POSTGRES_USER: palantir
+       POSTGRES_DB: atlas
+#    ports:
+#      - "5432"
+#    environment:
+#      - LOCAL_JMX=no
+    network_mode: host

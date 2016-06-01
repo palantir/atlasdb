@@ -1,0 +1,53 @@
+plugins{
+    id 'com.palantir.docker' version '0.7.0'
+}
+
+apply plugin: 'org.inferred.processors'
+apply plugin: 'com.palantir.docker'
+
+apply from: "../gradle/shared.gradle"
+
+dependencies {
+  testCompile project(":atlasdb-dbkvs")
+  testCompile project(":atlasdb-tests-shared")
+
+  testCompile 'org.mockito:mockito-core:' + libVersions.mockito
+  testCompile 'com.palantir.docker.compose:docker-compose-rule:0.12.0'
+  testCompile 'junit:junit:' + libVersions.junit
+}
+
+jacoco {
+    toolVersion = "0.7.1.201405082137"
+    reportsDir = file("$buildDir/customJacocoReportDir")
+}
+
+docker {
+    name "com.palantir.docker/atlas-cassandra:2.2-v0.1"
+    tags 'latest'
+    dockerfile "${rootProject.projectDir}/docker-containers/cassandra/Dockerfile"
+    files "${rootProject.projectDir}/docker-containers/cassandra/entrypoint.sh",
+            "${rootProject.projectDir}/docker-containers/cassandra/cassandra.yaml",
+            "${rootProject.projectDir}/docker-containers/cassandra/cassandra-env.sh"
+    dependsOn jar
+}
+
+test {
+    jacoco {
+        append = false
+        destinationFile = file("$buildDir/jacoco/jacocoTest.exec")
+        classDumpFile = file("$buildDir/jacoco/classpathdumps")
+    }
+    maxHeapSize = "1024m"
+    include '**/*Suite.class'
+    maxParallelForks 2
+    dependsOn tasks.docker
+}
+
+jacocoTestReport {
+    reports {
+        xml.enabled true
+        csv.enabled false
+        html.enabled true
+        html.destination "${buildDir}/jacocoHtml"
+    }
+}
