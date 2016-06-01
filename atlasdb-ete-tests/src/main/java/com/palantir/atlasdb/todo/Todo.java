@@ -21,9 +21,11 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
-@Value.Immutable
+@Value.Immutable(builder = false)
 @JsonSerialize(as = ImmutableTodo.class)
 @JsonDeserialize(as = ImmutableTodo.class)
 public interface Todo {
-    @JsonProperty("text") String text();
+    @JsonProperty("text")
+    @Value.Parameter
+    String text();
 }

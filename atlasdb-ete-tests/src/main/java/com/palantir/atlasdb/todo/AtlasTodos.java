@@ -24,12 +24,12 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-@Path("todos")
+@Path("/todos")
 public interface AtlasTodos {
     @POST
     @Path("/")
     @Consumes(MediaType.APPLICATION_JSON)
-    void addTodo(String text);
+    void addTodo(Todo todo);
 
     @GET
     @Path("/")
@@ -38,5 +38,5 @@ public interface AtlasTodos {
 
     @GET
     @Path("/healthcheck")
-    boolean isHealthy();
+    void isHealthy();
 }

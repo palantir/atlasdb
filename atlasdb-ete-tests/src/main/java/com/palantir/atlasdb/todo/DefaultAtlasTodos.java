@@ -17,6 +17,8 @@ package com.palantir.atlasdb.todo;
 
 import java.util.List;
 
+import com.google.common.base.Preconditions;
+
 public class DefaultAtlasTodos implements AtlasTodos {
     private Atlas atlas;
 
@@ -25,8 +27,8 @@ public class DefaultAtlasTodos implements AtlasTodos {
     }
 
     @Override
-    public void addTodo(String text) {
-        atlas.addTodo(text);
+    public void addTodo(Todo todo) {
+        atlas.addTodo(todo);
     }
 
     @Override
@@ -35,11 +37,7 @@ public class DefaultAtlasTodos implements AtlasTodos {
     }
 
     @Override
-    public boolean isHealthy() {
-        try {
-            return atlas.listTodos() != null;
-        } catch (Exception e) {
-            return false;
-        }
+    public void isHealthy() {
+        Preconditions.checkState(atlas.listTodos() != null);
     }
 }

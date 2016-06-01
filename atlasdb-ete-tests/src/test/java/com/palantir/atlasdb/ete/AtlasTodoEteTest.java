@@ -18,6 +18,7 @@ package com.palantir.atlasdb.ete;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.joda.time.Duration.standardMinutes;
 
 import static com.google.common.base.Throwables.propagate;
 
@@ -30,6 +31,8 @@ import org.junit.rules.RuleChain;
 import com.google.common.base.Optional;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.todo.AtlasTodos;
+import com.palantir.atlasdb.todo.ImmutableTodo;
+import com.palantir.atlasdb.todo.Todo;
 import com.palantir.docker.compose.DockerComposition;
 import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerPort;
@@ -39,17 +42,21 @@ import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 public class AtlasTodoEteTest {
     private static final Optional<SSLSocketFactory> NO_SSL = Optional.absent();
     private static final int TODO_PORT = 3828;
-    private static final String TODO = "some stuff to do";
+    private static final Todo TODO = ImmutableTodo.of("some stuff to do");
 
     public static DockerComposition dockerComposition = DockerComposition.of("docker-compose.yml")
-            .waitingForService("todo1", toBeReady())
+            .waitingForService("todo1", toBeReady(), standardMinutes(1))
             .saveLogsTo("container-logs")
             .build();
 
     private static HealthCheck<Container> toBeReady() {
         return (container) -> {
             AtlasTodos todos = createTodoClientFor(container);
-            return SuccessOrFailure.onResultOf(todos::isHealthy);
+
+            return SuccessOrFailure.onResultOf(() -> {
+                todos.isHealthy();
+                return true;
+            });
         };
     }
 
@@ -60,18 +67,16 @@ public class AtlasTodoEteTest {
             .outerRule(gradle)
             .around(dockerComposition);
 
-    private final AtlasTodos todos = createTodoClient();
-
     @Test public void
     shouldBeAbleToWriteAndListTodos() {
-        todos.addTodo(TODO);
+        createTodoClient().addTodo(TODO);
 
-        assertThat(todos.listTodos(), contains(TODO));
+        assertThat(createTodoClient().listTodos(), contains(TODO));
     }
 
     private AtlasTodos createTodoClient() {
         try {
-            DockerPort port = dockerComposition.portOnContainerWithExternalMapping("todo1", TODO_PORT);
+            DockerPort port = dockerComposition.portOnContainerWithInternalMapping("todo1", TODO_PORT);
             return createTodoClientFor(port);
         } catch (Exception e) {
             throw propagate(e);

@@ -15,14 +15,17 @@
  */
 package com.palantir.atlasdb.todo;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class Atlas {
-    public void addTodo(String text) {
+    List<Todo> todos = new ArrayList<>();
 
+    public void addTodo(Todo todo) {
+        todos.add(todo);
     }
 
     public List<Todo> listTodos() {
-        return null;
+        return todos;
     }
 }

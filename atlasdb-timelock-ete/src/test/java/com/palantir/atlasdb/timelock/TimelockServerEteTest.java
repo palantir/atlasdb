@@ -35,8 +35,9 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.ete.Gradle;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.docker.compose.DockerComposition;
+import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerPort;
-import com.palantir.docker.compose.connection.waiting.MultiServiceHealthCheck;
+import com.palantir.docker.compose.connection.waiting.HealthCheck;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 import com.palantir.timestamp.TimestampService;
 
@@ -88,7 +89,7 @@ public class TimelockServerEteTest {
         }
     }
 
-    private static MultiServiceHealthCheck toHaveElectedALeader() {
+    private static HealthCheck<List<Container>> toHaveElectedALeader() {
         return (containers) -> {
             List<DockerPort> timelockPorts = containers.stream()
                     .map(container -> container.portMappedInternallyTo(TIMELOCK_SERVER_PORT))
