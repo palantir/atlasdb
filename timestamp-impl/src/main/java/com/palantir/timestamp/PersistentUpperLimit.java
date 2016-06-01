@@ -24,7 +24,7 @@ public class PersistentUpperLimit {
     private final TimestampBoundStore tbs;
     private final Clock clock;
     private volatile long cachedValue;
-    private long lastIncreasedTime;
+    private volatile long lastIncreasedTime;
 
     public PersistentUpperLimit(TimestampBoundStore tbs, Clock clock) {
         this.tbs = tbs;
