@@ -69,7 +69,7 @@ public class AvailableTimestamps {
     }
 
     public synchronized void refreshBuffer() {
-        long buffer = upperLimit.get() - lastReturnedTimestamp.get();
+        long buffer = upperLimit.get() - lastHandedOut();
 
         if (buffer < MINIMUM_BUFFER || !upperLimit.hasIncreasedWithin(1, MINUTES)) {
             allocateEnoughTimestampsToHandOut(lastHandedOut() + ALLOCATION_BUFFER_SIZE);
