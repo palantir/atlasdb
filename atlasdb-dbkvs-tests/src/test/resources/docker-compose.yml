@@ -3,6 +3,8 @@ version: '2'
 services:
   cassandra:
     image: kiasaki/alpine-postgres
+    volumes:
+      - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
     environment:
        POSTGRES_PASSWORD: palantir
        POSTGRES_USER: palantir
