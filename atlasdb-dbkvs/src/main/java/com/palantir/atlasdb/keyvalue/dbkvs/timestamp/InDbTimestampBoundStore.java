@@ -20,6 +20,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
 
 import org.apache.commons.dbutils.QueryRunner;
@@ -56,7 +57,7 @@ public final class InDbTimestampBoundStore implements TimestampBoundStore {
     }
 
     private interface Operation {
-        long run(Connection c, Long oldLimit) throws SQLException;
+        long run(Connection c, @Nullable Long oldLimit) throws SQLException;
     }
 
     private long runOperation(final Operation o) {

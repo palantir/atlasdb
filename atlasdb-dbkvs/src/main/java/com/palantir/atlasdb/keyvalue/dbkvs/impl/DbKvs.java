@@ -92,7 +92,13 @@ public class DbKvs extends AbstractKeyValueService {
     public static DbKvs create(DbKeyValueServiceConfig config) {
         HikariCPConnectionManager connManager = new HikariCPConnectionManager(config.connection(), Visitors.emptyVisitor());
         ReentrantManagedConnectionSupplier connSupplier = new ReentrantManagedConnectionSupplier(connManager);
-        Supplier<Connection> supplier = () -> connSupplier.get();
+        SqlConnectionSupplier sqlConnSupplier = getSimpleTimedSqlConnectionSupplier(connSupplier);
+
+        return new DbKvs(config, config.tableFactorySupplier().get(), sqlConnSupplier);
+    }
+
+    private static SqlConnectionSupplier getSimpleTimedSqlConnectionSupplier(ReentrantManagedConnectionSupplier connectionSupplier) {
+        Supplier<Connection> supplier = () -> connectionSupplier.get();
         SQL sql = new SQL() {
             @Override
             protected SqlConfig getSqlConfig() {
@@ -115,7 +121,8 @@ public class DbKvs extends AbstractKeyValueService {
                 };
             }
         };
-        SqlConnectionSupplier sqlConnSupplier = new SqlConnectionSupplier() {
+
+        return new SqlConnectionSupplier() {
             @Override
             public SqlConnection get() {
                 return new SqlConnectionImpl(supplier, new SqlConnectionHelper(sql));
@@ -123,12 +130,16 @@ public class DbKvs extends AbstractKeyValueService {
 
             @Override
             public void close() {
-                connSupplier.close();
+                connectionSupplier.close();
             }
         };
-        return new DbKvs(config, config.tableFactorySupplier().get(), sqlConnSupplier);
     }
 
+    /**
+     * Constructor for a SQL (either Postgres or Oracle) backed key value store.  Exposed as public
+     * for use by a legacy internal product that needs to supply it's own connection supplier.
+     * Use {@link #create(DbKeyValueServiceConfig)} instead.
+     */
     public DbKvs(DbKeyValueServiceConfig config,
                  DbTableFactory dbTables,
                  SqlConnectionSupplier connections) {
