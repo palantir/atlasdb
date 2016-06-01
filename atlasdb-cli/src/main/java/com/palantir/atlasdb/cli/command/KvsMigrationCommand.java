@@ -19,6 +19,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.Callable;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
@@ -39,6 +42,9 @@ import io.airlift.airline.Option;
 
 @Command(name = "migrate", description = "Migrate your data from one key value service to another.")
 public class KvsMigrationCommand implements Callable<Integer> {
+
+    private static final Logger log = LoggerFactory.getLogger(KvsMigrationCommand.class);
+
     @Option(name = {"-fc", "--fromConfig"},
             title = "CONFIG PATH",
             description = "path to yaml configuration file for the KVS you're migrating from",
@@ -93,7 +99,7 @@ public class KvsMigrationCommand implements Callable<Integer> {
 
 	public int execute(AtlasDbServices fromServices, AtlasDbServices toServices) {
         if (!setup && !migrate && !validate) {
-            System.err.println("At least one of --setup, --migrate, or --validate should be specified.");
+            log.error("At least one of --setup, --migrate, or --validate should be specified.");
             return 1;
         }
         KeyValueServiceMigrator migrator;
@@ -116,7 +122,7 @@ public class KvsMigrationCommand implements Callable<Integer> {
                     batchSize,
                     ImmutableMap.<TableReference, Integer>of(),
                     (String message, KeyValueServiceMigrator.KvsMigrationMessageLevel level) -> {
-                        System.out.println(level.toString() + ": " + message);
+                        log.info(level.toString() + ": " + message);
                     },
                     ImmutableSet.<TableReference>of());
             validator.validate(true);
@@ -149,12 +155,12 @@ public class KvsMigrationCommand implements Callable<Integer> {
                 batchSize,
                 ImmutableMap.<TableReference, Integer>of(),
                 (String message, KeyValueServiceMigrator.KvsMigrationMessageLevel level) -> {
-                    System.out.println(level.toString() + ": " + message);
+                    log.info(level.toString() + ": " + message);
                 },
                 new TaskProgress() {
                     @Override
                     public void beginTask(String message, int tasks) {
-                        System.out.println(message);
+                        log.info(message);
                     }
 
                     @Override

@@ -23,6 +23,8 @@ import java.util.Set;
 
 import org.joda.time.DateTime;
 import org.joda.time.format.ISODateTimeFormat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.Sets;
@@ -35,6 +37,8 @@ import io.airlift.airline.Option;
 @Command(name = "timestamp", description = "Fetches a timestamp. By default"
         + " this will be a fresh timestamp unless otherwise specified.")
 public class TimestampCommand extends SingleBackendCommand {
+
+    private static final Logger log = LoggerFactory.getLogger(TimestampCommand.class);
 
     @Option(name = {"-i", "--immutable"},
     		description = "Get the current immutable timestamp, instead of a fresh one.")
@@ -64,7 +68,7 @@ public class TimestampCommand extends SingleBackendCommand {
 	        timestamp = services.getTimestampService().getFreshTimestamp();
 	        name = FRESH_STRING;
 	    }
-	    System.out.printf("The %s timestamp is: %d\n", name, timestamp);
+	    log.info("The %s timestamp is: {}", name, timestamp);
 
 	    String stringTime = null;
         if (dateTime) {
@@ -72,7 +76,7 @@ public class TimestampCommand extends SingleBackendCommand {
                     services.getKeyValueService(), timestamp);
             DateTime dt = new DateTime(timeMillis);
             stringTime = ISODateTimeFormat.dateTimeNoMillis().print(dt);
-            System.out.printf("Wall clock datetime of %s timestamp is: %s\n", name, stringTime);
+            log.info("Wall clock datetime of {} timestamp is: {}", name, stringTime);
         }
 
         if (file != null) {
@@ -83,12 +87,12 @@ public class TimestampCommand extends SingleBackendCommand {
             try {
                 Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
             } catch (IOException e) {
-                System.err.printf("IOException thrown writing %s timestamp to file: %s\n", name, file.getPath());
+                log.error("IOException thrown writing {} timestamp to file: {}", name, file.getPath());
                 Throwables.propagate(e);
             }
         }
 
-        System.out.println("Timestamp command completed succesfully.");
+        log.info("Timestamp command completed succesfully.");
         return 0;
 	}
 }

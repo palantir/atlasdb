@@ -17,6 +17,9 @@ package com.palantir.atlasdb.cli;
 
 import java.util.concurrent.Callable;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.palantir.atlasdb.cli.command.CleanTransactionRange;
 import com.palantir.atlasdb.cli.command.FastForwardTimestamp;
 import com.palantir.atlasdb.cli.command.KvsMigrationCommand;
@@ -27,6 +30,8 @@ import io.airlift.airline.Cli;
 import io.airlift.airline.Help;
 
 public class AtlasCli {
+
+    private static final Logger log = LoggerFactory.getLogger(AtlasCli.class);
 
     private static Cli<Callable> buildCli() {
         Cli.CliBuilder<Callable> builder = Cli.<Callable>builder("atlasdb")
@@ -51,7 +56,7 @@ public class AtlasCli {
             }
             System.exit(0);
         } catch (Exception e) {
-            System.err.println(e.getMessage());
+            log.error("Fatal exception thrown during cli command execution.  Exiting.", e);
             System.exit(1);
         }
     }
