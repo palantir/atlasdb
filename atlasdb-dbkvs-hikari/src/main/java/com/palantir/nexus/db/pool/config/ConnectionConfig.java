@@ -123,7 +123,7 @@ public abstract class ConnectionConfig {
         return ConnectionProtocol.TCP;
     }
 
-    @Value.Default
+    @Value.Derived
     public String getUrl() {
         String url = getDbType().getDefaultUrl() + getUrlSuffix();
         for (Map.Entry<DBConfigConnectionParameter, String> propEntry : getConnectionParameters().entrySet()) {
