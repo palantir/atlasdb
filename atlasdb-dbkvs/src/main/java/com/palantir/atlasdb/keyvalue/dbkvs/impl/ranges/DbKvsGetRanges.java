@@ -164,17 +164,17 @@ public class DbKvsGetRanges {
         List<Object> args = Lists.newArrayList();
         args.add(queryNum);
         if (reverse) {
-            extraWhere = " table.row_name <= ? ";
+            extraWhere = " t.row_name <= ? ";
         } else {
-            extraWhere = " table.row_name >= ? ";
+            extraWhere = " t.row_name >= ? ";
         }
         args.add(startRow);
 
         if (endRow.length > 0) {
             if (reverse) {
-                extraWhere += " AND table.row_name > ? ";
+                extraWhere += " AND t.row_name > ? ";
             } else {
-                extraWhere += " AND table.row_name < ? ";
+                extraWhere += " AND t.row_name < ? ";
             }
             args.add(endRow);
         }
@@ -308,24 +308,24 @@ public class DbKvsGetRanges {
 
     private static final String SIMPLE_ROW_SELECT_TEMPLATE =
             " /* SQL_MET_SIMPLE_ROW_SELECT_TEMPLATE (%s) */ " +
-                    " SELECT /*+ INDEX(table pk_%s) */ " +
+                    " SELECT /*+ INDEX(t pk_%s) */ " +
                     "   DISTINCT row_name, ? as batch_num " +
-                    " FROM %s table " +
+                    " FROM %s t " +
                     " WHERE %s " +
                     " ORDER BY row_name %s ";
 
     private static final String SIMPLE_ROW_SELECT_ONE_POSTGRES_TEMPLATE =
             " /* SQL_MET_SIMPLE_ROW_SELECT_ONE_TEMPLATE_PSQL (%s) */ " +
-                    " SELECT /*+ INDEX(table pk_%s) */ " +
+                    " SELECT /*+ INDEX(t pk_%s) */ " +
                     "   DISTINCT row_name, ? as batch_num " +
-                    " FROM %s table " +
+                    " FROM %s t " +
                     " WHERE %s " +
                     " ORDER BY row_name %s LIMIT 1";
 
     private static final String SIMPLE_ROW_SELECT_ONE_ORACLE_TEMPLATE =
             " /* SQL_MET_SIMPLE_ROW_SELECT_ONE_TEMPLATE_ORA (%s) */ " +
-                    " SELECT /*+ INDEX(table pk_%s) */ " +
+                    " SELECT /*+ INDEX(t pk_%s) */ " +
                     "   %s(row_name) as row_name, ? as batch_num " +
-                    " FROM %s table " +
+                    " FROM %s t " +
                     " WHERE %s";
 }
