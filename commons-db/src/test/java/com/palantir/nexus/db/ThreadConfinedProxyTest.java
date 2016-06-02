@@ -21,20 +21,16 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.Spliterator;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
-import java.util.function.Predicate;
-import java.util.function.UnaryOperator;
-import java.util.stream.Stream;
 
 import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.palantir.common.proxy.TimingProxy;
 import com.palantir.util.timer.LoggingOperationTimer;
@@ -328,16 +324,6 @@ public class ThreadConfinedProxyTest extends Assert {
         }
 
         @Override
-        public void replaceAll(UnaryOperator<String> operator) {
-            inner.replaceAll(operator);
-        }
-
-        @Override
-        public void sort(Comparator<? super String> c) {
-            inner.sort(c);
-        }
-
-        @Override
         public void clear() {
             inner.clear();
         }
@@ -397,30 +383,6 @@ public class ThreadConfinedProxyTest extends Assert {
             return inner.subList(fromIndex, toIndex);
         }
 
-        @Override
-        public Spliterator<String> spliterator() {
-            return inner.spliterator();
-        }
-
-        @Override
-        public boolean removeIf(Predicate<? super String> filter) {
-            return inner.removeIf(filter);
-        }
-
-        @Override
-        public Stream<String> stream() {
-            return inner.stream();
-        }
-
-        @Override
-        public Stream<String> parallelStream() {
-            return inner.parallelStream();
-        }
-
-        @Override
-        public void forEach(Consumer<? super String> action) {
-            inner.forEach(action);
-        }
     }
 }
 
