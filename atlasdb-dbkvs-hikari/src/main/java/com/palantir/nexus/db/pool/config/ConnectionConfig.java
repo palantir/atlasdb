@@ -168,7 +168,6 @@ public abstract class ConnectionConfig {
                 Preconditions.checkArgument(getSid().isPresent(), "Running with oracle requires specifying a site identifier (sid)");
                 break;
             case POSTGRESQL:
-                Preconditions.checkArgument(getDbName().isPresent(), "Running with postgres requires specifying a database name (dbName)");
                 break;
             case H2_MEMORY:
                 break;
