@@ -162,16 +162,6 @@ public abstract class ConnectionConfig {
         } else {
             Preconditions.checkArgument(!getTwoWaySsl(), "two way ssl cannot be enabled without enabling tcps");
         }
-
-        switch (getDbType()) {
-            case ORACLE:
-                Preconditions.checkArgument(getSid().isPresent(), "Running with oracle requires specifying a site identifier (sid)");
-                break;
-            case POSTGRESQL:
-                break;
-            case H2_MEMORY:
-                break;
-        }
     }
 
 }
