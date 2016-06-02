@@ -87,9 +87,13 @@ public abstract class ConnectionConfig {
     public ImmutableMap<DBConfigConnectionParameter, String> getConnectionParameters() {
         ImmutableMap.Builder<DBConfigConnectionParameter, String> builder =
                 ImmutableMap.<DBConfigConnectionParameter, String>builder()
-                        .put(DBConfigConnectionParameter.HOST, getHost())
-                        .put(DBConfigConnectionParameter.PORT, Integer.toString(getPort()))
                         .put(DBConfigConnectionParameter.PROTOCOL, getProtocol().getUrlString());
+        if (getHost().isPresent()) {
+            builder.put(DBConfigConnectionParameter.HOST, getHost().get());
+        }
+        if (getPort().isPresent()) {
+            builder.put(DBConfigConnectionParameter.PORT, Integer.toString(getPort().get()));
+        }
         if (getDbName().isPresent()) {
             builder.put(DBConfigConnectionParameter.DBNAME, getDbName().get());
         }
@@ -105,8 +109,10 @@ public abstract class ConnectionConfig {
     public abstract String getDbLogin();
     public abstract String getDbPassword();
     public abstract DBType getDbType();
-    public abstract String getHost();
-    public abstract int getPort();
+
+    // these are not really optional, but are made so for backwards compatibility
+    public abstract Optional<String> getHost();
+    public abstract Optional<Integer> getPort();
 
     public abstract Optional<String> getDbName();
     public abstract Optional<String> getSid();
