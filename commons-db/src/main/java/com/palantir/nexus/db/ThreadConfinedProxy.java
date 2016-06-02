@@ -77,6 +77,8 @@ public class ThreadConfinedProxy extends AbstractInvocationHandler implements De
         if (Proxy.isProxyClass(proxy.getClass())) {
             InvocationHandler handler = Proxy.getInvocationHandler(proxy);
             changeHandlerThread(handler, oldThread, newThread);
+        } else if (proxy instanceof Delegator) {
+            changeThread(((Delegator) proxy).getDelegate(), oldThread, newThread);
         }
     }
 
