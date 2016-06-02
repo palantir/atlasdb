@@ -35,7 +35,7 @@ The following useful commands come with the vanilla atlasdb-cli.
 sweep
 -----
 
-Sweep old table rows. This can be useful for improving performance if too many dead cells is impacting read times.  The command allows you to specify a namespace or a specific set of tables. Run ``./bin/atlasdb help sweep`` for more information.
+Sweep old table rows. This can be useful for improving performance if having too many dead cells is impacting read times.  The command allows you to specify a namespace or a specific set of tables. Run ``./bin/atlasdb help sweep`` for more information.
 
 
 timestamp
