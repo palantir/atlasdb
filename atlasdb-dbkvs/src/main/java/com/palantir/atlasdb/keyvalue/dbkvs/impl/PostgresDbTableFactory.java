@@ -20,7 +20,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import com.palantir.atlasdb.keyvalue.dbkvs.DbSharedConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.PostgresKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresDdlTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresQueryFactory;
