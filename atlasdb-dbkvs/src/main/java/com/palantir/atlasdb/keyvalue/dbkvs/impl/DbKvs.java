@@ -36,6 +36,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
+import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
@@ -65,11 +66,19 @@ import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.base.Visitors;
 import com.palantir.exception.PalantirSqlException;
+import com.palantir.nexus.db.monitoring.timer.SqlTimer;
+import com.palantir.nexus.db.monitoring.timer.SqlTimers;
+import com.palantir.nexus.db.pool.HikariCPConnectionManager;
+import com.palantir.nexus.db.pool.ReentrantManagedConnectionSupplier;
 import com.palantir.nexus.db.sql.AgnosticLightResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
+import com.palantir.nexus.db.sql.SQL;
 import com.palantir.nexus.db.sql.SqlConnection;
+import com.palantir.nexus.db.sql.SqlConnectionHelper;
+import com.palantir.nexus.db.sql.SqlConnectionImpl;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -81,16 +90,69 @@ public class DbKvs extends AbstractKeyValueService {
     private final SqlConnectionSupplier connections;
 
     public static DbKvs create(DbKeyValueServiceConfig config) {
-        return new DbKvs(config, config.tableFactorySupplier().get(), config.sqlConnectionSupplier());
+        Preconditions.checkArgument(config.connection().isPresent(),
+                "Connection configuration is not present. You must have a connection block in your atlas config.");
+        HikariCPConnectionManager connManager = new HikariCPConnectionManager(config.connection().get(), Visitors.emptyVisitor());
+        ReentrantManagedConnectionSupplier connSupplier = new ReentrantManagedConnectionSupplier(connManager);
+        SqlConnectionSupplier sqlConnSupplier = getSimpleTimedSqlConnectionSupplier(connSupplier);
+
+        return new DbKvs(config, config.tableFactorySupplier().get(), sqlConnSupplier);
     }
 
-    private DbKvs(DbKeyValueServiceConfig config,
+    private static SqlConnectionSupplier getSimpleTimedSqlConnectionSupplier(ReentrantManagedConnectionSupplier connectionSupplier) {
+        Supplier<Connection> supplier = () -> connectionSupplier.get();
+        SQL sql = new SQL() {
+            @Override
+            protected SqlConfig getSqlConfig() {
+                return new SqlConfig() {
+                    @Override
+                    public boolean isSqlCancellationDisabled() {
+                        return false;
+                    }
+
+                    protected Iterable<SqlTimer> getSqlTimers() {
+                        return ImmutableList.of(
+                                SqlTimers.createDurationSqlTimer(),
+                                SqlTimers.createSqlStatsSqlTimer());
+                    }
+
+                    @Override
+                    final public SqlTimer getSqlTimer() {
+                        return SqlTimers.createCombinedSqlTimer(getSqlTimers());
+                    }
+                };
+            }
+        };
+
+        return new SqlConnectionSupplier() {
+            @Override
+            public SqlConnection get() {
+                return new SqlConnectionImpl(supplier, new SqlConnectionHelper(sql));
+            }
+
+            @Override
+            public void close() {
+                connectionSupplier.close();
+            }
+        };
+    }
+
+    /**
+     * Constructor for a SQL (either Postgres or Oracle) backed key value store.  Exposed as public
+     * for use by a legacy internal product that needs to supply it's own connection supplier.
+     * Use {@link #create(DbKeyValueServiceConfig)} instead.
+     */
+    public DbKvs(DbKeyValueServiceConfig config,
                  DbTableFactory dbTables,
                  SqlConnectionSupplier connections) {
         super(AbstractKeyValueService.createFixedThreadPool("Atlas Relational KVS", config.shared().poolSize()));
         this.config = config;
         this.dbTables = dbTables;
         this.connections = connections;
+    }
+
+    public DbKeyValueServiceConfig getConfig() {
+        return config;
     }
 
     @Override

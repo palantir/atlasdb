@@ -13,11 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.nexus.db.pool;
+package com.palantir.nexus.db;
 
-public interface KeystoreManager {
-
-    String getKeystorePath();
-    String getKeystorePassword();
-
+/**
+ * Declares that this interface wraps and delegates to another object of type T.
+ * Similar in concept to {@link com.palantir.common.proxy.DelegatingInvocationHandler}.
+ * Useful when delegates occasionally need to be unwrapped.
+ */
+public interface Delegator<T> {
+    T getDelegate();
 }

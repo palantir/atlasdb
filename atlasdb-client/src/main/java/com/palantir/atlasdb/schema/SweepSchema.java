@@ -61,6 +61,7 @@ public enum SweepSchema implements AtlasSchema {
                 // The number of cells examined so far.
                 column("cells_examined", "e", ValueType.VAR_LONG);
             conflictHandler(ConflictHandler.IGNORE_ALL);
+            ignoreHotspottingChecks();
         }});
 
         // This table tracks stats about tables that are relevant

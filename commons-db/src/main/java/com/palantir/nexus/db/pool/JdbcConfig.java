@@ -23,15 +23,23 @@ import com.palantir.nexus.db.manager.DBConfig;
 public class JdbcConfig {
 
     public static Properties getPropertiesFromDbConfig(DBConfig dbConfig) {
+        return getPropertiesFromDbConfig(
+                dbConfig.getDbLogin(),
+                dbConfig.getDbDecryptedPassword(),
+                dbConfig.getSocketTimeoutSeconds(),
+                dbConfig.getConnectTimeoutSeconds());
+    }
+
+    public static Properties getPropertiesFromDbConfig(String dbLogin,
+                                                       String dbDecryptedPassword,
+                                                       Integer socketTimeout,
+                                                       Integer connectTimeout) {
         Properties properties = new Properties();
 
-        properties.setProperty("user", dbConfig.getDbLogin());
-        if (dbConfig.getDbDecryptedPassword() != null) {
-            properties.setProperty("password", dbConfig.getDbDecryptedPassword());
+        properties.setProperty("user", dbLogin);
+        if (dbDecryptedPassword != null) {
+            properties.setProperty("password", dbDecryptedPassword);
         }
-
-        Integer socketTimeout = dbConfig.getSocketTimeoutSeconds();
-        Integer connectTimeout = dbConfig.getConnectTimeoutSeconds();
 
         if (socketTimeout != null) {
             /* Oracle */

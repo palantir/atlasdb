@@ -488,7 +488,38 @@ public final class SqlConnectionHelper {
             }
             Iterable<Object[]> args = idsToArguments(tempIds);
             String sqlInsert = TextUtils.format(SQL_INSERT_INTO_PT_TEMP_IDS, tableName);
-            insertManyUnregisteredQuery(c, sqlInsert, args); // dynamic query
+            try {
+                insertManyUnregisteredQuery(c, sqlInsert, args); // dynamic query
+            } catch (PalantirSqlException e) {
+                assert checkRepeatedInsert(e, c, tableName, tempIds);
+                throw e;
+            }
+        }
+    }
+
+    /**
+     * Check if the temp table has this exact set of tempIds already, for debugging purposes.
+     * This should be behind an assert so it does not run in production.
+     */
+    private boolean checkRepeatedInsert(PalantirSqlException e, Connection c, String tableName, Iterable<Long> tempIds) {
+        AgnosticResultSet results = selectResultSetUnregisteredQuery(c, "SELECT id FROM " + tableName);
+        Set<Long> attempt = Sets.newHashSet(tempIds);
+        Set<Long> current = Sets.newHashSet();
+        for (AgnosticResultRow row: results.rows()) {
+            current.add(row.getLong("id"));
+        }
+        if (attempt.equals(current)) {
+            String message = String.format("Tried to insert %s temp IDs into table %s, but that exact set of temp IDs was already there",
+                    attempt.size(), tableName);
+            throw new RuntimeException(message, e);
+        } else {
+            Set<Long> onlyInAttempt = Sets.difference(attempt, current);
+            Set<Long> onlyInCurrent = Sets.difference(current, attempt);
+            String message = String.format(
+                    "Tried to insert %s temp IDs into table %s, but %s temp IDs were already there.  %s were only in our attempt, while " +
+                            "%s were only in the set already present.",
+                    attempt.size(), tableName, current.size(), onlyInAttempt.size(), onlyInCurrent.size());
+            throw new RuntimeException(message, e);
         }
     }
 

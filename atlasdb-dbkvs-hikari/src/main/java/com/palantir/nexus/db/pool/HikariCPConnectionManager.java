@@ -41,9 +41,10 @@ import com.codahale.metrics.SharedMetricRegistries;
 import com.google.common.base.Preconditions;
 import com.palantir.common.visitor.Visitor;
 import com.palantir.nexus.db.DBType;
-import com.palantir.nexus.db.manager.DBConfig;
-import com.palantir.nexus.db.manager.DBConfigConnectionParameter;
 import com.palantir.nexus.db.manager.DatabaseConstants;
+import com.palantir.nexus.db.pool.config.ConnectionConfig;
+import com.palantir.nexus.db.pool.config.ConnectionProtocol;
+import com.palantir.nexus.db.pool.config.ImmutableConnectionConfig;
 import com.palantir.nexus.db.sql.ExceptionCheck;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
@@ -56,15 +57,14 @@ import com.zaxxer.hikari.util.DriverDataSource;
  *
  * @author dstipp
  */
-class HikariCPConnectionManager extends BaseConnectionManager {
+public class HikariCPConnectionManager extends BaseConnectionManager {
     private static final Logger log = LoggerFactory.getLogger(HikariCPConnectionManager.class);
 
     // TODO: Make this delay configurable?
     private static final long COOLDOWN_MILLISECONDS = 30000;
 
-    private final DBConfig dbConfig;
+    private ConnectionConfig connConfig;
     private final Visitor<Connection> onAcquireVisitor;
-    private final KeystoreManager keystoreManager;
 
     private enum StateType {
         // Base state at construction.  Nothing is set.
@@ -98,12 +98,9 @@ class HikariCPConnectionManager extends BaseConnectionManager {
 
     private volatile State state = new State(StateType.ZERO, 0, null, null, null);
 
-    public HikariCPConnectionManager(DBConfig dbConfig,
-                                     Visitor<Connection> onAcquireVisitor,
-                                     KeystoreManager keystoreManager) {
-        this.dbConfig = Preconditions.checkNotNull(dbConfig);
+    public HikariCPConnectionManager(ConnectionConfig connConfig, Visitor<Connection> onAcquireVisitor) {
+        this.connConfig = Preconditions.checkNotNull(connConfig);
         this.onAcquireVisitor = onAcquireVisitor;
-        this.keystoreManager = keystoreManager;
     }
 
     @Override
@@ -223,8 +220,8 @@ class HikariCPConnectionManager extends BaseConnectionManager {
 
     private void logConnectionFailure() {
         log.error("Failed to get connection from the datasource "
-                + "db-pool-" + dbConfig.getConnId() + "-" + dbConfig.getDbLogin()
-                + ". Please check the jdbc url (" + (dbConfig.getUrl()) + ")"
+                + "db-pool-" + connConfig.getConnId() + "-" + connConfig.getDbLogin()
+                + ". Please check the jdbc url (" + (connConfig.getUrl()) + ")"
                 + ", the password, and that the secure server key is correct for the hashed password.");
     }
 
@@ -253,7 +250,7 @@ class HikariCPConnectionManager extends BaseConnectionManager {
         boolean isValid = false;
         Statement stmt = conn.createStatement();
         try {
-            ResultSet rs = stmt.executeQuery(dbConfig.getType().getTestQuery());
+            ResultSet rs = stmt.executeQuery(connConfig.getDbType().getTestQuery());
             isValid = rs.next();
             rs.close();
         } finally {
@@ -275,7 +272,7 @@ class HikariCPConnectionManager extends BaseConnectionManager {
                     if (log.isDebugEnabled()) {
                         log.debug(
                                 "Closing connection pool: {}",
-                                dbConfig,
+                                connConfig,
                                 new RuntimeException("Closing connection pool"));
                     }
 
@@ -301,43 +298,47 @@ class HikariCPConnectionManager extends BaseConnectionManager {
     }
 
     private State initialState() throws SQLException {
-        if (dbConfig.getType() == null) {
+        if (connConfig.getDbType() == null) {
             throw new DBMgrConfigurationException(
                     "Missing required configuration parameter specifying database type.");
-        } else if (dbConfig.getDbLogin() == null) {
+        } else if (connConfig.getDbLogin() == null) {
             throw new DBMgrConfigurationException(
                     "Missing required configuration parameter specifying database login.");
         }
 
         // Print a stack trace whenever we initialize a pool
-        log.info("Initializing connection pool: {}", dbConfig, new RuntimeException("Initializing connection pool"));
+        log.info("Initializing connection pool: {}", connConfig, new RuntimeException("Initializing connection pool"));
 
         // Initialize the Hikari configuration
         HikariConfig config = new HikariConfig();
 
         // additional connection properties will go in here
-        Properties props = JdbcConfig.getPropertiesFromDbConfig(dbConfig);
+        Properties props = JdbcConfig.getPropertiesFromDbConfig(
+                connConfig.getDbLogin(),
+                connConfig.getDbPassword(),
+                connConfig.getSocketTimeoutSeconds(),
+                connConfig.getConnectionTimeoutSeconds());
 
         /*
          * This /has/ to be done before initDataSource(Properties) as it updates the JDBC URL.
          */
         initPoolSsl(props);
 
-        config.setPoolName("db-pool-" + dbConfig.getConnId() + "-" + dbConfig.getDbLogin());
+        config.setPoolName("db-pool-" + connConfig.getConnId() + "-" + connConfig.getDbLogin());
         config.setRegisterMbeans(true);
         config.setMetricRegistry(SharedMetricRegistries.getOrCreate("com.palantir.metrics"));
 
-        config.setMinimumIdle(dbConfig.getMinConnections());
-        config.setMaximumPoolSize(dbConfig.getMaxConnections());
+        config.setMinimumIdle(connConfig.getMinConnections());
+        config.setMaximumPoolSize(connConfig.getMaxConnections());
 
-        config.setMaxLifetime(TimeUnit.SECONDS.toMillis(dbConfig.getMaxConnectionAge()));
-        config.setIdleTimeout(TimeUnit.SECONDS.toMillis(dbConfig.getMaxIdleTime()));
-        config.setLeakDetectionThreshold(dbConfig.getUnreturnedConnectionTimeout());
-        config.setConnectionTimeout(dbConfig.getCheckoutTimeout());
+        config.setMaxLifetime(TimeUnit.SECONDS.toMillis(connConfig.getMaxConnectionAge()));
+        config.setIdleTimeout(TimeUnit.SECONDS.toMillis(connConfig.getMaxIdleTime()));
+        config.setLeakDetectionThreshold(connConfig.getUnreturnedConnectionTimeout());
+        config.setConnectionTimeout(connConfig.getCheckoutTimeout());
 
         // Set light-weight test query to run on connections checked out from pool.
         // TODO: See if driver supports JDBC4 (isValid()) and use it.
-        config.setConnectionTestQuery(dbConfig.getType().getTestQuery());
+        config.setConnectionTestQuery(connConfig.getDbType().getTestQuery());
 
         initPoolProperties(config, props);
 
@@ -347,7 +348,7 @@ class HikariCPConnectionManager extends BaseConnectionManager {
         try {
             dataSourcePool = new HikariDataSource(config);
         } catch (PoolInitializationException e) {
-            log.error("Failed to initialize hikari data source: {}", dbConfig.getUrl(), e);
+            log.error("Failed to initialize hikari data source: {}", connConfig.getUrl(), e);
 
             if (ExceptionCheck.isTimezoneInvalid(e)) {
                 String tzname = TimeZone.getDefault().getID();
@@ -417,7 +418,7 @@ class HikariCPConnectionManager extends BaseConnectionManager {
          *  Nigel Tufnel: [pause] These go to eleven.
          */
 
-        int normalSize = dbConfig.getMaxConnections();
+        int normalSize = connConfig.getMaxConnections();
         int elevatedSize = normalSize + 11;
         log.info("Elevating connection pool: {} -> {}", normalSize, elevatedSize);
         dataSourcePool.setMaximumPoolSize(elevatedSize);
@@ -429,7 +430,7 @@ class HikariCPConnectionManager extends BaseConnectionManager {
         HikariDataSource dataSourcePool = oldState.dataSourcePool;
         HikariPoolMXBean poolProxy = oldState.poolProxy;
 
-        int normalSize = dbConfig.getMaxConnections();
+        int normalSize = connConfig.getMaxConnections();
         log.info("De-elevating connection pool: {}", normalSize);
         dataSourcePool.setMaximumPoolSize(normalSize);
 
@@ -445,7 +446,7 @@ class HikariCPConnectionManager extends BaseConnectionManager {
      * @param props
      */
     private void initPoolSsl(Properties props) {
-        if (dbConfig.getType() == DBType.ORACLE) {
+        if (connConfig.getDbType() == DBType.ORACLE) {
             try {
                 initPoolSslOracle(props);
             } catch (Exception e) {
@@ -490,7 +491,7 @@ class HikariCPConnectionManager extends BaseConnectionManager {
 
         ObjectName poolName = null;
         try {
-            poolName = new ObjectName("com.zaxxer.hikari:type=Pool (" + "db-pool-" + dbConfig.getConnId() + "-" + dbConfig.getDbLogin() + ")");
+            poolName = new ObjectName("com.zaxxer.hikari:type=Pool (" + "db-pool-" + connConfig.getConnId() + "-" + connConfig.getDbLogin() + ")");
         } catch (MalformedObjectNameException e) {
             log.error("Unable to setup mBean monitoring for pool.", e);
         }
@@ -507,13 +508,13 @@ class HikariCPConnectionManager extends BaseConnectionManager {
         DataSource dataSourceRaw;
         DataSource dataSourceWrapped;
 
-        final String url = dbConfig.getUrl();
+        final String url = connConfig.getUrl();
         config.setJdbcUrl(url);
 
         log.info("DBConnection url is: {}", url);
 
         try {
-            dataSourceRaw = new DriverDataSource(dbConfig.getUrl(), dbConfig.getDriverClass(), props, null, null);
+            dataSourceRaw = new DriverDataSource(connConfig.getUrl(), connConfig.getDriverClass(), props, null, null);
 
             dataSourceWrapped = InterceptorDataSource.wrapInterceptor(new InterceptorDataSource(dataSourceRaw) {
                 @Override
@@ -526,7 +527,7 @@ class HikariCPConnectionManager extends BaseConnectionManager {
         } catch (Exception e) {
             throw new DBMgrConfigurationException(
                     "The connection pool was unable to wrap the jdbc driver, "
-                            + dbConfig.getDriverClass(),
+                            + connConfig.getDriverClass(),
                     e);
         }
 
@@ -545,12 +546,13 @@ class HikariCPConnectionManager extends BaseConnectionManager {
         /*
          * If the protocol has been set to "tcps," setup a trust store.
          */
-        String sProtocol = dbConfig.getConnectionParameter(DBConfigConnectionParameter.PROTOCOL);
+        ConnectionProtocol sProtocol = connConfig.getProtocol();
         log.info("DB Protocol is set to " + sProtocol);
 
-        if (sProtocol != null && sProtocol.equalsIgnoreCase("tcps")) {
+        if (sProtocol == ConnectionProtocol.TCPS) {
             // Create the truststore
-            File clientTrustore = new File("./security/Client_Truststore");
+            Preconditions.checkArgument(connConfig.getTruststorePath().isPresent());
+            File clientTrustore = new File(connConfig.getTruststorePath().get());
 
             if (clientTrustore.exists()) {
                 props.setProperty("javax.net.ssl.trustStore", clientTrustore.getAbsolutePath());
@@ -560,44 +562,43 @@ class HikariCPConnectionManager extends BaseConnectionManager {
             }
 
             // server_dn_matching
-            String sMatchServerDN = dbConfig.getConnectionParameter(DBConfigConnectionParameter.MATCH_SERVER_DN);
-            if (sMatchServerDN != null && sMatchServerDN.length() > 0) {
+            if (connConfig.getMatchServerDn().isPresent()) {
+                String sMatchServerDN = connConfig.getMatchServerDn().get();
                 props.setProperty("oracle.net.ssl_server_dn_match", "true");
                 log.info("Will require the server certificate DB to match: " + sMatchServerDN);
 
                 // modify the config to have a URL suffix
-                dbConfig.setUrlSuffix(DatabaseConstants.DB_ORACLE_SECURITY_SUFFIX);
+                connConfig = ImmutableConnectionConfig.builder().from(connConfig)
+                        .urlSuffix(DatabaseConstants.DB_ORACLE_SECURITY_SUFFIX)
+                        .build();
             } else {
                 // set the closer if we don't have a dn to match
-                dbConfig.setUrlSuffix(DatabaseConstants.DB_ORACLE_NO_SECURITY_SUFFIX);
+                connConfig = ImmutableConnectionConfig.builder().from(connConfig)
+                        .urlSuffix(DatabaseConstants.DB_ORACLE_NO_SECURITY_SUFFIX)
+                        .build();
             }
 
             /*
              * Enable client SSL certificate support. "two-way" SSL in Oracle parlance.
              */
-            if (dbConfig.getTwoWaySsl()) {
-                props.setProperty("javax.net.ssl.keyStore", keystoreManager.getKeystorePath());
-                props.setProperty("javax.net.ssl.keyStorePassword", keystoreManager.getKeystorePassword());
+            if (connConfig.getTwoWaySsl()) {
+                Preconditions.checkArgument(connConfig.getKeystorePath().isPresent());
+                Preconditions.checkArgument(connConfig.getKeystorePassword().isPresent());
+                props.setProperty("javax.net.ssl.keyStore", connConfig.getKeystorePath().get());
+                props.setProperty("javax.net.ssl.keyStorePassword", connConfig.getKeystorePassword().get());
             }
         } else {
             /*
              * Set no security suffix if security isn't enabled.
              */
-            dbConfig.setUrlSuffix(DatabaseConstants.DB_ORACLE_NO_SECURITY_SUFFIX);
-
-            /*
-             * Ensure a PROTOCOL is set.  Default to "tcp" if none is set.
-             */
-            if (sProtocol == null) {
-                dbConfig.addConnectionParameter(
-                        DBConfigConnectionParameter.PROTOCOL,
-                        DatabaseConstants.DEFAULT_DB_CONNECTION_PARAM_PROTOCOL);
-            }
+            connConfig = ImmutableConnectionConfig.builder().from(connConfig)
+                    .urlSuffix(DatabaseConstants.DB_ORACLE_NO_SECURITY_SUFFIX)
+                    .build();
         }
     }
 
     @Override
     public DBType getDbType() {
-        return dbConfig.getType();
+        return connConfig.getDbType();
     }
 }

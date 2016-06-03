@@ -17,10 +17,11 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import org.immutables.value.Value;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbTableFactory;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.SqlConnectionSupplier;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.nexus.db.pool.config.ConnectionConfig;
 
 public abstract class DbKeyValueServiceConfig implements KeyValueServiceConfig {
 
@@ -29,9 +30,11 @@ public abstract class DbKeyValueServiceConfig implements KeyValueServiceConfig {
         return ImmutableDbSharedConfig.builder().build();
     }
 
+    // must be set if you want to call DbKvs.create()
+    // otherwise you must instantiate DbKvs by calling the constructor directly
+    public abstract Optional<ConnectionConfig> connection();
+
     @Value.Derived
     public abstract Supplier<DbTableFactory> tableFactorySupplier();
-
-    public abstract SqlConnectionSupplier sqlConnectionSupplier();
 
 }
