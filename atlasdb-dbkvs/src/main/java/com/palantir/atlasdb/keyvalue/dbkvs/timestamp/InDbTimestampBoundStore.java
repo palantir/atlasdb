@@ -29,6 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.common.base.Throwables;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.DBType;
@@ -146,7 +147,7 @@ public final class InDbTimestampBoundStore implements TimestampBoundStore {
     }
 
     private Long readLimit(Connection c) throws SQLException {
-        String sql = "SELECT last_allocated FROM _ts FOR UPDATE";
+        String sql = "SELECT last_allocated FROM " + AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName() + " FOR UPDATE";
         QueryRunner run = new QueryRunner();
         return run.query(c, sql, new ResultSetHandler<Long>() {
             @Override
@@ -162,7 +163,7 @@ public final class InDbTimestampBoundStore implements TimestampBoundStore {
 
     private void writeLimit(Connection c, long limit) throws SQLException {
         QueryRunner run = new QueryRunner();
-        String updateTs = "UPDATE _ts SET last_allocated = ?";
+        String updateTs = "UPDATE " + AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName() + " SET last_allocated = ?";
         PreparedStatement statement = c.prepareStatement(updateTs);
         statement.setLong(1, limit);
         statement.executeUpdate();
@@ -171,7 +172,7 @@ public final class InDbTimestampBoundStore implements TimestampBoundStore {
 
     private void createLimit(Connection c, long limit) throws SQLException {
         QueryRunner run = new QueryRunner();
-        run.update(c, "INSERT INTO _ts (last_allocated) VALUES (?)", limit);
+        run.update(c, "INSERT INTO " + AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName() + " (last_allocated) VALUES (?)", limit);
     }
 
     private DBType getDbType(Connection c) {
