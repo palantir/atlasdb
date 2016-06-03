@@ -19,11 +19,18 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 @JsonDeserialize(as = ImmutableDbSharedConfig.class)
 @JsonSerialize(as = ImmutableDbSharedConfig.class)
 @Value.Immutable
 public abstract class DbSharedConfig {
+
+    @Value.Default
+    public TableReference metadataTable() {
+        return AtlasDbConstants.METADATA_TABLE;
+    }
 
     @Value.Default
     public String tablePrefix() {

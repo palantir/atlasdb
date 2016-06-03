@@ -21,7 +21,6 @@ import java.util.concurrent.ExecutionException;
 import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleDdlTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleOverflowQueryFactory;
@@ -85,7 +84,7 @@ public class OracleDbTableFactory implements DbTableFactory {
                 @Override
                 public TableSize call() {
                     AgnosticResultSet results = conns.get().selectResultSetUnregisteredQuery(
-                            "SELECT table_size FROM " + AtlasDbConstants.METADATA_TABLE.getQualifiedName() + " WHERE table_name = ?",
+                            "SELECT table_size FROM " + config.shared().metadataTable().getQualifiedName() + " WHERE table_name = ?",
                             tableName);
                     Preconditions.checkArgument(
                             !results.rows().isEmpty(),

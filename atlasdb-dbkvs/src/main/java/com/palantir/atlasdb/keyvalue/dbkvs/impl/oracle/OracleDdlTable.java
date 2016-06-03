@@ -18,7 +18,6 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
@@ -47,7 +46,7 @@ public class OracleDdlTable implements DbDdlTable {
     @Override
     public void create(byte[] tableMetadata) {
         if (conns.get().selectExistsUnregisteredQuery(
-                "SELECT 1 FROM " + AtlasDbConstants.METADATA_TABLE.getQualifiedName() + " WHERE table_name = ?",
+                "SELECT 1 FROM " + config.shared().metadataTable().getQualifiedName() + " WHERE table_name = ?",
                 tableName)) {
             return;
         }
@@ -78,7 +77,7 @@ public class OracleDdlTable implements DbDdlTable {
                     "ORA-00955");
         }
         conns.get().insertOneUnregisteredQuery(
-                "INSERT INTO " + AtlasDbConstants.METADATA_TABLE.getQualifiedName() + " (table_name, table_size) VALUES (?, ?)",
+                "INSERT INTO " + config.shared().metadataTable().getQualifiedName() + " (table_name, table_size) VALUES (?, ?)",
                 tableName,
                 (needsOverflow ? TableSize.OVERFLOW.getId() : TableSize.RAW.getId()));
     }
@@ -88,7 +87,7 @@ public class OracleDdlTable implements DbDdlTable {
         executeIgnoringError("DROP TABLE " + prefixedTableName() + " PURGE", "ORA-00942");
         executeIgnoringError("DROP TABLE " + prefixedOverflowTableName() + " PURGE", "ORA-00942");
         conns.get().executeUnregisteredQuery(
-                "DELETE FROM " + AtlasDbConstants.METADATA_TABLE.getQualifiedName() + " WHERE table_name = ?", tableName);
+                "DELETE FROM " + config.shared().metadataTable().getQualifiedName() + " WHERE table_name = ?", tableName);
     }
 
     @Override
