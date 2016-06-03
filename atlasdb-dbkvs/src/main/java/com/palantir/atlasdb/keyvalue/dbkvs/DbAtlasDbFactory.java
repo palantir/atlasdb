@@ -21,8 +21,6 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
-import com.palantir.common.base.Visitors;
-import com.palantir.nexus.db.pool.HikariCPConnectionManager;
 import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.TimestampService;
 
@@ -45,12 +43,6 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
         DbKvs dbkvs = (DbKvs) rawKvs;
         Preconditions.checkArgument(dbkvs.getConfig().connection().isPresent(),
                 "Connection configuration is not present. You must have a connection block in your atlas config.");
-        return PersistentTimestampService.create(
-                new InDbTimestampBoundStore(
-                        new HikariCPConnectionManager(
-                                dbkvs.getConfig().connection().get(),
-                                Visitors.emptyVisitor())
-                )
-        );
+        return PersistentTimestampService.create(InDbTimestampBoundStore.create(dbkvs.getConfig().connection().get()));
     }
 }
