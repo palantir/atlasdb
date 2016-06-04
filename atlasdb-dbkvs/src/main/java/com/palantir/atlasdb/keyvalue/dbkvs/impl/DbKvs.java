@@ -666,7 +666,7 @@ public class DbKvs extends AbstractKeyValueService {
             @Override
             public Set<TableReference> apply(SqlConnection conn) {
                 AgnosticResultSet results = conn.selectResultSetUnregisteredQuery(
-                        "SELECT table_name FROM pt_metropolis_table_meta");
+                        "SELECT table_name FROM " + config.shared().metadataTable().getQualifiedName());
                 Set<TableReference> ret = Sets.newHashSetWithExpectedSize(results.size());
                 for (AgnosticResultRow row : results.rows()) {
                     ret.add(TableReference.createUnsafe(row.getString("table_name")));
@@ -704,7 +704,7 @@ public class DbKvs extends AbstractKeyValueService {
             @SuppressWarnings("deprecation")
             public Map<TableReference, byte[]> apply(SqlConnection conn) {
                 AgnosticResultSet results = conn.selectResultSetUnregisteredQuery(
-                        "SELECT table_name, value FROM pt_metropolis_table_meta");
+                        "SELECT table_name, value FROM " + config.shared().metadataTable().getQualifiedName());
                 Map<TableReference, byte[]> ret = Maps.newHashMapWithExpectedSize(results.size());
                 for (AgnosticResultRow row : results.rows()) {
                     ret.put(TableReference.createUnsafe(row.getString("table_name")), row.getBytes("value"));

@@ -20,7 +20,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import com.palantir.atlasdb.keyvalue.dbkvs.DbSharedConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.PostgresKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresDdlTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresQueryFactory;
 import com.palantir.common.concurrent.NamedThreadFactory;
@@ -29,12 +29,12 @@ import com.palantir.nexus.db.DBType;
 
 public class PostgresDbTableFactory implements DbTableFactory {
 
-    private final DbSharedConfig config;
+    private final PostgresKeyValueServiceConfig config;
     private final ExecutorService exec;
 
-    public PostgresDbTableFactory(DbSharedConfig config) {
+    public PostgresDbTableFactory(PostgresKeyValueServiceConfig config) {
         this.config = config;
-        int poolSize = config.poolSize();
+        int poolSize = config.shared().poolSize();
         this.exec = newFixedThreadPool(poolSize);
     }
 
@@ -50,22 +50,22 @@ public class PostgresDbTableFactory implements DbTableFactory {
 
     @Override
     public DbMetadataTable createMetadata(String tableName, ConnectionSupplier conns) {
-        return new SimpleDbMetadataTable(tableName, conns);
+        return new SimpleDbMetadataTable(tableName, conns, config);
     }
 
     @Override
     public DbDdlTable createDdl(String tableName, ConnectionSupplier conns) {
-        return new PostgresDdlTable(tableName, conns);
+        return new PostgresDdlTable(tableName, conns, config);
     }
 
     @Override
     public DbReadTable createRead(String tableName, ConnectionSupplier conns) {
-        return new BatchedDbReadTable(conns, new PostgresQueryFactory(tableName), exec, config);
+        return new BatchedDbReadTable(conns, new PostgresQueryFactory(tableName, config), exec, config.shared());
     }
 
     @Override
     public DbWriteTable createWrite(String tableName, ConnectionSupplier conns) {
-        return new SimpleDbWriteTable(tableName, conns);
+        return new SimpleDbWriteTable(tableName, conns, config);
     }
 
     @Override

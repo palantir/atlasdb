@@ -29,13 +29,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.base.Visitors;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.pool.ConnectionManager;
+import com.palantir.nexus.db.pool.HikariCPConnectionManager;
 import com.palantir.nexus.db.pool.RetriableTransactions;
 import com.palantir.nexus.db.pool.RetriableTransactions.TransactionResult;
 import com.palantir.nexus.db.pool.RetriableWriteTransaction;
+import com.palantir.nexus.db.pool.config.ConnectionConfig;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
 
@@ -45,6 +50,7 @@ public final class InDbTimestampBoundStore implements TimestampBoundStore {
     private static final Logger log = LoggerFactory.getLogger(InDbTimestampBoundStore.class);
 
     private final ConnectionManager connManager;
+    private final TableReference timestampTable;
 
     @GuardedBy("this") // lazy init to avoid db connections in constructors
     private DBType dbType;
@@ -52,8 +58,15 @@ public final class InDbTimestampBoundStore implements TimestampBoundStore {
     @GuardedBy("this")
     private Long currentLimit = null;
 
-    public InDbTimestampBoundStore(ConnectionManager connManager) {
+    public static InDbTimestampBoundStore create(ConnectionConfig connConfig) {
+        return new InDbTimestampBoundStore(
+                new HikariCPConnectionManager(connConfig, Visitors.emptyVisitor()),
+                AtlasDbConstants.TIMESTAMP_TABLE);
+    }
+
+    public InDbTimestampBoundStore(ConnectionManager connManager, TableReference timestampTable) {
         this.connManager = Preconditions.checkNotNull(connManager);
+        this.timestampTable = Preconditions.checkNotNull(timestampTable);
     }
 
     private interface Operation {
@@ -146,7 +159,7 @@ public final class InDbTimestampBoundStore implements TimestampBoundStore {
     }
 
     private Long readLimit(Connection c) throws SQLException {
-        String sql = "SELECT last_allocated FROM pt_metropolis_ts FOR UPDATE";
+        String sql = "SELECT last_allocated FROM " + timestampTable.getQualifiedName() + " FOR UPDATE";
         QueryRunner run = new QueryRunner();
         return run.query(c, sql, new ResultSetHandler<Long>() {
             @Override
@@ -162,7 +175,7 @@ public final class InDbTimestampBoundStore implements TimestampBoundStore {
 
     private void writeLimit(Connection c, long limit) throws SQLException {
         QueryRunner run = new QueryRunner();
-        String updateTs = "UPDATE pt_metropolis_ts SET last_allocated = ?";
+        String updateTs = "UPDATE " + timestampTable.getQualifiedName() + " SET last_allocated = ?";
         PreparedStatement statement = c.prepareStatement(updateTs);
         statement.setLong(1, limit);
         statement.executeUpdate();
@@ -171,7 +184,7 @@ public final class InDbTimestampBoundStore implements TimestampBoundStore {
 
     private void createLimit(Connection c, long limit) throws SQLException {
         QueryRunner run = new QueryRunner();
-        run.update(c, "INSERT INTO pt_metropolis_ts (last_allocated) VALUES (?)", limit);
+        run.update(c, "INSERT INTO " + timestampTable.getQualifiedName() + " (last_allocated) VALUES (?)", limit);
     }
 
     private DBType getDbType(Connection c) {

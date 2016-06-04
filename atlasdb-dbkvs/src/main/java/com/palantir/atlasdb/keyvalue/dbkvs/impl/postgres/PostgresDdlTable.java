@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.palantir.atlasdb.keyvalue.dbkvs.PostgresKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbDdlTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableSize;
@@ -29,45 +30,48 @@ public class PostgresDdlTable implements DbDdlTable {
     private static final Logger log = LoggerFactory.getLogger(PostgresDdlTable.class);
     private final String tableName;
     private final ConnectionSupplier conns;
+    private final PostgresKeyValueServiceConfig config;
 
     public PostgresDdlTable(String tableName,
-                            ConnectionSupplier conns) {
+                            ConnectionSupplier conns,
+                            PostgresKeyValueServiceConfig config) {
         this.tableName = tableName;
         this.conns = conns;
+        this.config = config;
     }
 
     @Override
     public void create(byte[] tableMetadata) {
         if (conns.get().selectExistsUnregisteredQuery(
-                "SELECT 1 FROM pt_metropolis_table_meta WHERE table_name = ?",
+                "SELECT 1 FROM " + config.shared().metadataTable().getQualifiedName() + " WHERE table_name = ?",
                 tableName)) {
             return;
         }
         executeIgnoringError(
-                "CREATE TABLE pt_met_" + tableName + " (" +
+                "CREATE TABLE " + prefixedTableName() + " (" +
                 "  row_name   BYTEA NOT NULL," +
                 "  col_name   BYTEA NOT NULL," +
                 "  ts         INT8 NOT NULL," +
                 "  val        BYTEA," +
-                "  CONSTRAINT pk_pt_met_" + tableName + " PRIMARY KEY (row_name, col_name, ts) " +
+                "  CONSTRAINT pk_" + prefixedTableName() + " PRIMARY KEY (row_name, col_name, ts) " +
                 ")",
                 "already exists");
         conns.get().insertOneUnregisteredQuery(
-                "INSERT INTO pt_metropolis_table_meta (table_name, table_size) VALUES (?, ?)",
+                "INSERT INTO " + config.shared().metadataTable().getQualifiedName() + " (table_name, table_size) VALUES (?, ?)",
                 tableName,
                 TableSize.RAW.getId());
     }
 
     @Override
     public void drop() {
-        executeIgnoringError("DROP TABLE pt_met_" + tableName, "does not exist");
+        executeIgnoringError("DROP TABLE " + prefixedTableName(), "does not exist");
         conns.get().executeUnregisteredQuery(
-                "DELETE FROM pt_metropolis_table_meta WHERE table_name = ?", tableName);
+                "DELETE FROM " + config.shared().metadataTable().getQualifiedName() + " WHERE table_name = ?", tableName);
     }
 
     @Override
     public void truncate() {
-        executeIgnoringError("TRUNCATE TABLE pt_met_" + tableName, "does not exist");
+        executeIgnoringError("TRUNCATE TABLE " + prefixedTableName(), "does not exist");
     }
 
     @Override
@@ -96,6 +100,10 @@ public class PostgresDdlTable implements DbDdlTable {
     @Override
     public void compactInternally() {
         // VACUUM FULL is /really/ what we want here, but it takes out a table lock
-        conns.get().executeUnregisteredQuery("VACUUM ANALYZE pt_met_" + tableName);
+        conns.get().executeUnregisteredQuery("VACUUM ANALYZE " + prefixedTableName());
+    }
+
+    private String prefixedTableName() {
+        return config.shared().tablePrefix() + tableName;
     }
 }

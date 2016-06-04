@@ -26,17 +26,21 @@ import com.google.common.collect.Ordering;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.ExceptionCheck;
 
 public class SimpleDbWriteTable implements DbWriteTable {
     protected final String tableName;
     protected final ConnectionSupplier conns;
+    protected final DbKeyValueServiceConfig config;
 
     public SimpleDbWriteTable(String tableName,
-                              ConnectionSupplier conns) {
+                              ConnectionSupplier conns,
+                              DbKeyValueServiceConfig config) {
         this.tableName = tableName;
         this.conns = conns;
+        this.config = config;
     }
 
     @Override
@@ -64,8 +68,8 @@ public class SimpleDbWriteTable implements DbWriteTable {
     private void put(List<Object[]> args) {
         try {
             conns.get().insertManyUnregisteredQuery(
-                    "/* SQL_MET_INSERT_ONE (" + tableName + ") */" +
-                    " INSERT INTO pt_met_" + tableName + " (row_name, col_name, ts, val) " +
+                    "/* INSERT_ONE (" + tableName + ") */" +
+                    " INSERT INTO " + prefixedTableName() + " (row_name, col_name, ts, val) " +
                     " VALUES (?, ?, ?, ?) ",
                     args);
         } catch (PalantirSqlException e) {
@@ -89,10 +93,10 @@ public class SimpleDbWriteTable implements DbWriteTable {
             while (true) {
                 try {
                     conns.get().insertManyUnregisteredQuery(
-                            "/* SQL_MET_INSERT_WHERE_NOT_EXISTS (" + tableName + ") */" +
-                            " INSERT INTO pt_met_" + tableName + " (row_name, col_name, ts, val) " +
+                            "/* INSERT_WHERE_NOT_EXISTS (" + tableName + ") */" +
+                            " INSERT INTO " + prefixedTableName() + " (row_name, col_name, ts, val) " +
                             " SELECT ?, ?, ?, ? FROM DUAL" +
-                            " WHERE NOT EXISTS (SELECT * FROM pt_met_" + tableName + " WHERE" +
+                            " WHERE NOT EXISTS (SELECT * FROM " + prefixedTableName() + " WHERE" +
                             " row_name = ? AND" +
                             " col_name = ? AND" +
                             " ts = ?)",
@@ -117,12 +121,16 @@ public class SimpleDbWriteTable implements DbWriteTable {
             args.add(new Object[] {cell.getRowName(), cell.getColumnName(), entry.getValue()});
         }
         conns.get().updateManyUnregisteredQuery(
-                " /* SQL_MET_DELETE_ONE (" + tableName + ") */ " +
-                " DELETE /*+ INDEX(m pk_pt_met_" + tableName + ") */ " +
-                " FROM pt_met_" + tableName + " m " +
+                " /* DELETE_ONE (" + tableName + ") */ " +
+                " DELETE /*+ INDEX(m pk_" + prefixedTableName() + ") */ " +
+                " FROM " + prefixedTableName() + " m " +
                 " WHERE m.row_name = ? " +
                 "  AND m.col_name = ? " +
                 "  AND m.ts = ?",
                 args);
+    }
+
+    private String prefixedTableName() {
+        return config.shared().tablePrefix() + tableName;
     }
 }

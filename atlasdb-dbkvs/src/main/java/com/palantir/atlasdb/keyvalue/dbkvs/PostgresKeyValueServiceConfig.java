@@ -34,7 +34,7 @@ public abstract class PostgresKeyValueServiceConfig extends DbKeyValueServiceCon
 
     @Override
     public Supplier<DbTableFactory> tableFactorySupplier() {
-        return () -> new PostgresDbTableFactory(shared());
+        return () -> new PostgresDbTableFactory(this);
     }
 
     @Override

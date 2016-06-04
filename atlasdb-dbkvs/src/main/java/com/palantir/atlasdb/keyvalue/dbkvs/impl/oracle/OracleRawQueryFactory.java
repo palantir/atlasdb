@@ -17,14 +17,14 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
 import java.util.Collection;
 
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.FullQuery;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowValue;
-import com.palantir.db.oracle.JdbcHandler;
 
 public class OracleRawQueryFactory extends OracleQueryFactory {
 
-    public OracleRawQueryFactory(String tableName, JdbcHandler jdbcHandler) {
-        super(tableName, jdbcHandler);
+    public OracleRawQueryFactory(String tableName, OracleKeyValueServiceConfig config) {
+        super(tableName, config);
     }
 
     @Override
