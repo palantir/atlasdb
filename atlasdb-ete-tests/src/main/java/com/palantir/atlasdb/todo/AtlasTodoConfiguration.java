@@ -27,8 +27,7 @@ public class AtlasTodoConfiguration extends Configuration {
         this.atlasdb = atlasdb;
     }
     
-    public AtlasDbConfig getConfig() {
+    public AtlasDbConfig atlasConfig() {
         return atlasdb;
     }
-    
 }

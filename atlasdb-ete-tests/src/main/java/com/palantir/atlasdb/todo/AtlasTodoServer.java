@@ -41,7 +41,7 @@ public class AtlasTodoServer extends Application<AtlasTodoConfiguration> {
 
     @Override
     public void run(AtlasTodoConfiguration config, final Environment environment) throws Exception {
-        AtlasTodos todos = new DefaultAtlasTodos(new Atlas());
+        AtlasTodos todos = new DefaultAtlasTodos(new Atlas(config.atlasConfig(), environment.jersey()));
         environment.jersey().register(todos);
     }
 

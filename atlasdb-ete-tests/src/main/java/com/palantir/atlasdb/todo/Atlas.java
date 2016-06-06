@@ -18,8 +18,28 @@ package com.palantir.atlasdb.todo;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.net.ssl.SSLSocketFactory;
+
+import com.google.common.base.Optional;
+import com.palantir.atlasdb.config.AtlasDbConfig;
+import com.palantir.atlasdb.factory.TransactionManagers;
+import com.palantir.atlasdb.table.description.Schema;
+import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+
+import io.dropwizard.jersey.setup.JerseyEnvironment;
+
 public class Atlas {
-    List<Todo> todos = new ArrayList<>();
+
+    private static final boolean NO_HIDDEN_TABLES = false;
+
+    private final List<Todo> todos = new ArrayList<>();
+    private final SerializableTransactionManager transactionManager;
+
+    public Atlas(AtlasDbConfig config, JerseyEnvironment environment) {
+        Optional<SSLSocketFactory> ssl = Optional.absent();
+        Schema schema = AtlasTodosSchema.getSchema();
+        transactionManager = TransactionManagers.create(config, ssl, schema, environment::register, NO_HIDDEN_TABLES);
+    }
 
     public void addTodo(Todo todo) {
         todos.add(todo);

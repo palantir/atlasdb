@@ -1,6 +1,11 @@
 FROM frolvlad/alpine-oraclejdk8:slim
 
-RUN apk update && apk add libstdc++ bash
+RUN apk update && apk add libstdc++ bash wget
+
+ENV DOCKERIZE_VERSION v0.2.0
+
+RUN wget --no-check-certificate http://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
+    && tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
 
 EXPOSE 3828
 
@@ -13,4 +18,4 @@ ADD docker/conf/ /atlasdb-todos/atlasdb-todos-snapshot/var/conf
 
 WORKDIR /atlasdb-todos/atlasdb-todos-snapshot/service/bin/
 
-CMD bash -c './init.sh console'
+CMD dockerize -timeout 120s -wait tcp://cassandra:9160 bash -c './init.sh console'
