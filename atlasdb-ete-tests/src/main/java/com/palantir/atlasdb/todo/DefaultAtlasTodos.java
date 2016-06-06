@@ -41,3 +41,4 @@ public class DefaultAtlasTodos implements AtlasTodos {
         Preconditions.checkState(atlas.listTodos() != null);
     }
 }
+
