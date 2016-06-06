@@ -17,7 +17,9 @@ package com.palantir.atlasdb.todo;
 
 import java.io.File;
 
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.AtlasSchema;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableDefinition;
@@ -25,15 +27,17 @@ import com.palantir.atlasdb.table.description.ValueType;
 
 public class AtlasTodosSchema implements AtlasSchema {
     private static final Schema INDEX_TEST_SCHEMA = generateSchema();
+    public static final String TODOS = "todos";
+    public static final String TEXT = "text";
 
     private static Schema generateSchema() {
         Schema schema = new Schema();
 
-        schema.addTableDefinition("todos", new TableDefinition() {{
+        schema.addTableDefinition(TODOS, new TableDefinition() {{
             rowName();
                 rowComponent("id", ValueType.FIXED_LONG);
             columns();
-                column("text", "t", ValueType.STRING);
+                column(TEXT, "t", ValueType.STRING);
         }});
 
         return schema;
@@ -41,6 +45,10 @@ public class AtlasTodosSchema implements AtlasSchema {
 
     public static Schema getSchema() {
         return INDEX_TEST_SCHEMA;
+    }
+
+    public static TableReference todosTable() {
+        return TableReference.create(Namespace.DEFAULT_NAMESPACE, TODOS);
     }
 
     public static void main(String[]  args) throws Exception {
@@ -55,5 +63,9 @@ public class AtlasTodosSchema implements AtlasSchema {
     @Override
     public Namespace getNamespace() {
         return Namespace.DEFAULT_NAMESPACE;
+    }
+
+    public static byte[] todoTextColumn() {
+        return PtBytes.toBytes(TEXT);
     }
 }

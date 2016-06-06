@@ -45,7 +45,7 @@ public class AtlasTodoEteTest {
     private static final Todo TODO = ImmutableTodo.of("some stuff to do");
 
     public static DockerComposition dockerComposition = DockerComposition.of("docker-compose.yml")
-            .waitingForService("todo1", toBeReady(), standardMinutes(1))
+            .waitingForService("todo1", toBeReady(), standardMinutes(5))
             .saveLogsTo("container-logs")
             .build();
 

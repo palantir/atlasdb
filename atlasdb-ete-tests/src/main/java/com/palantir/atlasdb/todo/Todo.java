@@ -28,16 +28,4 @@ public abstract class Todo {
     @JsonProperty("text")
     @Value.Parameter
     public abstract String text();
-
-    @Value.Default
-    public long time() {
-        return 10;
-    }
-
-    default void foo() {
-        ImmutableTodo todo = ImmutableTodo.builder()
-                .text("hello")
-                .build();
-
-    }
 }

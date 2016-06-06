@@ -18,4 +18,4 @@ ADD docker/conf/ /atlasdb-todos/atlasdb-todos-snapshot/var/conf
 
 WORKDIR /atlasdb-todos/atlasdb-todos-snapshot/service/bin/
 
-CMD dockerize -timeout 120s -wait tcp://cassandra:9160 bash -c './init.sh console'
+CMD echo "hello" #bash -c './init.sh console'

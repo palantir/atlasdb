@@ -15,14 +15,24 @@
  */
 package com.palantir.atlasdb.todo;
 
+import static java.util.stream.Collectors.*;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLSocketFactory;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.config.AtlasDbConfig;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.factory.TransactionManagers;
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 
@@ -31,9 +41,11 @@ import io.dropwizard.jersey.setup.JerseyEnvironment;
 public class Atlas {
 
     private static final boolean NO_HIDDEN_TABLES = false;
+    public static final Cell CELL = Cell.create(PtBytes.toBytes(1), AtlasTodosSchema.todoTextColumn());
 
     private final List<Todo> todos = new ArrayList<>();
     private final SerializableTransactionManager transactionManager;
+    private Random random = new Random(42);
 
     public Atlas(AtlasDbConfig config, JerseyEnvironment environment) {
         Optional<SSLSocketFactory> ssl = Optional.absent();
@@ -42,10 +54,24 @@ public class Atlas {
     }
 
     public void addTodo(Todo todo) {
+
+        transactionManager.runTaskWithRetry((transaction) -> {
+            Map<Cell, byte[]> write = ImmutableMap.of(CELL, PtBytes.toBytes(todo.text()));
+            transaction.put(AtlasTodosSchema.todosTable(), write);
+            return null;
+        });
+
         todos.add(todo);
     }
 
     public List<Todo> listTodos() {
-        return todos;
+
+        Map<Cell, byte[]> cellMap = transactionManager.runTaskWithRetry((transaction) -> transaction.get(AtlasTodosSchema.todosTable(), ImmutableSet.of(CELL)));
+
+        return cellMap.values().stream()
+                .map(PtBytes::toString)
+                .map(ImmutableTodo::of)
+                .collect(toList());
+
     }
 }
