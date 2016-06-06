@@ -64,7 +64,7 @@ configurations.matching({ it.name in ['compile', 'runtime'] }).all {
     }
 }
 
-task prepareForEteTests(type: Copy, dependsOn: ['distTar', ':atlasdb-cassandra-tests:docker']) {
+task prepareForEteTests(type: Copy, dependsOn: ['distTar', ':atlasdb-ete-test-utils:buildCassandraImage']) {
     from distTar.outputs
     into 'build/docker/'
 

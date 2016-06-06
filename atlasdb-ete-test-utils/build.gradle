@@ -1,3 +1,7 @@
+plugins{
+    id 'com.palantir.docker' version '0.7.0'
+}
+
 apply from: "../gradle/shared.gradle"
 
 dependencies {
@@ -6,6 +10,21 @@ dependencies {
     }
     compile group: 'org.hamcrest', name: 'hamcrest-all', version: libVersions.hamcrest
     compile(group: 'commons-io', name: 'commons-io', version: libVersions.commons_io)
+}
+
+docker {
+    name "com.palantir.docker/atlas-cassandra:2.2-v0.1"
+    tags 'latest'
+    dockerfile "${rootProject.projectDir}/docker-containers/cassandra/Dockerfile"
+    files "${rootProject.projectDir}/docker-containers/cassandra/entrypoint.sh",
+            "${rootProject.projectDir}/docker-containers/cassandra/cassandra.yaml",
+            "${rootProject.projectDir}/docker-containers/cassandra/cassandra-env.sh"
+    dependsOn jar
+}
+
+
+task buildCassandraImage(dependsOn: 'docker') {
+
 }
 
 sourceCompatibility = '1.8'
