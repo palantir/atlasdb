@@ -68,7 +68,7 @@ public class TimestampCommand extends SingleBackendCommand {
 	        timestamp = services.getTimestampService().getFreshTimestamp();
 	        name = FRESH_STRING;
 	    }
-	    log.info("The %s timestamp is: {}", name, timestamp);
+	    log.info("The {} timestamp is: {}", name, timestamp);
 
 	    String stringTime = null;
         if (dateTime) {
