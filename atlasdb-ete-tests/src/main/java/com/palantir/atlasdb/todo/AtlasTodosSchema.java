@@ -27,17 +27,17 @@ import com.palantir.atlasdb.table.description.ValueType;
 
 public class AtlasTodosSchema implements AtlasSchema {
     private static final Schema INDEX_TEST_SCHEMA = generateSchema();
-    public static final String TODOS = "todos";
-    public static final String TEXT = "text";
+    public static final String TODOS_TABLE = "todos";
+    public static final String TEXT_COLUMN = "text";
 
     private static Schema generateSchema() {
         Schema schema = new Schema();
 
-        schema.addTableDefinition(TODOS, new TableDefinition() {{
+        schema.addTableDefinition(TODOS_TABLE, new TableDefinition() {{
             rowName();
                 rowComponent("id", ValueType.FIXED_LONG);
             columns();
-                column(TEXT, "t", ValueType.STRING);
+                column(TEXT_COLUMN, "t", ValueType.STRING);
         }});
 
         return schema;
@@ -48,7 +48,7 @@ public class AtlasTodosSchema implements AtlasSchema {
     }
 
     public static TableReference todosTable() {
-        return TableReference.create(Namespace.DEFAULT_NAMESPACE, TODOS);
+        return TableReference.create(Namespace.DEFAULT_NAMESPACE, TODOS_TABLE);
     }
 
     public static void main(String[]  args) throws Exception {
@@ -66,6 +66,6 @@ public class AtlasTodosSchema implements AtlasSchema {
     }
 
     public static byte[] todoTextColumn() {
-        return PtBytes.toBytes(TEXT);
+        return PtBytes.toBytes(TEXT_COLUMN);
     }
 }
