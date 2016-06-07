@@ -9,9 +9,10 @@ function checkDocsBuild {
 
 CASSANDRA=':atlasdb-cassandra-tests:check'
 SHARED=':atlasdb-tests-shared:check'
+ETE=':atlasdb-ete-tests:check'
 
 case $CIRCLE_NODE_INDEX in
-    0) ./gradlew --continue check -x $CASSANDRA -x $SHARED ;;
+    0) ./gradlew --continue check -x $CASSANDRA -x $SHARED -x $ETE;;
     1) ./gradlew --continue --parallel $CASSANDRA --console=plain ;;
-    2) ./gradlew --continue --parallel $SHARED && checkDocsBuild ;;
+    2) ./gradlew --continue --parallel $SHARED $ETE && checkDocsBuild ;;
 esac
