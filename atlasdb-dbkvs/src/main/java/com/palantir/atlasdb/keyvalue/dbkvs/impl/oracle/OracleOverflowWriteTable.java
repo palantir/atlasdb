@@ -209,6 +209,6 @@ public class OracleOverflowWriteTable implements DbWriteTable {
     }
 
     private String prefixedOverflowTableName() {
-        return config.shared().tablePrefix() + tableName;
+        return config.overflowTablePrefix() + tableName;
     }
 }

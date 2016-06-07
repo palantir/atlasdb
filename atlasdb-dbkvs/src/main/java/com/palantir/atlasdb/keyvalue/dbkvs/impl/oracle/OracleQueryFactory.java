@@ -53,7 +53,7 @@ public abstract class OracleQueryFactory implements DbQueryFactory {
                 " WHERE m.row_name = ? " +
                 "   AND m.ts < ? " +
                 (columns.allColumnsSelected() ? "" :
-                    " AND EXISTS (SELECT /*+ NL_SJ */ 1 FROM TABLE(CAST(? AS PT_MET_CELL_TS_TABLE)) WHERE row_name = m.col_name)") +
+                    " AND EXISTS (SELECT /*+ NL_SJ */ 1 FROM TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) WHERE row_name = m.col_name)") +
                 " GROUP BY m.row_name, m.col_name";
         query = wrapQueryWithIncludeValue("GET_LATEST_ONE_ROW", query, includeValue);
         FullQuery fullQuery = new FullQuery(query).withArgs(row, ts);
@@ -69,11 +69,11 @@ public abstract class OracleQueryFactory implements DbQueryFactory {
                 " /* GET_LATEST_ROWS_SINGLE_BOUND_INNER (" + tableName + ") */ " +
                 " SELECT /*+ USE_NL(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m pk_" + prefixedTableName() + ") */ " +
                 "   m.row_name, m.col_name, max(m.ts) as ts " +
-                " FROM " + prefixedTableName() + " m, TABLE(CAST(? AS PT_MET_CELL_TS_TABLE)) t " +
+                " FROM " + prefixedTableName() + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t " +
                 " WHERE m.row_name = t.row_name " +
                 "   AND m.ts < ? " +
                 (columns.allColumnsSelected() ? "" :
-                    " AND EXISTS (SELECT /*+ NL_SJ */ 1 FROM TABLE(CAST(? AS PT_MET_CELL_TS_TABLE)) WHERE row_name = m.col_name) ") +
+                    " AND EXISTS (SELECT /*+ NL_SJ */ 1 FROM TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) WHERE row_name = m.col_name) ") +
                 " GROUP BY m.row_name, m.col_name";
         query = wrapQueryWithIncludeValue("GET_LATEST_ROWS_SINGLE_BOUND", query, includeValue);
         FullQuery fullQuery = new FullQuery(query).withArgs(rowsToOracleArray(rows), ts);
@@ -88,11 +88,11 @@ public abstract class OracleQueryFactory implements DbQueryFactory {
                 " /* GET_LATEST_ROWS_MANY_BOUNDS_INNER (" + tableName + ") */ " +
                 " SELECT /*+ USE_NL(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m pk_" + prefixedTableName() + ") */ " +
                 "   m.row_name, m.col_name, max(m.ts) as ts " +
-                " FROM " + prefixedTableName() + " m, TABLE(CAST(? AS PT_MET_CELL_TS_TABLE)) t " +
+                " FROM " + prefixedTableName() + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t " +
                 " WHERE m.row_name = t.row_name " +
                 "   AND m.ts < t.max_ts " +
                 (columns.allColumnsSelected() ? "" :
-                    " AND EXISTS (SELECT /*+ NL_SJ */ 1 FROM TABLE(CAST(? AS PT_MET_CELL_TS_TABLE)) WHERE row_name = m.col_name) ") +
+                    " AND EXISTS (SELECT /*+ NL_SJ */ 1 FROM TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) WHERE row_name = m.col_name) ") +
                 " GROUP BY m.row_name, m.col_name";
         query = wrapQueryWithIncludeValue("GET_LATEST_ROWS_MANY_BOUNDS", query, includeValue);
         FullQuery fullQuery = new FullQuery(query).withArg(rowsAndTimestampsToOracleArray(rows));
@@ -112,7 +112,7 @@ public abstract class OracleQueryFactory implements DbQueryFactory {
                 " WHERE m.row_name = ? " +
                 "   AND m.ts < ? " +
                 (columns.allColumnsSelected() ? "" :
-                    " AND EXISTS (SELECT /*+ NL_SJ */ 1 FROM TABLE(CAST(? AS PT_MET_CELL_TS_TABLE)) WHERE row_name = m.col_name) ");
+                    " AND EXISTS (SELECT /*+ NL_SJ */ 1 FROM TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) WHERE row_name = m.col_name) ");
         FullQuery fullQuery = new FullQuery(query).withArgs(row, ts);
         return columns.allColumnsSelected() ? fullQuery : fullQuery.withArg(rowsToOracleArray(columns.getSelectedColumns()));
     }
@@ -126,11 +126,11 @@ public abstract class OracleQueryFactory implements DbQueryFactory {
                 " /* GET_ALL_ROWS_SINGLE_BOUND (" + tableName + ") */ " +
                 " SELECT /*+ USE_NL(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m pk_" + prefixedTableName() + ") */ " +
                 "   m.row_name, m.col_name, m.ts" + getValueSubselect("m", includeValue) +
-                " FROM " + prefixedTableName() + " m, TABLE(CAST(? AS PT_MET_CELL_TS_TABLE)) t " +
+                " FROM " + prefixedTableName() + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t " +
                 " WHERE m.row_name = t.row_name " +
                 "   AND m.ts < ? " +
                 (columns.allColumnsSelected() ? "" :
-                    " AND EXISTS (SELECT /*+ NL_SJ */ 1 FROM TABLE(CAST(? AS PT_MET_CELL_TS_TABLE)) WHERE row_name = m.col_name) ");
+                    " AND EXISTS (SELECT /*+ NL_SJ */ 1 FROM TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) WHERE row_name = m.col_name) ");
         FullQuery fullQuery = new FullQuery(query).withArgs(rowsToOracleArray(rows), ts);
         return columns.allColumnsSelected() ? fullQuery : fullQuery.withArg(rowsToOracleArray(columns.getSelectedColumns()));
     }
@@ -143,11 +143,11 @@ public abstract class OracleQueryFactory implements DbQueryFactory {
                 " /* GET_ALL_ROWS_MANY_BOUNDS (" + tableName + ") */ " +
                 " SELECT /*+ USE_NL(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m pk_" + prefixedTableName() + ") */ " +
                 "   m.row_name, m.col_name, m.ts" + getValueSubselect("m", includeValue) +
-                " FROM " + prefixedTableName() + " m, TABLE(CAST(? AS PT_MET_CELL_TS_TABLE)) t " +
+                " FROM " + prefixedTableName() + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t " +
                 " WHERE m.row_name = t.row_name " +
                 "   AND m.ts < t.max_ts " +
                 (columns.allColumnsSelected() ? "" :
-                    " AND EXISTS (SELECT /*+ NL_SJ */ 1 FROM TABLE(CAST(? AS PT_MET_CELL_TS_TABLE)) WHERE row_name = m.col_name) ");
+                    " AND EXISTS (SELECT /*+ NL_SJ */ 1 FROM TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) WHERE row_name = m.col_name) ");
         FullQuery fullQuery = new FullQuery(query).withArg(rowsAndTimestampsToOracleArray(rows));
         return columns.allColumnsSelected() ? fullQuery : fullQuery.withArg(rowsToOracleArray(columns.getSelectedColumns()));
     }
@@ -173,7 +173,7 @@ public abstract class OracleQueryFactory implements DbQueryFactory {
                 " /* GET_LATEST_CELLS_SINGLE_BOUND_INNER (" + tableName + ") */ " +
                 " SELECT /*+ USE_NL(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m pk_" + prefixedTableName() + ") */ " +
                 "   m.row_name, m.col_name, max(m.ts) as ts " +
-                " FROM " + prefixedTableName() + " m, TABLE(CAST(? AS PT_MET_CELL_TS_TABLE)) t " +
+                " FROM " + prefixedTableName() + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t " +
                 " WHERE m.row_name = t.row_name " +
                 "   AND m.col_name = t.col_name " +
                 "   AND m.ts < ? " +
@@ -188,7 +188,7 @@ public abstract class OracleQueryFactory implements DbQueryFactory {
                 " /* GET_LATEST_CELLS_MANY_BOUNDS_INNER (" + tableName + ") */ " +
                 " SELECT /*+ USE_NL(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m pk_" + prefixedTableName() + ") */ " +
                 "   m.row_name, m.col_name, max(m.ts) as ts " +
-                " FROM " + prefixedTableName() + " m, TABLE(CAST(? AS PT_MET_CELL_TS_TABLE)) t " +
+                " FROM " + prefixedTableName() + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t " +
                 " WHERE m.row_name = t.row_name " +
                 "   AND m.col_name = t.col_name " +
                 "   AND m.ts < t.max_ts " +
@@ -216,7 +216,7 @@ public abstract class OracleQueryFactory implements DbQueryFactory {
                 " /* GET_ALL_CELLS_SINGLE_BOUND (" + tableName + ") */ " +
                 " SELECT /*+ USE_NL(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m pk_" + prefixedTableName() + ") */ " +
                 "   m.row_name, m.col_name, m.ts" + getValueSubselect("m", includeValue) +
-                " FROM " + prefixedTableName() + " m, TABLE(CAST(? AS PT_MET_CELL_TS_TABLE)) t " +
+                " FROM " + prefixedTableName() + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t " +
                 " WHERE m.row_name = t.row_name " +
                 "   AND m.col_name = t.col_name " +
                 "   AND m.ts < ? ";
@@ -229,7 +229,7 @@ public abstract class OracleQueryFactory implements DbQueryFactory {
                 " /* GET_ALL_CELLS_MANY_BOUNDS (" + tableName + ") */ " +
                 " SELECT /*+ USE_NL(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m pk_" + prefixedTableName() + ") */ " +
                 "   m.row_name, m.col_name, m.ts" + getValueSubselect("m", includeValue) +
-                " FROM " + prefixedTableName() + " m, TABLE(CAST(? AS PT_MET_CELL_TS_TABLE)) t " +
+                " FROM " + prefixedTableName() + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t " +
                 " WHERE m.row_name = t.row_name " +
                 "   AND m.col_name = t.col_name " +
                 "   AND m.ts < t.max_ts ";
@@ -293,8 +293,7 @@ public abstract class OracleQueryFactory implements DbQueryFactory {
             oraRows.add(new Object[] { row, null, null });
         }
         return config.jdbcHandler().createStructArray(
-                config.shared().tablePrefix() + "CELL_TS",
-                config.shared().tablePrefix() + "CELL_TS_TABLE", oraRows);
+                structArrayPrefix() + "CELL_TS", "" + structArrayPrefix() + "CELL_TS_TABLE", oraRows);
     }
 
     private ArrayHandler cellsToOracleArray(Iterable<Cell> cells) {
@@ -303,8 +302,7 @@ public abstract class OracleQueryFactory implements DbQueryFactory {
             oraRows.add(new Object[] { cell.getRowName(), cell.getColumnName(), null });
         }
         return config.jdbcHandler().createStructArray(
-                config.shared().tablePrefix() + "CELL_TS",
-                config.shared().tablePrefix() + "CELL_TS_TABLE", oraRows);
+                structArrayPrefix() + "CELL_TS", "" + structArrayPrefix() + "CELL_TS_TABLE", oraRows);
     }
 
     private ArrayHandler rowsAndTimestampsToOracleArray(Collection<Map.Entry<byte[], Long>> rows) {
@@ -313,8 +311,7 @@ public abstract class OracleQueryFactory implements DbQueryFactory {
             oraRows.add(new Object[] { entry.getKey(), null, entry.getValue() });
         }
         return config.jdbcHandler().createStructArray(
-                config.shared().tablePrefix() + "CELL_TS",
-                config.shared().tablePrefix() + "CELL_TS_TABLE", oraRows);
+                structArrayPrefix() + "CELL_TS", "" + structArrayPrefix() + "CELL_TS_TABLE", oraRows);
     }
 
     private ArrayHandler cellsAndTimestampsToOracleArray(Collection<Map.Entry<Cell, Long>> cells) {
@@ -324,11 +321,14 @@ public abstract class OracleQueryFactory implements DbQueryFactory {
             oraRows.add(new Object[] { cell.getRowName(), cell.getColumnName(), entry.getValue() });
         }
         return config.jdbcHandler().createStructArray(
-                config.shared().tablePrefix() + "CELL_TS",
-                config.shared().tablePrefix() + "CELL_TS_TABLE", oraRows);
+                structArrayPrefix() + "CELL_TS", "" + structArrayPrefix() + "CELL_TS_TABLE", oraRows);
     }
 
     private String prefixedTableName() {
         return config.shared().tablePrefix() + tableName;
+    }
+
+    private String structArrayPrefix() {
+        return config.shared().tablePrefix().toUpperCase();
     }
 }

@@ -50,8 +50,8 @@ public class OracleOverflowQueryFactory extends OracleQueryFactory {
             oraRows.add(new Object[] { null, null, overflowId.id });
         }
         ArrayHandler arg = config.jdbcHandler().createStructArray(
-                config.shared().tablePrefix() + "CELL_TS",
-                config.shared().tablePrefix() + "CELL_TS_TABLE", oraRows);
+                structArrayPrefix() + "CELL_TS",
+                structArrayPrefix() + "CELL_TS_TABLE", oraRows);
         switch (config.overflowMigrationState()) {
         case UNSTARTED:
             return ImmutableList.of(getOldOverflowQuery(arg));
@@ -70,7 +70,7 @@ public class OracleOverflowQueryFactory extends OracleQueryFactory {
                 " /* SELECT_OVERFLOW */ " +
                 " SELECT /*+ USE_NL(t o) LEADING(t o) INDEX(o pk_" + config.singleOverflowTable() + ") */ " +
                 "   o.id, o.val " +
-                " FROM " + config.singleOverflowTable() + " o, TABLE(CAST(? AS " + config.shared().tablePrefix() + "CELL_TS_TABLE)) t " +
+                " FROM " + config.singleOverflowTable() + " o, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t " +
                 " WHERE t.max_ts = o.id ";
         return new FullQuery(query).withArg(arg);
     }
@@ -80,12 +80,16 @@ public class OracleOverflowQueryFactory extends OracleQueryFactory {
                 " /* SELECT_OVERFLOW (" + tableName + ") */ " +
                 " SELECT /*+ USE_NL(t o) LEADING(t o) INDEX(o pk_" + prefixedOverflowTableName() + ") */ " +
                 "   o.id, o.val " +
-                " FROM " + prefixedOverflowTableName() + " o, TABLE(CAST(? AS " + config.shared().tablePrefix() + "CELL_TS_TABLE)) t " +
+                " FROM " + prefixedOverflowTableName() + " o, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t " +
                 " WHERE t.max_ts = o.id ";
         return new FullQuery(query).withArg(arg);
     }
 
     private String prefixedOverflowTableName() {
         return config.overflowTablePrefix() + tableName;
+    }
+
+    private String structArrayPrefix() {
+        return config.shared().tablePrefix().toUpperCase();
     }
 }

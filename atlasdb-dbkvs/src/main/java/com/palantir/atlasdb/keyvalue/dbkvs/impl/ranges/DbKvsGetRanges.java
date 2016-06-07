@@ -307,7 +307,7 @@ public class DbKvsGetRanges {
     }
 
     private static final String SIMPLE_ROW_SELECT_TEMPLATE =
-            " /* SQL_MET_SIMPLE_ROW_SELECT_TEMPLATE (%s) */ " +
+            " /* SIMPLE_ROW_SELECT_TEMPLATE (%s) */ " +
                     " SELECT /*+ INDEX(t pk_%s) */ " +
                     "   DISTINCT row_name, ? as batch_num " +
                     " FROM %s t " +
@@ -315,7 +315,7 @@ public class DbKvsGetRanges {
                     " ORDER BY row_name %s ";
 
     private static final String SIMPLE_ROW_SELECT_ONE_POSTGRES_TEMPLATE =
-            " /* SQL_MET_SIMPLE_ROW_SELECT_ONE_TEMPLATE_PSQL (%s) */ " +
+            " /* SIMPLE_ROW_SELECT_ONE_TEMPLATE_PSQL (%s) */ " +
                     " SELECT /*+ INDEX(t pk_%s) */ " +
                     "   DISTINCT row_name, ? as batch_num " +
                     " FROM %s t " +
@@ -323,7 +323,7 @@ public class DbKvsGetRanges {
                     " ORDER BY row_name %s LIMIT 1";
 
     private static final String SIMPLE_ROW_SELECT_ONE_ORACLE_TEMPLATE =
-            " /* SQL_MET_SIMPLE_ROW_SELECT_ONE_TEMPLATE_ORA (%s) */ " +
+            " /* SIMPLE_ROW_SELECT_ONE_TEMPLATE_ORA (%s) */ " +
                     " SELECT /*+ INDEX(t pk_%s) */ " +
                     "   %s(row_name) as row_name, ? as batch_num " +
                     " FROM %s t " +
