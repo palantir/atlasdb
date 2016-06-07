@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Command Line Utilities &mdash; AtlasDB develop documentation</title>
+  <title>Command Line Utilities &mdash; AtlasDB 0.3.34 documentation</title>
   
 
   
@@ -30,11 +30,9 @@
   
     <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
   
-    <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
-  
 
   
-    <link rel="top" title="AtlasDB develop documentation" href="../index.html"/>
+    <link rel="top" title="AtlasDB 0.3.34 documentation" href="../index.html"/>
         <link rel="up" title="Cluster Management" href="index.html"/>
         <link rel="next" title="Console" href="console.html"/>
         <link rel="prev" title="Cluster Management" href="index.html"/> 
@@ -65,7 +63,7 @@
             
             
               <div class="version">
-                develop
+                0.3.34
               </div>
             
           
@@ -159,25 +157,6 @@ tasks as well as help resolve problems encountered during operation.</p>
 <p>You can write a new CLI by extending <code class="docutils literal"><span class="pre">SingleBackendCommand.java</span></code> which
 offers default AtlasDB configuration and connection out of the box.</p>
 </div>
-<div class="section" id="compiling-the-cli">
-<h2>Compiling The CLI<a class="headerlink" href="#compiling-the-cli" title="Permalink to this headline">¶</a></h2>
-<p>Right now, the best way to get the CLI is by cloning the atlasdb source code and running:</p>
-<div class="code bash highlight-default"><div class="highlight"><pre><span></span>$ ./gradlew atlasdb-cli:distZip
-</pre></div>
-</div>
-</div>
-<div class="section" id="build-in-commands">
-<h2>Build In Commands<a class="headerlink" href="#build-in-commands" title="Permalink to this headline">¶</a></h2>
-<p>The following useful commands come with the vanilla atlasdb-cli.</p>
-<div class="section" id="sweep">
-<h3>sweep<a class="headerlink" href="#sweep" title="Permalink to this headline">¶</a></h3>
-<p>Sweep old table rows. This can be useful for improving performance if having too many dead cells is impacting read times.  The command allows you to specify a namespace or a specific set of tables. Run <code class="docutils literal"><span class="pre">./bin/atlasdb</span> <span class="pre">help</span> <span class="pre">sweep</span></code> for more information.</p>
-</div>
-<div class="section" id="timestamp">
-<h3>timestamp<a class="headerlink" href="#timestamp" title="Permalink to this headline">¶</a></h3>
-<p>Read or recalculate the immutable timestamp. Run <code class="docutils literal"><span class="pre">./bin/atlasdb</span> <span class="pre">help</span> <span class="pre">timestamp</span></code> for more information.</p>
-</div>
-</div>
 </div>
 
 
@@ -221,7 +200,7 @@ offers default AtlasDB configuration and connection out of the box.</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../',
-            VERSION:'develop',
+            VERSION:'0.3.34',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true
