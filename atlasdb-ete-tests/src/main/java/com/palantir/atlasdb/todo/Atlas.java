@@ -27,7 +27,6 @@ import javax.net.ssl.SSLSocketFactory;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.factory.TransactionManagers;
@@ -36,8 +35,6 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
-import com.palantir.common.annotation.Immutable;
-import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.BatchingVisitable;
 
 import io.dropwizard.jersey.setup.JerseyEnvironment;

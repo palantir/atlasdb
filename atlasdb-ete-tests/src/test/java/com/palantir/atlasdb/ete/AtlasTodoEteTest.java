@@ -18,7 +18,6 @@ package com.palantir.atlasdb.ete;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
-import static org.joda.time.Duration.standardMinutes;
 
 import static com.google.common.base.Throwables.propagate;
 
