@@ -71,6 +71,8 @@ task prepareForEteTests(type: Copy, dependsOn: ['distTar', ':atlasdb-ete-test-ut
     rename { filename -> 'atlasdb-todos-snapshot.tgz' }
 }
 
+test.dependsOn 'prepareForEteTests'
+
 distribution {
     serviceName 'atlasdb-todo'
     mainClass 'com.palantir.atlasdb.todo.AtlasTodoServer'

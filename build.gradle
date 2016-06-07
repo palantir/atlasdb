@@ -32,3 +32,11 @@ task clean(type: Delete) {
 }
 
 apply from: 'idea.gradle'
+
+allprojects {
+    // This allows tests that require an artefact to exist to
+    // decide whether to call gradle themselves or not
+    tasks.withType(Test) {
+        systemProperty 'RUNNING_IN_GRADLE', 'true'
+    }
+}

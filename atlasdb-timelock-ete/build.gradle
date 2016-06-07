@@ -36,13 +36,6 @@ dependencies {
 
 test.dependsOn ':atlasdb-timelock-server:prepareForEteTests'
 
-// This allows tests that require an artefact to exist to
-// decide whether to call gradle themselves or not
-tasks.withType(Test) {
-    systemProperty 'RUNNING_IN_GRADLE', 'true'
-}
-
-
 configurations.matching({ it.name in ['compile', 'runtime'] }).all {
     resolutionStrategy {
         force 'com.google.code.findbugs:jsr305:' + libVersions.jsr305
