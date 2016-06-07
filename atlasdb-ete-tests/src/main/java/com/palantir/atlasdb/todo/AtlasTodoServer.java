@@ -30,19 +30,21 @@ public class AtlasTodoServer extends Application<AtlasTodoConfiguration> {
 
     @Override
     public void initialize(Bootstrap<AtlasTodoConfiguration> bootstrap) {
-        // Enable variable substitution with environment variables
-        bootstrap.setConfigurationSourceProvider(
-                new SubstitutingSourceProvider(bootstrap.getConfigurationSourceProvider(),
-                        new EnvironmentVariableSubstitutor()
-                )
-        );
-
+        enableEnvironmentVariablesInConfig(bootstrap);
     }
 
     @Override
     public void run(AtlasTodoConfiguration config, final Environment environment) throws Exception {
         AtlasTodos todos = new DefaultAtlasTodos(new Atlas(config.atlasConfig(), environment.jersey()));
         environment.jersey().register(todos);
+    }
+
+    private void enableEnvironmentVariablesInConfig(Bootstrap<AtlasTodoConfiguration> bootstrap) {
+        bootstrap.setConfigurationSourceProvider(
+                new SubstitutingSourceProvider(bootstrap.getConfigurationSourceProvider(),
+                        new EnvironmentVariableSubstitutor()
+                )
+        );
     }
 
 }

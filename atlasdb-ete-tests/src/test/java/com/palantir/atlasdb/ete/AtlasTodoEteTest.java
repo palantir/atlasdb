@@ -45,7 +45,7 @@ public class AtlasTodoEteTest {
     private static final Todo TODO = ImmutableTodo.of("some stuff to do");
 
     public static DockerComposition dockerComposition = DockerComposition.of("docker-compose.yml")
-            .waitingForService("todo1", toBeReady(), standardMinutes(5))
+            .waitingForService("todo1", toBeReady())
             .saveLogsTo("container-logs")
             .build();
 
@@ -69,9 +69,10 @@ public class AtlasTodoEteTest {
 
     @Test public void
     shouldBeAbleToWriteAndListTodos() {
-        createTodoClient().addTodo(TODO);
+        AtlasTodos todoClient = createTodoClient();
 
-        assertThat(createTodoClient().listTodos(), contains(TODO));
+        todoClient.addTodo(TODO);
+        assertThat(todoClient.listTodos(), contains(TODO));
     }
 
     private AtlasTodos createTodoClient() {
