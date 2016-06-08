@@ -17,24 +17,27 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import org.immutables.value.Value;
 
-import com.google.common.base.Optional;
-import com.google.common.base.Supplier;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbTableFactory;
+import com.fasterxml.jackson.annotation.JsonTypeName;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
 
+@JsonDeserialize(as = ImmutablePostgresDdlConfig.class)
+@JsonSerialize(as = ImmutablePostgresDdlConfig.class)
+@JsonTypeName(DbKeyValueServiceConfig.TYPE)
+@Value.Immutable
 public abstract class DbKeyValueServiceConfig implements KeyValueServiceConfig {
 
-    @Value.Default
-    public DbSharedConfig shared() {
-        return ImmutableDbSharedConfig.builder().build();
+    public static final String TYPE = "relational";
+
+    public abstract DdlConfig ddl();
+
+    public abstract ConnectionConfig connection();
+
+    @Override
+    public final String type() {
+        return TYPE;
     }
-
-    // must be set if you want to call DbKvs.create()
-    // otherwise you must instantiate DbKvs by calling the constructor directly
-    public abstract Optional<ConnectionConfig> connection();
-
-    @Value.Derived
-    public abstract Supplier<DbTableFactory> tableFactorySupplier();
 
 }

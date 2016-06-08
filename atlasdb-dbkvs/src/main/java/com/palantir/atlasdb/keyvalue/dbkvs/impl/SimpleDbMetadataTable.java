@@ -19,17 +19,17 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 
 public class SimpleDbMetadataTable implements DbMetadataTable {
     protected final String tableName;
     protected final ConnectionSupplier conns;
-    private final DbKeyValueServiceConfig config;
+    private final DdlConfig config;
 
     public SimpleDbMetadataTable(String tableName,
                                  ConnectionSupplier conns,
-                                 DbKeyValueServiceConfig config) {
+                                 DdlConfig config) {
         this.tableName = tableName;
         this.conns = conns;
         this.config = config;
@@ -38,7 +38,7 @@ public class SimpleDbMetadataTable implements DbMetadataTable {
     @Override
     public boolean exists() {
         return conns.get().selectExistsUnregisteredQuery(
-                "SELECT 1 FROM " + config.shared().metadataTable().getQualifiedName() + " WHERE table_name = ?",
+                "SELECT 1 FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?",
                 tableName);
     }
 
@@ -46,7 +46,7 @@ public class SimpleDbMetadataTable implements DbMetadataTable {
     @SuppressWarnings("deprecation")
     public byte[] getMetadata() {
         AgnosticResultSet results = conns.get().selectResultSetUnregisteredQuery(
-                "SELECT value FROM " + config.shared().metadataTable().getQualifiedName() + " WHERE table_name = ?",
+                "SELECT value FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?",
                 tableName);
         if (results.size() < 1) {
             return PtBytes.EMPTY_BYTE_ARRAY;
@@ -61,7 +61,7 @@ public class SimpleDbMetadataTable implements DbMetadataTable {
     public void putMetadata(byte[] metadata) {
         Preconditions.checkArgument(exists(), "Table %s does not exist.", tableName);
         conns.get().updateUnregisteredQuery(
-                "UPDATE " + config.shared().metadataTable().getQualifiedName() + " SET value = ? WHERE table_name = ?",
+                "UPDATE " + config.metadataTable().getQualifiedName() + " SET value = ? WHERE table_name = ?",
                 metadata,
                 tableName);
     }

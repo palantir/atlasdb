@@ -29,18 +29,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.Throwables;
-import com.palantir.common.base.Visitors;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.pool.ConnectionManager;
-import com.palantir.nexus.db.pool.HikariCPConnectionManager;
 import com.palantir.nexus.db.pool.RetriableTransactions;
 import com.palantir.nexus.db.pool.RetriableTransactions.TransactionResult;
 import com.palantir.nexus.db.pool.RetriableWriteTransaction;
-import com.palantir.nexus.db.pool.config.ConnectionConfig;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
 
@@ -57,12 +53,6 @@ public final class InDbTimestampBoundStore implements TimestampBoundStore {
 
     @GuardedBy("this")
     private Long currentLimit = null;
-
-    public static InDbTimestampBoundStore create(ConnectionConfig connConfig) {
-        return new InDbTimestampBoundStore(
-                new HikariCPConnectionManager(connConfig, Visitors.emptyVisitor()),
-                AtlasDbConstants.TIMESTAMP_TABLE);
-    }
 
     public InDbTimestampBoundStore(ConnectionManager connManager, TableReference timestampTable) {
         this.connManager = Preconditions.checkNotNull(connManager);

@@ -21,7 +21,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.dbkvs.PostgresKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.PostgresDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresDdlTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresQueryFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresTableInitializer;
@@ -31,12 +31,12 @@ import com.palantir.nexus.db.DBType;
 
 public class PostgresDbTableFactory implements DbTableFactory {
 
-    private final PostgresKeyValueServiceConfig config;
+    private final PostgresDdlConfig config;
     private final ExecutorService exec;
 
-    public PostgresDbTableFactory(PostgresKeyValueServiceConfig config) {
+    public PostgresDbTableFactory(PostgresDdlConfig config) {
         this.config = config;
-        int poolSize = config.shared().poolSize();
+        int poolSize = config.poolSize();
         this.exec = newFixedThreadPool(poolSize);
     }
 
@@ -67,7 +67,7 @@ public class PostgresDbTableFactory implements DbTableFactory {
 
     @Override
     public DbReadTable createRead(String tableName, ConnectionSupplier conns) {
-        return new BatchedDbReadTable(conns, new PostgresQueryFactory(tableName, config), exec, config.shared());
+        return new BatchedDbReadTable(conns, new PostgresQueryFactory(tableName, config), exec, config);
     }
 
     @Override

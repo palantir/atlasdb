@@ -15,17 +15,23 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
+import static com.fasterxml.jackson.annotation.JsonTypeInfo.As;
+import static com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
+
 import org.immutables.value.Value;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.google.common.base.Supplier;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbTableFactory;
 
-@JsonDeserialize(as = ImmutableDbSharedConfig.class)
-@JsonSerialize(as = ImmutableDbSharedConfig.class)
-@Value.Immutable
-public abstract class DbSharedConfig {
+@JsonTypeInfo(use = Id.NAME, include = As.PROPERTY, property = "type", visible = false)
+public abstract class DdlConfig {
+
+    public abstract String type();
+
+    public abstract Supplier<DbTableFactory> tableFactorySupplier();
 
     @Value.Default
     public TableReference metadataTable() {

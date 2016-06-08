@@ -15,23 +15,36 @@
  */
 package com.palantir.nexus.db.pool.config;
 
-import java.io.File;
-import java.util.Map;
+import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 import org.immutables.value.Value;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
+import com.codahale.metrics.SharedMetricRegistries;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.palantir.nexus.db.DBType;
-import com.palantir.nexus.db.manager.DBConfigConnectionParameter;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.util.DriverDataSource;
 
-@JsonDeserialize(as = ImmutableConnectionConfig.class)
-@JsonSerialize(as = ImmutableConnectionConfig.class)
-@Value.Immutable
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type", visible = false)
 public abstract class ConnectionConfig {
+
+    public abstract String type();
+
+    public abstract String getDbLogin();
+    public abstract String getDbPassword();
+
+    public abstract String getHost();
+    public abstract int getPort();
+
+    public abstract String getUrl();
+
+    public abstract String getDriverClass();
+
+    public abstract String getTestQuery();
+
+    @Value.Derived
+    public abstract DBType getDbType();
 
     @Value.Default
     public int getMinConnections() {
@@ -84,84 +97,38 @@ public abstract class ConnectionConfig {
     }
 
     @Value.Derived
-    public ImmutableMap<DBConfigConnectionParameter, String> getConnectionParameters() {
-        ImmutableMap.Builder<DBConfigConnectionParameter, String> builder =
-                ImmutableMap.<DBConfigConnectionParameter, String>builder()
-                        .put(DBConfigConnectionParameter.PROTOCOL, getProtocol().getUrlString());
-        if (getHost().isPresent()) {
-            builder.put(DBConfigConnectionParameter.HOST, getHost().get());
-        }
-        if (getPort().isPresent()) {
-            builder.put(DBConfigConnectionParameter.PORT, Integer.toString(getPort().get()));
-        }
-        if (getDbName().isPresent()) {
-            builder.put(DBConfigConnectionParameter.DBNAME, getDbName().get());
-        }
-        if (getSid().isPresent()) {
-            builder.put(DBConfigConnectionParameter.SID, getSid().get());
-        }
-        if (getMatchServerDn().isPresent()) {
-            builder.put(DBConfigConnectionParameter.MATCH_SERVER_DN, getMatchServerDn().get());
-        }
-        return builder.build();
-    }
+    public HikariConfig getHikariConfig() {
+        // Initialize the Hikari configuration
+        HikariConfig config = new HikariConfig();
 
-    public abstract String getDbLogin();
-    public abstract String getDbPassword();
-    public abstract DBType getDbType();
+        Properties props = getProperties();
 
-    // these are not really optional, but are made so for backwards compatibility
-    public abstract Optional<String> getHost();
-    public abstract Optional<Integer> getPort();
+        config.setPoolName("db-pool-" + getConnId() + "-" + getDbLogin());
+        config.setRegisterMbeans(true);
+        config.setMetricRegistry(SharedMetricRegistries.getOrCreate("com.palantir.metrics"));
 
-    public abstract Optional<String> getDbName();
-    public abstract Optional<String> getSid();
-    public abstract Optional<String> getMatchServerDn();
+        config.setMinimumIdle(getMinConnections());
+        config.setMaximumPoolSize(getMaxConnections());
 
-    @Value.Default
-    public ConnectionProtocol getProtocol() {
-        return ConnectionProtocol.TCP;
+        config.setMaxLifetime(TimeUnit.SECONDS.toMillis(getMaxConnectionAge()));
+        config.setIdleTimeout(TimeUnit.SECONDS.toMillis(getMaxIdleTime()));
+        config.setLeakDetectionThreshold(getUnreturnedConnectionTimeout());
+        config.setConnectionTimeout(getCheckoutTimeout());
+
+        // TODO: See if driver supports JDBC4 (isValid()) and use it.
+        config.setConnectionTestQuery(getTestQuery());
+
+        if (!props.isEmpty()) {
+            config.setDataSourceProperties(props);
+        }
+
+        config.setJdbcUrl(getUrl());
+        config.setDataSource(new DriverDataSource(getUrl(), getDriverClass(), props, null, null));
+
+        return config;
     }
 
     @Value.Derived
-    public String getUrl() {
-        String url = getDbType().getDefaultUrl() + getUrlSuffix();
-        for (Map.Entry<DBConfigConnectionParameter, String> propEntry : getConnectionParameters().entrySet()) {
-            String escapedValue = propEntry.getValue().replaceAll("\\\\","\\\\\\\\");
-            url = url.replaceAll("\\{" + propEntry.getKey().name() +"\\}", escapedValue);
-        }
-        return url;
-    }
-
-    @Value.Default
-    public String getUrlSuffix() {
-        return "";
-    }
-
-    @Value.Default
-    public String getDriverClass() {
-        return getDbType().getDriverName();
-    }
-
-    public abstract Optional<String> getKeystorePassword();
-
-    public abstract Optional<String> getKeystorePath();
-
-    public abstract Optional<String> getTruststorePath();
-
-    @Value.Check
-    protected final void check() {
-        if (getProtocol() == ConnectionProtocol.TCPS) {
-            Preconditions.checkArgument(getTruststorePath().isPresent(), "tcps requires a truststore");
-            Preconditions.checkArgument(new File(getTruststorePath().get()).exists(), "truststore file not found at %s", getTruststorePath().get());
-            if (getTwoWaySsl()) {
-                Preconditions.checkArgument(getKeystorePath().isPresent(), "two way ssl requires a keystore");
-                Preconditions.checkArgument(new File(getKeystorePath().get()).exists(), "keystore file not found at %s", getKeystorePath().get());
-                Preconditions.checkArgument(getKeystorePassword().isPresent(), "two way ssl requires a keystore password");
-            }
-        } else {
-            Preconditions.checkArgument(!getTwoWaySsl(), "two way ssl cannot be enabled without enabling tcps");
-        }
-    }
+    public abstract Properties getProperties();
 
 }

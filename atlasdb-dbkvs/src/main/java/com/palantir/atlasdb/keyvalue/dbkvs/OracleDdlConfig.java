@@ -17,27 +17,44 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import org.immutables.value.Value;
 
-import com.fasterxml.jackson.annotation.JsonTypeName;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.auto.service.AutoService;
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbTableFactory;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.PostgresDbTableFactory;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.OracleDbTableFactory;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.db.oracle.JdbcHandler;
 
 @AutoService(KeyValueServiceConfig.class)
-@JsonDeserialize(as = ImmutablePostgresKeyValueServiceConfig.class)
-@JsonSerialize(as = ImmutablePostgresKeyValueServiceConfig.class)
-@JsonTypeName(PostgresKeyValueServiceConfig.TYPE)
 @Value.Immutable
-public abstract class PostgresKeyValueServiceConfig extends DbKeyValueServiceConfig {
+public abstract class OracleDdlConfig extends DdlConfig {
 
-    public static final String TYPE = "postgres";
+    public static final String TYPE = "oracle";
+
+    public abstract JdbcHandler jdbcHandler();
+
+    @Value.Default
+    public String singleOverflowTable() {
+        return "atlas_overflow";
+    }
+
+    @Value.Default
+    public String overflowTablePrefix() {
+        return "ao_";
+    }
+
+    public abstract Supplier<Long> overflowIds();
+
+    public abstract OverflowMigrationState overflowMigrationState();
+
+    @Value.Default
+    public boolean enableOracleEnterpriseFeatures() {
+        return false;
+    }
 
     @Override
     public Supplier<DbTableFactory> tableFactorySupplier() {
-        return () -> new PostgresDbTableFactory(this);
+        return () -> new OracleDbTableFactory(this);
     }
 
     @Override

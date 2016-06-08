@@ -30,7 +30,7 @@ import com.google.common.collect.Ordering;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.keyvalue.dbkvs.OracleKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbWriteTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
@@ -43,11 +43,11 @@ public class OracleOverflowWriteTable implements DbWriteTable {
 
     private final String tableName;
     private final ConnectionSupplier conns;
-    private final OracleKeyValueServiceConfig config;
+    private final OracleDdlConfig config;
 
     public OracleOverflowWriteTable(String tableName,
                                     ConnectionSupplier conns,
-                                    OracleKeyValueServiceConfig config) {
+                                    OracleDdlConfig config) {
         this.tableName = tableName;
         this.conns = conns;
         this.config = config;
@@ -205,7 +205,7 @@ public class OracleOverflowWriteTable implements DbWriteTable {
     }
 
     private String prefixedTableName() {
-        return config.shared().tablePrefix() + tableName;
+        return config.tablePrefix() + tableName;
     }
 
     private String prefixedOverflowTableName() {

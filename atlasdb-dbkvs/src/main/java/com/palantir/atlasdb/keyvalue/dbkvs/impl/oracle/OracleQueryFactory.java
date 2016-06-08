@@ -26,16 +26,16 @@ import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
-import com.palantir.atlasdb.keyvalue.dbkvs.OracleKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbQueryFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.FullQuery;
 import com.palantir.db.oracle.JdbcHandler.ArrayHandler;
 
 public abstract class OracleQueryFactory implements DbQueryFactory {
     protected final String tableName;
-    protected final OracleKeyValueServiceConfig config;
+    protected final OracleDdlConfig config;
 
-    public OracleQueryFactory(String tableName, OracleKeyValueServiceConfig config) {
+    public OracleQueryFactory(String tableName, OracleDdlConfig config) {
         this.tableName = tableName;
         this.config = config;
     }
@@ -325,10 +325,10 @@ public abstract class OracleQueryFactory implements DbQueryFactory {
     }
 
     private String prefixedTableName() {
-        return config.shared().tablePrefix() + tableName;
+        return config.tablePrefix() + tableName;
     }
 
     private String structArrayPrefix() {
-        return config.shared().tablePrefix().toUpperCase();
+        return config.tablePrefix().toUpperCase();
     }
 }

@@ -17,8 +17,9 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import com.google.auto.service.AutoService;
 import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
@@ -41,10 +42,10 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
 
     @Override
     public TimestampService createTimestampService(KeyValueService rawKvs) {
-        Preconditions.checkArgument(rawKvs instanceof DbKvs, "DbAtlasDbFactory expects a raw kvs of type DbKvs, found %s", rawKvs.getClass());
-        DbKvs dbkvs = (DbKvs) rawKvs;
-        Preconditions.checkArgument(dbkvs.getConfig().connection().isPresent(),
-                "Connection configuration is not present. You must have a connection block in your atlas config.");
-        return PersistentTimestampService.create(InDbTimestampBoundStore.create(dbkvs.getConfig().connection().get()));
+        Preconditions.checkArgument(rawKvs instanceof ConnectionManagerAwareDbKvs,
+                "DbAtlasDbFactory expects a raw kvs of type ConnectionManagerAwareDbKvs, found %s", rawKvs.getClass());
+        ConnectionManagerAwareDbKvs dbkvs = (ConnectionManagerAwareDbKvs) rawKvs;
+        return PersistentTimestampService.create(
+                new InDbTimestampBoundStore(dbkvs.getConnectionManager(), AtlasDbConstants.TIMESTAMP_TABLE));
     }
 }

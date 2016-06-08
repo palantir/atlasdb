@@ -20,7 +20,7 @@ import java.util.List;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.palantir.atlasdb.keyvalue.dbkvs.OracleKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.FullQuery;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowValue;
@@ -29,7 +29,7 @@ import com.palantir.db.oracle.JdbcHandler.ArrayHandler;
 public class OracleOverflowQueryFactory extends OracleQueryFactory {
 
     public OracleOverflowQueryFactory(String tableName,
-                                      OracleKeyValueServiceConfig config) {
+                                      OracleDdlConfig config) {
         super(tableName, config);
     }
 
@@ -90,6 +90,6 @@ public class OracleOverflowQueryFactory extends OracleQueryFactory {
     }
 
     private String structArrayPrefix() {
-        return config.shared().tablePrefix().toUpperCase();
+        return config.tablePrefix().toUpperCase();
     }
 }
