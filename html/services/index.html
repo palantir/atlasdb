@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Releases &mdash; AtlasDB develop documentation</title>
+  <title>Services &mdash; AtlasDB develop documentation</title>
   
 
   
@@ -35,8 +35,8 @@
 
   
     <link rel="top" title="AtlasDB develop documentation" href="../index.html"/>
-        <link rel="next" title="Changelog" href="release-notes.html"/>
-        <link rel="prev" title="Contributing to AtlasDB" href="../miscellaneous/contributing.html"/> 
+        <link rel="next" title="Lock Service" href="lock_service/index.html"/>
+        <link rel="prev" title="Console" href="../cluster_management/console.html"/> 
 
   
   <script src="../_static/js/modernizr.min.js"></script>
@@ -91,13 +91,12 @@
 <li class="toctree-l1"><a class="reference internal" href="../transactions/index.html">Transactions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../configuration/index.html">Configuration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../cluster_management/index.html">Cluster Management</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../services/index.html">Services</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../miscellaneous/index.html">Miscellaneous</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Releases</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="release-notes.html">Changelog</a></li>
-<li class="toctree-l2"><a class="reference internal" href="release-process.html">Release Process</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Services</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="lock_service/index.html">Lock Service</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../miscellaneous/index.html">Miscellaneous</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release_notes/index.html">Releases</a></li>
 </ul>
 
             
@@ -128,11 +127,11 @@
   <ul class="wy-breadcrumbs">
     <li><a href="../index.html">Docs</a> &raquo;</li>
       
-    <li>Releases</li>
+    <li>Services</li>
       <li class="wy-breadcrumbs-aside">
         
           
-            <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/release_notes/index.rst" class="fa fa-github"> Edit on GitHub</a>
+            <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/services/index.rst" class="fa fa-github"> Edit on GitHub</a>
           
         
       </li>
@@ -142,12 +141,19 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="releases">
-<h1>Releases<a class="headerlink" href="#releases" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="services">
+<h1>Services<a class="headerlink" href="#services" title="Permalink to this headline">¶</a></h1>
+<p>AtlasDB relies on three distinct services. They are the Key Value Service, the Lock Service, and the Timestamp Service.
+Each of the services is described in detail below.  The intention of this documentation is to provide a high level overview of the architecture of
+each of the services as well as the guarentees they uphold.</p>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="release-notes.html">Changelog</a></li>
-<li class="toctree-l1"><a class="reference internal" href="release-process.html">Release Process</a></li>
+<li class="toctree-l1"><a class="reference internal" href="lock_service/index.html">Lock Service</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="lock_service/overview.html">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lock_service/installation.html">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lock_service/leader_election.html">Palantir Leader Election</a></li>
+</ul>
+</li>
 </ul>
 </div>
 </div>
@@ -159,10 +165,10 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="release-notes.html" class="btn btn-neutral float-right" title="Changelog" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="lock_service/index.html" class="btn btn-neutral float-right" title="Lock Service" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="../miscellaneous/contributing.html" class="btn btn-neutral" title="Contributing to AtlasDB" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="../cluster_management/console.html" class="btn btn-neutral" title="Console" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
