@@ -20,6 +20,7 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
 
@@ -38,6 +39,13 @@ public abstract class DbKeyValueServiceConfig implements KeyValueServiceConfig {
     @Override
     public final String type() {
         return TYPE;
+    }
+
+    @Value.Check
+    protected final void check() {
+        Preconditions.checkArgument(ddl().type().equals(connection().type()),
+                "ddl config (%s) and connection config (%s) must be for the same physical store",
+                ddl().type(), connection().type());
     }
 
 }
