@@ -703,7 +703,22 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
     }
 
     @Test
-    public void testCannotModifyValuesAfterGetRangeWithHistory() {
+    public void testCannotModifyValuesAfterGetRangeWithHistoryIfSupported() {
+        if (kvsSupportsGetRangeWithHistory()) {
+            testCannotModifyValuesAfterGetRangeWithHistory();
+        }
+    }
+
+    private boolean kvsSupportsGetRangeWithHistory() {
+        try {
+            keyValueService.getRangeWithHistory(TEST_TABLE, RangeRequest.all(), TEST_TIMESTAMP);
+            return true;
+        } catch (UnsupportedOperationException e) {
+            return false;
+        }
+    }
+
+    private void testCannotModifyValuesAfterGetRangeWithHistory() {
         Cell cell = Cell.create(row0, column0);
         byte[] unmodifiedData = writeToCell(cell, new byte[1]);
 
