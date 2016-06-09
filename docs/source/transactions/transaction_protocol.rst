@@ -199,7 +199,6 @@ downside if you don't get true read/write exclusion, you basically just
 get CAS semantics. This isn't a big deal because using a counter is the
 most common way to use this type of exclusion anyway.
 
-====================
 Proof of Correctness
 ====================
 
@@ -257,7 +256,6 @@ This is achieved because we post-filter all reads through the
 transaction table. If we find that transaction is rolled back, then we
 just delete it and retry the read.
 
-=====================
 Non-Obvious Semantics
 =====================
 
