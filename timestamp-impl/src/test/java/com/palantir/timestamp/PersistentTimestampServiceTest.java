@@ -46,13 +46,12 @@ import org.mockito.exceptions.verification.TooLittleActualInvocations;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Futures;
 import com.jayway.awaitility.Awaitility;
+import com.jayway.awaitility.Duration;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.common.time.Clock;
 
 public class PersistentTimestampServiceTest {
-
-    private static final long TWO_MINUTES_IN_MILLIS = 120000L;
 
     @Rule
     public final ExpectedException expectedException = ExpectedException.none();
@@ -86,14 +85,19 @@ public class PersistentTimestampServiceTest {
     @Test
     public void incrementUpperLimitIfOneMinuteElapsedSinceLastUpdate() throws InterruptedException {
         Clock clock = mock(Clock.class);
-        when(clock.getTimeMillis()).thenReturn(0L, TWO_MINUTES_IN_MILLIS, 2 * TWO_MINUTES_IN_MILLIS, 3 * TWO_MINUTES_IN_MILLIS);
+        when(clock.getTimeMillis())
+                .thenReturn(0L,
+                        minutesToMillis(2),
+                        minutesToMillis(4),
+                        minutesToMillis(6));
         TimestampBoundStore timestampBoundStore = initialTimestampBoundStore();
         PersistentTimestampService persistentTimestampService = PersistentTimestampService.create(timestampBoundStore, clock);
 
         persistentTimestampService.getFreshTimestamp();
         persistentTimestampService.getFreshTimestamp();
         Awaitility
-                .await()
+                .await("awaitStoreUpperLimitCalledAtLeastTwice")
+                .timeout(Duration.ONE_MINUTE)
                 .ignoreExceptionsMatching(e -> e.getCause() instanceof TooLittleActualInvocations)
                 .until(() -> {
                     try {
@@ -216,5 +220,9 @@ public class PersistentTimestampServiceTest {
         when(timestampBoundStore.getUpperLimit()).thenReturn(0L);
         doThrow(new MultipleRunningTimestampServiceError("error")).when(timestampBoundStore).storeUpperLimit(anyLong());
         return timestampBoundStore;
+    }
+
+    private static long minutesToMillis(long minutes) {
+        return TimeUnit.MINUTES.toMillis(minutes);
     }
 }
