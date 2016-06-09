@@ -19,6 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
@@ -508,7 +509,7 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         }
     }
 
-    public void testGetRangeWithHistory(boolean reverse) {
+    private void testGetRangeWithHistory(boolean reverse) {
         putTestDataForMultipleTimestamps();
         final RangeRequest range;
         if (!reverse) {
@@ -536,7 +537,7 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         }
     }
 
-    public void testGetRangeWithTimestamps(boolean reverse) {
+    private void testGetRangeWithTimestamps(boolean reverse) {
         putTestDataForMultipleTimestamps();
         final RangeRequest range;
         if (!reverse) {
@@ -660,21 +661,85 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
 
     @Test
     public void testCannotModifyValuesAfterWrite() {
-        byte[] data = new byte[1];
-        byte[] unmodifiedData = Arrays.copyOf(data, data.length);
-
         Cell cell = Cell.create(row0, column0);
-
-        Value val = Value.create(data, TEST_TIMESTAMP + 1);
-
-        keyValueService.putWithTimestamps(TEST_TABLE, ImmutableMultimap.of(cell, val));
+        byte[] data = new byte[1];
+        byte[] unmodifiedData = writeToCell(cell, data);
 
         data[0] = (byte) 50;
 
-        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(cell, TEST_TIMESTAMP + 3)).get(cell).getContents(),
-                is(unmodifiedData));
+        assertThat(getForCell(cell), is(unmodifiedData));
 
         keyValueService.delete(TEST_TABLE, ImmutableMultimap.of(cell, TEST_TIMESTAMP + 1));
+    }
+
+    @Test
+    public void testCannotModifyValuesAfterGetRows() {
+        Cell cell = Cell.create(row0, column0);
+        byte[] unmodifiedData = writeToCell(cell, new byte[1]);
+
+        getRowsForCell(cell)[0] = (byte) 50;
+
+        assertThat(getRowsForCell(cell), is(unmodifiedData));
+    }
+
+    @Test
+    public void testCannotModifyValuesAfterGet() {
+        Cell cell = Cell.create(row0, column0);
+        byte[] unmodifiedData = writeToCell(cell, new byte[1]);
+
+        getForCell(cell)[0] = (byte) 50;
+
+        assertThat(getForCell(cell), is(unmodifiedData));
+    }
+
+    @Test
+    public void testCannotModifyValuesAfterGetRange() {
+        Cell cell = Cell.create(row0, column0);
+        byte[] unmodifiedData = writeToCell(cell, new byte[1]);
+
+        getOnlyItemInTable()[0] = (byte) 50;
+
+        assertThat(getOnlyItemInTable(), is(unmodifiedData));
+    }
+
+    @Test
+    public void testCannotModifyValuesAfterGetRangeWithHistory() {
+        Cell cell = Cell.create(row0, column0);
+        byte[] unmodifiedData = writeToCell(cell, new byte[1]);
+
+        getOnlyItemInTableWithHistory()[0] = (byte) 50;
+
+        assertThat(getOnlyItemInTableWithHistory(), is(unmodifiedData));
+    }
+
+    private byte[] writeToCell(Cell cell, byte[] data) {
+        Value val = Value.create(data, TEST_TIMESTAMP + 1);
+        keyValueService.putWithTimestamps(TEST_TABLE, ImmutableMultimap.of(cell, val));
+        return Arrays.copyOf(data, data.length);
+    }
+
+    private byte[] getRowsForCell(Cell cell) {
+        return keyValueService.getRows(TEST_TABLE, ImmutableSet.of(cell.getRowName()), ColumnSelection.all(), TEST_TIMESTAMP + 3).get(cell).getContents();
+    }
+
+    private byte[] getForCell(Cell cell) {
+        return keyValueService.get(TEST_TABLE, ImmutableMap.of(cell, TEST_TIMESTAMP + 3)).get(cell).getContents();
+    }
+
+    private byte[] getOnlyItemInTable() {
+        ClosableIterator<RowResult<Value>> rangeIterator = keyValueService.getRange(TEST_TABLE, RangeRequest.all(), TEST_TIMESTAMP + 3);
+        byte[] contents = rangeIterator.next().getOnlyColumnValue().getContents();
+
+        assertFalse("There should only be one row in the table", rangeIterator.hasNext());
+        return contents;
+    }
+
+    private byte[] getOnlyItemInTableWithHistory() {
+        ClosableIterator<RowResult<Set<Value>>> rangeIterator = keyValueService.getRangeWithHistory(TEST_TABLE, RangeRequest.all(), TEST_TIMESTAMP + 3);
+        byte[] contents = Iterables.getOnlyElement(rangeIterator.next().getOnlyColumnValue()).getContents();
+
+        assertFalse("There should only be one row in the table", rangeIterator.hasNext());
+        return contents;
     }
 
     protected void putTestDataForMultipleTimestamps() {
