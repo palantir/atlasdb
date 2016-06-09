@@ -96,7 +96,11 @@ public class DbKvs extends AbstractKeyValueService {
         ReentrantManagedConnectionSupplier connSupplier = new ReentrantManagedConnectionSupplier(connManager);
         SqlConnectionSupplier sqlConnSupplier = getSimpleTimedSqlConnectionSupplier(connSupplier);
 
-        return new DbKvs(config, config.tableFactorySupplier().get(), sqlConnSupplier);
+        DbKvs dbKvs = new DbKvs(config, config.tableFactorySupplier().get(), sqlConnSupplier);
+
+        dbKvs.init();
+
+        return dbKvs;
     }
 
     private static SqlConnectionSupplier getSimpleTimedSqlConnectionSupplier(ReentrantManagedConnectionSupplier connectionSupplier) {
@@ -149,6 +153,21 @@ public class DbKvs extends AbstractKeyValueService {
         this.config = config;
         this.dbTables = dbTables;
         this.connections = connections;
+    }
+
+
+    private void init() {
+        createMetadataTable();
+    }
+
+    private void createMetadataTable() {
+        runDdl(AtlasDbConstants.METADATA_TABLE, new Function<DbDdlTable, Void>() {
+            @Override
+            public Void apply(DbDdlTable table) {
+                table.createMetadataTable();
+                return null;
+            }
+        });
     }
 
     public DbKeyValueServiceConfig getConfig() {
@@ -786,7 +805,7 @@ public class DbKvs extends AbstractKeyValueService {
     private <T> T runMetadata(TableReference tableRef, Function<DbMetadataTable, T> runner) {
         ConnectionSupplier conns = new ConnectionSupplier(connections);
         try {
-            return runner.apply(dbTables.createMetadata(tableRef.getQualifiedName(), conns));
+            return runner.apply(dbTables.createMetadata(internalTableName(tableRef), conns));
         } finally {
             conns.close();
         }
@@ -795,7 +814,7 @@ public class DbKvs extends AbstractKeyValueService {
     private <T> T runDdl(TableReference tableRef, Function<DbDdlTable, T> runner) {
         ConnectionSupplier conns = new ConnectionSupplier(connections);
         try {
-            return runner.apply(dbTables.createDdl(tableRef.getQualifiedName(), conns));
+            return runner.apply(dbTables.createDdl(internalTableName(tableRef), conns));
         } finally {
             conns.close();
         }
@@ -804,7 +823,7 @@ public class DbKvs extends AbstractKeyValueService {
     private <T> T runRead(TableReference tableRef, Function<DbReadTable, T> runner) {
         ConnectionSupplier conns = new ConnectionSupplier(connections);
         try {
-            return runner.apply(dbTables.createRead(tableRef.getQualifiedName(), conns));
+            return runner.apply(dbTables.createRead(internalTableName(tableRef), conns));
         } finally {
             conns.close();
         }
@@ -813,7 +832,7 @@ public class DbKvs extends AbstractKeyValueService {
     private <T> T runWrite(TableReference tableRef, Function<DbWriteTable, T> runner) {
         ConnectionSupplier conns = new ConnectionSupplier(connections);
         try {
-            return runner.apply(dbTables.createWrite(tableRef.getQualifiedName(), conns));
+            return runner.apply(dbTables.createWrite(internalTableName(tableRef), conns));
         } finally {
             conns.close();
         }
@@ -834,7 +853,7 @@ public class DbKvs extends AbstractKeyValueService {
             if (!autocommit) {
                 return runWriteFreshConnection(conns, tableRef, runner);
             } else {
-                return runner.apply(dbTables.createWrite(tableRef.getQualifiedName(), conns));
+                return runner.apply(dbTables.createWrite(internalTableName(tableRef), conns));
             }
         } finally {
             conns.close();
@@ -854,7 +873,7 @@ public class DbKvs extends AbstractKeyValueService {
             public void run() {
                 SqlConnection freshConn = conns.getFresh();
                 try {
-                    result.set(runner.apply(dbTables.createWrite(tableRef.getQualifiedName(), new ConnectionSupplier(Suppliers.ofInstance(freshConn)))));
+                    result.set(runner.apply(dbTables.createWrite(internalTableName(tableRef), new ConnectionSupplier(Suppliers.ofInstance(freshConn)))));
                 } finally {
                     try {
                         Connection c = freshConn.getUnderlyingConnection();

@@ -138,6 +138,11 @@ public class OracleDdlTable implements DbDdlTable {
         }
     }
 
+    @Override
+    public void createMetadataTable() {
+        throw new UnsupportedOperationException("Cannot instantiate a Oracle metadata table.");
+    }
+
     private String prefixedTableName() {
         return config.shared().tablePrefix() + tableName;
     }

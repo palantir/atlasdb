@@ -7,10 +7,6 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 public class DbkvsKeyValueServiceSweeperTest extends AbstractSweeperTest {
     @Override
     protected KeyValueService getKeyValueService() {
-
         return DbKvs.create(DbkvsTestSuite.POSTGRES_KVS_CONFIG);
-
-//        return CassandraKeyValueService.create(
-//                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.POSTGRES_KVS_CONFIG));
     }
 }

@@ -71,7 +71,6 @@ public class DbkvsTestSuite {
                 .dbType(DBType.POSTGRESQL)
                 .host(POSTGRES_ADDRESS.getHostName())
                 .port(POSTGRES_ADDRESS.getPort())
-                .twoWaySsl(true)
                 .build();
 
         POSTGRES_KVS_CONFIG = ImmutablePostgresKeyValueServiceConfig.builder()

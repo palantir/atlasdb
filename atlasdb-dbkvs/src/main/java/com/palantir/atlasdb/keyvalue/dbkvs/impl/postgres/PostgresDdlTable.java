@@ -103,6 +103,19 @@ public class PostgresDdlTable implements DbDdlTable {
         conns.get().executeUnregisteredQuery("VACUUM ANALYZE " + prefixedTableName());
     }
 
+    @Override
+    public void createMetadataTable() {
+        executeIgnoringError(
+                "CREATE TABLE " + tableName + " (" +
+                "  table_name VARCHAR(2000) NOT NULL," +
+                "  table_size BIGINT NOT NULL," +
+                "  value      BYTEA NULL," +
+                "  gc_ts      INT8 DEFAULT -1," +
+                "  CONSTRAINT pk_" + tableName + " PRIMARY KEY (table_name) " +
+                ")",
+                "already exists");
+    }
+
     private String prefixedTableName() {
         return config.shared().tablePrefix() + tableName;
     }
