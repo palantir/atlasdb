@@ -49,16 +49,16 @@ Lets assume we are reading Cell c.
 1. Read from the KV store and get the most recent data with TS <
    startTs.
 2. Get a read lock on the transaction row for c.startTs (not needed if
-   c.startTs is less than immutatableTs) This is to wait to make sure
+   c.startTs is less than immutableTs). This is to wait to make sure
    the transaction that wrote it is done.
 3. Read the transaction table for the commitTs.
 4. One of two actions:
    
-   a. If commitTs doesn't exists try to roll back this transaction and
-   start over. If it is -1 (been rolled back) delete the associated data
+   a. If commitTs doesn't exist, try to roll back this transaction and
+   start over. If it is -1 (been rolled back), delete the associated data
    and start over.
    
-   b. If c.commitTs greater than your startTs skip it and move on to the
+   b. If c.commitTs greater than your startTs, skip it and move on to the
    next highest TS for the cell.
 
 Immutable Timestamp
@@ -188,23 +188,9 @@ fairness of these transactions. If read operations keep coming in and
 are fast then a write operation may keep retrying and get starved and
 never complete.
 
-.. raw:: html
-
-   <div>
-
 The easiest way to implement this read/write conflict would be to check
 the last value that was successfully committed to the cell and see if it
-was equal
-
-.. raw:: html
-
-   </div>
-
-.. raw:: html
-
-   <div>
-
-to the value being stored. This way if you are just doing a touch you
+was equal to the value being stored. This way if you are just doing a touch you
 are basically checking that the last committer put the value that you
 are storing. This will work the same as a compare and swap check. This
 version is more scalable because you only have to check the most recent
@@ -212,10 +198,6 @@ successful commit and not all commits after your start time. The
 downside if you don't get true read/write exclusion, you basically just
 get CAS semantics. This isn't a big deal because using a counter is the
 most common way to use this type of exclusion anyway.
-
-.. raw:: html
-
-   </div>
 
 Proof of Correctness
 ====================
@@ -241,7 +223,7 @@ Lock Timeouts After Validation
 
 What if locks time out after we do the check that they are still valid?
 If locks time out while writing to the transaction table we depend on
-the putUnlessExist to arbitrate whether a transaction is committed or
+the putUnlessExists to arbitrate whether a transaction is committed or
 not. If the transaction hangs while trying to commit then it is possible
 a reader will come roll it back. In this case we will need to retry our
 transaction, but we don't expect this to happen in normal cases. If the

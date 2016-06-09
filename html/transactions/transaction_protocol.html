@@ -188,16 +188,16 @@ with our commit timestamp.</li>
 startTs.</p>
 </li>
 <li><p class="first">Get a read lock on the transaction row for c.startTs (not needed if
-c.startTs is less than immutatableTs) This is to wait to make sure
+c.startTs is less than immutableTs). This is to wait to make sure
 the transaction that wrote it is done.</p>
 </li>
 <li><p class="first">Read the transaction table for the commitTs.</p>
 </li>
 <li><p class="first">One of two actions:</p>
-<p>a. If commitTs doesn&#8217;t exists try to roll back this transaction and
-start over. If it is -1 (been rolled back) delete the associated data
+<p>a. If commitTs doesn&#8217;t exist, try to roll back this transaction and
+start over. If it is -1 (been rolled back), delete the associated data
 and start over.</p>
-<p>b. If c.commitTs greater than your startTs skip it and move on to the
+<p>b. If c.commitTs greater than your startTs, skip it and move on to the
 next highest TS for the cell.</p>
 </li>
 </ol>
@@ -315,10 +315,9 @@ other write operation to this object we read and touch this counter.</p>
 fairness of these transactions. If read operations keep coming in and
 are fast then a write operation may keep retrying and get starved and
 never complete.</p>
-<div><p>The easiest way to implement this read/write conflict would be to check
+<p>The easiest way to implement this read/write conflict would be to check
 the last value that was successfully committed to the cell and see if it
-was equal</p>
-</div><div><p>to the value being stored. This way if you are just doing a touch you
+was equal to the value being stored. This way if you are just doing a touch you
 are basically checking that the last committer put the value that you
 are storing. This will work the same as a compare and swap check. This
 version is more scalable because you only have to check the most recent
@@ -326,7 +325,7 @@ successful commit and not all commits after your start time. The
 downside if you don&#8217;t get true read/write exclusion, you basically just
 get CAS semantics. This isn&#8217;t a big deal because using a counter is the
 most common way to use this type of exclusion anyway.</p>
-</div><div class="section" id="proof-of-correctness">
+<div class="section" id="proof-of-correctness">
 <h3>Proof of Correctness<a class="headerlink" href="#proof-of-correctness" title="Permalink to this headline">¶</a></h3>
 <p>If we want to prove that this protocol works this means that we need to
 show that if a transaction commits before our start timestamp then we
@@ -347,7 +346,7 @@ store has durable writes so these rows will be read.</p>
 <h2>Lock Timeouts After Validation<a class="headerlink" href="#lock-timeouts-after-validation" title="Permalink to this headline">¶</a></h2>
 <p>What if locks time out after we do the check that they are still valid?
 If locks time out while writing to the transaction table we depend on
-the putUnlessExist to arbitrate whether a transaction is committed or
+the putUnlessExists to arbitrate whether a transaction is committed or
 not. If the transaction hangs while trying to commit then it is possible
 a reader will come roll it back. In this case we will need to retry our
 transaction, but we don&#8217;t expect this to happen in normal cases. If the
