@@ -15,6 +15,9 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
+import static java.util.Collections.emptyMap;
+import static java.util.stream.Collectors.toMap;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertArrayEquals;
@@ -27,6 +30,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.function.Function;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.junit.After;
@@ -42,6 +46,7 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -675,6 +680,33 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
                 is(unmodifiedData));
 
         keyValueService.delete(TEST_TABLE, ImmutableMultimap.of(cell, TEST_TIMESTAMP + 1));
+    }
+
+    @Test
+    public void shouldAllowRemovingAllCellsInDynamicColumns() {
+        keyValueService.createTable(DynamicColumnTable.name(), DynamicColumnTable.metadata());
+        byte[] row = PtBytes.toBytes(123L);
+
+        ImmutableList<Cell> cells = ImmutableList.of(
+                Cell.create(row, dynamicColumn(1)),
+                Cell.create(row, dynamicColumn(2))
+        );
+
+        long timestamp = 456L;
+
+        Map<Cell, Long> valuesToGet = cells.stream().collect(toMap(Function.identity(), (key) -> Long.MAX_VALUE));
+        Map<Cell, Long> valuesToDelete = cells.stream().collect(toMap(Function.identity(), (key) -> timestamp));
+        Map<Cell, byte[]> valuesToPut = cells.stream().collect(toMap(Function.identity(), (key) -> PtBytes.toBytes(123L)));
+
+
+        keyValueService.put(DynamicColumnTable.name(), valuesToPut, timestamp);
+        keyValueService.delete(DynamicColumnTable.name(), Multimaps.forMap(valuesToDelete));
+
+        assertThat(keyValueService.get(DynamicColumnTable.name(), valuesToGet), is(emptyMap()));
+    }
+
+    private byte[] dynamicColumn(long columnId) {
+        return PtBytes.toBytes(columnId);
     }
 
     protected void putTestDataForMultipleTimestamps() {
