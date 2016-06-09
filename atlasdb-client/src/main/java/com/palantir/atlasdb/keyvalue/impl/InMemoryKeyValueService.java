@@ -112,7 +112,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
                     if (lastEntry != null) {
                         long ts = lastEntry.getKey().ts;
                         byte[] value = lastEntry.getValue();
-                        result.put(Cell.create(row, key.col), Value.create(value, ts));
+                        result.put(Cell.create(row, key.col), Value.create(Arrays.copyOf(value, value.length), ts));
                     }
                 }
                 Iterators.size(cellIter);
@@ -134,7 +134,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
                 if (key.matchesCell(cell)) {
                     long ts = lastEntry.getKey().ts;
                     byte[] value = lastEntry.getValue();
-                    result.put(cell, Value.create(value, ts));
+                    result.put(cell, Value.create(Arrays.copyOf(value, value.length), ts));
                 }
             }
         }
@@ -164,7 +164,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
                 if (lastEntry != null) {
                     long ts = lastEntry.getKey().ts;
                     byte[] value = lastEntry.getValue();
-                    return Value.create(value, ts);
+                    return Value.create(Arrays.copyOf(value, value.length), ts);
                 } else {
                     return null;
                 }
@@ -207,7 +207,8 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
                     if (key.ts >= timestamp) {
                         break;
                     }
-                    values.add(Value.create(entry.getValue(), key.ts));
+                    byte[] value = entry.getValue();
+                    values.add(Value.create(Arrays.copyOf(value, value.length), key.ts));
                 }
                 if (!values.isEmpty()) {
                     return values;
