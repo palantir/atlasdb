@@ -213,9 +213,15 @@ public class CassandraClientPool {
     private void checkAndUpdateBlacklist() {
         // Check blacklist and re-integrate or continue to wait as necessary
         for (Map.Entry<InetSocketAddress, Long> blacklistedEntry : blacklistedHosts.entrySet()) {
+            checkAndUpdateBlacklistOnHost(blacklistedEntry.getKey());
+        }
+    }
+
+    private void checkAndUpdateBlacklistOnHost(InetSocketAddress host) {
+        Long blacklistTime = blacklistedHosts.get(host);
+        if (blacklistTime != null) {
             long backoffTimeMillis = TimeUnit.SECONDS.toMillis(config.unresponsiveHostBackoffTimeSeconds());
-            if (blacklistedEntry.getValue() + backoffTimeMillis < System.currentTimeMillis()) {
-                InetSocketAddress host = blacklistedEntry.getKey();
+            if (blacklistTime + backoffTimeMillis < System.currentTimeMillis()) {
                 if (isHostHealthy(host)) {
                     blacklistedHosts.remove(host);
                     log.error("Added host {} back into the pool after a waiting period and successful health check.", host);
@@ -417,7 +423,12 @@ public class CassandraClientPool {
             }
 
             try {
-                return hostPool.runWithPooledResource(f);
+                V result = hostPool.runWithPooledResource(f);
+                InetSocketAddress host = hostPool.getHost();
+                if (blacklistedHosts.containsKey(host)) {
+                    refreshDaemon.submit(() -> checkAndUpdateBlacklistOnHost(host));
+                }
+                return result;
             } catch (Exception e) {
                 numTries++;
                 this.<K>handleException(numTries, hostPool.getHost(), e);
