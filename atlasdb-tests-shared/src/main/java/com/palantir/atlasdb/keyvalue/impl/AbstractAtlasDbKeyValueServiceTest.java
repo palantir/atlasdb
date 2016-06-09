@@ -677,7 +677,7 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         Cell cell = Cell.create(row0, column0);
         byte[] unmodifiedData = writeToCell(cell, new byte[1]);
 
-        getRowsForCell(cell)[0] = (byte) 50;
+        modifyReference(getRowsForCell(cell));
 
         assertThat(getRowsForCell(cell), is(unmodifiedData));
     }
@@ -687,7 +687,7 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         Cell cell = Cell.create(row0, column0);
         byte[] unmodifiedData = writeToCell(cell, new byte[1]);
 
-        getForCell(cell)[0] = (byte) 50;
+        modifyReference(getForCell(cell));
 
         assertThat(getForCell(cell), is(unmodifiedData));
     }
@@ -697,9 +697,9 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         Cell cell = Cell.create(row0, column0);
         byte[] unmodifiedData = writeToCell(cell, new byte[1]);
 
-        getOnlyItemInTable()[0] = (byte) 50;
+        modifyReference(getOnlyItemInTableRange());
 
-        assertThat(getOnlyItemInTable(), is(unmodifiedData));
+        assertThat(getOnlyItemInTableRange(), is(unmodifiedData));
     }
 
     @Test
@@ -707,9 +707,13 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         Cell cell = Cell.create(row0, column0);
         byte[] unmodifiedData = writeToCell(cell, new byte[1]);
 
-        getOnlyItemInTableWithHistory()[0] = (byte) 50;
+        modifyReference(getOnlyItemInTableRangeWithHistory());
 
-        assertThat(getOnlyItemInTableWithHistory(), is(unmodifiedData));
+        assertThat(getOnlyItemInTableRangeWithHistory(), is(unmodifiedData));
+    }
+
+    private void modifyReference(byte[] retrievedValue) {
+        retrievedValue[0] = (byte) 50;
     }
 
     private byte[] writeToCell(Cell cell, byte[] data) {
@@ -726,7 +730,7 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         return keyValueService.get(TEST_TABLE, ImmutableMap.of(cell, TEST_TIMESTAMP + 3)).get(cell).getContents();
     }
 
-    private byte[] getOnlyItemInTable() {
+    private byte[] getOnlyItemInTableRange() {
         ClosableIterator<RowResult<Value>> rangeIterator = keyValueService.getRange(TEST_TABLE, RangeRequest.all(), TEST_TIMESTAMP + 3);
         byte[] contents = rangeIterator.next().getOnlyColumnValue().getContents();
 
@@ -734,7 +738,7 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         return contents;
     }
 
-    private byte[] getOnlyItemInTableWithHistory() {
+    private byte[] getOnlyItemInTableRangeWithHistory() {
         ClosableIterator<RowResult<Set<Value>>> rangeIterator = keyValueService.getRangeWithHistory(TEST_TABLE, RangeRequest.all(), TEST_TIMESTAMP + 3);
         byte[] contents = Iterables.getOnlyElement(rangeIterator.next().getOnlyColumnValue()).getContents();
 
