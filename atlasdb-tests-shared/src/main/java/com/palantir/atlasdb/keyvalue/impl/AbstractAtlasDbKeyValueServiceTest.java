@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.keyvalue.impl;
 
 import static java.util.Collections.emptyMap;
-import static java.util.stream.Collectors.toMap;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
@@ -30,7 +29,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.function.Function;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.junit.After;
@@ -84,6 +82,7 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
     protected static final byte[] metadata0 = "metadata0".getBytes();
 
     protected static final long TEST_TIMESTAMP = 1000000l;
+    private static final long MAX_TIMESTAMP = Long.MAX_VALUE;
 
     protected KeyValueService keyValueService;
 
@@ -616,19 +615,19 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         putTestDataForMultipleTimestamps();
         Cell cell = Cell.create(row0, column0);
 
-        Multimap<Cell, Long> timestampsBefore = keyValueService.getAllTimestamps(TEST_TABLE, ImmutableSet.of(cell), Long.MAX_VALUE);
+        Multimap<Cell, Long> timestampsBefore = keyValueService.getAllTimestamps(TEST_TABLE, ImmutableSet.of(cell), MAX_TIMESTAMP);
         assertEquals(2, timestampsBefore.size());
         assertTrue(!timestampsBefore.containsEntry(cell, Value.INVALID_VALUE_TIMESTAMP));
 
         keyValueService.addGarbageCollectionSentinelValues(TEST_TABLE, ImmutableSet.of(cell));
 
-        Multimap<Cell, Long> timestampsAfter1 = keyValueService.getAllTimestamps(TEST_TABLE, ImmutableSet.of(cell), Long.MAX_VALUE);
+        Multimap<Cell, Long> timestampsAfter1 = keyValueService.getAllTimestamps(TEST_TABLE, ImmutableSet.of(cell), MAX_TIMESTAMP);
         assertEquals(3, timestampsAfter1.size());
         assertTrue(timestampsAfter1.containsEntry(cell, Value.INVALID_VALUE_TIMESTAMP));
 
         keyValueService.addGarbageCollectionSentinelValues(TEST_TABLE, ImmutableSet.of(cell));
 
-        Multimap<Cell, Long> timestampsAfter2 = keyValueService.getAllTimestamps(TEST_TABLE, ImmutableSet.of(cell), Long.MAX_VALUE);
+        Multimap<Cell, Long> timestampsAfter2 = keyValueService.getAllTimestamps(TEST_TABLE, ImmutableSet.of(cell), MAX_TIMESTAMP);
         assertEquals(3, timestampsAfter2.size());
         assertTrue(timestampsAfter2.containsEntry(cell, Value.INVALID_VALUE_TIMESTAMP));
     }
@@ -636,7 +635,7 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
     @Test
     public void testGetRangeThrowsOnError() {
         try {
-            keyValueService.getRange(TEST_NONEXISTING_TABLE, RangeRequest.all(), Long.MAX_VALUE).hasNext();
+            keyValueService.getRange(TEST_NONEXISTING_TABLE, RangeRequest.all(), MAX_TIMESTAMP).hasNext();
             Assert.fail("getRange must throw on failure");
         } catch (RuntimeException e) {
             // Expected
@@ -646,7 +645,7 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
     @Test
     public void testGetRangeWithHistoryThrowsOnError() {
         try {
-            keyValueService.getRangeWithHistory(TEST_NONEXISTING_TABLE, RangeRequest.all(), Long.MAX_VALUE).hasNext();
+            keyValueService.getRangeWithHistory(TEST_NONEXISTING_TABLE, RangeRequest.all(), MAX_TIMESTAMP).hasNext();
             Assert.fail("getRangeWithHistory must throw on failure");
         } catch (RuntimeException e) {
             // Expected
@@ -656,7 +655,7 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
     @Test
     public void testGetRangeOfTimestampsThrowsOnError() {
         try {
-            keyValueService.getRangeOfTimestamps(TEST_NONEXISTING_TABLE, RangeRequest.all(), Long.MAX_VALUE).hasNext();
+            keyValueService.getRangeOfTimestamps(TEST_NONEXISTING_TABLE, RangeRequest.all(), MAX_TIMESTAMP).hasNext();
             Assert.fail("getRangeOfTimestamps must throw on failure");
         } catch (RuntimeException e) {
             // Expected
@@ -687,16 +686,19 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         keyValueService.createTable(DynamicColumnTable.name(), DynamicColumnTable.metadata());
         byte[] row = PtBytes.toBytes(123L);
 
+        Cell cell1 = Cell.create(row, dynamicColumn(1));
+        Cell cell2 = Cell.create(row, dynamicColumn(2));
         ImmutableList<Cell> cells = ImmutableList.of(
-                Cell.create(row, dynamicColumn(1)),
-                Cell.create(row, dynamicColumn(2))
+                cell1,
+                cell2
         );
 
         long timestamp = 456L;
+        byte[] value = PtBytes.toBytes(123L);
 
-        Map<Cell, Long> valuesToGet = cells.stream().collect(toMap(Function.identity(), (key) -> Long.MAX_VALUE));
-        Map<Cell, Long> valuesToDelete = cells.stream().collect(toMap(Function.identity(), (key) -> timestamp));
-        Map<Cell, byte[]> valuesToPut = cells.stream().collect(toMap(Function.identity(), (key) -> PtBytes.toBytes(123L)));
+        Map<Cell, Long> valuesToGet = ImmutableMap.of(cell1, MAX_TIMESTAMP, cell2, MAX_TIMESTAMP);
+        Map<Cell, Long> valuesToDelete = ImmutableMap.of(cell1, timestamp, cell2, timestamp);
+        Map<Cell, byte[]> valuesToPut = ImmutableMap.of(cell1, value, cell2, value);
 
 
         keyValueService.put(DynamicColumnTable.name(), valuesToPut, timestamp);
