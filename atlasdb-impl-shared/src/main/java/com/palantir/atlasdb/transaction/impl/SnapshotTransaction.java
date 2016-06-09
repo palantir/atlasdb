@@ -1102,7 +1102,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 checkConstraints();
                 commitWrites(transactionService);
             }
-            perfLogger.debug("Commited transaction {} in {}ms",
+            perfLogger.debug("Committed transaction {} in {}ms",
                     getStartTimestamp(),
                     getTrasactionTimer().elapsed(TimeUnit.MILLISECONDS));
             success = true;
