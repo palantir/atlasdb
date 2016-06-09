@@ -111,7 +111,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
                     }
                     if (lastEntry != null) {
                         long ts = lastEntry.getKey().ts;
-                        result.put(Cell.create(row, key.col), Value.create(copy(lastEntry.getValue()), ts));
+                        result.put(Cell.create(row, key.col), Value.createWithCopyOfData(lastEntry.getValue(), ts));
                     }
                 }
                 Iterators.size(cellIter);
@@ -132,7 +132,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
                 Key key = lastEntry.getKey();
                 if (key.matchesCell(cell)) {
                     long ts = lastEntry.getKey().ts;
-                    result.put(cell, Value.create(copy(lastEntry.getValue()), ts));
+                    result.put(cell, Value.createWithCopyOfData(lastEntry.getValue(), ts));
                 }
             }
         }
@@ -161,7 +161,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
                 }
                 if (lastEntry != null) {
                     long ts = lastEntry.getKey().ts;
-                    return Value.create(copy(lastEntry.getValue()), ts);
+                    return Value.createWithCopyOfData(lastEntry.getValue(), ts);
                 } else {
                     return null;
                 }
@@ -204,7 +204,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
                     if (key.ts >= timestamp) {
                         break;
                     }
-                    values.add(Value.create(copy(entry.getValue()), key.ts));
+                    values.add(Value.createWithCopyOfData(entry.getValue(), key.ts));
                 }
                 if (!values.isEmpty()) {
                     return values;
@@ -213,10 +213,6 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
                 }
             }
         });
-    }
-
-    private byte[] copy(byte[] value) {
-        return Arrays.copyOf(value, value.length);
     }
 
     private <T> ClosableIterator<RowResult<T>> getRangeInternal(TableReference tableRef,
@@ -338,7 +334,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
                 // Save memory by sharing rows.
                 row = nextKey.row;
             }
-            byte[] oldContents = table.entries.putIfAbsent(new Key(row, col, timestamp), copy(contents));
+            byte[] oldContents = table.entries.putIfAbsent(new Key(row, col, timestamp), Arrays.copyOf(contents, contents.length));
             if (oldContents != null && (doNotOverwriteWithSameValue || !Arrays.equals(oldContents, contents))) {
                 throw new KeyAlreadyExistsException("We already have a value for this timestamp");
             }

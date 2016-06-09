@@ -45,6 +45,12 @@ public class Value implements Serializable {
         return new Value(contents, timestamp);
     }
 
+    @JsonCreator
+    public static Value createWithCopyOfData(@JsonProperty("contents") byte[] contents,
+                                             @JsonProperty("timestamp") long timestamp) {
+        return Value.create(Arrays.copyOf(contents, contents.length), timestamp);
+    }
+
     /**
      * The contents of the value.
      */
