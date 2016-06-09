@@ -688,10 +688,6 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
 
         Cell cell1 = Cell.create(row, dynamicColumn(1));
         Cell cell2 = Cell.create(row, dynamicColumn(2));
-        ImmutableList<Cell> cells = ImmutableList.of(
-                cell1,
-                cell2
-        );
 
         long timestamp = 456L;
         byte[] value = PtBytes.toBytes(123L);
