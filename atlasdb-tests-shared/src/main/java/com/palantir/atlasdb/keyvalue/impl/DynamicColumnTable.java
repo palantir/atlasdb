@@ -29,7 +29,7 @@ public class DynamicColumnTable {
             value(ValueType.FIXED_LONG);
     }};
 
-    public static TableReference name() {
+    public static TableReference reference() {
         return TableReference.create(Namespace.DEFAULT_NAMESPACE, "dynamicColumnsTable");
     }
 
