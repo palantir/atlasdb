@@ -219,7 +219,7 @@ public final class ClientAwareLockTest {
 
     /** Tests that locks obey fair ordering. */
     @Test public void testFairness() throws Exception {
-        final Queue<String> orderingQueue = new ConcurrentLinkedQueue<>();
+        final Queue<String> orderingQueue = new ConcurrentLinkedQueue<String>();
         anonymousReadLock.lock();
         addLockToQueue(anonymousWriteLock, orderingQueue, "one");
         addLockToQueue(anonymousReadLock, orderingQueue, "two");
@@ -237,12 +237,15 @@ public final class ClientAwareLockTest {
 
     private <T> void addLockToQueue(final KnownClientLock lock, final Queue<? super T> queue,
             final T index) throws Exception {
-        executor.submit((Callable<Void>) () -> {
-            barrier.await();
-            lock.lock();
-            queue.add(index);
-            lock.unlock();
-            return null;
+        executor.submit(new Callable<Void>() {
+            @Override
+            public Void call() throws Exception {
+                barrier.await();
+                lock.lock();
+                queue.add(index);
+                lock.unlock();
+                return null;
+            }
         });
         barrier.await();
         Thread.sleep(20);
