@@ -34,13 +34,11 @@ import com.palantir.nexus.db.pool.config.ImmutableConnectionConfig;
 @RunWith(Suite.class)
 @SuiteClasses({
 //        CassandraConnectionTest.class,
-//        CassandraKeyValueServiceSerializableTransactionTest.class,
-//        CassandraKeyValueServiceSweeperTest.class,
 //        CassandraTimestampTest.class,
-//        CassandraKeyValueServiceTest.class,
 //        CassandraDbLockTest.class,
 //        CassandraLegacyLockTest.class
 
+        DbkvsKeyValueServiceSerializableTransactionTest.class,
         DbkvsKeyValueServiceSweeperTest.class
 
 })
