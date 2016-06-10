@@ -334,7 +334,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
                 // Save memory by sharing rows.
                 row = nextKey.row;
             }
-            byte[] oldContents = table.entries.putIfAbsent(new Key(row, col, timestamp), Arrays.copyOf(contents, contents.length));
+            byte[] oldContents = table.entries.putIfAbsent(new Key(row, col, timestamp), copyOf(contents));
             if (oldContents != null && (doNotOverwriteWithSameValue || !Arrays.equals(oldContents, contents))) {
                 throw new KeyAlreadyExistsException("We already have a value for this timestamp");
             }
@@ -404,6 +404,10 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     @Override
     public Set<TableReference> getAllTableNames() {
         return ImmutableSet.copyOf(tables.keySet());
+    }
+
+    private byte[] copyOf(byte[] contents) {
+        return Arrays.copyOf(contents, contents.length);
     }
 
     static class Table {
