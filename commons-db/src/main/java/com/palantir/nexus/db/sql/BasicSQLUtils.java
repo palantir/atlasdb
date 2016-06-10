@@ -255,17 +255,6 @@ public class BasicSQLUtils {
 
     private static final Logger cancelLogger = LogManager.getLogger("SQLUtils.cancel"); //$NON-NLS-1$
 
-
-    /**
-     * @Deprecated DCohen will remove after updating consumers to use the new version.
-     */
-    @Deprecated
-    public static <T> T runUninterruptably(final Callable<T> callable, String threadString
-                                           ) throws PalantirSqlException {
-        return runUninterruptably(callable, threadString, null);
-    }
-
-
     /** Helper method for wrapping quick calls that don't appreciate being interrupted.
      * Passes all exceptions and errors back to the client.
      * Runs in another thread - do not acquire connections from within the callable (it will fail).
