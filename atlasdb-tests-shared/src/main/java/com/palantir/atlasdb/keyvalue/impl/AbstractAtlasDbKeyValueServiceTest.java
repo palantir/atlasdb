@@ -682,6 +682,19 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
     }
 
     @Test
+    public void shouldAllowNotHavingAnyDynamicColumns() {
+        keyValueService.createTable(DynamicColumnTable.reference(), DynamicColumnTable.metadata());
+
+        byte[] row = PtBytes.toBytes(123L);
+        Cell cell = Cell.create(row, dynamicColumn(1));
+
+        Map<Cell, Long> valueToGet = ImmutableMap.of(cell, MAX_TIMESTAMP);
+
+        assertThat(keyValueService.get(DynamicColumnTable.reference(), valueToGet), is(emptyMap()));
+
+    }
+
+    @Test
     public void shouldAllowRemovingAllCellsInDynamicColumns() {
         keyValueService.createTable(DynamicColumnTable.reference(), DynamicColumnTable.metadata());
 
@@ -695,7 +708,6 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         Map<Cell, Long> valuesToGet = ImmutableMap.of(cell1, MAX_TIMESTAMP, cell2, MAX_TIMESTAMP);
         Map<Cell, Long> valuesToDelete = ImmutableMap.of(cell1, timestamp, cell2, timestamp);
         Map<Cell, byte[]> valuesToPut = ImmutableMap.of(cell1, value, cell2, value);
-
 
         keyValueService.put(DynamicColumnTable.reference(), valuesToPut, timestamp);
         keyValueService.delete(DynamicColumnTable.reference(), Multimaps.forMap(valuesToDelete));
