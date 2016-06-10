@@ -72,6 +72,11 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
     public abstract Optional<String> getMatchServerDn();
 
     @Value.Default
+    public boolean getTwoWaySsl() {
+        return false;
+    }
+
+    @Value.Default
     public ConnectionProtocol getProtocol() {
         return TCP;
     }

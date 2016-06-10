@@ -31,16 +31,14 @@ public abstract class ConnectionConfig {
 
     public abstract String type();
 
-    public abstract String getDbLogin();
-    public abstract String getDbPassword();
-
     public abstract String getHost();
     public abstract int getPort();
 
+    public abstract String getDbLogin();
+    public abstract String getDbPassword();
+
     public abstract String getUrl();
-
     public abstract String getDriverClass();
-
     public abstract String getTestQuery();
 
     @Value.Derived
@@ -74,11 +72,6 @@ public abstract class ConnectionConfig {
     @Value.Default
     public Integer getCheckoutTimeout() {
         return 30000;
-    }
-
-    @Value.Default
-    public boolean getTwoWaySsl() {
-        return false;
     }
 
     @Value.Default
