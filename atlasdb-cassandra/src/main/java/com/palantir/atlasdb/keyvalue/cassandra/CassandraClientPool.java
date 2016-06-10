@@ -258,7 +258,9 @@ public class CassandraClientPool {
         SetView<InetSocketAddress> liveOwnerHosts;
 
         if (hostsForKey == null) {
-            log.debug("Cluster not fully initialized, not routing query to correct host as not token map found.");
+            log.debug(
+                    "We attempted to route your query to a cassandra host that already contains the relevant data. " +
+                    "However, the mapping of which host contains which data is not available yet. We will choose a random host instead.");
             return getRandomGoodHost().getHost();
         } else {
             liveOwnerHosts = Sets.difference(ImmutableSet.copyOf(hostsForKey), blacklistedHosts.keySet());
