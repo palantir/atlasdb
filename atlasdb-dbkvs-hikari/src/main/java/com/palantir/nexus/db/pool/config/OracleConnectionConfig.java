@@ -42,12 +42,12 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
     @Override
     @Value.Derived
     public String getUrl() {
-        if (getMatchServerDn().isPresent()) {
+        if (getServerDn().isPresent()) {
             return String.format("jdbc:oracle:thin:@(DESCRIPTION=" +
                             "(ADDRESS=(PROTOCOL=%s)(HOST=%s)(PORT=%s))" +
                             "(CONNECT_DATA=(SID=%s))" +
                             "(SECURITY=(SSL_SERVER_CERT_DN=\"%s\")))",
-                    getProtocol().getUrlString(), getHost(), getPort(), getSid(), getMatchServerDn().get());
+                    getProtocol().getUrlString(), getHost(), getPort(), getSid(), getServerDn().get());
         } else {
             return String.format("jdbc:oracle:thin:@(DESCRIPTION=" +
                             "(ADDRESS=(PROTOCOL=%s)(HOST=%s)(PORT=%s))" +
@@ -69,7 +69,13 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
     }
 
     public abstract String getSid();
-    public abstract Optional<String> getMatchServerDn();
+
+    public abstract Optional<String> getServerDn();
+
+    @Value.Default
+    public boolean getMatchServerDn() {
+        return getServerDn().isPresent();
+    }
 
     @Value.Default
     public boolean getTwoWaySsl() {
@@ -109,7 +115,7 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
             props.setProperty("javax.net.ssl.trustStorePassword", "ptclient");
 
             // Enable server domain matching
-            if (getMatchServerDn().isPresent()) {
+            if (getMatchServerDn()) {
                 props.setProperty("oracle.net.ssl_server_dn_match", "true");
             }
 
@@ -139,8 +145,6 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
     @Value.Check
     protected final void check() {
         if (getProtocol() == TCPS) {
-            Preconditions.checkArgument(getMatchServerDn().isPresent(), "tcps requires a match server domain");
-            Preconditions.checkArgument(!getMatchServerDn().get().isEmpty(), "tcps requires a match server domain");
             Preconditions.checkArgument(getTruststorePath().isPresent(), "tcps requires a truststore");
             Preconditions.checkArgument(new File(getTruststorePath().get()).exists(), "truststore file not found at %s", getTruststorePath().get());
             Preconditions.checkArgument(getTruststorePassword().isPresent(), "tcps requires a truststore password");
@@ -149,9 +153,12 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
                 Preconditions.checkArgument(new File(getKeystorePath().get()).exists(), "keystore file not found at %s", getKeystorePath().get());
                 Preconditions.checkArgument(getKeystorePassword().isPresent(), "two way ssl requires a keystore password");
             }
+            if (!getServerDn().isPresent()) {
+                Preconditions.checkArgument(!getMatchServerDn(), "cannot force match server dn without a server dn");
+            }
         } else {
             Preconditions.checkArgument(!getTwoWaySsl(), "two way ssl cannot be enabled without enabling tcps");
-            Preconditions.checkArgument(!getMatchServerDn().isPresent(), "a match domain server cannot be given without enabling tcps");
+            Preconditions.checkArgument(!getServerDn().isPresent(), "a server dn cannot be given without enabling tcps");
             Preconditions.checkArgument(!getTruststorePath().isPresent(), "a truststore path cannot be given without enabling tcps");
             Preconditions.checkArgument(!getTruststorePassword().isPresent(), "a truststore password cannot be given without enabling tcps");
             Preconditions.checkArgument(!getKeystorePath().isPresent(), "a keystore file cannot be given without enabling tcps");
