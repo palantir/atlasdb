@@ -38,6 +38,9 @@ public final class PaxosQuorumChecker {
 
     public static final int DEFAULT_REMOTE_REQUESTS_TIMEOUT_IN_SECONDS = 5;
     private static final Logger log = LoggerFactory.getLogger(PaxosQuorumChecker.class);
+    private static final String PAXOS_MESSAGE_ERROR =
+                    "We encountered an error while trying to request an acknowledgement from another paxos node." +
+                    "This could mean the node is down, or we cannot connect to it for some other reason";
 
     private PaxosQuorumChecker() {
         // Private constructor. Disallow instantiation.
@@ -119,11 +122,10 @@ public final class PaxosQuorumChecker {
                     break;
                 } catch (ExecutionException e) {
                     nacksRecieved++;
-                    String msg = "error requesting paxos message";
                     if (onlyLogOnQuorumFailure) {
-                        toLog.add(Pair.create(msg, e.getCause()));
+                        toLog.add(Pair.create(PAXOS_MESSAGE_ERROR, e.getCause()));
                     } else {
-                        log.warn(msg, e.getCause());
+                        log.warn(PAXOS_MESSAGE_ERROR, e.getCause());
                     }
                 }
             }
@@ -138,7 +140,7 @@ public final class PaxosQuorumChecker {
                     interrupted = true;
                     break;
                 } catch (ExecutionException e) {
-                    log.warn("error requesting paxos message", e.getCause());
+                    log.warn(PAXOS_MESSAGE_ERROR, e.getCause());
                 }
             }
 
