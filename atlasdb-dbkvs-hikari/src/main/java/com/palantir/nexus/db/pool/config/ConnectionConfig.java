@@ -15,14 +15,20 @@
  */
 package com.palantir.nexus.db.pool.config;
 
+import java.sql.Connection;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
+
+import javax.sql.DataSource;
 
 import org.immutables.value.Value;
 
 import com.codahale.metrics.SharedMetricRegistries;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.palantir.common.base.Visitors;
+import com.palantir.common.visitor.Visitor;
 import com.palantir.nexus.db.DBType;
+import com.palantir.nexus.db.pool.InterceptorDataSource;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.util.DriverDataSource;
 
@@ -89,6 +95,11 @@ public abstract class ConnectionConfig {
         return 45;
     }
 
+    @Value.Default
+    public Visitor<Connection> getOnAcquireConnectionVisitor() {
+        return Visitors.emptyVisitor();
+    }
+
     @Value.Derived
     public abstract Properties getHikariProperties();
 
@@ -119,9 +130,21 @@ public abstract class ConnectionConfig {
         }
 
         config.setJdbcUrl(getUrl());
-        config.setDataSource(new DriverDataSource(getUrl(), getDriverClass(), props, null, null));
+        DataSource dataSource = wrapDataSourceWithVisitor(
+                new DriverDataSource(getUrl(), getDriverClass(), props, null, null),
+                getOnAcquireConnectionVisitor());
+        config.setDataSource(dataSource);
 
         return config;
+    }
+
+    private static DataSource wrapDataSourceWithVisitor(DataSource ds, final Visitor<Connection> visitor) {
+        return InterceptorDataSource.wrapInterceptor(new InterceptorDataSource(ds) {
+            @Override
+            protected void onAcquire(Connection c) {
+                visitor.visit(c);
+            }
+        });
     }
 
 }
