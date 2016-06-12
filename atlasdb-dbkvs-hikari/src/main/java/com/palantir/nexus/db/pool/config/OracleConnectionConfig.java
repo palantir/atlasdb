@@ -95,7 +95,7 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
 
     @Override
     @Value.Derived
-    public Properties getProperties() {
+    public Properties getHikariProperties() {
         Properties props = new Properties();
 
         props.setProperty("user", getDbLogin());

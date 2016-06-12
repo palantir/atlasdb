@@ -90,11 +90,14 @@ public abstract class ConnectionConfig {
     }
 
     @Value.Derived
+    public abstract Properties getHikariProperties();
+
+    @Value.Derived
     public HikariConfig getHikariConfig() {
         // Initialize the Hikari configuration
         HikariConfig config = new HikariConfig();
 
-        Properties props = getProperties();
+        Properties props = getHikariProperties();
 
         config.setPoolName("db-pool-" + getConnId() + "-" + getDbLogin());
         config.setRegisterMbeans(true);
@@ -120,8 +123,5 @@ public abstract class ConnectionConfig {
 
         return config;
     }
-
-    @Value.Derived
-    public abstract Properties getProperties();
 
 }
