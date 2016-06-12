@@ -22,7 +22,6 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
-import com.palantir.common.base.Visitors;
 import com.palantir.nexus.db.monitoring.timer.SqlTimer;
 import com.palantir.nexus.db.monitoring.timer.SqlTimers;
 import com.palantir.nexus.db.pool.ConnectionManager;
@@ -39,7 +38,7 @@ public class ConnectionManagerAwareDbKvs extends ForwardingKeyValueService {
     private final ConnectionManager connManager;
 
     public static ConnectionManagerAwareDbKvs create(DbKeyValueServiceConfig config) {
-        HikariCPConnectionManager connManager = new HikariCPConnectionManager(config.connection(), Visitors.emptyVisitor());
+        HikariCPConnectionManager connManager = new HikariCPConnectionManager(config.connection());
         ReentrantManagedConnectionSupplier connSupplier = new ReentrantManagedConnectionSupplier(connManager);
         SqlConnectionSupplier sqlConnSupplier = getSimpleTimedSqlConnectionSupplier(connSupplier);
 

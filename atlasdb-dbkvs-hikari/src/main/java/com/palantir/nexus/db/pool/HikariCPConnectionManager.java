@@ -33,7 +33,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.palantir.common.visitor.Visitor;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
 import com.palantir.nexus.db.sql.ExceptionCheck;
@@ -53,7 +52,6 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
     private static final long COOLDOWN_MILLISECONDS = 30000;
 
     private ConnectionConfig connConfig;
-    private final Visitor<Connection> onAcquireVisitor;
 
     private enum StateType {
         // Base state at construction.  Nothing is set.
@@ -87,9 +85,8 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
 
     private volatile State state = new State(StateType.ZERO, 0, null, null, null);
 
-    public HikariCPConnectionManager(ConnectionConfig connConfig, Visitor<Connection> onAcquireVisitor) {
+    public HikariCPConnectionManager(ConnectionConfig connConfig) {
         this.connConfig = Preconditions.checkNotNull(connConfig);
-        this.onAcquireVisitor = onAcquireVisitor;
     }
 
     @Override
