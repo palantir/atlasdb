@@ -37,9 +37,6 @@ public abstract class ConnectionConfig {
 
     public abstract String type();
 
-    public abstract String getHost();
-    public abstract int getPort();
-
     public abstract String getDbLogin();
     public abstract String getDbPassword();
 
@@ -100,8 +97,10 @@ public abstract class ConnectionConfig {
         return Visitors.emptyVisitor();
     }
 
-    @Value.Derived
-    public abstract Properties getHikariProperties();
+    @Value.Default
+    public Properties getHikariProperties() {
+        return new Properties();
+    }
 
     @Value.Derived
     public HikariConfig getHikariConfig() {

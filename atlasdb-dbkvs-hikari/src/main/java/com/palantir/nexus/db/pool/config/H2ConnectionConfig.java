@@ -15,8 +15,6 @@
  */
 package com.palantir.nexus.db.pool.config;
 
-import java.util.Properties;
-
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.annotation.JsonTypeName;
@@ -24,27 +22,24 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.nexus.db.DBType;
 
-@JsonDeserialize(as = ImmutablePostgresConnectionConfig.class)
-@JsonSerialize(as = ImmutablePostgresConnectionConfig.class)
-@JsonTypeName(PostgresConnectionConfig.TYPE)
+@JsonDeserialize(as = ImmutableH2ConnectionConfig.class)
+@JsonSerialize(as = ImmutableH2ConnectionConfig.class)
+@JsonTypeName(H2ConnectionConfig.TYPE)
 @Value.Immutable
-public abstract class PostgresConnectionConfig extends ConnectionConfig {
+public abstract class H2ConnectionConfig extends ConnectionConfig {
 
-    public static final String TYPE = "postgres";
-
-    public abstract String getHost();
-    public abstract int getPort();
+    public static final String TYPE = "h2";
 
     @Override
     @Value.Default
     public String getUrl() {
-        return String.format("jdbc:postgresql://%s:%s/%s", getHost(), getPort(), getDbName());
+        return "jdbc:h2:mem:";
     }
 
     @Override
     @Value.Default
     public String getDriverClass() {
-        return "org.postgresql.Driver";
+        return "org.h2.Driver";
     }
 
     @Override
@@ -53,29 +48,10 @@ public abstract class PostgresConnectionConfig extends ConnectionConfig {
         return "SELECT 1";
     }
 
-    public abstract String getDbName();
-
-    @Override
-    @Value.Default
-    public Properties getHikariProperties() {
-        Properties props = new Properties();
-
-        props.setProperty("user", getDbLogin());
-        props.setProperty("password", getDbPassword());
-
-        props.setProperty("tcpKeepAlive", "true");
-        props.setProperty("socketTimeout", Integer.toString(getSocketTimeoutSeconds()));
-
-        props.setProperty("connectTimeout", Integer.toString(getConnectionTimeoutSeconds()));
-        props.setProperty("loginTimeout", Integer.toString(getConnectionTimeoutSeconds()));
-
-        return props;
-    }
-
     @Override
     @Value.Derived
     public DBType getDbType() {
-        return DBType.POSTGRESQL;
+        return DBType.H2_MEMORY;
     }
 
     @Override

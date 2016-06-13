@@ -39,6 +39,9 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
 
     public static final String TYPE = "oracle";
 
+    public abstract String getHost();
+    public abstract int getPort();
+
     @Override
     @Value.Derived
     public String getUrl() {
@@ -94,7 +97,7 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
     public abstract Optional<String> getTruststorePath();
 
     @Override
-    @Value.Derived
+    @Value.Default
     public Properties getHikariProperties() {
         Properties props = new Properties();
 
