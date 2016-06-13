@@ -705,14 +705,19 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         Cell cell1 = Cell.create(row, dynamicColumn(1));
         Cell cell2 = Cell.create(row, dynamicColumn(2));
 
-        Map<Cell, Long> valuesToGet = ImmutableMap.of(cell1, MAX_TIMESTAMP, cell2, MAX_TIMESTAMP);
         Map<Cell, Long> valuesToDelete = ImmutableMap.of(cell1, timestamp, cell2, timestamp);
         Map<Cell, byte[]> valuesToPut = ImmutableMap.of(cell1, value, cell2, value);
 
         keyValueService.put(DynamicColumnTable.reference(), valuesToPut, timestamp);
         keyValueService.delete(DynamicColumnTable.reference(), Multimaps.forMap(valuesToDelete));
 
-        assertThat(keyValueService.get(DynamicColumnTable.reference(), valuesToGet), is(emptyMap()));
+        Map<Cell, Value> values = keyValueService.getRows(
+                DynamicColumnTable.reference(),
+                ImmutableList.of(row),
+                ColumnSelection.all(),
+                MAX_TIMESTAMP);
+
+        assertThat(values, is(emptyMap()));
     }
 
     private byte[] dynamicColumn(long columnId) {
