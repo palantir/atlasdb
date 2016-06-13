@@ -664,41 +664,45 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
     public void testCannotModifyValuesAfterWrite() {
         Cell cell = Cell.create(row0, column0);
         byte[] data = new byte[1];
-        byte[] unmodifiedData = writeToCell(cell, data);
+        byte[] originalData = copyOf(data);
+        writeToCell(cell, data);
 
-        data[0] = (byte) 50;
+        modifyValue(data);
 
-        assertThat(getForCell(cell), is(unmodifiedData));
+        assertThat(getForCell(cell), is(originalData));
     }
 
     @Test
     public void testCannotModifyValuesAfterGetRows() {
         Cell cell = Cell.create(row0, column0);
-        byte[] unmodifiedData = writeToCell(cell, new byte[1]);
+        byte[] originalData = new byte[1];
+        writeToCell(cell, originalData);
 
         modifyValue(getRowsForCell(cell));
 
-        assertThat(getRowsForCell(cell), is(unmodifiedData));
+        assertThat(getRowsForCell(cell), is(originalData));
     }
 
     @Test
     public void testCannotModifyValuesAfterGet() {
         Cell cell = Cell.create(row0, column0);
-        byte[] unmodifiedData = writeToCell(cell, new byte[1]);
+        byte[] originalData = new byte[1];
+        writeToCell(cell, originalData);
 
         modifyValue(getForCell(cell));
 
-        assertThat(getForCell(cell), is(unmodifiedData));
+        assertThat(getForCell(cell), is(originalData));
     }
 
     @Test
     public void testCannotModifyValuesAfterGetRange() {
         Cell cell = Cell.create(row0, column0);
-        byte[] unmodifiedData = writeToCell(cell, new byte[1]);
+        byte[] originalData = new byte[1];
+        writeToCell(cell, originalData);
 
         modifyValue(getOnlyItemInTableRange());
 
-        assertThat(getOnlyItemInTableRange(), is(unmodifiedData));
+        assertThat(getOnlyItemInTableRange(), is(originalData));
     }
 
     @Test
@@ -706,11 +710,12 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         assumeTrue(kvsSupportsGetRangeWithHistory());
 
         Cell cell = Cell.create(row0, column0);
-        byte[] unmodifiedData = writeToCell(cell, new byte[1]);
+        byte[] originalData = new byte[1];
+        writeToCell(cell, originalData);
 
         modifyValue(getOnlyItemInTableRangeWithHistory());
 
-        assertThat(getOnlyItemInTableRangeWithHistory(), is(unmodifiedData));
+        assertThat(getOnlyItemInTableRangeWithHistory(), is(originalData));
     }
 
     private boolean kvsSupportsGetRangeWithHistory() {
@@ -726,10 +731,13 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         retrievedValue[0] = (byte) 50;
     }
 
-    private byte[] writeToCell(Cell cell, byte[] data) {
+    private byte[] copyOf(byte[] contents) {
+        return Arrays.copyOf(contents, contents.length);
+    }
+
+    private void writeToCell(Cell cell, byte[] data) {
         Value val = Value.create(data, TEST_TIMESTAMP + 1);
         keyValueService.putWithTimestamps(TEST_TABLE, ImmutableMultimap.of(cell, val));
-        return Arrays.copyOf(data, data.length);
     }
 
     private byte[] getRowsForCell(Cell cell) {
