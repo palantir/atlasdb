@@ -34,7 +34,7 @@ public abstract class DbSharedConfig {
 
     @Value.Default
     public String tablePrefix() {
-        return "a_";
+        return "";
     }
 
     @Value.Default
