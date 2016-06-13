@@ -30,6 +30,8 @@ import java.util.SortedSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import javax.annotation.Nullable;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -157,14 +159,26 @@ public class DbKvs extends AbstractKeyValueService {
 
 
     private void init() {
+        databaseSpecificInitialization();
         createMetadataTable();
     }
 
-    private void createMetadataTable() {
-        runDdl(AtlasDbConstants.METADATA_TABLE, new Function<DbDdlTable, Void>() {
+    private void databaseSpecificInitialization() {
+        runInitialization(new Function<DbTableInitializer, Void>() {
+            @Nullable
             @Override
-            public Void apply(DbDdlTable table) {
-                table.createMetadataTable();
+            public Void apply(@Nullable DbTableInitializer initializer) {
+                initializer.createUtilityTables();
+                return null;
+            }
+        });
+    }
+
+    private void createMetadataTable() {
+        runInitialization(new Function<DbTableInitializer, Void>() {
+            @Override
+            public Void apply(@Nullable DbTableInitializer initializer) {
+                initializer.createMetadataTable(AtlasDbConstants.METADATA_TABLE.getQualifiedName());
                 return null;
             }
         });
@@ -805,7 +819,8 @@ public class DbKvs extends AbstractKeyValueService {
     private <T> T runMetadata(TableReference tableRef, Function<DbMetadataTable, T> runner) {
         ConnectionSupplier conns = new ConnectionSupplier(connections);
         try {
-            return runner.apply(dbTables.createMetadata(internalTableName(tableRef), conns));
+            /* The metadata table operates only on the fully qualified table reference */
+            return runner.apply(dbTables.createMetadata(tableRef.getQualifiedName(), conns));
         } finally {
             conns.close();
         }
@@ -814,7 +829,17 @@ public class DbKvs extends AbstractKeyValueService {
     private <T> T runDdl(TableReference tableRef, Function<DbDdlTable, T> runner) {
         ConnectionSupplier conns = new ConnectionSupplier(connections);
         try {
-            return runner.apply(dbTables.createDdl(internalTableName(tableRef), conns));
+            /* The ddl actions can used both the fully qualified name and the internal name */
+            return runner.apply(dbTables.createDdl(tableRef, conns));
+        } finally {
+            conns.close();
+        }
+    }
+
+    private <T> T runInitialization(Function<DbTableInitializer, T> runner) {
+        ConnectionSupplier conns = new ConnectionSupplier(connections);
+        try {
+            return runner.apply(dbTables.createInitializer(conns));
         } finally {
             conns.close();
         }

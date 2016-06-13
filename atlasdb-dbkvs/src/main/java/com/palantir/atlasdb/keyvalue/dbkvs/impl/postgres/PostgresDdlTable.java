@@ -18,9 +18,11 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.PostgresKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbDdlTable;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableSize;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
@@ -28,11 +30,11 @@ import com.palantir.util.VersionStrings;
 
 public class PostgresDdlTable implements DbDdlTable {
     private static final Logger log = LoggerFactory.getLogger(PostgresDdlTable.class);
-    private final String tableName;
+    private final TableReference tableName;
     private final ConnectionSupplier conns;
     private final PostgresKeyValueServiceConfig config;
 
-    public PostgresDdlTable(String tableName,
+    public PostgresDdlTable(TableReference tableName,
                             ConnectionSupplier conns,
                             PostgresKeyValueServiceConfig config) {
         this.tableName = tableName;
@@ -44,7 +46,7 @@ public class PostgresDdlTable implements DbDdlTable {
     public void create(byte[] tableMetadata) {
         if (conns.get().selectExistsUnregisteredQuery(
                 "SELECT 1 FROM " + config.shared().metadataTable().getQualifiedName() + " WHERE table_name = ?",
-                tableName)) {
+                tableName.getQualifiedName())) {
             return;
         }
         executeIgnoringError(
@@ -58,7 +60,7 @@ public class PostgresDdlTable implements DbDdlTable {
                 "already exists");
         conns.get().insertOneUnregisteredQuery(
                 "INSERT INTO " + config.shared().metadataTable().getQualifiedName() + " (table_name, table_size) VALUES (?, ?)",
-                tableName,
+                tableName.getQualifiedName(),
                 TableSize.RAW.getId());
     }
 
@@ -66,7 +68,7 @@ public class PostgresDdlTable implements DbDdlTable {
     public void drop() {
         executeIgnoringError("DROP TABLE " + prefixedTableName(), "does not exist");
         conns.get().executeUnregisteredQuery(
-                "DELETE FROM " + config.shared().metadataTable().getQualifiedName() + " WHERE table_name = ?", tableName);
+                "DELETE FROM " + config.shared().metadataTable().getQualifiedName() + " WHERE table_name = ?", tableName.getQualifiedName());
     }
 
     @Override
@@ -103,20 +105,7 @@ public class PostgresDdlTable implements DbDdlTable {
         conns.get().executeUnregisteredQuery("VACUUM ANALYZE " + prefixedTableName());
     }
 
-    @Override
-    public void createMetadataTable() {
-        executeIgnoringError(
-                "CREATE TABLE " + tableName + " (" +
-                "  table_name VARCHAR(2000) NOT NULL," +
-                "  table_size BIGINT NOT NULL," +
-                "  value      BYTEA NULL," +
-                "  gc_ts      INT8 DEFAULT -1," +
-                "  CONSTRAINT pk_" + tableName + " PRIMARY KEY (table_name) " +
-                ")",
-                "already exists");
-    }
-
     private String prefixedTableName() {
-        return config.shared().tablePrefix() + tableName;
+        return config.shared().tablePrefix() + DbKvs.internalTableName(tableName);
     }
 }

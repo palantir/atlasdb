@@ -21,5 +21,4 @@ public interface DbDdlTable {
     void truncate();
     void checkDatabaseVersion();
     void compactInternally();
-    void createMetadataTable();
 }

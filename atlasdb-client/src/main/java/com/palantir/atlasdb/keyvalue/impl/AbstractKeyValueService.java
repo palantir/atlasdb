@@ -300,8 +300,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
         }
     }
 
-
-    protected static String internalTableName(TableReference tableRef) {
+    public static String internalTableName(TableReference tableRef) {
         String tableName = tableRef.getQualifiedName();
         if (tableName.startsWith("_")) {
             return tableName;
