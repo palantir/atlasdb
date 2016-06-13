@@ -33,14 +33,9 @@ import com.palantir.nexus.db.pool.config.ImmutableConnectionConfig;
 
 @RunWith(Suite.class)
 @SuiteClasses({
-//        CassandraConnectionTest.class,
-//        CassandraTimestampTest.class,
-//        CassandraDbLockTest.class,
-//        CassandraLegacyLockTest.class
-
+        DbkvsKeyValueServiceTest.class,
         DbkvsKeyValueServiceSerializableTransactionTest.class,
         DbkvsKeyValueServiceSweeperTest.class
-
 })
 public class DbkvsTestSuite {
 
@@ -74,8 +69,6 @@ public class DbkvsTestSuite {
         POSTGRES_KVS_CONFIG = ImmutablePostgresKeyValueServiceConfig.builder()
                 .connection(connectionConfig)
                 .build();
-
-//        Thread.sleep(5000);
     }
 
     private static HealthCheck<DockerPort> toBeOpen() {
