@@ -1,9 +1,4 @@
-plugins{
-    id 'com.palantir.docker' version '0.7.0'
-}
-
 apply plugin: 'org.inferred.processors'
-apply plugin: 'com.palantir.docker'
 
 apply from: "../gradle/shared.gradle"
 
@@ -21,16 +16,6 @@ jacoco {
     reportsDir = file("$buildDir/customJacocoReportDir")
 }
 
-docker {
-    name "com.palantir.docker/atlas-cassandra:2.2-v0.1"
-    tags 'latest'
-    dockerfile "${rootProject.projectDir}/docker-containers/cassandra/Dockerfile"
-    files "${rootProject.projectDir}/docker-containers/cassandra/entrypoint.sh",
-            "${rootProject.projectDir}/docker-containers/cassandra/cassandra.yaml",
-            "${rootProject.projectDir}/docker-containers/cassandra/cassandra-env.sh"
-    dependsOn jar
-}
-
 test {
     jacoco {
         append = false
@@ -40,7 +25,6 @@ test {
     maxHeapSize = "1024m"
     include '**/*Suite.class'
     maxParallelForks 2
-    dependsOn tasks.docker
 }
 
 jacocoTestReport {
