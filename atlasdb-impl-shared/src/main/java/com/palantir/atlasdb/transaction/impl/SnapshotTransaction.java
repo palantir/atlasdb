@@ -368,10 +368,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     from -> from.getLhSide());
             // Filter empty columns.
             Iterator<Map.Entry<Cell, Value>> filteredIterator = Iterators.filter(mergedIterator, entry -> entry.getValue().getContents().length > 0);
-            // Filter empty rows.
-            if (filteredIterator.hasNext()) {
-                postfilteredResults.put(row, BatchingVisitableFromIterable.create(filteredIterator));
-            }
+            postfilteredResults.put(row, BatchingVisitableFromIterable.create(filteredIterator));
         }
         return postfilteredResults;
     }

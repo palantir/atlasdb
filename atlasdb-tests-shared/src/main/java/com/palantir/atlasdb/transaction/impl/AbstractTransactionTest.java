@@ -706,7 +706,8 @@ public abstract class AbstractTransactionTest {
         Transaction t = startTransaction();
         Map<byte[], BatchingVisitable<Map.Entry<Cell, Value>>> columnRange =
                 t.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
-        assertTrue(columnRange.isEmpty());
+        List<Map.Entry<Cell, byte[]>> expected = ImmutableList.of();
+        verifyMatchingResult(expected, row, columnRange);
 
         put(t, "row1", "col1", "v1");
         t.commit();
@@ -715,15 +716,14 @@ public abstract class AbstractTransactionTest {
         put(t, "row1", "col1", "");
         columnRange =
                 t.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
-        assertTrue(columnRange.isEmpty());
+        verifyMatchingResult(expected, row, columnRange);
         t.commit();
 
         t = startTransaction();
         columnRange =
                 t.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
-        assertTrue(columnRange.isEmpty());
+        verifyMatchingResult(expected, row, columnRange);
     }
-
 
     @Test
     public void testColumnRangePagingTransaction() {
@@ -764,7 +764,7 @@ public abstract class AbstractTransactionTest {
         verifyMatchingResult(ImmutableList.copyOf(Iterables.limit(expected, 100)), row, columnRange);
     }
 
-    private void verifyMatchingResult(List<Map.Entry<Cell, byte[]>> expected, byte[] row, Map<byte[], BatchingVisitable<Map.Entry<Cell, Value>>> columnRange) {
+    protected void verifyMatchingResult(List<Map.Entry<Cell, byte[]>> expected, byte[] row, Map<byte[], BatchingVisitable<Map.Entry<Cell, Value>>> columnRange) {
         assertEquals(1, columnRange.size());
         assertArrayEquals(row, Iterables.getOnlyElement(columnRange.keySet()));
         BatchingVisitable<Map.Entry<Cell, Value>> batchingVisitable = Iterables.getOnlyElement(columnRange.values());

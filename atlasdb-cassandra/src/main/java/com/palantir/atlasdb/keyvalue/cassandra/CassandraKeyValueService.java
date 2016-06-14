@@ -534,6 +534,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     ret.put(row, new LocalRowColumnRangeIterator(Iterators.concat(resultIterator, getRowColumnRange(host, tableRef, row, newColumnRange, startTs))));
                 }
             }
+            // We saw no Cassandra results at all for these rows, so the entire column range is empty for these rows.
+            for (byte[] row : firstPage.emptyRows) {
+                ret.put(row, new LocalRowColumnRangeIterator(Collections.emptyIterator()));
+            }
             return ret;
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
@@ -563,7 +567,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     Map<ByteBuffer, List<ColumnOrSuperColumn>> results = multigetInternal(client, tableRef, wrap(rows), colFam, pred, readConsistency);
 
                     RowColumnRangeExtractor extractor = new RowColumnRangeExtractor();
-                    extractor.extractResults(results, startTs, ColumnSelection.all());
+                    extractor.extractResults(results, startTs);
 
                     return extractor.getRowColumnRangeResult();
                 }

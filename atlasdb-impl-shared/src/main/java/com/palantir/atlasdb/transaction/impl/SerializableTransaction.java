@@ -153,7 +153,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                                                                                      Iterable<byte[]> rows,
                                                                                      ColumnRangeSelection columnRangeSelection) {
         Map<byte[], BatchingVisitable<Map.Entry<Cell, Value>>> ret = super.getRowsColumnRange(tableRef, rows, columnRangeSelection);
-        Maps.transformEntries(ret, new Maps.EntryTransformer<byte[], BatchingVisitable<Entry<Cell,Value>>, BatchingVisitable<Entry<Cell,Value>>>() {
+        return Maps.transformEntries(ret, new Maps.EntryTransformer<byte[], BatchingVisitable<Entry<Cell,Value>>, BatchingVisitable<Entry<Cell,Value>>>() {
             @Override
             public BatchingVisitable<Entry<Cell,Value>> transformEntry(byte[] row, BatchingVisitable<Entry<Cell, Value>> visitable) {
                 return new BatchingVisitable<Entry<Cell, Value>>() {
@@ -177,7 +177,6 @@ public class SerializableTransaction extends SnapshotTransaction {
                 };
             }
         });
-        return ret;
     }
 
     @Override
@@ -363,7 +362,10 @@ public class SerializableTransaction extends SnapshotTransaction {
             return;
         }
         ConcurrentNavigableMap<Cell, byte[]> reads = getReadsForTable(table);
-        Map<Cell, byte[]> map = Maps2.fromEntries(reads.entrySet());
+        Map<Cell, byte[]> map = Maps.newHashMapWithExpectedSize(result.size());
+        for (Entry<Cell, Value> e : result) {
+            map.put(e.getKey(), e.getValue().getContents());
+        }
         map = transformGetsForTesting(map);
         reads.putAll(map);
         setColumnRangeEnd(table, row, range, result.get(result.size()-1).getKey().getColumnName());
@@ -559,33 +561,16 @@ public class SerializableTransaction extends SnapshotTransaction {
         }
     }
 
-    private NavigableMap<Cell, byte[]> getReadsInRange(TableReference table,
-                                                       RangeRequest range) {
-        NavigableMap<Cell, byte[]> reads = getReadsForTable(table);
-        if (range.getStartInclusive().length != 0) {
-            reads = reads.tailMap(Cells.createSmallestCellForRow(range.getStartInclusive()), true);
-        }
-        if (range.getEndExclusive().length != 0) {
-            reads = reads.headMap(Cells.createSmallestCellForRow(range.getEndExclusive()), false);
-        }
-        ConcurrentNavigableMap<Cell, byte[]> writes = writesByTable.get(table);
-        if (writes != null) {
-            reads = Maps.filterKeys(reads, Predicates.not(Predicates.in(writes.keySet())));
-        }
-        if (!range.getColumnNames().isEmpty()) {
-            Predicate<Cell> columnInNames = Predicates.compose(Predicates.in(range.getColumnNames()), Cells.getColumnFunction());
-            reads = Maps.filterKeys(reads, columnInNames);
-        }
-        return reads;
-    }
-
     private NavigableMap<Cell, byte[]> getReadsInColumnRange(TableReference table,
                                                              byte[] row,
                                                              ColumnRangeSelection range) {
         NavigableMap<Cell, byte[]> reads = getReadsForTable(table);
-        Cell startCell = Cell.create(row, range.getStartCol());
+        Cell startCell = Cells.createSmallestCellForRow(row);
+        if ((range.getStartCol() != null) && (range.getStartCol().length > 0)) {
+            startCell = Cell.create(row, range.getStartCol());
+        }
         reads = reads.tailMap(startCell, true);
-        if (range.getEndCol() != null) {
+        if ((range.getEndCol() != null) && (range.getEndCol().length > 0)) {
             Cell endCell = Cell.create(row, range.getEndCol());
             reads = reads.headMap(endCell, false);
         } else {
@@ -609,7 +594,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                     ColumnRangeSelection range = e.getKey();
                     byte[] rangeEnd = e.getValue();
                     if (rangeEnd.length != 0 && !RangeRequests.isTerminalRow(false, rangeEnd)) {
-                        range = new ColumnRangeSelection(RangeRequests.getNextStartRow(false, rangeEnd), range.getEndCol(), range.getBatchHint());
+                        range = new ColumnRangeSelection(range.getStartCol(), RangeRequests.getNextStartRow(false, rangeEnd), range.getBatchHint());
                     }
                     final ConcurrentNavigableMap<Cell, byte[]> writes = writesByTable.get(table);
                     // TODO: batch this better for multiple rows with the same column range

@@ -162,19 +162,19 @@ public class KeyValueServices {
         Map<Cell, Value> allValues = kvs.getRows(tableRef, rows, ColumnSelection.all(), timestamp);
         Map<Sha256Hash, byte[]> hashesToBytes = Maps.newHashMap();
         Map<Sha256Hash, ImmutableSortedMap.Builder<byte[], Value>> rowsToColumns = Maps.newHashMap();
+
+        for (byte[] row : rows) {
+            Sha256Hash rowHash = Sha256Hash.computeHash(row);
+            hashesToBytes.put(rowHash, row);
+            ImmutableSortedMap.Builder<byte[], Value> builder =
+                    ImmutableSortedMap.<byte[], Value>orderedBy(UnsignedBytes.lexicographicalComparator());
+            rowsToColumns.put(rowHash, builder);
+        }
         for (Map.Entry<Cell, Value> e : allValues.entrySet()) {
             Sha256Hash rowHash = Sha256Hash.computeHash(e.getKey().getRowName());
-            if (!hashesToBytes.containsKey(rowHash)) {
-                hashesToBytes.put(rowHash, e.getKey().getRowName());
-            }
-            if (rowsToColumns.containsKey(rowHash)) {
-                rowsToColumns.get(rowHash).put(e.getKey().getColumnName(), e.getValue());
-            } else {
-                ImmutableSortedMap.Builder<byte[], Value> builder =
-                        ImmutableSortedMap.<byte[], Value>orderedBy(UnsignedBytes.lexicographicalComparator()).put(e.getKey().getColumnName(), e.getValue());
-                rowsToColumns.put(rowHash, builder);
-            }
+            rowsToColumns.get(rowHash).put(e.getKey().getColumnName(), e.getValue());
         }
+
         Map<byte[], RowColumnRangeIterator> results = Maps.newHashMap();
         for (Map.Entry<Sha256Hash, ImmutableSortedMap.Builder<byte[], Value>> row : rowsToColumns.entrySet()) {
             SortedMap<byte[], Value> map = row.getValue().build();
@@ -189,11 +189,9 @@ public class KeyValueServices {
                 subMap = map.subMap(columnRangeSelection.getStartCol(), columnRangeSelection.getEndCol()).entrySet();
             }
             byte[] rowName = hashesToBytes.get(row.getKey());
-            if (!subMap.isEmpty()) {
-                results.put(hashesToBytes.get(row.getKey()),
-                        new LocalRowColumnRangeIterator(Iterators.transform(subMap.iterator(), e ->
-                                Iterables.getOnlyElement(ImmutableMap.of(Cell.create(rowName, e.getKey()), e.getValue()).entrySet()))));
-            }
+            results.put(hashesToBytes.get(row.getKey()),
+                    new LocalRowColumnRangeIterator(Iterators.transform(subMap.iterator(), e ->
+                            Iterables.getOnlyElement(ImmutableMap.of(Cell.create(rowName, e.getKey()), e.getValue()).entrySet()))));
         }
         return results;
     }
