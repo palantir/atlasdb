@@ -26,6 +26,8 @@ import org.apache.cassandra.thrift.Cassandra.Client;
 import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.thrift.protocol.TProtocolException;
+import org.apache.thrift.transport.TMemoryInputTransport;
+import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -106,6 +108,17 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
             if (resource != null) {
                 if (shouldReuse) {
                     log.debug("Returning {} to pool", resource);
+
+                    // eagerly cleanup idle-connection read buffer to keep a smaller memory footprint
+                    TTransport transport = resource.getInputProtocol().getTransport();
+                    if (transport instanceof TMemoryInputTransport) {
+                        byte[] underlyingBuffer = transport.getBuffer();
+                        if (underlyingBuffer != null) {
+                            log.debug("During {} check-in, cleaned up an iprot of size {}", resource, underlyingBuffer.length);
+                            ((TMemoryInputTransport) transport).clear();
+                        }
+                    }
+
                     clientPool.returnObject(resource);
                 } else {
                     invalidateQuietly(resource);
