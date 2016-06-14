@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb;
 
+import com.palantir.atlasdb.cas.CasClient;
+import com.palantir.atlasdb.cas.SimpleCasResource;
 import com.palantir.atlasdb.todo.SimpleTodoResource;
 import com.palantir.atlasdb.todo.TodoClient;
 
@@ -38,6 +40,9 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
     public void run(AtlasDbEteConfiguration config, final Environment environment) throws Exception {
         TodoClient todoClient = new TodoClient(config.getAtlasConfig(), environment.jersey());
         environment.jersey().register(new SimpleTodoResource(todoClient));
+
+        CasClient casClient = new CasClient(config.getAtlasConfig(), environment.jersey());
+        environment.jersey().register(new SimpleCasResource(casClient));
     }
 
     private void enableEnvironmentVariablesInConfig(Bootstrap<AtlasDbEteConfiguration> bootstrap) {
