@@ -111,6 +111,14 @@ public class KeyValueServiceRemotingTest extends AbstractAtlasDbKeyValueServiceT
         Assert.assertTrue(rowColumnRangeIteratorDeserialized instanceof RemoteRowColumnRangeIterator);
         assertEquals(rowColumnRangeIterator, rowColumnRangeIteratorDeserialized);
 
+        rowColumnRangeIterator = new RemoteRowColumnRangeIterator(TableReference.create(Namespace.create("ns"), "test_table"),
+                new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1), 100L, false,
+                ImmutableList.of());
+        serializedRowColumnRangeIterator = mapper.writeValueAsString(rowColumnRangeIterator);
+        rowColumnRangeIteratorDeserialized = mapper.readValue(serializedRowColumnRangeIterator, RowColumnRangeIterator.class);
+        Assert.assertTrue(rowColumnRangeIteratorDeserialized instanceof RemoteRowColumnRangeIterator);
+        assertEquals(rowColumnRangeIterator, rowColumnRangeIteratorDeserialized);
+
         Map<byte[], RowColumnRangeIterator> rowColumnRange = ImmutableMap.of(row, rowColumnRangeIterator);
         String serializedRowColumnRange = mapper.writerFor(
                 mapper.getTypeFactory().constructMapType(Map.class, byte[].class, RemoteRowColumnRangeIterator.class))

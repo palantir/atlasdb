@@ -61,7 +61,7 @@ public class RemoteRowColumnRangeIterator implements RowColumnRangeIterator {
         } else {
             this.page = page;
         }
-        if (this.page.isEmpty()) {
+        if (this.page.isEmpty() && hasNext) {
             throw new IllegalStateException();
         }
     }
