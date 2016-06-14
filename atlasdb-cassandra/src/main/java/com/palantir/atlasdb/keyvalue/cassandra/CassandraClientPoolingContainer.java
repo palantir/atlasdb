@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -26,6 +27,7 @@ import org.apache.cassandra.thrift.Cassandra.Client;
 import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.thrift.protocol.TProtocolException;
+import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TMemoryInputTransport;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
@@ -108,22 +110,31 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
             if (resource != null) {
                 if (shouldReuse) {
                     log.debug("Returning {} to pool", resource);
-
-                    // eagerly cleanup idle-connection read buffer to keep a smaller memory footprint
-                    TTransport transport = resource.getInputProtocol().getTransport();
-                    if (transport instanceof TMemoryInputTransport) {
-                        byte[] underlyingBuffer = transport.getBuffer();
-                        if (underlyingBuffer != null) {
-                            log.debug("During {} check-in, cleaned up an iprot of size {}", resource, underlyingBuffer.length);
-                            ((TMemoryInputTransport) transport).clear();
-                        }
-                    }
-
+                    eagerlyCleanupReadBuffersFromIdleConnection(resource);
                     clientPool.returnObject(resource);
                 } else {
                     invalidateQuietly(resource);
                 }
             }
+        }
+    }
+
+    private static void eagerlyCleanupReadBuffersFromIdleConnection(Client idleClient) {
+        // eagerly cleanup idle-connection read buffer to keep a smaller memory footprint
+        try {
+            TTransport transport = idleClient.getInputProtocol().getTransport();
+            if (transport instanceof TFramedTransport) {
+                Field readBuffer_ = ((TFramedTransport) transport).getClass().getDeclaredField("readBuffer_");
+                readBuffer_.setAccessible(true);
+                TMemoryInputTransport tMemoryInputTransport = (TMemoryInputTransport) readBuffer_.get(transport);
+                byte[] underlyingBuffer = tMemoryInputTransport.getBuffer();
+                if (underlyingBuffer != null) {
+                    log.debug("During {} check-in, cleaned up a read buffer of {} bytes", idleClient, underlyingBuffer.length);
+                    tMemoryInputTransport.clear();
+                }
+            }
+        } catch (Exception e) {
+            log.debug("Couldn't clean up read buffers on pool check-in.", e);
         }
     }
 
