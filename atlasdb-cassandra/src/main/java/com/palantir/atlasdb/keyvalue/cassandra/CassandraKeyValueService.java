@@ -1551,6 +1551,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     @Override
     public void putUnlessExists(final TableReference tableRef, final Map<Cell, byte[]> values)
             throws KeyAlreadyExistsException {
+        String tableName = internalTableName(tableRef);
         try {
             clientPool.runWithRetry(new FunctionCheckedException<Client, Void, Exception>() {
                 @Override
@@ -1570,7 +1571,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                             Stopwatch stopwatch = Stopwatch.createStarted();
                             casResult = client.cas(
                                     rowName,
-                                    tableRef.getQualifiedName(),
+                                    tableName,
                                     ImmutableList.<Column>of(),
                                     ImmutableList.of(col),
                                     ConsistencyLevel.SERIAL,
@@ -1584,7 +1585,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                         } else {
                             casResult = client.cas(
                                     rowName,
-                                    tableRef.getQualifiedName(),
+                                    tableName,
                                     ImmutableList.<Column>of(),
                                     ImmutableList.of(col),
                                     ConsistencyLevel.SERIAL,

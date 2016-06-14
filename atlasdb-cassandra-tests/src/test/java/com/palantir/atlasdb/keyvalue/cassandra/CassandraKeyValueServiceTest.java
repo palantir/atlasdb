@@ -16,25 +16,63 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.net.InetSocketAddress;
 import java.util.Set;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.AbstractAtlasDbKeyValueServiceTest;
 
-public class CassandraKeyValueServiceTest {
+public class CassandraKeyValueServiceTest extends AbstractAtlasDbKeyValueServiceTest {
 
     private KeyValueService keyValueService;
 
     @Before
     public void setupKVS() {
-        keyValueService = CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.CASSANDRA_KVS_CONFIG));
+        keyValueService = getKeyValueService();
+    }
+
+    @Override
+    protected KeyValueService getKeyValueService() {
+        return CassandraKeyValueService.create(
+                CassandraKeyValueServiceConfigManager.createSimpleManager(
+                        ImmutableCassandraKeyValueServiceConfig.builder()
+                                .addServers(new InetSocketAddress("localhost", 9160))
+                                .poolSize(20)
+                                .keyspace("atlasdb")
+                                .ssl(false)
+                                .replicationFactor(1)
+                                .mutationBatchCount(10000)
+                                .mutationBatchSizeBytes(10000000)
+                                .fetchBatchCount(1000)
+                                .safetyDisabled(false)
+                                .autoRefreshNodes(false)
+                                .build()));
+    }
+
+    @Override
+    protected boolean reverseRangesSupported() {
+        return false;
+    }
+
+    @Override
+    @Ignore
+    public void testGetRangeWithHistory() {
+        //
+    }
+
+    @Override
+    @Ignore
+    public void testGetAllTableNames() {
+        //
     }
 
     @Test

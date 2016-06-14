@@ -201,12 +201,14 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
                 ImmutableList.of(row1),
                 new ColumnRangeSelection(RangeRequests.nextLexicographicName(column0), column2, 1),
                 TEST_TIMESTAMP + 1);
-        assertEquals(0, values.size());
+        assertEquals(1, values.size());
+        assertEquals(0, getValuesForRow(values, row1, 1).size());
         values = keyValueService.getRowsColumnRange(TEST_TABLE,
                 ImmutableList.of(row1),
                 new ColumnRangeSelection(RangeRequests.nextLexicographicName(column2), PtBytes.EMPTY_BYTE_ARRAY, 1),
                 TEST_TIMESTAMP + 1);
-        assertEquals(0, values.size());
+        assertEquals(1, values.size());
+        assertEquals(0, getValuesForRow(values, row1, 1).size());
         values = keyValueService.getRowsColumnRange(TEST_TABLE,
                 ImmutableList.of(row1),
                 new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, Integer.MAX_VALUE),
@@ -390,8 +392,8 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         assertEquals(AtlasDbConstants.GENERIC_TABLE_METADATA.length, keyValueService.getMetadataForTable(TEST_TABLE).length);
         keyValueService.putMetadataForTable(TEST_TABLE, ArrayUtils.EMPTY_BYTE_ARRAY);
         assertEquals(0, keyValueService.getMetadataForTable(TEST_TABLE).length);
-        keyValueService.putMetadataForTable(TEST_TABLE, metadata0);
-        assertTrue(Arrays.equals(metadata0, keyValueService.getMetadataForTable(TEST_TABLE)));
+        keyValueService.putMetadataForTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        assertTrue(Arrays.equals(AtlasDbConstants.GENERIC_TABLE_METADATA, keyValueService.getMetadataForTable(TEST_TABLE)));
     }
 
     private static <V, T extends Iterator<RowResult<V>>> void assertRangeSizeAndOrdering(T it, int expectedSize, RangeRequest rangeRequest) {
