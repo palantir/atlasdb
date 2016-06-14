@@ -13,53 +13,47 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.cli.command;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.util.Set;
+package com.palantir.atlasdb.cli.command.timestamp;
 
 import org.joda.time.DateTime;
 import org.joda.time.format.ISODateTimeFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Throwables;
-import com.google.common.collect.Sets;
 import com.palantir.atlasdb.cleaner.KeyValueServicePuncherStore;
 import com.palantir.atlasdb.cli.services.AtlasDbServices;
 
 import io.airlift.airline.Command;
 import io.airlift.airline.Option;
+import io.airlift.airline.OptionType;
 
-@Command(name = "timestamp", description = "Fetches a timestamp. By default"
+@Command(name = "fetch", description = "Fetches a timestamp. By default"
         + " this will be a fresh timestamp unless otherwise specified.")
-public class TimestampCommand extends SingleBackendCommand {
+public class FetchTimestamp extends AbstractTimestampCommand {
 
-    private static final Logger log = LoggerFactory.getLogger(TimestampCommand.class);
+    private static final Logger log = LoggerFactory.getLogger(FetchTimestamp.class);
 
     @Option(name = {"-i", "--immutable"},
+            type = OptionType.COMMAND,
     		description = "Get the current immutable timestamp, instead of a fresh one.")
     private boolean immutable;
-    
+
     @Option(name = {"-d", "--date-time"},
+            type = OptionType.COMMAND,
             description = "Return the earliest approximate wall clock datetime at which the chosen timestamp" +
                     " could have been used in a transaction.")
     private boolean dateTime;
 
-    @Option(name = {"-f", "--file"},
-            title = "TIMESTAMP_FILE",
-            description = "Write the timestamp returned by this command to the specified file.")
-    private File file;
-    
     private static final String IMMUTABLE_STRING = "Immutable";
     private static final String FRESH_STRING = "Fresh";
-    
+
+    @Override
+    protected boolean requireTimestamp() {
+        return false;
+    }
+
 	@Override
-	public int execute(AtlasDbServices services) {
-	    long timestamp;
+	protected int executeTimestampCommand(AtlasDbServices services) {
 	    String name;
 	    if (immutable) {
     	    timestamp = services.getTransactionManager().getImmutableTimestamp();
@@ -69,6 +63,7 @@ public class TimestampCommand extends SingleBackendCommand {
 	        name = FRESH_STRING;
 	    }
 	    log.info("The {} timestamp is: {}", name, timestamp);
+        writeTimestampToFileIfSpecified();
 
 	    String stringTime = null;
         if (dateTime) {
@@ -77,19 +72,6 @@ public class TimestampCommand extends SingleBackendCommand {
             DateTime dt = new DateTime(timeMillis);
             stringTime = ISODateTimeFormat.dateTimeNoMillis().print(dt);
             log.info("Wall clock datetime of {} timestamp is: {}", name, stringTime);
-        }
-
-        if (file != null) {
-            Set<String> lines = Sets.newHashSet(Long.toString(timestamp));
-            if (dateTime) {
-                lines.add(stringTime);
-            }
-            try {
-                Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
-            } catch (IOException e) {
-                log.error("IOException thrown writing {} timestamp to file: {}", name, file.getPath());
-                Throwables.propagate(e);
-            }
         }
 
         log.info("Timestamp command completed succesfully.");

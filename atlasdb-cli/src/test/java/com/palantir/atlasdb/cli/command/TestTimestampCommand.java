@@ -29,6 +29,7 @@ import org.junit.Test;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Lists;
+import com.palantir.atlasdb.cli.command.timestamp.FetchTimestamp;
 import com.palantir.atlasdb.cli.runner.InMemoryTestRunner;
 import com.palantir.atlasdb.cli.runner.SingleBackendCliTestRunner;
 import com.palantir.atlasdb.cli.services.AtlasDbServicesFactory;
@@ -93,7 +94,7 @@ public class TestTimestampCommand {
     }
 
     private SingleBackendCliTestRunner makeRunner(String... args) {
-        return new InMemoryTestRunner(TimestampCommand.class, args);
+        return new InMemoryTestRunner(FetchTimestamp.class, args);
     }
 
     private void genericTest(boolean isImmutable, boolean isToFile) throws Exception {
