@@ -25,15 +25,15 @@ import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 
-public class AtlasTodosSchema implements AtlasSchema {
+public class TodoSchema implements AtlasSchema {
     private static final Schema INDEX_TEST_SCHEMA = generateSchema();
-    public static final String TODOS_TABLE = "todos";
+    public static final String TODO_TABLE = "todo";
     public static final String TEXT_COLUMN = "text";
 
     private static Schema generateSchema() {
         Schema schema = new Schema();
 
-        schema.addTableDefinition(TODOS_TABLE, new TableDefinition() {{
+        schema.addTableDefinition(TODO_TABLE, new TableDefinition() {{
             rowName();
                 rowComponent("id", ValueType.FIXED_LONG);
             columns();
@@ -47,11 +47,11 @@ public class AtlasTodosSchema implements AtlasSchema {
         return INDEX_TEST_SCHEMA;
     }
 
-    public static TableReference todosTable() {
-        return TableReference.create(Namespace.DEFAULT_NAMESPACE, TODOS_TABLE);
+    public static TableReference todoTable() {
+        return TableReference.create(Namespace.DEFAULT_NAMESPACE, TODO_TABLE);
     }
 
-    public static void main(String[]  args) throws Exception {
+    public static void main(String[] args) throws Exception {
         INDEX_TEST_SCHEMA.renderTables(new File("src/test/java"));
     }
 

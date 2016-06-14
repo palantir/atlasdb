@@ -15,7 +15,7 @@ atlasdb:
     servers:
       - cassandra:9160
     poolSize: 20
-    keyspace: atlastodos
+    keyspace: atlasete
     credentials:
       username: cassandra
       password: cassandra
@@ -33,6 +33,6 @@ atlasdb:
     acceptorLogDir: var/data/paxosLog/acceptor1
     localServer: http://${ME}:3828
     leaders:
-      - http://todo1:3828
-      - http://todo2:3828
-      - http://todo3:3828
+      - http://ete1:3828
+      - http://ete2:3828
+      - http://ete3:3828

@@ -25,7 +25,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 @JsonSerialize(as = ImmutableTodo.class)
 @JsonDeserialize(as = ImmutableTodo.class)
 public abstract class Todo {
-    @JsonProperty("text")
+    @JsonProperty
     @Value.Parameter
     public abstract String text();
 }

@@ -68,15 +68,15 @@ task prepareForEteTests(type: Copy, dependsOn: ['distTar', ':atlasdb-ete-test-ut
     from distTar.outputs
     into 'build/docker/'
 
-    rename { filename -> 'atlasdb-todos-snapshot.tgz' }
+    rename { filename -> 'atlasdb-ete-snapshot.tgz' }
 }
 
 test.dependsOn 'prepareForEteTests'
 
 distribution {
-    serviceName 'atlasdb-todo'
-    mainClass 'com.palantir.atlasdb.todo.AtlasTodoServer'
-    args 'server', 'var/conf/atlas-todo.yml'
+    serviceName 'atlasdb-ete'
+    mainClass 'com.palantir.atlasdb.AtlasDbEteServer'
+    args 'server', 'var/conf/atlasdb-ete.yml'
 }
 
 sourceCompatibility = '1.8'

@@ -13,8 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package com.palantir.atlasdb;
 
-package com.palantir.atlasdb.todo;
+import com.palantir.atlasdb.todo.SimpleTodoResource;
+import com.palantir.atlasdb.todo.TodoClient;
 
 import io.dropwizard.Application;
 import io.dropwizard.configuration.EnvironmentVariableSubstitutor;
@@ -22,29 +24,26 @@ import io.dropwizard.configuration.SubstitutingSourceProvider;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 
-public class AtlasTodoServer extends Application<AtlasTodoConfiguration> {
-
+public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
     public static void main(String[] args) throws Exception {
-        new AtlasTodoServer().run(args);
+        new AtlasDbEteServer().run(args);
     }
 
     @Override
-    public void initialize(Bootstrap<AtlasTodoConfiguration> bootstrap) {
+    public void initialize(Bootstrap<AtlasDbEteConfiguration> bootstrap) {
         enableEnvironmentVariablesInConfig(bootstrap);
     }
 
     @Override
-    public void run(AtlasTodoConfiguration config, final Environment environment) throws Exception {
-        AtlasTodos todos = new DefaultAtlasTodos(new Atlas(config.atlasConfig(), environment.jersey()));
-        environment.jersey().register(todos);
+    public void run(AtlasDbEteConfiguration config, final Environment environment) throws Exception {
+        TodoClient todoClient = new TodoClient(config.getAtlasConfig(), environment.jersey());
+        environment.jersey().register(new SimpleTodoResource(todoClient));
     }
 
-    private void enableEnvironmentVariablesInConfig(Bootstrap<AtlasTodoConfiguration> bootstrap) {
+    private void enableEnvironmentVariablesInConfig(Bootstrap<AtlasDbEteConfiguration> bootstrap) {
         bootstrap.setConfigurationSourceProvider(
-                new SubstitutingSourceProvider(bootstrap.getConfigurationSourceProvider(),
-                        new EnvironmentVariableSubstitutor()
-                )
-        );
+                new SubstitutingSourceProvider(
+                        bootstrap.getConfigurationSourceProvider(),
+                        new EnvironmentVariableSubstitutor()));
     }
-
 }

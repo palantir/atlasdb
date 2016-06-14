@@ -25,7 +25,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
 @Path("/todos")
-public interface AtlasTodos {
+public interface TodoResource {
     @POST
     @Path("/")
     @Consumes(MediaType.APPLICATION_JSON)
@@ -34,7 +34,7 @@ public interface AtlasTodos {
     @GET
     @Path("/")
     @Produces(MediaType.APPLICATION_JSON)
-    List<Todo> listTodos();
+    List<Todo> getTodoList();
 
     @GET
     @Path("/healthcheck")

@@ -9,13 +9,13 @@ RUN wget --no-check-certificate http://github.com/jwilder/dockerize/releases/dow
 
 EXPOSE 3828
 
-ADD build/docker/atlasdb-todos-snapshot.tgz /atlasdb-todos
+ADD build/docker/atlasdb-ete-snapshot.tgz /atlasdb-ete
 
 # Remove possible version prefix
-RUN for file in atlasdb-todos/*; do mv "$file" "atlasdb-todos/atlasdb-todos-snapshot"; done
+RUN for file in atlasdb-ete/*; do mv "$file" "atlasdb-ete/atlasdb-ete-snapshot"; done
 
-ADD docker/conf/ /atlasdb-todos/atlasdb-todos-snapshot/var/conf
+ADD docker/conf/ /atlasdb-ete/atlasdb-ete-snapshot/var/conf
 
-WORKDIR /atlasdb-todos/atlasdb-todos-snapshot/service/bin/
+WORKDIR /atlasdb-ete/atlasdb-ete-snapshot/service/bin/
 
 CMD echo "hello" #bash -c './init.sh console'

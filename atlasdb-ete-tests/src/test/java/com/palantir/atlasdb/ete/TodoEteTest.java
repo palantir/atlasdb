@@ -29,28 +29,28 @@ import org.junit.rules.RuleChain;
 
 import com.google.common.base.Optional;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
-import com.palantir.atlasdb.todo.AtlasTodos;
 import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
+import com.palantir.atlasdb.todo.TodoResource;
 import com.palantir.docker.compose.DockerComposition;
 import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerPort;
 import com.palantir.docker.compose.connection.waiting.HealthCheck;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 
-public class AtlasTodoEteTest {
+public class TodoEteTest {
     private static final Optional<SSLSocketFactory> NO_SSL = Optional.absent();
     private static final int TODO_PORT = 3828;
     private static final Todo TODO = ImmutableTodo.of("some stuff to do");
 
     public static DockerComposition dockerComposition = DockerComposition.of("docker-compose.yml")
-            .waitingForService("todo1", toBeReady())
+            .waitingForService("ete1", toBeReady())
             .saveLogsTo("container-logs")
             .build();
 
     private static HealthCheck<Container> toBeReady() {
         return (container) -> {
-            AtlasTodos todos = createTodoClientFor(container);
+            TodoResource todos = createTodoClientFor(container);
 
             return SuccessOrFailure.onResultOf(() -> {
                 todos.isHealthy();
@@ -68,27 +68,27 @@ public class AtlasTodoEteTest {
 
     @Test public void
     shouldBeAbleToWriteAndListTodos() {
-        AtlasTodos todoClient = createTodoClient();
+        TodoResource todoClient = createTodoClient();
 
         todoClient.addTodo(TODO);
-        assertThat(todoClient.listTodos(), contains(TODO));
+        assertThat(todoClient.getTodoList(), contains(TODO));
     }
 
-    private AtlasTodos createTodoClient() {
+    private TodoResource createTodoClient() {
         try {
-            DockerPort port = dockerComposition.portOnContainerWithInternalMapping("todo1", TODO_PORT);
+            DockerPort port = dockerComposition.portOnContainerWithInternalMapping("ete1", TODO_PORT);
             return createTodoClientFor(port);
         } catch (Exception e) {
             throw propagate(e);
         }
     }
 
-    private static AtlasTodos createTodoClientFor(Container container) {
+    private static TodoResource createTodoClientFor(Container container) {
         return createTodoClientFor(container.portMappedInternallyTo(TODO_PORT));
     }
 
-    private static AtlasTodos createTodoClientFor(DockerPort port) {
+    private static TodoResource createTodoClientFor(DockerPort port) {
         String uri = port.inFormat("http://$HOST:$EXTERNAL_PORT");
-        return AtlasDbHttpClients.createProxy(NO_SSL, uri, AtlasTodos.class);
+        return AtlasDbHttpClients.createProxy(NO_SSL, uri, TodoResource.class);
     }
 }
