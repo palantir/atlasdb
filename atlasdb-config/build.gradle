@@ -20,7 +20,12 @@ dependencies {
 
     compile 'com.fasterxml.jackson.core:jackson-databind:' + libVersions.jackson
     compile 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:' + libVersions.jackson
-    compile 'io.dropwizard:dropwizard-jackson:' + libVersions.dropwizard
+    compile('io.dropwizard:dropwizard-jackson:' + libVersions.dropwizard) {
+        exclude module: 'slf4j-api'
+        exclude module: 'jsr305'
+    }
+    compile group: 'org.slf4j', name: 'slf4j-api', version: libVersions.slf4j
+    compile group: 'com.google.code.findbugs', name: 'jsr305', version: libVersions.jsr305
 
     processor 'org.immutables:value:2.0.21'
     processor 'com.google.auto.service:auto-service:1.0-rc2'
@@ -33,8 +38,6 @@ dependencies {
 
 configurations.matching({ it.name in ['compile', 'runtime'] }).all {
     resolutionStrategy {
-        force 'com.google.code.findbugs:jsr305:' + libVersions.jsr305
-        force 'org.slf4j:slf4j-api:' + libVersions.slf4j
         force 'com.fasterxml.jackson.core:jackson-databind:' + libVersions.jackson
         force 'com.fasterxml.jackson.core:jackson-core:' + libVersions.jackson
         force 'com.fasterxml.jackson.datatype:jackson-datatype-guava:' + libVersions.jackson
