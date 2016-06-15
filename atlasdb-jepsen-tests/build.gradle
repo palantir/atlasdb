@@ -1,0 +1,58 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath "com.avast.gradle:docker-compose-gradle-plugin:0.3.5"
+    }
+}
+
+apply plugin: 'docker-compose'
+
+def waitForService(String containerName, int maxAttempts = 30, int sleepTimeMs = 1000) {
+    println "Waiting for the container ${containerName} to finish..."
+
+    String containerId = project.tasks.composeUp.getContainerId(containerName)
+    boolean running = true
+    int exitCode = 0
+
+    def attempts = 0
+    while (running && attempts++ < maxAttempts) {
+        def inspection = project.tasks.composeUp.getDockerInspection(containerId)
+        running = inspection['State']['Running']
+        exitCode = inspection['State']['ExitCode']
+
+        if (running) {
+            sleep(sleepTimeMs)
+        }
+    }
+    if (running) {
+        throw new IllegalStateException("Timeout reached before container ${containerName} finished");
+    }
+    if (exitCode != 0) {
+        throw new IllegalStateException("Container ${containerName} failed with exit code: ${exitCode}")
+    }
+    println "Container ${containerName} has finished"
+}
+
+task prepareForJepsen(type: Copy, dependsOn: ':atlasdb-ete-tests:distTar') {
+    from project(':atlasdb-ete-tests').distTar.outputs
+    into 'resources/atlasdb/'
+
+    rename { filename -> 'atlasdb-ete.tgz' }
+}
+
+composeUp.dependsOn prepareForJepsen
+
+task showComposeLogs(type: Exec) {
+    mustRunAfter composeUp
+
+    environment = project.dockerCompose.environment
+    commandLine project.dockerCompose.composeCommand('logs', '-f')
+}
+
+task test(dependsOn: ['composeUp', 'showComposeLogs']) {
+    finalizedBy 'composeDown'
+} << {
+    project.waitForService 'jepsen'
+}

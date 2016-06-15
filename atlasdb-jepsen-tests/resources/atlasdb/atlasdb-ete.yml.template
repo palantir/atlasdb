@@ -1,0 +1,36 @@
+server:
+  applicationConnectors:
+    - type: http
+      port: 3828
+  adminConnectors:
+    - type: http
+      port: 3829
+  requestLog:
+    appenders:
+      - type: file
+        archive: false
+        currentLogFilename: var/log/atlasdb-ete-request.log
+        threshold: INFO
+
+logging:
+  level: INFO
+  appenders:
+    - type: file
+      archive: false
+      currentLogFilename: var/log/atlasdb-ete.log
+
+atlasdb:
+  keyValueService:
+    type: cassandra
+    servers:
+      - n4:9160
+    ssl: false
+    replicationFactor: 1
+    keyspace: atlasete
+  leader:
+    quorumSize: 2
+    localServer: http://{{LOCAL_HOSTNAME}}:3828
+    leaders:
+      - http://n1:3828
+      - http://n2:3828
+      - http://n3:3828
