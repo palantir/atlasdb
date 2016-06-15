@@ -4,6 +4,8 @@ RUN apk update && apk add libstdc++ bash wget
 
 ENV DOCKERIZE_VERSION v0.2.0
 
+ENV JAVA_OPTS "-Xmx512M"
+
 RUN wget --no-check-certificate http://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
     && tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
 
