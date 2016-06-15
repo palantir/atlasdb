@@ -1,9 +1,5 @@
-plugins{
-    id 'com.palantir.docker' version '0.7.0'
-}
 
 apply plugin: 'org.inferred.processors'
-apply plugin: 'com.palantir.docker'
 
 apply from: "../gradle/shared.gradle"
 
@@ -15,22 +11,12 @@ dependencies {
   testCompile 'com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core
 
   testCompile 'org.mockito:mockito-core:' + libVersions.mockito
-  testCompile 'com.palantir.docker.compose:docker-compose-rule:0.12.0'
+  testCompile 'com.palantir.docker.compose:docker-compose-rule:' + libVersions.dockerComposeRule
 }
 
 jacoco {
     toolVersion = "0.7.1.201405082137"
     reportsDir = file("$buildDir/customJacocoReportDir")
-}
-
-docker {
-    name "com.palantir.docker/atlas-cassandra:2.2-v0.1"
-    tags 'latest'
-    dockerfile "${rootProject.projectDir}/docker-containers/cassandra/Dockerfile"
-    files "${rootProject.projectDir}/docker-containers/cassandra/entrypoint.sh",
-            "${rootProject.projectDir}/docker-containers/cassandra/cassandra.yaml",
-            "${rootProject.projectDir}/docker-containers/cassandra/cassandra-env.sh"
-    dependsOn jar
 }
 
 test {
@@ -42,7 +28,7 @@ test {
     maxHeapSize = "1024m"
     include '**/*Suite.class'
     maxParallelForks 2
-    dependsOn tasks.docker
+    dependsOn ':atlasdb-ete-test-utils:buildCassandraImage'
 }
 
 jacocoTestReport {

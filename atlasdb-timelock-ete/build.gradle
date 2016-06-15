@@ -28,19 +28,13 @@ dependencies {
     compile project(':lock-api')
     compile project(':timestamp-api')
     compile project(':atlasdb-config')
+    compile project(':atlasdb-ete-test-utils')
 
-    testCompile 'com.palantir.docker.compose:docker-compose-rule:0.8.0'
+    testCompile 'com.palantir.docker.compose:docker-compose-rule:' + libVersions.dockerComposeRule
     testCompile 'ch.qos.logback:logback-classic:1.1.7'
 }
 
 test.dependsOn ':atlasdb-timelock-server:prepareForEteTests'
-
-// This allows tests that require an artefact to exist to
-// decide whether to call gradle themselves or not
-tasks.withType(Test) {
-    systemProperty 'RUNNING_IN_GRADLE', 'true'
-}
-
 
 configurations.matching({ it.name in ['compile', 'runtime'] }).all {
     resolutionStrategy {

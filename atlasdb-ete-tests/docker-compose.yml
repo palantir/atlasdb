@@ -1,0 +1,35 @@
+version: '2'
+
+services:
+  cassandra:
+    image: com.palantir.docker/atlas-cassandra:2.2-v0.1
+    ports:
+      - "9160"
+      - "9042"
+      - "7199"
+    environment:
+      - LOCAL_JMX=no
+
+  todo1:
+    build: .
+    command: bash -c 'dockerize -timeout 120s -wait tcp://cassandra:9160 && ./init.sh console'
+    environment:
+      - ME=todo1
+    ports:
+      - "3828"
+
+  todo2:
+    build: .
+    command: bash -c 'dockerize -timeout 120s -wait tcp://todo1:3828 && ./init.sh console'
+    environment:
+      - ME=todo2
+    depends_on:
+      - todo1
+
+  todo3:
+    build: .
+    command: bash -c 'dockerize -timeout 120s -wait tcp://todo1:3828 && ./init.sh console'
+    environment:
+      - ME=todo3
+    depends_on:
+      - todo1
