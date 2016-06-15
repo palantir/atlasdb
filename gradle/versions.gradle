@@ -9,6 +9,7 @@ ext.libVersions =
     dropwizard:   '0.8.2',
     dockerComposeRule: '0.13.0',
     commons_lang: '2.6',
+    commons_lang3: '3.1',
     commons_io: '2.1',
     commons_dbutils: '1.3',
     joda_time: '2.7',

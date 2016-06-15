@@ -42,6 +42,6 @@ configurations.matching({ it.name in ['compile', 'runtime'] }).all {
         force 'org.slf4j:slf4j-api:' + libVersions.slf4j
         force 'com.fasterxml.jackson.core:jackson-databind:' + libVersions.jackson
         force 'com.fasterxml.jackson.core:jackson-core:' + libVersions.jackson
-        force 'org.apache.commons:commons-lang3:3.1'
+        force 'org.apache.commons:commons-lang3:' + libVersions.commons_lang3
     }
 }
