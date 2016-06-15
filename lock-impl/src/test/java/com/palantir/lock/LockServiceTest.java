@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CyclicBarrier;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -40,8 +39,6 @@ import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.proxy.SimulatingServerProxy;
 import com.palantir.lock.impl.LockServiceImpl;
-import com.palantir.util.Mutable;
-import com.palantir.util.Mutables;
 
 /**
  * Tests for the Lock Server.
