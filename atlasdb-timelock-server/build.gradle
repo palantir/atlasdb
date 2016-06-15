@@ -1,0 +1,69 @@
+buildscript {
+    repositories { jcenter() }
+    dependencies {
+        classpath 'com.palantir.gradle.javadist:gradle-java-distribution:0.5.2'
+    }
+}
+
+apply from: "../gradle/shared.gradle"
+
+apply plugin: 'com.palantir.java-distribution'
+apply plugin: 'org.inferred.processors'
+
+
+dependencies {
+    compile project(':lock-impl')
+    compile project(':leader-election-impl')
+    compile project(':atlasdb-config')
+    compile project(':atlasdb-hikari')
+    compile project(':atlasdb-rocksdb')
+
+    compile "io.dropwizard:dropwizard-core:" + libVersions.dropwizard
+    compile 'com.google.dagger:dagger:2.0.2'
+
+    compile "org.rocksdb:rocksdbjni:4.1.0"
+    compile 'org.postgresql:postgresql:9.4.1208'
+
+    compile 'org.apache.thrift:libthrift:0.9.1'
+
+    processor 'org.immutables:value:2.0.21'
+    processor('com.google.dagger:dagger-compiler:2.0.2') {
+        // We need to explicitly exclude these so that intellij does not label them as provided
+        if(gradle.startParameter.taskNames.contains('idea')) {
+            exclude group: 'com.google.guava'
+            exclude group: 'com.google.dagger', module: 'dagger'
+        }
+    }
+
+    testCompile "io.dropwizard:dropwizard-testing:" + libVersions.dropwizard
+}
+
+
+configurations.matching({ it.name in ['compile', 'runtime'] }).all {
+    resolutionStrategy {
+        force 'com.google.code.findbugs:jsr305:' + libVersions.jsr305
+        force 'org.slf4j:slf4j-api:' + libVersions.slf4j
+        force 'com.fasterxml.jackson.core:jackson-databind:' + libVersions.jackson
+        force 'com.fasterxml.jackson.core:jackson-core:' + libVersions.jackson
+        force 'org.apache.commons:commons-lang3:3.1'
+        force 'org.apache.thrift:libthrift:0.9.1'
+        force 'commons-codec:commons-codec:1.6'
+        force 'org.hibernate:hibernate-validator:5.1.3.Final'
+    }
+}
+
+task prepareForEteTests(type: Copy, dependsOn: 'distTar') {
+    from distTar.outputs
+    into 'build/docker/'
+
+    rename { filename -> 'atlasdb-timelock-server-snapshot.tgz' }
+}
+
+distribution {
+    serviceName 'atlasdb-timelock'
+    mainClass 'com.palantir.atlasdb.timelock.server.TimeLockServer'
+    args 'server', 'var/conf/timelock.yml'
+}
+
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
