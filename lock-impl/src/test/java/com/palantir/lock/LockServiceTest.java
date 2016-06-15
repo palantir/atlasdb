@@ -788,7 +788,6 @@ public abstract class LockServiceTest {
                     }
                 }), 100);
 
-
         final int partitions = 5;
         final int[] partition = new int[partitions - 1];
         final int numThreads = partitions * 10;
@@ -797,14 +796,11 @@ public abstract class LockServiceTest {
         }
 
         List<Future<?>> futures = Lists.newArrayList();
-        final Mutable<Integer> numSuccess = Mutables.newMutable(0);
-        final Mutable<Integer> numFailure = Mutables.newMutable(0);
         for (int i = 0; i < numThreads; ++i) {
             final int clientID = i;
             InterruptibleFuture<?> future = new InterruptibleFuture<Void>() {
                 @Override
                 public Void call() throws InterruptedException {
-                    try {
                     while (true) {
                         LockClient client = LockClient.of("client" + clientID);
                         LockRequest request;
@@ -840,47 +836,39 @@ public abstract class LockServiceTest {
                                             SimpleTimeDuration.of(2000, TimeUnit.MILLISECONDS))
                                     .build();
                         }
+
                         token = server.lockWithFullLockResponse(client, request).getToken();
+
                         if (token == null) {
-                            numFailure.set(numFailure.get() + 1);
-                        } else {
-                            numSuccess.set(numSuccess.get() + 1);
-                            Assert.assertEquals(Integer.toString(clientID), token.getClient().getClientId());
-                            Assert.assertEquals(request.getLockDescriptors(), token.getLockDescriptors());
-                            try {
-                                Thread.sleep(50);
-                            } catch (InterruptedException e) {
-                                /* Intentionally swallow. */
-                            }
-                            System.out.println(System.currentTimeMillis()
-                                    - token.getExpirationDateMs());
-                            server.unlock(token);
-                            Assert.assertTrue(server.getTokens(client).isEmpty());
+                            continue;
                         }
-                    }
-                    } catch (RuntimeException e) {
-                        e.printStackTrace();
-                        throw e;
+
+                        Assert.assertEquals(Integer.toString(clientID), token.getClient().getClientId());
+                        Assert.assertEquals(request.getLockDescriptors(), token.getLockDescriptors());
+                        try {
+                            server.unlock(token);
+                        } catch (Exception e) {
+                            Assert.assertTrue(e instanceof InterruptedException);
+                            // make sure we unlock before terminating
+                            // each future is only cancelled once, so no need for general retries here
+                            server.unlock(token);
+                            throw e;
+                        }
+                        Assert.assertTrue(server.getTokens(client).isEmpty());
                     }
                 }
             };
+
             futures.add(future);
             executor.execute(future);
         }
+
         Thread.sleep(5000);
+
         for (Future<?> future : futures) {
             future.cancel(true);
         }
-        for (Future<?> future : futures) {
-            try {
-                future.get();
-                Assert.fail();
-            } catch (ExecutionException expected) {
-                /* expected */
-            }
-        }
-        System.out.println("Number of unsuccessfully acquired locks: " + numFailure.get());
-        System.out.println("Number of successfully acquired locks: " + numSuccess.get());
+
         LockRequest request = LockRequest.builder(
                 ImmutableSortedMap.of(lock1, LockMode.WRITE, lock2, LockMode.WRITE)).build();
         HeldLocksToken token = server.lockWithFullLockResponse(LockClient.ANONYMOUS, request).getToken();
