@@ -21,6 +21,7 @@ import java.util.concurrent.ExecutionException;
 import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleDdlTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleOverflowQueryFactory;
@@ -44,8 +45,24 @@ public class OracleDbTableFactory implements DbTableFactory {
     }
 
     @Override
-    public DbDdlTable createDdl(String tableName, ConnectionSupplier conns) {
+    public DbDdlTable createDdl(TableReference tableName, ConnectionSupplier conns) {
         return new OracleDdlTable(tableName, conns, config);
+    }
+
+    @Override
+    public DbTableInitializer createInitializer(ConnectionSupplier conns) {
+        /* No initialization required for Oracle */
+        return new DbTableInitializer() {
+            @Override
+            public void createUtilityTables() {
+                //no op
+            }
+
+            @Override
+            public void createMetadataTable(String metadataTableName) {
+                //no op - will be required for Oracle to work
+            }
+        };
     }
 
     @Override

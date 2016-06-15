@@ -30,6 +30,8 @@ import java.util.SortedSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import javax.annotation.Nullable;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -96,7 +98,11 @@ public class DbKvs extends AbstractKeyValueService {
         ReentrantManagedConnectionSupplier connSupplier = new ReentrantManagedConnectionSupplier(connManager);
         SqlConnectionSupplier sqlConnSupplier = getSimpleTimedSqlConnectionSupplier(connSupplier);
 
-        return new DbKvs(config, config.tableFactorySupplier().get(), sqlConnSupplier);
+        DbKvs dbKvs = new DbKvs(config, config.tableFactorySupplier().get(), sqlConnSupplier);
+
+        dbKvs.init();
+
+        return dbKvs;
     }
 
     private static SqlConnectionSupplier getSimpleTimedSqlConnectionSupplier(ReentrantManagedConnectionSupplier connectionSupplier) {
@@ -149,6 +155,33 @@ public class DbKvs extends AbstractKeyValueService {
         this.config = config;
         this.dbTables = dbTables;
         this.connections = connections;
+    }
+
+
+    private void init() {
+        databaseSpecificInitialization();
+        createMetadataTable();
+    }
+
+    private void databaseSpecificInitialization() {
+        runInitialization(new Function<DbTableInitializer, Void>() {
+            @Nullable
+            @Override
+            public Void apply(@Nullable DbTableInitializer initializer) {
+                initializer.createUtilityTables();
+                return null;
+            }
+        });
+    }
+
+    private void createMetadataTable() {
+        runInitialization(new Function<DbTableInitializer, Void>() {
+            @Override
+            public Void apply(@Nullable DbTableInitializer initializer) {
+                initializer.createMetadataTable(AtlasDbConstants.METADATA_TABLE.getQualifiedName());
+                return null;
+            }
+        });
     }
 
     public DbKeyValueServiceConfig getConfig() {
@@ -786,6 +819,7 @@ public class DbKvs extends AbstractKeyValueService {
     private <T> T runMetadata(TableReference tableRef, Function<DbMetadataTable, T> runner) {
         ConnectionSupplier conns = new ConnectionSupplier(connections);
         try {
+            /* The metadata table operates only on the fully qualified table reference */
             return runner.apply(dbTables.createMetadata(tableRef.getQualifiedName(), conns));
         } finally {
             conns.close();
@@ -795,7 +829,17 @@ public class DbKvs extends AbstractKeyValueService {
     private <T> T runDdl(TableReference tableRef, Function<DbDdlTable, T> runner) {
         ConnectionSupplier conns = new ConnectionSupplier(connections);
         try {
-            return runner.apply(dbTables.createDdl(tableRef.getQualifiedName(), conns));
+            /* The ddl actions can used both the fully qualified name and the internal name */
+            return runner.apply(dbTables.createDdl(tableRef, conns));
+        } finally {
+            conns.close();
+        }
+    }
+
+    private <T> T runInitialization(Function<DbTableInitializer, T> runner) {
+        ConnectionSupplier conns = new ConnectionSupplier(connections);
+        try {
+            return runner.apply(dbTables.createInitializer(conns));
         } finally {
             conns.close();
         }
@@ -804,7 +848,7 @@ public class DbKvs extends AbstractKeyValueService {
     private <T> T runRead(TableReference tableRef, Function<DbReadTable, T> runner) {
         ConnectionSupplier conns = new ConnectionSupplier(connections);
         try {
-            return runner.apply(dbTables.createRead(tableRef.getQualifiedName(), conns));
+            return runner.apply(dbTables.createRead(internalTableName(tableRef), conns));
         } finally {
             conns.close();
         }
@@ -813,7 +857,7 @@ public class DbKvs extends AbstractKeyValueService {
     private <T> T runWrite(TableReference tableRef, Function<DbWriteTable, T> runner) {
         ConnectionSupplier conns = new ConnectionSupplier(connections);
         try {
-            return runner.apply(dbTables.createWrite(tableRef.getQualifiedName(), conns));
+            return runner.apply(dbTables.createWrite(internalTableName(tableRef), conns));
         } finally {
             conns.close();
         }
@@ -834,7 +878,7 @@ public class DbKvs extends AbstractKeyValueService {
             if (!autocommit) {
                 return runWriteFreshConnection(conns, tableRef, runner);
             } else {
-                return runner.apply(dbTables.createWrite(tableRef.getQualifiedName(), conns));
+                return runner.apply(dbTables.createWrite(internalTableName(tableRef), conns));
             }
         } finally {
             conns.close();
@@ -854,7 +898,7 @@ public class DbKvs extends AbstractKeyValueService {
             public void run() {
                 SqlConnection freshConn = conns.getFresh();
                 try {
-                    result.set(runner.apply(dbTables.createWrite(tableRef.getQualifiedName(), new ConnectionSupplier(Suppliers.ofInstance(freshConn)))));
+                    result.set(runner.apply(dbTables.createWrite(internalTableName(tableRef), new ConnectionSupplier(Suppliers.ofInstance(freshConn)))));
                 } finally {
                     try {
                         Connection c = freshConn.getUnderlyingConnection();

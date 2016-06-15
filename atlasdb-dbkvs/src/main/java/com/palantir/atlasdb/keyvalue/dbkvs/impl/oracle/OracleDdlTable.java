@@ -19,9 +19,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbDdlTable;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableSize;
 import com.palantir.atlasdb.table.description.TableMetadata;
@@ -31,11 +33,11 @@ import com.palantir.util.VersionStrings;
 
 public class OracleDdlTable implements DbDdlTable {
     private static final Logger log = LoggerFactory.getLogger(OracleDdlTable.class);
-    private final String tableName;
+    private final TableReference tableName;
     private final ConnectionSupplier conns;
     private final OracleKeyValueServiceConfig config;
 
-    public OracleDdlTable(String tableName,
+    public OracleDdlTable(TableReference tableName,
                           ConnectionSupplier conns,
                           OracleKeyValueServiceConfig config) {
         this.tableName = tableName;
@@ -47,7 +49,7 @@ public class OracleDdlTable implements DbDdlTable {
     public void create(byte[] tableMetadata) {
         if (conns.get().selectExistsUnregisteredQuery(
                 "SELECT 1 FROM " + config.shared().metadataTable().getQualifiedName() + " WHERE table_name = ?",
-                tableName)) {
+                tableName.getQualifiedName())) {
             return;
         }
 
@@ -78,7 +80,7 @@ public class OracleDdlTable implements DbDdlTable {
         }
         conns.get().insertOneUnregisteredQuery(
                 "INSERT INTO " + config.shared().metadataTable().getQualifiedName() + " (table_name, table_size) VALUES (?, ?)",
-                tableName,
+                tableName.getQualifiedName(),
                 (needsOverflow ? TableSize.OVERFLOW.getId() : TableSize.RAW.getId()));
     }
 
@@ -87,7 +89,7 @@ public class OracleDdlTable implements DbDdlTable {
         executeIgnoringError("DROP TABLE " + prefixedTableName() + " PURGE", "ORA-00942");
         executeIgnoringError("DROP TABLE " + prefixedOverflowTableName() + " PURGE", "ORA-00942");
         conns.get().executeUnregisteredQuery(
-                "DELETE FROM " + config.shared().metadataTable().getQualifiedName() + " WHERE table_name = ?", tableName);
+                "DELETE FROM " + config.shared().metadataTable().getQualifiedName() + " WHERE table_name = ?", tableName.getQualifiedName());
     }
 
     @Override
@@ -139,10 +141,10 @@ public class OracleDdlTable implements DbDdlTable {
     }
 
     private String prefixedTableName() {
-        return config.shared().tablePrefix() + tableName;
+        return config.shared().tablePrefix() + DbKvs.internalTableName(tableName);
     }
 
     private String prefixedOverflowTableName() {
-        return config.overflowTablePrefix() + tableName;
+        return config.overflowTablePrefix() + DbKvs.internalTableName(tableName);
     }
 }
