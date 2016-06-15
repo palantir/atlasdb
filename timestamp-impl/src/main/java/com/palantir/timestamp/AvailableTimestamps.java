@@ -56,7 +56,7 @@ public class AvailableTimestamps {
                 "Could not hand out timestamp '%s' as it was earlier than the last handed out timestamp: %s",
                 targetTimestamp, lastHandedOut());
 
-        TimestampRange rangeToHandOut = TimestampRange.createInclusiveRange(lastReturnedTimestamp.get() + 1, targetTimestamp);
+        TimestampRange rangeToHandOut = TimestampRange.createInclusiveRange(lastHandedOut() + 1, targetTimestamp);
 
         allocateEnoughTimestampsToHandOut(targetTimestamp);
         lastReturnedTimestamp.increaseToAtLeast(targetTimestamp);
@@ -85,11 +85,11 @@ public class AvailableTimestamps {
         try {
             upperLimit.increaseToAtLeast(timestamp);
         } catch(Throwable e) {
-            handleAllocationFailure(e);
+            handleRepeatedAllocationFailures(e);
         }
     }
 
-    private synchronized void handleAllocationFailure(Throwable newFailure) {
+    private synchronized void handleRepeatedAllocationFailures(Throwable newFailure) {
         Throwable oldFailure = previousAllocationFailure;
         previousAllocationFailure = newFailure;
 
