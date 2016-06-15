@@ -34,7 +34,7 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
     public KeyValueService createRawKeyValueService(KeyValueServiceConfig config) {
         Preconditions.checkArgument(config instanceof DbKeyValueServiceConfig,
                 "DbAtlasDbFactory expects a configuration of type DbKeyValueServiceConfiguration, found %s", config.getClass());
-        throw new UnsupportedOperationException("Cannot instantiate a relational key value service.");
+        return DbKvs.create((DbKeyValueServiceConfig) config);
     }
 
     @Override
