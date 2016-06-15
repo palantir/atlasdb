@@ -1,0 +1,27 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath "com.avast.gradle:docker-compose-gradle-plugin:0.3.5"
+    }
+}
+
+apply plugin: 'docker-compose'
+
+task prepareForJepsen(type: Copy, dependsOn: ':atlasdb-ete-tests:distTar') {
+    from project(':atlasdb-ete-tests').distTar.outputs
+    into 'resources/atlasdb/'
+
+    rename { filename -> 'atlasdb-ete.tgz' }
+}
+
+task composeBuild(type: Exec, dependsOn: 'prepareForJepsen') {
+    environment = project.dockerCompose.environment
+    commandLine project.dockerCompose.composeCommand('build', '--force-rm')
+}
+
+task test(type: Exec, dependsOn: 'composeBuild') {
+    environment = project.dockerCompose.environment
+    commandLine project.dockerCompose.composeCommand('run', '--rm', 'jepsen')
+}

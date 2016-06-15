@@ -15,17 +15,28 @@
  */
 package com.palantir.atlasdb.todo;
 
-import org.immutables.value.Value;
+import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
 
-@Value.Immutable()
-@JsonSerialize(as = ImmutableTodo.class)
-@JsonDeserialize(as = ImmutableTodo.class)
-public abstract class Todo {
-    @JsonProperty
-    @Value.Parameter
-    public abstract String text();
+@Path("/todos")
+public interface TodoResource {
+    @POST
+    @Path("/")
+    @Consumes(MediaType.APPLICATION_JSON)
+    void addTodo(Todo todo);
+
+    @GET
+    @Path("/")
+    @Produces(MediaType.APPLICATION_JSON)
+    List<Todo> getTodoList();
+
+    @GET
+    @Path("/healthcheck")
+    void isHealthy();
 }

@@ -17,7 +17,6 @@ package com.palantir.atlasdb.todo;
 
 import static java.util.stream.Collectors.toList;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -28,46 +27,42 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.config.AtlasDbConfig;
-import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.table.description.Schema;
+import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.common.base.BatchingVisitable;
 
 import io.dropwizard.jersey.setup.JerseyEnvironment;
 
-public class Atlas {
+public class TodoClient {
+    private static final boolean DONT_SHOW_HIDDEN_TABLES = false;
+    private static final Optional<SSLSocketFactory> NO_SSL = Optional.absent();
 
-    private static final boolean NO_HIDDEN_TABLES = false;
-
-    private final List<Todo> todos = new ArrayList<>();
     private final SerializableTransactionManager transactionManager;
-    private Random random = new Random(42);
+    private final Random random = new Random();
 
-    public Atlas(AtlasDbConfig config, JerseyEnvironment environment) {
-        Optional<SSLSocketFactory> ssl = Optional.absent();
-        Schema schema = AtlasTodosSchema.getSchema();
-        transactionManager = TransactionManagers.create(config, ssl, schema, environment::register, NO_HIDDEN_TABLES);
+    public TodoClient(AtlasDbConfig config, JerseyEnvironment environment) {
+        Schema schema = TodoSchema.getSchema();
+        transactionManager = TransactionManagers.create(config, NO_SSL, schema, environment::register, DONT_SHOW_HIDDEN_TABLES);
     }
 
     public void addTodo(Todo todo) {
-
         transactionManager.runTaskWithRetry((transaction) -> {
-            Cell thisCell = Cell.create(PtBytes.toBytes(random.nextLong()), AtlasTodosSchema.todoTextColumn());
-            Map<Cell, byte[]> write = ImmutableMap.of(thisCell, PtBytes.toBytes(todo.text()));
-            transaction.put(AtlasTodosSchema.todosTable(), write);
+            Cell thisCell = Cell.create(ValueType.FIXED_LONG.convertFromJava(random.nextLong()), TodoSchema.todoTextColumn());
+            Map<Cell, byte[]> write = ImmutableMap.of(thisCell, ValueType.STRING.convertFromJava(todo.text()));
+
+            transaction.put(TodoSchema.todoTable(), write);
             return null;
         });
-
-        todos.add(todo);
     }
 
-    public List<Todo> listTodos() {
+    public List<Todo> getTodoList() {
         ImmutableList<RowResult<byte[]>> results = transactionManager.runTaskWithRetry((transaction) -> {
-            BatchingVisitable<RowResult<byte[]>> rowResultBatchingVisitable = transaction.getRange(AtlasTodosSchema.todosTable(), RangeRequest.all());
+            BatchingVisitable<RowResult<byte[]>> rowResultBatchingVisitable = transaction.getRange(TodoSchema.todoTable(), RangeRequest.all());
             ImmutableList.Builder<RowResult<byte[]>> rowResults = ImmutableList.builder();
 
             rowResultBatchingVisitable.batchAccept(1000, items -> {
@@ -80,7 +75,7 @@ public class Atlas {
 
         return results.stream()
                 .map(RowResult::getOnlyColumnValue)
-                .map(PtBytes::toString)
+                .map(ValueType.STRING::convertToString)
                 .map(ImmutableTodo::of)
                 .collect(toList());
     }

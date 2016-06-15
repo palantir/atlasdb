@@ -13,32 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.todo;
+package com.palantir.atlasdb;
 
-import java.util.List;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.palantir.atlasdb.config.AtlasDbConfig;
 
-import com.google.common.base.Preconditions;
+import io.dropwizard.Configuration;
 
-public class DefaultAtlasTodos implements AtlasTodos {
-    private Atlas atlas;
+public class AtlasDbEteConfiguration extends Configuration {
+    private final AtlasDbConfig atlasdb;
 
-    public DefaultAtlasTodos(Atlas atlas) {
-        this.atlas = atlas;
+    public AtlasDbEteConfiguration(@JsonProperty("atlasdb") AtlasDbConfig atlasdb) {
+        this.atlasdb = atlasdb;
     }
 
-    @Override
-    public void addTodo(Todo todo) {
-        atlas.addTodo(todo);
-    }
-
-    @Override
-    public List<Todo> listTodos() {
-        return atlas.listTodos();
-    }
-
-    @Override
-    public void isHealthy() {
-        Preconditions.checkState(atlas.listTodos() != null);
+    public AtlasDbConfig getAtlasConfig() {
+        return atlasdb;
     }
 }
-

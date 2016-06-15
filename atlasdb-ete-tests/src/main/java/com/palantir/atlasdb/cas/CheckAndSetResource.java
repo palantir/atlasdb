@@ -13,30 +13,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.todo;
-
-import java.util.List;
+package com.palantir.atlasdb.cas;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
-import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-@Path("/todos")
-public interface AtlasTodos {
-    @POST
+import com.google.common.base.Optional;
+
+import io.dropwizard.jersey.PATCH;
+
+@Path("/cas")
+public interface CheckAndSetResource {
+    @PUT
     @Path("/")
     @Consumes(MediaType.APPLICATION_JSON)
-    void addTodo(Todo todo);
+    void set(Optional<Long> value);
 
     @GET
     @Path("/")
     @Produces(MediaType.APPLICATION_JSON)
-    List<Todo> listTodos();
+    Long get();
 
-    @GET
-    @Path("/healthcheck")
-    void isHealthy();
+    @PATCH
+    @Path("/")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    boolean checkAndSet(CheckAndSetValueUpdate valueUpdate);
 }
