@@ -18,32 +18,34 @@ package com.palantir.atlasdb.cas;
 import java.util.Objects;
 
 import com.google.common.base.Optional;
-import com.palantir.atlasdb.cas.generated.CasSchemaTableFactory;
-import com.palantir.atlasdb.cas.generated.CasTable;
+import com.palantir.atlasdb.cas.generated.CheckAndSetSchemaTableFactory;
+import com.palantir.atlasdb.cas.generated.CheckAndSetTable;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
-public class CasValueAccessor {
+public class CheckAndSetPersistentValue {
+    private static final CheckAndSetTable.CheckAndSetRow CHECK_AND_SET_ROW = CheckAndSetTable.CheckAndSetRow.of(0);
+
     private final Transaction transaction;
 
-    public CasValueAccessor(Transaction transaction) {
+    public CheckAndSetPersistentValue(Transaction transaction) {
         this.transaction = transaction;
     }
 
     public void set(Optional<Long> value) {
-        CasTable casTable = CasSchemaTableFactory.of().getCasTable(transaction);
+        CheckAndSetTable checkAndSetTable = CheckAndSetSchemaTableFactory.of().getCheckAndSetTable(transaction);
         if(value.isPresent()) {
-            casTable.putValue(CasTable.CasRow.of(0), value.get());
+            checkAndSetTable.putValue(CHECK_AND_SET_ROW, value.get());
         } else {
-            casTable.delete(CasTable.CasRow.of(0));
+            checkAndSetTable.delete(CHECK_AND_SET_ROW);
         }
     }
 
     public Optional<Long> get() {
-        CasTable jepsenTable = CasSchemaTableFactory.of().getCasTable(transaction);
-        return jepsenTable.getRow(CasTable.CasRow.of(0)).transform(CasTable.CasRowResult::getValue);
+        CheckAndSetTable checkAndSetTable = CheckAndSetSchemaTableFactory.of().getCheckAndSetTable(transaction);
+        return checkAndSetTable.getRow(CHECK_AND_SET_ROW).transform(CheckAndSetTable.CheckAndSetRowResult::getValue);
     }
 
-    public boolean cas(Optional<Long> oldValue,  Optional<Long> newValue) {
+    public boolean checkAndSet(Optional<Long> oldValue, Optional<Long> newValue) {
         Optional<Long> existingValue = get();
         if(Objects.equals(oldValue, existingValue)) {
             set(newValue);

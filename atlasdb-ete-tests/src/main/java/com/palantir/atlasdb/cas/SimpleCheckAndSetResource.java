@@ -15,27 +15,27 @@
  */
 package com.palantir.atlasdb.cas;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Optional;
 
-public class CasValuePatch {
-    private final Optional<Long> oldValue;
-    private final Optional<Long> newValue;
+public class SimpleCheckAndSetResource implements CheckAndSetResource {
+    private CheckAndSetClient checkAndSetClient;
 
-    @JsonCreator
-    public CasValuePatch(
-            @JsonProperty(value = "oldValue", required = true) Optional<Long> oldValue,
-            @JsonProperty(value = "newValue", required = true) Optional<Long> newValue) {
-        this.oldValue = oldValue;
-        this.newValue = newValue;
+    public SimpleCheckAndSetResource(CheckAndSetClient checkAndSetClient) {
+        this.checkAndSetClient = checkAndSetClient;
     }
 
-    public Optional<Long> getOldValue() {
-        return oldValue;
+    @Override
+    public void set(Optional<Long> value) {
+        checkAndSetClient.set(value);
     }
 
-    public Optional<Long> getNewValue() {
-        return newValue;
+    @Override
+    public Long get() {
+        return checkAndSetClient.get().orNull();
+    }
+
+    @Override
+    public boolean checkAndSet(CheckAndSetValueUpdate valueUpdate) {
+        return checkAndSetClient.checkAndSet(valueUpdate.getOldValue(), valueUpdate.getNewValue());
     }
 }

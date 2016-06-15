@@ -25,29 +25,29 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 import io.dropwizard.jersey.setup.JerseyEnvironment;
 
-public class CasClient {
+public class CheckAndSetClient {
     private static final boolean DONT_SHOW_HIDDEN_TABLES = false;
     private static final Optional<SSLSocketFactory> NO_SSL = Optional.absent();
 
     private final TransactionManager transactionManager;
 
-    public CasClient(AtlasDbConfig config, JerseyEnvironment environment) {
-        Schema schema = CasSchema.getSchema();
+    public CheckAndSetClient(AtlasDbConfig config, JerseyEnvironment environment) {
+        Schema schema = CheckAndSetSchema.getSchema();
         transactionManager = TransactionManagers.create(config, NO_SSL, schema, environment::register, DONT_SHOW_HIDDEN_TABLES);
     }
 
     public Optional<Long> get() {
-        return transactionManager.runTaskReadOnly((transaction) -> new CasValueAccessor(transaction).get());
+        return transactionManager.runTaskReadOnly((transaction) -> new CheckAndSetPersistentValue(transaction).get());
     }
 
     public void set(Optional<Long> value) {
         transactionManager.runTaskWithRetry((transaction) -> {
-            new CasValueAccessor(transaction).set(value);
+            new CheckAndSetPersistentValue(transaction).set(value);
             return null;
         });
     }
 
-    public boolean cas(Optional<Long> oldValue, Optional<Long> newValue) {
-        return transactionManager.runTaskWithRetry((transaction) -> new CasValueAccessor(transaction).cas(oldValue, newValue));
+    public boolean checkAndSet(Optional<Long> oldValue, Optional<Long> newValue) {
+        return transactionManager.runTaskWithRetry((transaction) -> new CheckAndSetPersistentValue(transaction).checkAndSet(oldValue, newValue));
     }
 }

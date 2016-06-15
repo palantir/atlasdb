@@ -85,31 +85,31 @@ import com.palantir.util.crypto.Sha256Hash;
 
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-public final class CasTable implements
-        AtlasDbMutablePersistentTable<CasTable.CasRow,
-                                         CasTable.CasNamedColumnValue<?>,
-                                         CasTable.CasRowResult>,
-        AtlasDbNamedMutableTable<CasTable.CasRow,
-                                    CasTable.CasNamedColumnValue<?>,
-                                    CasTable.CasRowResult> {
+public final class CheckAndSetTable implements
+        AtlasDbMutablePersistentTable<CheckAndSetTable.CheckAndSetRow,
+                                         CheckAndSetTable.CheckAndSetNamedColumnValue<?>,
+                                         CheckAndSetTable.CheckAndSetRowResult>,
+        AtlasDbNamedMutableTable<CheckAndSetTable.CheckAndSetRow,
+                                    CheckAndSetTable.CheckAndSetNamedColumnValue<?>,
+                                    CheckAndSetTable.CheckAndSetRowResult> {
     private final Transaction t;
-    private final List<CasTrigger> triggers;
-    private final static String rawTableName = "cas";
+    private final List<CheckAndSetTrigger> triggers;
+    private final static String rawTableName = "check_and_set";
     private final TableReference tableRef;
 
-    static CasTable of(Transaction t, Namespace namespace) {
-        return new CasTable(t, namespace, ImmutableList.<CasTrigger>of());
+    static CheckAndSetTable of(Transaction t, Namespace namespace) {
+        return new CheckAndSetTable(t, namespace, ImmutableList.<CheckAndSetTrigger>of());
     }
 
-    static CasTable of(Transaction t, Namespace namespace, CasTrigger trigger, CasTrigger... triggers) {
-        return new CasTable(t, namespace, ImmutableList.<CasTrigger>builder().add(trigger).add(triggers).build());
+    static CheckAndSetTable of(Transaction t, Namespace namespace, CheckAndSetTrigger trigger, CheckAndSetTrigger... triggers) {
+        return new CheckAndSetTable(t, namespace, ImmutableList.<CheckAndSetTrigger>builder().add(trigger).add(triggers).build());
     }
 
-    static CasTable of(Transaction t, Namespace namespace, List<CasTrigger> triggers) {
-        return new CasTable(t, namespace, triggers);
+    static CheckAndSetTable of(Transaction t, Namespace namespace, List<CheckAndSetTrigger> triggers) {
+        return new CheckAndSetTable(t, namespace, triggers);
     }
 
-    private CasTable(Transaction t, Namespace namespace, List<CasTrigger> triggers) {
+    private CheckAndSetTable(Transaction t, Namespace namespace, List<CheckAndSetTrigger> triggers) {
         this.t = t;
         this.tableRef = TableReference.create(namespace, rawTableName);
         this.triggers = triggers;
@@ -133,19 +133,19 @@ public final class CasTable implements
 
     /**
      * <pre>
-     * CasRow {
+     * CheckAndSetRow {
      *   {@literal Long id};
      * }
      * </pre>
      */
-    public static final class CasRow implements Persistable, Comparable<CasRow> {
+    public static final class CheckAndSetRow implements Persistable, Comparable<CheckAndSetRow> {
         private final long id;
 
-        public static CasRow of(long id) {
-            return new CasRow(id);
+        public static CheckAndSetRow of(long id) {
+            return new CheckAndSetRow(id);
         }
 
-        private CasRow(long id) {
+        private CheckAndSetRow(long id) {
             this.id = id;
         }
 
@@ -153,20 +153,20 @@ public final class CasTable implements
             return id;
         }
 
-        public static Function<CasRow, Long> getIdFun() {
-            return new Function<CasRow, Long>() {
+        public static Function<CheckAndSetRow, Long> getIdFun() {
+            return new Function<CheckAndSetRow, Long>() {
                 @Override
-                public Long apply(CasRow row) {
+                public Long apply(CheckAndSetRow row) {
                     return row.id;
                 }
             };
         }
 
-        public static Function<Long, CasRow> fromIdFun() {
-            return new Function<Long, CasRow>() {
+        public static Function<Long, CheckAndSetRow> fromIdFun() {
+            return new Function<Long, CheckAndSetRow>() {
                 @Override
-                public CasRow apply(Long row) {
-                    return CasRow.of(row);
+                public CheckAndSetRow apply(Long row) {
+                    return CheckAndSetRow.of(row);
                 }
             };
         }
@@ -177,13 +177,13 @@ public final class CasTable implements
             return EncodingUtils.add(idBytes);
         }
 
-        public static final Hydrator<CasRow> BYTES_HYDRATOR = new Hydrator<CasRow>() {
+        public static final Hydrator<CheckAndSetRow> BYTES_HYDRATOR = new Hydrator<CheckAndSetRow>() {
             @Override
-            public CasRow hydrateFromBytes(byte[] __input) {
+            public CheckAndSetRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
                 Long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 __index += 8;
-                return new CasRow(id);
+                return new CheckAndSetRow(id);
             }
         };
 
@@ -205,7 +205,7 @@ public final class CasTable implements
             if (getClass() != obj.getClass()) {
                 return false;
             }
-            CasRow other = (CasRow) obj;
+            CheckAndSetRow other = (CheckAndSetRow) obj;
             return Objects.equal(id, other.id);
         }
 
@@ -215,14 +215,14 @@ public final class CasTable implements
         }
 
         @Override
-        public int compareTo(CasRow o) {
+        public int compareTo(CheckAndSetRow o) {
             return ComparisonChain.start()
                 .compare(this.id, o.id)
                 .result();
         }
     }
 
-    public interface CasNamedColumnValue<T> extends NamedColumnValue<T> { /* */ }
+    public interface CheckAndSetNamedColumnValue<T> extends NamedColumnValue<T> { /* */ }
 
     /**
      * <pre>
@@ -231,7 +231,7 @@ public final class CasTable implements
      * }
      * </pre>
      */
-    public static final class Value implements CasNamedColumnValue<Long> {
+    public static final class Value implements CheckAndSetNamedColumnValue<Long> {
         private final Long value;
 
         public static Value of(Long value) {
@@ -284,40 +284,40 @@ public final class CasTable implements
         }
     }
 
-    public interface CasTrigger {
-        public void putCas(Multimap<CasRow, ? extends CasNamedColumnValue<?>> newRows);
+    public interface CheckAndSetTrigger {
+        public void putCheckAndSet(Multimap<CheckAndSetRow, ? extends CheckAndSetNamedColumnValue<?>> newRows);
     }
 
-    public static final class CasRowResult implements TypedRowResult {
+    public static final class CheckAndSetRowResult implements TypedRowResult {
         private final RowResult<byte[]> row;
 
-        public static CasRowResult of(RowResult<byte[]> row) {
-            return new CasRowResult(row);
+        public static CheckAndSetRowResult of(RowResult<byte[]> row) {
+            return new CheckAndSetRowResult(row);
         }
 
-        private CasRowResult(RowResult<byte[]> row) {
+        private CheckAndSetRowResult(RowResult<byte[]> row) {
             this.row = row;
         }
 
         @Override
-        public CasRow getRowName() {
-            return CasRow.BYTES_HYDRATOR.hydrateFromBytes(row.getRowName());
+        public CheckAndSetRow getRowName() {
+            return CheckAndSetRow.BYTES_HYDRATOR.hydrateFromBytes(row.getRowName());
         }
 
-        public static Function<CasRowResult, CasRow> getRowNameFun() {
-            return new Function<CasRowResult, CasRow>() {
+        public static Function<CheckAndSetRowResult, CheckAndSetRow> getRowNameFun() {
+            return new Function<CheckAndSetRowResult, CheckAndSetRow>() {
                 @Override
-                public CasRow apply(CasRowResult rowResult) {
+                public CheckAndSetRow apply(CheckAndSetRowResult rowResult) {
                     return rowResult.getRowName();
                 }
             };
         }
 
-        public static Function<RowResult<byte[]>, CasRowResult> fromRawRowResultFun() {
-            return new Function<RowResult<byte[]>, CasRowResult>() {
+        public static Function<RowResult<byte[]>, CheckAndSetRowResult> fromRawRowResultFun() {
+            return new Function<RowResult<byte[]>, CheckAndSetRowResult>() {
                 @Override
-                public CasRowResult apply(RowResult<byte[]> rowResult) {
-                    return new CasRowResult(rowResult);
+                public CheckAndSetRowResult apply(RowResult<byte[]> rowResult) {
+                    return new CheckAndSetRowResult(rowResult);
                 }
             };
         }
@@ -335,10 +335,10 @@ public final class CasTable implements
             return value.getValue();
         }
 
-        public static Function<CasRowResult, Long> getValueFun() {
-            return new Function<CasRowResult, Long>() {
+        public static Function<CheckAndSetRowResult, Long> getValueFun() {
+            return new Function<CheckAndSetRowResult, Long>() {
                 @Override
-                public Long apply(CasRowResult rowResult) {
+                public Long apply(CheckAndSetRowResult rowResult) {
                     return rowResult.getValue();
                 }
             };
@@ -353,7 +353,7 @@ public final class CasTable implements
         }
     }
 
-    public enum CasNamedColumn {
+    public enum CheckAndSetNamedColumn {
         VALUE {
             @Override
             public byte[] getShortName() {
@@ -363,36 +363,36 @@ public final class CasTable implements
 
         public abstract byte[] getShortName();
 
-        public static Function<CasNamedColumn, byte[]> toShortName() {
-            return new Function<CasNamedColumn, byte[]>() {
+        public static Function<CheckAndSetNamedColumn, byte[]> toShortName() {
+            return new Function<CheckAndSetNamedColumn, byte[]>() {
                 @Override
-                public byte[] apply(CasNamedColumn namedColumn) {
+                public byte[] apply(CheckAndSetNamedColumn namedColumn) {
                     return namedColumn.getShortName();
                 }
             };
         }
     }
 
-    public static ColumnSelection getColumnSelection(Collection<CasNamedColumn> cols) {
-        return ColumnSelection.create(Collections2.transform(cols, CasNamedColumn.toShortName()));
+    public static ColumnSelection getColumnSelection(Collection<CheckAndSetNamedColumn> cols) {
+        return ColumnSelection.create(Collections2.transform(cols, CheckAndSetNamedColumn.toShortName()));
     }
 
-    public static ColumnSelection getColumnSelection(CasNamedColumn... cols) {
+    public static ColumnSelection getColumnSelection(CheckAndSetNamedColumn... cols) {
         return getColumnSelection(Arrays.asList(cols));
     }
 
-    private static final Map<String, Hydrator<? extends CasNamedColumnValue<?>>> shortNameToHydrator =
-            ImmutableMap.<String, Hydrator<? extends CasNamedColumnValue<?>>>builder()
+    private static final Map<String, Hydrator<? extends CheckAndSetNamedColumnValue<?>>> shortNameToHydrator =
+            ImmutableMap.<String, Hydrator<? extends CheckAndSetNamedColumnValue<?>>>builder()
                 .put("v", Value.BYTES_HYDRATOR)
                 .build();
 
-    public Map<CasRow, Long> getValues(Collection<CasRow> rows) {
-        Map<Cell, CasRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
-        for (CasRow row : rows) {
+    public Map<CheckAndSetRow, Long> getValues(Collection<CheckAndSetRow> rows) {
+        Map<Cell, CheckAndSetRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
+        for (CheckAndSetRow row : rows) {
             cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("v")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
-        Map<CasRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
+        Map<CheckAndSetRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> e : results.entrySet()) {
             Long val = Value.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
             ret.put(cells.get(e.getKey()), val);
@@ -400,44 +400,44 @@ public final class CasTable implements
         return ret;
     }
 
-    public void putValue(CasRow row, Long value) {
+    public void putValue(CheckAndSetRow row, Long value) {
         put(ImmutableMultimap.of(row, Value.of(value)));
     }
 
-    public void putValue(Map<CasRow, Long> map) {
-        Map<CasRow, CasNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<CasRow, Long> e : map.entrySet()) {
+    public void putValue(Map<CheckAndSetRow, Long> map) {
+        Map<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
+        for (Entry<CheckAndSetRow, Long> e : map.entrySet()) {
             toPut.put(e.getKey(), Value.of(e.getValue()));
         }
         put(Multimaps.forMap(toPut));
     }
 
-    public void putValueUnlessExists(CasRow row, Long value) {
+    public void putValueUnlessExists(CheckAndSetRow row, Long value) {
         putUnlessExists(ImmutableMultimap.of(row, Value.of(value)));
     }
 
-    public void putValueUnlessExists(Map<CasRow, Long> map) {
-        Map<CasRow, CasNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<CasRow, Long> e : map.entrySet()) {
+    public void putValueUnlessExists(Map<CheckAndSetRow, Long> map) {
+        Map<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
+        for (Entry<CheckAndSetRow, Long> e : map.entrySet()) {
             toPut.put(e.getKey(), Value.of(e.getValue()));
         }
         putUnlessExists(Multimaps.forMap(toPut));
     }
 
     @Override
-    public void put(Multimap<CasRow, ? extends CasNamedColumnValue<?>> rows) {
+    public void put(Multimap<CheckAndSetRow, ? extends CheckAndSetNamedColumnValue<?>> rows) {
         t.useTable(tableRef, this);
         t.put(tableRef, ColumnValues.toCellValues(rows));
-        for (CasTrigger trigger : triggers) {
-            trigger.putCas(rows);
+        for (CheckAndSetTrigger trigger : triggers) {
+            trigger.putCheckAndSet(rows);
         }
     }
 
     @Override
-    public void putUnlessExists(Multimap<CasRow, ? extends CasNamedColumnValue<?>> rows) {
-        Multimap<CasRow, CasNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<CasRow, CasNamedColumnValue<?>> toPut = HashMultimap.create();
-        for (Entry<CasRow, ? extends CasNamedColumnValue<?>> entry : rows.entries()) {
+    public void putUnlessExists(Multimap<CheckAndSetRow, ? extends CheckAndSetNamedColumnValue<?>> rows) {
+        Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
+        Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> toPut = HashMultimap.create();
+        for (Entry<CheckAndSetRow, ? extends CheckAndSetNamedColumnValue<?>> entry : rows.entries()) {
             if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
                 toPut.put(entry.getKey(), entry.getValue());
             }
@@ -445,23 +445,23 @@ public final class CasTable implements
         put(toPut);
     }
 
-    public void deleteValue(CasRow row) {
+    public void deleteValue(CheckAndSetRow row) {
         deleteValue(ImmutableSet.of(row));
     }
 
-    public void deleteValue(Iterable<CasRow> rows) {
+    public void deleteValue(Iterable<CheckAndSetRow> rows) {
         byte[] col = PtBytes.toCachedBytes("v");
         Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
         t.delete(tableRef, cells);
     }
 
     @Override
-    public void delete(CasRow row) {
+    public void delete(CheckAndSetRow row) {
         delete(ImmutableSet.of(row));
     }
 
     @Override
-    public void delete(Iterable<CasRow> rows) {
+    public void delete(Iterable<CheckAndSetRow> rows) {
         List<byte[]> rowBytes = Persistables.persistAll(rows);
         Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("v")));
@@ -469,47 +469,47 @@ public final class CasTable implements
     }
 
     @Override
-    public Optional<CasRowResult> getRow(CasRow row) {
+    public Optional<CheckAndSetRowResult> getRow(CheckAndSetRow row) {
         return getRow(row, ColumnSelection.all());
     }
 
     @Override
-    public Optional<CasRowResult> getRow(CasRow row, ColumnSelection columns) {
+    public Optional<CheckAndSetRowResult> getRow(CheckAndSetRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
             return Optional.absent();
         } else {
-            return Optional.of(CasRowResult.of(rowResult));
+            return Optional.of(CheckAndSetRowResult.of(rowResult));
         }
     }
 
     @Override
-    public List<CasRowResult> getRows(Iterable<CasRow> rows) {
+    public List<CheckAndSetRowResult> getRows(Iterable<CheckAndSetRow> rows) {
         return getRows(rows, ColumnSelection.all());
     }
 
     @Override
-    public List<CasRowResult> getRows(Iterable<CasRow> rows, ColumnSelection columns) {
+    public List<CheckAndSetRowResult> getRows(Iterable<CheckAndSetRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
-        List<CasRowResult> rowResults = Lists.newArrayListWithCapacity(results.size());
+        List<CheckAndSetRowResult> rowResults = Lists.newArrayListWithCapacity(results.size());
         for (RowResult<byte[]> row : results.values()) {
-            rowResults.add(CasRowResult.of(row));
+            rowResults.add(CheckAndSetRowResult.of(row));
         }
         return rowResults;
     }
 
     @Override
-    public List<CasRowResult> getAsyncRows(Iterable<CasRow> rows, ExecutorService exec) {
+    public List<CheckAndSetRowResult> getAsyncRows(Iterable<CheckAndSetRow> rows, ExecutorService exec) {
         return getAsyncRows(rows, ColumnSelection.all(), exec);
     }
 
     @Override
-    public List<CasRowResult> getAsyncRows(final Iterable<CasRow> rows, final ColumnSelection columns, ExecutorService exec) {
-        Callable<List<CasRowResult>> c =
-                new Callable<List<CasRowResult>>() {
+    public List<CheckAndSetRowResult> getAsyncRows(final Iterable<CheckAndSetRow> rows, final ColumnSelection columns, ExecutorService exec) {
+        Callable<List<CheckAndSetRowResult>> c =
+                new Callable<List<CheckAndSetRowResult>>() {
             @Override
-            public List<CasRowResult> call() {
+            public List<CheckAndSetRowResult> call() {
                 return getRows(rows, columns);
             }
         };
@@ -517,18 +517,18 @@ public final class CasTable implements
     }
 
     @Override
-    public List<CasNamedColumnValue<?>> getRowColumns(CasRow row) {
+    public List<CheckAndSetNamedColumnValue<?>> getRowColumns(CheckAndSetRow row) {
         return getRowColumns(row, ColumnSelection.all());
     }
 
     @Override
-    public List<CasNamedColumnValue<?>> getRowColumns(CasRow row, ColumnSelection columns) {
+    public List<CheckAndSetNamedColumnValue<?>> getRowColumns(CheckAndSetRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
             return ImmutableList.of();
         } else {
-            List<CasNamedColumnValue<?>> ret = Lists.newArrayListWithCapacity(rowResult.getColumns().size());
+            List<CheckAndSetNamedColumnValue<?>> ret = Lists.newArrayListWithCapacity(rowResult.getColumns().size());
             for (Entry<byte[], byte[]> e : rowResult.getColumns().entrySet()) {
                 ret.add(shortNameToHydrator.get(PtBytes.toString(e.getKey())).hydrateFromBytes(e.getValue()));
             }
@@ -537,41 +537,41 @@ public final class CasTable implements
     }
 
     @Override
-    public Multimap<CasRow, CasNamedColumnValue<?>> getRowsMultimap(Iterable<CasRow> rows) {
+    public Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> getRowsMultimap(Iterable<CheckAndSetRow> rows) {
         return getRowsMultimapInternal(rows, ColumnSelection.all());
     }
 
     @Override
-    public Multimap<CasRow, CasNamedColumnValue<?>> getRowsMultimap(Iterable<CasRow> rows, ColumnSelection columns) {
+    public Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> getRowsMultimap(Iterable<CheckAndSetRow> rows, ColumnSelection columns) {
         return getRowsMultimapInternal(rows, columns);
     }
 
     @Override
-    public Multimap<CasRow, CasNamedColumnValue<?>> getAsyncRowsMultimap(Iterable<CasRow> rows, ExecutorService exec) {
+    public Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> getAsyncRowsMultimap(Iterable<CheckAndSetRow> rows, ExecutorService exec) {
         return getAsyncRowsMultimap(rows, ColumnSelection.all(), exec);
     }
 
     @Override
-    public Multimap<CasRow, CasNamedColumnValue<?>> getAsyncRowsMultimap(final Iterable<CasRow> rows, final ColumnSelection columns, ExecutorService exec) {
-        Callable<Multimap<CasRow, CasNamedColumnValue<?>>> c =
-                new Callable<Multimap<CasRow, CasNamedColumnValue<?>>>() {
+    public Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> getAsyncRowsMultimap(final Iterable<CheckAndSetRow> rows, final ColumnSelection columns, ExecutorService exec) {
+        Callable<Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>>> c =
+                new Callable<Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>>>() {
             @Override
-            public Multimap<CasRow, CasNamedColumnValue<?>> call() {
+            public Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> call() {
                 return getRowsMultimapInternal(rows, columns);
             }
         };
         return AsyncProxy.create(exec.submit(c), Multimap.class);
     }
 
-    private Multimap<CasRow, CasNamedColumnValue<?>> getRowsMultimapInternal(Iterable<CasRow> rows, ColumnSelection columns) {
+    private Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> getRowsMultimapInternal(Iterable<CheckAndSetRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         return getRowMapFromRowResults(results.values());
     }
 
-    private static Multimap<CasRow, CasNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<CasRow, CasNamedColumnValue<?>> rowMap = HashMultimap.create();
+    private static Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
+        Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> rowMap = HashMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
-            CasRow row = CasRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
+            CheckAndSetRow row = CheckAndSetRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
                 rowMap.put(row, shortNameToHydrator.get(PtBytes.toString(e.getKey())).hydrateFromBytes(e.getValue()));
             }
@@ -579,16 +579,16 @@ public final class CasTable implements
         return rowMap;
     }
 
-    public BatchingVisitableView<CasRowResult> getAllRowsUnordered() {
+    public BatchingVisitableView<CheckAndSetRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(ColumnSelection.all());
     }
 
-    public BatchingVisitableView<CasRowResult> getAllRowsUnordered(ColumnSelection columns) {
+    public BatchingVisitableView<CheckAndSetRowResult> getAllRowsUnordered(ColumnSelection columns) {
         return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder().retainColumns(columns).build()),
-                new Function<RowResult<byte[]>, CasRowResult>() {
+                new Function<RowResult<byte[]>, CheckAndSetRowResult>() {
             @Override
-            public CasRowResult apply(RowResult<byte[]> input) {
-                return CasRowResult.of(input);
+            public CheckAndSetRowResult apply(RowResult<byte[]> input) {
+                return CheckAndSetRowResult.of(input);
             }
         });
     }
@@ -688,5 +688,5 @@ public final class CasTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "NKzRw1V17eUajFJ/l2lOBg==";
+    static String __CLASS_HASH = "IPCCVOtkZNu59oKM5g9JxA==";
 }

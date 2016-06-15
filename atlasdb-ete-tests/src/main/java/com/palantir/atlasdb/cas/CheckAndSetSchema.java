@@ -23,15 +23,15 @@ import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 
-public class CasSchema implements AtlasSchema {
+public class CheckAndSetSchema implements AtlasSchema {
     private static final Schema GENERATED_SCHEMA = generateSchema();
-    public static final String CAS_TABLE = "cas";
+    public static final String CAS_TABLE = "check_and_set";
     public static final String VALUES_COLUMN = "value";
 
     private static Schema generateSchema() {
         Schema schema = new Schema(
-                CasSchema.class.getSimpleName(),
-                CasSchema.class.getPackage().getName() + ".generated",
+                CheckAndSetSchema.class.getSimpleName(),
+                CheckAndSetSchema.class.getPackage().getName() + ".generated",
                 Namespace.DEFAULT_NAMESPACE);
 
         schema.addTableDefinition(CAS_TABLE, new TableDefinition() {{

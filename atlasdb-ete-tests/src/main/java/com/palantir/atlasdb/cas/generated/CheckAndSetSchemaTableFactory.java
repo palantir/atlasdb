@@ -12,44 +12,44 @@ import com.palantir.atlasdb.table.generation.Triggers;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableFactoryRenderer")
-public final class CasSchemaTableFactory {
+public final class CheckAndSetSchemaTableFactory {
     private final static Namespace defaultNamespace = Namespace.create("default", Namespace.UNCHECKED_NAME);
     private final List<Function<? super Transaction, SharedTriggers>> sharedTriggers;
     private final Namespace namespace;
 
-    public static CasSchemaTableFactory of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers, Namespace namespace) {
-        return new CasSchemaTableFactory(sharedTriggers, namespace);
+    public static CheckAndSetSchemaTableFactory of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers, Namespace namespace) {
+        return new CheckAndSetSchemaTableFactory(sharedTriggers, namespace);
     }
 
-    public static CasSchemaTableFactory of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {
-        return new CasSchemaTableFactory(sharedTriggers, defaultNamespace);
+    public static CheckAndSetSchemaTableFactory of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {
+        return new CheckAndSetSchemaTableFactory(sharedTriggers, defaultNamespace);
     }
 
-    private CasSchemaTableFactory(List<Function<? super Transaction, SharedTriggers>> sharedTriggers, Namespace namespace) {
+    private CheckAndSetSchemaTableFactory(List<Function<? super Transaction, SharedTriggers>> sharedTriggers, Namespace namespace) {
         this.sharedTriggers = sharedTriggers;
         this.namespace = namespace;
     }
 
-    public static CasSchemaTableFactory of(Namespace namespace) {
+    public static CheckAndSetSchemaTableFactory of(Namespace namespace) {
         return of(ImmutableList.<Function<? super Transaction, SharedTriggers>>of(), namespace);
     }
 
-    public static CasSchemaTableFactory of() {
+    public static CheckAndSetSchemaTableFactory of() {
         return of(ImmutableList.<Function<? super Transaction, SharedTriggers>>of(), defaultNamespace);
     }
 
-    public CasTable getCasTable(Transaction t, CasTable.CasTrigger... triggers) {
-        return CasTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+    public CheckAndSetTable getCheckAndSetTable(Transaction t, CheckAndSetTable.CheckAndSetTrigger... triggers) {
+        return CheckAndSetTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
     public interface SharedTriggers extends
-            CasTable.CasTrigger {
+            CheckAndSetTable.CheckAndSetTrigger {
         /* empty */
     }
 
     public abstract static class NullSharedTriggers implements SharedTriggers {
         @Override
-        public void putCas(Multimap<CasTable.CasRow, ? extends CasTable.CasNamedColumnValue<?>> newRows) {
+        public void putCheckAndSet(Multimap<CheckAndSetTable.CheckAndSetRow, ? extends CheckAndSetTable.CheckAndSetNamedColumnValue<?>> newRows) {
             // do nothing
         }
     }

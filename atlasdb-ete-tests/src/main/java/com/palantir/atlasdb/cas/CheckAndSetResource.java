@@ -15,27 +15,32 @@
  */
 package com.palantir.atlasdb.cas;
 
+import javax.ws.rs.Consumes;
+import javax.ws.rs.GET;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
+
 import com.google.common.base.Optional;
 
-public class SimpleCasResource implements CasResource {
-    private CasClient casClient;
+import io.dropwizard.jersey.PATCH;
 
-    public SimpleCasResource(CasClient casClient) {
-        this.casClient = casClient;
-    }
+@Path("/cas")
+public interface CheckAndSetResource {
+    @PUT
+    @Path("/")
+    @Consumes(MediaType.APPLICATION_JSON)
+    void set(Optional<Long> value);
 
-    @Override
-    public void set(Optional<Long> value) {
-        casClient.set(value);
-    }
+    @GET
+    @Path("/")
+    @Produces(MediaType.APPLICATION_JSON)
+    Long get();
 
-    @Override
-    public Long get() {
-        return casClient.get().orNull();
-    }
-
-    @Override
-    public boolean cas(CasValuePatch values) {
-        return casClient.cas(values.getOldValue(), values.getNewValue());
-    }
+    @PATCH
+    @Path("/")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    boolean checkAndSet(CheckAndSetValueUpdate valueUpdate);
 }
