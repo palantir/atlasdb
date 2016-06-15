@@ -7,6 +7,7 @@ machine:
   environment:
     _JAVA_OPTIONS: "-Xmx512m"
     GRADLE_OPTS: '-Dorg.gradle.jvmargs="-Xmx512m -XX:+HeapDumpOnOutOfMemoryError"'
+    TERM: dumb
   services:
     - docker
 
@@ -14,7 +15,7 @@ dependencies:
   pre:
     - sudo pip install docker-compose
   override:
-    - export TERM="dumb"; ./gradlew compileTestJava
+    - ./gradlew compileTestJava
     - sudo pip install sphinx sphinx_rtd_theme
   cache_directories:
     - ~/.gradle
