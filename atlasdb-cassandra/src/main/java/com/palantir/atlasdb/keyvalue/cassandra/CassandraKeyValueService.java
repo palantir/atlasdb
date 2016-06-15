@@ -518,7 +518,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 }
             }
 
-            Map<byte[], RowColumnRangeIterator> ret = Maps.newHashMapWithExpectedSize(results.keySet().size());
+            Map<byte[], RowColumnRangeIterator> ret = Maps.newHashMapWithExpectedSize(rows.size());
             for (byte[] row : rowsToLastCompositeColumns.keySet()) {
                 Iterator<Entry<Cell, Value>> resultIterator;
                 if (results.containsKey(row)) {
@@ -627,9 +627,11 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                         byte[] lastCol = CassandraKeyValueServices.decomposeName(lastColumn.getColumn()).getLhSide();
                         // Same idea as the getRows case to handle seeing only newer entries of a column
                         boolean completedCell = ret.containsKey(Cell.create(row, lastCol));
-                        boolean endOfRange = isEndOfColumnRange(completedCell, lastCol, columnRangeSelection.getEndCol());
+                        if (isEndOfColumnRange(completedCell, lastCol, columnRangeSelection.getEndCol())) {
+                            return SimpleTokenBackedResultsPage.create(lastCol, ret.entrySet(), false);
+                        }
                         byte[] nextCol = getNextColumnRangeColumn(completedCell, lastCol);
-                        return SimpleTokenBackedResultsPage.create(nextCol, ret.entrySet(), !endOfRange);
+                        return SimpleTokenBackedResultsPage.create(nextCol, ret.entrySet(), true);
                     }
 
                     @Override
