@@ -28,5 +28,5 @@ case $CIRCLE_NODE_INDEX in
     0) ./gradlew --profile --continue check $CONTAINER_0_EXCLUDE_ARGS ;;
     1) ./gradlew --continue --parallel ${CONTAINER_1[@]} ;;
     2) ./gradlew --continue --parallel ${CONTAINER_2[@]} ;;
-    3) ./gradlew --continue --parallel ${CONTAINER_3[@]} && checkDocsBuild ;;
+    3) ./gradlew --continue ${CONTAINER_3[@]} && checkDocsBuild ;;
 esac
