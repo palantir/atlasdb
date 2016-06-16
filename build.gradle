@@ -33,6 +33,14 @@ task clean(type: Delete) {
 
 apply from: 'idea.gradle'
 
+def ideaSetModuleLevel(idea, targetCompatibility) {
+    if (idea == null) return
+    idea.module.jdkName = targetCompatibility
+    idea.module.iml.withXml {
+        it.asNode().component.find { it.@name == 'NewModuleRootManager' }.@LANGUAGE_LEVEL = ("JDK_" + targetCompatibility).replaceAll('\\.', '_')
+    }
+}
+
 allprojects {
     // This allows tests that require an artefact to exist to
     // decide whether to call gradle themselves or not
