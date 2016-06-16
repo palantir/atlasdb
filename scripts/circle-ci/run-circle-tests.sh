@@ -14,7 +14,7 @@ CONTAINER_1=(':atlasdb-cassandra-tests:check')
 CONTAINER_2=(':atlasdb-tests-shared:check' ':atlasdb-ete-tests:check')
 
 #Container 3
-CONTAINER_3=(':atlasdb-timelock-ete:check' ':atlasdb-dropwizard-tests:check' ':lock-impl:check')
+CONTAINER_3=(':atlasdb-timelock-ete:check' ':atlasdb-dropwizard-tests:check' ':lock-impl:check' ':atlasdb-dbkvs-tests:check')
 
 # Container 0 - runs tasks not found in the below containers
 CONTAINER_0_EXCLUDE=("${CONTAINER_1[@]}" "${CONTAINER_2[@]}" "${CONTAINER_3[@]}")
