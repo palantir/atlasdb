@@ -29,7 +29,8 @@ import com.palantir.docker.compose.connection.DockerPort;
 import com.palantir.docker.compose.connection.waiting.HealthCheck;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 import com.palantir.nexus.db.DBType;
-import com.palantir.nexus.db.pool.config.ImmutableConnectionConfig;
+import com.palantir.nexus.db.pool.config.ConnectionConfig;
+import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
 
 @RunWith(Suite.class)
 @SuiteClasses({
@@ -48,7 +49,7 @@ public class DbkvsTestSuite {
 
     static InetSocketAddress POSTGRES_ADDRESS;
 
-    static ImmutablePostgresKeyValueServiceConfig POSTGRES_KVS_CONFIG;
+    static DbKeyValueServiceConfig POSTGRES_KVS_CONFIG;
 
     @BeforeClass
     public static void waitUntilDbkvsIsUp() throws IOException, InterruptedException {
@@ -56,18 +57,17 @@ public class DbkvsTestSuite {
         POSTGRES_ADDRESS = new InetSocketAddress(port.getIp(), port.getExternalPort());
 
 
-        ImmutableConnectionConfig connectionConfig = ImmutableConnectionConfig.builder()
-                .sid("atlas")
+        ConnectionConfig connectionConfig = ImmutablePostgresConnectionConfig.builder()
                 .dbName("atlas")
                 .dbLogin("palantir")
                 .dbPassword("palantir")
-                .dbType(DBType.POSTGRESQL)
                 .host(POSTGRES_ADDRESS.getHostName())
                 .port(POSTGRES_ADDRESS.getPort())
                 .build();
 
-        POSTGRES_KVS_CONFIG = ImmutablePostgresKeyValueServiceConfig.builder()
+        POSTGRES_KVS_CONFIG = ImmutableDbKeyValueServiceConfig.builder()
                 .connection(connectionConfig)
+                .ddl(ImmutablePostgresDdlConfig.builder().build())
                 .build();
     }
 

@@ -90,9 +90,11 @@ public class DbKvs extends AbstractKeyValueService {
     }
 
     /**
-     * Constructor for a SQL (either Postgres or Oracle) backed key value store.
+     * Constructor for a SQL (either Postgres or Oracle) backed key value store.  This method should not
+     * be used directly and is exposed to support legacy software.  Instead you should prefer the use of
+     * ConnectionManagerAwareDbKvs which will instantiate a properly initialized DbKVS using the above create method
      */
-    private DbKvs(DdlConfig config,
+    public DbKvs(DdlConfig config,
                  DbTableFactory dbTables,
                  SqlConnectionSupplier connections) {
         super(AbstractKeyValueService.createFixedThreadPool("Atlas Relational KVS", config.poolSize()));

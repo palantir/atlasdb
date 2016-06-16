@@ -24,8 +24,8 @@ import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
 
-@JsonDeserialize(as = ImmutablePostgresDdlConfig.class)
-@JsonSerialize(as = ImmutablePostgresDdlConfig.class)
+@JsonDeserialize(as = ImmutableDbKeyValueServiceConfig.class)
+@JsonSerialize(as = ImmutableDbKeyValueServiceConfig.class)
 @JsonTypeName(DbKeyValueServiceConfig.TYPE)
 @Value.Immutable
 public abstract class DbKeyValueServiceConfig implements KeyValueServiceConfig {
