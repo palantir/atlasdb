@@ -1,4 +1,5 @@
 apply from: '../gradle/shared.gradle'
 
 dependencies {
+  compile 'io.airlift:airline:0.7'
 }
