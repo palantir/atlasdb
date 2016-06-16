@@ -7,30 +7,26 @@ function checkDocsBuild {
   make html
 }
 
-# Container 0 - runs tasks not found in the below containers
-
 # Container 1
-CASSANDRA=':atlasdb-cassandra-tests:check'
+CONTAINER_1=(':atlasdb-cassandra-tests:check')
 
 # Container 2
-SHARED=':atlasdb-tests-shared:check'
-ETE=':atlasdb-ete-tests:check'
+CONTAINER_2=(':atlasdb-tests-shared:check' ':atlasdb-ete-tests:check')
 
 #Container 3
-TIMELOCK_ETE=':atlasdb-timelock-ete:check'
-DROPWIZARD=':atlasdb-dropwizard-tests:check'
-LOCK=':lock-impl:check'
+CONTAINER_3=(':atlasdb-timelock-ete:check' ':atlasdb-dropwizard-tests:check' ':lock-impl:check')
 
-EXCLUDE=($CASSANDRA $SHARED $ETE $TIMELOCK_ETE $DROPWIZARD $LOCK)
+# Container 0 - runs tasks not found in the below containers
+CONTAINER_0_EXCLUDE=("${CONTAINER_1[@]}" "${CONTAINER_2[@]}" "${CONTAINER_3[@]}")
 
-for task in "${EXCLUDE[@]}"
+for task in "${CONTAINER_0_EXCLUDE[@]}"
 do
-    EXCLUDE_ARGS="$EXCLUDE_ARGS -x $task"
+    CONTAINER_0_EXCLUDE_ARGS="$CONTAINER_0_EXCLUDE_ARGS -x $task"
 done
 
 case $CIRCLE_NODE_INDEX in
-    0) ./gradlew --profile --continue check $EXCLUDE_ARGS ;;
-    1) ./gradlew --continue --parallel $CASSANDRA ;;
-    2) ./gradlew --continue --parallel $SHARED $ETE ;;
-    3) ./gradlew --continue --parallel $TIMELOCK_ETE $DROPWIZARD $LOCK && checkDocsBuild ;;
+    0) ./gradlew --profile --continue check $CONTAINER_0_EXCLUDE_ARGS ;;
+    1) ./gradlew --continue --parallel ${CONTAINER_1[@]} ;;
+    2) ./gradlew --continue --parallel ${CONTAINER_2[@]} ;;
+    3) ./gradlew --continue --parallel ${CONTAINER_3[@]} && checkDocsBuild ;;
 esac
