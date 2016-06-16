@@ -12,7 +12,7 @@ SHARED=':atlasdb-tests-shared:check'
 ETE=':atlasdb-ete-tests:check'
 
 case $CIRCLE_NODE_INDEX in
-    0) ./gradlew --continue check -x $CASSANDRA -x $SHARED -x $ETE ;;
+    0) ./gradlew --profile --continue check -x $CASSANDRA -x $SHARED -x $ETE ;;
     1) ./gradlew --continue --parallel $CASSANDRA ;;
     2) ./gradlew --continue --parallel $SHARED $ETE && checkDocsBuild ;;
 esac

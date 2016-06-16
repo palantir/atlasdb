@@ -11,6 +11,10 @@ machine:
   services:
     - docker
 
+general:
+  artifacts:
+    - "build/reports/profile"
+
 dependencies:
   pre:
     - sudo pip install docker-compose
