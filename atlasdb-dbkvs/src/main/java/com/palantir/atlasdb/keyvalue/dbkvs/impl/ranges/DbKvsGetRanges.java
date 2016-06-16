@@ -94,7 +94,7 @@ public class DbKvsGetRanges {
         for (int i = 0; i < requests.size(); i++) {
             RangeRequest request = requests.get(i);
             Pair<String, List<Object>> queryAndArgs = getRangeQueryAndArgs(
-                    tableRef.getQualifiedName(),
+                    DbKvs.internalTableName(tableRef),
                     request.getStartInclusive(),
                     request.getEndExclusive(),
                     request.isReverse(),

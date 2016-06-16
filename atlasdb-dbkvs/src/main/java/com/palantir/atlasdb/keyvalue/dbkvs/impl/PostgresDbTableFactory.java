@@ -20,9 +20,11 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.PostgresKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresDdlTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresQueryFactory;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresTableInitializer;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.nexus.db.DBType;
@@ -54,8 +56,13 @@ public class PostgresDbTableFactory implements DbTableFactory {
     }
 
     @Override
-    public DbDdlTable createDdl(String tableName, ConnectionSupplier conns) {
+    public DbDdlTable createDdl(TableReference tableName, ConnectionSupplier conns) {
         return new PostgresDdlTable(tableName, conns, config);
+    }
+
+    @Override
+    public DbTableInitializer createInitializer(ConnectionSupplier conns) {
+        return new PostgresTableInitializer(conns);
     }
 
     @Override

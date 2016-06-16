@@ -40,3 +40,11 @@ def ideaSetModuleLevel(idea, targetCompatibility) {
         it.asNode().component.find { it.@name == 'NewModuleRootManager' }.@LANGUAGE_LEVEL = ("JDK_" + targetCompatibility).replaceAll('\\.', '_')
     }
 }
+
+allprojects {
+    // This allows tests that require an artefact to exist to
+    // decide whether to call gradle themselves or not
+    tasks.withType(Test) {
+        systemProperty 'RUNNING_IN_GRADLE', 'true'
+    }
+}
