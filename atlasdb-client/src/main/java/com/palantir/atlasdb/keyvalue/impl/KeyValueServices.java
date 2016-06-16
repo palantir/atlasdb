@@ -159,6 +159,8 @@ public class KeyValueServices {
 
     // TODO: kill this when we can properly implement this on all KVSes
     public static Map<byte[], RowColumnRangeIterator> filterGetRowsToColumnRange(KeyValueService kvs, TableReference tableRef, Iterable<byte[]> rows, ColumnRangeSelection columnRangeSelection, long timestamp) {
+        log.warn("Using inefficient postfiltering for getRowsColumnRange because the KVS doesn't support it natively. Production " +
+                "environments should use a KVS with a proper implementation.");
         Map<Cell, Value> allValues = kvs.getRows(tableRef, rows, ColumnSelection.all(), timestamp);
         Map<Sha256Hash, byte[]> hashesToBytes = Maps.newHashMap();
         Map<Sha256Hash, ImmutableSortedMap.Builder<byte[], Value>> rowsToColumns = Maps.newHashMap();
