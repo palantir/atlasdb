@@ -1,5 +1,5 @@
 /**
- * Copyright 2015 Palantir Technologies
+ * Copyright 2016 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,17 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.util;
 
+package com.palantir.atlasdb.timelock.server.modules;
 
+import javax.inject.Singleton;
+import javax.net.ssl.SSLSocketFactory;
 
-/**
- * This redefines {@link #visit(Object)} to throw no checked exceptions.
- *
- * @see com.palantir.util.Visitor
- *
- */
-public interface Visitor<T> extends VisitorCheckedException<T, RuntimeException> {
-    @Override
-    public void visit(T obj);
+import com.google.common.base.Optional;
+
+import dagger.Module;
+import dagger.Provides;
+
+@Module
+public class EnvironmentModule {
+    @Provides
+    @Singleton
+    public Optional<SSLSocketFactory> provideSsl() {
+        return Optional.absent();
+    }
 }

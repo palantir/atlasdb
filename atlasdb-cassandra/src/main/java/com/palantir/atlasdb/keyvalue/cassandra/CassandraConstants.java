@@ -87,13 +87,11 @@ public class CassandraConstants {
     static final String LEVELED_COMPACTION_STRATEGY = "org.apache.cassandra.db.compaction.LeveledCompactionStrategy";
     static final String SIZE_TIERED_COMPACTION_STRATEGY = "org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy";
 
-
-    public static final TableReference METADATA_TABLE = TableReference.createWithEmptyNamespace("_metadata");
     public static final TableReference LOCK_TABLE = TableReference.createWithEmptyNamespace("_locks");
     public static final Set<TableReference> HIDDEN_TABLES = ImmutableSet.of(
             AtlasDbConstants.TIMESTAMP_TABLE,
             CassandraConstants.LOCK_TABLE,
-            CassandraConstants.METADATA_TABLE);
+            AtlasDbConstants.METADATA_TABLE);
 
     public static String GLOBAL_DDL_LOCK = "Global DDL lock";
     public static String GLOBAL_DDL_LOCK_COLUMN_NAME = "id_with_lock";

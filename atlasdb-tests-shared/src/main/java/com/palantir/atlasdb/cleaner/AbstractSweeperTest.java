@@ -71,7 +71,7 @@ import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampService;
 
 public abstract class AbstractSweeperTest {
-    protected static final TableReference TABLE_NAME = TableReference.createWithEmptyNamespace("table");
+    protected static final TableReference TABLE_NAME = TableReference.createWithEmptyNamespace("test_table");
     private static final String COL = "c";
     protected static final int DEFAULT_BATCH_SIZE = 1000;
 
@@ -353,8 +353,8 @@ public abstract class AbstractSweeperTest {
         }
     }
 
-    @Ignore
     @Test
+    @Ignore
     public void testBackgroundSweepWritesPriorityTableWithDifferentTime() {
         createTable(SweepStrategy.CONSERVATIVE);
         put("foo", "bar", 50);
@@ -381,8 +381,8 @@ public abstract class AbstractSweeperTest {
         }
     }
 
-    @Ignore
     @Test
+    @Ignore
     public void testBackgroundSweeperWritesToProgressTable() {
         setupBackgroundSweeper(2);
         createTable(SweepStrategy.CONSERVATIVE);
@@ -404,8 +404,8 @@ public abstract class AbstractSweeperTest {
         Assert.assertEquals(new Long(2), result.getCellsExamined());
     }
 
-    @Ignore
     @Test
+    @Ignore
     public void testBackgroundSweeperDoesNotOverwriteProgressMinimumTimestamp() {
         setupBackgroundSweeper(2);
         createTable(SweepStrategy.CONSERVATIVE);
@@ -447,8 +447,8 @@ public abstract class AbstractSweeperTest {
         }
     }
 
-    @Ignore
     @Test
+    @Ignore
     public void testBackgroundSweeperWritesFromProgressToPriority() {
         setupBackgroundSweeper(3);
         createTable(SweepStrategy.CONSERVATIVE);

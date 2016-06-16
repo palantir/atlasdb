@@ -41,6 +41,8 @@ public class IndexDefinition extends AbstractDefinition {
 
     public IndexDefinition(IndexType indexType) {
         this.indexType = indexType;
+        // indices have compression on by default
+        this.explicitCompressionRequested = true;
     }
 
     public void onTable(String tableName) {
@@ -142,46 +144,6 @@ public class IndexDefinition extends AbstractDefinition {
         }
     }
 
-    public void rangeScanAllowed() {
-        rangeScanAllowed = true;
-    }
-
-    public boolean isRangeScanAllowed() {
-        return rangeScanAllowed;
-    }
-
-    public boolean isExplicitCompressionRequested(){
-        return explicitCompressionRequested;
-    }
-
-    public void explicitCompressionRequested() {
-        explicitCompressionRequested = true;
-    }
-
-    public int getExplicitCompressionBlockSizeKB() {
-        return explicitCompressionBlockSizeKB;
-    }
-
-    public void explicitCompressionBlockSizeKB(int blockSizeKB) {
-        explicitCompressionBlockSizeKB = blockSizeKB;
-    }
-
-    public void negativeLookups() {
-        negativeLookups = true;
-    }
-
-    public boolean hasNegativeLookups() {
-        return negativeLookups;
-    }
-
-    public void appendHeavyAndReadLight() {
-        appendHeavyAndReadLight = true;
-    }
-
-    public boolean isAppendHeavyAndReadLight() {
-        return appendHeavyAndReadLight;
-    }
-
     public int getMaxValueSize() {
         // N.B., indexes are always max value size of 1.
         return 1;
@@ -211,18 +173,18 @@ public class IndexDefinition extends AbstractDefinition {
         return indexType;
     }
 
+    public void validate() {
+        Preconditions.checkState(!rowComponents.isEmpty(), "No row components specified.");
+        validateFirstRowComp(rowComponents.get(0).getRowKeyDescription());
+    }
+
     private State state = State.NONE;
     private String sourceTableName = null;
     private String javaIndexTableName = null;
     private List<IndexComponent> rowComponents = Lists.newArrayList();
     private List<IndexComponent> colComponents = Lists.newArrayList();
-    private boolean rangeScanAllowed = false;
-    private boolean negativeLookups = false;
     private IndexCondition indexCondition = null;
     private final IndexType indexType;
-    private boolean explicitCompressionRequested = true;
-    private int explicitCompressionBlockSizeKB = 0;
-    private boolean appendHeavyAndReadLight = false;
 
     public enum IndexType {
         ADDITIVE("_aidx"),

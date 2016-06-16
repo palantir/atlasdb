@@ -26,6 +26,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang.Validate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
@@ -60,6 +62,8 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
  * tables in a type-safe fashion.
  */
 public class Schema {
+    private static final Logger log = LoggerFactory.getLogger(Schema.class);
+
     private final String name;
     private final String packageName;
     private final Namespace namespace;
@@ -142,7 +146,7 @@ public class Schema {
     public void addStreamStoreDefinition(StreamStoreDefinition streamStoreDefinition) {
         streamStoreDefinition.getTables().forEach((tableName, definition) -> addTableDefinition(tableName, definition));
         StreamStoreRenderer renderer = streamStoreDefinition.getRenderer(packageName, name);
-        Multimap<String, Supplier<OnCleanupTask>> streamStoreCleanupTasks = streamStoreDefinition.getCleanupTasks(packageName, name, renderer);
+        Multimap<String, Supplier<OnCleanupTask>> streamStoreCleanupTasks = streamStoreDefinition.getCleanupTasks(packageName, name, renderer, namespace);
 
         cleanupTasks.putAll(streamStoreCleanupTasks);
         streamStoreRenderers.add(renderer);
@@ -177,14 +181,24 @@ public class Schema {
      */
     public void validate() {
         // Try converting to metadata to see if any validation logic throws.
-        for (TableDefinition d : tableDefinitions.values()) {
-            d.toTableMetadata();
-            d.getConstraintMetadata();
+        for (Entry<String, TableDefinition> entry : tableDefinitions.entrySet()) {
+            try {
+                entry.getValue().validate();
+            } catch (Exception e) {
+                log.error("Failed to validate table {}.", entry.getKey());
+                throw e;
+            }
         }
 
         for (Entry<String, IndexDefinition> indexEntry : indexDefinitions.entrySet()) {
             IndexDefinition d = indexEntry.getValue();
-            d.toIndexMetadata(indexEntry.getKey()).getTableMetadata();
+            try {
+                d.toIndexMetadata(indexEntry.getKey()).getTableMetadata();
+                d.validate();
+            } catch (Exception e) {
+                log.error("Failed to validate index {}.", indexEntry.getKey());
+                throw e;
+            }
         }
 
         for (Entry<String, String> e : indexesByTable.entries()) {
@@ -328,9 +342,8 @@ public class Schema {
         }
     }
 
-    public void addCleanupTask(String tableName, OnCleanupTask task) {
-        String fullTableName = Schemas.getFullTableName(tableName, namespace);
-        cleanupTasks.put(fullTableName, Suppliers.ofInstance(task));
+    public void addCleanupTask(String rawTableName, OnCleanupTask task) {
+        cleanupTasks.put(rawTableName, Suppliers.ofInstance(task));
     }
 
     public void addCleanupTask(String rawTableName, Supplier<OnCleanupTask> task) {

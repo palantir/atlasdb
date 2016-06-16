@@ -472,6 +472,10 @@ public class SerializableTransaction extends SnapshotTransaction {
         if (writes != null) {
             reads = Maps.filterKeys(reads, Predicates.not(Predicates.in(writes.keySet())));
         }
+        if (!range.getColumnNames().isEmpty()) {
+            Predicate<Cell> columnInNames = Predicates.compose(Predicates.in(range.getColumnNames()), Cells.getColumnFunction());
+            reads = Maps.filterKeys(reads, columnInNames);
+        }
         return reads;
     }
 

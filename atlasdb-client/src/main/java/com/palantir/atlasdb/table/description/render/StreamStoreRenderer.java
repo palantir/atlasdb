@@ -557,7 +557,11 @@ public class StreamStoreRenderer {
                 line();
                 line("public class ", IndexCleanupTask, " implements OnCleanupTask {"); {
                     line();
-                    line("private final ", TableFactory, " tables = ", TableFactory, ".of();");
+                    line("private final ", TableFactory, " tables;");
+                    line();
+                    line("public ", IndexCleanupTask, "(Namespace namespace) {"); {
+                        line("tables = ", TableFactory, ".of(namespace);");
+                    } line("}");
                     line();
                     cellsCleanedUp();
                 } line("}");
@@ -572,6 +576,7 @@ public class StreamStoreRenderer {
                 line("import com.google.common.collect.Sets;");
                 line("import com.palantir.atlasdb.cleaner.api.OnCleanupTask;");
                 line("import com.palantir.atlasdb.keyvalue.api.Cell;");
+                line("import com.palantir.atlasdb.keyvalue.api.Namespace;");
                 line("import com.palantir.atlasdb.table.description.ValueType;");
                 line("import com.palantir.atlasdb.transaction.api.Transaction;");
 
@@ -617,7 +622,11 @@ public class StreamStoreRenderer {
                 line();
                 line("public class ", MetadataCleanupTask, " implements OnCleanupTask {"); {
                     line();
-                    line("private final ", TableFactory, " tables = ", TableFactory, ".of();");
+                    line("private final ", TableFactory, " tables;");
+                    line();
+                    line("public ", MetadataCleanupTask, "(Namespace namespace) {"); {
+                        line("tables = ", TableFactory, ".of(namespace);");
+                    } line("}");
                     line();
                     cellsCleanedUp();
                 } line("}");
@@ -634,6 +643,7 @@ public class StreamStoreRenderer {
                 line("import com.google.common.collect.Sets;");
                 line("import com.palantir.atlasdb.cleaner.api.OnCleanupTask;");
                 line("import com.palantir.atlasdb.keyvalue.api.Cell;");
+                line("import com.palantir.atlasdb.keyvalue.api.Namespace;");
                 line("import com.palantir.atlasdb.protos.generated.StreamPersistence.Status;");
                 line("import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;");
                 line("import com.palantir.atlasdb.table.description.ValueType;");

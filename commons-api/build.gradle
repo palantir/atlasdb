@@ -1,0 +1,10 @@
+apply from: "../gradle/shared.gradle"
+
+sourceCompatibility = 1.6
+targetCompatibility = 1.6
+ideaSetModuleLevel(idea, targetCompatibility)
+
+dependencies {
+  compile project(':atlasdb-commons')
+  compile project(':commons-annotations')
+}

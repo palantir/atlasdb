@@ -1,0 +1,5 @@
+jepsen:
+  build: .
+  privileged: true
+  volumes:
+    - ./store:/jepsen/atlasdb/store

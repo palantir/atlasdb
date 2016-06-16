@@ -23,6 +23,22 @@ Changelog
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
+v0.6.1
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - Reduced memory footprint of Cassandra KVS, esp. for workflows of many consecutive large reads (#568)
+
+.. <<<<------------------------------------------------------------------------------------------------------------>>>>
+
+=======
 v0.6.0
 =======
 
@@ -33,16 +49,53 @@ v0.6.0
     *   - Type
         - Change
 
-    *   - |improved|
-        - We now have continuously updated release notes
+    *   - |fixed|
+        - A potential race condition could cause timestamp allocation to never complete on a particular node (#462)
+
+    *   - |fixed|
+        - An innocuous error was logged once for each TransactionManager about not being able to allocate 
+          enough timestamps. The error has been downgraded to INFO and made less scary.
+
+    *   - |fixed|
+        - Serializable Transactions that read a column selection could consistently report conflicts when there were none.
+    
+    *   - |fixed|
+        - An excessively long Cassandra related logline was sometimes printed (#501)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.5.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *   - Type
+        - Change
+
+    *   - |changed|
+        - Only bumping double minor version in artifacts for long-term stability fixes
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.4.1
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *   - Type
+        - Change
+
+    *   - |fixed|
+        - Prevent _metadata tables from triggering the Cassandra 2.x schema mutation bug `431 <https://github.com/palantir/atlasdb/issues/431>`_ (`444 <https://github.com/palantir/atlasdb/issues/444>`_ not yet fixed)
 
     *   - |fixed|
         - Required projects are now Java 6 compliant
 
-    *   - |fixed|
-        - Fix potential race condition that could cause timestamp allocation to never complete.
-
-    *   - |changed|
-        - Only bumping double minor version in artifacts for long-term stability fixes
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>

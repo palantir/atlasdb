@@ -132,7 +132,7 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
         long timeout = Math.min(maxBackoffMillis, Math.round(pow));
 
         try {
-            log.info("Pausing {}ms before retrying", timeout);
+            log.trace("Pausing {}ms before retrying", timeout);
             Thread.sleep(timeout);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

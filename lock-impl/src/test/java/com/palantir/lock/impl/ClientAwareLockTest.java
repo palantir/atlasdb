@@ -248,7 +248,7 @@ public final class ClientAwareLockTest {
             }
         });
         barrier.await();
-        Thread.sleep(10);
+        Thread.sleep(20);
     }
 
     /** Tests that {@code lock()} handles thread interruptions properly. */

@@ -15,6 +15,8 @@
  */
 package com.palantir.leader;
 
+import static com.google.common.collect.ImmutableList.copyOf;
+
 import java.util.AbstractMap;
 import java.util.Collections;
 import java.util.List;
@@ -87,8 +89,8 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     public PaxosLeaderElectionService(PaxosProposer proposer,
                                       PaxosLearner knowledge,
                                       Map<PingableLeader, HostAndPort> potentialLeadersToHosts,
-                                      ImmutableList<PaxosAcceptor> acceptors,
-                                      ImmutableList<PaxosLearner> learners,
+                                      List<PaxosAcceptor> acceptors,
+                                      List<PaxosLearner> learners,
                                       ExecutorService executor,
                                       long updatePollingWaitInMs,
                                       long randomWaitBeforeProposingLeadership,
@@ -97,8 +99,8 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         this.knowledge = knowledge;
         // XXX This map uses something that may be proxied as a key! Be very careful if making a new map from this.
         this.potentialLeadersToHosts = Collections.unmodifiableMap(potentialLeadersToHosts);
-        this.acceptors = acceptors;
-        this.learners = learners;
+        this.acceptors = copyOf(acceptors);
+        this.learners = copyOf(learners);
         this.executor = executor;
         this.updatePollingRateInMs = updatePollingWaitInMs;
         this.randomWaitBeforeProposingLeadership = randomWaitBeforeProposingLeadership;
@@ -588,7 +590,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                     @Nullable
                     public PaxosUpdate apply(@Nullable PaxosLearner learner) {
                         return new PaxosUpdate(
-                                ImmutableList.copyOf(learner.getLearnedValuesSince(nextToLearnSeq)));
+                                copyOf(learner.getLearnedValuesSince(nextToLearnSeq)));
                     }
                 },
                 proposer.getQuorumSize(),

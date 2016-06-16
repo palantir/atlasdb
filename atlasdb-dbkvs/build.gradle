@@ -1,0 +1,14 @@
+apply plugin: 'org.inferred.processors'
+
+apply from: "../gradle/shared.gradle"
+
+dependencies {
+  compile project(":atlasdb-client")
+  compile project(":atlasdb-dbkvs-hikari")
+  compile project(":atlasdb-spi")
+  compile project(':timestamp-impl')
+  compile project(':commons-db')
+  compile project(':commons-api')
+
+  processor 'org.immutables:value:2.0.21'
+}

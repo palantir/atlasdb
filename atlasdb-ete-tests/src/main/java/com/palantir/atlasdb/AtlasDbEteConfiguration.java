@@ -1,5 +1,5 @@
 /**
- * Copyright 2015 Palantir Technologies
+ * Copyright 2016 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,8 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.util;
+package com.palantir.atlasdb;
 
-public interface VisitorCheckedException<T, K extends Exception> {
-    public void visit(T obj) throws K;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.palantir.atlasdb.config.AtlasDbConfig;
+
+import io.dropwizard.Configuration;
+
+public class AtlasDbEteConfiguration extends Configuration {
+    private final AtlasDbConfig atlasdb;
+
+    public AtlasDbEteConfiguration(@JsonProperty("atlasdb") AtlasDbConfig atlasdb) {
+        this.atlasdb = atlasdb;
+    }
+
+    public AtlasDbConfig getAtlasConfig() {
+        return atlasdb;
+    }
 }

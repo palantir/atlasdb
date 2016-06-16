@@ -8,6 +8,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.Status;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
@@ -15,7 +16,11 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 
 public class UserPhotosMetadataCleanupTask implements OnCleanupTask {
 
-    private final ProfileTableFactory tables = ProfileTableFactory.of();
+    private final ProfileTableFactory tables;
+
+    public UserPhotosMetadataCleanupTask(Namespace namespace) {
+        tables = ProfileTableFactory.of(namespace);
+    }
 
     @Override
     public boolean cellsCleanedUp(Transaction t, Set<Cell> cells) {

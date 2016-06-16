@@ -170,7 +170,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     protected void init() {
         clientPool.runOneTimeStartupChecks();
         supportsCAS = clientPool.runWithRetry(CassandraVerifier.underlyingCassandraClusterSupportsCASOperations);
-        createTable(CassandraConstants.METADATA_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA);
+        createTable(AtlasDbConstants.METADATA_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA);
         lowerConsistencyWhenSafe();
         upgradeFromOlderInternalSchema();
         CassandraKeyValueServices.failQuickInInitializationIfClusterAlreadyInInconsistentState(clientPool, configManager.getConfig());
@@ -202,10 +202,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                         log.warn("Upgrading table {} to new internal Cassandra schema", tableRef);
                         tablesToUpgrade.put(tableRef, clusterSideMetadata);
                     }
-                } else if (!(tableRef.equals(CassandraConstants.METADATA_TABLE) || tableRef.equals(CassandraConstants.LOCK_TABLE))) { // only expected cases
+                } else if (!(tableRef.equals(AtlasDbConstants.METADATA_TABLE) || tableRef.equals(CassandraConstants.LOCK_TABLE))) { // only expected cases
                     // Possible to get here from a race condition with another service starting up and performing schema upgrades concurrent with us doing this check
-                    log.error("Found a table " + tableRef.getQualifiedName() + " that did not have persisted Atlas metadata."
-                            + "If you recently did a Palantir update, try waiting until schema upgrades are completed on all backend CLIs/services etc and restarting this service."
+                    log.error("Found a table " + tableRef.getQualifiedName() + " that did not have persisted Atlas metadata. "
+                            + "If you recently did a Palantir update, try waiting until schema upgrades are completed on all backend CLIs/services etc and restarting this service. "
                             + "If this error re-occurs on subsequent attempted startups, please contact Palantir support.");
                 }
             }
@@ -1202,7 +1202,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     @Override
     public byte[] getMetadataForTable(TableReference tableRef) {
         Cell cell = getMetadataCell(tableRef);
-        Value v = get(CassandraConstants.METADATA_TABLE, ImmutableMap.of(cell, Long.MAX_VALUE)).get(cell);
+        Value v = get(AtlasDbConstants.METADATA_TABLE, ImmutableMap.of(cell, Long.MAX_VALUE)).get(cell);
         if (v == null) {
             return AtlasDbConstants.EMPTY_TABLE_METADATA;
         } else {
@@ -1218,7 +1218,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     @Override
     public Map<TableReference, byte[]> getMetadataForTables() {
         Map<TableReference, byte[]> tableToMetadataContents = Maps.newHashMap();
-        ClosableIterator<RowResult<Value>> range = getRange(CassandraConstants.METADATA_TABLE, RangeRequest.all(), Long.MAX_VALUE);
+        ClosableIterator<RowResult<Value>> range = getRange(AtlasDbConstants.METADATA_TABLE, RangeRequest.all(), Long.MAX_VALUE);
         try {
             while (range.hasNext()) {
                 RowResult<Value> valueRow = range.next();
@@ -1273,7 +1273,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
         // technically we're racing other services from here on, during an update period,
         // but the penalty for not caring is just some superfluous schema mutations and a few dead rows in the metadata table.
-        Map<Cell, Value> persistedMetadata = get(CassandraConstants.METADATA_TABLE, requestForLatestDbSideMetadata);
+        Map<Cell, Value> persistedMetadata = get(AtlasDbConstants.METADATA_TABLE, requestForLatestDbSideMetadata);
         final Map<Cell, byte[]> newMetadata = Maps.newHashMap();
         final Collection<CfDef> updatedCfs = Lists.newArrayList();
         for (Entry<Cell, byte[]> entry : metadataRequestedForUpdate.entrySet()) {
@@ -1301,7 +1301,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                             CassandraKeyValueServices.waitForSchemaVersions(client, "(all tables in a call to putMetadataForTables)", configManager.getConfig().schemaMutationTimeoutMillis());
                         }
                         // Done with actual schema mutation, push the metadata
-                        put(CassandraConstants.METADATA_TABLE, newMetadata, System.currentTimeMillis());
+                        put(AtlasDbConstants.METADATA_TABLE, newMetadata, System.currentTimeMillis());
                         return null;
                     }
                 });
@@ -1316,7 +1316,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     private void putMetadataWithoutChangingSettings(final TableReference tableRef, final byte[] meta) {
-        put(CassandraConstants.METADATA_TABLE, ImmutableMap.of(getMetadataCell(tableRef), meta), System.currentTimeMillis());
+        put(AtlasDbConstants.METADATA_TABLE, ImmutableMap.of(getMetadataCell(tableRef), meta), System.currentTimeMillis());
     }
 
     @Override

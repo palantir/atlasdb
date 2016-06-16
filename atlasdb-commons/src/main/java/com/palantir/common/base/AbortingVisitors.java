@@ -21,7 +21,7 @@ import java.util.List;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.palantir.util.VisitorCheckedException;
+import com.palantir.common.visitor.VisitorCheckedException;
 
 public class AbortingVisitors {
 
