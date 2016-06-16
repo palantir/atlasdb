@@ -87,9 +87,7 @@ public class AvailableTimestamps {
         try {
             upperLimit.increaseToAtLeast(timestamp);
         } catch(Throwable e) {
-            synchronized (this) {
-                allocationFailures.handle(e);
-            }
+            allocationFailures.handle(e);
         }
     }
 
