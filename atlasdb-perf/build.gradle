@@ -1,5 +1,9 @@
 apply from: '../gradle/shared.gradle'
 
+apply plugin: 'application'
+mainClassName = 'com.palantir.atlasdb.performance.cli.AtlasPerfCli'
+applicationName = 'atlasdb-perf-tool'
+
 dependencies {
   compile 'io.airlift:airline:0.7'
 }

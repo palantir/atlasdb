@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.performance;
+package com.palantir.atlasdb.performance.cli;
 
 import java.util.concurrent.Callable;
 
