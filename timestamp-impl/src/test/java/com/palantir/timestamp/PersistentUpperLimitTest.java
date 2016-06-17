@@ -17,8 +17,11 @@ package com.palantir.timestamp;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
 
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -26,15 +29,31 @@ import static org.mockito.Mockito.when;
 
 import java.util.concurrent.TimeUnit;
 
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
+import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.common.time.Clock;
 
 public class PersistentUpperLimitTest {
     private static final long TIMESTAMP = 12345L;
+    private static final long INITIAL_UPPER_LIMIT = 10L;
+
     private final Clock clock = mock(Clock.class);
-    private final TimestampBoundStore boundStore = mock(TimestampBoundStore.class);
-    private final PersistentUpperLimit upperLimit = new PersistentUpperLimit(boundStore, clock);
+    private TimestampBoundStore boundStore;
+    private PersistentUpperLimit upperLimit;
+
+    @Rule
+    public ExpectedException exception = ExpectedException.none();
+
+    @Before
+    public void setup() {
+        boundStore = mock(TimestampBoundStore.class);
+        when(boundStore.getUpperLimit()).thenReturn(INITIAL_UPPER_LIMIT);
+        upperLimit = new PersistentUpperLimit(boundStore, clock);
+    }
 
     @Test
     public void shouldStartWithTheCurrentStoredLimit() {
@@ -97,6 +116,29 @@ public class PersistentUpperLimitTest {
         whenTheTimeIs(2, MINUTES);
 
         assertThat(upperLimit.hasIncreasedWithin(2, MINUTES), is(true));
+    }
+
+    @Test
+    public void shouldRethrowAllocationFailures() {
+        IllegalArgumentException allocationFailure = new IllegalArgumentException();
+
+        doThrow(allocationFailure).when(boundStore).storeUpperLimit(anyLong());
+
+        exception.expect(equalTo(allocationFailure));
+
+        upperLimit.increaseToAtLeast(INITIAL_UPPER_LIMIT + 10);
+    }
+
+    @Test
+    public void shouldMultipleServicesRunningExceptionsInServiceNotAvailableException() {
+        MultipleRunningTimestampServiceError allocationFailure = new MultipleRunningTimestampServiceError("error");
+
+        doThrow(allocationFailure).when(boundStore).storeUpperLimit(anyLong());
+
+        exception.expectCause(equalTo(allocationFailure));
+        exception.expect(ServiceNotAvailableException.class);
+
+        upperLimit.increaseToAtLeast(INITIAL_UPPER_LIMIT + 10);
     }
 
     private void whenTheTimeIs(long time, TimeUnit unit) {

@@ -19,6 +19,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.concurrent.GuardedBy;
 
+import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.common.time.Clock;
 import com.palantir.common.time.SystemClock;
 
@@ -42,7 +43,11 @@ public class PersistentUpperLimit {
     }
 
     private synchronized void store(long upperLimit) {
-        tbs.storeUpperLimit(upperLimit);
+        try {
+            tbs.storeUpperLimit(upperLimit);
+        } catch (MultipleRunningTimestampServiceError multipleRunningTimestampServiceError) {
+            throw new ServiceNotAvailableException(multipleRunningTimestampServiceError);
+        }
         cachedValue = upperLimit;
         lastIncreasedTime = clock.getTimeMillis();
     }
