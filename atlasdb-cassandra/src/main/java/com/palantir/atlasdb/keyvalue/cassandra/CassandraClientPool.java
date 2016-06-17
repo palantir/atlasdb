@@ -588,9 +588,9 @@ public class CassandraClientPool {
 
             Map<InetSocketAddress, Integer> activeConnectionsByHost = new HashMap<>(pools.size());
             int totalActiveConnections = 0;
-            for (InetSocketAddress host : pools.keySet()) {
-                int activeConnections = Math.max(pools.get(host).getPoolUtilization(), 0);
-                activeConnectionsByHost.put(host, activeConnections);
+            for (Entry<InetSocketAddress, CassandraClientPoolingContainer> poolEntry : pools.entrySet()) {
+                int activeConnections = Math.max(poolEntry.getValue().getPoolUtilization(), 0);
+                activeConnectionsByHost.put(poolEntry.getKey(), activeConnections);
                 totalActiveConnections += activeConnections;
             }
 
