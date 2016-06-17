@@ -17,6 +17,7 @@ package com.palantir.nexus.db.sql;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -491,7 +492,7 @@ public final class SqlConnectionHelper {
             try {
                 insertManyUnregisteredQuery(c, sqlInsert, args); // dynamic query
             } catch (PalantirSqlException e) {
-                assert checkRepeatedInsert(e, c, tableName, tempIds);
+                assert checkRepeatedInsert(e, c, tableName, tempIds, clearStyle);
                 throw e;
             }
         }
@@ -501,24 +502,34 @@ public final class SqlConnectionHelper {
      * Check if the temp table has this exact set of tempIds already, for debugging purposes.
      * This should be behind an assert so it does not run in production.
      */
-    private boolean checkRepeatedInsert(PalantirSqlException e, Connection c, String tableName, Iterable<Long> tempIds) {
+    private boolean checkRepeatedInsert(PalantirSqlException e, Connection c, String tableName, Iterable<Long> tempIds, ClearStyle clearStyle) {
         AgnosticResultSet results = selectResultSetUnregisteredQuery(c, "SELECT id FROM " + tableName);
         Set<Long> attempt = Sets.newHashSet(tempIds);
         Set<Long> current = Sets.newHashSet();
+        String isInTransaction;
+        try {
+            if (c.getAutoCommit()) {
+                isInTransaction = "Not in transaction";
+            } else {
+                isInTransaction = "In transaction";
+            }
+        } catch (SQLException sqle) {
+            isInTransaction = "Unknown transaction status";
+        }
         for (AgnosticResultRow row: results.rows()) {
             current.add(row.getLong("id"));
         }
         if (attempt.equals(current)) {
-            String message = String.format("Tried to insert %s temp IDs into table %s, but that exact set of temp IDs was already there",
-                    attempt.size(), tableName);
+            String message = String.format("Tried to insert %s temp IDs into table %s, but that exact set of temp IDs was already there. (%s) (ClearStyle: %s)",
+                    attempt.size(), tableName, isInTransaction, clearStyle);
             throw new RuntimeException(message, e);
         } else {
             Set<Long> onlyInAttempt = Sets.difference(attempt, current);
             Set<Long> onlyInCurrent = Sets.difference(current, attempt);
             String message = String.format(
                     "Tried to insert %s temp IDs into table %s, but %s temp IDs were already there.  %s were only in our attempt, while " +
-                            "%s were only in the set already present.",
-                    attempt.size(), tableName, current.size(), onlyInAttempt.size(), onlyInCurrent.size());
+                            "%s were only in the set already present. (%s) (ClearStyle: %s)",
+                    attempt.size(), tableName, current.size(), onlyInAttempt.size(), onlyInCurrent.size(), isInTransaction, clearStyle);
             throw new RuntimeException(message, e);
         }
     }
