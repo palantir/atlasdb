@@ -15,6 +15,8 @@
  */
 package com.palantir.timestamp;
 
+import javax.annotation.concurrent.GuardedBy;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,6 +28,7 @@ public class TimestampAllocationFailures {
     private static final String MULTIPLE_RUNNING_TIMESTAMP_SERVICES_MESSAGE = "This server is no longer usable as there appears to be another timestamp server running.";
     private final Logger log;
 
+    @GuardedBy("this")
     private Throwable previousAllocationFailure;
 
     public TimestampAllocationFailures(Logger log) {
@@ -48,6 +51,12 @@ public class TimestampAllocationFailures {
         return new RuntimeException("Could not allocate more timestamps", newFailure);
    }
 
+    public synchronized void verifyWeShouldTryToAllocateMoreTimestamps() {
+        if(previousAllocationFailure instanceof MultipleRunningTimestampServiceError) {
+            throw wrapMultipleRunningTImestampServiceError(previousAllocationFailure);
+        }
+    }
+
     private void logNewFailure(Throwable newFailure) {
         String message = "We encountered an error while trying to allocate more timestamps. ";
         if(isSameAsPreviousFailure(newFailure)) {
@@ -63,12 +72,6 @@ public class TimestampAllocationFailures {
         }
 
         return newFailure.getClass().equals(previousAllocationFailure.getClass());
-    }
-
-    public void verifyWeShouldTryToAllocateMoreTimestamps() {
-        if(previousAllocationFailure instanceof MultipleRunningTimestampServiceError) {
-            throw wrapMultipleRunningTImestampServiceError(previousAllocationFailure);
-        }
     }
 
     private ServiceNotAvailableException wrapMultipleRunningTImestampServiceError(Throwable newFailure) {
