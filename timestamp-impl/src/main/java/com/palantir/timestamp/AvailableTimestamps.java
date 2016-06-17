@@ -52,6 +52,23 @@ public class AvailableTimestamps {
         return handOutTimestamp(lastHandedOut() + numberToHandOut);
     }
 
+    public synchronized void refreshBuffer() {
+        long buffer = upperLimit.get() - lastHandedOut();
+
+        if (buffer < MINIMUM_BUFFER || !upperLimit.hasIncreasedWithin(1, MINUTES)) {
+            allocateEnoughTimestampsToHandOut(lastHandedOut() + ALLOCATION_BUFFER_SIZE);
+        }
+    }
+
+    public synchronized void fastForwardTo(long newMinimum) {
+        lastReturnedTimestamp.increaseToAtLeast(newMinimum);
+        upperLimit.increaseToAtLeast(newMinimum + ALLOCATION_BUFFER_SIZE);
+    }
+
+    private long lastHandedOut() {
+        return lastReturnedTimestamp.get();
+    }
+
     private synchronized TimestampRange handOutTimestamp(long targetTimestamp) {
         checkArgument(
                 targetTimestamp > lastHandedOut(),
@@ -64,23 +81,6 @@ public class AvailableTimestamps {
         lastReturnedTimestamp.increaseToAtLeast(targetTimestamp);
 
         return rangeToHandOut;
-    }
-
-    private long lastHandedOut() {
-        return lastReturnedTimestamp.get();
-    }
-
-    public synchronized void refreshBuffer() {
-        long buffer = upperLimit.get() - lastHandedOut();
-
-        if (buffer < MINIMUM_BUFFER || !upperLimit.hasIncreasedWithin(1, MINUTES)) {
-            allocateEnoughTimestampsToHandOut(lastHandedOut() + ALLOCATION_BUFFER_SIZE);
-        }
-    }
-
-    public synchronized void fastForwardTo(long newMinimum) {
-        lastReturnedTimestamp.increaseToAtLeast(newMinimum);
-        upperLimit.increaseToAtLeast(newMinimum + ALLOCATION_BUFFER_SIZE);
     }
 
     private void allocateEnoughTimestampsToHandOut(long timestamp) {
