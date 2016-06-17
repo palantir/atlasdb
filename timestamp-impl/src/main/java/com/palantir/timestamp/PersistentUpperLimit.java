@@ -21,6 +21,7 @@ import javax.annotation.concurrent.GuardedBy;
 
 import com.palantir.common.time.Clock;
 import com.palantir.common.time.SystemClock;
+import com.palantir.exception.PalantirInterruptedException;
 
 public class PersistentUpperLimit {
 
@@ -63,10 +64,17 @@ public class PersistentUpperLimit {
     }
 
     private synchronized void store(long upperLimit) {
+        checkWeHaveNotBeenInterrupted();
         allocationFailures.verifyWeShouldTryToAllocateMoreTimestamps();
         persistNewUpperLimit(upperLimit);
         cachedValue = upperLimit;
         lastIncreasedTime = clock.getTimeMillis();
+    }
+
+    private void checkWeHaveNotBeenInterrupted() {
+        if (Thread.currentThread().isInterrupted()) {
+            throw new PalantirInterruptedException("Was interrupted while trying to allocate more timestamps");
+        }
     }
 
     private void persistNewUpperLimit(long upperLimit) {
