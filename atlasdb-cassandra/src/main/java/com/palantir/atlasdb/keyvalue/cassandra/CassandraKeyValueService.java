@@ -823,23 +823,25 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     private void deleteOnSingleHost(final InetSocketAddress host,
                                     final TableReference tableRef,
-                                    final Map<Cell, Collection<Long>> keys) {
+                                    final Map<Cell, Collection<Long>> cellVersionsMap) {
         try {
             clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Client, Void, Exception>() {
+
+                int numVersions = 0;
                 @Override
                 public Void apply(Client client) throws Exception {
                     // Delete must delete in the order of timestamp and we don't trust batch_mutate to do it
                     // atomically so we have to potentially do many deletes if there are many timestamps for the
                     // same key.
                     Map<Integer, Map<ByteBuffer, Map<String, List<Mutation>>>> maps = Maps.newTreeMap();
-                    for (Cell key : keys.keySet()) {
+                    for (Entry<Cell, Collection<Long>> cellVersions : cellVersionsMap.entrySet()) {
                         int mapIndex = 0;
-                        for (long ts : Ordering.natural().immutableSortedCopy(keys.get(key))) {
+                        for (long ts : Ordering.natural().immutableSortedCopy(cellVersions.getValue())) {
                             if (!maps.containsKey(mapIndex)) {
                                 maps.put(mapIndex, Maps.<ByteBuffer, Map<String, List<Mutation>>>newHashMap());
                             }
                             Map<ByteBuffer, Map<String, List<Mutation>>> map = maps.get(mapIndex);
-                            ByteBuffer colName = CassandraKeyValueServices.makeCompositeBuffer(key.getColumnName(), ts);
+                            ByteBuffer colName = CassandraKeyValueServices.makeCompositeBuffer(cellVersions.getKey().getColumnName(), ts);
                             SlicePredicate pred = new SlicePredicate();
                             pred.setColumn_names(Arrays.asList(colName));
                             Deletion del = new Deletion();
@@ -847,7 +849,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                             del.setTimestamp(Long.MAX_VALUE);
                             Mutation m = new Mutation();
                             m.setDeletion(del);
-                            ByteBuffer rowName = ByteBuffer.wrap(key.getRowName());
+                            ByteBuffer rowName = ByteBuffer.wrap(cellVersions.getKey().getRowName());
                             if (!map.containsKey(rowName)) {
                                 map.put(rowName, Maps.<String, List<Mutation>>newHashMap());
                             }
@@ -857,6 +859,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                             }
                             rowPuts.get(internalTableName(tableRef)).add(m);
                             mapIndex++;
+                            numVersions += cellVersions.getValue().size();
                         }
                     }
                     for (Map<ByteBuffer, Map<String, List<Mutation>>> map : maps.values()) {
@@ -869,7 +872,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
                 @Override
                 public String toString() {
-                    return "batch_mutate(" + host + ", " + tableRef.getQualifiedName() + ", " + keys.size() + " keys" + ")";
+                    return "delete_batch_mutate(" + host + ", " + tableRef.getQualifiedName() + ", " + numVersions + " total versions of " + cellVersionsMap.size() + " keys)";
                 }
             });
         } catch (Exception e) {
