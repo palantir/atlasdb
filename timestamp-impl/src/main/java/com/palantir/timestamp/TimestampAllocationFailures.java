@@ -23,6 +23,7 @@ import com.palantir.common.remoting.ServiceNotAvailableException;
 public class TimestampAllocationFailures {
     private static final String SERVICE_UNAVAILABLE_ERROR =
             "This server is no longer usable as there appears to be another timestamp server running.";
+    private static final String MULTIPLE_RUNNING_TIMESTAMP_SERVICES_MESSAGE = "This server is no longer usable as there appears to be another timestamp server running.";
     private final Logger log;
 
     private Throwable previousAllocationFailure;
@@ -36,22 +37,23 @@ public class TimestampAllocationFailures {
     }
 
 
-    public synchronized void handle(Throwable newFailure) {
+    public synchronized RuntimeException responseTo(Throwable newFailure) {
         logNewFailure(newFailure);
         previousAllocationFailure = newFailure;
 
         if (newFailure instanceof MultipleRunningTimestampServiceError) {
-            throw new ServiceNotAvailableException("This server is no longer valid because another is running.", newFailure);
+            return wrapMultipleRunningTImestampServiceError(newFailure);
         }
 
-        throw new RuntimeException("Could not allocate more timestamps", newFailure);
+        return new RuntimeException("Could not allocate more timestamps", newFailure);
    }
 
     private void logNewFailure(Throwable newFailure) {
+        String message = "We encountered an error while trying to allocate more timestamps. ";
         if(isSameAsPreviousFailure(newFailure)) {
-            log.info("Throwable while allocating timestamps.", newFailure);
+            log.info(message + "This is a repeat of the previous failure", newFailure);
         } else {
-            log.error("Throwable while allocating timestamps.", newFailure);
+            log.error(message + "If this failure repeats it will be logged at the INFO level", newFailure);
         }
     }
 
@@ -65,7 +67,11 @@ public class TimestampAllocationFailures {
 
     public void verifyWeShouldTryToAllocateMoreTimestamps() {
         if(previousAllocationFailure instanceof MultipleRunningTimestampServiceError) {
-            throw new ServiceNotAvailableException(SERVICE_UNAVAILABLE_ERROR, previousAllocationFailure);
+            throw wrapMultipleRunningTImestampServiceError(previousAllocationFailure);
         }
+    }
+
+    private ServiceNotAvailableException wrapMultipleRunningTImestampServiceError(Throwable newFailure) {
+        return new ServiceNotAvailableException(MULTIPLE_RUNNING_TIMESTAMP_SERVICES_MESSAGE, newFailure);
     }
 }

@@ -15,7 +15,10 @@
  */
 package com.palantir.timestamp;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.Is.isA;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
@@ -41,30 +44,31 @@ public class TimestampAllocationFailuresTest {
 
     @Test public void
     shouldRethrowExceptions() {
-        exception.expectCause(is(FAILURE));
-        exception.expect(RuntimeException.class);
-        exception.expectMessage("Could not allocate more timestamps");
+        RuntimeException response = allocationFailures.responseTo(FAILURE);
 
-        allocationFailures.handle(FAILURE);
+        assertThat(response.getCause(), is(FAILURE));
+        assertThat(response, isA(RuntimeException.class));
+        assertThat(response.getMessage(), containsString("Could not allocate more timestamps"));
+
     }
 
     @Test public void
     shouldRethrowMultipleRunningTimestampServiceErrorsAsServiceNotAvailableExceptions() {
-        exception.expect(ServiceNotAvailableException.class);
-        exception.expectCause(is(MULTIPLE_RUNNING_SERVICES_FAILURE));
+        RuntimeException response = allocationFailures.responseTo(MULTIPLE_RUNNING_SERVICES_FAILURE);
 
-        allocationFailures.handle(MULTIPLE_RUNNING_SERVICES_FAILURE);
+        assertThat(response instanceof ServiceNotAvailableException, is(true));
+        assertThat(response.getCause(), is(MULTIPLE_RUNNING_SERVICES_FAILURE));
     }
 
     @Test public void
     shouldAllowTryingToAllocateMoreTimestampsAfterANormalRuntimeException() {
-        ignoringExceptions(() -> allocationFailures.handle(FAILURE));
+        ignoringExceptions(() -> allocationFailures.responseTo(FAILURE));
         allocationFailures.verifyWeShouldTryToAllocateMoreTimestamps();
     }
 
     @Test public void
     shouldDisallowTryingToAllocateMoreTimestampsAfterAMultipleRunningTimestampServicesFailure() {
-        ignoringExceptions(() -> allocationFailures.handle(MULTIPLE_RUNNING_SERVICES_FAILURE));
+        ignoringExceptions(() -> allocationFailures.responseTo(MULTIPLE_RUNNING_SERVICES_FAILURE));
 
         exception.expectCause(is(MULTIPLE_RUNNING_SERVICES_FAILURE));
         exception.expect(ServiceNotAvailableException.class);
@@ -74,23 +78,23 @@ public class TimestampAllocationFailuresTest {
 
     @Test public void
     shouldLogTheFirstOfATypeOfExceptionToError() {
-        ignoringExceptions(() -> allocationFailures.handle(FAILURE));
+        ignoringExceptions(() -> allocationFailures.responseTo(FAILURE));
 
         verify(log).error(anyString(), eq(FAILURE));
     }
 
     @Test public void
     shouldLogTheSecondOfATypeOfExceptionToInfo() {
-        ignoringExceptions(() -> allocationFailures.handle(FAILURE));
-        ignoringExceptions(() -> allocationFailures.handle(FAILURE));
+        ignoringExceptions(() -> allocationFailures.responseTo(FAILURE));
+        ignoringExceptions(() -> allocationFailures.responseTo(FAILURE));
 
         verify(log).info(anyString(), eq(FAILURE));
     }
 
     @Test public void
     shouldLog2DifferentExceptionsToError() {
-        ignoringExceptions(() -> allocationFailures.handle(FAILURE));
-        ignoringExceptions(() -> allocationFailures.handle(MULTIPLE_RUNNING_SERVICES_FAILURE));
+        ignoringExceptions(() -> allocationFailures.responseTo(FAILURE));
+        ignoringExceptions(() -> allocationFailures.responseTo(MULTIPLE_RUNNING_SERVICES_FAILURE));
 
         verify(log).error(anyString(), eq(FAILURE));
         verify(log).error(anyString(), eq(MULTIPLE_RUNNING_SERVICES_FAILURE));

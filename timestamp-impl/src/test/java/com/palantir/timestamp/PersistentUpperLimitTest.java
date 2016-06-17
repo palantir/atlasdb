@@ -134,11 +134,14 @@ public class PersistentUpperLimitTest {
     @Test
     public void shouldDelegateHandlingOfAllocationFailures() {
         RuntimeException failure = new RuntimeException();
+        RuntimeException expectedException = new RuntimeException();
+
         doThrow(failure).when(boundStore).storeUpperLimit(anyLong());
+        when(allocationFailures.responseTo(failure)).thenReturn(expectedException);
+
+        exception.expect(is(expectedException));
 
         upperLimit.increaseToAtLeast(INITIAL_UPPER_LIMIT + 10);
-
-        verify(allocationFailures).handle(failure);
     }
 
     @Test

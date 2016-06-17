@@ -80,8 +80,8 @@ public class PersistentUpperLimit {
     private void persistNewUpperLimit(long upperLimit) {
         try {
             tbs.storeUpperLimit(upperLimit);
-        } catch (MultipleRunningTimestampServiceError error) {
-            allocationFailures.handle(error);
+        } catch (Throwable error) {
+            throw allocationFailures.responseTo(error);
         }
     }
 
