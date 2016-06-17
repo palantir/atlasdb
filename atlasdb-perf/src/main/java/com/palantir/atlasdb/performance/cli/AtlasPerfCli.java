@@ -17,6 +17,8 @@ package com.palantir.atlasdb.performance.cli;
 
 import java.util.concurrent.Callable;
 
+import com.palantir.atlasdb.performance.cli.command.RunTestsCommand;
+
 import io.airlift.airline.Cli;
 import io.airlift.airline.Help;
 
@@ -26,7 +28,7 @@ public class AtlasPerfCli {
         Cli.CliBuilder<Callable> builder = Cli.<Callable>builder("atlasdb performance tool")
                 .withDescription("Performance testing for atlasdb")
                 .withDefaultCommand(Help.class)
-                .withCommands(Help.class);
+                .withCommands(Help.class, RunTestsCommand.class);
         return builder.build();
     }
 

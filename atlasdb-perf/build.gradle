@@ -5,5 +5,20 @@ mainClassName = 'com.palantir.atlasdb.performance.cli.AtlasPerfCli'
 applicationName = 'atlasdb-perf-tool'
 
 dependencies {
+  compile project(':atlasdb-spi')
+  compile project(':atlasdb-dbkvs')
+
   compile 'io.airlift:airline:0.7'
+  compile 'com.palantir.docker.compose:docker-compose-rule:' + libVersions.dockerComposeRule
+  compile 'ch.qos.logback:logback-classic:1.1.7'
+  compile 'commons-logging:commons-logging:1.1.1'
+}
+
+configurations.matching({ it.name in ['compile', 'runtime'] }).all {
+  resolutionStrategy {
+    force 'commons-io:commons-io:2.4'
+    force 'joda-time:joda-time:' + libVersions.joda_time
+    force 'org.apache.commons:commons-lang3:' + libVersions.commons_lang3
+    force 'org.slf4j:slf4j-api:' + libVersions.slf4j
+  }
 }
