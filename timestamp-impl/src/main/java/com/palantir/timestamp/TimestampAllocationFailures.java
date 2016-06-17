@@ -19,41 +19,51 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.palantir.common.remoting.ServiceNotAvailableException;
-import com.palantir.exception.PalantirInterruptedException;
 
 public class TimestampAllocationFailures {
     private static final String SERVICE_UNAVAILABLE_ERROR =
             "This server is no longer usable as there appears to be another timestamp server running.";
+    private final Logger log;
 
-    private static final Logger log = LoggerFactory.getLogger(TimestampAllocationFailures.class);
     private Throwable previousAllocationFailure;
 
+    public TimestampAllocationFailures(Logger log) {
+        this.log = log;
+    }
+
+    public TimestampAllocationFailures() {
+        this(LoggerFactory.getLogger(TimestampAllocationFailures.class));
+    }
+
+
     public synchronized void handle(Throwable newFailure) {
-        Throwable oldFailure = previousAllocationFailure;
+        logNewFailure(newFailure);
         previousAllocationFailure = newFailure;
 
         if (newFailure instanceof MultipleRunningTimestampServiceError) {
             throw new ServiceNotAvailableException("This server is no longer valid because another is running.", newFailure);
         }
 
-        if (newFailure != null) {
-            throw new RuntimeException("failed to allocate more timestamps", newFailure);
-        }
+        throw new RuntimeException("Could not allocate more timestamps", newFailure);
+   }
 
-        if (Thread.currentThread().isInterrupted()) {
-            throw new PalantirInterruptedException("Interrupted while waiting for timestamp allocation.");
-        }
-
-        if (oldFailure != null
-                && newFailure.getClass().equals(oldFailure.getClass())) {
-            // QA-75825: don't keep logging error if we keep failing to allocate.
+    private void logNewFailure(Throwable newFailure) {
+        if(isSameAsPreviousFailure(newFailure)) {
             log.info("Throwable while allocating timestamps.", newFailure);
         } else {
             log.error("Throwable while allocating timestamps.", newFailure);
         }
     }
 
-    public void checkShouldTryToAllocateMoreTimestamps() {
+    private boolean isSameAsPreviousFailure(Throwable newFailure) {
+        if(previousAllocationFailure == null) {
+            return false;
+        }
+
+        return newFailure.getClass().equals(previousAllocationFailure.getClass());
+    }
+
+    public void verifyWeShouldTryToAllocateMoreTimestamps() {
         if(previousAllocationFailure instanceof MultipleRunningTimestampServiceError) {
             throw new ServiceNotAvailableException(SERVICE_UNAVAILABLE_ERROR, previousAllocationFailure);
         }

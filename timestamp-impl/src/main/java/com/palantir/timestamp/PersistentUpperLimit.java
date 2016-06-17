@@ -63,7 +63,7 @@ public class PersistentUpperLimit {
     }
 
     private synchronized void store(long upperLimit) {
-        checkServiceIsUsable();
+        allocationFailures.verifyWeShouldTryToAllocateMoreTimestamps();
         persistNewUpperLimit(upperLimit);
         cachedValue = upperLimit;
         lastIncreasedTime = clock.getTimeMillis();
@@ -77,7 +77,4 @@ public class PersistentUpperLimit {
         }
     }
 
-    private void checkServiceIsUsable() {
-        allocationFailures.checkShouldTryToAllocateMoreTimestamps();
-    }
 }
