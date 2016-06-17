@@ -11,4 +11,5 @@ dependencies {
   compile project(':commons-api')
 
   processor 'org.immutables:value:2.0.21'
+  processor "com.google.auto.service:auto-service:1.0-rc2"
 }
