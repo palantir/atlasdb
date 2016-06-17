@@ -58,21 +58,13 @@ public class TimestampAllocationFailuresTest {
 
     @Test public void
     shouldAllowTryingToAllocateMoreTimestampsAfterANormalRuntimeException() {
-        try {
-            allocationFailures.handle(FAILURE);
-        } catch (Exception e) {
-            // Do nothing with expected exception
-        }
+        ignoringExceptions(() -> allocationFailures.handle(FAILURE));
         allocationFailures.verifyWeShouldTryToAllocateMoreTimestamps();
     }
 
     @Test public void
     shouldDisallowTryingToAllocateMoreTimestampsAfterAMultipleRunningTimestampServicesFailure() {
-        try {
-            allocationFailures.handle(MULTIPLE_RUNNING_SERVICES_FAILURE);
-        } catch (Exception e) {
-            // Do nothing with expected exception
-        }
+        ignoringExceptions(() -> allocationFailures.handle(MULTIPLE_RUNNING_SERVICES_FAILURE));
 
         exception.expectCause(is(MULTIPLE_RUNNING_SERVICES_FAILURE));
         exception.expect(ServiceNotAvailableException.class);
@@ -82,11 +74,7 @@ public class TimestampAllocationFailuresTest {
 
     @Test public void
     shouldLogTheFirstOfATypeOfExceptionToError() {
-        try {
-            allocationFailures.handle(FAILURE);
-        } catch (Exception e) {
-            // Do nothing with expected exception
-        }
+        ignoringExceptions(() -> allocationFailures.handle(FAILURE));
 
         verify(log).error(anyString(), eq(FAILURE));
     }
