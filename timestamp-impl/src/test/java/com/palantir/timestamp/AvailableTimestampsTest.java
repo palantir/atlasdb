@@ -50,7 +50,7 @@ public class AvailableTimestampsTest {
     );
 
     @Test
-    public void shouldBeAbleToHandOutNonOverLappingTimestampRanges() {
+    public void shouldHandOutNonOverLappingTimestampRanges() {
         TimestampRange first = availableTimestamps.handOut(10);
         TimestampRange second = availableTimestamps.handOut(10);
 
@@ -94,7 +94,7 @@ public class AvailableTimestampsTest {
     }
 
     @Test public void
-    shouldIncreaseTheMaximumToHandOutNewTimestamps() {
+    shouldIncreaseUpperLimitIfNecessaryToHandOutNewTimestamps() {
         assertThat(
                 availableTimestamps.handOut(INITIAL_REMAINING_TIMESTAMPS + 10).getUpperBound(),
                 is(UPPER_LIMIT + 10));
