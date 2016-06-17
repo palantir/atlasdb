@@ -25,7 +25,6 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.db.oracle.JdbcHandler;
 
-@AutoService(KeyValueServiceConfig.class)
 @Value.Immutable
 public abstract class OracleDdlConfig extends DdlConfig {
 

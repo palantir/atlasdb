@@ -28,9 +28,10 @@ import com.palantir.timestamp.TimestampService;
 
 @AutoService(AtlasDbFactory.class)
 public class DbAtlasDbFactory implements AtlasDbFactory {
+    public static final String TYPE = "relational";
     @Override
     public String getType() {
-        return "postgres";
+        return TYPE;
     }
 
     @Override

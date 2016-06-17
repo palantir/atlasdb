@@ -20,17 +20,17 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.auto.service.AutoService;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
 
+@AutoService(KeyValueServiceConfig.class)
 @JsonDeserialize(as = ImmutableDbKeyValueServiceConfig.class)
 @JsonSerialize(as = ImmutableDbKeyValueServiceConfig.class)
-@JsonTypeName(DbKeyValueServiceConfig.TYPE)
+@JsonTypeName(DbAtlasDbFactory.TYPE)
 @Value.Immutable
 public abstract class DbKeyValueServiceConfig implements KeyValueServiceConfig {
-
-    public static final String TYPE = "relational";
 
     public abstract DdlConfig ddl();
 
@@ -38,7 +38,7 @@ public abstract class DbKeyValueServiceConfig implements KeyValueServiceConfig {
 
     @Override
     public final String type() {
-        return TYPE;
+        return DbAtlasDbFactory.TYPE;
     }
 
     @Value.Check
