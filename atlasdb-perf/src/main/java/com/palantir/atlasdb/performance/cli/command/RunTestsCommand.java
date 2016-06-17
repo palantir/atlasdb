@@ -28,7 +28,7 @@ public class RunTestsCommand implements Callable<Integer> {
 
     @Option(name = {"-b", "--backend"},
             title = "PHYSICAL STORE",
-            description = "underyling physical store (e.g. postgres, in-memory)",
+            description = "underyling physical store (e.g. POSTGRES)",
             required = true)
     private PhysicalStoreType type;
 
