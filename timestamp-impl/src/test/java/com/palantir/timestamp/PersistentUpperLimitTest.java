@@ -35,6 +35,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import com.palantir.common.time.Clock;
+import com.palantir.exception.PalantirInterruptedException;
 
 public class PersistentUpperLimitTest {
     private static final long TIMESTAMP = 12345L;
@@ -152,6 +153,35 @@ public class PersistentUpperLimitTest {
             upperLimit.increaseToAtLeast(INITIAL_UPPER_LIMIT + 10);
         } catch (Exception e) {
             // ignore expected exception
+        }
+
+        verify(boundStore, never()).storeUpperLimit(anyLong());
+    }
+
+    @Test
+    public void shouldThrowAnInterruptedExceptionIfTheThreadIsInterrupted() {
+        try {
+            exception.expect(PalantirInterruptedException.class);
+
+            Thread.currentThread().interrupt();
+
+            upperLimit.increaseToAtLeast(INITIAL_UPPER_LIMIT + 10);
+        } finally {
+            // Clear the interrupt
+            Thread.interrupted();
+        }
+    }
+
+    @Test
+    public void shouldNotTryToPersistANewLimitIfInterrupted() {
+        try {
+            Thread.currentThread().interrupt();
+            upperLimit.increaseToAtLeast(INITIAL_UPPER_LIMIT + 10);
+        } catch (Exception e) {
+            // Ingnore expected exception
+        } finally {
+            // Clear the interrupt
+            Thread.interrupted();
         }
 
         verify(boundStore, never()).storeUpperLimit(anyLong());
