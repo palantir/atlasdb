@@ -52,14 +52,14 @@ public class PersistentUpperLimitTest {
     public void setup() {
         boundStore = mock(TimestampBoundStore.class);
         when(boundStore.getUpperLimit()).thenReturn(INITIAL_UPPER_LIMIT);
-        upperLimit = new PersistentUpperLimit(boundStore, clock);
+        upperLimit = new PersistentUpperLimit(boundStore, clock, new TimestampAllocationFailures());
     }
 
     @Test
     public void shouldStartWithTheCurrentStoredLimit() {
         when(boundStore.getUpperLimit()).thenReturn(TIMESTAMP);
 
-        PersistentUpperLimit brandNewUpperLimit = new PersistentUpperLimit(boundStore, clock);
+        PersistentUpperLimit brandNewUpperLimit = new PersistentUpperLimit(boundStore, clock, new TimestampAllocationFailures());
 
         assertThat(brandNewUpperLimit.get(), is(TIMESTAMP));
     }
@@ -94,6 +94,19 @@ public class PersistentUpperLimitTest {
 
         upperLimit.increaseToAtLeast(TIMESTAMP + 1000);
         verify(boundStore).storeUpperLimit(TIMESTAMP + 1000);
+    }
+
+    @Test
+    public void shouldNotChangeTheCurrentUpperLimitIfItFailsToPersist() {
+        doThrow(RuntimeException.class).when(boundStore).storeUpperLimit(anyLong());
+
+        try {
+            upperLimit.increaseToAtLeast(INITIAL_UPPER_LIMIT + 10);
+        } catch (Exception e) {
+            // We expect this to throw
+        }
+
+        assertThat(upperLimit.get(), is(INITIAL_UPPER_LIMIT));
     }
 
     @Test
@@ -139,6 +152,26 @@ public class PersistentUpperLimitTest {
         exception.expect(ServiceNotAvailableException.class);
 
         upperLimit.increaseToAtLeast(INITIAL_UPPER_LIMIT + 10);
+    }
+
+    @Test
+    public void shouldNotAttemptToPersistAnyMoreValuesAfterCatchingAMultipleRunningTimestampServiceError() {
+        MultipleRunningTimestampServiceError allocationFailure = new MultipleRunningTimestampServiceError("error");
+
+        doThrow(allocationFailure).when(boundStore).storeUpperLimit(anyLong());
+
+        increaseToAtleastIgnoringErrors(INITIAL_UPPER_LIMIT + 10);
+        increaseToAtleastIgnoringErrors(INITIAL_UPPER_LIMIT + 20);
+
+        verify(boundStore, times(1)).storeUpperLimit(anyLong());
+    }
+
+    private void increaseToAtleastIgnoringErrors(long newValue) {
+        try {
+            upperLimit.increaseToAtLeast(newValue);
+        } catch (Exception e) {
+            // ignore expected errors
+        }
     }
 
     private void whenTheTimeIs(long time, TimeUnit unit) {

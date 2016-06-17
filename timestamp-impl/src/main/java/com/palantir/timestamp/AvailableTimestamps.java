@@ -84,11 +84,7 @@ public class AvailableTimestamps {
     }
 
     private void allocateEnoughTimestampsToHandOut(long timestamp) {
-        try {
-            upperLimit.increaseToAtLeast(timestamp);
-        } catch(Throwable e) {
-            allocationFailures.handle(e);
-        }
+        upperLimit.increaseToAtLeast(timestamp);
     }
 
 }

@@ -22,6 +22,9 @@ import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.exception.PalantirInterruptedException;
 
 public class TimestampAllocationFailures {
+    private static final String SERVICE_UNAVAILABLE_ERROR =
+            "This server is no longer usable as there appears to be another timestamp server running.";
+
     private static final Logger log = LoggerFactory.getLogger(TimestampAllocationFailures.class);
     private Throwable previousAllocationFailure;
 
@@ -47,6 +50,12 @@ public class TimestampAllocationFailures {
             log.info("Throwable while allocating timestamps.", newFailure);
         } else {
             log.error("Throwable while allocating timestamps.", newFailure);
+        }
+    }
+
+    public void checkShouldTryToAllocateMoreTimestamps() {
+        if(previousAllocationFailure instanceof MultipleRunningTimestampServiceError) {
+            throw new ServiceNotAvailableException(SERVICE_UNAVAILABLE_ERROR, previousAllocationFailure);
         }
     }
 }

@@ -19,37 +19,30 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.concurrent.GuardedBy;
 
-import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.common.time.Clock;
 import com.palantir.common.time.SystemClock;
 
 public class PersistentUpperLimit {
+
     private final TimestampBoundStore tbs;
     private final Clock clock;
+    private final TimestampAllocationFailures allocationFailures;
+
     @GuardedBy("this")
     private volatile long cachedValue;
     private volatile long lastIncreasedTime;
 
-    public PersistentUpperLimit(TimestampBoundStore tbs, Clock clock) {
+    public PersistentUpperLimit(TimestampBoundStore tbs, Clock clock, TimestampAllocationFailures allocationFailures) {
         this.tbs = tbs;
         this.clock = clock;
+        this.allocationFailures = allocationFailures;
 
         cachedValue = tbs.getUpperLimit();
         lastIncreasedTime = clock.getTimeMillis();
     }
 
     public PersistentUpperLimit(TimestampBoundStore boundStore) {
-        this(boundStore, new SystemClock());
-    }
-
-    private synchronized void store(long upperLimit) {
-        try {
-            tbs.storeUpperLimit(upperLimit);
-        } catch (MultipleRunningTimestampServiceError multipleRunningTimestampServiceError) {
-            throw new ServiceNotAvailableException(multipleRunningTimestampServiceError);
-        }
-        cachedValue = upperLimit;
-        lastIncreasedTime = clock.getTimeMillis();
+        this(boundStore, new SystemClock(), new TimestampAllocationFailures());
     }
 
     public long get() {
@@ -67,5 +60,24 @@ public class PersistentUpperLimit {
         long timeSinceIncrease = clock.getTimeMillis() - lastIncreasedTime;
 
         return timeSinceIncrease < durationInMillis;
+    }
+
+    private synchronized void store(long upperLimit) {
+        checkServiceIsUsable();
+        persistNewUpperLimit(upperLimit);
+        cachedValue = upperLimit;
+        lastIncreasedTime = clock.getTimeMillis();
+    }
+
+    private void persistNewUpperLimit(long upperLimit) {
+        try {
+            tbs.storeUpperLimit(upperLimit);
+        } catch (MultipleRunningTimestampServiceError error) {
+            allocationFailures.handle(error);
+        }
+    }
+
+    private void checkServiceIsUsable() {
+        allocationFailures.checkShouldTryToAllocateMoreTimestamps();
     }
 }
