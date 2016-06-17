@@ -174,7 +174,6 @@ public final class InDbTimestampBoundStore implements TimestampBoundStore {
     }
 
     private void writeLimit(Connection c, long limit) throws SQLException {
-        QueryRunner run = new QueryRunner();
         String updateTs = "UPDATE " + timestampTable.getQualifiedName() + " SET last_allocated = ?";
         PreparedStatement statement = c.prepareStatement(updateTs);
         statement.setLong(1, limit);
