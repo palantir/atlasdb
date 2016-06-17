@@ -17,12 +17,15 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import org.immutables.value.Value;
 
+import com.google.auto.service.AutoService;
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbTableFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OracleDbTableFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
+import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.db.oracle.JdbcHandler;
 
+@AutoService(KeyValueServiceConfig.class)
 @Value.Immutable
 public abstract class OracleKeyValueServiceConfig extends DbKeyValueServiceConfig {
 
