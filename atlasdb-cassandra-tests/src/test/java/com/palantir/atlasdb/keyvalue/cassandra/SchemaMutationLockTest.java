@@ -3,6 +3,8 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -16,24 +18,38 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.common.exception.PalantirRuntimeException;
 
-public abstract class SchemaMutationLockTest {
+@RunWith(Parameterized.class)
+public class SchemaMutationLockTest {
     public static final SchemaMutationLock.Action DO_NOTHING = () -> {};
     protected SchemaMutationLock schemaMutationLock;
     private final ExecutorService executorService = Executors.newFixedThreadPool(4);
 
-    protected String expectedTimeoutErrorMessage;
+    @Parameterized.Parameter(value = 0)
+    public boolean casEnabled;
+
+    @Parameterized.Parameter(value = 1)
+    public String expectedTimeoutErrorMessage;
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> parameters() {
+        return Arrays.asList(new Object[][] {
+                { true, "We have timed out waiting on the current schema mutation lock holder." },
+                { false, "unable to get a lock on Cassandra system schema mutations" }});
+    }
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
     @Before
     public void setUp() {
-        setUpWithCasSupportSetTo(true);
+        setUpWithCasSupportSetTo(casEnabled);
     }
 
     protected void setUpWithCasSupportSetTo(boolean supportsCas) {
