@@ -4,6 +4,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -16,6 +17,8 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 
 public abstract class SchemaMutationLockTest {
+    public static final SchemaMutationLock.Action DO_NOTHING = () -> {
+    };
     protected SchemaMutationLock schemaMutationLock;
     private final ExecutorService executorService = Executors.newFixedThreadPool(4);
 
@@ -36,21 +39,18 @@ public abstract class SchemaMutationLockTest {
 
     @Test
     public void testLockAndUnlockWithoutContention() {
-        long ourId = schemaMutationLock.waitForSchemaMutationLock();
-        schemaMutationLock.schemaMutationUnlock(ourId);
+        schemaMutationLock.runWithLock(() -> {});
     }
 
     @Test
-    public void testOnlyOneLockCanBeLockedAtATime() throws InterruptedException, ExecutionException, TimeoutException {
-        long firstLock = schemaMutationLock.waitForSchemaMutationLock();
+    public void doesNotPerformAnActionIfTheLockIsAlreadyHeld() {
+        schemaMutationLock.runWithLock(() -> {
+            Future getLockAgain = async(() -> schemaMutationLock.runWithLock(DO_NOTHING));
 
-        Future tryToAcquireSecondLock = async(() -> schemaMutationLock.waitForSchemaMutationLock());
+            Thread.sleep(3*1000);
 
-        Thread.sleep(3 * 1000);
-        assertThatFutureDidNotSucceedYet(tryToAcquireSecondLock);
-
-        tryToAcquireSecondLock.cancel(true);
-        schemaMutationLock.schemaMutationUnlock(firstLock);
+            assertThatFutureDidNotSucceedYet(getLockAgain);
+        });
     }
 
     @Test
