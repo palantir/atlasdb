@@ -20,12 +20,10 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.google.auto.service.AutoService;
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbTableFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.PostgresDbTableFactory;
 
-@AutoService(DdlConfig.class)
 @JsonDeserialize(as = ImmutablePostgresDdlConfig.class)
 @JsonSerialize(as = ImmutablePostgresDdlConfig.class)
 @JsonTypeName(PostgresDdlConfig.TYPE)

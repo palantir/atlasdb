@@ -289,7 +289,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
 
         HikariDataSource dataSourcePool;
         try {
-            dataSourcePool = new HikariDataSource(connConfig.getHikariConfig());
+            dataSourcePool = new HikariDataSource(ConnectionConfig.getHikariConfigFromConnectionConfig(connConfig));
         } catch (PoolInitializationException e) {
             log.error("Failed to initialize hikari data source: {}", connConfig.getUrl(), e);
 

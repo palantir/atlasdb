@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -24,6 +25,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbTableFactory;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type", visible = false)
+@JsonSubTypes({@JsonSubTypes.Type(PostgresDdlConfig.class), @JsonSubTypes.Type(OracleDdlConfig.class), @JsonSubTypes.Type(H2DdlConfig.class)})
 public abstract class DdlConfig {
 
     public abstract String type();

@@ -27,12 +27,10 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.google.auto.service.AutoService;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.palantir.nexus.db.DBType;
 
-@AutoService(ConnectionConfig.class)
 @JsonDeserialize(as = ImmutableOracleConnectionConfig.class)
 @JsonSerialize(as = ImmutableOracleConnectionConfig.class)
 @JsonTypeName(OracleConnectionConfig.TYPE)
