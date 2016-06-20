@@ -38,14 +38,12 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
-// TODO: these were left over after pulling out SchemaMutationLock tests
-// There's probably a better name for this test class.
 public class CassandraKeyValueServiceTableCreationTest {
+    public static final TableReference GOOD_TABLE = TableReference.createFromFullyQualifiedName("foo.bar");
+    public static final TableReference BAD_TABLE = TableReference.createFromFullyQualifiedName("foo.b@r");
+
     protected CassandraKeyValueService kvs;
     protected CassandraKeyValueService slowTimeoutKvs;
-    private final ExecutorService executorService = Executors.newFixedThreadPool(4);
-    public static final TableReference BAD_TABLE = TableReference.createFromFullyQualifiedName("foo.b@r");
-    public static final TableReference GOOD_TABLE = TableReference.createFromFullyQualifiedName("foo.bar");
 
     @Before
     public void setUp() {
@@ -61,9 +59,6 @@ public class CassandraKeyValueServiceTableCreationTest {
 
         kvs.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
     }
-
-    @Rule
-    public ExpectedException exception = ExpectedException.none();
 
     @After
     public void tearDown() {
@@ -100,11 +95,6 @@ public class CassandraKeyValueServiceTableCreationTest {
 
         slowTimeoutKvs.dropTable(GOOD_TABLE);
     }
-
-    protected Future async(Runnable callable) {
-        return executorService.submit(callable);
-    }
-
 
     @Test
     public void describeVersionBehavesCorrectly() throws Exception {

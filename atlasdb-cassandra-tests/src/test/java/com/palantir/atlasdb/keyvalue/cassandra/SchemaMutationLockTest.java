@@ -1,26 +1,32 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.cassandra.thrift.ConsistencyLevel;
-import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
+import com.palantir.common.exception.PalantirRuntimeException;
 
 public abstract class SchemaMutationLockTest {
-    public static final SchemaMutationLock.Action DO_NOTHING = () -> {
-    };
+    public static final SchemaMutationLock.Action DO_NOTHING = () -> {};
     protected SchemaMutationLock schemaMutationLock;
     private final ExecutorService executorService = Executors.newFixedThreadPool(4);
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     @Before
     public void setUp() {
@@ -53,17 +59,25 @@ public abstract class SchemaMutationLockTest {
         });
     }
 
+    @Test(timeout = 10 * 1000)
+    public void canRunAnotherActionOnceTheFirstHasBeenCompleted() {
+        AtomicInteger counter = new AtomicInteger();
+        SchemaMutationLock.Action increment = () -> counter.incrementAndGet();
+
+        schemaMutationLock.runWithLock(increment);
+        schemaMutationLock.runWithLock(increment);
+
+        assertThat(counter.get(), is(2));
+    }
+
     @Test
-    public void testUnlockIsSuccessful() throws InterruptedException, TimeoutException, ExecutionException {
-        long id = schemaMutationLock.waitForSchemaMutationLock();
-        Future future = async(() -> {
-            long newId = schemaMutationLock.waitForSchemaMutationLock();
-            schemaMutationLock.schemaMutationUnlock(newId);
-        });
-        Thread.sleep(100);
-        Assert.assertFalse(future.isDone());
-        schemaMutationLock.schemaMutationUnlock(id);
-        future.get(3, TimeUnit.SECONDS);
+    public void shouldWrapCheckedExceptionsInARuntimeException() {
+        Exception error = new Exception();
+
+        expectedException.expect(PalantirRuntimeException.class);
+        expectedException.expectCause(is(error));
+
+        schemaMutationLock.runWithLock(() -> { throw error; });
     }
 
     protected Future async(Runnable callable) {
