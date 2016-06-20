@@ -15,17 +15,20 @@
  */
 package com.palantir.atlasdb.performance.cli.command;
 
+import java.util.Set;
 import java.util.concurrent.Callable;
 
 import org.junit.Test;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.performance.test.api.PerformanceTest;
 import com.palantir.atlasdb.performance.test.api.ValueGenerator;
 import com.palantir.atlasdb.performance.test.api.annotation.PerfTest;
 
 import io.airlift.airline.Cli;
+import io.airlift.airline.Command;
 import io.airlift.airline.Help;
 
 public class RunTestsCommandTest {
@@ -44,7 +47,7 @@ public class RunTestsCommandTest {
         Cli.CliBuilder<Callable> builder = Cli.<Callable>builder("test-atlasdb-perf-tool")
                 .withDescription("test the perf framework")
                 .withDefaultCommand(Help.class)
-                .withCommands(Help.class, RunTestsCommand.class);
+                .withCommands(Help.class, TestableRunTestsCommand.class);
         Cli<Callable> parser = builder.build();
         try {
             return (Integer) parser.parse(args).call();
@@ -60,6 +63,14 @@ public class RunTestsCommandTest {
 
     private void assertFailure(int returnVal) {
         Preconditions.checkArgument(returnVal == 1, "CLI exited with exit code zero.");
+    }
+
+    @Command(name = "run", description = "Run tests")
+    public static class TestableRunTestsCommand extends RunTestsCommand {
+        @Override
+        protected Set<Class<? extends PerformanceTest>> getAllTests() {
+            return ImmutableSet.of(NoOpTest.class);
+        }
     }
 
     @PerfTest(name = "no-op-test")

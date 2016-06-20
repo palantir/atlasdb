@@ -21,9 +21,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
-import org.reflections.Reflections;
-
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.performance.cli.backend.PhysicalStore;
@@ -51,13 +50,17 @@ public class RunTestsCommand implements Callable<Integer> {
             required = true)
     private PhysicalStoreType type;
 
+    private static final Set<Class<? extends PerformanceTest>> ALL_TESTS =
+            ImmutableSet.<Class<? extends PerformanceTest>>builder()
+                    .build();
+
     @Override
     public Integer call() throws Exception {
         KeyValueService kvs = PhysicalStore.create(type).connect();
         ValueGenerator gen = new RandomValueGenerator(ThreadLocalRandom.current());
-        Set<Class<?>> allTestsClasses = getAllPerfTestClasses();
+        Set<Class<? extends PerformanceTest>> allTestsClasses = getAllTests();
 
-        Set<Class<?>> testsToRun = allTestsClasses.stream()
+        Set<Class<? extends PerformanceTest>> testsToRun = allTestsClasses.stream()
                 .filter(test -> getTestArguments().contains(test.getAnnotation(PerfTest.class).name()))
                 .collect(Collectors.toSet());
         if (testsToRun.size() == 0 || testsToRun.size() != getTestArguments().size()) {
@@ -69,7 +72,7 @@ public class RunTestsCommand implements Callable<Integer> {
         return 0;
     }
 
-    private void printPossibleTests(Set<Class<?>> allTestsClasses) {
+    private void printPossibleTests(Set<Class<? extends PerformanceTest>> allTestsClasses) {
         String requestedTestsString = Joiner.on(", ").join(getTestArguments());
         String possibleTestsString = Joiner.on(", ").join(
                 allTestsClasses.stream()
@@ -85,14 +88,9 @@ public class RunTestsCommand implements Callable<Integer> {
         }
     }
 
-    private void runTest(Class<?> testClass, KeyValueService kvs, ValueGenerator gen) {
+    private void runTest(Class<? extends PerformanceTest> testClass, KeyValueService kvs, ValueGenerator gen) {
         try {
-            Object test = testClass.newInstance();
-            if (test instanceof PerformanceTest) {
-                ((PerformanceTest) test).run(kvs, gen);
-            } else {
-                throw new RuntimeException(testClass.getCanonicalName() + " must extend " + PerformanceTest.class.getCanonicalName());
-            }
+            testClass.newInstance().run(kvs, gen);
         } catch (InstantiationException e) {
             throw new RuntimeException(testClass.getCanonicalName() + " cannot be instantiated (needs a no args constructor?).", e);
         } catch (IllegalAccessException e) {
@@ -104,8 +102,8 @@ public class RunTestsCommand implements Callable<Integer> {
         return Lists.newArrayList(tests.split("\\s*(,|\\s)\\s*"));
     }
 
-    private Set<Class<?>> getAllPerfTestClasses() {
-        return new Reflections("com.palantir.atlasdb.performance").getTypesAnnotatedWith(PerfTest.class);
+    protected Set<Class<? extends PerformanceTest>> getAllTests() {
+        return ALL_TESTS;
     }
 
 }
