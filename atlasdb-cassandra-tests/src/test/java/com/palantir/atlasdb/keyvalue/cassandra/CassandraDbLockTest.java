@@ -22,39 +22,43 @@ import java.util.concurrent.TimeoutException;
 
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
-public class CassandraDbLockTest extends AbstractCassandraLockTest {
+public class CassandraDbLockTest extends SchemaMutationLockTest {
+    @Rule
+    public ExpectedException exception = ExpectedException.none();
+
+    protected static final long GLOBAL_DDL_LOCK_NEVER_ALLOCATED_VALUE = Long.MAX_VALUE - 1;
+
     @Before
     @Override
     public void setUp() {
-        super.setUp();
-
-        kvs.supportsCAS = true;
-        slowTimeoutKvs.supportsCAS = true;
+        super.setUpWithCasSupportSetTo(true);
     }
 
     @Test (expected = IllegalStateException.class)
     public void testBadUnlockFails() {
-        kvs.schemaMutationUnlock(GLOBAL_DDL_LOCK_NEVER_ALLOCATED_VALUE);
+        schemaMutationLock.schemaMutationUnlock(GLOBAL_DDL_LOCK_NEVER_ALLOCATED_VALUE);
     }
 
     @Test
     public void testIdsAreRequestUnique() {
-        long id = kvs.waitForSchemaMutationLock();
-        kvs.schemaMutationUnlock(id);
-        long newId = kvs.waitForSchemaMutationLock();
-        kvs.schemaMutationUnlock(newId);
+        long id = schemaMutationLock.waitForSchemaMutationLock();
+        schemaMutationLock.schemaMutationUnlock(id);
+        long newId = schemaMutationLock.waitForSchemaMutationLock();
+        schemaMutationLock.schemaMutationUnlock(newId);
         Assert.assertNotEquals(id, newId);
     }
 
     // has a different message than the other one
     @Test
     public void testLocksTimeout() throws InterruptedException, ExecutionException, TimeoutException {
-        long id = kvs.waitForSchemaMutationLock();
+        long id = schemaMutationLock.waitForSchemaMutationLock();
         try {
             Future future = async(() -> {
-                kvs.schemaMutationUnlock(kvs.waitForSchemaMutationLock());
+                schemaMutationLock.schemaMutationUnlock(schemaMutationLock.waitForSchemaMutationLock());
             });
             exception.expect(ExecutionException.class);
             exception.expectMessage("We have timed out waiting on the current schema mutation lock holder.");
@@ -63,7 +67,7 @@ public class CassandraDbLockTest extends AbstractCassandraLockTest {
         } catch (Exception e) {
             throw e;
         } finally {
-            kvs.schemaMutationUnlock(id);
+            schemaMutationLock.schemaMutationUnlock(id);
         }
     }
 }
