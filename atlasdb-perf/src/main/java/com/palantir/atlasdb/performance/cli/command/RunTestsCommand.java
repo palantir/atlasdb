@@ -15,16 +15,35 @@
  */
 package com.palantir.atlasdb.performance.cli.command;
 
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 
+import org.reflections.Reflections;
+
+import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.performance.cli.backend.PhysicalStore;
 import com.palantir.atlasdb.performance.cli.backend.PhysicalStoreType;
+import com.palantir.atlasdb.performance.test.api.PerformanceTest;
+import com.palantir.atlasdb.performance.test.api.ValueGenerator;
+import com.palantir.atlasdb.performance.test.api.annotation.PerfTest;
+import com.palantir.atlasdb.performance.test.generator.RandomValueGenerator;
 
+import io.airlift.airline.Arguments;
 import io.airlift.airline.Command;
 import io.airlift.airline.Option;
 
 @Command(name = "run", description = "Run tests")
 public class RunTestsCommand implements Callable<Integer> {
+
+    @Arguments(title = "TESTS",
+            description = "tests to run",
+            required = false)
+    private String tests;
 
     @Option(name = {"-b", "--backend"},
             title = "PHYSICAL STORE",
@@ -34,7 +53,59 @@ public class RunTestsCommand implements Callable<Integer> {
 
     @Override
     public Integer call() throws Exception {
-        PhysicalStore.create(type).connect();
+        KeyValueService kvs = PhysicalStore.create(type).connect();
+        ValueGenerator gen = new RandomValueGenerator(ThreadLocalRandom.current());
+        Set<Class<?>> allTestsClasses = getAllPerfTestClasses();
+
+        Set<Class<?>> testsToRun = allTestsClasses.stream()
+                .filter(test -> getTestArguments().contains(test.getAnnotation(PerfTest.class).name()))
+                .collect(Collectors.toSet());
+        if (testsToRun.size() == 0 || testsToRun.size() != getTestArguments().size()) {
+            printPossibleTests(allTestsClasses);
+            return 1;
+        }
+
+        testsToRun.stream().forEach(testClass -> runTest(testClass, kvs, gen));
         return 0;
     }
+
+    private void printPossibleTests(Set<Class<?>> allTestsClasses) {
+        String requestedTestsString = Joiner.on(", ").join(getTestArguments());
+        String possibleTestsString = Joiner.on(", ").join(
+                allTestsClasses.stream()
+                        .map(clazz -> clazz.getAnnotation(PerfTest.class).name())
+                        .collect(Collectors.toSet()));
+        if (requestedTestsString.isEmpty()) {
+            System.out.println(String.format("Please select a test to run (%s).", possibleTestsString));
+        } else {
+            System.out.println(
+                    String.format("Not all requested tests (%s) exist. Valid tests include %s.",
+                            requestedTestsString,
+                            possibleTestsString));
+        }
+    }
+
+    private void runTest(Class<?> testClass, KeyValueService kvs, ValueGenerator gen) {
+        try {
+            Object test = testClass.newInstance();
+            if (test instanceof PerformanceTest) {
+                ((PerformanceTest) test).run(kvs, gen);
+            } else {
+                throw new RuntimeException(testClass.getCanonicalName() + " must extend " + PerformanceTest.class.getCanonicalName());
+            }
+        } catch (InstantiationException e) {
+            throw new RuntimeException(testClass.getCanonicalName() + " cannot be instantiated (needs a no args constructor?).", e);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(testClass.getCanonicalName() + " cannot be instantiated.", e);
+        }
+    }
+
+    private List<String> getTestArguments() {
+        return Lists.newArrayList(tests.split("\\s*(,|\\s)\\s*"));
+    }
+
+    private Set<Class<?>> getAllPerfTestClasses() {
+        return new Reflections("com.palantir.atlasdb.performance").getTypesAnnotatedWith(PerfTest.class);
+    }
+
 }

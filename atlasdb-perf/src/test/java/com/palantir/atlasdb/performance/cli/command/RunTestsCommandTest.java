@@ -20,11 +20,15 @@ import java.util.concurrent.Callable;
 import org.junit.Test;
 
 import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.performance.test.api.PerformanceTest;
+import com.palantir.atlasdb.performance.test.api.ValueGenerator;
+import com.palantir.atlasdb.performance.test.api.annotation.PerfTest;
 
 import io.airlift.airline.Cli;
 import io.airlift.airline.Help;
 
-public class TestRunTestsCommand {
+public class RunTestsCommandTest {
 
     @Test
     public void testRequiresBackend() {
@@ -33,7 +37,7 @@ public class TestRunTestsCommand {
 
     @Test
     public void testConnectsToPostgresBackend() {
-        assertSuccessful(runTest(new String[] { "run", "-b", "POSTGRES" }));
+        assertSuccessful(runTest(new String[] { "run", "no-op-test", "-b", "POSTGRES" }));
     }
 
     private int runTest(String[] args) {
@@ -58,4 +62,10 @@ public class TestRunTestsCommand {
         Preconditions.checkArgument(returnVal == 1, "CLI exited with exit code zero.");
     }
 
+    @PerfTest(name = "no-op-test")
+    static class NoOpTest implements PerformanceTest {
+        @Override
+        public void run(KeyValueService kvs, ValueGenerator gen) {
+        }
+    }
 }
