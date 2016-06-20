@@ -24,6 +24,7 @@ import javax.sql.DataSource;
 import org.immutables.value.Value;
 
 import com.codahale.metrics.SharedMetricRegistries;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.palantir.common.base.Visitors;
@@ -104,38 +105,40 @@ public abstract class ConnectionConfig {
         return new Properties();
     }
 
-    public static HikariConfig getHikariConfigFromConnectionConfig(ConnectionConfig config) {
+    @JsonIgnore
+    @Value.Derived
+    public HikariConfig getHikariConfig() {
         // Initialize the Hikari configuration
-        HikariConfig hikariConfig = new HikariConfig();
+        HikariConfig config = new HikariConfig();
 
-        Properties props = config.getHikariProperties();
+        Properties props = getHikariProperties();
 
-        hikariConfig.setPoolName("db-pool-" + config.getConnId() + "-" + config.getDbLogin());
-        hikariConfig.setRegisterMbeans(true);
-        hikariConfig.setMetricRegistry(SharedMetricRegistries.getOrCreate("com.palantir.metrics"));
+        config.setPoolName("db-pool-" + getConnId() + "-" + getDbLogin());
+        config.setRegisterMbeans(true);
+        config.setMetricRegistry(SharedMetricRegistries.getOrCreate("com.palantir.metrics"));
 
-        hikariConfig.setMinimumIdle(config.getMinConnections());
-        hikariConfig.setMaximumPoolSize(config.getMaxConnections());
+        config.setMinimumIdle(getMinConnections());
+        config.setMaximumPoolSize(getMaxConnections());
 
-        hikariConfig.setMaxLifetime(TimeUnit.SECONDS.toMillis(config.getMaxConnectionAge()));
-        hikariConfig.setIdleTimeout(TimeUnit.SECONDS.toMillis(config.getMaxIdleTime()));
-        hikariConfig.setLeakDetectionThreshold(config.getUnreturnedConnectionTimeout());
-        hikariConfig.setConnectionTimeout(config.getCheckoutTimeout());
+        config.setMaxLifetime(TimeUnit.SECONDS.toMillis(getMaxConnectionAge()));
+        config.setIdleTimeout(TimeUnit.SECONDS.toMillis(getMaxIdleTime()));
+        config.setLeakDetectionThreshold(getUnreturnedConnectionTimeout());
+        config.setConnectionTimeout(getCheckoutTimeout());
 
         // TODO: See if driver supports JDBC4 (isValid()) and use it.
-        hikariConfig.setConnectionTestQuery(config.getTestQuery());
+        config.setConnectionTestQuery(getTestQuery());
 
         if (!props.isEmpty()) {
-            hikariConfig.setDataSourceProperties(props);
+            config.setDataSourceProperties(props);
         }
 
-        hikariConfig.setJdbcUrl(config.getUrl());
+        config.setJdbcUrl(getUrl());
         DataSource dataSource = wrapDataSourceWithVisitor(
-                new DriverDataSource(config.getUrl(), config.getDriverClass(), props, null, null),
-                config.getOnAcquireConnectionVisitor());
-        hikariConfig.setDataSource(dataSource);
+                new DriverDataSource(getUrl(), getDriverClass(), props, null, null),
+                getOnAcquireConnectionVisitor());
+        config.setDataSource(dataSource);
 
-        return hikariConfig;
+        return config;
     }
 
     private static DataSource wrapDataSourceWithVisitor(DataSource ds, final Visitor<Connection> visitor) {
