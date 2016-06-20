@@ -34,7 +34,7 @@ public class ConfigModule {
 
     @Provides
     public LeaderConfig provideLeaderConfig() {
-        return config.getConfig().leader().get();
+        return config.getConfig().leader();
     }
 
     @Provides

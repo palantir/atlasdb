@@ -22,6 +22,7 @@ import javax.validation.constraints.Size;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Optional;
@@ -32,7 +33,10 @@ import com.google.common.base.Preconditions;
 @Value.Immutable
 public abstract class LeaderConfig {
 
-    public abstract int quorumSize();
+    @JsonIgnore
+    public int quorumSize() {
+        return leaderCount() / 2 + 1;
+    }
 
     @Value.Default
     public File learnerLogDir() {
