@@ -15,42 +15,15 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-
 import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 public class CassandraLegacyLockTest extends SchemaMutationLockTest {
-    @Rule
-    public ExpectedException exception = ExpectedException.none();
-
     @Override
     @Before
     public void setUp() {
+        expectedTimeoutErrorMessage = "unable to get a lock on Cassandra system schema mutations";
         super.setUpWithCasSupportSetTo(false);
     }
-
-    // it has a different timeout message
-    @Test
-    public void testLocksTimeout() throws InterruptedException, ExecutionException, TimeoutException {
-        long id = schemaMutationLock.waitForSchemaMutationLock();
-        try {
-            Future future = async(() -> {
-                schemaMutationLock.schemaMutationUnlock(schemaMutationLock.waitForSchemaMutationLock());
-            });
-            exception.expect(ExecutionException.class);
-            exception.expectMessage("unable to get a lock on Cassandra system schema mutations");
-            future.get(10, TimeUnit.SECONDS);
-        } catch (Exception e) {
-            throw e;
-        } finally {
-            schemaMutationLock.schemaMutationUnlock(id);
-        }
-    }
-
 }

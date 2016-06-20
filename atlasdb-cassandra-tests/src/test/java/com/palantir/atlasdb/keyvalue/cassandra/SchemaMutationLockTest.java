@@ -7,6 +7,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -24,6 +25,8 @@ public abstract class SchemaMutationLockTest {
     public static final SchemaMutationLock.Action DO_NOTHING = () -> {};
     protected SchemaMutationLock schemaMutationLock;
     private final ExecutorService executorService = Executors.newFixedThreadPool(4);
+
+    protected String expectedTimeoutErrorMessage;
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -78,6 +81,17 @@ public abstract class SchemaMutationLockTest {
         expectedException.expectCause(is(error));
 
         schemaMutationLock.runWithLock(() -> { throw error; });
+    }
+
+    @Test
+    public void testLocksTimeout() throws InterruptedException, ExecutionException, TimeoutException {
+        schemaMutationLock.runWithLock(() -> {
+            expectedException.expect(PalantirRuntimeException.class);
+            expectedException.expectMessage(expectedTimeoutErrorMessage);
+
+            Future async = async(() -> schemaMutationLock.runWithLock(DO_NOTHING));
+            async.get(10, TimeUnit.SECONDS);
+        });
     }
 
     protected Future async(Runnable callable) {

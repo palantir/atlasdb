@@ -69,18 +69,18 @@ public class SchemaMutationLock {
      *
      * @return an ID to be passed into a subsequent unlock call
      */
-    public long waitForSchemaMutationLock() {
+    private long waitForSchemaMutationLock() {
         final long perOperationNodeIdentifier = ThreadLocalRandom.current().nextLong(Long.MAX_VALUE - 2);
 
         try {
             if (!supportsCAS) {
-                TimeoutException timeoutException = new TimeoutException("AtlasDB was unable to get a lock on Cassandra system schema mutations for your cluster. Likely cause: Service(s) performing heavy schema mutations in parallel, or extremely heavy Cassandra cluster load.");
+                String message = "AtlasDB was unable to get a lock on Cassandra system schema mutations for your cluster. Likely cause: Service(s) performing heavy schema mutations in parallel, or extremely heavy Cassandra cluster load.";
                 try {
                     if (!schemaMutationLockForEarlierVersionsOfCassandra.tryLock(configManager.getConfig().schemaMutationTimeoutMillis(), TimeUnit.MILLISECONDS)) {
-                        throw timeoutException;
+                        throw new TimeoutException(message);
                     }
                 } catch (InterruptedException e) {
-                    throw timeoutException;
+                    throw new TimeoutException(message);
                 }
                 return 0;
             }
@@ -136,7 +136,7 @@ public class SchemaMutationLock {
         return perOperationNodeIdentifier;
     }
 
-    public void schemaMutationUnlock(long perOperationNodeIdentifier) {
+    private void schemaMutationUnlock(long perOperationNodeIdentifier) {
         if (!supportsCAS) {
             schemaMutationLockForEarlierVersionsOfCassandra.unlock();
             return;
