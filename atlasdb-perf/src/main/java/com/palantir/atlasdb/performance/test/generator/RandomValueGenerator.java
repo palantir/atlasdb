@@ -21,8 +21,12 @@ import java.util.stream.Stream;
 
 import com.palantir.atlasdb.performance.test.api.ValueGenerator;
 
+// This is a naive non-configurable implementation of a ValueGenerator.
+// This will be refactored or deleted as we figure out what we want to
+// do with value generation in general.
 public class RandomValueGenerator implements ValueGenerator {
 
+    private static final int STREAM_LIMIT = 25;
     private static final int BYTE_ARRAY_SIZE = 100;
 
     private final Random rand;
@@ -33,7 +37,7 @@ public class RandomValueGenerator implements ValueGenerator {
 
     @Override
     public Stream<ByteBuffer> stream() {
-        return Stream.generate(this::genBytes);
+        return Stream.generate(this::genBytes).limit(STREAM_LIMIT);
     }
 
     private ByteBuffer genBytes() {
