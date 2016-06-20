@@ -22,8 +22,10 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.auto.service.AutoService;
 import com.palantir.nexus.db.DBType;
 
+@AutoService(ConnectionConfig.class)
 @JsonDeserialize(as = ImmutablePostgresConnectionConfig.class)
 @JsonSerialize(as = ImmutablePostgresConnectionConfig.class)
 @JsonTypeName(PostgresConnectionConfig.TYPE)

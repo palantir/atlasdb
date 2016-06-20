@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
-import static com.fasterxml.jackson.annotation.JsonTypeInfo.As;
-import static com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
-
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
@@ -26,7 +23,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbTableFactory;
 
-@JsonTypeInfo(use = Id.NAME, include = As.PROPERTY, property = "type", visible = false)
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type", visible = false)
 public abstract class DdlConfig {
 
     public abstract String type();
