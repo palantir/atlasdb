@@ -19,7 +19,6 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.google.common.base.Optional;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
@@ -30,11 +29,7 @@ public abstract class AtlasDbConfig {
 
     public abstract KeyValueServiceConfig keyValueService();
 
-    public abstract Optional<LeaderConfig> leader();
-
-    public abstract Optional<ServerListConfig> lock();
-
-    public abstract Optional<ServerListConfig> timestamp();
+    public abstract LeaderConfig leader();
 
     /**
      * The transaction read timeout is the maximum amount of

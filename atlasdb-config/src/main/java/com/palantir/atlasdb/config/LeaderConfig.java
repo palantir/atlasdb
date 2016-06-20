@@ -24,6 +24,7 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 
 @JsonDeserialize(as = ImmutableLeaderConfig.class)
@@ -43,10 +44,14 @@ public abstract class LeaderConfig {
         return new File("var/data/paxos/acceptor");
     }
 
-    public abstract String localServer();
+    public abstract Optional<String> localServer();
 
     @Size(min=1)
     public abstract Set<String> leaders();
+
+    public abstract int leaderCount();
+
+    public abstract boolean isLeader();
 
     @Value.Default
     public long pingRateMs() {
@@ -65,8 +70,10 @@ public abstract class LeaderConfig {
 
     @Value.Check
     protected final void check() {
-        Preconditions.checkArgument(leaders().contains(localServer()),
-                "The localServer '%s' must included in the leader entries %s.", localServer(), leaders());
+        Preconditions.checkArgument(!isLeader() || localServer().isPresent(),
+                "Local server isn't set even though we are set to be a leader");
+        Preconditions.checkArgument(leaders().size() == leaderCount(),
+                "Number of leaders {} does not equal the expected leader count {}", leaders().size(), leaderCount());
         Preconditions.checkArgument(learnerLogDir().exists() || learnerLogDir().mkdirs(),
                 "Learner log directory '%s' does not exist and cannot be created.", learnerLogDir());
         Preconditions.checkArgument(acceptorLogDir().exists() || acceptorLogDir().mkdirs(),
