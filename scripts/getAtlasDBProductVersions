@@ -7,7 +7,7 @@ import sys
 import re
 
 def usage():
-    print('usage: ' + sys.argv[0] + ' <domain> <username> <token>')
+    print('usage: ' + sys.argv[0] + ' <github domain> <github username> <github oauth token>')
 
 if len(sys.argv) != 4:
     usage()
