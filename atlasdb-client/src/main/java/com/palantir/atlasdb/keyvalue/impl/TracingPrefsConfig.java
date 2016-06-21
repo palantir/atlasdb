@@ -39,7 +39,6 @@ public class TracingPrefsConfig implements Runnable {
     private volatile int tracingMinDurationToTraceMillis = 0;
     private volatile Set<String> tracedTables;
     private final Properties tracingPrefConfig = new Properties();
-    private static volatile boolean logOnce = true;
 
     @Override
     public void run() {
