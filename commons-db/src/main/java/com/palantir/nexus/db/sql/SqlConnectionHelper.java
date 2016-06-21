@@ -506,16 +506,7 @@ public final class SqlConnectionHelper {
         AgnosticResultSet results = selectResultSetUnregisteredQuery(c, "SELECT id FROM " + tableName);
         Set<Long> attempt = Sets.newHashSet(tempIds);
         Set<Long> current = Sets.newHashSet();
-        String isInTransaction;
-        try {
-            if (c.getAutoCommit()) {
-                isInTransaction = "Not in transaction";
-            } else {
-                isInTransaction = "In transaction";
-            }
-        } catch (SQLException sqle) {
-            isInTransaction = "Unknown transaction status";
-        }
+        String isInTransaction = transactionAsString(c);
         for (AgnosticResultRow row: results.rows()) {
             current.add(row.getLong("id"));
         }
@@ -532,6 +523,20 @@ public final class SqlConnectionHelper {
                     attempt.size(), tableName, current.size(), onlyInAttempt.size(), onlyInCurrent.size(), isInTransaction, clearStyle);
             throw new RuntimeException(message, e);
         }
+    }
+
+    private String transactionAsString(Connection c) {
+        String isInTransaction;
+        try {
+            if (c.getAutoCommit()) {
+                isInTransaction = "Not in transaction";
+            } else {
+                isInTransaction = "In transaction";
+            }
+        } catch (SQLException sqle) {
+            isInTransaction = "Unknown transaction status";
+        }
+        return isInTransaction;
     }
 
     private Iterable<Object[]> idsToArguments(Iterable<Long> tempIds) {
@@ -594,6 +599,11 @@ public final class SqlConnectionHelper {
 
     void clearTempTable(Connection c, String tempTable, ClearStyle clearStyle)
             throws PalantirSqlException {
+        attemptToClearTempTable(c, tempTable, clearStyle);
+        assert verifyTableCleared(c, tempTable, clearStyle);
+    }
+
+    private void attemptToClearTempTable(Connection c, String tempTable, ClearStyle clearStyle) {
         if (clearStyle == ClearStyle.DELETE) {
             clearTempTableUsingDelete(c, tempTable);
         } else if (clearStyle == ClearStyle.TRUNCATE) {
@@ -602,6 +612,54 @@ public final class SqlConnectionHelper {
             throw new UnsupportedOperationException();
         }
     }
+
+    /**
+     * If the table was not cleared, try to diagnose the reason and throw an informative error message.
+     * In the future, we may want to allow the thread to continue executing if we eventually clear the temp table,
+     * but for now we will always throw if the initial attempt failed.
+     */
+    private boolean verifyTableCleared(Connection c, String tempTable, ClearStyle clearStyle) {
+        if (selectCount(c, tempTable) != 0) {
+
+            // Try again
+            attemptToClearTempTable(c, tempTable, clearStyle);
+            if (selectCount(c, tempTable) == 0) {
+
+                String message = "On first attempt, did not clear temp table " + tempTable
+                        + " using style " + clearStyle.toString()
+                        + " and transaction status: " + transactionAsString(c)
+                        + ".  Second attempt was successful.";
+                throw new RuntimeException(message);
+
+            } else {
+
+                if (clearStyle.equals(ClearStyle.TRUNCATE)) {
+                    attemptToClearTempTable(c, tempTable, ClearStyle.DELETE);
+                    if (selectCount(c, tempTable) == 0) {
+                        String message = "On multiple attempts with clear style TRUNCATE, did not clear temp table " + tempTable
+                                + ", however an attempt with clear style DELETE was successful."
+                                + "Transaction status: " + transactionAsString(c) + ".";
+                        throw new RuntimeException(message);
+
+                    } else {
+                        String message = "On multiple attempts, did not clear temp table " + tempTable
+                                + " using both clear styles "
+                                + " and transaction status: " + transactionAsString(c) + ".";
+                        throw new RuntimeException(message);
+                    }
+                } else {
+                    String message = "On multiple attempts, did not clear temp table " + tempTable
+                            + " using style " + clearStyle.toString()
+                            + " and transaction status: " + transactionAsString(c) + ".";
+                    throw new RuntimeException(message);
+
+                }
+            }
+        }
+
+        return true;
+    }
+
 
     void clearTempTableUsingDelete(Connection c, String tempTable) throws PalantirSqlException {
         String sqlDelete = TextUtils.format(SQL_DELETE_PT_TEMP_IDS, tempTable);
