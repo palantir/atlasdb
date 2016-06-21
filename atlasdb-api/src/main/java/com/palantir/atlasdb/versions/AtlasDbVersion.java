@@ -27,7 +27,7 @@ import com.google.common.io.CharStreams;
 
 public final class AtlasDbVersion {
     public static final String REPORT_VERSION_PROPERTY = "atlasdb.report.version";
-    public static final String REPORT_VERSION_DEFAULT = "true";
+    public static final String REPORT_VERSION_DEFAULT = "false";
     public static final String VERSION_UNKNOWN_STRING = "VERSION UNKNOWN";
     public static final String VERSION_INFO_FILE = "/META-INF/atlasdb.version";
 
