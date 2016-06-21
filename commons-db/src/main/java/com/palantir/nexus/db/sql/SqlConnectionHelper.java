@@ -663,7 +663,27 @@ public final class SqlConnectionHelper {
 
     void clearTempTableUsingDelete(Connection c, String tempTable) throws PalantirSqlException {
         String sqlDelete = TextUtils.format(SQL_DELETE_PT_TEMP_IDS, tempTable);
-        executeUnregisteredQuery(c, sqlDelete, new Object[] {}); // dynamic query
+        try {
+            executeUnregisteredQuery(c, sqlDelete, new Object[]{}); // dynamic query
+        } catch (PalantirSqlException e) {
+            if (e.getMessage().contains("ORA-08102")) { // "index key not found"
+                // Try again
+                try {
+                    executeUnregisteredQuery(c, sqlDelete, new Object[]{}); // dynamic query
+                    // Worked the second time
+                    // In production we can continue, but if asserts are on let's fail with an informative message to help diagnosis
+                    assert false: String.format("Tried to delete temp table %s, got ORA-08102, then tried again and it worked: %s",
+                            tempTable, sqlDelete);
+                } catch (PalantirSqlException e2) {
+                    // Repeated failure
+                    throw new RuntimeException(String.format(
+                            "Repeatedly failed to delete temp table %s: %s.  First exception was ORA-08102.  Second was: %s",
+                            tempTable, sqlDelete, e2.getMessage()), e2);
+                }
+            } else {
+                throw e;
+            }
+        }
         SqlStats.INSTANCE.incrementClearTempTableByDelete();
     }
 
