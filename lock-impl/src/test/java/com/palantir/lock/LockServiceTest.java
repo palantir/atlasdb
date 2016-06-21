@@ -24,6 +24,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -792,6 +795,7 @@ public abstract class LockServiceTest {
             partition[i - 1] = numThreads * i / partitions;
         }
 
+        ReadWriteLock terminationLock = new ReentrantReadWriteLock();
         List<Future<?>> futures = Lists.newArrayList();
         for (int i = 0; i < numThreads; ++i) {
             final int clientID = i;
@@ -834,14 +838,29 @@ public abstract class LockServiceTest {
                                     .build();
                         }
 
-                        token = server.lockWithFullLockResponse(client, request).getToken();
+                        if (!terminationLock.readLock().tryLock()) {
+                            Assert.assertTrue(Thread.currentThread().isInterrupted());
+                            throw new InterruptedException();
+                        }
+
+                        try {
+                            token = server.lockWithFullLockResponse(client, request).getToken();
+                        } catch (Exception e) {
+                            Assert.assertTrue(e instanceof InterruptedException);
+                            // make sure we unlock before terminating
+                            // each future is only cancelled once, so no need for general retries here
+                            terminationLock.readLock().unlock();
+                            throw e;
+                        }
 
                         if (token == null) {
+                            terminationLock.readLock().unlock();
                             continue;
                         }
 
                         Assert.assertEquals(Integer.toString(clientID), token.getClient().getClientId());
                         Assert.assertEquals(request.getLockDescriptors(), token.getLockDescriptors());
+
                         try {
                             server.unlock(token);
                         } catch (Exception e) {
@@ -849,8 +868,12 @@ public abstract class LockServiceTest {
                             // make sure we unlock before terminating
                             // each future is only cancelled once, so no need for general retries here
                             server.unlock(token);
+                            terminationLock.readLock().unlock();
                             throw e;
                         }
+
+                        terminationLock.readLock().unlock();
+
                         Assert.assertTrue(server.getTokens(client).isEmpty());
                     }
                 }
@@ -866,6 +889,8 @@ public abstract class LockServiceTest {
             future.cancel(true);
         }
 
+        terminationLock.writeLock().lock();
+
         LockRequest request = LockRequest.builder(
                 ImmutableSortedMap.of(lock1, LockMode.WRITE, lock2, LockMode.WRITE)).build();
         HeldLocksToken token = server.lockWithFullLockResponse(LockClient.ANONYMOUS, request).getToken();
@@ -873,6 +898,8 @@ public abstract class LockServiceTest {
         Assert.assertEquals(LockClient.ANONYMOUS, token.getClient());
         Assert.assertEquals(request.getLockDescriptors(), token.getLockDescriptors());
         server.unlock(token);
+
+        terminationLock.writeLock().unlock();
     }
 
     /** Tests expiring lock tokens and grants */
