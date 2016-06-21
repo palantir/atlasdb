@@ -666,7 +666,7 @@ public final class SqlConnectionHelper {
         try {
             executeUnregisteredQuery(c, sqlDelete, new Object[]{}); // dynamic query
         } catch (PalantirSqlException e) {
-            if (e.getMessage().contains("ORA-08102")) {
+            if (e.getMessage().contains("ORA-08102")) { // "index key not found"
                 // Try again
                 try {
                     executeUnregisteredQuery(c, sqlDelete, new Object[]{}); // dynamic query
