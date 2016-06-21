@@ -282,12 +282,28 @@ class RowOrDynamicColumnRenderer extends Renderer {
     private void renderHashCode() {
         line("@Override");
         line("public int hashCode() {"); {
-            line("return Objects.hashCode(");
-            for (NameComponentDescription comp : desc.getRowParts()) {
-                lineEnd(varName(comp), ", ");
-            }
-            replace(", ", ");");
+            renderHashCodeMethodCall();
         } line("}");
+    }
+
+    private void renderHashCodeMethodCall() {
+        if (desc.getRowParts().size() > 1) {
+            renderHashCodeMethodCall("return Arrays.deepHashCode(new Object[]{ ", " });");
+        } else {
+            renderHashCodeMethodCall("return Objects.hashCode(", ");");
+        }
+    }
+
+    private void renderHashCodeMethodCall(String methodOpening, String methodClosing) {
+        line(methodOpening);
+        renderVariableList();
+        replace(", ", methodClosing);
+    }
+
+    private void renderVariableList() {
+        for (NameComponentDescription comp : desc.getRowParts()) {
+            lineEnd(varName(comp), ", ");
+        }
     }
 
     private void renderCompareTo() {
