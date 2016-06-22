@@ -19,6 +19,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
@@ -54,9 +55,25 @@ public final class InDbTimestampBoundStore implements TimestampBoundStore {
     @GuardedBy("this")
     private Long currentLimit = null;
 
+    public static InDbTimestampBoundStore create(ConnectionManager connManager, TableReference timestampTable) {
+        InDbTimestampBoundStore inDbTimestampBoundStore = new InDbTimestampBoundStore(connManager, timestampTable);
+
+        inDbTimestampBoundStore.init();
+
+        return inDbTimestampBoundStore;
+    }
+
     public InDbTimestampBoundStore(ConnectionManager connManager, TableReference timestampTable) {
         this.connManager = Preconditions.checkNotNull(connManager);
         this.timestampTable = Preconditions.checkNotNull(timestampTable);
+    }
+
+    private void init() {
+        try {
+            createTimestampTable(connManager.getConnection());
+        } catch (SQLException error) {
+            throw PalantirSqlException.create(error);
+        }
     }
 
     private interface Operation {
@@ -174,6 +191,12 @@ public final class InDbTimestampBoundStore implements TimestampBoundStore {
     private void createLimit(Connection c, long limit) throws SQLException {
         QueryRunner run = new QueryRunner();
         run.update(c, "INSERT INTO " + timestampTable.getQualifiedName() + " (last_allocated) VALUES (?)", limit);
+    }
+
+    private void createTimestampTable(Connection c) throws SQLException {
+        Statement statement = c.createStatement();
+        statement.execute("CREATE TABLE IF NOT EXISTS " + timestampTable.getQualifiedName() + " ( last_allocated int8 NOT NULL )");
+        statement.close();
     }
 
     private DBType getDbType(Connection c) {

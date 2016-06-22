@@ -50,7 +50,6 @@ public class PostgresTableInitializer implements DbTableInitializer {
                         "  table_name VARCHAR(2000) NOT NULL," +
                         "  table_size BIGINT NOT NULL," +
                         "  value      BYTEA NULL," +
-                        "  gc_ts      INT8 DEFAULT -1," +
                         "  CONSTRAINT pk_" + metadataTableName + " PRIMARY KEY (table_name) " +
                         ")",
                 "already exists");
