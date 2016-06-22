@@ -176,10 +176,36 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     private void createLockTable() {
         try {
-            schemaMutationLock.createLockTable();
+            clientPool.run(createInternalLockTable);
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
+    }
+
+    final FunctionCheckedException<Cassandra.Client, Void, Exception> createInternalLockTable = client -> {
+        createTableInternal(client, CassandraConstants.LOCK_TABLE);
+        return null;
+    };
+
+    // for tables internal / implementation specific to this KVS; these also don't get metadata in metadata table, nor do they show up in getTablenames, nor does this use concurrency control
+    private void createTableInternal(Cassandra.Client client, TableReference tableRef) throws TException {
+        CassandraKeyValueServiceConfig config = configManager.getConfig();
+        if (tableAlreadyExists(client, internalTableName(tableRef))) {
+            return;
+        }
+        CfDef cf = CassandraConstants.getStandardCfDef(config.keyspace(), internalTableName(tableRef));
+        client.system_add_column_family(cf);
+        CassandraKeyValueServices.waitForSchemaVersions(client, tableRef.getQualifiedName(), config.schemaMutationTimeoutMillis());
+    }
+
+    private boolean tableAlreadyExists(Cassandra.Client client, String caseInsensitiveTableName) throws TException {
+        KsDef ks = client.describe_keyspace(configManager.getConfig().keyspace());
+        for (CfDef cf : ks.getCf_defs()) {
+            if (cf.getName().equalsIgnoreCase(caseInsensitiveTableName)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
