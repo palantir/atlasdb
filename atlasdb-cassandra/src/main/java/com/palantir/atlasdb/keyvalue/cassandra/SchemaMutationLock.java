@@ -105,14 +105,8 @@ public class SchemaMutationLock {
         return false;
     }
 
-    public boolean createLockTable() {
-        try {
-            clientPool.run(createInternalLockTable);
-            return true;
-        } catch (Exception e) {
-            // don't fail here, want to give the user all the errors at once at the end
-            return false;
-        }
+    public void createLockTable() throws Exception {
+        clientPool.run(createInternalLockTable);
     }
 
     /**
