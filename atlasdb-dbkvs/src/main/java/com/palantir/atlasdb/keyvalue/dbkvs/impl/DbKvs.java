@@ -157,7 +157,6 @@ public class DbKvs extends AbstractKeyValueService {
         this.connections = connections;
     }
 
-
     private void init() {
         databaseSpecificInitialization();
         createMetadataTable();
