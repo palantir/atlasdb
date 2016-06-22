@@ -18,6 +18,6 @@ RUN for file in atlasdb-ete/*; do mv "$file" "atlasdb-ete/atlasdb-ete-snapshot";
 
 ADD docker/conf/ /atlasdb-ete/atlasdb-ete-snapshot/var/conf
 
-WORKDIR /atlasdb-ete/atlasdb-ete-snapshot/service/bin/
+WORKDIR /atlasdb-ete/atlasdb-ete-snapshot
 
-CMD echo "hello" #bash -c './init.sh console'
+CMD service/bin/init.sh console
