@@ -27,6 +27,7 @@ import com.palantir.nexus.db.monitoring.timer.SqlTimers;
 import com.palantir.nexus.db.pool.ConnectionManager;
 import com.palantir.nexus.db.pool.HikariCPConnectionManager;
 import com.palantir.nexus.db.pool.ReentrantManagedConnectionSupplier;
+import com.palantir.nexus.db.sql.ConnectionBackedSqlConnectionImpl;
 import com.palantir.nexus.db.sql.SQL;
 import com.palantir.nexus.db.sql.SqlConnection;
 import com.palantir.nexus.db.sql.SqlConnectionHelper;
@@ -73,7 +74,7 @@ public class ConnectionManagerAwareDbKvs extends ForwardingKeyValueService {
         return new SqlConnectionSupplier() {
             @Override
             public SqlConnection get() {
-                return new SqlConnectionImpl(supplier, new SqlConnectionHelper(sql));
+                return new ConnectionBackedSqlConnectionImpl(supplier.get(), () -> System.currentTimeMillis(), new SqlConnectionHelper(sql));
             }
 
             @Override
