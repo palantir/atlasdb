@@ -138,8 +138,12 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     private final CassandraKeyValueServiceConfigManager configManager;
     private final Optional<CassandraJmxCompactionManager> compactionManager;
     protected final CassandraClientPool clientPool;
-    private final SchemaMutationLock schemaMutationLock;
-    private final LockTableService lockTableService;
+
+    // non-final because we have to initialize them after setting up the client pool
+    private SchemaMutationLock schemaMutationLock;
+
+    // non-final because we have to initialize them after setting up the client pool
+    private LockTable lockTable;
 
     protected boolean supportsCAS = false;
 
@@ -161,13 +165,15 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         this.configManager = configManager;
         this.clientPool = new CassandraClientPool(configManager.getConfig());
         this.compactionManager = compactionManager;
-        this.lockTableService = new LockTableService(configManager, clientPool);
-        this.schemaMutationLock = new SchemaMutationLock(supportsCAS, configManager, clientPool, writeConsistency, lockTableService);
+
     }
 
     protected void init() {
         clientPool.runOneTimeStartupChecks();
-        lockTableService.createLockTable();
+
+        lockTable = new LockTable(configManager, clientPool);
+        schemaMutationLock = new SchemaMutationLock(supportsCAS, configManager, clientPool, writeConsistency, lockTable);
+
         supportsCAS = clientPool.runWithRetry(CassandraVerifier.underlyingCassandraClusterSupportsCASOperations);
         createTable(AtlasDbConstants.METADATA_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA);
         lowerConsistencyWhenSafe();
@@ -201,7 +207,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                         log.warn("Upgrading table {} to new internal Cassandra schema", tableRef);
                         tablesToUpgrade.put(tableRef, clusterSideMetadata);
                     }
-                } else if (!(tableRef.equals(AtlasDbConstants.METADATA_TABLE) || tableRef.equals(lockTableService.getLockTable()))) { // only expected cases
+                } else if (!(tableRef.equals(AtlasDbConstants.METADATA_TABLE) || tableRef.equals(lockTable.getLockTable()))) { // only expected cases
                     // Possible to get here from a race condition with another service starting up and performing schema upgrades concurrent with us doing this check
                     log.error("Found a table " + tableRef.getQualifiedName() + " that did not have persisted Atlas metadata. "
                             + "If you recently did a Palantir update, try waiting until schema upgrades are completed on all backend CLIs/services etc and restarting this service. "
@@ -1197,7 +1203,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         return ImmutableSet.<TableReference>builder()
                 .add(AtlasDbConstants.TIMESTAMP_TABLE)
                 .add(AtlasDbConstants.METADATA_TABLE)
-                .addAll(lockTableService.getAllLockTables())
+                .addAll(lockTable.getAllLockTables())
                 .build();
     }
 

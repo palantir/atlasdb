@@ -25,23 +25,23 @@ import org.junit.Test;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 
-public class LockTableServiceTest {
-    private LockTableService lockTableService;
+public class LockTableTest {
+    private LockTable lockTable;
 
     @Before
     public void setup() {
         CassandraKeyValueServiceConfigManager configManager = mock(CassandraKeyValueServiceConfigManager.class);
         CassandraClientPool clientPool = mock(CassandraClientPool.class);
-        lockTableService = new LockTableService(configManager, clientPool);
+        lockTable = new LockTable(configManager, clientPool);
     }
 
     @Test
     public void shouldReturnConstantLockTableReference() {
-        assertThat(lockTableService.getLockTable().getTablename(), is("_locks"));
+        assertThat(lockTable.getLockTable().getTablename(), is("_locks"));
     }
 
     @Test
     public void lockTableShouldBeInSetOfAllLockTables() {
-        assertThat(lockTableService.getAllLockTables(), hasItem(lockTableService.getLockTable()));
+        assertThat(lockTable.getAllLockTables(), hasItem(lockTable.getLockTable()));
     }
 }

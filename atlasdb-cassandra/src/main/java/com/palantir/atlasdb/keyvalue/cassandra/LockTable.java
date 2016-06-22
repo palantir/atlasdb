@@ -30,18 +30,19 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.Throwables;
 
-public class LockTableService {
+public class LockTable {
     public static final TableReference LOCK_TABLE = TableReference.createWithEmptyNamespace("_locks");
 
     private final CassandraKeyValueServiceConfigManager configManager;
     private final CassandraClientPool clientPool;
 
-    public LockTableService(CassandraKeyValueServiceConfigManager configManager, CassandraClientPool clientPool) {
+    public LockTable(CassandraKeyValueServiceConfigManager configManager, CassandraClientPool clientPool) {
         this.configManager = configManager;
         this.clientPool = clientPool;
+        createUnderlyingTable();
     }
 
-    public void createLockTable() {
+    private void createUnderlyingTable() {
         try {
             clientPool.run(client -> {
                 createTableInternal(client, getLockTable());

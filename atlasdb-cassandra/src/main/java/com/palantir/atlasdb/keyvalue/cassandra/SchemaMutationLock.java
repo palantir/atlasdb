@@ -45,14 +45,14 @@ public class SchemaMutationLock {
     private CassandraClientPool clientPool;
     private ConsistencyLevel writeConsistency;
     private final ReentrantLock schemaMutationLockForEarlierVersionsOfCassandra = new ReentrantLock(true);
-    private final LockTableService lockTableService;
+    private final LockTable lockTable;
 
-    public SchemaMutationLock(boolean supportsCAS, CassandraKeyValueServiceConfigManager configManager, CassandraClientPool clientPool, ConsistencyLevel writeConsistency, LockTableService lockTableService) {
+    public SchemaMutationLock(boolean supportsCAS, CassandraKeyValueServiceConfigManager configManager, CassandraClientPool clientPool, ConsistencyLevel writeConsistency, LockTable lockTable) {
         this.supportsCAS = supportsCAS;
         this.configManager = configManager;
         this.clientPool = clientPool;
         this.writeConsistency = writeConsistency;
-        this.lockTableService = lockTableService;
+        this.lockTable = lockTable;
     }
 
     public interface Action {
@@ -123,7 +123,7 @@ public class SchemaMutationLock {
                     } else {
                         Column existingValue = Iterables.getOnlyElement(casResult.getCurrent_values(), null);
                         if (existingValue == null) {
-                            throw new IllegalStateException("Something is wrong with underlying locks. Consult support for guidance on manually examining and clearing locks from " + lockTableService.getLockTable() + " table.");
+                            throw new IllegalStateException("Something is wrong with underlying locks. Consult support for guidance on manually examining and clearing locks from " + lockTable.getLockTable() + " table.");
                         }
                         expected = ImmutableList.of(lockColumnWithValue(Longs.toByteArray(CassandraConstants.GLOBAL_DDL_LOCK_CLEARED_VALUE)));
                     }
@@ -189,7 +189,7 @@ public class SchemaMutationLock {
     private CASResult writeLockWithCAS(Cassandra.Client client, ByteBuffer rowName, List<Column> expectedLockValue, Column newLockValue) throws TException {
         return client.cas(
                 rowName,
-                lockTableService.getLockTable().getQualifiedName(),
+                lockTable.getLockTable().getQualifiedName(),
                 expectedLockValue,
                 ImmutableList.of(newLockValue),
                 ConsistencyLevel.SERIAL,
