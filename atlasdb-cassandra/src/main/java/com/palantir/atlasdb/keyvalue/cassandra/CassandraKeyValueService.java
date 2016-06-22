@@ -1198,10 +1198,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     @Override
     public Set<TableReference> getAllTableNames() {
-        return Sets.difference(getAllTablenamesInternal(), CassandraConstants.HIDDEN_TABLES);
+        return Sets.difference(getAllTableNamesInternal(), getHiddenTables());
     }
 
-    private Set<TableReference> getAllTablenamesInternal() {
+    private Set<TableReference> getAllTableNamesInternal() {
         final CassandraKeyValueServiceConfig config = configManager.getConfig();
         try {
             return clientPool.runWithRetry(new FunctionCheckedException<Client, Set<TableReference>, Exception>() {
@@ -1227,6 +1227,14 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         }
     }
 
+    private Set<TableReference> getHiddenTables() {
+        return ImmutableSet.<TableReference>builder()
+                .add(AtlasDbConstants.TIMESTAMP_TABLE)
+                .add(AtlasDbConstants.METADATA_TABLE)
+                .addAll(lockTableService.getAllLockTables())
+                .build();
+    }
+
     @Override
     public byte[] getMetadataForTable(TableReference tableRef) {
         Cell cell = getMetadataCell(tableRef);
@@ -1234,7 +1242,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         if (v == null) {
             return AtlasDbConstants.EMPTY_TABLE_METADATA;
         } else {
-            if (!getAllTablenamesInternal().contains(tableRef)) {
+            if (!getAllTableNamesInternal().contains(tableRef)) {
                 log.error("While getting metadata, found a table, {}, with stored table metadata " +
                         "but no corresponding existing table in the underlying KVS. " +
                         "This is not necessarily a bug, but warrants further inquiry.", tableRef.getQualifiedName());
@@ -1261,7 +1269,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     } else {
                         contents = value.getContents();
                     }
-                    if (!CassandraConstants.HIDDEN_TABLES.contains(tableRef)) {
+                    if (!getHiddenTables().contains(tableRef)) {
                         tableToMetadataContents.put(tableRef, contents);
                     }
                 }

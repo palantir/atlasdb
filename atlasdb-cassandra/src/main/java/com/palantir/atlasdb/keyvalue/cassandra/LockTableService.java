@@ -15,6 +15,9 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.util.Set;
+
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public class LockTableService {
@@ -22,5 +25,12 @@ public class LockTableService {
 
     public TableReference getLockTable() {
         return LOCK_TABLE;
+    }
+
+    /**
+     * This returns both active and inactive lock tables.
+     */
+    public Set<TableReference> getAllLockTables() {
+        return ImmutableSet.of(LOCK_TABLE);
     }
 }
