@@ -171,7 +171,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     protected void init() {
         clientPool.runOneTimeStartupChecks();
 
-        lockTable = new LockTable(configManager, clientPool);
+        lockTable = LockTable.create(configManager, clientPool);
         schemaMutationLock = new SchemaMutationLock(supportsCAS, configManager, clientPool, writeConsistency, lockTable);
 
         supportsCAS = clientPool.runWithRetry(CassandraVerifier.underlyingCassandraClusterSupportsCASOperations);

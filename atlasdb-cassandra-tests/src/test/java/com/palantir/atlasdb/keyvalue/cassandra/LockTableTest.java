@@ -32,7 +32,7 @@ public class LockTableTest {
     public void setup() {
         CassandraKeyValueServiceConfigManager configManager = mock(CassandraKeyValueServiceConfigManager.class);
         CassandraClientPool clientPool = mock(CassandraClientPool.class);
-        lockTable = new LockTable(configManager, clientPool);
+        lockTable = LockTable.create(configManager, clientPool);
     }
 
     @Test
