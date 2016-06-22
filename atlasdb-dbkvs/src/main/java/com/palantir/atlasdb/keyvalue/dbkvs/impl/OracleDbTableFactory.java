@@ -22,7 +22,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.dbkvs.OracleKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleDdlTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleOverflowQueryFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleOverflowWriteTable;
@@ -33,9 +33,9 @@ import com.palantir.nexus.db.sql.AgnosticResultSet;
 
 public class OracleDbTableFactory implements DbTableFactory {
     private final Cache<String, TableSize> tableSizeByTableName = CacheBuilder.newBuilder().build();
-    private final OracleKeyValueServiceConfig config;
+    private final OracleDdlConfig config;
 
-    public OracleDbTableFactory(OracleKeyValueServiceConfig config) {
+    public OracleDbTableFactory(OracleDdlConfig config) {
         this.config = config;
     }
 
@@ -101,7 +101,7 @@ public class OracleDbTableFactory implements DbTableFactory {
                 @Override
                 public TableSize call() {
                     AgnosticResultSet results = conns.get().selectResultSetUnregisteredQuery(
-                            "SELECT table_size FROM " + config.shared().metadataTable().getQualifiedName() + " WHERE table_name = ?",
+                            "SELECT table_size FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?",
                             tableName);
                     Preconditions.checkArgument(
                             !results.rows().isEmpty(),

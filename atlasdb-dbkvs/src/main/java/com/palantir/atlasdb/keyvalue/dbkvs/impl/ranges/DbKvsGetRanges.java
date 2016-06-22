@@ -42,6 +42,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.RowResults;
@@ -65,13 +66,16 @@ public class DbKvsGetRanges {
     private static final byte[] SMALLEST_NAME = Cells.createSmallestCellForRow(new byte[] {0}).getColumnName();
     private static final byte[] LARGEST_NAME = Cells.createLargestCellForRow(new byte[] {0}).getColumnName();
     private final DbKvs kvs;
+    private final DdlConfig config;
     private final DBType dbType;
     private final Supplier<SqlConnection> connectionSupplier;
 
     public DbKvsGetRanges(DbKvs kvs,
+                          DdlConfig config,
                           DBType dbType,
                           Supplier<SqlConnection> connectionSupplier) {
         this.kvs = kvs;
+        this.config = config;
         this.dbType = dbType;
         this.connectionSupplier = connectionSupplier;
     }
@@ -303,7 +307,7 @@ public class DbKvsGetRanges {
     }
 
     private String prefixTableName(String tableName) {
-        return kvs.getConfig().shared().tablePrefix() + tableName;
+        return config.tablePrefix() + tableName;
     }
 
     private static final String SIMPLE_ROW_SELECT_TEMPLATE =

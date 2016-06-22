@@ -16,7 +16,7 @@
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest;
 
 public class DbkvsKeyValueServiceSerializableTransactionTest extends
@@ -24,6 +24,6 @@ public class DbkvsKeyValueServiceSerializableTransactionTest extends
 
     @Override
     protected KeyValueService getKeyValueService() {
-        return DbKvs.create(DbkvsTestSuite.POSTGRES_KVS_CONFIG);
+        return ConnectionManagerAwareDbKvs.create(DbkvsTestSuite.POSTGRES_KVS_CONFIG);
     }
 }

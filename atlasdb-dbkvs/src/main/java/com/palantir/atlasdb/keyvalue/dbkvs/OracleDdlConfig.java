@@ -17,17 +17,20 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import org.immutables.value.Value;
 
-import com.google.auto.service.AutoService;
+import com.fasterxml.jackson.annotation.JsonTypeName;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbTableFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OracleDbTableFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
-import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.db.oracle.JdbcHandler;
 
-@AutoService(KeyValueServiceConfig.class)
+@JsonDeserialize(as = ImmutableOracleDdlConfig.class)
+@JsonSerialize(as = ImmutableOracleDdlConfig.class)
+@JsonTypeName(OracleDdlConfig.TYPE)
 @Value.Immutable
-public abstract class OracleKeyValueServiceConfig extends DbKeyValueServiceConfig {
+public abstract class OracleDdlConfig extends DdlConfig {
 
     public static final String TYPE = "oracle";
 

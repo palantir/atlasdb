@@ -17,24 +17,35 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import org.immutables.value.Value;
 
-import com.google.common.base.Optional;
-import com.google.common.base.Supplier;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbTableFactory;
+import com.fasterxml.jackson.annotation.JsonTypeName;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.auto.service.AutoService;
+import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
 
+@AutoService(KeyValueServiceConfig.class)
+@JsonDeserialize(as = ImmutableDbKeyValueServiceConfig.class)
+@JsonSerialize(as = ImmutableDbKeyValueServiceConfig.class)
+@JsonTypeName(DbAtlasDbFactory.TYPE)
+@Value.Immutable
 public abstract class DbKeyValueServiceConfig implements KeyValueServiceConfig {
 
-    @Value.Default
-    public DbSharedConfig shared() {
-        return ImmutableDbSharedConfig.builder().build();
+    public abstract DdlConfig ddl();
+
+    public abstract ConnectionConfig connection();
+
+    @Override
+    public final String type() {
+        return DbAtlasDbFactory.TYPE;
     }
 
-    // must be set if you want to call DbKvs.create()
-    // otherwise you must instantiate DbKvs by calling the constructor directly
-    public abstract Optional<ConnectionConfig> connection();
-
-    @Value.Derived
-    public abstract Supplier<DbTableFactory> tableFactorySupplier();
+    @Value.Check
+    protected final void check() {
+        Preconditions.checkArgument(ddl().type().equals(connection().type()),
+                "ddl config (%s) and connection config (%s) must be for the same physical store",
+                ddl().type(), connection().type());
+    }
 
 }
