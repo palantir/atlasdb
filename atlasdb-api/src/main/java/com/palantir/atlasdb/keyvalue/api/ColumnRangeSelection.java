@@ -17,10 +17,12 @@ package com.palantir.atlasdb.keyvalue.api;
 
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.regex.Pattern;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.encoding.PtBytes;
 
@@ -37,6 +39,8 @@ public class ColumnRangeSelection implements Serializable {
     public ColumnRangeSelection(@JsonProperty("startInclusive") byte[] startCol,
                                 @JsonProperty("endExclusive") byte[] endCol,
                                 @JsonProperty("batchHint") int batchHint) {
+        Preconditions.checkNotNull(startCol);
+        Preconditions.checkNotNull(endCol);
         this.startCol = startCol;
         this.endCol = endCol;
         this.batchHint = batchHint;
@@ -75,8 +79,10 @@ public class ColumnRangeSelection implements Serializable {
         return result;
     }
 
+    private static final Pattern deserializeRegex = Pattern.compile("\\s*,\\s*");
+
     public static ColumnRangeSelection valueOf(String serialized) {
-        String[] split = serialized.split("\\s*,\\s*");
+        String[] split = deserializeRegex.split(serialized);
         byte[] startCol = PtBytes.decodeBase64(split[0]);
         byte[] endCol = PtBytes.decodeBase64(split[1]);
         int batchHint = Integer.valueOf(split[2]);

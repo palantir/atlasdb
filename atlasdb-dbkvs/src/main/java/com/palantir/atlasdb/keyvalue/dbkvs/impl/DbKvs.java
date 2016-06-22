@@ -223,8 +223,12 @@ public class DbKvs extends AbstractKeyValueService {
         return runRead(tableRef, new Function<com.palantir.atlasdb.keyvalue.dbkvs.impl.DbReadTable, Map<Cell, Value>>() {
             @Override
             public Map<Cell, Value> apply(DbReadTable table) {
-                ClosableIterator<AgnosticLightResultRow> iter = table.getLatestRows(rows, columnSelection, timestamp, true);
-                return extractResults(table, iter);
+                return extractResults(table, new Supplier<ClosableIterator<AgnosticLightResultRow>>() {
+                    @Override
+                    public ClosableIterator<AgnosticLightResultRow> get() {
+                        return table.getLatestRows(rows, columnSelection, timestamp, true);
+                    }
+                });
             }
         });
     }
@@ -234,18 +238,22 @@ public class DbKvs extends AbstractKeyValueService {
         return runRead(tableRef, new Function<DbReadTable, Map<Cell, Value>>() {
             @Override
             public Map<Cell, Value> apply(DbReadTable table) {
-                ClosableIterator<AgnosticLightResultRow> iter = table.getLatestCells(timestampByCell, true);
-                return extractResults(table, iter);
+                return extractResults(table, new Supplier<ClosableIterator<AgnosticLightResultRow>>() {
+                    @Override
+                    public ClosableIterator<AgnosticLightResultRow> get() {
+                        return table.getLatestCells(timestampByCell, true);
+                    }
+                });
             }
         });
     }
 
     @SuppressWarnings("deprecation")
-    private Map<Cell, Value> extractResults(DbReadTable table, ClosableIterator<AgnosticLightResultRow> iter) {
+    private Map<Cell, Value> extractResults(DbReadTable table, Supplier<ClosableIterator<AgnosticLightResultRow>> resultSupplier) {
         boolean hasOverflow = table.hasOverflowValues();
         Map<Cell, Value> results = Maps.newHashMap();
         Map<Cell, OverflowValue> overflowResults = Maps.newHashMap();
-        try {
+        try (ClosableIterator<AgnosticLightResultRow> iter = resultSupplier.get()) {
             while (iter.hasNext()) {
                 AgnosticLightResultRow row = iter.next();
                 Cell cell = Cell.create(row.getBytes("row_name"), row.getBytes("col_name"));
@@ -264,8 +272,6 @@ public class DbKvs extends AbstractKeyValueService {
                     }
                 }
             }
-        } finally {
-            iter.close();
         }
         fillOverflowValues(table, overflowResults, results);
         return results;
@@ -521,12 +527,19 @@ public class DbKvs extends AbstractKeyValueService {
         } finally {
             rangeResults.close();
         }
-        ColumnSelection columns = ColumnSelection.all();
+        final ColumnSelection columns;
         if (!range.getColumnNames().isEmpty()) {
             columns = ColumnSelection.create(range.getColumnNames());
+        } else {
+            columns = ColumnSelection.all();
         }
         ClosableIterator<AgnosticLightResultRow> rowResults = table.getLatestRows(rows, columns, timestamp, true);
-        Map<Cell, Value> results = extractResults(table, rowResults);
+        Map<Cell, Value> results = extractResults(table, new Supplier<ClosableIterator<AgnosticLightResultRow>>() {
+            @Override
+            public ClosableIterator<AgnosticLightResultRow> get() {
+                return table.getLatestRows(rows, columns, timestamp, true);
+            }
+        });
         NavigableMap<byte[], SortedMap<byte[], Value>> cellsByRow = Cells.breakCellsUpByRow(results);
         if (range.isReverse()) {
             cellsByRow = cellsByRow.descendingMap();
@@ -684,7 +697,7 @@ public class DbKvs extends AbstractKeyValueService {
                 List<Map.Entry<Cell, Value>> nextPage = runRead(tableRef, new Function<DbReadTable, List<Map.Entry<Cell, Value>>>() {
                     @Override
                     public List<Map.Entry<Cell, Value>> apply(DbReadTable table) {
-                        return Iterables.getOnlyElement(extractRowColumnRangePage(table, table.getRowsColumnRange(rowList, ts, range), rowList).values());
+                        return Iterables.getOnlyElement(extractRowColumnRangePage(table, range, ts, rowList).values());
                     }
                 });
                 if (nextPage.isEmpty()) {
@@ -712,7 +725,7 @@ public class DbKvs extends AbstractKeyValueService {
             return runRead(tableRef, new Function<DbReadTable, Map<byte[], List<Map.Entry<Cell, Value>>>>() {
                 @Override
                 public Map<byte[], List<Map.Entry<Cell, Value>>> apply(DbReadTable table) {
-                    return extractRowColumnRangePage(table, table.getRowsColumnRange(rows, ts, columnRangeSelection), rows);
+                    return extractRowColumnRangePage(table, columnRangeSelection, ts, rows);
                 }
             });
         } finally {
@@ -721,8 +734,9 @@ public class DbKvs extends AbstractKeyValueService {
     }
 
     private Map<byte[], List<Map.Entry<Cell, Value>>> extractRowColumnRangePage(DbReadTable table,
-                                                                              ClosableIterator<AgnosticLightResultRow> iter,
-                                                                              List<byte[]> rows) {
+                                                                                ColumnRangeSelection columnRangeSelection,
+                                                                                long ts,
+                                                                                List<byte[]> rows) {
         Map<Sha256Hash, byte[]> hashesToBytes = Maps.newHashMapWithExpectedSize(rows.size());
         Map<Sha256Hash, List<Cell>> cellsByRow = Maps.newHashMap();
         for (byte[] row : rows) {
@@ -735,7 +749,7 @@ public class DbKvs extends AbstractKeyValueService {
         Map<Cell, Value> values = Maps.newHashMap();
         Map<Cell, OverflowValue> overflowValues = Maps.newHashMap();
 
-        try {
+        try (ClosableIterator<AgnosticLightResultRow> iter = table.getRowsColumnRange(rows, ts, columnRangeSelection)) {
             while (iter.hasNext()) {
                 AgnosticLightResultRow row = iter.next();
                 Cell cell = Cell.create(row.getBytes("row_name"), row.getBytes("col_name"));
@@ -756,9 +770,8 @@ public class DbKvs extends AbstractKeyValueService {
                     }
                 }
             }
-        } finally {
-            iter.close();
         }
+
         fillOverflowValues(table, overflowValues, values);
 
         Map<byte[], List<Map.Entry<Cell, Value>>> results = Maps.newHashMapWithExpectedSize(rows.size());
@@ -784,8 +797,7 @@ public class DbKvs extends AbstractKeyValueService {
         }
         if (!overflowValues.isEmpty()) {
             Map<Long, byte[]> resolvedOverflowValues = Maps.newHashMapWithExpectedSize(overflowValues.size());
-            ClosableIterator<AgnosticLightResultRow> overflowIter = table.getOverflow(overflowValues.values());
-            try {
+            try (ClosableIterator<AgnosticLightResultRow> overflowIter = table.getOverflow(overflowValues.values())) {
                 while (overflowIter.hasNext()) {
                     AgnosticLightResultRow row = overflowIter.next();
                     // QA-94468 LONG RAW typed columns ("val" in this case) must be retrieved first from the result set
@@ -794,8 +806,6 @@ public class DbKvs extends AbstractKeyValueService {
                     long id = row.getLong("id");
                     resolvedOverflowValues.put(id, val);
                 }
-            } finally {
-                overflowIter.close();
             }
             for (Entry<Cell, OverflowValue> entry : overflowValues.entrySet()) {
                 Cell cell = entry.getKey();

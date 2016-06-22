@@ -503,11 +503,12 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             RowColumnRangeExtractor.RowColumnRangeResult firstPage =
                     getRowsColumnRangeForSingleHost(host, tableRef, rows, columnRangeSelection, startTs);
 
-            Map<byte[], LinkedHashMap<Cell, Value>> results = firstPage.results;
-            Map<byte[], Column> rowsToLastCompositeColumns = firstPage.rowsToLastCompositeColumns;
+            Map<byte[], LinkedHashMap<Cell, Value>> results = firstPage.getResults();
+            Map<byte[], Column> rowsToLastCompositeColumns = firstPage.getRowsToLastCompositeColumns();
             Map<byte[], byte[]> incompleteRowsToNextColumns = Maps.newHashMap();
-            for (byte[] row : rowsToLastCompositeColumns.keySet()) {
-                byte[] col = CassandraKeyValueServices.decomposeName(rowsToLastCompositeColumns.get(row)).getLhSide();
+            for (Entry<byte[], Column> e : rowsToLastCompositeColumns.entrySet()) {
+                byte[] row = e.getKey();
+                byte[] col = CassandraKeyValueServices.decomposeName(e.getValue()).getLhSide();
                 // If we read a version of the cell before our start timestamp, it will be the most recent version readable to
                 // us and we can continue to the next column. Otherwise we have to continue reading this column.
                 boolean completedCell = results.containsKey(row) && results.get(row).containsKey(Cell.create(row, col));
@@ -521,21 +522,23 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             Map<byte[], RowColumnRangeIterator> ret = Maps.newHashMapWithExpectedSize(rows.size());
             for (byte[] row : rowsToLastCompositeColumns.keySet()) {
                 Iterator<Entry<Cell, Value>> resultIterator;
-                if (results.containsKey(row)) {
-                    resultIterator = results.get(row).entrySet().iterator();
+                LinkedHashMap<Cell, Value> result = results.get(row);
+                if (result != null) {
+                    resultIterator = result.entrySet().iterator();
                 } else {
                     resultIterator = Collections.emptyIterator();
                 }
-                if (!incompleteRowsToNextColumns.containsKey(row)) {
+                byte[] nextCol = incompleteRowsToNextColumns.get(row);
+                if (nextCol == null) {
                     ret.put(row, new LocalRowColumnRangeIterator(resultIterator));
                 } else {
-                    ColumnRangeSelection newColumnRange = new ColumnRangeSelection(incompleteRowsToNextColumns.get(row),
+                    ColumnRangeSelection newColumnRange = new ColumnRangeSelection(nextCol,
                             columnRangeSelection.getEndCol(), columnRangeSelection.getBatchHint());
                     ret.put(row, new LocalRowColumnRangeIterator(Iterators.concat(resultIterator, getRowColumnRange(host, tableRef, row, newColumnRange, startTs))));
                 }
             }
             // We saw no Cassandra results at all for these rows, so the entire column range is empty for these rows.
-            for (byte[] row : firstPage.emptyRows) {
+            for (byte[] row : firstPage.getEmptyRows()) {
                 ret.put(row, new LocalRowColumnRangeIterator(Collections.emptyIterator()));
             }
             return ret;

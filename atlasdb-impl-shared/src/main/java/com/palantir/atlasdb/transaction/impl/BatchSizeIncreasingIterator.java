@@ -109,6 +109,8 @@ class BatchSizeIncreasingIterator<T> {
     public void close() {
         if (currentResults != null) {
             currentResults.close();
+            currentResults = null;
+            lastToken = null;
         }
     }
 

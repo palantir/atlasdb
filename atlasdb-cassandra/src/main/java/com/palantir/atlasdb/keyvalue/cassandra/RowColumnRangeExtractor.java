@@ -32,14 +32,26 @@ import com.palantir.util.Pair;
 
 class RowColumnRangeExtractor {
     static class RowColumnRangeResult {
-        final Map<byte[], LinkedHashMap<Cell, Value>> results;
-        final Map<byte[], Column> rowsToLastCompositeColumns;
-        final Set<byte[]> emptyRows;
+        private final Map<byte[], LinkedHashMap<Cell, Value>> results;
+        private final Map<byte[], Column> rowsToLastCompositeColumns;
+        private final Set<byte[]> emptyRows;
 
         public RowColumnRangeResult(Map<byte[], LinkedHashMap<Cell, Value>> results, Map<byte[], Column> rowsToLastCompositeColumns, Set<byte[]> emptyRows) {
             this.results = results;
             this.rowsToLastCompositeColumns = rowsToLastCompositeColumns;
             this.emptyRows = emptyRows;
+        }
+
+        public Map<byte[], LinkedHashMap<Cell, Value>> getResults() {
+            return results;
+        }
+
+        public Map<byte[], Column> getRowsToLastCompositeColumns() {
+            return rowsToLastCompositeColumns;
+        }
+
+        public Set<byte[]> getEmptyRows() {
+            return emptyRows;
         }
     }
 

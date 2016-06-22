@@ -29,6 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Queues;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -147,7 +148,7 @@ public class BatchedDbReadTable extends AbstractDbReadTable {
     public ClosableIterator<AgnosticLightResultRow> getRowsColumnRange(List<byte[]> rows, long ts,
                                                                        ColumnRangeSelection columnRangeSelection) {
         Queue<Future<ClosableIterator<AgnosticLightResultRow>>> futures = Queues.newArrayDeque();
-        for (final List<byte[]> batch : Iterables.partition(rows, getBatchSize())) {
+        for (final List<byte[]> batch : Lists.partition(rows, getBatchSize())) {
             futures.add(submit(exec, queryFactory.getRowsColumnRangeQuery(batch, ts, columnRangeSelection)));
         }
         return new LazyClosableIterator<AgnosticLightResultRow>(futures);
