@@ -73,6 +73,7 @@ public class SchemaMutationLockTest {
         CassandraKeyValueServiceConfigManager simpleManager = CassandraKeyValueServiceConfigManager.createSimpleManager(quickTimeoutConfig);
         ConsistencyLevel writeConsistency = ConsistencyLevel.EACH_QUORUM;
         CassandraClientPool clientPool = new CassandraClientPool(simpleManager.getConfig());
+        LockTableService lockTableService = new LockTableService();
 
         schemaMutationLock = new SchemaMutationLock(supportsCas, simpleManager, clientPool, writeConsistency, lockTableService);
     }

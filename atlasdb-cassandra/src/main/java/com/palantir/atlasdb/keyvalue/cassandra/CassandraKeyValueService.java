@@ -177,16 +177,14 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     private void createLockTable() {
         try {
-            clientPool.run(createInternalLockTable);
+            clientPool.run(client -> {
+                createTableInternal(client, this.lockTableService.getLockTable());
+                return null;
+            });
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
     }
-
-    final FunctionCheckedException<Cassandra.Client, Void, Exception> createInternalLockTable = client -> {
-        createTableInternal(client, this.lockTableService.getLockTable());
-        return null;
-    };
 
     // for tables internal / implementation specific to this KVS; these also don't get metadata in metadata table, nor do they show up in getTablenames, nor does this use concurrency control
     private void createTableInternal(Cassandra.Client client, TableReference tableRef) throws TException {
