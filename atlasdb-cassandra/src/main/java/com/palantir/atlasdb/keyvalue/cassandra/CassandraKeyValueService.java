@@ -112,7 +112,6 @@ import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 /**
- *
  * each service can have one or many C* KVS.
  * For each C* KVS, it maintains a list of active nodes, and the client connections attached to each node
  *
@@ -140,6 +139,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     private final Optional<CassandraJmxCompactionManager> compactionManager;
     protected final CassandraClientPool clientPool;
     private final SchemaMutationLock schemaMutationLock;
+    private final LockTableService lockTableService;
 
     protected boolean supportsCAS = false;
 
@@ -161,7 +161,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         this.configManager = configManager;
         this.clientPool = new CassandraClientPool(configManager.getConfig());
         this.compactionManager = compactionManager;
-        this.schemaMutationLock = new SchemaMutationLock(supportsCAS, configManager, clientPool, writeConsistency);
+        this.lockTableService = new LockTableService();
+        this.schemaMutationLock = new SchemaMutationLock(supportsCAS, configManager, clientPool, writeConsistency, lockTableService);
     }
 
     protected void init() {
@@ -183,7 +184,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     final FunctionCheckedException<Cassandra.Client, Void, Exception> createInternalLockTable = client -> {
-        createTableInternal(client, CassandraConstants.LOCK_TABLE);
+        createTableInternal(client, this.lockTableService.getLockTable());
         return null;
     };
 
@@ -234,7 +235,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                         log.warn("Upgrading table {} to new internal Cassandra schema", tableRef);
                         tablesToUpgrade.put(tableRef, clusterSideMetadata);
                     }
-                } else if (!(tableRef.equals(AtlasDbConstants.METADATA_TABLE) || tableRef.equals(CassandraConstants.LOCK_TABLE))) { // only expected cases
+                } else if (!(tableRef.equals(AtlasDbConstants.METADATA_TABLE) || tableRef.equals(lockTableService.getLockTable()))) { // only expected cases
                     // Possible to get here from a race condition with another service starting up and performing schema upgrades concurrent with us doing this check
                     log.error("Found a table " + tableRef.getQualifiedName() + " that did not have persisted Atlas metadata. "
                             + "If you recently did a Palantir update, try waiting until schema upgrades are completed on all backend CLIs/services etc and restarting this service. "
@@ -422,14 +423,14 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                             ConsistencyLevel consistency) throws Exception {
         List<Callable<Void>> tasks = Lists.newArrayList();
         for (Map.Entry<InetSocketAddress, List<Cell>> hostAndCells : partitionByHost(cells,
-                                                                               Cells.getRowFunction()).entrySet()) {
+                Cells.getRowFunction()).entrySet()) {
             tasks.addAll(getLoadWithTsTasksForSingleHost(hostAndCells.getKey(),
-                                                         tableRef,
-                                                         hostAndCells.getValue(),
-                                                         startTs,
-                                                         loadAllTs,
-                                                         v,
-                                                         consistency));
+                    tableRef,
+                    hostAndCells.getValue(),
+                    startTs,
+                    loadAllTs,
+                    v,
+                    consistency));
         }
         runAllTasksCancelOnFailure(tasks);
     }
@@ -860,6 +861,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Client, Void, Exception>() {
 
                 int numVersions = 0;
+
                 @Override
                 public Void apply(Client client) throws Exception {
                     // Delete must delete in the order of timestamp and we don't trust batch_mutate to do it
@@ -1104,10 +1106,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     /**
      * Main gains here vs. dropTable:
-     *    - problems excepting, we will basically be serializing a rapid series of schema changes
-     *      through a single host checked out from the client pool, so reduced chance of schema disagreement issues
-     *    - client-side in-memory lock to prevent misbehaving callers from shooting themselves in the foot
-     *    - one less round trip
+     * - problems excepting, we will basically be serializing a rapid series of schema changes
+     *   through a single host checked out from the client pool, so reduced chance of schema disagreement issues
+     * - client-side in-memory lock to prevent misbehaving callers from shooting themselves in the foot
+     * - one less round trip
      */
     @Override
     public void dropTables(final Set<TableReference> tablesToDrop) {
@@ -1152,10 +1154,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     /**
      * Main gains here vs. createTable:
-     *    - problems excepting, we will basically be serializing a rapid series of schema changes
-     *      through a single host checked out from the client pool, so reduced chance of schema disagreement issues
-     *    - client-side in-memory lock to prevent misbehaving callers from shooting themselves in the foot
-     *    - one less round trip
+     * - problems excepting, we will basically be serializing a rapid series of schema changes
+     *   through a single host checked out from the client pool, so reduced chance of schema disagreement issues
+     * - client-side in-memory lock to prevent misbehaving callers from shooting themselves in the foot
+     * - one less round trip
      */
     @Override
     public void createTables(final Map<TableReference, byte[]> tableNamesToTableMetadata) {
@@ -1236,7 +1238,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 log.error("While getting metadata, found a table, {}, with stored table metadata " +
                         "but no corresponding existing table in the underlying KVS. " +
                         "This is not necessarily a bug, but warrants further inquiry.", tableRef.getQualifiedName());
-                }
+            }
             return v.getContents();
         }
     }
@@ -1437,9 +1439,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             throw Throwables.throwUncheckedException(e);
         }
     }
-
-
-
 
     @Override
     public void compactInternally(TableReference tableRef) {

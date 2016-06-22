@@ -74,7 +74,7 @@ public class SchemaMutationLockTest {
         ConsistencyLevel writeConsistency = ConsistencyLevel.EACH_QUORUM;
         CassandraClientPool clientPool = new CassandraClientPool(simpleManager.getConfig());
 
-        schemaMutationLock = new SchemaMutationLock(supportsCas, simpleManager, clientPool, writeConsistency);
+        schemaMutationLock = new SchemaMutationLock(supportsCas, simpleManager, clientPool, writeConsistency, lockTableService);
     }
 
     @Test

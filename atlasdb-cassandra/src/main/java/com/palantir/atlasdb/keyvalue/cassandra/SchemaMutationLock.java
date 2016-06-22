@@ -33,7 +33,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.primitives.Longs;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.common.base.FunctionCheckedException;
@@ -46,12 +45,14 @@ public class SchemaMutationLock {
     private CassandraClientPool clientPool;
     private ConsistencyLevel writeConsistency;
     private final ReentrantLock schemaMutationLockForEarlierVersionsOfCassandra = new ReentrantLock(true);
+    private final LockTableService lockTableService;
 
-    public SchemaMutationLock(boolean supportsCAS, CassandraKeyValueServiceConfigManager configManager, CassandraClientPool clientPool, ConsistencyLevel writeConsistency) {
+    public SchemaMutationLock(boolean supportsCAS, CassandraKeyValueServiceConfigManager configManager, CassandraClientPool clientPool, ConsistencyLevel writeConsistency, LockTableService lockTableService) {
         this.supportsCAS = supportsCAS;
         this.configManager = configManager;
         this.clientPool = clientPool;
         this.writeConsistency = writeConsistency;
+        this.lockTableService = lockTableService;
     }
 
     public interface Action {
@@ -122,7 +123,7 @@ public class SchemaMutationLock {
                     } else {
                         Column existingValue = Iterables.getOnlyElement(casResult.getCurrent_values(), null);
                         if (existingValue == null) {
-                            throw new IllegalStateException("Something is wrong with underlying locks. Consult support for guidance on manually examining and clearing locks from " + CassandraConstants.LOCK_TABLE + " table.");
+                            throw new IllegalStateException("Something is wrong with underlying locks. Consult support for guidance on manually examining and clearing locks from " + lockTableService.getLockTable() + " table.");
                         }
                         expected = ImmutableList.of(lockColumnWithValue(Longs.toByteArray(CassandraConstants.GLOBAL_DDL_LOCK_CLEARED_VALUE)));
                     }
@@ -188,7 +189,7 @@ public class SchemaMutationLock {
     private CASResult writeLockWithCAS(Cassandra.Client client, ByteBuffer rowName, List<Column> expectedLockValue, Column newLockValue) throws TException {
         return client.cas(
                 rowName,
-                CassandraConstants.LOCK_TABLE.getQualifiedName(),
+                lockTableService.getLockTable().getQualifiedName(),
                 expectedLockValue,
                 ImmutableList.of(newLockValue),
                 ConsistencyLevel.SERIAL,
