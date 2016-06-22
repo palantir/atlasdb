@@ -338,18 +338,8 @@ public class CassandraClientPool {
     }
 
     private boolean createLockTable() {
-        boolean created = false;
-        for (InetSocketAddress host : getLivingHosts()) {
-            if (createLockTableOnHost(host)) {
-                created = true;
-            }
-        }
-        return created;
-    }
-
-    private boolean createLockTableOnHost(InetSocketAddress host) {
         try {
-            runOnHost(host, createInternalLockTable);
+            run(createInternalLockTable);
             return true;
         } catch (Exception e) {
             // don't fail here, want to give the user all the errors at once at the end
