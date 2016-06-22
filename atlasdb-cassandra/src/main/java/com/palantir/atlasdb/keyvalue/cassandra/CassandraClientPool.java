@@ -242,7 +242,7 @@ public class CassandraClientPool {
     }
 
     private Set<InetSocketAddress> getLivingHosts() {
-        return Sets.difference(currentPools.keySet(), blacklistedHosts.keySet());
+        return ImmutableSet.copyOf(Sets.difference(currentPools.keySet(), blacklistedHosts.keySet()));
     }
 
     private CassandraClientPoolingContainer getRandomGoodHost() {
