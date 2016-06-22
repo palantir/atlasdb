@@ -166,6 +166,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     protected void init() {
         clientPool.runOneTimeStartupChecks();
+        schemaMutationLock.createLockTable();
         supportsCAS = clientPool.runWithRetry(CassandraVerifier.underlyingCassandraClusterSupportsCASOperations);
         createTable(AtlasDbConstants.METADATA_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA);
         lowerConsistencyWhenSafe();

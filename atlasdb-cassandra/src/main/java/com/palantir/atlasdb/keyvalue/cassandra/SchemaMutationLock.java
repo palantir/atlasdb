@@ -62,7 +62,6 @@ public class SchemaMutationLock {
         this.config = configManager.getConfig();
         this.clientPool = clientPool;
         this.writeConsistency = writeConsistency;
-        createLockTable();
     }
 
     public interface Action {
@@ -106,7 +105,7 @@ public class SchemaMutationLock {
         return false;
     }
 
-    private boolean createLockTable() {
+    public boolean createLockTable() {
         try {
             clientPool.run(createInternalLockTable);
             return true;
