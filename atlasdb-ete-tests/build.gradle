@@ -21,6 +21,10 @@ dependencies {
     compile "io.dropwizard:dropwizard-core:" + libVersions.dropwizard
     compile 'com.google.dagger:dagger:2.0.2'
 
+    runtime(project(':atlasdb-dbkvs')) {
+        exclude(module:'HikariCP')
+    }
+
     runtime(project(':atlasdb-cassandra')) {
         exclude(module:'log4j-over-slf4j')
         exclude(module:'jcl-over-slf4j')

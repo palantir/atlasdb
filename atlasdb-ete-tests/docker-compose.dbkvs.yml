@@ -1,0 +1,35 @@
+version: '2'
+
+services:
+  postgres:
+    image: kiasaki/alpine-postgres
+    environment:
+       POSTGRES_PASSWORD: palantir
+       POSTGRES_USER: palantir
+       POSTGRES_DB: atlas
+    ports:
+      - "5432"
+
+  ete1:
+    build: .
+    command: bash -c 'dockerize -timeout 120s -wait tcp://postgres:5432 && ./init.sh console'
+    environment:
+      - ME=ete1
+    ports:
+      - "3828"
+
+  ete2:
+    build: .
+    command: bash -c 'dockerize -timeout 120s -wait tcp://ete1:3828 && ./init.sh console'
+    environment:
+      - ME=ete2
+    depends_on:
+      - ete1
+
+  ete3:
+    build: .
+    command: bash -c 'dockerize -timeout 120s -wait tcp://ete1:3828 && ./init.sh console'
+    environment:
+      - ME=ete3
+    depends_on:
+      - ete1
