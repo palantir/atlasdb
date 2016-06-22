@@ -26,22 +26,21 @@ import org.apache.thrift.TException;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.Throwables;
 
 public class LockTable {
     public static final TableReference LOCK_TABLE = TableReference.createWithEmptyNamespace("_locks");
 
-    public static LockTable create(CassandraKeyValueServiceConfigManager configManager, CassandraClientPool clientPool) {
-        createUnderlyingTable(clientPool, configManager);
+    public static LockTable create(CassandraKeyValueServiceConfig config, CassandraClientPool clientPool) {
+        createUnderlyingTable(clientPool, config);
         return new LockTable();
     }
 
-    private static void createUnderlyingTable(CassandraClientPool clientPool, CassandraKeyValueServiceConfigManager configManager) {
+    private static void createUnderlyingTable(CassandraClientPool clientPool, CassandraKeyValueServiceConfig config) {
         try {
             clientPool.run(client -> {
-                createTableInternal(client, LOCK_TABLE, configManager);
+                createTableInternal(client, LOCK_TABLE, config);
                 return null;
             });
         } catch (Exception e) {
@@ -50,9 +49,8 @@ public class LockTable {
     }
 
     // for tables internal / implementation specific to this KVS; these also don't get metadata in metadata table, nor do they show up in getTablenames, nor does this use concurrency control
-    private static void createTableInternal(Cassandra.Client client, TableReference tableRef, CassandraKeyValueServiceConfigManager configManager) throws TException {
-        CassandraKeyValueServiceConfig config = configManager.getConfig();
-        if (tableAlreadyExists(client, internalTableName(tableRef), configManager)) {
+    private static void createTableInternal(Cassandra.Client client, TableReference tableRef, CassandraKeyValueServiceConfig config) throws TException {
+        if (tableAlreadyExists(client, internalTableName(tableRef), config)) {
             return;
         }
         CfDef cf = CassandraConstants.getStandardCfDef(config.keyspace(), internalTableName(tableRef));
@@ -60,8 +58,8 @@ public class LockTable {
         CassandraKeyValueServices.waitForSchemaVersions(client, tableRef.getQualifiedName(), config.schemaMutationTimeoutMillis());
     }
 
-    private static boolean tableAlreadyExists(Cassandra.Client client, String caseInsensitiveTableName, CassandraKeyValueServiceConfigManager configManager) throws TException {
-        KsDef ks = client.describe_keyspace(configManager.getConfig().keyspace());
+    private static boolean tableAlreadyExists(Cassandra.Client client, String caseInsensitiveTableName, CassandraKeyValueServiceConfig config) throws TException {
+        KsDef ks = client.describe_keyspace(config.keyspace());
         for (CfDef cf : ks.getCf_defs()) {
             if (cf.getName().equalsIgnoreCase(caseInsensitiveTableName)) {
                 return true;

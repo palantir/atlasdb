@@ -15,33 +15,51 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.core.IsCollectionContaining.hasItem;
-import static org.junit.Assert.assertThat;
-import static org.mockito.Mockito.mock;
+import static java.util.stream.Collectors.toSet;
 
+import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
+import static org.junit.Assert.assertThat;
+
+import java.util.Set;
+
+import org.apache.cassandra.thrift.Cassandra;
+import org.apache.cassandra.thrift.CfDef;
+import org.apache.cassandra.thrift.KsDef;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.common.base.FunctionCheckedException;
 
 public class LockTableTest {
     private LockTable lockTable;
+    private CassandraClientPool clientPool;
+    private CassandraKeyValueServiceConfig config;
 
     @Before
     public void setup() {
-        CassandraKeyValueServiceConfigManager configManager = mock(CassandraKeyValueServiceConfigManager.class);
-        CassandraClientPool clientPool = mock(CassandraClientPool.class);
-        lockTable = LockTable.create(configManager, clientPool);
+        config = CassandraTestSuite.CASSANDRA_KVS_CONFIG;
+        clientPool = new CassandraClientPool(config);
+        lockTable = LockTable.create(config, clientPool);
     }
 
     @Test
-    public void shouldReturnConstantLockTableReference() {
-        assertThat(lockTable.getLockTable().getTablename(), is("_locks"));
+    public void shouldReturnConstantLockTableReference() throws Exception {
+        assertThat(allPossibleLockTables(), contains(lockTable.getLockTable().getTablename()));
     }
 
-    @Test
-    public void lockTableShouldBeInSetOfAllLockTables() {
-        assertThat(lockTable.getAllLockTables(), hasItem(lockTable.getLockTable()));
+    private Set<String> allPossibleLockTables() throws Exception {
+        return clientPool.run((FunctionCheckedException<Cassandra.Client, Set<String>, Exception>)(client) -> {
+            KsDef ksDef = client.describe_keyspace(config.keyspace());
+            return ksDef.cf_defs.stream()
+                    .map(CfDef::getName)
+                    .filter(this::isLockTable)
+                    .collect(toSet());
+        });
     }
+
+    private boolean isLockTable(String s) {
+        return s.startsWith("_locks");
+    }
+
 }

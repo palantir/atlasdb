@@ -43,7 +43,8 @@ import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
         CassandraKeyValueServiceSweeperTest.class,
         CassandraTimestampTest.class,
         CassandraKeyValueServiceTest.class,
-        SchemaMutationLockTest.class
+        SchemaMutationLockTest.class,
+        LockTableTest.class
 })
 public class CassandraTestSuite {
 
