@@ -73,7 +73,6 @@ public class CassandraClientPoolTest {
         kv.teardown();
     }
 
-
     // This is a dumb test in the current test suite that has just one local Cassandra node.
     // Pretty legit test if run manually or if we go back to multi-node tests
     @Test

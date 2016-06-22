@@ -302,7 +302,6 @@ public class CassandraClientPool {
                 addToBlacklist(host);
             }
 
-
             if (thisHostResponded) {
                 try {
                     runOnHost(host, validatePartitioner);
@@ -310,11 +309,8 @@ public class CassandraClientPool {
                     aliveButInvalidPartitionerHosts.put(host, e);
                 }
 
-                try {
-                    runOnHost(host, createInternalLockTable);
+                if (createLockTableOnHost(host)) {
                     atLeastOneHostSaidWeHaveALockTable = true;
-                } catch (Exception e) {
-                    // don't fail here, want to give the user all the errors at once at the end
                 }
             }
         }
@@ -336,6 +332,16 @@ public class CassandraClientPool {
             return;
         } else {
             throw new RuntimeException(errorBuilderForEntireCluster.toString());
+        }
+    }
+
+    private boolean createLockTableOnHost(InetSocketAddress host) {
+        try {
+            runOnHost(host, createInternalLockTable);
+            return true;
+        } catch (Exception e) {
+            // don't fail here, want to give the user all the errors at once at the end
+            return false;
         }
     }
 
