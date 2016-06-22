@@ -44,6 +44,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.Prefix;
@@ -600,6 +601,20 @@ public final class StreamTestWithHashStreamValueTable implements
         return rowMap;
     }
 
+    @Override
+    public Map<StreamTestWithHashStreamValueRow, BatchingVisitable<StreamTestWithHashStreamValueNamedColumnValue<?>>> getRowsColumnRange(Iterable<StreamTestWithHashStreamValueRow> rows, ColumnRangeSelection columnRangeSelection) {
+        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<StreamTestWithHashStreamValueRow, BatchingVisitable<StreamTestWithHashStreamValueNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+            StreamTestWithHashStreamValueRow row = StreamTestWithHashStreamValueRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            BatchingVisitable<StreamTestWithHashStreamValueNamedColumnValue<?>> bv = BatchingVisitables.transform(e.getValue(), result -> {
+                return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
+            });
+            transformed.put(row, bv);
+        }
+        return transformed;
+    }
+
     public BatchingVisitableView<StreamTestWithHashStreamValueRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(ColumnSelection.all());
     }
@@ -652,6 +667,7 @@ public final class StreamTestWithHashStreamValueTable implements
      * {@link Cells}
      * {@link Collection}
      * {@link Collections2}
+     * {@link ColumnRangeSelection}
      * {@link ColumnSelection}
      * {@link ColumnValue}
      * {@link ColumnValues}
@@ -709,5 +725,5 @@ public final class StreamTestWithHashStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "5yyhOKf8MpAopIcJMcvNGw==";
+    static String __CLASS_HASH = "UE+uEIkqXyTkfytwdA95JA==";
 }

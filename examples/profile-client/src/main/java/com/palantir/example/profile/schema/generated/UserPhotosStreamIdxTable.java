@@ -44,6 +44,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.Prefix;
@@ -622,6 +623,22 @@ public final class UserPhotosStreamIdxTable implements
         return rowMap;
     }
 
+    @Override
+    public Map<UserPhotosStreamIdxRow, BatchingVisitable<UserPhotosStreamIdxColumnValue>> getRowsColumnRange(Iterable<UserPhotosStreamIdxRow> rows, ColumnRangeSelection columnRangeSelection) {
+        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<UserPhotosStreamIdxRow, BatchingVisitable<UserPhotosStreamIdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+            UserPhotosStreamIdxRow row = UserPhotosStreamIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            BatchingVisitable<UserPhotosStreamIdxColumnValue> bv = BatchingVisitables.transform(e.getValue(), result -> {
+                UserPhotosStreamIdxColumn col = UserPhotosStreamIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
+                Long val = UserPhotosStreamIdxColumnValue.hydrateValue(result.getValue());
+                return UserPhotosStreamIdxColumnValue.of(col, val);
+            });
+            transformed.put(row, bv);
+        }
+        return transformed;
+    }
+
     public BatchingVisitableView<UserPhotosStreamIdxRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(ColumnSelection.all());
     }
@@ -674,6 +691,7 @@ public final class UserPhotosStreamIdxTable implements
      * {@link Cells}
      * {@link Collection}
      * {@link Collections2}
+     * {@link ColumnRangeSelection}
      * {@link ColumnSelection}
      * {@link ColumnValue}
      * {@link ColumnValues}
@@ -731,5 +749,5 @@ public final class UserPhotosStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "asYmdnhJ1RKLZyhlbIWYOg==";
+    static String __CLASS_HASH = "3MTabOGuXRbXT5uvGAwOLw==";
 }

@@ -25,7 +25,6 @@ import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.BatchingVisitable;
@@ -41,7 +40,7 @@ public interface Transaction {
                                                  ColumnSelection columnSelection);
 
     @Idempotent
-    Map<byte[], BatchingVisitable<Map.Entry<Cell, Value>>> getRowsColumnRange(TableReference tableRef,
+    Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> getRowsColumnRange(TableReference tableRef,
                                                                                         Iterable<byte[]> rows,
                                                                                         ColumnRangeSelection columnRangeSelection);
 

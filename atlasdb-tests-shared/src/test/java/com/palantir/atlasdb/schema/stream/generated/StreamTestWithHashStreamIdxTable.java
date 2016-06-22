@@ -44,6 +44,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.Prefix;
@@ -620,6 +621,22 @@ public final class StreamTestWithHashStreamIdxTable implements
         return rowMap;
     }
 
+    @Override
+    public Map<StreamTestWithHashStreamIdxRow, BatchingVisitable<StreamTestWithHashStreamIdxColumnValue>> getRowsColumnRange(Iterable<StreamTestWithHashStreamIdxRow> rows, ColumnRangeSelection columnRangeSelection) {
+        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<StreamTestWithHashStreamIdxRow, BatchingVisitable<StreamTestWithHashStreamIdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+            StreamTestWithHashStreamIdxRow row = StreamTestWithHashStreamIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            BatchingVisitable<StreamTestWithHashStreamIdxColumnValue> bv = BatchingVisitables.transform(e.getValue(), result -> {
+                StreamTestWithHashStreamIdxColumn col = StreamTestWithHashStreamIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
+                Long val = StreamTestWithHashStreamIdxColumnValue.hydrateValue(result.getValue());
+                return StreamTestWithHashStreamIdxColumnValue.of(col, val);
+            });
+            transformed.put(row, bv);
+        }
+        return transformed;
+    }
+
     public BatchingVisitableView<StreamTestWithHashStreamIdxRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(ColumnSelection.all());
     }
@@ -672,6 +689,7 @@ public final class StreamTestWithHashStreamIdxTable implements
      * {@link Cells}
      * {@link Collection}
      * {@link Collections2}
+     * {@link ColumnRangeSelection}
      * {@link ColumnSelection}
      * {@link ColumnValue}
      * {@link ColumnValues}
@@ -729,5 +747,5 @@ public final class StreamTestWithHashStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "KHQqZmUXCY2CT2lsPTkZiQ==";
+    static String __CLASS_HASH = "r1QDVdmwJP1MifLk0uj3Hg==";
 }

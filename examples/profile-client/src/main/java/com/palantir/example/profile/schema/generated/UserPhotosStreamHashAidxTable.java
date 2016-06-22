@@ -44,6 +44,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.Prefix;
@@ -622,6 +623,22 @@ public final class UserPhotosStreamHashAidxTable implements
         return rowMap;
     }
 
+    @Override
+    public Map<UserPhotosStreamHashAidxRow, BatchingVisitable<UserPhotosStreamHashAidxColumnValue>> getRowsColumnRange(Iterable<UserPhotosStreamHashAidxRow> rows, ColumnRangeSelection columnRangeSelection) {
+        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<UserPhotosStreamHashAidxRow, BatchingVisitable<UserPhotosStreamHashAidxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+            UserPhotosStreamHashAidxRow row = UserPhotosStreamHashAidxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            BatchingVisitable<UserPhotosStreamHashAidxColumnValue> bv = BatchingVisitables.transform(e.getValue(), result -> {
+                UserPhotosStreamHashAidxColumn col = UserPhotosStreamHashAidxColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
+                Long val = UserPhotosStreamHashAidxColumnValue.hydrateValue(result.getValue());
+                return UserPhotosStreamHashAidxColumnValue.of(col, val);
+            });
+            transformed.put(row, bv);
+        }
+        return transformed;
+    }
+
     public BatchingVisitableView<UserPhotosStreamHashAidxRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(ColumnSelection.all());
     }
@@ -674,6 +691,7 @@ public final class UserPhotosStreamHashAidxTable implements
      * {@link Cells}
      * {@link Collection}
      * {@link Collections2}
+     * {@link ColumnRangeSelection}
      * {@link ColumnSelection}
      * {@link ColumnValue}
      * {@link ColumnValues}
@@ -731,5 +749,5 @@ public final class UserPhotosStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "b9hBaFb3UVNOtnjdYnV/GA==";
+    static String __CLASS_HASH = "X/ofGFvEgU898hyTtxq1Jw==";
 }

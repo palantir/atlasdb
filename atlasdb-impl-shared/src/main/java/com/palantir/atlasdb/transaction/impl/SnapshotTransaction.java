@@ -346,7 +346,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     @Override
-    public Map<byte[], BatchingVisitable<Map.Entry<Cell, Value>>> getRowsColumnRange(TableReference tableRef,
+    public Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> getRowsColumnRange(TableReference tableRef,
                                                                                                 Iterable<byte[]> rows,
                                                                                                 ColumnRangeSelection columnRangeSelection) {
         if (Iterables.isEmpty(rows)) {
@@ -354,33 +354,32 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
         Map<byte[], RowColumnRangeIterator> rawResults = keyValueService.getRowsColumnRange(tableRef, rows,
                 columnRangeSelection, getStartTimestamp());
-        Map<byte[], BatchingVisitable<Map.Entry<Cell, Value>>> postfilteredResults = Maps.newHashMapWithExpectedSize(rawResults.size());
+        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> postfilteredResults = Maps.newHashMapWithExpectedSize(rawResults.size());
         for (Entry<byte[], RowColumnRangeIterator> e : rawResults.entrySet()) {
             byte[] row = e.getKey();
             RowColumnRangeIterator rawIterator = e.getValue();
-            Iterator<Map.Entry<Cell, Value>> postfilterIterator = getRowColumnRangePostfiltered(tableRef, row, columnRangeSelection, rawIterator);
+            Iterator<Map.Entry<Cell, byte[]>> postfilterIterator = getRowColumnRangePostfiltered(tableRef, row, columnRangeSelection, rawIterator);
             SortedMap<Cell, byte[]> localWrites = getLocalWritesForColumnRange(tableRef, columnRangeSelection, row);
-            Iterator<Map.Entry<Cell, Value>> localIterator =
-                    Maps.transformEntries(localWrites, (key, value) -> Value.create(value, getStartTimestamp())).entrySet().iterator();
-            Iterator<Map.Entry<Cell, Value>> mergedIterator = IteratorUtils.mergeIterators(localIterator,
+            Iterator<Map.Entry<Cell, byte[]>> localIterator = localWrites.entrySet().iterator();
+            Iterator<Map.Entry<Cell, byte[]>> mergedIterator = IteratorUtils.mergeIterators(localIterator,
                     postfilterIterator,
                     Ordering.from(UnsignedBytes.lexicographicalComparator()).onResultOf(entry -> entry.getKey().getColumnName()),
                     from -> from.getLhSide());
             // Filter empty columns.
-            Iterator<Map.Entry<Cell, Value>> filteredIterator = Iterators.filter(mergedIterator, entry -> entry.getValue().getContents().length > 0);
+            Iterator<Map.Entry<Cell, byte[]>> filteredIterator = Iterators.filter(mergedIterator, entry -> entry.getValue().length > 0);
             postfilteredResults.put(row, BatchingVisitableFromIterable.create(filteredIterator));
         }
         return postfilteredResults;
     }
 
-    private Iterator<Map.Entry<Cell, Value>> getRowColumnRangePostfiltered(TableReference tableRef, byte[] row, ColumnRangeSelection columnRangeSelection,
+    private Iterator<Map.Entry<Cell, byte[]>> getRowColumnRangePostfiltered(TableReference tableRef, byte[] row, ColumnRangeSelection columnRangeSelection,
                                                                            RowColumnRangeIterator rawIterator) {
         ColumnRangeBatchProvider batchProvider = new ColumnRangeBatchProvider(keyValueService, tableRef, row, columnRangeSelection, getStartTimestamp());
         BatchSizeIncreasingIterator<Map.Entry<Cell, Value>> batchIterator =
                 new BatchSizeIncreasingIterator<>(batchProvider, columnRangeSelection.getBatchHint(), ClosableIterators.wrap(rawIterator));
-        Iterator<Iterator<Map.Entry<Cell, Value>>> postfilteredBatches = new AbstractIterator<Iterator<Map.Entry<Cell, Value>>>() {
+        Iterator<Iterator<Map.Entry<Cell, byte[]>>> postfilteredBatches = new AbstractIterator<Iterator<Map.Entry<Cell, byte[]>>>() {
             @Override
-            protected Iterator<Map.Entry<Cell, Value>> computeNext() {
+            protected Iterator<Map.Entry<Cell, byte[]>> computeNext() {
                 ImmutableMap.Builder<Cell, Value> rawBuilder = ImmutableMap.builder();
                 List<Map.Entry<Cell, Value>> batch = batchIterator.getBatch();
                 for (Map.Entry<Cell, Value> result : batch) {
@@ -390,8 +389,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 if (raw.isEmpty()) {
                     return endOfData();
                 }
-                Map<Cell, Value> post = new LinkedHashMap<Cell, Value>();
-                getWithPostfiltering(tableRef, raw, post, Functions.<Value>identity());
+                Map<Cell, byte[]> post = new LinkedHashMap<Cell, byte[]>();
+                getWithPostfiltering(tableRef, raw, post, Value.GET_VALUE);
                 batchIterator.markNumResultsNotDeleted(post.keySet().size());
                 return post.entrySet().iterator();
             }
