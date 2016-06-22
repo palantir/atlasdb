@@ -241,6 +241,10 @@ public class CassandraClientPool {
         }
     }
 
+    private Set<InetSocketAddress> getLivingHosts() {
+        return Sets.difference(currentPools.keySet(), blacklistedHosts.keySet());
+    }
+
     private CassandraClientPoolingContainer getRandomGoodHost() {
         Map<InetSocketAddress, CassandraClientPoolingContainer> pools = currentPools;
 
@@ -308,12 +312,10 @@ public class CassandraClientPool {
                 } catch (Exception e) {
                     aliveButInvalidPartitionerHosts.put(host, e);
                 }
-
-                if (createLockTableOnHost(host)) {
-                    atLeastOneHostSaidWeHaveALockTable = true;
-                }
             }
         }
+
+        atLeastOneHostSaidWeHaveALockTable = createLockTable();
 
         StringBuilder errorBuilderForEntireCluster = new StringBuilder();
         if (completelyUnresponsiveHosts.size() > 0) {
@@ -333,6 +335,16 @@ public class CassandraClientPool {
         } else {
             throw new RuntimeException(errorBuilderForEntireCluster.toString());
         }
+    }
+
+    private boolean createLockTable() {
+        boolean created = false;
+        for (InetSocketAddress host : getLivingHosts()) {
+            if (createLockTableOnHost(host)) {
+                created = true;
+            }
+        }
+        return created;
     }
 
     private boolean createLockTableOnHost(InetSocketAddress host) {
