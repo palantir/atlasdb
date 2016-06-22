@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import static com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.internalTableName;
+
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
@@ -24,8 +26,13 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.Cassandra;
+import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.cassandra.thrift.InvalidRequestException;
+import org.apache.cassandra.thrift.KsDef;
+import org.apache.cassandra.thrift.NotFoundException;
+import org.apache.cassandra.thrift.SchemaDisagreementException;
 import org.apache.thrift.TException;
 
 import com.google.common.base.Stopwatch;
@@ -33,8 +40,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.primitives.Longs;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 
@@ -45,12 +54,15 @@ public class SchemaMutationLock {
     private CassandraClientPool clientPool;
     private ConsistencyLevel writeConsistency;
     private final ReentrantLock schemaMutationLockForEarlierVersionsOfCassandra = new ReentrantLock(true);
+    private CassandraKeyValueServiceConfig config;
 
     public SchemaMutationLock(boolean supportsCAS, CassandraKeyValueServiceConfigManager configManager, CassandraClientPool clientPool, ConsistencyLevel writeConsistency) {
         this.supportsCAS = supportsCAS;
         this.configManager = configManager;
+        this.config = configManager.getConfig();
         this.clientPool = clientPool;
         this.writeConsistency = writeConsistency;
+        createLockTable();
     }
 
     public interface Action {
@@ -66,6 +78,41 @@ public class SchemaMutationLock {
             throw Throwables.throwUncheckedException(e);
         } finally {
             schemaMutationUnlock(lockId);
+        }
+    }
+
+    final FunctionCheckedException<Cassandra.Client, Void, Exception> createInternalLockTable = client -> {
+        createTableInternal(client, CassandraConstants.LOCK_TABLE);
+        return null;
+    };
+
+    // for tables internal / implementation specific to this KVS; these also don't get metadata in metadata table, nor do they show up in getTablenames, nor does this use concurrency control
+    private void createTableInternal(Cassandra.Client client, TableReference tableRef) throws InvalidRequestException, SchemaDisagreementException, TException, NotFoundException {
+        if (tableAlreadyExists(client, internalTableName(tableRef))) {
+            return;
+        }
+        CfDef cf = CassandraConstants.getStandardCfDef(config.keyspace(), internalTableName(tableRef));
+        client.system_add_column_family(cf);
+        CassandraKeyValueServices.waitForSchemaVersions(client, tableRef.getQualifiedName(), config.schemaMutationTimeoutMillis());
+    }
+
+    private boolean tableAlreadyExists(Cassandra.Client client, String caseInsensitiveTableName) throws TException {
+        KsDef ks = client.describe_keyspace(config.keyspace());
+        for (CfDef cf : ks.getCf_defs()) {
+            if (cf.getName().equalsIgnoreCase(caseInsensitiveTableName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean createLockTable() {
+        try {
+            clientPool.run(createInternalLockTable);
+            return true;
+        } catch (Exception e) {
+            // don't fail here, want to give the user all the errors at once at the end
+            return false;
         }
     }
 
