@@ -161,50 +161,18 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         this.configManager = configManager;
         this.clientPool = new CassandraClientPool(configManager.getConfig());
         this.compactionManager = compactionManager;
-        this.lockTableService = new LockTableService();
+        this.lockTableService = new LockTableService(configManager, clientPool);
         this.schemaMutationLock = new SchemaMutationLock(supportsCAS, configManager, clientPool, writeConsistency, lockTableService);
     }
 
     protected void init() {
         clientPool.runOneTimeStartupChecks();
-        createLockTable();
+        lockTableService.createLockTable();
         supportsCAS = clientPool.runWithRetry(CassandraVerifier.underlyingCassandraClusterSupportsCASOperations);
         createTable(AtlasDbConstants.METADATA_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA);
         lowerConsistencyWhenSafe();
         upgradeFromOlderInternalSchema();
         CassandraKeyValueServices.failQuickInInitializationIfClusterAlreadyInInconsistentState(clientPool, configManager.getConfig());
-    }
-
-    private void createLockTable() {
-        try {
-            clientPool.run(client -> {
-                createTableInternal(client, this.lockTableService.getLockTable());
-                return null;
-            });
-        } catch (Exception e) {
-            throw Throwables.throwUncheckedException(e);
-        }
-    }
-
-    // for tables internal / implementation specific to this KVS; these also don't get metadata in metadata table, nor do they show up in getTablenames, nor does this use concurrency control
-    private void createTableInternal(Cassandra.Client client, TableReference tableRef) throws TException {
-        CassandraKeyValueServiceConfig config = configManager.getConfig();
-        if (tableAlreadyExists(client, internalTableName(tableRef))) {
-            return;
-        }
-        CfDef cf = CassandraConstants.getStandardCfDef(config.keyspace(), internalTableName(tableRef));
-        client.system_add_column_family(cf);
-        CassandraKeyValueServices.waitForSchemaVersions(client, tableRef.getQualifiedName(), config.schemaMutationTimeoutMillis());
-    }
-
-    private boolean tableAlreadyExists(Cassandra.Client client, String caseInsensitiveTableName) throws TException {
-        KsDef ks = client.describe_keyspace(configManager.getConfig().keyspace());
-        for (CfDef cf : ks.getCf_defs()) {
-            if (cf.getName().equalsIgnoreCase(caseInsensitiveTableName)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     @Override

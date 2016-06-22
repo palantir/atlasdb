@@ -15,13 +15,63 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import static com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.internalTableName;
+
 import java.util.Set;
 
+import org.apache.cassandra.thrift.Cassandra;
+import org.apache.cassandra.thrift.CfDef;
+import org.apache.cassandra.thrift.KsDef;
+import org.apache.thrift.TException;
+
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.common.base.Throwables;
 
 public class LockTableService {
     public static final TableReference LOCK_TABLE = TableReference.createWithEmptyNamespace("_locks");
+
+    private final CassandraKeyValueServiceConfigManager configManager;
+    private final CassandraClientPool clientPool;
+
+    public LockTableService(CassandraKeyValueServiceConfigManager configManager, CassandraClientPool clientPool) {
+        this.configManager = configManager;
+        this.clientPool = clientPool;
+    }
+
+    public void createLockTable() {
+        try {
+            clientPool.run(client -> {
+                createTableInternal(client, getLockTable());
+                return null;
+            });
+        } catch (Exception e) {
+            throw Throwables.throwUncheckedException(e);
+        }
+    }
+
+    // for tables internal / implementation specific to this KVS; these also don't get metadata in metadata table, nor do they show up in getTablenames, nor does this use concurrency control
+    private void createTableInternal(Cassandra.Client client, TableReference tableRef) throws TException {
+        CassandraKeyValueServiceConfig config = configManager.getConfig();
+        if (tableAlreadyExists(client, internalTableName(tableRef))) {
+            return;
+        }
+        CfDef cf = CassandraConstants.getStandardCfDef(config.keyspace(), internalTableName(tableRef));
+        client.system_add_column_family(cf);
+        CassandraKeyValueServices.waitForSchemaVersions(client, tableRef.getQualifiedName(), config.schemaMutationTimeoutMillis());
+    }
+
+    private boolean tableAlreadyExists(Cassandra.Client client, String caseInsensitiveTableName) throws TException {
+        KsDef ks = client.describe_keyspace(configManager.getConfig().keyspace());
+        for (CfDef cf : ks.getCf_defs()) {
+            if (cf.getName().equalsIgnoreCase(caseInsensitiveTableName)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     public TableReference getLockTable() {
         return LOCK_TABLE;

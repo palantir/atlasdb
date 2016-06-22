@@ -17,22 +17,31 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsCollectionContaining.hasItem;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
 
+import org.junit.Before;
 import org.junit.Test;
 
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
+
 public class LockTableServiceTest {
+    private LockTableService lockTableService;
+
+    @Before
+    public void setup() {
+        CassandraKeyValueServiceConfigManager configManager = mock(CassandraKeyValueServiceConfigManager.class);
+        CassandraClientPool clientPool = mock(CassandraClientPool.class);
+        lockTableService = new LockTableService(configManager, clientPool);
+    }
+
     @Test
     public void shouldReturnConstantLockTableReference() {
-        LockTableService lockTableService = new LockTableService();
-
         assertThat(lockTableService.getLockTable().getTablename(), is("_locks"));
     }
 
     @Test
     public void lockTableShouldBeInSetOfAllLockTables() {
-        LockTableService lockTableService = new LockTableService();
-
         assertThat(lockTableService.getAllLockTables(), hasItem(lockTableService.getLockTable()));
     }
 }
