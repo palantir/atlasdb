@@ -45,6 +45,7 @@ import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelections;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.Prefix;
@@ -659,6 +660,7 @@ public final class StreamTestStreamValueTable implements
      * {@link Collection}
      * {@link Collections2}
      * {@link ColumnRangeSelection}
+     * {@link ColumnRangeSelections}
      * {@link ColumnSelection}
      * {@link ColumnValue}
      * {@link ColumnValues}
@@ -716,5 +718,5 @@ public final class StreamTestStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "kMRIwU8/RO/JgQ/Cccqe8Q==";
+    static String __CLASS_HASH = "jFlQePT/nlxQMZEPq9vh6w==";
 }

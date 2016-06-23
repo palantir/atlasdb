@@ -65,6 +65,7 @@ import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelections;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.Prefix;
@@ -247,7 +248,7 @@ public class TableRenderer {
                 line();
                 renderGetNamespace();
                 line();
-                new RowOrDynamicColumnRenderer(this, Row, table.getRowMetadata(), table.isRangeScanAllowed()).run();
+                new RowOrDynamicColumnRenderer(this, Row, table.getRowMetadata(), table.isRangeScanAllowed(), false).run();
                 line();
                 if (isDynamic(table)) {
                     renderDynamic();
@@ -345,7 +346,7 @@ public class TableRenderer {
         }
 
         private void renderDynamic() {
-            new RowOrDynamicColumnRenderer(this, Column, table.getColumns().getDynamicColumn().getColumnNameDesc(), false).run();
+            new RowOrDynamicColumnRenderer(this, Column, table.getColumns().getDynamicColumn().getColumnNameDesc(), false, true).run();
             line();
             renderTrigger();
             line();
@@ -1357,5 +1358,6 @@ public class TableRenderer {
         Generated.class,
         TableReference.class,
         ColumnRangeSelection.class,
+        ColumnRangeSelections.class,
     };
 }

@@ -25,6 +25,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.util.Pair;
 
 public class ColumnRangeSelection implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -39,10 +40,16 @@ public class ColumnRangeSelection implements Serializable {
     public ColumnRangeSelection(@JsonProperty("startInclusive") byte[] startCol,
                                 @JsonProperty("endExclusive") byte[] endCol,
                                 @JsonProperty("batchHint") int batchHint) {
-        Preconditions.checkNotNull(startCol);
-        Preconditions.checkNotNull(endCol);
-        this.startCol = startCol;
-        this.endCol = endCol;
+        if (startCol == null) {
+            this.startCol = PtBytes.EMPTY_BYTE_ARRAY;
+        } else {
+            this.startCol = startCol;
+        }
+        if (endCol == null) {
+            this.endCol = PtBytes.EMPTY_BYTE_ARRAY;
+        } else {
+            this.endCol = endCol;
+        }
         this.batchHint = batchHint;
     }
 
