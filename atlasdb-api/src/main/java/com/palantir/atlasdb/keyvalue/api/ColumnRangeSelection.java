@@ -22,10 +22,8 @@ import java.util.regex.Pattern;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.util.Pair;
 
 public class ColumnRangeSelection implements Serializable {
     private static final long serialVersionUID = 1L;
