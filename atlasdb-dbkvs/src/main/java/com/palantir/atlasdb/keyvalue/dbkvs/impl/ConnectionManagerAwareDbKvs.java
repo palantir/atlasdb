@@ -27,10 +27,10 @@ import com.palantir.nexus.db.monitoring.timer.SqlTimers;
 import com.palantir.nexus.db.pool.ConnectionManager;
 import com.palantir.nexus.db.pool.HikariCPConnectionManager;
 import com.palantir.nexus.db.pool.ReentrantManagedConnectionSupplier;
+import com.palantir.nexus.db.sql.ConnectionBackedSqlConnectionImpl;
 import com.palantir.nexus.db.sql.SQL;
 import com.palantir.nexus.db.sql.SqlConnection;
 import com.palantir.nexus.db.sql.SqlConnectionHelper;
-import com.palantir.nexus.db.sql.SqlConnectionImpl;
 
 // This class should be removed and replaced by DbKvs when InDbTimestampStore depends directly on DbKvs
 public class ConnectionManagerAwareDbKvs extends ForwardingKeyValueService {
@@ -73,7 +73,10 @@ public class ConnectionManagerAwareDbKvs extends ForwardingKeyValueService {
         return new SqlConnectionSupplier() {
             @Override
             public SqlConnection get() {
-                return new SqlConnectionImpl(supplier, new SqlConnectionHelper(sql));
+                return new ConnectionBackedSqlConnectionImpl(
+                        supplier.get(),
+                        () -> { throw new UnsupportedOperationException("This Sql connection does not provide reliable timestamp."); },
+                        new SqlConnectionHelper(sql));
             }
 
             @Override
