@@ -182,10 +182,10 @@ public final class InDbTimestampBoundStore implements TimestampBoundStore {
 
     private void writeLimit(Connection c, long limit) throws SQLException {
         String updateTs = "UPDATE " + timestampTable.getQualifiedName() + " SET last_allocated = ?";
-        PreparedStatement statement = c.prepareStatement(updateTs);
-        statement.setLong(1, limit);
-        statement.executeUpdate();
-        statement.close();
+        try (PreparedStatement statement = c.prepareStatement(updateTs)) {
+            statement.setLong(1, limit);
+            statement.executeUpdate();
+        }
     }
 
     private void createLimit(Connection c, long limit) throws SQLException {
@@ -194,9 +194,9 @@ public final class InDbTimestampBoundStore implements TimestampBoundStore {
     }
 
     private void createTimestampTable(Connection c) throws SQLException {
-        Statement statement = c.createStatement();
-        statement.execute("CREATE TABLE IF NOT EXISTS " + timestampTable.getQualifiedName() + " ( last_allocated int8 NOT NULL )");
-        statement.close();
+        try (Statement statement = c.createStatement()) {
+            statement.execute("CREATE TABLE IF NOT EXISTS " + timestampTable.getQualifiedName() + " ( last_allocated int8 NOT NULL )");
+        }
     }
 
     private DBType getDbType(Connection c) {
