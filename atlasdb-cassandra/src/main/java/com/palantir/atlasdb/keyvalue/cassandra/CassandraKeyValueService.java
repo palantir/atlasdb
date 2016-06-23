@@ -1203,7 +1203,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         return ImmutableSet.<TableReference>builder()
                 .add(AtlasDbConstants.TIMESTAMP_TABLE)
                 .add(AtlasDbConstants.METADATA_TABLE)
-                .addAll(lockTable.getAllLockTables())
+                .add(lockTable.getLockTable()) // TODO what if we failed to clean up some of them?
                 .build();
     }
 
