@@ -87,14 +87,18 @@ public class LockTable {
         private String createPossibleLockTable() {
             try {
                 String tableName = "_locks";
-                clientPool.run(client -> {
-                    createTableInternal(client, TableReference.createWithEmptyNamespace(tableName));
-                    return null;
-                });
+                createTable(tableName);
                 return tableName;
             } catch (Exception e) {
                 throw Throwables.throwUncheckedException(e);
             }
+        }
+
+        protected void createTable(String tableName) throws TException {
+            clientPool.run(client -> {
+                createTableInternal(client, TableReference.createWithEmptyNamespace(tableName));
+                return null;
+            });
         }
 
         // for tables internal / implementation specific to this KVS; these also don't get metadata in metadata table, nor do they show up in getTablenames, nor does this use concurrency control
