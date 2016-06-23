@@ -42,6 +42,7 @@ import org.apache.cassandra.thrift.KeySlice;
 import org.apache.cassandra.thrift.KsDef;
 import org.apache.cassandra.thrift.SlicePredicate;
 import org.apache.cassandra.thrift.SliceRange;
+import org.apache.thrift.TException;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -86,28 +87,35 @@ public class LockTableTest {
     }
 
     private boolean isMarkedAsWinner(LockTable table) throws Exception {
-        return clientPool.run((FunctionCheckedException<Cassandra.Client, Boolean, Exception>)(client) -> {
-                KeyRange keyRange = new KeyRange();
-                keyRange.setStart_key(new byte[0]);
-                keyRange.setEnd_key(new byte[0]);
+        return getTableContents(table).stream()
+                .filter(this::matchesElectedColumn)
+                .findAny()
+                .isPresent();
+    }
 
-                List<KeySlice> rangeSlices = client.get_range_slices(
-                        new ColumnParent(CassandraKeyValueService.internalTableName(table.getLockTable())),
-                        getTrivialSlicePredicate(),
-                        keyRange,
-                        ConsistencyLevel.LOCAL_QUORUM);
+    private List<KeySlice> getTableContents(LockTable table) throws Exception {
+        return clientPool.run((FunctionCheckedException<Cassandra.Client, List<KeySlice>, Exception>)(client) -> {
+            KeyRange keyRange = new KeyRange();
+            keyRange.setStart_key(new byte[0]);
+            keyRange.setEnd_key(new byte[0]);
 
-                for (KeySlice ks : rangeSlices) {
-                    String rowName = new String(ks.getKey(), Charsets.UTF_8);
-                    Column column = ks.getColumns().stream().findAny().get().getColumn();
-                    String columnName = new String(CassandraKeyValueServices.decompose(column.bufferForName()).getLhSide());
-                    String columnValue = new String(column.getValue());
-                    if ("elected".equals(rowName)
-                            && "elected".equals(columnName)
-                            && "elected".equals(columnValue)) return true;
-                }
-                return false;
-            });
+            return client.get_range_slices(
+                    new ColumnParent(CassandraKeyValueService.internalTableName(table.getLockTable())),
+                    getTrivialSlicePredicate(),
+                    keyRange,
+                    ConsistencyLevel.LOCAL_QUORUM);
+        });
+    }
+
+    private boolean matchesElectedColumn(KeySlice ks) {
+        String rowName = new String(ks.getKey(), Charsets.UTF_8);
+        Column column = ks.getColumns().stream().findAny().get().getColumn();
+        String columnName = new String(CassandraKeyValueServices.decompose(column.bufferForName()).getLhSide());
+        String columnValue = new String(column.getValue());
+
+        return ("elected".equals(rowName)
+                && "elected".equals(columnName)
+                && "elected".equals(columnValue));
     }
 
     private SlicePredicate getTrivialSlicePredicate() {
