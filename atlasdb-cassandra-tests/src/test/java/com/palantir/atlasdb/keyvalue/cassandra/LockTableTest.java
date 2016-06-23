@@ -25,7 +25,8 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.nio.charset.StandardCharsets;
+import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -34,6 +35,8 @@ import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnParent;
 import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.cassandra.thrift.IndexExpression;
+import org.apache.cassandra.thrift.IndexOperator;
 import org.apache.cassandra.thrift.KeyRange;
 import org.apache.cassandra.thrift.KeySlice;
 import org.apache.cassandra.thrift.KsDef;
@@ -42,6 +45,8 @@ import org.apache.cassandra.thrift.SliceRange;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.base.Charsets;
+import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.common.base.FunctionCheckedException;
@@ -77,37 +82,39 @@ public class LockTableTest {
 
     @Test
     public void shouldMarkElectedTableAsWinner() throws Exception {
-        String createdTable = lockTable.getLockTable().getTablename();
-        boolean elected = clientPool.run((FunctionCheckedException<Cassandra.Client, Boolean, Exception>)(client) -> {
-            KeyRange keyRange = new KeyRange();
-            keyRange.setStart_key(new byte[0]);
-            keyRange.setEnd_key(new byte[0]);
-            List<KeySlice> rangeSlices = client.get_range_slices(
-                    new ColumnParent(createdTable),
-                    getTrivialSlicePredicate(),
-                    keyRange,
-                    ConsistencyLevel.LOCAL_QUORUM);
+        assertTrue(isMarkedAsWinner(this.lockTable));
+    }
 
-            return rangeSlices.stream()
-                    .filter(ks -> {
-                            Column column = ks.getColumns().stream().findAny().get().getColumn();
-                            String value = PtBytes.toString(column.bufferForValue().array());
-                            return value.equals("elected");
-                        })
-                    .findAny()
-                    .isPresent();
-        });
-        assertTrue(elected);
+    private boolean isMarkedAsWinner(LockTable table) throws Exception {
+        return clientPool.run((FunctionCheckedException<Cassandra.Client, Boolean, Exception>)(client) -> {
+                KeyRange keyRange = new KeyRange();
+                keyRange.setStart_key(new byte[0]);
+                keyRange.setEnd_key(new byte[0]);
+
+                List<KeySlice> rangeSlices = client.get_range_slices(
+                        new ColumnParent(CassandraKeyValueService.internalTableName(table.getLockTable())),
+                        getTrivialSlicePredicate(),
+                        keyRange,
+                        ConsistencyLevel.LOCAL_QUORUM);
+
+                for (KeySlice ks : rangeSlices) {
+                    String rowName = new String(ks.getKey(), Charsets.UTF_8);
+                    Column column = ks.getColumns().stream().findAny().get().getColumn();
+                    String columnName = new String(CassandraKeyValueServices.decompose(column.bufferForName()).getLhSide());
+                    String columnValue = new String(column.getValue());
+                    if ("elected".equals(rowName)
+                            && "elected".equals(columnName)
+                            && "elected".equals(columnValue)) return true;
+                }
+                return false;
+            });
     }
 
     private SlicePredicate getTrivialSlicePredicate() {
-        SliceRange sliceRange = new SliceRange();
-        sliceRange.setStart(new byte[0]);
-        sliceRange.setFinish(new byte[0]);
-
-        SlicePredicate predicate = new SlicePredicate();
-        predicate.setSlice_range(sliceRange);
-        return predicate;
+        SliceRange slice = new SliceRange(ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY), ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY), false, Integer.MAX_VALUE);
+        final SlicePredicate pred = new SlicePredicate();
+        pred.setSlice_range(slice);
+        return pred;
     }
     private Set<String> allPossibleLockTables() throws Exception {
         return clientPool.run((FunctionCheckedException<Cassandra.Client, Set<String>, Exception>)(client) -> {

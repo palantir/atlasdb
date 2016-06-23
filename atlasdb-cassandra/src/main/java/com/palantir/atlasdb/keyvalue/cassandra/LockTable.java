@@ -21,6 +21,7 @@ import java.nio.ByteBuffer;
 import java.util.Optional;
 import java.util.Set;
 
+import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
@@ -72,7 +73,7 @@ public class LockTable {
             String ourLockTableName = createPossibleLockTable();
 
             String winnerTableName = leaderElector.proposeTableToBeTheCorrectOne(ourLockTableName);
-            //markAsWinner(winnerTableName);
+            markAsWinner(winnerTableName);
     /*
             removeLosers(winnerTableName);
      */
@@ -127,7 +128,7 @@ public class LockTable {
                             .setValue(elected)
                             .setTimestamp(0L);
                     ByteBuffer rowName = ByteBuffer.wrap(elected);
-                    client.cas(
+                    CASResult result = client.cas(
                             rowName,
                             winnerTableName,
                             ImmutableList.of(),
