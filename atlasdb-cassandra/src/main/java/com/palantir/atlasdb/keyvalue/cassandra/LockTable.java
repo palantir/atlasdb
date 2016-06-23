@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.internalTableName;
 
+import java.util.Optional;
 import java.util.Set;
 
 import org.apache.cassandra.thrift.Cassandra;
@@ -30,52 +31,100 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.Throwables;
 
 public class LockTable {
-    public static final TableReference LOCK_TABLE = TableReference.createWithEmptyNamespace("_locks");
+    public final TableReference lockTable;
+
+    public LockTable(String ref) {
+        this.lockTable = TableReference.createWithEmptyNamespace(ref);
+    }
 
     public static LockTable create(CassandraKeyValueServiceConfig config, CassandraClientPool clientPool) {
-        createUnderlyingTable(clientPool, config);
-        return new LockTable();
+        String ref = new LockTableCreator(config, clientPool).create();
+        return new LockTable(ref);
     }
 
-    private static void createUnderlyingTable(CassandraClientPool clientPool, CassandraKeyValueServiceConfig config) {
-        try {
-            clientPool.run(client -> {
-                createTableInternal(client, LOCK_TABLE, config);
-                return null;
-            });
-        } catch (Exception e) {
-            throw Throwables.throwUncheckedException(e);
+    private static class LockTableCreator {
+        private final CassandraKeyValueServiceConfig config;
+        private final CassandraClientPool clientPool;
+
+        public LockTableCreator(CassandraKeyValueServiceConfig config, CassandraClientPool clientPool) {
+            this.config = config;
+            this.clientPool = clientPool;
         }
-    }
 
-    // for tables internal / implementation specific to this KVS; these also don't get metadata in metadata table, nor do they show up in getTablenames, nor does this use concurrency control
-    private static void createTableInternal(Cassandra.Client client, TableReference tableRef, CassandraKeyValueServiceConfig config) throws TException {
-        if (tableAlreadyExists(client, internalTableName(tableRef), config)) {
-            return;
+        public String create() {
+            // Check if ANY lock table exists already
+            // if so, return the name
+            Optional<String> currentLockTableName = getCurrentLockTableName();
+            if (currentLockTableName.isPresent()) {
+                return currentLockTableName.get();
+            }
+
+            String name = createPossibleLockTable();
+
+/*
+    private String createUnderlyingTable() {
+        Optional<String> currentLockTableName = getCurrentLockTableName();
+        if (currentLockTableName.isPresent()) {
+            return currentLockTableName.get();
         }
-        CfDef cf = CassandraConstants.getStandardCfDef(config.keyspace(), internalTableName(tableRef));
-        client.system_add_column_family(cf);
-        CassandraKeyValueServices.waitForSchemaVersions(client, tableRef.getQualifiedName(), config.schemaMutationTimeoutMillis());
-    }
 
-    private static boolean tableAlreadyExists(Cassandra.Client client, String caseInsensitiveTableName, CassandraKeyValueServiceConfig config) throws TException {
-        KsDef ks = client.describe_keyspace(config.keyspace());
-        for (CfDef cf : ks.getCf_defs()) {
-            if (cf.getName().equalsIgnoreCase(caseInsensitiveTableName)) {
-                return true;
+        String ourLockTableName = createPossibleLockTable();
+        String winnerTableName = proposeTableToBeTheCorrectOne(ourLockTableName);
+        markAsWinner(winnerTableName);
+        removeLosers(winnerTableName);
+
+        return ourLockTableName;
+    }
+ */
+            return name;
+        }
+
+        private Optional<String> getCurrentLockTableName() {
+            return Optional.empty();
+        }
+
+        private String createPossibleLockTable() {
+            try {
+                String tableName = "_locks";
+                clientPool.run(client -> {
+                    createTableInternal(client, TableReference.createWithEmptyNamespace(tableName));
+                    return null;
+                });
+                return tableName;
+            } catch (Exception e) {
+                throw Throwables.throwUncheckedException(e);
             }
         }
-        return false;
+
+        // for tables internal / implementation specific to this KVS; these also don't get metadata in metadata table, nor do they show up in getTablenames, nor does this use concurrency control
+        private void createTableInternal(Cassandra.Client client, TableReference tableRef) throws TException {
+            if (tableAlreadyExists(client, internalTableName(tableRef))) {
+                return;
+            }
+            CfDef cf = CassandraConstants.getStandardCfDef(config.keyspace(), internalTableName(tableRef));
+            client.system_add_column_family(cf);
+            CassandraKeyValueServices.waitForSchemaVersions(client, tableRef.getQualifiedName(), config.schemaMutationTimeoutMillis());
+        }
+
+        private boolean tableAlreadyExists(Cassandra.Client client, String caseInsensitiveTableName) throws TException {
+            KsDef ks = client.describe_keyspace(config.keyspace());
+            for (CfDef cf : ks.getCf_defs()) {
+                if (cf.getName().equalsIgnoreCase(caseInsensitiveTableName)) {
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 
     public TableReference getLockTable() {
-        return LOCK_TABLE;
+        return lockTable;
     }
 
     /**
      * This returns both active and inactive lock tables.
      */
     public Set<TableReference> getAllLockTables() {
-        return ImmutableSet.of(LOCK_TABLE);
+        return ImmutableSet.of(lockTable);
     }
 }
