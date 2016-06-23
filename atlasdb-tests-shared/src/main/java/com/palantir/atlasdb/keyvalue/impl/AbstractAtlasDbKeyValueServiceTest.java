@@ -21,7 +21,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -512,7 +514,7 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         }
     }
 
-    public void testGetRangeWithHistory(boolean reverse) {
+    private void testGetRangeWithHistory(boolean reverse) {
         putTestDataForMultipleTimestamps();
         final RangeRequest range;
         if (!reverse) {
@@ -540,7 +542,7 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         }
     }
 
-    public void testGetRangeWithTimestamps(boolean reverse) {
+    private void testGetRangeWithTimestamps(boolean reverse) {
         putTestDataForMultipleTimestamps();
         final RangeRequest range;
         if (!reverse) {
@@ -664,21 +666,111 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
 
     @Test
     public void testCannotModifyValuesAfterWrite() {
+        Cell cell = Cell.create(row0, column0);
         byte[] data = new byte[1];
-        byte[] unmodifiedData = Arrays.copyOf(data, data.length);
+        byte[] originalData = copyOf(data);
+        writeToCell(cell, data);
+
+        modifyValue(data);
+
+        assertThat(getForCell(cell), is(originalData));
+    }
+
+    @Test
+    public void testCannotModifyValuesAfterGetRows() {
+        Cell cell = Cell.create(row0, column0);
+        byte[] originalData = new byte[1];
+        writeToCell(cell, originalData);
+
+        modifyValue(getRowsForCell(cell));
+
+        assertThat(getRowsForCell(cell), is(originalData));
+    }
+
+    @Test
+    public void testCannotModifyValuesAfterGet() {
+        Cell cell = Cell.create(row0, column0);
+        byte[] originalData = new byte[1];
+        writeToCell(cell, originalData);
+
+        modifyValue(getForCell(cell));
+
+        assertThat(getForCell(cell), is(originalData));
+    }
+
+    @Test
+    public void testCannotModifyValuesAfterGetRange() {
+        Cell cell = Cell.create(row0, column0);
+        byte[] originalData = new byte[1];
+        writeToCell(cell, originalData);
+
+        modifyValue(getOnlyItemInTableRange());
+
+        assertThat(getOnlyItemInTableRange(), is(originalData));
+    }
+
+    @Test
+    public void testCannotModifyValuesAfterGetRangeWithHistory() {
+        assumeTrue(kvsSupportsGetRangeWithHistory());
 
         Cell cell = Cell.create(row0, column0);
+        byte[] originalData = new byte[1];
+        writeToCell(cell, originalData);
 
+        modifyValue(getOnlyItemInTableRangeWithHistory());
+
+        assertThat(getOnlyItemInTableRangeWithHistory(), is(originalData));
+    }
+
+    private boolean kvsSupportsGetRangeWithHistory() {
+        try {
+            keyValueService.getRangeWithHistory(TEST_TABLE, RangeRequest.all(), TEST_TIMESTAMP);
+            return true;
+        } catch (UnsupportedOperationException e) {
+            return false;
+        }
+    }
+
+    private void modifyValue(byte[] retrievedValue) {
+        retrievedValue[0] = (byte) 50;
+    }
+
+    private byte[] copyOf(byte[] contents) {
+        return Arrays.copyOf(contents, contents.length);
+    }
+
+    private void writeToCell(Cell cell, byte[] data) {
         Value val = Value.create(data, TEST_TIMESTAMP + 1);
-
         keyValueService.putWithTimestamps(TEST_TABLE, ImmutableMultimap.of(cell, val));
+    }
 
-        data[0] = (byte) 50;
+    private byte[] getRowsForCell(Cell cell) {
+        return keyValueService.getRows(TEST_TABLE, ImmutableSet.of(cell.getRowName()), ColumnSelection.all(), TEST_TIMESTAMP + 3)
+                .get(cell).getContents();
+    }
 
-        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(cell, TEST_TIMESTAMP + 3)).get(cell).getContents(),
-                is(unmodifiedData));
+    private byte[] getForCell(Cell cell) {
+        return keyValueService.get(TEST_TABLE, ImmutableMap.of(cell, TEST_TIMESTAMP + 3)).get(cell).getContents();
+    }
 
-        keyValueService.delete(TEST_TABLE, ImmutableMultimap.of(cell, TEST_TIMESTAMP + 1));
+    private byte[] getOnlyItemInTableRange() {
+        try (ClosableIterator<RowResult<Value>> rangeIterator =
+                     keyValueService.getRange(TEST_TABLE, RangeRequest.all(), TEST_TIMESTAMP + 3) ){
+            byte[] contents = rangeIterator.next().getOnlyColumnValue().getContents();
+
+            assertFalse("There should only be one row in the table", rangeIterator.hasNext());
+            return contents;
+        }
+    }
+
+    private byte[] getOnlyItemInTableRangeWithHistory() {
+        try (ClosableIterator<RowResult<Set<Value>>> rangeIterator =
+                     keyValueService.getRangeWithHistory(TEST_TABLE, RangeRequest.all(), TEST_TIMESTAMP + 3)) {
+            byte[] contents = Iterables.getOnlyElement(rangeIterator.next().getOnlyColumnValue()).getContents();
+
+            assertFalse("There should only be one row in the table", rangeIterator.hasNext());
+            return contents;
+        }
     }
 
     @Test

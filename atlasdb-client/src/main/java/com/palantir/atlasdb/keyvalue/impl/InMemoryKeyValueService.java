@@ -111,8 +111,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
                     }
                     if (lastEntry != null) {
                         long ts = lastEntry.getKey().ts;
-                        byte[] value = lastEntry.getValue();
-                        result.put(Cell.create(row, key.col), Value.create(value, ts));
+                        result.put(Cell.create(row, key.col), Value.createWithCopyOfData(lastEntry.getValue(), ts));
                     }
                 }
                 Iterators.size(cellIter);
@@ -133,8 +132,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
                 Key key = lastEntry.getKey();
                 if (key.matchesCell(cell)) {
                     long ts = lastEntry.getKey().ts;
-                    byte[] value = lastEntry.getValue();
-                    result.put(cell, Value.create(value, ts));
+                    result.put(cell, Value.createWithCopyOfData(lastEntry.getValue(), ts));
                 }
             }
         }
@@ -163,8 +161,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
                 }
                 if (lastEntry != null) {
                     long ts = lastEntry.getKey().ts;
-                    byte[] value = lastEntry.getValue();
-                    return Value.create(value, ts);
+                    return Value.createWithCopyOfData(lastEntry.getValue(), ts);
                 } else {
                     return null;
                 }
@@ -207,7 +204,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
                     if (key.ts >= timestamp) {
                         break;
                     }
-                    values.add(Value.create(entry.getValue(), key.ts));
+                    values.add(Value.createWithCopyOfData(entry.getValue(), key.ts));
                 }
                 if (!values.isEmpty()) {
                     return values;
@@ -337,7 +334,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
                 // Save memory by sharing rows.
                 row = nextKey.row;
             }
-            byte[] oldContents = table.entries.putIfAbsent(new Key(row, col, timestamp), Arrays.copyOf(contents, contents.length));
+            byte[] oldContents = table.entries.putIfAbsent(new Key(row, col, timestamp), copyOf(contents));
             if (oldContents != null && (doNotOverwriteWithSameValue || !Arrays.equals(oldContents, contents))) {
                 throw new KeyAlreadyExistsException("We already have a value for this timestamp");
             }
@@ -407,6 +404,10 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     @Override
     public Set<TableReference> getAllTableNames() {
         return ImmutableSet.copyOf(tables.keySet());
+    }
+
+    private byte[] copyOf(byte[] contents) {
+        return Arrays.copyOf(contents, contents.length);
     }
 
     static class Table {
