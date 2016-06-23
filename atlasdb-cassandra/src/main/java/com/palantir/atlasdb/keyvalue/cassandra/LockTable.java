@@ -38,17 +38,23 @@ public class LockTable {
     }
 
     public static LockTable create(CassandraKeyValueServiceConfig config, CassandraClientPool clientPool) {
-        String ref = new LockTableCreator(config, clientPool).create();
+        return create(config, clientPool, new LockTableLeaderElector());
+    }
+
+    public static LockTable create(CassandraKeyValueServiceConfig config, CassandraClientPool clientPool, LockTableLeaderElector leaderElector) {
+        String ref = new LockTableCreator(config, clientPool, leaderElector).create();
         return new LockTable(ref);
     }
 
     private static class LockTableCreator {
         private final CassandraKeyValueServiceConfig config;
         private final CassandraClientPool clientPool;
+        private final LockTableLeaderElector leaderElector;
 
-        public LockTableCreator(CassandraKeyValueServiceConfig config, CassandraClientPool clientPool) {
+        public LockTableCreator(CassandraKeyValueServiceConfig config, CassandraClientPool clientPool, LockTableLeaderElector leaderElector) {
             this.config = config;
             this.clientPool = clientPool;
+            this.leaderElector = leaderElector;
         }
 
         public String create() {
@@ -59,24 +65,14 @@ public class LockTable {
                 return currentLockTableName.get();
             }
 
-            String name = createPossibleLockTable();
+            String ourLockTableName = createPossibleLockTable();
 
-/*
-    private String createUnderlyingTable() {
-        Optional<String> currentLockTableName = getCurrentLockTableName();
-        if (currentLockTableName.isPresent()) {
-            return currentLockTableName.get();
-        }
-
-        String ourLockTableName = createPossibleLockTable();
-        String winnerTableName = proposeTableToBeTheCorrectOne(ourLockTableName);
-        markAsWinner(winnerTableName);
-        removeLosers(winnerTableName);
-
-        return ourLockTableName;
-    }
- */
-            return name;
+            String winnerTableName = leaderElector.proposeTableToBeTheCorrectOne(ourLockTableName);
+    /*
+            markAsWinner(winnerTableName);
+            removeLosers(winnerTableName);
+     */
+            return winnerTableName;
         }
 
         private Optional<String> getCurrentLockTableName() {

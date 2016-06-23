@@ -17,8 +17,12 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static java.util.stream.Collectors.toSet;
 
-import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.hasItem;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.Set;
 
@@ -36,6 +40,8 @@ public class LockTableTest {
     private CassandraClientPool clientPool;
     private CassandraKeyValueServiceConfig config;
 
+    private String electedTableName = "_locks_elected";
+
     @Before
     public void setup() {
         config = CassandraTestSuite.CASSANDRA_KVS_CONFIG;
@@ -44,8 +50,18 @@ public class LockTableTest {
     }
 
     @Test
-    public void shouldReturnConstantLockTableReference() throws Exception {
-        assertThat(allPossibleLockTables(), contains(lockTable.getLockTable().getTablename()));
+    public void shouldCreateTheLockTableItSaysItHasCreated() throws Exception {
+        assertThat(allPossibleLockTables(), hasItem(lockTable.getLockTable().getTablename()));
+    }
+
+    @Test
+    public void shouldReturnNameDeterminedByLeaderElector() throws Exception {
+        LockTableLeaderElector leaderElector = mock(LockTableLeaderElector.class);
+        when(leaderElector.proposeTableToBeTheCorrectOne(anyString())).thenReturn(electedTableName);
+
+        LockTable lockTable = LockTable.create(config, clientPool, leaderElector);
+
+        assertThat(lockTable.getLockTable().getTablename(), equalTo(electedTableName));
     }
 
     private Set<String> allPossibleLockTables() throws Exception {
