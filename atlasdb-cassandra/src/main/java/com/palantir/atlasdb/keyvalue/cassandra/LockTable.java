@@ -17,14 +17,18 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.internalTableName;
 
+import java.nio.ByteBuffer;
 import java.util.Optional;
 import java.util.Set;
 
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.CfDef;
+import org.apache.cassandra.thrift.Column;
+import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.KsDef;
 import org.apache.thrift.TException;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -68,8 +72,8 @@ public class LockTable {
             String ourLockTableName = createPossibleLockTable();
 
             String winnerTableName = leaderElector.proposeTableToBeTheCorrectOne(ourLockTableName);
+            //markAsWinner(winnerTableName);
     /*
-            markAsWinner(winnerTableName);
             removeLosers(winnerTableName);
      */
             return winnerTableName;
@@ -110,6 +114,32 @@ public class LockTable {
                 }
             }
             return false;
+        }
+
+        // TODO - this fails for some reason, "java.lang.RuntimeException: InvalidRequestException(why:Not enough bytes to read value of component 0)"
+        private void markAsWinner(String winnerTableName) {
+            clientPool.run(client -> {
+                try {
+                    byte[] elected = "elected".getBytes();
+                    byte[] colName = CassandraKeyValueServices.makeCompositeBuffer(elected, 0L).array();
+                    Column column = new Column()
+                            .setName(colName)
+                            .setValue(elected)
+                            .setTimestamp(0L);
+                    ByteBuffer rowName = ByteBuffer.wrap(elected);
+                    client.cas(
+                            rowName,
+                            winnerTableName,
+                            ImmutableList.of(),
+                            ImmutableList.of(column),
+                            ConsistencyLevel.SERIAL,
+                            ConsistencyLevel.QUORUM
+                    );
+                } catch (TException e) {
+                    throw new RuntimeException(e);
+                }
+                return null;
+            });
         }
     }
 
