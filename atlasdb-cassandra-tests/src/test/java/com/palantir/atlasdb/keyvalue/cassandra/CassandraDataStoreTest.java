@@ -18,23 +18,45 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.hamcrest.core.IsCollectionContaining.hasItem;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public class CassandraDataStoreTest {
-    @Test
-    public void shouldCreateATable() throws Exception {
+
+    private CassandraDataStore cassandraDataStore;
+
+    @Before
+    public void setUp() {
         CassandraKeyValueServiceConfig config = CassandraTestSuite.CASSANDRA_KVS_CONFIG;
         CassandraClientPool clientPool = new CassandraClientPool(config);
 
-        CassandraDataStore cassandraDataStore = new CassandraDataStore(config, clientPool);
+        cassandraDataStore = new CassandraDataStore(config, clientPool);
+    }
+
+    @Test
+    public void shouldCreateATable() throws Exception {
         String tableName = "cassandra_data_store_test_table";
 
         cassandraDataStore.createTable(tableName);
 
         assertThat(cassandraDataStore.allTables(), hasItem(TableReference.fromString(tableName)));
+    }
+
+    @Test
+    public void shouldPut() throws Exception {
+        String tableName = "cassandra_data_store_test_put";
+        String rowName = "key";
+        String columnName = "col";
+        String value = "val";
+
+        cassandraDataStore.createTable(tableName);
+        cassandraDataStore.put(tableName, rowName, columnName, value);
+
+        assertTrue(cassandraDataStore.valueExists(TableReference.fromString(tableName), rowName, columnName, value));
     }
 }
