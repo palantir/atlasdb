@@ -24,6 +24,7 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
@@ -37,6 +38,7 @@ import org.apache.cassandra.thrift.SliceRange;
 import org.apache.thrift.TException;
 
 import com.google.common.base.Charsets;
+import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -54,6 +56,29 @@ public class CassandraDataStore {
     public void createTable(String tableName) throws TException {
         clientPool.run(client -> {
             createTableInternal(client, TableReference.createWithEmptyNamespace(tableName));
+            return null;
+        });
+    }
+
+    public void put(String tableName, String rowName, String columnName, String value) {
+        clientPool.run(client -> {
+            try {
+                byte[] colName = CassandraKeyValueServices.makeCompositeBuffer(columnName.getBytes(), 0L).array();
+                Column column = new Column()
+                        .setName(colName)
+                        .setValue(value.getBytes())
+                        .setTimestamp(0L);
+                CASResult result = client.cas(
+                        ByteBuffer.wrap(rowName.getBytes()),
+                        tableName,
+                        ImmutableList.of(),
+                        ImmutableList.of(column),
+                        ConsistencyLevel.SERIAL,
+                        ConsistencyLevel.QUORUM
+                );
+            } catch (TException e) {
+                throw new RuntimeException(e);
+            }
             return null;
         });
     }

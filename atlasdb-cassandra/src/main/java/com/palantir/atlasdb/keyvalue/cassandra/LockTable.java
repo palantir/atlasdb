@@ -15,16 +15,9 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.nio.ByteBuffer;
 import java.util.Optional;
 import java.util.Set;
 
-import org.apache.cassandra.thrift.CASResult;
-import org.apache.cassandra.thrift.Column;
-import org.apache.cassandra.thrift.ConsistencyLevel;
-import org.apache.thrift.TException;
-
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -42,17 +35,15 @@ public class LockTable {
     }
 
     public static LockTable create(CassandraClientPool clientPool, LockTableLeaderElector leaderElector, CassandraDataStore cassandraDataStore) {
-        String ref = new LockTableCreator(clientPool, leaderElector, cassandraDataStore).create();
+        String ref = new LockTableCreator(leaderElector, cassandraDataStore).create();
         return new LockTable(ref);
     }
 
     private static class LockTableCreator {
-        private final CassandraClientPool clientPool;
         private final LockTableLeaderElector leaderElector;
         private CassandraDataStore cassandraDataStore;
 
-        public LockTableCreator(CassandraClientPool clientPool, LockTableLeaderElector leaderElector, CassandraDataStore cassandraDataStore) {
-            this.clientPool = clientPool;
+        public LockTableCreator(LockTableLeaderElector leaderElector, CassandraDataStore cassandraDataStore) {
             this.leaderElector = leaderElector;
             this.cassandraDataStore = cassandraDataStore;
         }
@@ -89,30 +80,9 @@ public class LockTable {
             }
         }
 
-        // TODO - this fails for some reason, "java.lang.RuntimeException: InvalidRequestException(why:Not enough bytes to read value of component 0)"
         private void markAsWinner(String winnerTableName) {
-            clientPool.run(client -> {
-                try {
-                    byte[] elected = "elected".getBytes();
-                    byte[] colName = CassandraKeyValueServices.makeCompositeBuffer(elected, 0L).array();
-                    Column column = new Column()
-                            .setName(colName)
-                            .setValue(elected)
-                            .setTimestamp(0L);
-                    ByteBuffer rowName = ByteBuffer.wrap(elected);
-                    CASResult result = client.cas(
-                            rowName,
-                            winnerTableName,
-                            ImmutableList.of(),
-                            ImmutableList.of(column),
-                            ConsistencyLevel.SERIAL,
-                            ConsistencyLevel.QUORUM
-                    );
-                } catch (TException e) {
-                    throw new RuntimeException(e);
-                }
-                return null;
-            });
+            String elected = "elected";
+            cassandraDataStore.put(winnerTableName, elected, elected, elected);
         }
     }
 
