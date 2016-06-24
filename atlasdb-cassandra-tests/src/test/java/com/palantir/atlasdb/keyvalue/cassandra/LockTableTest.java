@@ -16,48 +16,42 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.hasItem;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public class LockTableTest {
-    private LockTable lockTable;
-    private CassandraClientPool clientPool;
 
-    private CassandraDataStore cassandraDataStore;
+    private CassandraDataStore mockStore;
+    private LockTableLeaderElector leaderElector;
 
     @Before
     public void setup() {
-        CassandraKeyValueServiceConfig config = CassandraTestSuite.CASSANDRA_KVS_CONFIG;
-        clientPool = new CassandraClientPool(config);
-        lockTable = LockTable.create(config, clientPool);
-        cassandraDataStore = new CassandraDataStore(config, clientPool);
+        mockStore = mock(CassandraDataStore.class);
+        leaderElector = mock(LockTableLeaderElector.class);
     }
 
     @Test
     public void shouldCreateTheLockTableItSaysItHasCreated() throws Exception {
-        assertThat(allPossibleLockTables(), hasItem(lockTable.getLockTable()));
+        TableReference tableRef = TableReference.createWithEmptyNamespace("_locks");
+
+        LockTable.create(leaderElector, mockStore);
+
+        verify(mockStore, times(1)).createTable(tableRef);
     }
 
     @Test
     public void shouldReturnNameDeterminedByLeaderElector() throws Exception {
-        CassandraDataStore mockStore = mock(CassandraDataStore.class);
-        LockTableLeaderElector leaderElector = mock(LockTableLeaderElector.class);
-
         TableReference tableRef = TableReference.createWithEmptyNamespace("_locks_elected");
         when(mockStore.allTables()).thenReturn(ImmutableSet.of(tableRef));
         when(leaderElector.proposeTableToBeTheCorrectOne(any(TableReference.class))).thenReturn(tableRef);
@@ -68,21 +62,8 @@ public class LockTableTest {
 
     @Test
     public void shouldMarkElectedTableAsWinner() throws Exception {
-        assertTrue(isMarkedAsWinner());
-    }
+        LockTable lockTable = LockTable.create(leaderElector, mockStore);
 
-    private boolean isMarkedAsWinner() throws Exception {
-        return cassandraDataStore.valueExists(lockTable.getLockTable(), "elected", "elected", "elected");
+        verify(mockStore, atLeastOnce()).put(lockTable.getLockTable(), "elected", "elected", "elected");
     }
-
-    private Set<TableReference> allPossibleLockTables() throws Exception {
-        return cassandraDataStore.allTables().stream()
-                .filter(this::isLockTable)
-                .collect(Collectors.toSet());
-    }
-
-    private boolean isLockTable(TableReference tableReference) {
-        return tableReference.getTablename().startsWith("_locks");
-    }
-
 }
