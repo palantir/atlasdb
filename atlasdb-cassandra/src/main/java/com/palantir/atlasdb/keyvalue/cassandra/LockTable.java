@@ -19,6 +19,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -41,6 +44,8 @@ public class LockTable {
     }
 
     private static class LockTableCreator {
+        private static final Logger log = LoggerFactory.getLogger(LockTableCreator.class);
+
         private final LockTableLeaderElector leaderElector;
         private CassandraDataStore cassandraDataStore;
 
@@ -112,7 +117,7 @@ public class LockTable {
                         .filter(elected().negate())
                         .forEach(this::removeTable);
             } catch (Exception e) {
-                // TODO log.warn("Failed to clean up non-elected locks tables. The cluster should still run normally.")
+                log.warn("Failed to clean up non-elected locks tables. The cluster should still run normally.", e);
                 throw new RuntimeException(e);
             }
         }
@@ -121,7 +126,7 @@ public class LockTable {
             try {
                 cassandraDataStore.removeTable(tableReference);
             } catch (Exception e) {
-                // TODO warning
+                log.warn(String.format("Failed to remove non-elected locks table %s.", tableReference.getTablename()), e);
             }
         }
     }
