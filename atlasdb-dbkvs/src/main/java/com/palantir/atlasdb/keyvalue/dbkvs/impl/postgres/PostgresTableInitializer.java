@@ -48,6 +48,7 @@ public class PostgresTableInitializer implements DbTableInitializer {
         executeIgnoringError(
                 "CREATE TABLE " + metadataTableName + " (" +
                         "  table_name VARCHAR(2000) NOT NULL," +
+                        "  table_size BIGINT NOT NULL," +
                         "  value      BYTEA NULL," +
                         "  CONSTRAINT pk_" + metadataTableName + " PRIMARY KEY (table_name) " +
                         ")",
