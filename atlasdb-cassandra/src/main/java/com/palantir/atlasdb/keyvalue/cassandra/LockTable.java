@@ -49,8 +49,7 @@ public class LockTable {
         }
 
         public TableReference create() {
-            // Check if ANY lock table exists already
-            // if so, return the name
+            // Return early if we already agreed on a lock table
             Optional<TableReference> currentLockTable = getCurrentLockTable();
             if (currentLockTable.isPresent()) {
                 return currentLockTable.get();
@@ -67,7 +66,22 @@ public class LockTable {
         }
 
         private Optional<TableReference> getCurrentLockTable() {
-            return Optional.empty();
+            try {
+                return cassandraDataStore.allTables().stream()
+                        .filter(tableReference -> tableReference.getTablename().startsWith("_locks"))
+                        .filter(this::wasElected)
+                        .findAny();
+            } catch (Exception e) {
+                return Optional.empty();
+            }
+        }
+
+        private boolean wasElected(TableReference tableReference) {
+            try {
+                return cassandraDataStore.valueExists(tableReference, "elected", "elected", "elected");
+            } catch (Exception e) {
+                return false;
+            }
         }
 
         private TableReference createPossibleLockTable() {

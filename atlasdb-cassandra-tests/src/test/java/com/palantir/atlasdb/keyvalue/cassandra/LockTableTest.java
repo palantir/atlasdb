@@ -20,10 +20,12 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import org.apache.thrift.TException;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -65,5 +67,22 @@ public class LockTableTest {
         LockTable lockTable = LockTable.create(leaderElector, mockStore);
 
         verify(mockStore, atLeastOnce()).put(lockTable.getLockTable(), "elected", "elected", "elected");
+    }
+
+    @Test
+    public void shouldReturnPreElectedTable() throws Exception {
+        TableReference tableRef = TableReference.createWithEmptyNamespace("_locks_elected");
+        when(mockStore.allTables()).thenReturn(ImmutableSet.of(tableRef));
+        when(mockStore.valueExists(tableRef, "elected", "elected", "elected")).thenReturn(true);
+
+        LockTable lockTable = LockTable.create(leaderElector, mockStore);
+
+        assertThat(lockTable.getLockTable(), equalTo(tableRef));
+        verifyReturnedWithoutCreatingOrElectingNewTable(tableRef);
+    }
+
+    private void verifyReturnedWithoutCreatingOrElectingNewTable(TableReference tableRef) throws TException {
+        verify(leaderElector, never()).proposeTableToBeTheCorrectOne(any(TableReference.class));
+        verify(mockStore, never()).createTable(tableRef);
     }
 }
