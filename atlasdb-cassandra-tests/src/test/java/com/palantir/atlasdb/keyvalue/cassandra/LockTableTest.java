@@ -55,20 +55,8 @@ public class LockTableTest {
         assertThat(allPossibleLockTables(), hasItem(lockTable.getLockTable()));
     }
 
-    @Ignore // this test assumes a mock paxos and real cassandra. bad!
     @Test
     public void shouldReturnNameDeterminedByLeaderElector() throws Exception {
-        LockTableLeaderElector leaderElector = mock(LockTableLeaderElector.class);
-        // TODO have a mock cassandra that assumes this table exists
-        when(leaderElector.proposeTableToBeTheCorrectOne(anyString())).thenReturn(electedTableName);
-
-        LockTable lockTable = LockTable.create(clientPool, leaderElector, cassandraDataStore);
-
-        assertThat(lockTable.getLockTable().getTablename(), equalTo(electedTableName));
-    }
-
-    @Test
-    public void shouldReturnPreExistingTable() throws Exception {
         CassandraDataStore mockStore = mock(CassandraDataStore.class);
         LockTableLeaderElector leaderElector = mock(LockTableLeaderElector.class);
 
