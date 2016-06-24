@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -49,6 +50,12 @@ public class LockTable {
         }
 
         public TableReference create() {
+            TableReference winnerTable = createElectedTableIfNotExists();
+            removeLosers();
+            return winnerTable;
+        }
+
+        private TableReference createElectedTableIfNotExists() {
             // Return early if we already agreed on a lock table
             Optional<TableReference> currentLockTable = getCurrentLockTable();
             if (currentLockTable.isPresent()) {
@@ -59,29 +66,28 @@ public class LockTable {
 
             TableReference winnerTable = leaderElector.proposeTableToBeTheCorrectOne(ourLockTable);
             markAsWinner(winnerTable);
-    /*
-            removeLosers(winnerTableName);
-     */
             return winnerTable;
         }
 
         private Optional<TableReference> getCurrentLockTable() {
             try {
                 return cassandraDataStore.allTables().stream()
-                        .filter(tableReference -> tableReference.getTablename().startsWith("_locks"))
-                        .filter(this::wasElected)
+                        .filter(possibleLockTables())
+                        .filter(elected())
                         .findAny();
             } catch (Exception e) {
                 return Optional.empty();
             }
         }
 
-        private boolean wasElected(TableReference tableReference) {
-            try {
-                return cassandraDataStore.valueExists(tableReference, "elected", "elected", "elected");
-            } catch (Exception e) {
-                return false;
-            }
+        private Predicate<TableReference> elected() {
+            return (tableReference) -> {
+                try {
+                    return cassandraDataStore.valueExists(tableReference, "elected", "elected", "elected");
+                } catch (Exception e) {
+                    return false;
+                }
+            };
         }
 
         private TableReference createPossibleLockTable() {
@@ -98,6 +104,22 @@ public class LockTable {
             String elected = "elected";
             cassandraDataStore.put(winnerTable, elected, elected, elected);
         }
+
+        private void removeLosers() {
+            try {
+                cassandraDataStore.allTables().stream()
+                        .filter(possibleLockTables())
+                        .filter(elected().negate())
+                        .forEach(cassandraDataStore::removeTable);
+            } catch (Exception e) {
+                // TODO log.warn("Failed to clean up non-elected locks tables. The cluster should still run normally.")
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    private static Predicate<TableReference> possibleLockTables() {
+        return tableReference -> tableReference.getTablename().startsWith("_locks");
     }
 
     public TableReference getLockTable() {

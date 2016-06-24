@@ -102,6 +102,10 @@ public class CassandraDataStore {
         });
     }
 
+    public void removeTable(TableReference tableReference) {
+
+    }
+
     // for tables internal / implementation specific to this KVS; these also don't get metadata in metadata table, nor do they show up in getTablenames, nor does this use concurrency control
     private void createTableInternal(Cassandra.Client client, TableReference tableRef) throws TException {
         if (tableAlreadyExists(client, internalTableName(tableRef))) {

@@ -36,11 +36,15 @@ public class LockTableTest {
 
     private CassandraDataStore mockStore;
     private LockTableLeaderElector leaderElector;
+    private TableReference electedTable;
 
     @Before
-    public void setup() {
+    public void setup() throws Exception {
         mockStore = mock(CassandraDataStore.class);
         leaderElector = mock(LockTableLeaderElector.class);
+
+        electedTable = TableReference.createWithEmptyNamespace("_locks_elected");
+        when(mockStore.valueExists(electedTable, "elected", "elected", "elected")).thenReturn(true);
     }
 
     @Test
@@ -73,12 +77,21 @@ public class LockTableTest {
     public void shouldReturnPreElectedTable() throws Exception {
         TableReference tableRef = TableReference.createWithEmptyNamespace("_locks_elected");
         when(mockStore.allTables()).thenReturn(ImmutableSet.of(tableRef));
-        when(mockStore.valueExists(tableRef, "elected", "elected", "elected")).thenReturn(true);
 
         LockTable lockTable = LockTable.create(leaderElector, mockStore);
 
         assertThat(lockTable.getLockTable(), equalTo(tableRef));
         verifyReturnedWithoutCreatingOrElectingNewTable(tableRef);
+    }
+
+    @Test
+    public void shouldRemoveTablesThatDidNotWin() throws Exception {
+        TableReference otherTable = TableReference.createWithEmptyNamespace("_locks_other");
+        when(mockStore.allTables()).thenReturn(ImmutableSet.of(otherTable, electedTable));
+
+        LockTable.create(leaderElector, mockStore);
+
+        verify(mockStore).removeTable(otherTable);
     }
 
     private void verifyReturnedWithoutCreatingOrElectingNewTable(TableReference tableRef) throws TException {
