@@ -31,10 +31,10 @@ public class LockTable {
     }
 
     public static LockTable create(CassandraKeyValueServiceConfig config, CassandraClientPool clientPool) {
-        return create(clientPool, new LockTableLeaderElector(), new CassandraDataStore(config, clientPool));
+        return create(new LockTableLeaderElector(), new CassandraDataStore(config, clientPool));
     }
 
-    public static LockTable create(CassandraClientPool clientPool, LockTableLeaderElector leaderElector, CassandraDataStore cassandraDataStore) {
+    public static LockTable create(LockTableLeaderElector leaderElector, CassandraDataStore cassandraDataStore) {
         TableReference electedTable = new LockTableCreator(leaderElector, cassandraDataStore).create();
         return new LockTable(electedTable);
     }

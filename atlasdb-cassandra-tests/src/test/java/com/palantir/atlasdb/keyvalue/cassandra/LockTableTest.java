@@ -20,7 +20,6 @@ import static org.hamcrest.CoreMatchers.hasItem;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
@@ -29,7 +28,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
@@ -64,7 +62,7 @@ public class LockTableTest {
         when(mockStore.allTables()).thenReturn(ImmutableSet.of(tableRef));
         when(leaderElector.proposeTableToBeTheCorrectOne(any(TableReference.class))).thenReturn(tableRef);
 
-        LockTable electedTable = LockTable.create(clientPool, leaderElector, mockStore);
+        LockTable electedTable = LockTable.create(leaderElector, mockStore);
         assertThat(electedTable.getLockTable(), equalTo(tableRef));
     }
 
