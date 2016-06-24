@@ -19,6 +19,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -39,7 +40,6 @@ public class LockTableTest {
     private LockTable lockTable;
     private CassandraClientPool clientPool;
 
-    private String electedTableName = "_locks_elected";
     private CassandraDataStore cassandraDataStore;
 
     @Before
@@ -60,11 +60,12 @@ public class LockTableTest {
         CassandraDataStore mockStore = mock(CassandraDataStore.class);
         LockTableLeaderElector leaderElector = mock(LockTableLeaderElector.class);
 
-        when(mockStore.allTables()).thenReturn(ImmutableSet.of(TableReference.fromString(electedTableName)));
-        when(leaderElector.proposeTableToBeTheCorrectOne(anyString())).thenReturn(electedTableName);
+        TableReference tableRef = TableReference.createWithEmptyNamespace("_locks_elected");
+        when(mockStore.allTables()).thenReturn(ImmutableSet.of(tableRef));
+        when(leaderElector.proposeTableToBeTheCorrectOne(any(TableReference.class))).thenReturn(tableRef);
 
         LockTable electedTable = LockTable.create(clientPool, leaderElector, mockStore);
-        assertThat(electedTable.getLockTable().getTablename(), equalTo(electedTableName));
+        assertThat(electedTable.getLockTable(), equalTo(tableRef));
     }
 
     @Test

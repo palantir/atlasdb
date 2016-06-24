@@ -40,23 +40,23 @@ public class CassandraDataStoreTest {
 
     @Test
     public void shouldCreateATable() throws Exception {
-        String tableName = "cassandra_data_store_test_table";
+        TableReference tableReference = TableReference.createWithEmptyNamespace("cassandra_data_store_test_table");
 
-        cassandraDataStore.createTable(tableName);
+        cassandraDataStore.createTable(tableReference);
 
-        assertThat(cassandraDataStore.allTables(), hasItem(TableReference.fromString(tableName)));
+        assertThat(cassandraDataStore.allTables(), hasItem(tableReference));
     }
 
     @Test
     public void shouldPut() throws Exception {
-        String tableName = "cassandra_data_store_test_put";
         String rowName = "key";
         String columnName = "col";
         String value = "val";
+        TableReference tableReference = TableReference.createWithEmptyNamespace("cassandra_data_store_test_put");
 
-        cassandraDataStore.createTable(tableName);
-        cassandraDataStore.put(tableName, rowName, columnName, value);
+        cassandraDataStore.createTable(tableReference);
+        cassandraDataStore.put(tableReference, rowName, columnName, value);
 
-        assertTrue(cassandraDataStore.valueExists(TableReference.fromString(tableName), rowName, columnName, value));
+        assertTrue(cassandraDataStore.valueExists(tableReference, rowName, columnName, value));
     }
 }

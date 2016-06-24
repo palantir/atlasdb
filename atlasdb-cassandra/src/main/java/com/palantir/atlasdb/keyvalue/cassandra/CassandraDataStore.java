@@ -53,14 +53,14 @@ public class CassandraDataStore {
         this.clientPool = clientPool;
     }
 
-    public void createTable(String tableName) throws TException {
+    public void createTable(TableReference tableReference) throws TException {
         clientPool.run(client -> {
-            createTableInternal(client, TableReference.createWithEmptyNamespace(tableName));
+            createTableInternal(client, tableReference);
             return null;
         });
     }
 
-    public void put(String tableName, String rowName, String columnName, String value) {
+    public void put(TableReference tableReference, String rowName, String columnName, String value) {
         clientPool.run(client -> {
             try {
                 byte[] colName = CassandraKeyValueServices.makeCompositeBuffer(columnName.getBytes(), 0L).array();
@@ -70,7 +70,7 @@ public class CassandraDataStore {
                         .setTimestamp(0L);
                 CASResult result = client.cas(
                         ByteBuffer.wrap(rowName.getBytes()),
-                        tableName,
+                        tableReference.getQualifiedName(),
                         ImmutableList.of(),
                         ImmutableList.of(column),
                         ConsistencyLevel.SERIAL,

@@ -16,8 +16,10 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+
 public class LockTableLeaderElector {
-    public String proposeTableToBeTheCorrectOne(String ourLockTableName) {
-        return ourLockTableName;
+    public TableReference proposeTableToBeTheCorrectOne(TableReference ourLockTable) {
+        return ourLockTable;
     }
 }

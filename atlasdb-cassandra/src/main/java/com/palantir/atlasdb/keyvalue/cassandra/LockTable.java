@@ -26,8 +26,8 @@ import com.palantir.common.base.Throwables;
 public class LockTable {
     public final TableReference lockTable;
 
-    public LockTable(String ref) {
-        this.lockTable = TableReference.createWithEmptyNamespace(ref);
+    public LockTable(TableReference lockTable) {
+        this.lockTable = lockTable;
     }
 
     public static LockTable create(CassandraKeyValueServiceConfig config, CassandraClientPool clientPool) {
@@ -35,8 +35,8 @@ public class LockTable {
     }
 
     public static LockTable create(CassandraClientPool clientPool, LockTableLeaderElector leaderElector, CassandraDataStore cassandraDataStore) {
-        String ref = new LockTableCreator(leaderElector, cassandraDataStore).create();
-        return new LockTable(ref);
+        TableReference electedTable = new LockTableCreator(leaderElector, cassandraDataStore).create();
+        return new LockTable(electedTable);
     }
 
     private static class LockTableCreator {
@@ -48,41 +48,41 @@ public class LockTable {
             this.cassandraDataStore = cassandraDataStore;
         }
 
-        public String create() {
+        public TableReference create() {
             // Check if ANY lock table exists already
             // if so, return the name
-            Optional<String> currentLockTableName = getCurrentLockTableName();
-            if (currentLockTableName.isPresent()) {
-                return currentLockTableName.get();
+            Optional<TableReference> currentLockTable = getCurrentLockTable();
+            if (currentLockTable.isPresent()) {
+                return currentLockTable.get();
             }
 
-            String ourLockTableName = createPossibleLockTable();
+            TableReference ourLockTable = createPossibleLockTable();
 
-            String winnerTableName = leaderElector.proposeTableToBeTheCorrectOne(ourLockTableName);
-            markAsWinner(winnerTableName);
+            TableReference winnerTable = leaderElector.proposeTableToBeTheCorrectOne(ourLockTable);
+            markAsWinner(winnerTable);
     /*
             removeLosers(winnerTableName);
      */
-            return winnerTableName;
+            return winnerTable;
         }
 
-        private Optional<String> getCurrentLockTableName() {
+        private Optional<TableReference> getCurrentLockTable() {
             return Optional.empty();
         }
 
-        private String createPossibleLockTable() {
+        private TableReference createPossibleLockTable() {
             try {
-                String tableName = "_locks";
-                cassandraDataStore.createTable(tableName);
-                return tableName;
+                TableReference candidateTable = TableReference.createWithEmptyNamespace("_locks");
+                cassandraDataStore.createTable(candidateTable);
+                return candidateTable;
             } catch (Exception e) {
                 throw Throwables.throwUncheckedException(e);
             }
         }
 
-        private void markAsWinner(String winnerTableName) {
+        private void markAsWinner(TableReference winnerTable) {
             String elected = "elected";
-            cassandraDataStore.put(winnerTableName, elected, elected, elected);
+            cassandraDataStore.put(winnerTable, elected, elected, elected);
         }
     }
 
