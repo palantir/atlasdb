@@ -110,10 +110,18 @@ public class LockTable {
                 cassandraDataStore.allTables().stream()
                         .filter(possibleLockTables())
                         .filter(elected().negate())
-                        .forEach(cassandraDataStore::removeTable);
+                        .forEach(this::removeTable);
             } catch (Exception e) {
                 // TODO log.warn("Failed to clean up non-elected locks tables. The cluster should still run normally.")
                 throw new RuntimeException(e);
+            }
+        }
+
+        private void removeTable(TableReference tableReference) {
+            try {
+                cassandraDataStore.removeTable(tableReference);
+            } catch (Exception e) {
+                // TODO warning
             }
         }
     }

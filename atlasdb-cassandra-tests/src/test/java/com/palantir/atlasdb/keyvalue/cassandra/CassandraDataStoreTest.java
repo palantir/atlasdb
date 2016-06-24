@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.core.IsCollectionContaining.hasItem;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -58,5 +59,16 @@ public class CassandraDataStoreTest {
         cassandraDataStore.put(tableReference, rowName, columnName, value);
 
         assertTrue(cassandraDataStore.valueExists(tableReference, rowName, columnName, value));
+    }
+
+    @Test
+    public void shouldRemoveTable() throws Exception {
+        TableReference tableReference = TableReference.createWithEmptyNamespace("cassandra_data_store_test_remove");
+
+        cassandraDataStore.createTable(tableReference);
+        assertThat(cassandraDataStore.allTables(), hasItem(tableReference));
+
+        cassandraDataStore.removeTable(tableReference);
+        assertThat(cassandraDataStore.allTables(), not(hasItem(tableReference)));
     }
 }

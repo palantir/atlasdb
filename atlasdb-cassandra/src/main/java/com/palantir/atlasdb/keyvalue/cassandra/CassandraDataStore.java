@@ -102,8 +102,13 @@ public class CassandraDataStore {
         });
     }
 
-    public void removeTable(TableReference tableReference) {
-
+    public void removeTable(TableReference tableReference) throws Exception {
+        clientPool.run((FunctionCheckedException<Cassandra.Client, Void, Exception>) client -> {
+            client.set_keyspace(config.keyspace());
+            client.system_drop_column_family(internalTableName(tableReference));
+            CassandraKeyValueServices.waitForSchemaVersions(client, tableReference.getQualifiedName(), config.schemaMutationTimeoutMillis());
+            return null;
+        });
     }
 
     // for tables internal / implementation specific to this KVS; these also don't get metadata in metadata table, nor do they show up in getTablenames, nor does this use concurrency control
