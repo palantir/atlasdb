@@ -74,7 +74,7 @@ public class LockTableTest {
         // TODO have a mock cassandra that assumes this table exists
         when(leaderElector.proposeTableToBeTheCorrectOne(anyString())).thenReturn(electedTableName);
 
-        LockTable lockTable = LockTable.create(config, clientPool, leaderElector);
+        LockTable lockTable = LockTable.create(clientPool, leaderElector, new CassandraDataStore(config, clientPool));
 
         assertThat(lockTable.getLockTable().getTablename(), equalTo(electedTableName));
     }

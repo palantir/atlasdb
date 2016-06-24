@@ -15,18 +15,13 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import static com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.internalTableName;
-
 import java.nio.ByteBuffer;
 import java.util.Optional;
 import java.util.Set;
 
 import org.apache.cassandra.thrift.CASResult;
-import org.apache.cassandra.thrift.Cassandra;
-import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ConsistencyLevel;
-import org.apache.cassandra.thrift.KsDef;
 import org.apache.thrift.TException;
 
 import com.google.common.collect.ImmutableList;
@@ -43,23 +38,23 @@ public class LockTable {
     }
 
     public static LockTable create(CassandraKeyValueServiceConfig config, CassandraClientPool clientPool) {
-        return create(config, clientPool, new LockTableLeaderElector());
+        return create(clientPool, new LockTableLeaderElector(), new CassandraDataStore(config, clientPool));
     }
 
-    public static LockTable create(CassandraKeyValueServiceConfig config, CassandraClientPool clientPool, LockTableLeaderElector leaderElector) {
-        String ref = new LockTableCreator(config, clientPool, leaderElector).create();
+    public static LockTable create(CassandraClientPool clientPool, LockTableLeaderElector leaderElector, CassandraDataStore cassandraDataStore) {
+        String ref = new LockTableCreator(clientPool, leaderElector, cassandraDataStore).create();
         return new LockTable(ref);
     }
 
     private static class LockTableCreator {
-        private final CassandraKeyValueServiceConfig config;
         private final CassandraClientPool clientPool;
         private final LockTableLeaderElector leaderElector;
+        private CassandraDataStore cassandraDataStore;
 
-        public LockTableCreator(CassandraKeyValueServiceConfig config, CassandraClientPool clientPool, LockTableLeaderElector leaderElector) {
-            this.config = config;
+        public LockTableCreator(CassandraClientPool clientPool, LockTableLeaderElector leaderElector, CassandraDataStore cassandraDataStore) {
             this.clientPool = clientPool;
             this.leaderElector = leaderElector;
+            this.cassandraDataStore = cassandraDataStore;
         }
 
         public String create() {
@@ -87,38 +82,11 @@ public class LockTable {
         private String createPossibleLockTable() {
             try {
                 String tableName = "_locks";
-                createTable(tableName);
+                cassandraDataStore.createTable(tableName);
                 return tableName;
             } catch (Exception e) {
                 throw Throwables.throwUncheckedException(e);
             }
-        }
-
-        protected void createTable(String tableName) throws TException {
-            clientPool.run(client -> {
-                createTableInternal(client, TableReference.createWithEmptyNamespace(tableName));
-                return null;
-            });
-        }
-
-        // for tables internal / implementation specific to this KVS; these also don't get metadata in metadata table, nor do they show up in getTablenames, nor does this use concurrency control
-        private void createTableInternal(Cassandra.Client client, TableReference tableRef) throws TException {
-            if (tableAlreadyExists(client, internalTableName(tableRef))) {
-                return;
-            }
-            CfDef cf = CassandraConstants.getStandardCfDef(config.keyspace(), internalTableName(tableRef));
-            client.system_add_column_family(cf);
-            CassandraKeyValueServices.waitForSchemaVersions(client, tableRef.getQualifiedName(), config.schemaMutationTimeoutMillis());
-        }
-
-        private boolean tableAlreadyExists(Cassandra.Client client, String caseInsensitiveTableName) throws TException {
-            KsDef ks = client.describe_keyspace(config.keyspace());
-            for (CfDef cf : ks.getCf_defs()) {
-                if (cf.getName().equalsIgnoreCase(caseInsensitiveTableName)) {
-                    return true;
-                }
-            }
-            return false;
         }
 
         // TODO - this fails for some reason, "java.lang.RuntimeException: InvalidRequestException(why:Not enough bytes to read value of component 0)"
