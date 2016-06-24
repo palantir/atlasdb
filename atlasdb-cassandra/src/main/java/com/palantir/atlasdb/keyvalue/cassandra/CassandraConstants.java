@@ -26,7 +26,6 @@ import org.apache.cassandra.thrift.TriggerDef;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public class CassandraConstants {
