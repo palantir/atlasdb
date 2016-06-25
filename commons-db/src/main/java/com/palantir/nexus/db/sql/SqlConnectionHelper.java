@@ -600,7 +600,24 @@ public final class SqlConnectionHelper {
     void clearTempTable(Connection c, String tempTable, ClearStyle clearStyle)
             throws PalantirSqlException {
         attemptToClearTempTable(c, tempTable, clearStyle);
-        assert verifyTableCleared(c, tempTable, clearStyle);
+        if (ClearStyle.TRUNCATE.equals(clearStyle)) {
+            // We have noticed that TRUNCATE can fail silently on Oracle SE 11.2.0.4.0
+            // So we must always confirm
+            if (!isTableEmpty(c, tempTable)) {
+                log.error(
+                        String.format("On first attempt, did not clear temp table %s using style TRUNCATE.  Retrying.",
+                        tempTable));
+                attemptToClearTempTable(c, tempTable, clearStyle);
+                if (!isTableEmpty(c, tempTable)) {
+                    throw new RuntimeException(
+                            String.format("On multiple attempts with clear style TRUNCATE, did not clear temp table %s",
+                                    tempTable));
+                }
+            }
+        } else {
+            // We have never seen DELETE fail silently, so we will only confirm if assertions are enabled.
+            assert verifyTableCleared(c, tempTable, clearStyle);
+        }
     }
 
     private void attemptToClearTempTable(Connection c, String tempTable, ClearStyle clearStyle) {
@@ -611,6 +628,10 @@ public final class SqlConnectionHelper {
         } else {
             throw new UnsupportedOperationException();
         }
+    }
+
+    private boolean isTableEmpty(Connection c, String table) {
+        return !selectExistsUnregisteredQuery(c, "SELECT 1 from " + table);
     }
 
     /**
