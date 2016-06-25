@@ -364,8 +364,7 @@ public class BasicSQLUtils {
     }
 
     /**
-     * Attempts to close the specified connection and catchesa and logs any
-     * exception thrown.
+     * Attempts to close the specified connection and logs any exceptions.
      *
      * @param connection the connection being closed.
      */
