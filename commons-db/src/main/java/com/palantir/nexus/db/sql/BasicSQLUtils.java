@@ -379,4 +379,5 @@ public class BasicSQLUtils {
                 SqlLoggers.SQL_EXCEPTION_LOG.debug("Error occurred while closing connection", e);
             }
         }
-    }}
+    }
+}
