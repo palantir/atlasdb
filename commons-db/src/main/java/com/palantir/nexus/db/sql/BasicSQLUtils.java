@@ -362,4 +362,21 @@ public class BasicSQLUtils {
             throw (PalantirSqlException) t;
         }
     }
-}
+
+    /**
+     * Attempts to close the specified connection and catchesa and logs any
+     * exception thrown.
+     *
+     * @param connection the connection being closed.
+     */
+    public static void close(Connection connection) {
+        try {
+            if (connection != null) {
+                connection.close();
+            }
+        } catch (Exception e) {
+            if (SqlLoggers.SQL_EXCEPTION_LOG.isDebugEnabled()) {
+                SqlLoggers.SQL_EXCEPTION_LOG.debug("Error occurred while closing connection", e);
+            }
+        }
+    }}
