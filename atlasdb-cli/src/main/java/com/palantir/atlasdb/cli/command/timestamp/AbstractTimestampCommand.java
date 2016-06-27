@@ -43,7 +43,7 @@ public abstract class AbstractTimestampCommand extends SingleBackendCommand {
             type = OptionType.GROUP,
             description = "Write/Read the timestamp for this command via the specified file.")
     private File file;
-    
+
     @Option(name = {"-t", "--timestamp"},
             title = "TIMESTAMP",
             type = OptionType.GROUP,
@@ -51,15 +51,15 @@ public abstract class AbstractTimestampCommand extends SingleBackendCommand {
     Long timestamp;
 
     protected abstract boolean requireTimestamp();
-    
+
     protected abstract int executeTimestampCommand(AtlasDbServices services);
-    
+
     @Override
     public int execute(AtlasDbServices services) {
         initialize();
         return executeTimestampCommand(services);
     }
-    
+
     private void initialize() {
         if (!requireTimestamp() && timestamp != null) {
             throw new IllegalArgumentException("This command does not require an input timestamp but you specified one.");
