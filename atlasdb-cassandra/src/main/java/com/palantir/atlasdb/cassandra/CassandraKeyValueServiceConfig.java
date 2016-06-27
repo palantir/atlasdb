@@ -137,5 +137,6 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
             Preconditions.checkState(addr.getPort() > 0, "each server must specify a port ([host]:[port])");
         }
         Preconditions.checkNotNull(keyspace(), "'keyspace' must be specified");
+        Preconditions.checkState(servers().size() >= replicationFactor(), "'replicationFactor' is greater than the number or available servers");
     }
 }
