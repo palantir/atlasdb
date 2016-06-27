@@ -18,6 +18,7 @@ package com.palantir.atlasdb.cli;
 import java.util.concurrent.Callable;
 
 import com.palantir.atlasdb.cli.command.CleanTransactionRange;
+import com.palantir.atlasdb.cli.command.FastForwardTimestamp;
 import com.palantir.atlasdb.cli.command.KvsMigrationCommand;
 import com.palantir.atlasdb.cli.command.SweepCommand;
 import com.palantir.atlasdb.cli.command.TimestampCommand;
@@ -36,7 +37,8 @@ public class AtlasCli {
                         TimestampCommand.class,
                         CleanTransactionRange.class,
                         SweepCommand.class,
-                        KvsMigrationCommand.class);
+                        KvsMigrationCommand.class,
+                        FastForwardTimestamp.class);
         return builder.build();
     }
 
