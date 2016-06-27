@@ -15,71 +15,81 @@
  */
 package com.palantir.atlasdb.cli.command;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+
+import org.apache.commons.lang.StringUtils;
+
+import com.google.common.base.Throwables;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.io.Files;
 import com.palantir.atlasdb.cli.services.AtlasDbServices;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
-import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.base.ClosableIterator;
-import com.palantir.timestamp.PersistentTimestampService;
-import com.palantir.timestamp.TimestampService;
 
 import io.airlift.airline.Command;
 import io.airlift.airline.Option;
 
-@Command(name = "clean-transactions", description = "Clean a recently restored backup of a transaction table from an underlying database that lacks PITR backup semantics.")
+@Command(name = "clean-transactions", description = "Clean a recently restored backup of a transaction table "
+        + "from an underlying database that lacks PITR backup semantics.  Deletes all transactions with a "
+        + "commit timestamp greater than the timestamp provided.")
 public class CleanTransactionRange extends SingleBackendCommand {
 
-    @Option(name = {"-s", "--start"},
-            title = "START_TIMESTAMP",
-            description = "Start timestamp; will cleanup transactions after (but not including) this timestamp",
-            required = true)
-    long startTimestampExclusive;
+    @Option(name = {"-t", "--timestamp"},
+            title = "TIMESTAMP",
+            description = "Timestamp for which all transactions with greater commit timestamps will be deleted")
+    Long backupTimestamp;
+
+    @Option(name = {"-f", "--file"},
+            title = "TIMESTAMP_FILE",
+            description = "A file containing the timestamp for which all transactions with greater commit timestamps will be deleted")
+    File backupFile;
 
     @Override
     public int execute(AtlasDbServices services) {
-        long immutable = services.getTransactionManager().getImmutableTimestamp();
-        TimestampService ts = services.getTimestampService();
-        if(!isValid(immutable, ts)) {
-            return 1;
+        validateOptions();
+        if (backupFile != null) {
+            setBackupTimestampFromFile();
         }
 
-        PersistentTimestampService pts = (PersistentTimestampService) ts;
         KeyValueService kvs = services.getKeyValueService();
 
-        byte[] startRowInclusive = RangeRequests.nextLexicographicName(TransactionConstants.getValueForTimestamp(startTimestampExclusive));
+        byte[] startRowInclusive = TransactionConstants.getValueForTimestamp(backupTimestamp);
         ClosableIterator<RowResult<Value>> range = kvs.getRange(
                 TransactionConstants.TRANSACTION_TABLE,
                 RangeRequest.builder()
-                .startRowInclusive(startRowInclusive)
-                .build(),
+                        .startRowInclusive(startRowInclusive)
+                        .build(),
                 Long.MAX_VALUE);
 
         Multimap<Cell, Long> toDelete = HashMultimap.create();
-        long maxTimestamp = startTimestampExclusive;
         while (range.hasNext()) {
             RowResult<Value> row = range.next();
             byte[] rowName = row.getRowName();
-            long startResult = TransactionConstants.getTimestampForValue(rowName);
-            maxTimestamp = Math.max(maxTimestamp, startResult);
+            long startTs = TransactionConstants.getTimestampForValue(rowName);
 
             Value value;
             try {
                 value = row.getOnlyColumnValue();
             } catch (IllegalStateException e){
                 //this should never happen
-                System.out.printf("Error: Found a row in the transactions table that didn't have 1 and only 1 column value: start=%d%n", startResult);
+                System.err.printf("Error: Found a row in the transactions table that didn't have 1 and only 1 column value: start=%d\n", startTs);
                 continue;
             }
 
-            long endResult = TransactionConstants.getTimestampForValue(value.getContents());
-            maxTimestamp = Math.max(maxTimestamp, endResult);
-            System.out.printf("Found and cleaning possibly inconsistent transaction: [start=%d, commit=%d]%n", startResult, endResult);
+            long commitTs = TransactionConstants.getTimestampForValue(value.getContents());
+            if (commitTs <= backupTimestamp) {
+                continue; // this is a valid transaction
+            }
+
+            System.out.printf("Found and cleaning possibly inconsistent transaction: [start=%d, commit=%d]\n", startTs, commitTs);
 
             Cell key = Cell.create(rowName, TransactionConstants.COMMIT_TS_COLUMN);
             toDelete.put(key, value.getTimestamp());  //value.getTimestamp() should always be 0L but this is safer
@@ -88,31 +98,28 @@ public class CleanTransactionRange extends SingleBackendCommand {
         if (!toDelete.isEmpty()) {
             kvs.delete(TransactionConstants.TRANSACTION_TABLE, toDelete);
             System.out.println("Delete completed.");
-
-            pts.fastForwardTimestamp(maxTimestamp+1);
-            System.out.printf("Timestamp succesfully forwarded past all cleaned/deleted transactions to %d%n", maxTimestamp);
         } else {
-            System.out.println("Found no transactions inside the given range to clean up or delete.");
+            System.out.println("Found no transactions after the given timestamp to delete.");
         }
 
         return 0;
     }
 
-    private boolean isValid(long immutableTimestamp, TimestampService ts) {
-        boolean isValid = true;
-
-        if (immutableTimestamp <= startTimestampExclusive) {
-            System.err.println("Error: There are no commited transactions in this range");
-            isValid &= false;
+    private void validateOptions() {
+        if ((backupTimestamp == null && backupFile == null)
+                || (backupTimestamp != null && backupFile != null)) {
+            throw new IllegalArgumentException("You must specify one and only one of either a timestamp or a timestamp file.");
         }
-
-        if (!(ts instanceof PersistentTimestampService)) {
-            System.err.printf("Error: Restoring timestamp service must be of type %s, but yours is %s%n",
-                    PersistentTimestampService.class.toString(), ts.getClass().toString());
-            isValid &= false;
-        }
-
-        return isValid;
     }
 
+    private void setBackupTimestampFromFile() {
+        String backupTimestampString;
+        try {
+            backupTimestampString = StringUtils.strip(Files.readFirstLine(backupFile, StandardCharsets.UTF_8));
+        } catch (IOException e) {
+            System.err.printf("IOException thrown reading backup timestamp from file: %s\n", backupFile.getPath());
+            throw Throwables.propagate(e);
+        }
+        backupTimestamp = Long.parseLong(backupTimestampString);
+    }
 }
