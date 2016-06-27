@@ -35,7 +35,7 @@ public class FetchTimestamp extends AbstractTimestampCommand {
 
     @Option(name = {"-i", "--immutable"},
             type = OptionType.COMMAND,
-    		description = "Get the current immutable timestamp, instead of a fresh one.")
+            description = "Get the current immutable timestamp, instead of a fresh one.")
     private boolean immutable;
 
     @Option(name = {"-d", "--date-time"},

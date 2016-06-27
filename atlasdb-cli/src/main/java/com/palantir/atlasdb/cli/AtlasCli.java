@@ -41,7 +41,7 @@ public class AtlasCli {
                         Help.class,
                         SweepCommand.class,
                         KvsMigrationCommand.class);
-        
+
         builder.withGroup("timestamp")
                 .withDescription("Timestamp-centric commands")
                 .withDefaultCommand(Help.class)
@@ -49,7 +49,7 @@ public class AtlasCli {
                         FetchTimestamp.class,
                         CleanTransactionRange.class,
                         FastForwardTimestamp.class);
-        
+
         return builder.build();
     }
 
