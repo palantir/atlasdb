@@ -39,7 +39,7 @@ public class SimpleDbMetadataTable implements DbMetadataTable {
     public boolean exists() {
         return conns.get().selectExistsUnregisteredQuery(
                 "SELECT 1 FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?",
-                tableName);
+                tableName.toLowerCase());
     }
 
     @Override
@@ -47,7 +47,7 @@ public class SimpleDbMetadataTable implements DbMetadataTable {
     public byte[] getMetadata() {
         AgnosticResultSet results = conns.get().selectResultSetUnregisteredQuery(
                 "SELECT value FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?",
-                tableName);
+                tableName.toLowerCase());
         if (results.size() < 1) {
             return PtBytes.EMPTY_BYTE_ARRAY;
         } else {
@@ -63,6 +63,6 @@ public class SimpleDbMetadataTable implements DbMetadataTable {
         conns.get().updateUnregisteredQuery(
                 "UPDATE " + config.metadataTable().getQualifiedName() + " SET value = ? WHERE table_name = ?",
                 metadata,
-                tableName);
+                tableName.toLowerCase());
     }
 }

@@ -49,7 +49,7 @@ public class OracleDdlTable implements DbDdlTable {
     public void create(byte[] tableMetadata) {
         if (conns.get().selectExistsUnregisteredQuery(
                 "SELECT 1 FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?",
-                tableName.getQualifiedName())) {
+                tableName.getQualifiedName().toLowerCase())) {
             return;
         }
 
@@ -80,7 +80,7 @@ public class OracleDdlTable implements DbDdlTable {
         }
         conns.get().insertOneUnregisteredQuery(
                 "INSERT INTO " + config.metadataTable().getQualifiedName() + " (table_name, table_size) VALUES (?, ?)",
-                tableName.getQualifiedName(),
+                tableName.getQualifiedName().toLowerCase(),
                 (needsOverflow ? TableSize.OVERFLOW.getId() : TableSize.RAW.getId()));
     }
 
@@ -89,7 +89,7 @@ public class OracleDdlTable implements DbDdlTable {
         executeIgnoringError("DROP TABLE " + prefixedTableName() + " PURGE", "ORA-00942");
         executeIgnoringError("DROP TABLE " + prefixedOverflowTableName() + " PURGE", "ORA-00942");
         conns.get().executeUnregisteredQuery(
-                "DELETE FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?", tableName.getQualifiedName());
+                "DELETE FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?", tableName.getQualifiedName().toLowerCase());
     }
 
     @Override

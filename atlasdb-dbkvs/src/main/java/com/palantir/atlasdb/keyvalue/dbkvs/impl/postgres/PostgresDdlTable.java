@@ -46,7 +46,7 @@ public class PostgresDdlTable implements DbDdlTable {
     public void create(byte[] tableMetadata) {
         if (conns.get().selectExistsUnregisteredQuery(
                 "SELECT 1 FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?",
-                tableName.getQualifiedName())) {
+                tableName.getQualifiedName().toLowerCase())) {
             return;
         }
         executeIgnoringError(
@@ -60,7 +60,7 @@ public class PostgresDdlTable implements DbDdlTable {
                 "already exists");
         conns.get().insertOneUnregisteredQuery(
                 "INSERT INTO " + config.metadataTable().getQualifiedName() + " (table_name, table_size) VALUES (?, ?)",
-                tableName.getQualifiedName(),
+                tableName.getQualifiedName().toLowerCase(),
                 TableSize.RAW.getId());
     }
 
@@ -68,7 +68,7 @@ public class PostgresDdlTable implements DbDdlTable {
     public void drop() {
         executeIgnoringError("DROP TABLE " + prefixedTableName(), "does not exist");
         conns.get().executeUnregisteredQuery(
-                "DELETE FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?", tableName.getQualifiedName());
+                "DELETE FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?", tableName.getQualifiedName().toLowerCase());
     }
 
     @Override
