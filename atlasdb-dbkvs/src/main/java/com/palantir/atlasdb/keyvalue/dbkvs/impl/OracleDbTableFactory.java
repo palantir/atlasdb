@@ -102,11 +102,11 @@ public class OracleDbTableFactory implements DbTableFactory {
                 public TableSize call() {
                     AgnosticResultSet results = conns.get().selectResultSetUnregisteredQuery(
                             "SELECT table_size FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?",
-                            tableName);
+                            tableName.toLowerCase());
                     Preconditions.checkArgument(
                             !results.rows().isEmpty(),
                             "table %s not found",
-                            tableName);
+                            tableName.toLowerCase());
                     return TableSize.byId(results.get(0).getInteger("table_size"));
                 }
             });
