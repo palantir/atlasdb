@@ -15,6 +15,7 @@ dependencies {
     compile project(':lock-impl')
     compile project(':leader-election-impl')
     compile project(':atlasdb-config')
+    compile project(':atlasdb-dropwizard-bundle')
     compile project(':atlasdb-hikari')
     compile project(':atlasdb-rocksdb')
 

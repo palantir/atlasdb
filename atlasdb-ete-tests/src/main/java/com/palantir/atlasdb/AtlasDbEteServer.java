@@ -17,6 +17,7 @@ package com.palantir.atlasdb;
 
 import com.palantir.atlasdb.cas.CheckAndSetClient;
 import com.palantir.atlasdb.cas.SimpleCheckAndSetResource;
+import com.palantir.atlasdb.dropwizard.AtlasDbBundle;
 import com.palantir.atlasdb.todo.SimpleTodoResource;
 import com.palantir.atlasdb.todo.TodoClient;
 
@@ -34,6 +35,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
     @Override
     public void initialize(Bootstrap<AtlasDbEteConfiguration> bootstrap) {
         enableEnvironmentVariablesInConfig(bootstrap);
+        bootstrap.addBundle(new AtlasDbBundle<>());
     }
 
     @Override
