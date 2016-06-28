@@ -346,6 +346,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         } catch (PaxosRoundFailureException e) {
             // We have failed trying to become the leader.
             leaderLog.warn("Leadership was not gained");
+            leaderLog.debug("Leadership was not gained because this Paxos round failed: ", e);
             return;
         } finally {
             lock.unlock();
