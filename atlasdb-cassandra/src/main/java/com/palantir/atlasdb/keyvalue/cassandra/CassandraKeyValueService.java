@@ -511,8 +511,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 byte[] col = CassandraKeyValueServices.decomposeName(e.getValue()).getLhSide();
                 // If we read a version of the cell before our start timestamp, it will be the most recent version readable to
                 // us and we can continue to the next column. Otherwise we have to continue reading this column.
-                boolean completedCell = results.containsKey(row) && results.get(row).containsKey(Cell.create(row, col));
-                boolean endOfRange = isEndOfColumnRange(completedCell, col, columnRangeSelection.getEndCol());
+                LinkedHashMap<Cell, Value> rowResult = results.get(row);
+                boolean completedCell = (rowResult != null) && rowResult.containsKey(Cell.create(row, col));
+                boolean endOfRange = isEndOfColumnRange(completedCell, col, firstPage.getRowsToRawColumnCount().get(row), columnRangeSelection);
                 if (!endOfRange) {
                     byte[] nextCol = getNextColumnRangeColumn(completedCell, col);
                     incompleteRowsToNextColumns.put(row, nextCol);
@@ -617,6 +618,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                         ColumnParent colFam = new ColumnParent(internalTableName(tableRef));
                         Map<ByteBuffer, List<ColumnOrSuperColumn>> results = multigetInternal(client, tableRef,
                                 ImmutableList.of(rowByteBuffer), colFam, pred, readConsistency);
+
                         if (results.isEmpty()) {
                             return SimpleTokenBackedResultsPage.create(startCol, ImmutableList.<Entry<Cell, Value>>of(), false);
                         }
@@ -629,8 +631,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                         ColumnOrSuperColumn lastColumn = values.get(values.size() - 1);
                         byte[] lastCol = CassandraKeyValueServices.decomposeName(lastColumn.getColumn()).getLhSide();
                         // Same idea as the getRows case to handle seeing only newer entries of a column
-                        boolean completedCell = ret.containsKey(Cell.create(row, lastCol));
-                        if (isEndOfColumnRange(completedCell, lastCol, columnRangeSelection.getEndCol())) {
+                        boolean completedCell = ret.get(Cell.create(row, lastCol)) != null;
+                        if (isEndOfColumnRange(completedCell, lastCol, values.size(), columnRangeSelection)) {
                             return SimpleTokenBackedResultsPage.create(lastCol, ret.entrySet(), false);
                         }
                         byte[] nextCol = getNextColumnRangeColumn(completedCell, lastCol);
@@ -647,8 +649,12 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         }.iterator());
     }
 
-    private boolean isEndOfColumnRange(boolean completedCell, byte[] lastCol, byte[] endCol) {
-        return completedCell && (RangeRequests.isLastRowName(lastCol) || Arrays.equals(RangeRequests.nextLexicographicName(lastCol), endCol));
+    private boolean isEndOfColumnRange(boolean completedCell, byte[] lastCol, int numRawResults,
+                                       ColumnRangeSelection columnRangeSelection) {
+        return (numRawResults < columnRangeSelection.getBatchHint()) ||
+                (completedCell &&
+                        (RangeRequests.isLastRowName(lastCol)
+                                || Arrays.equals(RangeRequests.nextLexicographicName(lastCol), columnRangeSelection.getEndCol())));
     }
 
     private byte[] getNextColumnRangeColumn(boolean completedCell, byte[] lastCol) {

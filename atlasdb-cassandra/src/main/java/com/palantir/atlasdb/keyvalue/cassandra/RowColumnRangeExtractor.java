@@ -35,11 +35,16 @@ class RowColumnRangeExtractor {
         private final Map<byte[], LinkedHashMap<Cell, Value>> results;
         private final Map<byte[], Column> rowsToLastCompositeColumns;
         private final Set<byte[]> emptyRows;
+        private final Map<byte[], Integer> rowsToRawColumnCount;
 
-        public RowColumnRangeResult(Map<byte[], LinkedHashMap<Cell, Value>> results, Map<byte[], Column> rowsToLastCompositeColumns, Set<byte[]> emptyRows) {
+        public RowColumnRangeResult(Map<byte[], LinkedHashMap<Cell, Value>> results,
+                                    Map<byte[], Column> rowsToLastCompositeColumns,
+                                    Set<byte[]> emptyRows,
+                                    Map<byte[], Integer> rowsToRawColumnCount) {
             this.results = results;
             this.rowsToLastCompositeColumns = rowsToLastCompositeColumns;
             this.emptyRows = emptyRows;
+            this.rowsToRawColumnCount = rowsToRawColumnCount;
         }
 
         public Map<byte[], LinkedHashMap<Cell, Value>> getResults() {
@@ -53,10 +58,15 @@ class RowColumnRangeExtractor {
         public Set<byte[]> getEmptyRows() {
             return emptyRows;
         }
+
+        public Map<byte[], Integer> getRowsToRawColumnCount() {
+            return rowsToRawColumnCount;
+        }
     }
 
     private final Map<byte[], LinkedHashMap<Cell, Value>> collector = Maps.newHashMap();
     private final Map<byte[], Column> rowsToLastCompositeColumns = Maps.newHashMap();
+    private final Map<byte[], Integer> rowsToRawColumnCount = Maps.newHashMap();
     private final Set<byte[]> emptyRows = Sets.newHashSet();
 
     public void extractResults(Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey,
@@ -69,6 +79,7 @@ class RowColumnRangeExtractor {
             } else {
                 emptyRows.add(row);
             }
+            rowsToRawColumnCount.put(row, columns.size());
             for (ColumnOrSuperColumn c : colEntry.getValue()) {
                 Pair<byte[], Long> pair = CassandraKeyValueServices.decomposeName(c.column);
                 internalExtractResult(startTs, row, pair.lhSide, c.column.getValue(), pair.rhSide);
@@ -93,6 +104,6 @@ class RowColumnRangeExtractor {
     }
 
     public RowColumnRangeResult getRowColumnRangeResult() {
-        return new RowColumnRangeResult(collector, rowsToLastCompositeColumns, emptyRows);
+        return new RowColumnRangeResult(collector, rowsToLastCompositeColumns, emptyRows, rowsToRawColumnCount);
     }
 }

@@ -50,6 +50,10 @@ class BatchSizeIncreasingIterator<T> {
         Preconditions.checkArgument(originalBatchSize > 0);
         this.batchProvider = batchProvider;
         this.originalBatchSize = originalBatchSize;
+        this.currentResults = currentResults;
+        if (currentResults != null) {
+            this.lastBatchSize = originalBatchSize;
+        }
     }
 
     public void markNumResultsNotDeleted(int resultsInBatch) {
@@ -78,7 +82,10 @@ class BatchSizeIncreasingIterator<T> {
             return;
         }
 
-        Preconditions.checkState(lastToken != null);
+        // We have current results and have not read them.
+        if (lastToken == null) {
+            return;
+        }
 
         // If the last row we got was the maximal row, then we are done.
         if (!batchProvider.hasNext(lastToken)) {
