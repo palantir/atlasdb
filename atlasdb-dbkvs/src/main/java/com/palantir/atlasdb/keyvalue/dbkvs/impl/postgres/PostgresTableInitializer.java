@@ -53,6 +53,10 @@ public class PostgresTableInitializer implements DbTableInitializer {
                         "  CONSTRAINT pk_" + metadataTableName + " PRIMARY KEY (table_name) " +
                         ")",
                 "already exists");
+
+        executeIgnoringError(
+                "CREATE UNIQUE INDEX unique_lower_case_" + metadataTableName + "_index ON " + metadataTableName + " (lower(table_name))",
+                "already exists");
     }
 
     private void executeIgnoringError(String sql, String errorToIgnore) {
