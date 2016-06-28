@@ -20,6 +20,25 @@ Changelog
 .. toctree::
   :hidden:
 
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.7.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - The in-memory key-value store now makes defensive copies of any data stored or retrieved.
+           This may lead to a slight performance degradation to users of InMemoryKVS (#552)
+
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
@@ -53,12 +72,12 @@ v0.6.0
         - A potential race condition could cause timestamp allocation to never complete on a particular node (#462)
 
     *   - |fixed|
-        - An innocuous error was logged once for each TransactionManager about not being able to allocate 
+        - An innocuous error was logged once for each TransactionManager about not being able to allocate
           enough timestamps. The error has been downgraded to INFO and made less scary.
 
     *   - |fixed|
         - Serializable Transactions that read a column selection could consistently report conflicts when there were none.
-    
+
     *   - |fixed|
         - An excessively long Cassandra related logline was sometimes printed (#501)
 
