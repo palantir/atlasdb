@@ -32,11 +32,12 @@ dependencies {
         exclude(module:'snakeyaml')
         exclude(module:'hibernate-validator')
         exclude(module:'libthrift')
+        exclude(module:'commons-cli')
     }
 
     compile 'org.apache.thrift:libthrift:' + libVersions.libthrift
 
-    processor 'org.immutables:value:2.0.21'
+    processor 'org.immutables:value:' + libVersions.immutables
     processor('com.google.dagger:dagger-compiler:2.0.2') {
         // We need to explicitly exclude these so that intellij does not label them as provided
         if(gradle.startParameter.taskNames.contains('idea')) {
