@@ -17,6 +17,7 @@
 package com.palantir.nexus.db;
 
 import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.concurrent.Callable;
@@ -25,6 +26,7 @@ import javax.annotation.concurrent.GuardedBy;
 
 import org.apache.commons.lang.Validate;
 
+import com.google.common.base.Throwables;
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.palantir.common.proxy.DelegatingInvocationHandler;
 import com.palantir.util.AssertUtils;
@@ -127,7 +129,13 @@ public class ThreadConfinedProxy extends AbstractInvocationHandler implements De
     @Override
     protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
         checkThread(method);
-        return method.invoke(delegate, args);
+        try {
+            return method.invoke(delegate, args);
+        } catch (InvocationTargetException e) {
+            throw e.getCause();
+        } catch (IllegalAccessException e) {
+            throw Throwables.propagate(e);
+        }
     }
 
     /*
