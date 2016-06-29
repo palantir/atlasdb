@@ -93,10 +93,10 @@ public class CassandraConstants {
             CassandraConstants.LOCK_TABLE,
             AtlasDbConstants.METADATA_TABLE);
 
-    public static String GLOBAL_DDL_LOCK = "Global DDL lock";
-    public static String GLOBAL_DDL_LOCK_COLUMN_NAME = "id_with_lock";
-    public static long TIME_BETWEEN_LOCK_ATTEMPT_ROUNDS_MILLIS = 1000;
-    public static long GLOBAL_DDL_LOCK_CLEARED_VALUE = Long.MAX_VALUE;
+    public static final String GLOBAL_DDL_LOCK = "Global DDL lock";
+    public static final String GLOBAL_DDL_LOCK_COLUMN_NAME = "id_with_lock";
+    public static final long TIME_BETWEEN_LOCK_ATTEMPT_ROUNDS_MILLIS = 1000;
+    public static final long GLOBAL_DDL_LOCK_CLEARED_VALUE = Long.MAX_VALUE;
 
     // update CKVS.isMatchingCf if you update this method
     static CfDef getStandardCfDef(String keyspace, String internalTableName) {

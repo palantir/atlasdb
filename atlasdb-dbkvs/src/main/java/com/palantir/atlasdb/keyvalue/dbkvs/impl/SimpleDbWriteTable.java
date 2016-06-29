@@ -26,18 +26,18 @@ import com.google.common.collect.Ordering;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.ExceptionCheck;
 
 public class SimpleDbWriteTable implements DbWriteTable {
     protected final String tableName;
     protected final ConnectionSupplier conns;
-    protected final DbKeyValueServiceConfig config;
+    protected final DdlConfig config;
 
     public SimpleDbWriteTable(String tableName,
                               ConnectionSupplier conns,
-                              DbKeyValueServiceConfig config) {
+                              DdlConfig config) {
         this.tableName = tableName;
         this.conns = conns;
         this.config = config;
@@ -131,6 +131,6 @@ public class SimpleDbWriteTable implements DbWriteTable {
     }
 
     private String prefixedTableName() {
-        return config.shared().tablePrefix() + tableName;
+        return config.tablePrefix() + tableName;
     }
 }

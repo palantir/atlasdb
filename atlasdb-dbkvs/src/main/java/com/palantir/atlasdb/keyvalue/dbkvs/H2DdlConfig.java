@@ -24,17 +24,18 @@ import com.google.common.base.Supplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbTableFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.PostgresDbTableFactory;
 
-@JsonDeserialize(as = ImmutablePostgresKeyValueServiceConfig.class)
-@JsonSerialize(as = ImmutablePostgresKeyValueServiceConfig.class)
-@JsonTypeName(PostgresKeyValueServiceConfig.TYPE)
+@JsonDeserialize(as = ImmutableH2DdlConfig.class)
+@JsonSerialize(as = ImmutableH2DdlConfig.class)
+@JsonTypeName(H2DdlConfig.TYPE)
 @Value.Immutable
-public abstract class PostgresKeyValueServiceConfig extends DbKeyValueServiceConfig {
+public abstract class H2DdlConfig extends DdlConfig {
 
-    public static final String TYPE = "postgres";
+    public static final String TYPE = "h2";
 
     @Override
     public Supplier<DbTableFactory> tableFactorySupplier() {
-        return () -> new PostgresDbTableFactory(this);
+        return () -> new PostgresDbTableFactory(
+                ImmutablePostgresDdlConfig.builder().from(this).build());
     }
 
     @Override

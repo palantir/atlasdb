@@ -1,5 +1,9 @@
 apply from: "../gradle/shared.gradle"
 
+sourceCompatibility = 1.6
+targetCompatibility = 1.6
+ideaSetModuleLevel(idea, targetCompatibility)
+
 dependencies {
   compile project(":commons-api")
   compile project(":commons-proxy")

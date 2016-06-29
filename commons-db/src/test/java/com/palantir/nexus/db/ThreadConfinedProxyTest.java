@@ -15,6 +15,7 @@
  */
 package com.palantir.nexus.db;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -243,6 +244,55 @@ public class ThreadConfinedProxyTest extends Assert {
 
         // We got delegated back, so we can use subject again
         assertEquals(testString, Iterables.getOnlyElement(subject));
+    }
+
+    @Test
+    public void testPropagateExceptions() throws SQLException {
+
+        IThingThatThrows thing = ThreadConfinedProxy.newProxyInstance(IThingThatThrows.class, new ThingThatThrows(),
+                ThreadConfinedProxy.Strictness.VALIDATE);
+
+        assertEquals(1, thing.doStuff(IThingThatThrows.Behavior.RETURN_ONE));
+
+        try {
+            thing.doStuff(IThingThatThrows.Behavior.THROW_RUNTIME);
+            fail("Should throw Runtime Exception");
+        } catch (RuntimeException e) {
+            // OK
+        }
+
+        try {
+            thing.doStuff(IThingThatThrows.Behavior.THROW_SQL);
+            fail("Should throw SQL Exception");
+        } catch (SQLException e) {
+            // OK
+        }
+
+
+    }
+
+    private interface IThingThatThrows {
+
+        enum Behavior {RETURN_ONE, THROW_RUNTIME, THROW_SQL;}
+
+        int doStuff(Behavior b) throws SQLException;
+
+    }
+
+    private class ThingThatThrows implements IThingThatThrows {
+        @Override
+        public int doStuff(Behavior b) throws SQLException {
+            switch (b) {
+                case RETURN_ONE:
+                    return 1;
+                case THROW_RUNTIME:
+                    throw new RuntimeException("Runtime");
+                case THROW_SQL:
+                    throw new SQLException("SQL");
+                default:
+                    return 0;
+            }
+        }
     }
 
     private class DelegatingArrayListString implements List<String>, Delegator<List<String>> {

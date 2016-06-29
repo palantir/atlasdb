@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.rocksdb;
 
+import com.google.auto.service.AutoService;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
@@ -28,6 +29,7 @@ import com.palantir.atlasdb.versions.AtlasDbVersion;
 import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.TimestampService;
 
+@AutoService(AtlasDbFactory.class)
 public class RocksDbAtlasDbFactory implements AtlasDbFactory {
 
     @Override

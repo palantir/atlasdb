@@ -13,14 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.endpoint;
+package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import java.io.File;
+import java.io.IOException;
 
-import io.dropwizard.Configuration;
+import org.junit.Test;
 
-public class EndpointServerConfiguration extends Configuration {
+import com.palantir.atlasdb.config.AtlasDbConfigs;
 
-    public JsonNode extraConfig;
-
+public class TestConfigLoading {
+    @Test
+    public void testLoadingConfig() throws IOException {
+        AtlasDbConfigs.load(new File(getClass().getClassLoader().getResource("postgresTestConfig.yml").getFile()));
+    }
 }

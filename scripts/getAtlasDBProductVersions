@@ -1,0 +1,61 @@
+#!/usr/local/bin/python
+
+import requests
+import json
+import base64
+import sys
+import re
+
+def usage():
+    print('usage: ' + sys.argv[0] + ' <github domain> <github username> <github oauth token>')
+
+if len(sys.argv) != 4:
+    usage()
+    exit()
+
+protocol = 'https://'
+baseUrl = '/api/v3/'
+domain = sys.argv[1]
+githubUrl = protocol + domain + baseUrl
+repoUrl = githubUrl + 'repos/'
+auth = (sys.argv[2], sys.argv[3])
+
+def getAtlasVersion(res):
+    jsonRes = json.loads(res.text)
+    decodedContent = base64.b64decode(jsonRes['content'])
+    match = re.search('atlasVersion|atlasDbVersion', decodedContent)
+    return decodedContent[match.start():].splitlines()[0]
+
+def requestFile(repo, tag, filePath):
+    return requests.get(repoUrl + repo + '/contents/' + filePath + '?ref=' + tag, auth=auth);
+
+def getReleases(repo):
+    res = requests.get(repoUrl + repo + '/releases', auth=auth)
+    jsonRes = json.loads(res.text)
+    if len(jsonRes) == 0:
+        print(repo + ' has no releases')
+    return jsonRes
+
+def getProducts(searchTerms):
+    res = requests.get(githubUrl + 'search/code?q=' + searchTerms, auth=auth);
+    jsonRes = json.loads(res.text)
+    print('Found ' + str(jsonRes['total_count']) + ' repos referencing ' + searchTerms + ':');
+    repos = []
+    for searchResult in jsonRes['items']:
+        repo = searchResult['repository']['full_name'];
+        print(repo)
+        repos.append(repo)
+    return repos
+
+print('Fetching products using AtlasDB')
+
+products = getProducts('atlas+extension:properties');
+
+print('Fetching atlas versions:')
+
+for productInfo in products:
+    for release in getReleases(productInfo):
+        versionFile = requestFile(productInfo, release['tag_name'], 'gradle.properties')
+        print(productInfo + ':' + release['tag_name'] + ':' + getAtlasVersion(versionFile))
+        
+    

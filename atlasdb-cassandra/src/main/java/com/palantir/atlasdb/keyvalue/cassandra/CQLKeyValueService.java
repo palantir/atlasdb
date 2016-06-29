@@ -977,10 +977,10 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     public void createTables(final Map<TableReference, byte[]> tableRefsToTableMetadata) {
         final CassandraKeyValueServiceConfig config = configManager.getConfig();
         Collection<com.datastax.driver.core.TableMetadata> tables = cluster.getMetadata().getKeyspace(config.keyspace()).getTables();
-        Set<String> existingTables = Sets.newHashSet(Iterables.transform(tables, new Function<com.datastax.driver.core.TableMetadata, String>() {
+        Set<TableReference> existingTables = Sets.newHashSet(Iterables.transform(tables, new Function<com.datastax.driver.core.TableMetadata, TableReference>() {
             @Override
-            public String apply(com.datastax.driver.core.TableMetadata input) {
-                return input.getName();
+            public TableReference apply(com.datastax.driver.core.TableMetadata input) {
+                return TableReference.createUnsafe(input.getName());
             }
         }));
 
