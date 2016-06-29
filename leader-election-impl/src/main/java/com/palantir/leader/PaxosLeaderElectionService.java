@@ -349,7 +349,6 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                     + "This should happen rarely and we should recover automatically. If this recurs often, try to "
                     + "(1) ensure that most other nodes are reachable, and "
                     + "(2) increase the randomWaitBeforeProposingLeadershipMs timeout in your configuration. ");
-            leaderLog.debug("Leadership was not gained because this Paxos round failed: ", e);
             return;
         } finally {
             lock.unlock();
