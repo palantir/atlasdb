@@ -66,11 +66,12 @@ class BatchSizeIncreasingIterator<T> {
             return originalBatchSize;
         }
         final long batchSize;
+        long maxNewBatchSize = numReturned * 4;
         if (numNotDeleted == 0) {
             // If everything we've seen has been deleted, we should be aggressive about getting more rows.
-            batchSize = numReturned * 4;
+            batchSize = maxNewBatchSize;
         } else {
-            batchSize = (long) Math.ceil(originalBatchSize * (numReturned / (double) numNotDeleted));
+            batchSize = Math.min((long) Math.ceil(originalBatchSize * (numReturned / (double) numNotDeleted)), maxNewBatchSize);
         }
         return (int) Math.min(batchSize, AtlasDbPerformanceConstants.MAX_BATCH_SIZE);
     }
