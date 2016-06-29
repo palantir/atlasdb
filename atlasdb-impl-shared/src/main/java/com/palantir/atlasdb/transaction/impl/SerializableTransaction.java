@@ -44,7 +44,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -578,6 +577,8 @@ public class SerializableTransaction extends SnapshotTransaction {
     private void verifyColumnRanges(Transaction ro) {
         // verify each set of reads to ensure they are the same.
         for (TableReference table : columnRangeEndsByTable.keySet()) {
+            final ConcurrentNavigableMap<Cell, byte[]> writes = writesByTable.get(table);
+            Map<ColumnRangeSelection, List<byte[]>> rangesToRows = Maps.newHashMap();
             for (byte[] row : columnRangeEndsByTable.get(table).keySet()) {
                 for (Entry<ColumnRangeSelection, byte[]> e : columnRangeEndsByTable.get(table).get(row).entrySet()) {
                     ColumnRangeSelection range = e.getKey();
@@ -585,10 +586,20 @@ public class SerializableTransaction extends SnapshotTransaction {
                     if (rangeEnd.length != 0 && !RangeRequests.isTerminalRow(false, rangeEnd)) {
                         range = new ColumnRangeSelection(range.getStartCol(), RangeRequests.getNextStartRow(false, rangeEnd), range.getBatchHint());
                     }
-                    final ConcurrentNavigableMap<Cell, byte[]> writes = writesByTable.get(table);
-                    // TODO: batch this better for multiple rows with the same column range
-                    BatchingVisitableView<Entry<Cell, byte[]>> bv = BatchingVisitableView.of(Iterators.getOnlyElement(
-                            ro.getRowsColumnRange(table, ImmutableList.of(row), range).values().iterator(), null));
+                    if (rangesToRows.get(range) != null) {
+                        rangesToRows.get(range).add(row);
+                    } else {
+                        rangesToRows.put(range, Lists.newArrayList(row));
+                    }
+                }
+            }
+            for (Entry<ColumnRangeSelection, List<byte[]>> e : rangesToRows.entrySet()) {
+                ColumnRangeSelection range = e.getKey();
+                List<byte[]> rows = e.getValue();
+                Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> result = ro.getRowsColumnRange(table, rows, range);
+                for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> res : result.entrySet()) {
+                    byte[] row = res.getKey();
+                    BatchingVisitableView<Entry<Cell, byte[]>> bv = BatchingVisitableView.of(res.getValue());
                     NavigableMap<Cell, ByteBuffer> readsInRange = Maps.transformValues(getReadsInColumnRange(table, row, range),
                             input -> ByteBuffer.wrap(input));
                     boolean isEqual = bv.transformBatch(new Function<List<Entry<Cell, byte[]>>, List<Entry<Cell, ByteBuffer>>>() {
