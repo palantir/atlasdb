@@ -126,34 +126,6 @@ public class RemoteRowColumnRangeIterator implements RowColumnRangeIterator {
         throw new UnsupportedOperationException();
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        RemoteRowColumnRangeIterator that = (RemoteRowColumnRangeIterator) o;
-
-        if (timestamp != that.timestamp) return false;
-        if (hasNext != that.hasNext) return false;
-        if (position != that.position) return false;
-        if (tableRef != null ? !tableRef.equals(that.tableRef) : that.tableRef != null) return false;
-        if (columnRangeSelection != null ? !columnRangeSelection.equals(that.columnRangeSelection) : that.columnRangeSelection != null)
-            return false;
-        return page != null ? page.equals(that.page) : that.page == null;
-
-    }
-
-    @Override
-    public int hashCode() {
-        int result = tableRef != null ? tableRef.hashCode() : 0;
-        result = 31 * result + (columnRangeSelection != null ? columnRangeSelection.hashCode() : 0);
-        result = 31 * result + (int) (timestamp ^ (timestamp >>> 32));
-        result = 31 * result + (hasNext ? 1 : 0);
-        result = 31 * result + (page != null ? page.hashCode() : 0);
-        result = 31 * result + position;
-        return result;
-    }
-
     static RemoteRowColumnRangeIterator validateIsRangeIterator(RowColumnRangeIterator it) {
         if (!(it instanceof RemoteRowColumnRangeIterator)) {
             throw new IllegalArgumentException("The server-side kvs must be wrapper with RemotingKeyValueService.createServerSide()");
