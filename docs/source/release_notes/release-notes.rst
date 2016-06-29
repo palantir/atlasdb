@@ -68,6 +68,9 @@ v0.7.0
            However, this is very dependent on the particular scenario AtlasDB is being used in and most consumers should not expect a difference of this size.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/568>`__)
 
+    *    - |improved|
+         - The warning emitted when an attempted leadership election fails is now more descriptive. (#630)
+
 .. <<<<------------------------------------------------------------------------------------------------------------>>>>
 
 =======
