@@ -15,6 +15,8 @@
  */
 package com.palantir.timestamp;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.concurrent.GuardedBy;
@@ -36,7 +38,7 @@ public class PersistentUpperLimit {
     public PersistentUpperLimit(TimestampBoundStore tbs, Clock clock, TimestampAllocationFailures allocationFailures) {
         this.tbs = tbs;
         this.clock = clock;
-        this.allocationFailures = allocationFailures;
+        this.allocationFailures = checkNotNull(allocationFailures);
 
         cachedValue = tbs.getUpperLimit();
         lastIncreasedTime = clock.getTimeMillis();
