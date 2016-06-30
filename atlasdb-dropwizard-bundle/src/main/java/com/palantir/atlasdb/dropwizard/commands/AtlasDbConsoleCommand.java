@@ -15,11 +15,22 @@
  */
 package com.palantir.atlasdb.dropwizard.commands;
 
+import static org.apache.commons.cli.Option.UNINITIALIZED;
+import static org.apache.commons.cli.Option.UNLIMITED_VALUES;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import org.apache.commons.cli.Option;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.console.AtlasConsoleMain;
@@ -27,7 +38,9 @@ import com.palantir.atlasdb.dropwizard.AtlasDbConfigurationProvider;
 
 import io.dropwizard.Configuration;
 import io.dropwizard.setup.Bootstrap;
+import net.sourceforge.argparse4j.inf.Argument;
 import net.sourceforge.argparse4j.inf.Namespace;
+import net.sourceforge.argparse4j.inf.Subparser;
 
 public class AtlasDbConsoleCommand<T extends Configuration & AtlasDbConfigurationProvider> extends AtlasDbCommand<T> {
     private static final ObjectMapper OBJECT_MAPPER;
@@ -44,15 +57,55 @@ public class AtlasDbConsoleCommand<T extends Configuration & AtlasDbConfiguratio
     }
 
     @Override
+    public void configure(Subparser subparser) {
+        super.configure(subparser);
+
+        for (Option option : (Collection<Option>) AtlasConsoleMain.OPTIONS.getOptions()) {
+            int numArgs = option.getArgs();
+            if(option.getOpt().equals("h")) {
+                continue;
+            }
+            Argument arg = subparser.addArgument("-" + option.getOpt(), "--" + option.getLongOpt())
+                    .required(option.isRequired())
+                    .help(option.getDescription())
+                    .dest("--" + option.getLongOpt());
+            if (numArgs == UNLIMITED_VALUES) {
+                arg.nargs("+");
+            } else if (numArgs != UNINITIALIZED) {
+                arg.nargs(numArgs);
+            }
+        }
+    }
+
+    @Override
     protected void run(Bootstrap<T> bootstrap, Namespace namespace, T configuration) throws Exception {
         AtlasDbConfig configurationWithoutLeader = ImmutableAtlasDbConfig.builder()
                 .from(configuration.getAtlasConfig())
                 .leader(Optional.absent())
                 .build();
 
-        AtlasConsoleMain.main(new String[] {
-                "-b", "dropwizardAtlasDb", OBJECT_MAPPER.writeValueAsString(configurationWithoutLeader),
-                "-e", "connectInline dropwizardAtlasDb"
-        });
+        List<String> passedInArgs = namespace.getAttrs().entrySet().stream()
+                .filter(entry -> entry.getKey().startsWith("--"))
+                .filter(entry -> entry.getValue() != null)
+                .flatMap(entry -> {
+                    if(entry.getValue() instanceof List) {
+                        return Stream.concat(Stream.of(entry.getKey()), ((List<String>) entry.getValue()).stream());
+                    } else {
+                        return Stream.of(entry.getKey(), (String) entry.getValue());
+                    }
+                })
+                .collect(Collectors.toList());
+
+        List<String> allArgs = ImmutableList.<String>builder()
+                .add("--bind")
+                .add("dropwizardAtlasDb")
+                .add(OBJECT_MAPPER.writeValueAsString(configurationWithoutLeader))
+                .add("--evaluate")
+                .add("connectInline dropwizardAtlasDb")
+                .addAll(passedInArgs)
+                .build();
+
+
+        AtlasConsoleMain.main(allArgs.toArray(new String[] {}));
     }
 }
