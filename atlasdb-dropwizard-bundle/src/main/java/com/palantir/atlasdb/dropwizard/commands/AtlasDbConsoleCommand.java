@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.dropwizard.commands;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
@@ -27,7 +26,6 @@ import com.palantir.atlasdb.console.AtlasConsoleMain;
 import com.palantir.atlasdb.dropwizard.AtlasDbConfigurationProvider;
 
 import io.dropwizard.Configuration;
-import io.dropwizard.jackson.DiscoverableSubtypeResolver;
 import io.dropwizard.setup.Bootstrap;
 import net.sourceforge.argparse4j.inf.Namespace;
 
