@@ -19,28 +19,17 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 public class AvailableTimestamps {
     static final long ALLOCATION_BUFFER_SIZE = 1000 * 1000;
     private static final long MINIMUM_BUFFER = ALLOCATION_BUFFER_SIZE / 2;
     private static final long MAX_TIMESTAMPS_TO_HAND_OUT = 10 * 1000;
 
-    private static final Logger log = LoggerFactory.getLogger(AvailableTimestamps.class);
-
     private final LastReturnedTimestamp lastReturnedTimestamp;
     private final PersistentUpperLimit upperLimit;
-    private final TimestampAllocationFailures allocationFailures;
-
-    public AvailableTimestamps(LastReturnedTimestamp lastReturnedTimestamp, PersistentUpperLimit upperLimit, TimestampAllocationFailures allocationFailures) {
-        this.lastReturnedTimestamp = lastReturnedTimestamp;
-        this.upperLimit = upperLimit;
-        this.allocationFailures = allocationFailures;
-    }
 
     public AvailableTimestamps(LastReturnedTimestamp lastReturnedTimestamp, PersistentUpperLimit upperLimit) {
-        this(lastReturnedTimestamp, upperLimit, new TimestampAllocationFailures());
+        this.lastReturnedTimestamp = lastReturnedTimestamp;
+        this.upperLimit = upperLimit;
     }
 
     public synchronized TimestampRange handOut(long numberToHandOut) {
