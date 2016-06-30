@@ -34,12 +34,16 @@ v0.7.0
     *    - Type
          - Change
 
+    *    - |new|
+         - Atlas can now be backed by Postgres via DB KVS. This is a very early release for this feature, so please contact us if you
+           plan on using it. The docs are available at <ADD DOCS LINK>
+
     *    - |fixed|
          - The in-memory key-value store now makes defensive copies of any data stored or retrieved.
            This may lead to a slight performance degradation to users of InMemoryKVS (#552)
 
     *    - |improved|
-         - Reduced memory footprint of Cassandra KVS, esp. for workflows of many consecutive large reads (#568)
+         - Reduced memory footprint of Cassandra KVS, especially for workflows which involve many consecutive large reads (#568)
 
 .. <<<<------------------------------------------------------------------------------------------------------------>>>>
 
