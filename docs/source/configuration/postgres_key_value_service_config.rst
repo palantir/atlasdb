@@ -30,7 +30,7 @@ A minimal atlas configuration for running against postgres will look like :
       type: postgres
     connection:
       type: postgres
-      host: 192.168.99.101
+      host: dbhost
       port: 5432
       dbName: atlas
       dbLogin: palantir
