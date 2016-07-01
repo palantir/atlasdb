@@ -558,7 +558,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                 }
                             });
                         }
-                        log.info("Processed {} range requests for {} in {}ms",
+                        log.trace("Processed {} range requests for {} in {}ms",
                                 input.size(), tableRef, timer.elapsed(TimeUnit.MILLISECONDS));
                         return ret;
                     }
