@@ -26,12 +26,12 @@ A minimal atlas configuration for running against postgres will look like :
 
   keyValueService:
     type: relational
-      ddl:
-        type: postgres
-      connection:
-        type: postgres
-        host: postgres.palantir.dev
-        port: 5432
-        dbName: atlas
-        dbLogin: palantir
-        dbPassword: palantir 
+    ddl:
+      type: postgres
+    connection:
+      type: postgres
+      host: 192.168.99.101
+      port: 5432
+      dbName: atlas
+      dbLogin: palantir
+      dbPassword: palantir
