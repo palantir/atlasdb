@@ -156,8 +156,8 @@ your cassandra cluster, you&#8217;ll want to enable tracing.  To learn more
 about tracing itself check out datastax&#8217;s <a class="reference external" href="http://www.datastax.com/dev/blog/tracing-in-cassandra-1-2">Request tracing in Cassandra
 1.2</a> and <a class="reference external" href="https://docs.datastax.com/en/cql/3.3/cql/cql_reference/tracing_r.html">TRACING</a>.</p>
 <p>To enable tracing you need to provide a configuration file called
-<code class="docutils literal"><span class="pre">atlasdb_tracing.prefs</span></code> and place it in the user.dir directory of your
-java process.</p>
+<code class="docutils literal"><span class="pre">atlasdb_tracing.prefs</span></code> and place it in the <code class="docutils literal"><span class="pre">user.dir</span></code> directory of your
+java process, which is the directory from which java was executed.</p>
 <p>When a query is traced you will see the following line your log file:
 <code class="docutils literal"><span class="pre">Traced</span> <span class="pre">a</span> <span class="pre">call</span> <span class="pre">to</span> <span class="pre">&lt;table-name&gt;</span> <span class="pre">that</span> <span class="pre">took</span> <span class="pre">&lt;duration&gt;</span> <span class="pre">ms.</span> <span class="pre">It</span> <span class="pre">will</span> <span class="pre">appear</span> <span class="pre">in</span> <span class="pre">system_traces</span> <span class="pre">with</span> <span class="pre">UUID=&lt;session-id-of-trace&gt;</span></code></p>
 <p>Generally it is important to note that tracing is expensive and can have
@@ -166,9 +166,10 @@ use of it should be minimized.</p>
 </div>
 <div class="section" id="the-prefs-file">
 <h2>The Prefs File<a class="headerlink" href="#the-prefs-file" title="Permalink to this headline">¶</a></h2>
-<p>The <code class="docutils literal"><span class="pre">atlasdb_tracing.prefs</span></code> is a standard java properties file with
+<p>The <code class="docutils literal"><span class="pre">atlas_tracing.prefs</span></code> is a standard java properties file with
 the following parameters:</p>
-<div class="code properties highlight-default"><div class="highlight"><pre><span></span><span class="n">tracing_enabled</span><span class="p">:</span> <span class="n">true</span>           <span class="c1"># self explanatory</span>
+<div class="code properties highlight-default"><div class="highlight"><pre><span></span><span class="c1"># self explanatory</span>
+<span class="n">tracing_enabled</span><span class="p">:</span> <span class="n">true</span>
 
 <span class="c1"># the probability we trace an eligible query</span>
 <span class="c1"># this is a pre-filter and a good tool to use to ensure you&#39;re not tracing</span>
@@ -186,6 +187,12 @@ the following parameters:</p>
 <span class="n">min_duration_to_log_ms</span><span class="p">:</span> <span class="mi">1000</span>
 </pre></div>
 </div>
+</div>
+<div class="section" id="understanding-namespaced-tables-in-cassandra">
+<h2>Understanding Namespaced Tables in Cassandra<a class="headerlink" href="#understanding-namespaced-tables-in-cassandra" title="Permalink to this headline">¶</a></h2>
+<p>In cassandra an atlas namespaced table will look like <code class="docutils literal"><span class="pre">&lt;keyspace&gt;.&lt;namespace&gt;__&lt;table-name&gt;</span></code>.
+As described in the prefs file&#8217;s comment, to trace said table you would want to
+write it in the form of <code class="docutils literal"><span class="pre">&lt;namespace&gt;.&lt;table-name&gt;</span></code> in the comma-separated list.</p>
 </div>
 </div>
 
