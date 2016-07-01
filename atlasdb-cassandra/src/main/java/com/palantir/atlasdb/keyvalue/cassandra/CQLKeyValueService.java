@@ -157,12 +157,12 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         clusterBuilder.withClusterName("atlas_cassandra_cluster_" + config.keyspace()); // for JMX metrics
         clusterBuilder.withCompression(Compression.LZ4);
 
-        if (config.ssl().isPresent() && config.ssl().get()) {
-            clusterBuilder.withSSL();
-        } else if (config.sslConfiguration().isPresent()) {
+        if (config.sslConfiguration().isPresent()) {
             SSLContext sslContext = SslSocketFactories.createSslContext(config.sslConfiguration().get());
             SSLOptions sslOptions = new SSLOptions(sslContext, SSLOptions.DEFAULT_SSL_CIPHER_SUITES);
             clusterBuilder.withSSL(sslOptions);
+        } else if (config.ssl().isPresent() && config.ssl().get()) {
+            clusterBuilder.withSSL();
         }
 
         PoolingOptions poolingOptions = new PoolingOptions();
