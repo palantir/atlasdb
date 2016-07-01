@@ -40,10 +40,10 @@ v0.7.0
 
     *    - |fixed|
          - The in-memory key-value store now makes defensive copies of any data stored or retrieved.
-           This may lead to a slight performance degradation to users of InMemoryKVS (#552)
+           This may lead to a slight performance degradation to users of InMemoryKVS
 
     *    - |improved|
-         - Reduced memory footprint of Cassandra KVS, especially for workflows which involve many consecutive large reads (#568)
+         - Reduced memory footprint of Cassandra KVS, especially for workflows which involve many consecutive large reads
 
 .. <<<<------------------------------------------------------------------------------------------------------------>>>>
 

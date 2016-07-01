@@ -11,6 +11,12 @@ To enable your application to be backed by postgres, you just need to add DB KVS
 
   runtime 'com.palantir.atlasdb:atlasdb-dbkvs:<atlas version>'
 
+e.g.
+
+.. code-block:: groovy
+
+  runtime 'com.palantir.atlasdb:atlasdb-dbkvs:0.7.0'
+
 Configuring a Running Application to Use Postgres
 =================================================
 
