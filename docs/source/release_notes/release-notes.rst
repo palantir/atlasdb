@@ -36,7 +36,7 @@ v0.7.0
 
     *    - |new|
          - Atlas can now be backed by Postgres via DB KVS. This is a very early release for this feature, so please contact us if you
-           plan on using it. The docs are available at <ADD DOCS LINK>
+           plan on using it. Please see `the documentation <http://palantir.github.io/atlasdb/html/configuration/postgres_key_value_service_config.html>`_ for more details.
 
     *    - |fixed|
          - The in-memory key-value store now makes defensive copies of any data stored or retrieved.
