@@ -17,7 +17,6 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.Callable;
@@ -30,7 +29,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Queues;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.common.base.ClosableIterator;
@@ -206,14 +204,6 @@ public abstract class AbstractDbReadTable implements DbReadTable {
         AgnosticLightResultSet results = conns.get().selectLightResultSetUnregisteredQuery(
                 query.getQuery(), query.getArgs());
         results.setFetchSize(maxRows);
-        return ClosableIterators.wrap(results.iterator(), results);
-    }
-
-    @Override
-    public ClosableIterator<AgnosticLightResultRow> getRowsColumnRange(List<byte[]> rows, long ts, ColumnRangeSelection columnRangeSelection) {
-        FullQuery query = queryFactory.getRowsColumnRangeQuery(rows, ts, columnRangeSelection);
-        AgnosticLightResultSet results = conns.get().selectLightResultSetUnregisteredQuery(query.getQuery(), query.getArgs());
-        results.setFetchSize(columnRangeSelection.getBatchHint() * rows.size());
         return ClosableIterators.wrap(results.iterator(), results);
     }
 

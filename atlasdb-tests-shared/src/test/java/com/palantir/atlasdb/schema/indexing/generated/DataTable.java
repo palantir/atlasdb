@@ -44,7 +44,6 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.Prefix;
@@ -717,20 +716,6 @@ public final class DataTable implements
             }
         }
         return rowMap;
-    }
-
-    @Override
-    public Map<DataRow, BatchingVisitable<DataNamedColumnValue<?>>> getRowsColumnRange(Iterable<DataRow> rows, ColumnRangeSelection columnRangeSelection) {
-        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-        Map<DataRow, BatchingVisitable<DataNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
-        for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
-            DataRow row = DataRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-            BatchingVisitable<DataNamedColumnValue<?>> bv = BatchingVisitables.transform(e.getValue(), result -> {
-                return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
-            });
-            transformed.put(row, bv);
-        }
-        return transformed;
     }
 
     private Multimap<DataRow, DataNamedColumnValue<?>> getAffectedCells(Multimap<DataRow, ? extends DataNamedColumnValue<?>> rows) {
@@ -1423,22 +1408,6 @@ public final class DataTable implements
             return rowMap;
         }
 
-        @Override
-        public Map<Index1IdxRow, BatchingVisitable<Index1IdxColumnValue>> getRowsColumnRange(Iterable<Index1IdxRow> rows, ColumnRangeSelection columnRangeSelection) {
-            Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-            Map<Index1IdxRow, BatchingVisitable<Index1IdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
-            for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
-                Index1IdxRow row = Index1IdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-                BatchingVisitable<Index1IdxColumnValue> bv = BatchingVisitables.transform(e.getValue(), result -> {
-                    Index1IdxColumn col = Index1IdxColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
-                    Long val = Index1IdxColumnValue.hydrateValue(result.getValue());
-                    return Index1IdxColumnValue.of(col, val);
-                });
-                transformed.put(row, bv);
-            }
-            return transformed;
-        }
-
         public BatchingVisitableView<Index1IdxRowResult> getRange(RangeRequest range) {
             if (range.getColumnNames().isEmpty()) {
                 range = range.getBuilder().retainColumns(ColumnSelection.all()).build();
@@ -2075,22 +2044,6 @@ public final class DataTable implements
             return rowMap;
         }
 
-        @Override
-        public Map<Index2IdxRow, BatchingVisitable<Index2IdxColumnValue>> getRowsColumnRange(Iterable<Index2IdxRow> rows, ColumnRangeSelection columnRangeSelection) {
-            Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-            Map<Index2IdxRow, BatchingVisitable<Index2IdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
-            for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
-                Index2IdxRow row = Index2IdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-                BatchingVisitable<Index2IdxColumnValue> bv = BatchingVisitables.transform(e.getValue(), result -> {
-                    Index2IdxColumn col = Index2IdxColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
-                    Long val = Index2IdxColumnValue.hydrateValue(result.getValue());
-                    return Index2IdxColumnValue.of(col, val);
-                });
-                transformed.put(row, bv);
-            }
-            return transformed;
-        }
-
         public BatchingVisitableView<Index2IdxRowResult> getRange(RangeRequest range) {
             if (range.getColumnNames().isEmpty()) {
                 range = range.getBuilder().retainColumns(ColumnSelection.all()).build();
@@ -2703,22 +2656,6 @@ public final class DataTable implements
                 }
             }
             return rowMap;
-        }
-
-        @Override
-        public Map<Index3IdxRow, BatchingVisitable<Index3IdxColumnValue>> getRowsColumnRange(Iterable<Index3IdxRow> rows, ColumnRangeSelection columnRangeSelection) {
-            Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-            Map<Index3IdxRow, BatchingVisitable<Index3IdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
-            for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
-                Index3IdxRow row = Index3IdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-                BatchingVisitable<Index3IdxColumnValue> bv = BatchingVisitables.transform(e.getValue(), result -> {
-                    Index3IdxColumn col = Index3IdxColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
-                    Long val = Index3IdxColumnValue.hydrateValue(result.getValue());
-                    return Index3IdxColumnValue.of(col, val);
-                });
-                transformed.put(row, bv);
-            }
-            return transformed;
         }
 
         public BatchingVisitableView<Index3IdxRowResult> getRange(RangeRequest range) {
@@ -3357,22 +3294,6 @@ public final class DataTable implements
             return rowMap;
         }
 
-        @Override
-        public Map<Index4IdxRow, BatchingVisitable<Index4IdxColumnValue>> getRowsColumnRange(Iterable<Index4IdxRow> rows, ColumnRangeSelection columnRangeSelection) {
-            Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-            Map<Index4IdxRow, BatchingVisitable<Index4IdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
-            for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
-                Index4IdxRow row = Index4IdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-                BatchingVisitable<Index4IdxColumnValue> bv = BatchingVisitables.transform(e.getValue(), result -> {
-                    Index4IdxColumn col = Index4IdxColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
-                    Long val = Index4IdxColumnValue.hydrateValue(result.getValue());
-                    return Index4IdxColumnValue.of(col, val);
-                });
-                transformed.put(row, bv);
-            }
-            return transformed;
-        }
-
         public BatchingVisitableView<Index4IdxRowResult> getRange(RangeRequest range) {
             if (range.getColumnNames().isEmpty()) {
                 range = range.getBuilder().retainColumns(ColumnSelection.all()).build();
@@ -3461,7 +3382,6 @@ public final class DataTable implements
      * {@link Cells}
      * {@link Collection}
      * {@link Collections2}
-     * {@link ColumnRangeSelection}
      * {@link ColumnSelection}
      * {@link ColumnValue}
      * {@link ColumnValues}
@@ -3519,5 +3439,5 @@ public final class DataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "Jdg9aY2XuC82q8NIayfEgg==";
+    static String __CLASS_HASH = "TAfXhQqzRAKrhLBxlvImOw==";
 }

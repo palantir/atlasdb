@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 import java.util.Map;
@@ -34,15 +33,10 @@ import com.google.common.base.Function;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSortedMap;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Ordering;
-import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -53,7 +47,6 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
-import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitables;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
@@ -499,132 +492,4 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         t1.commit();
     }
 
-    @Test
-    public void testColumnRangeReadWriteConflict() {
-        byte[] row = PtBytes.toBytes("row1");
-        writeColumns();
-
-        Transaction t1 = startTransaction();
-        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRange =
-                t1.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
-        // Serializable transaction records only the first column as read.
-        Map.Entry<Cell, byte[]> read = BatchingVisitables.getFirst(Iterables.getOnlyElement(columnRange.values()));
-        assertEquals(Cell.create(row, PtBytes.toBytes("col0")), read.getKey());
-        // Write to avoid the read only path.
-        put(t1, "row1_1", "col0", "v0");
-
-        Transaction t2 = startTransaction();
-        put(t2, "row1", "col0", "v0_0");
-        t2.commit();
-
-        try {
-            t1.commit();
-            fail();
-        } catch (TransactionSerializableConflictException e) {
-            // expected
-        }
-    }
-
-    @Test
-    public void testColumnRangeReadWriteConflictOnNewCell() {
-        byte[] row = PtBytes.toBytes("row1");
-        writeColumns();
-
-        Transaction t1 = startTransaction();
-        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRange =
-                t1.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
-        // Serializable transaction records only the first column as read.
-        Map.Entry<Cell, byte[]> read = BatchingVisitables.getFirst(Iterables.getOnlyElement(columnRange.values()));
-        assertEquals(Cell.create(row, PtBytes.toBytes("col0")), read.getKey());
-        // Write to avoid the read only path.
-        put(t1, "row1_1", "col0", "v0");
-
-        Transaction t2 = startTransaction();
-        // Write on the start of the range.
-        put(t2, "row1", "col", "v");
-        t2.commit();
-
-        try {
-            t1.commit();
-            fail();
-        } catch (TransactionSerializableConflictException e) {
-            // expected
-        }
-    }
-
-    @Test
-    public void testColumnRangeReadWriteNoConflict() {
-        byte[] row = PtBytes.toBytes("row1");
-        writeColumns();
-
-        Transaction t1 = startTransaction();
-        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRange =
-                t1.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
-        // Serializable transaction records only the first column as read.
-        Map.Entry<Cell, byte[]> read = BatchingVisitables.getFirst(Iterables.getOnlyElement(columnRange.values()));
-        assertEquals(Cell.create(row, PtBytes.toBytes("col0")), read.getKey());
-        // Write to avoid the read only path.
-        put(t1, "row1_1", "col0", "v0");
-
-        Transaction t2 = startTransaction();
-        put(t2, "row1", "col1", "v0_0");
-        t2.commit();
-
-        t1.commit();
-    }
-
-    @Test
-    public void testColumnRangeReadWriteEmptyRange() {
-        byte[] row = PtBytes.toBytes("row1");
-
-        Transaction t1 = startTransaction();
-        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRange =
-                t1.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), new ColumnRangeSelection(PtBytes.toBytes("col"), PtBytes.toBytes("col0"), 1));
-        assertNull(BatchingVisitables.getFirst(Iterables.getOnlyElement(columnRange.values())));
-        // Write to avoid the read only path.
-        put(t1, "row1_1", "col0", "v0");
-
-        Transaction t2 = startTransaction();
-        put(t2, "row1", "col", "v0");
-        t2.commit();
-
-        try {
-            t1.commit();
-            fail();
-        } catch (TransactionSerializableConflictException e) {
-            // expected
-        }
-    }
-
-    @Test
-    public void testColumnRangeReadWriteEmptyRangeUnread() {
-        byte[] row = PtBytes.toBytes("row1");
-
-        Transaction t1 = startTransaction();
-        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRange =
-                t1.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), new ColumnRangeSelection(PtBytes.toBytes("col"), PtBytes.toBytes("col0"), 1));
-        // Intentionally not reading anything from the result, so we shouldn't get a conflict.
-        // Write to avoid the read only path.
-        put(t1, "row1_1", "col0", "v0");
-
-        Transaction t2 = startTransaction();
-        put(t2, "row1", "col", "v0");
-        t2.commit();
-
-        t1.commit();
-    }
-
-    private void writeColumns() {
-        Transaction t1 = startTransaction();
-        int totalPuts = 101;
-        byte[] row = PtBytes.toBytes("row1");
-        // Record expected results using byte ordering
-        ImmutableSortedMap.Builder<Cell, byte[]> writes = ImmutableSortedMap
-                .orderedBy(Ordering.from(UnsignedBytes.lexicographicalComparator()).onResultOf(key -> key.getColumnName()));
-        for (int i = 0 ; i < totalPuts ; i++) {
-            put(t1, "row1", "col" + i, "v" + i);
-            writes.put(Cell.create(row, PtBytes.toBytes("col" + i)), PtBytes.toBytes("v" + i));
-        }
-        t1.commit();
-    }
 }

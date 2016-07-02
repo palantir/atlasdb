@@ -64,8 +64,6 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
-import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelections;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.Prefix;
@@ -248,7 +246,7 @@ public class TableRenderer {
                 line();
                 renderGetNamespace();
                 line();
-                new RowOrDynamicColumnRenderer(this, Row, table.getRowMetadata(), table.isRangeScanAllowed(), false).run();
+                new RowOrDynamicColumnRenderer(this, Row, table.getRowMetadata(), table.isRangeScanAllowed()).run();
                 line();
                 if (isDynamic(table)) {
                     renderDynamic();
@@ -332,8 +330,6 @@ public class TableRenderer {
             renderGetRowColumns(false);
             line();
             renderGetRowsMultimap(false);
-            line();
-            renderGetRowsColumnRange(false);
 
             if (!cellReferencingIndices.isEmpty()) {
                 line();
@@ -346,7 +342,7 @@ public class TableRenderer {
         }
 
         private void renderDynamic() {
-            new RowOrDynamicColumnRenderer(this, Column, table.getColumns().getDynamicColumn().getColumnNameDesc(), false, true).run();
+            new RowOrDynamicColumnRenderer(this, Column, table.getColumns().getDynamicColumn().getColumnNameDesc(), false).run();
             line();
             renderTrigger();
             line();
@@ -371,8 +367,6 @@ public class TableRenderer {
             renderGetRowColumns(true);
             line();
             renderGetRowsMultimap(true);
-            line();
-            renderGetRowsColumnRange(true);
         }
 
         private void fields() {
@@ -1171,28 +1165,6 @@ public class TableRenderer {
             } line("}");
         }
 
-        private void renderGetRowsColumnRange(boolean isDynamic) {
-            line("@Override");
-            line("public Map<", Row, ", BatchingVisitable<", ColumnValue, ">> getRowsColumnRange(Iterable<", Row, "> rows, ColumnRangeSelection columnRangeSelection) {"); {
-                line("Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);");
-                line("Map<", Row, ", BatchingVisitable<", ColumnValue, ">> transformed = Maps.newHashMapWithExpectedSize(results.size());");
-                line("for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {"); {
-                    line(Row, " row = ", Row, ".BYTES_HYDRATOR.hydrateFromBytes(e.getKey());");
-                    line("BatchingVisitable<", ColumnValue, "> bv = BatchingVisitables.transform(e.getValue(), result -> {"); {
-                        if (isDynamic) {
-                            line(Column," col = ", Column, ".BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());");
-                            line(table.getColumns().getDynamicColumn().getValue().getJavaObjectTypeName(), " val = ", ColumnValue, ".hydrateValue(result.getValue());");
-                            line("return ", ColumnValue, ".of(col, val);");
-                        } else {
-                            line("return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());");
-                        }
-                    } line("});");
-                    line("transformed.put(row, bv);");
-                } line("}");
-                line("return transformed;");
-            } line("}");
-        }
-
         private void renderFindConstraintFailures() {
             line("@Override");
             line("public List<String> findConstraintFailures(Map<Cell, byte[]> writes,");
@@ -1356,8 +1328,6 @@ public class TableRenderer {
         Hashing.class,
         ValueType.class,
         Generated.class,
-        TableReference.class,
-        ColumnRangeSelection.class,
-        ColumnRangeSelections.class,
+        TableReference.class
     };
 }
