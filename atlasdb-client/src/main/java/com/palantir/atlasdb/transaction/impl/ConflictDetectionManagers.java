@@ -40,11 +40,11 @@ public class ConflictDetectionManagers {
     }
 
     public static ConflictDetectionManager createFromSchema(Schema schema) {
-        return new ConflictDetectionManager(RecomputingSupplier.create(Suppliers.ofInstance(getTablesToConflictDetect(schema))));
+        return new ConflictDetectionManager(Suppliers.ofInstance(getTablesToConflictDetect(schema)));
     }
 
     public static ConflictDetectionManager fromMap(final Map<TableReference, ConflictHandler> map) {
-        return new ConflictDetectionManager(RecomputingSupplier.create(Suppliers.ofInstance(map)));
+        return new ConflictDetectionManager(Suppliers.ofInstance(map));
     }
 
     /**
@@ -54,23 +54,23 @@ public class ConflictDetectionManagers {
         return new ConflictDetectionManager(getNoConflictDetectSupplier(kvs));
     }
 
-    private static RecomputingSupplier<Map<TableReference, ConflictHandler>> getNoConflictDetectSupplier(final KeyValueService kvs) {
-        return RecomputingSupplier.create(new Supplier<Map<TableReference, ConflictHandler>>() {
+    private static Supplier<Map<TableReference, ConflictHandler>> getNoConflictDetectSupplier(final KeyValueService kvs) {
+        return new Supplier<Map<TableReference, ConflictHandler>>() {
             @Override
             public Map<TableReference, ConflictHandler> get() {
                 Set<TableReference> tables = kvs.getAllTableNames();
                 return Maps.asMap(tables, Functions.constant(ConflictHandler.IGNORE_ALL));
             }
-        });
+        };
     }
 
-    private static RecomputingSupplier<Map<TableReference, ConflictHandler>> getTablesToConflictDetectSupplier(final KeyValueService keyValueService) {
-        return RecomputingSupplier.create(new Supplier<Map<TableReference, ConflictHandler>>() {
+    private static Supplier<Map<TableReference, ConflictHandler>> getTablesToConflictDetectSupplier(final KeyValueService keyValueService) {
+        return new Supplier<Map<TableReference, ConflictHandler>>() {
             @Override
             public Map<TableReference, ConflictHandler> get() {
                 return getTablesToConflictDetect(keyValueService);
             }
-        });
+        };
     }
 
     private static Map<TableReference, ConflictHandler> getTablesToConflictDetect(KeyValueService kvs) {

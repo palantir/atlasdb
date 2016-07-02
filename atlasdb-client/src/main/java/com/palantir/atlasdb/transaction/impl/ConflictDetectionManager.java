@@ -17,45 +17,57 @@ package com.palantir.atlasdb.transaction.impl;
 
 import java.util.Map;
 
+import com.google.common.base.Supplier;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
 public class ConflictDetectionManager {
-    private final RecomputingSupplier<Map<TableReference, ConflictHandler>> supplier;
+    private final Supplier<Map<TableReference, ConflictHandler>> supplier;
     private final Map<TableReference, ConflictHandler> overrides;
+    private final RecomputingSupplier<Map<TableReference, ConflictHandler>> cachedResult;
 
-    public ConflictDetectionManager(RecomputingSupplier<Map<TableReference, ConflictHandler>> supplier) {
+    /**
+     * @param supplier A {@link Supplier} which returns the current conflict detection
+     *                 configuration to the database. Note that the result is cached,
+     *                 so changes to configuration must be followed by a call to
+     *                 {@link #recompute()} in order to be picked up.
+     */
+    ConflictDetectionManager(Supplier<Map<TableReference, ConflictHandler>> supplier) {
         this.supplier = supplier;
         this.overrides = Maps.newConcurrentMap();
+        this.cachedResult = RecomputingSupplier.create(() -> {
+            ImmutableMap.Builder<TableReference, ConflictHandler> ret = ImmutableMap.builder();
+            ret.putAll(this.supplier.get());
+            ret.putAll(overrides);
+            return ret.build();
+        });
     }
 
     public void setConflictDetectionMode(TableReference table, ConflictHandler handler) {
         overrides.put(table, handler);
+        cachedResult.recompute();
     }
 
     public void removeConflictDetectionMode(TableReference table) {
         overrides.remove(table);
+        cachedResult.recompute();
     }
 
     public boolean isEmptyOrContainsTable(TableReference tableRef) {
-        Map<TableReference, ConflictHandler> tableToConflictHandler = supplier.get();
-        if (tableToConflictHandler.isEmpty() && overrides.isEmpty()) {
-            return true;
-        }
-        if (tableToConflictHandler.containsKey(tableRef) || overrides.containsKey(tableRef)) {
+        Map<TableReference, ConflictHandler> tableToConflict = cachedResult.get();
+        if (tableToConflict.isEmpty() || tableToConflict.containsKey(tableRef)) {
             return true;
         }
         return false;
     }
 
     public Map<TableReference, ConflictHandler> get() {
-        Map<TableReference, ConflictHandler> ret = Maps.newHashMap(supplier.get());
-        ret.putAll(overrides);
-        return ret;
+        return cachedResult.get();
     }
 
     public void recompute() {
-        supplier.recompute();
+        cachedResult.recompute();
     }
 }
