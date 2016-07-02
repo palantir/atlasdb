@@ -55,33 +55,22 @@ public class ConflictDetectionManagers {
     }
 
     private static Supplier<Map<TableReference, ConflictHandler>> getNoConflictDetectSupplier(final KeyValueService kvs) {
-        return new Supplier<Map<TableReference, ConflictHandler>>() {
-            @Override
-            public Map<TableReference, ConflictHandler> get() {
-                Set<TableReference> tables = kvs.getAllTableNames();
-                return Maps.asMap(tables, Functions.constant(ConflictHandler.IGNORE_ALL));
-            }
+        return () -> {
+            Set<TableReference> tables = kvs.getAllTableNames();
+            return Maps.asMap(tables, Functions.constant(ConflictHandler.IGNORE_ALL));
         };
     }
 
     private static Supplier<Map<TableReference, ConflictHandler>> getTablesToConflictDetectSupplier(final KeyValueService keyValueService) {
-        return new Supplier<Map<TableReference, ConflictHandler>>() {
-            @Override
-            public Map<TableReference, ConflictHandler> get() {
-                return getTablesToConflictDetect(keyValueService);
-            }
-        };
+        return () -> getTablesToConflictDetect(keyValueService);
     }
 
     private static Map<TableReference, ConflictHandler> getTablesToConflictDetect(KeyValueService kvs) {
-        return ImmutableMap.copyOf(Maps.transformValues(kvs.getMetadataForTables(), new Function<byte[], ConflictHandler>() {
-            @Override
-            public ConflictHandler apply(byte[] metadataForTable) {
-                if (metadataForTable != null && metadataForTable.length > 0) {
-                    return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadataForTable).getConflictHandler();
-                } else {
-                    return ConflictHandler.RETRY_ON_WRITE_WRITE;
-                }
+        return ImmutableMap.copyOf(Maps.transformValues(kvs.getMetadataForTables(), metadataForTable -> {
+            if (metadataForTable != null && metadataForTable.length > 0) {
+                return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadataForTable).getConflictHandler();
+            } else {
+                return ConflictHandler.RETRY_ON_WRITE_WRITE;
             }
         }));
     }

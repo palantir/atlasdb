@@ -15,10 +15,11 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 import com.google.common.base.Supplier;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
@@ -38,10 +39,9 @@ public class ConflictDetectionManager {
         this.supplier = supplier;
         this.overrides = Maps.newConcurrentMap();
         this.cachedResult = RecomputingSupplier.create(() -> {
-            ImmutableMap.Builder<TableReference, ConflictHandler> ret = ImmutableMap.builder();
-            ret.putAll(this.supplier.get());
+            Map<TableReference, ConflictHandler> ret = new HashMap<>(this.supplier.get());
             ret.putAll(overrides);
-            return ret.build();
+            return Collections.unmodifiableMap(ret);
         });
     }
 
@@ -57,10 +57,7 @@ public class ConflictDetectionManager {
 
     public boolean isEmptyOrContainsTable(TableReference tableRef) {
         Map<TableReference, ConflictHandler> tableToConflict = cachedResult.get();
-        if (tableToConflict.isEmpty() || tableToConflict.containsKey(tableRef)) {
-            return true;
-        }
-        return false;
+        return tableToConflict.isEmpty() || tableToConflict.containsKey(tableRef);
     }
 
     public Map<TableReference, ConflictHandler> get() {
