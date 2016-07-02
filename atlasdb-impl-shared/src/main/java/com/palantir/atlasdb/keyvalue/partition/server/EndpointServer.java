@@ -27,13 +27,11 @@ import com.google.common.base.Function;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
-import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
@@ -190,12 +188,6 @@ public class EndpointServer implements PartitionMapService, KeyValueService {
                 return kvs().getRows(tableRef, rows, columnSelection, timestamp);
             }
         });
-    }
-
-    @Override
-    @Idempotent
-    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows, ColumnRangeSelection columnRangeSelection, long timestamp) {
-        return runPartitionMapReadOperation(input -> kvs().getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp));
     }
 
     @Override
@@ -510,4 +502,5 @@ public class EndpointServer implements PartitionMapService, KeyValueService {
             }
         });
     }
+
 }

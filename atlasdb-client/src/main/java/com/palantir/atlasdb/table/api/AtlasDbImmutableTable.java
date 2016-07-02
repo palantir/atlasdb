@@ -16,14 +16,11 @@
 package com.palantir.atlasdb.table.api;
 
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
 import com.google.common.collect.Multimap;
-import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
-import com.palantir.common.base.BatchingVisitable;
 
 /*
  * Each AtlasDbTable should implement this interface.
@@ -40,6 +37,4 @@ public interface AtlasDbImmutableTable<ROW, COLUMN_VALUE, ROW_RESULT> extends Co
     Multimap<ROW, COLUMN_VALUE> getAsyncRowsMultimap(Iterable<ROW> rows,
                                                      ColumnSelection columnSelection,
                                                      ExecutorService exec);
-    Map<ROW, BatchingVisitable<COLUMN_VALUE>> getRowsColumnRange(Iterable<ROW> rows,
-                                                                 ColumnRangeSelection columnRangeSelection);
 }

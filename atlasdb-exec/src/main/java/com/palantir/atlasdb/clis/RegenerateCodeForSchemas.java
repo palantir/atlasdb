@@ -48,7 +48,7 @@ public class RegenerateCodeForSchemas {
                     System.exit(1);
                 }
 
-                Path sourceDirLocation = location.resolve("../src/main/java");
+                Path sourceDirLocation = location.resolve("../src");
                 if (schema.getClass().getCanonicalName().contains("Test")) {
                     sourceDirLocation = location.resolve("../test-src");
                 }

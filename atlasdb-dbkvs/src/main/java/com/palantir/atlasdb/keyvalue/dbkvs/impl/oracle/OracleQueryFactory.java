@@ -24,7 +24,6 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
@@ -271,45 +270,6 @@ public abstract class OracleQueryFactory implements DbQueryFactory {
                 "     ORDER BY m.row_name " + (range.isReverse() ? "DESC" : "ASC") +
                 "   ) inner WHERE rownum <= " + maxRows;
         return new FullQuery(query).withArgs(args);
-    }
-
-    @Override
-    public FullQuery getRowsColumnRangeQuery(List<byte[]> rows, long ts, ColumnRangeSelection columnRangeSelection) {
-        List<String> subQueries = Lists.newArrayListWithCapacity(rows.size());
-        int argsPerRow = 2 + ((columnRangeSelection.getStartCol().length > 0) ? 1 : 0) +
-                ((columnRangeSelection.getEndCol().length > 0) ? 1 : 0);
-        List<Object> args = Lists.newArrayListWithCapacity(rows.size() * argsPerRow);
-        for (byte[] row : rows) {
-            FullQuery query = getRowsColumnRangeSubQuery(row, ts, columnRangeSelection);
-            subQueries.add(query.getQuery());
-            for (Object arg : query.getArgs()) {
-                args.add(arg);
-            }
-        }
-        String query = Joiner.on(") UNION ALL (").appendTo(new StringBuilder("("), subQueries).append(")")
-                .append(" ORDER BY wrap.row_name ASC, wrap.col_name ASC").toString();
-        return new FullQuery(query).withArgs(args);
-    }
-
-    private FullQuery getRowsColumnRangeSubQuery(byte[] row, long ts, ColumnRangeSelection columnRangeSelection) {
-        String query =
-                " /* GET_ROWS_COLUMN_RANGE (" + tableName + ") */ " +
-                        " SELECT m.row_name, m.col_name, max(m.ts) as ts" +
-                        "   FROM " + prefixedTableName() + " m" +
-                        "  WHERE m.row_name = ?" +
-                        "    AND m.ts < ? " +
-                        (columnRangeSelection.getStartCol().length > 0 ? " AND m.col_name >= ?" : "") +
-                        (columnRangeSelection.getEndCol().length > 0 ? " AND m.col_name < ?" : "") +
-                        " GROUP BY m.row_name, m.col_name" +
-                        "  WHERE rownum <= " + columnRangeSelection.getBatchHint();
-        FullQuery fullQuery = new FullQuery(wrapQueryWithIncludeValue("GET_ROWS_COLUMN_RANGE", query, true)).withArg(row).withArg(ts);
-        if (columnRangeSelection.getStartCol().length > 0) {
-            fullQuery = fullQuery.withArg(columnRangeSelection.getStartCol());
-        }
-        if (columnRangeSelection.getEndCol().length > 0) {
-            fullQuery = fullQuery.withArg(columnRangeSelection.getEndCol());
-        }
-        return fullQuery;
     }
 
     private String wrapQueryWithIncludeValue(String wrappedName, String query, boolean includeValue) {

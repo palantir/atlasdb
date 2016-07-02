@@ -18,7 +18,6 @@ package com.palantir.atlasdb.keyvalue.impl;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -47,12 +46,9 @@ import com.google.common.primitives.Longs;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
-import com.palantir.atlasdb.keyvalue.api.RangeRequests;
-import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
@@ -105,30 +101,24 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
                 Key key = entry.getKey();
                 Iterator<Entry<Key, byte[]>> cellIter = takeCell(entries, key);
                 if (columnSelection.contains(key.col)) {
-                    getLatestVersionOfCell(row, key, cellIter, timestamp, result);
+                    Entry<Key, byte[]> lastEntry = null;
+                    while (cellIter.hasNext()) {
+                        Entry<Key, byte[]> curEntry = cellIter.next();
+                        if (curEntry.getKey().ts >= timestamp) {
+                            break;
+                        }
+                        lastEntry = curEntry;
+                    }
+                    if (lastEntry != null) {
+                        long ts = lastEntry.getKey().ts;
+                        result.put(Cell.create(row, key.col), Value.createWithCopyOfData(lastEntry.getValue(), ts));
+                    }
                 }
                 Iterators.size(cellIter);
             }
         }
 
         return result;
-    }
-
-    private void getLatestVersionOfCell(byte[] row, Key key, Iterator<Entry<Key, byte[]>> cellIter, long timestamp,
-                                        @Output Map<Cell, Value> result) {
-        Entry<Key, byte[]> lastEntry = null;
-        while (cellIter.hasNext()) {
-            Entry<Key, byte[]> curEntry = cellIter.next();
-            if (curEntry.getKey().ts >= timestamp) {
-                break;
-            }
-            lastEntry = curEntry;
-        }
-        if (lastEntry != null) {
-            long ts = lastEntry.getKey().ts;
-            byte[] value = lastEntry.getValue();
-            result.put(Cell.create(row, key.col), Value.createWithCopyOfData(value, ts));
-        }
     }
 
     @Override
@@ -297,41 +287,6 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
                 return endOfData();
             }
         };
-    }
-
-    @Override
-    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows,
-                                                                  ColumnRangeSelection columnRangeSelection, long timestamp) {
-        Map<byte[], RowColumnRangeIterator> result = Maps.newHashMap();
-        ConcurrentSkipListMap<Key, byte[]> table = getTableMap(tableRef).entries;
-
-        for (byte[] row : rows) {
-            Cell rowBegin;
-            if (columnRangeSelection.getStartCol().length > 0) {
-                rowBegin = Cell.create(row, columnRangeSelection.getStartCol());
-            } else {
-                rowBegin = Cells.createSmallestCellForRow(row);
-            }
-            // Inclusive last cell.
-            Cell rowEnd;
-            if (columnRangeSelection.getEndCol().length > 0) {
-                rowEnd = Cell.create(row, RangeRequests.previousLexicographicName(columnRangeSelection.getEndCol()));
-            } else {
-                rowEnd = Cells.createLargestCellForRow(row);
-            }
-            PeekingIterator<Entry<Key, byte[]>> entries = Iterators.peekingIterator(table.subMap(
-                    new Key(rowBegin, Long.MIN_VALUE), new Key(rowEnd, timestamp)).entrySet().iterator());
-            LinkedHashMap<Cell, Value> rowResults = new LinkedHashMap<Cell, Value>();
-            while (entries.hasNext()) {
-                Entry<Key, byte[]> entry = entries.peek();
-                Key key = entry.getKey();
-                Iterator<Entry<Key, byte[]>> cellIter = takeCell(entries, key);
-                getLatestVersionOfCell(row, key, cellIter, timestamp, rowResults);
-            }
-            result.put(row, new LocalRowColumnRangeIterator(rowResults.entrySet().iterator()));
-        }
-
-        return result;
     }
 
     private interface ResultProducer<T> {

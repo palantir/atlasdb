@@ -17,7 +17,6 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
@@ -30,7 +29,6 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
@@ -44,9 +42,6 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -58,12 +53,10 @@ import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.Atomics;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
-import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
@@ -72,8 +65,6 @@ import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.DbKvsGetRanges;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
-import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
-import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.Throwables;
@@ -82,7 +73,6 @@ import com.palantir.nexus.db.sql.AgnosticLightResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.SqlConnection;
-import com.palantir.util.crypto.Sha256Hash;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -165,12 +155,8 @@ public class DbKvs extends AbstractKeyValueService {
         return runRead(tableRef, new Function<DbReadTable, Map<Cell, Value>>() {
             @Override
             public Map<Cell, Value> apply(DbReadTable table) {
-                return extractResults(table, new Supplier<ClosableIterator<AgnosticLightResultRow>>() {
-                    @Override
-                    public ClosableIterator<AgnosticLightResultRow> get() {
-                        return table.getLatestRows(rows, columnSelection, timestamp, true);
-                    }
-                });
+                ClosableIterator<AgnosticLightResultRow> iter = table.getLatestRows(rows, columnSelection, timestamp, true);
+                return extractResults(table, iter);
             }
         });
     }
@@ -180,22 +166,18 @@ public class DbKvs extends AbstractKeyValueService {
         return runRead(tableRef, new Function<DbReadTable, Map<Cell, Value>>() {
             @Override
             public Map<Cell, Value> apply(DbReadTable table) {
-                return extractResults(table, new Supplier<ClosableIterator<AgnosticLightResultRow>>() {
-                    @Override
-                    public ClosableIterator<AgnosticLightResultRow> get() {
-                        return table.getLatestCells(timestampByCell, true);
-                    }
-                });
+                ClosableIterator<AgnosticLightResultRow> iter = table.getLatestCells(timestampByCell, true);
+                return extractResults(table, iter);
             }
         });
     }
 
     @SuppressWarnings("deprecation")
-    private Map<Cell, Value> extractResults(DbReadTable table, Supplier<ClosableIterator<AgnosticLightResultRow>> resultSupplier) {
+    private Map<Cell, Value> extractResults(DbReadTable table, ClosableIterator<AgnosticLightResultRow> iter) {
         boolean hasOverflow = table.hasOverflowValues();
         Map<Cell, Value> results = Maps.newHashMap();
         Map<Cell, OverflowValue> overflowResults = Maps.newHashMap();
-        try (ClosableIterator<AgnosticLightResultRow> iter = resultSupplier.get()) {
+        try {
             while (iter.hasNext()) {
                 AgnosticLightResultRow row = iter.next();
                 Cell cell = Cell.create(row.getBytes("row_name"), row.getBytes("col_name"));
@@ -214,8 +196,39 @@ public class DbKvs extends AbstractKeyValueService {
                     }
                 }
             }
+        } finally {
+            iter.close();
         }
-        fillOverflowValues(table, overflowResults, results);
+        for (Iterator<Entry<Cell, OverflowValue>> entryIter = overflowResults.entrySet().iterator(); entryIter.hasNext(); ) {
+            Entry<Cell, OverflowValue> entry = entryIter.next();
+            Value value = results.get(entry.getKey());
+            if (value != null && value.getTimestamp() > entry.getValue().ts) {
+                entryIter.remove();
+            }
+        }
+        if (!overflowResults.isEmpty()) {
+            Map<Long, byte[]> values = Maps.newHashMapWithExpectedSize(overflowResults.size());
+            ClosableIterator<AgnosticLightResultRow> overflowIter = table.getOverflow(overflowResults.values());
+            try {
+                while (overflowIter.hasNext()) {
+                    AgnosticLightResultRow row = overflowIter.next();
+                    // QA-94468 LONG RAW typed columns ("val" in this case) must be retrieved first from the result set
+                    // see https://docs.oracle.com/cd/B19306_01/java.102/b14355/jstreams.htm#i1007581
+                    byte[] val = row.getBytes("val");
+                    long id = row.getLong("id");
+                    values.put(id, val);
+                }
+            } finally {
+                overflowIter.close();
+            }
+            for (Entry<Cell, OverflowValue> entry : overflowResults.entrySet()) {
+                Cell cell = entry.getKey();
+                OverflowValue ov = entry.getValue();
+                byte[] val = values.get(ov.id);
+                Preconditions.checkNotNull(val, "Failed to load overflow data: cell=%s, overflowId=%s", cell, ov.id);
+                results.put(cell, Value.create(val, ov.ts));
+            }
+        }
         return results;
     }
 
@@ -469,19 +482,12 @@ public class DbKvs extends AbstractKeyValueService {
         } finally {
             rangeResults.close();
         }
-        final ColumnSelection columns;
+        ColumnSelection columns = ColumnSelection.all();
         if (!range.getColumnNames().isEmpty()) {
             columns = ColumnSelection.create(range.getColumnNames());
-        } else {
-            columns = ColumnSelection.all();
         }
         ClosableIterator<AgnosticLightResultRow> rowResults = table.getLatestRows(rows, columns, timestamp, true);
-        Map<Cell, Value> results = extractResults(table, new Supplier<ClosableIterator<AgnosticLightResultRow>>() {
-            @Override
-            public ClosableIterator<AgnosticLightResultRow> get() {
-                return table.getLatestRows(rows, columns, timestamp, true);
-            }
-        });
+        Map<Cell, Value> results = extractResults(table, rowResults);
         NavigableMap<byte[], SortedMap<byte[], Value>> cellsByRow = Cells.breakCellsUpByRow(results);
         if (range.isReverse()) {
             cellsByRow = cellsByRow.descendingMap();
@@ -590,173 +596,6 @@ public class DbKvs extends AbstractKeyValueService {
             mayHaveMoreResults = rows.size() == maxRows;
         }
         return SimpleTokenBackedResultsPage.create(nextRow, finalResults, mayHaveMoreResults);
-    }
-
-    @Override
-    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows, ColumnRangeSelection columnRangeSelection, long timestamp) {
-
-        List<byte[]> rowList = ImmutableList.copyOf(rows);
-        Map<byte[], List<Map.Entry<Cell, Value>>> firstPage = getFirstRowsColumnRangePage(tableRef, rowList, columnRangeSelection, timestamp);
-
-        Map<byte[], RowColumnRangeIterator> ret = Maps.newHashMapWithExpectedSize(rowList.size());
-        for (Entry<byte[], List<Map.Entry<Cell, Value>>> e : firstPage.entrySet()) {
-            List<Map.Entry<Cell, Value>> results = e.getValue();
-            if (results.isEmpty()) {
-                ret.put(e.getKey(), new LocalRowColumnRangeIterator(e.getValue().iterator()));
-                continue;
-            }
-            byte[] lastCol = results.get(results.size() - 1).getKey().getColumnName();
-            RowColumnRangeIterator firstPageIter= new LocalRowColumnRangeIterator(e.getValue().iterator());
-            if (isEndOfColumnRange(lastCol, columnRangeSelection.getEndCol())) {
-                ret.put(e.getKey(), firstPageIter);
-            } else {
-                byte[] nextCol = RangeRequests.nextLexicographicName(lastCol);
-                Iterator<Map.Entry<Cell, Value>> nextPagesIter = getRowColumnRange(tableRef, e.getKey(),
-                        new ColumnRangeSelection(nextCol, columnRangeSelection.getEndCol(), columnRangeSelection.getBatchHint()),
-                        timestamp);
-                ret.put(e.getKey(), new LocalRowColumnRangeIterator(Iterators.concat(firstPageIter, nextPagesIter)));
-            }
-        }
-        return ret;
-    }
-
-    private Iterator<Map.Entry<Cell, Value>> getRowColumnRange(TableReference tableRef, final byte[] row,
-                                                           final ColumnRangeSelection columnRangeSelection, long ts) {
-        List<byte[]> rowList = ImmutableList.of(row);
-        return ClosableIterators.wrap(new AbstractPagingIterable<Map.Entry<Cell, Value>, TokenBackedBasicResultsPage<Map.Entry<Cell, Value>, byte[]>>() {
-            @Override
-            protected TokenBackedBasicResultsPage<Map.Entry<Cell, Value>, byte[]> getFirstPage() throws Exception {
-                return page(columnRangeSelection.getStartCol());
-            }
-
-            @Override
-            protected TokenBackedBasicResultsPage<Map.Entry<Cell, Value>, byte[]> getNextPage(TokenBackedBasicResultsPage<Map.Entry<Cell, Value>, byte[]> previous) throws Exception {
-                return page(previous.getTokenForNextPage());
-            }
-
-            TokenBackedBasicResultsPage<Map.Entry<Cell, Value>, byte[]> page(final byte[] startCol) throws Exception {
-                ColumnRangeSelection range = new ColumnRangeSelection(startCol, columnRangeSelection.getEndCol(), columnRangeSelection.getBatchHint());
-                List<Map.Entry<Cell, Value>> nextPage = runRead(tableRef, new Function<DbReadTable, List<Map.Entry<Cell, Value>>>() {
-                    @Override
-                    public List<Map.Entry<Cell, Value>> apply(DbReadTable table) {
-                        return Iterables.getOnlyElement(extractRowColumnRangePage(table, range, ts, rowList).values());
-                    }
-                });
-                if (nextPage.isEmpty()) {
-                    return SimpleTokenBackedResultsPage.create(startCol, ImmutableList.<Entry<Cell, Value>>of(), false);
-                }
-                byte[] lastCol = nextPage.get(nextPage.size() - 1).getKey().getColumnName();
-                if (isEndOfColumnRange(lastCol, columnRangeSelection.getEndCol())) {
-                    return SimpleTokenBackedResultsPage.create(lastCol, nextPage, false);
-                }
-                byte[] nextCol = RangeRequests.nextLexicographicName(lastCol);
-                return SimpleTokenBackedResultsPage.create(nextCol, nextPage, true);
-            }
-
-        }.iterator());
-    }
-
-    private boolean isEndOfColumnRange(byte[] lastCol, byte[] endCol) {
-        return RangeRequests.isLastRowName(lastCol) || Arrays.equals(RangeRequests.nextLexicographicName(lastCol), endCol);
-    }
-
-    private Map<byte[], List<Map.Entry<Cell, Value>>> getFirstRowsColumnRangePage(TableReference tableRef, List<byte[]> rows,
-                                                          ColumnRangeSelection columnRangeSelection, long ts) {
-        Stopwatch watch = Stopwatch.createStarted();
-        try {
-            return runRead(tableRef, new Function<DbReadTable, Map<byte[], List<Map.Entry<Cell, Value>>>>() {
-                @Override
-                public Map<byte[], List<Map.Entry<Cell, Value>>> apply(DbReadTable table) {
-                    return extractRowColumnRangePage(table, columnRangeSelection, ts, rows);
-                }
-            });
-        } finally {
-            log.info("Call to KVS.getFirstRowColumnRangePage on table {} took {} ms.", tableRef, watch.elapsed(TimeUnit.MILLISECONDS));
-        }
-    }
-
-    private Map<byte[], List<Map.Entry<Cell, Value>>> extractRowColumnRangePage(DbReadTable table,
-                                                                                ColumnRangeSelection columnRangeSelection,
-                                                                                long ts,
-                                                                                List<byte[]> rows) {
-        Map<Sha256Hash, byte[]> hashesToBytes = Maps.newHashMapWithExpectedSize(rows.size());
-        Map<Sha256Hash, List<Cell>> cellsByRow = Maps.newHashMap();
-        for (byte[] row : rows) {
-            Sha256Hash rowHash = Sha256Hash.computeHash(row);
-            hashesToBytes.put(rowHash, row);
-            cellsByRow.put(rowHash, Lists.newArrayList());
-        }
-
-        boolean hasOverflow = table.hasOverflowValues();
-        Map<Cell, Value> values = Maps.newHashMap();
-        Map<Cell, OverflowValue> overflowValues = Maps.newHashMap();
-
-        try (ClosableIterator<AgnosticLightResultRow> iter = table.getRowsColumnRange(rows, ts, columnRangeSelection)) {
-            while (iter.hasNext()) {
-                AgnosticLightResultRow row = iter.next();
-                Cell cell = Cell.create(row.getBytes("row_name"), row.getBytes("col_name"));
-                Sha256Hash rowHash = Sha256Hash.computeHash(cell.getRowName());
-                cellsByRow.get(rowHash).add(cell);
-                Long overflowId = hasOverflow ? row.getLongObject("overflow") : null;
-                if (overflowId == null) {
-                    Value value = Value.create(row.getBytes("val"), row.getLong("ts"));
-                    Value oldValue = values.put(cell, value);
-                    if (oldValue != null && oldValue.getTimestamp() > value.getTimestamp()) {
-                        values.put(cell, oldValue);
-                    }
-                } else {
-                    OverflowValue ov = new OverflowValue(row.getLong("ts"), overflowId);
-                    OverflowValue oldOv = overflowValues.put(cell, ov);
-                    if (oldOv != null && oldOv.ts > ov.ts) {
-                        overflowValues.put(cell, oldOv);
-                    }
-                }
-            }
-        }
-
-        fillOverflowValues(table, overflowValues, values);
-
-        Map<byte[], List<Map.Entry<Cell, Value>>> results = Maps.newHashMapWithExpectedSize(rows.size());
-        for (Entry<Sha256Hash, List<Cell>> e : cellsByRow.entrySet()) {
-            List<Map.Entry<Cell, Value>> fullResults = Lists.newArrayListWithExpectedSize(e.getValue().size());
-            for (Cell c : e.getValue()) {
-                fullResults.add(Iterables.getOnlyElement(ImmutableMap.of(c, values.get(c)).entrySet()));
-            }
-            results.put(hashesToBytes.get(e.getKey()), fullResults);
-        }
-        return results;
-    }
-
-    private void fillOverflowValues(DbReadTable table,
-                                    Map<Cell, OverflowValue> overflowValues,
-                                    @Output Map<Cell, Value> values) {
-        for (Iterator<Entry<Cell, OverflowValue>> entryIter = overflowValues.entrySet().iterator(); entryIter.hasNext(); ) {
-            Entry<Cell, OverflowValue> entry = entryIter.next();
-            Value value = values.get(entry.getKey());
-            if (value != null && value.getTimestamp() > entry.getValue().ts) {
-                entryIter.remove();
-            }
-        }
-        if (!overflowValues.isEmpty()) {
-            Map<Long, byte[]> resolvedOverflowValues = Maps.newHashMapWithExpectedSize(overflowValues.size());
-            try (ClosableIterator<AgnosticLightResultRow> overflowIter = table.getOverflow(overflowValues.values())) {
-                while (overflowIter.hasNext()) {
-                    AgnosticLightResultRow row = overflowIter.next();
-                    // QA-94468 LONG RAW typed columns ("val" in this case) must be retrieved first from the result set
-                    // see https://docs.oracle.com/cd/B19306_01/java.102/b14355/jstreams.htm#i1007581
-                    byte[] val = row.getBytes("val");
-                    long id = row.getLong("id");
-                    resolvedOverflowValues.put(id, val);
-                }
-            }
-            for (Entry<Cell, OverflowValue> entry : overflowValues.entrySet()) {
-                Cell cell = entry.getKey();
-                OverflowValue ov = entry.getValue();
-                byte[] val = resolvedOverflowValues.get(ov.id);
-                Preconditions.checkNotNull(val, "Failed to load overflow data: cell=%s, overflowId=%s", cell, ov.id);
-                values.put(cell, Value.create(val, ov.ts));
-            }
-        }
     }
 
     @Override

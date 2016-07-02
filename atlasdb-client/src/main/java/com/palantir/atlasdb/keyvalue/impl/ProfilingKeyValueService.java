@@ -30,12 +30,10 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.primitives.Longs;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
-import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
@@ -450,21 +448,6 @@ public class ProfilingKeyValueService implements KeyValueService {
             logTimeAndTable("compactInternally", tableRef.getQualifiedName(), stopwatch);
         } else {
             delegate.compactInternally(tableRef);
-        }
-    }
-
-    @Override
-    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows,
-                                                                  ColumnRangeSelection columnRangeSelection, long timestamp) {
-        if (log.isTraceEnabled()) {
-            Stopwatch stopwatch = Stopwatch.createStarted();
-            Map<byte[], RowColumnRangeIterator> result = delegate.getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp);
-            log.trace("Call to KVS.getRowsColumnRange on table {} for {} rows with range {} took {} ms.",
-                    tableRef.getQualifiedName(), Iterables.size(rows), columnRangeSelection, stopwatch.elapsed(TimeUnit.MILLISECONDS));
-            logTimeAndTable("getRowsColumnRange", tableRef.getQualifiedName(), stopwatch);
-            return result;
-        } else {
-            return delegate.getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp);
         }
     }
 }
