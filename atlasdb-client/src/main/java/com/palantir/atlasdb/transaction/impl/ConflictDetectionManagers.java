@@ -17,11 +17,9 @@ package com.palantir.atlasdb.transaction.impl;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
-import com.google.common.base.Function;
 import com.google.common.base.Functions;
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -40,11 +38,11 @@ public class ConflictDetectionManagers {
     }
 
     public static ConflictDetectionManager createFromSchema(Schema schema) {
-        return new ConflictDetectionManager(Suppliers.ofInstance(getTablesToConflictDetect(schema)));
+        return new ConflictDetectionManager(() -> getTablesToConflictDetect(schema));
     }
 
     public static ConflictDetectionManager fromMap(final Map<TableReference, ConflictHandler> map) {
-        return new ConflictDetectionManager(Suppliers.ofInstance(map));
+        return new ConflictDetectionManager(() -> map);
     }
 
     /**
