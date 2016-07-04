@@ -40,10 +40,12 @@ v0.7.0
 
     *    - |fixed|
          - The in-memory key-value store now makes defensive copies of any data stored or retrieved.
-           This may lead to a slight performance degradation to users of InMemoryKVS
+           This may lead to a slight performance degradation to users of InMemoryKVS 
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/552>`_)
 
     *    - |improved|
          - Reduced memory footprint of Cassandra KVS, especially for workflows which involve many consecutive large reads
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/568>`_)
 
 .. <<<<------------------------------------------------------------------------------------------------------------>>>>
 
