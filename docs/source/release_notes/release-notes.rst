@@ -20,6 +20,23 @@ Changelog
 .. toctree::
   :hidden:
 
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.8.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - The warning emitted when an attempted leadership election fails is now more descriptive.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/630>`__)
+
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -51,9 +68,6 @@ v0.7.0
          - Read heavy workflows with Cassandra KVS will now use substantially less heap. In worst-case testing this change resulted in a 10-100x reduction in client side heap size.
            However, this is very dependent on the particular scenario AtlasDB is being used in and most consumers should not expect a difference of this size.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/568>`__)
-
-    *    - |improved|
-         - The warning emitted when an attempted leadership election fails is now more descriptive. (#630)
 
 .. <<<<------------------------------------------------------------------------------------------------------------>>>>
 
