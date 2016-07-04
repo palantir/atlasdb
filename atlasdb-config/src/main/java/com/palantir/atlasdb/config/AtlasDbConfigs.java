@@ -57,7 +57,7 @@ public final class AtlasDbConfigs {
 
     private static JsonNode getConfigNode(File configFile, String configRoot) throws IOException {
         JsonNode node = OBJECT_MAPPER.readTree(configFile);
-        JsonNode configNode = getConfigNode(node, configRoot);
+        JsonNode configNode = getConfigNodeUnsafe(node, configRoot);
 
         if (configNode == null) {
             throw new IllegalArgumentException("Could not find " + configRoot + " in yaml file " + configFile);
@@ -68,7 +68,7 @@ public final class AtlasDbConfigs {
 
     private static JsonNode getConfigNode(String fileContents, String configRoot) throws IOException {
         JsonNode node = OBJECT_MAPPER.readTree(fileContents);
-        JsonNode configNode = getConfigNode(node, configRoot);
+        JsonNode configNode = getConfigNodeUnsafe(node, configRoot);
 
         if (configNode == null) {
             throw new IllegalArgumentException("Could not find " + configRoot + " in given string");
@@ -77,7 +77,7 @@ public final class AtlasDbConfigs {
         return configNode;
     }
 
-    private static JsonNode getConfigNode(JsonNode node, String configRoot) {
+    private static JsonNode getConfigNodeUnsafe(JsonNode node, String configRoot) {
         if (Strings.isNullOrEmpty(configRoot)) {
             return node;
         } else {

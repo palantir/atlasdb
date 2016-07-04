@@ -25,7 +25,6 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
@@ -54,7 +53,7 @@ public class AtlasConsoleMain {
     private static final String BIND_FLAG_LONG = "bind";
 
     public static final Options OPTIONS = new Options()
-            .addOption(new Option(HELP_FLAG_SHORT, HELP_FLAG_LONG, false, "Prints help message."))
+            .addOption(HELP_FLAG_SHORT, HELP_FLAG_LONG, false, "Prints help message.")
             .addOption(SCRIPT_FLAG_SHORT, SCRIPT_FLAG_LONG, false, "Path to .groovy file to execute as non-interactive application")
             .addOption(EVAL_FLAG_SHORT, EVAL_FLAG_LONG, true, "Groovy code to evaluate prior to startup in interactive mode")
             .addOption(CLASSPATH_FLAG_SHORT, CLASSPATH_FLAG_LONG, true, "Additional locations to include on the classpath")
