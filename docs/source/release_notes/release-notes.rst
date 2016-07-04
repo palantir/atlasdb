@@ -39,13 +39,14 @@ v0.7.0
            plan on using it. Please see `the documentation <http://palantir.github.io/atlasdb/html/configuration/postgres_key_value_service_config.html>`_ for more details.
 
     *    - |fixed|
-         - The in-memory key-value store now makes defensive copies of any data stored or retrieved.
-           This may lead to a slight performance degradation to users of InMemoryKVS 
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/552>`_)
+         - The In Memory Key Value Service now makes defensive copies of any data stored or retrieved. This may lead to a slight performance degradation to users of In Memory Key Value Service.
+           In Memory Key Value Service is recommended for testing environments only and production instances should use DB KVS or Cassandra KVS for data that needs to be persisted.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/552>`__)
 
     *    - |improved|
-         - Reduced memory footprint of Cassandra KVS, especially for workflows which involve many consecutive large reads
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/568>`_)
+         - Read heavy workflows with Cassandra KVS will now use substantially less heap. In worst-case testing this change resulted in a 10-100x reduction in client side heap size.
+           However, this is very dependent on the particular scenario AtlasDB is being used in and most consumers should not expect a difference of this size.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/568>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------>>>>
 
