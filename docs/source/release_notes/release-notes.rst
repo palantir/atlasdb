@@ -43,6 +43,10 @@ v0.7.0
            In Memory Key Value Service is recommended for testing environments only and production instances should use DB KVS or Cassandra KVS for data that needs to be persisted.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/552>`__)
 
+    *    - |fixed|
+         - Atlas will no longer log incorrect errors stating "Couldn't grab new token ranges for token aware cassandra mapping" when running against a single node and single token Cassandra cluster.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/634>`__)
+
     *    - |improved|
          - Read heavy workflows with Cassandra KVS will now use substantially less heap. In worst-case testing this change resulted in a 10-100x reduction in client side heap size.
            However, this is very dependent on the particular scenario AtlasDB is being used in and most consumers should not expect a difference of this size.
