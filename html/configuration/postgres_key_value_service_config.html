@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Configuration &mdash; AtlasDB develop documentation</title>
+  <title>Postgres Key Value Service Configuration &mdash; AtlasDB develop documentation</title>
   
 
   
@@ -35,8 +35,9 @@
 
   
     <link rel="top" title="AtlasDB develop documentation" href="../index.html"/>
-        <link rel="next" title="Cassandra Configuration" href="cassandra_config.html"/>
-        <link rel="prev" title="Transaction Protocol" href="../transactions/transaction_protocol.html"/> 
+        <link rel="up" title="Configuration" href="index.html"/>
+        <link rel="next" title="Cluster Management" href="../cluster_management/index.html"/>
+        <link rel="prev" title="Enabling Cassandra Tracing" href="enabling_cassandra_tracing.html"/> 
 
   
   <script src="../_static/js/modernizr.min.js"></script>
@@ -89,10 +90,12 @@
 <li class="toctree-l1"><a class="reference internal" href="../overview/index.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../schemas/index.html">Schemas</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../transactions/index.html">Transactions</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Configuration</a><ul>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Configuration</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="cassandra_config.html">Cassandra Configuration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="enabling_cassandra_tracing.html">Enabling Cassandra Tracing</a></li>
-<li class="toctree-l2"><a class="reference internal" href="postgres_key_value_service_config.html">Postgres Key Value Service Configuration</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Postgres Key Value Service Configuration</a><ul class="simple">
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../cluster_management/index.html">Cluster Management</a></li>
@@ -129,11 +132,13 @@
   <ul class="wy-breadcrumbs">
     <li><a href="../index.html">Docs</a> &raquo;</li>
       
-    <li>Configuration</li>
+          <li><a href="index.html">Configuration</a> &raquo;</li>
+      
+    <li>Postgres Key Value Service Configuration</li>
       <li class="wy-breadcrumbs-aside">
         
           
-            <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/configuration/index.rst" class="fa fa-github"> Edit on GitHub</a>
+            <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/configuration/postgres_key_value_service_config.rst" class="fa fa-github"> Edit on GitHub</a>
           
         
       </li>
@@ -143,14 +148,35 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="configuration">
-<h1>Configuration<a class="headerlink" href="#configuration" title="Permalink to this headline">¶</a></h1>
-<div class="toctree-wrapper compound">
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="cassandra_config.html">Cassandra Configuration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="enabling_cassandra_tracing.html">Enabling Cassandra Tracing</a></li>
-<li class="toctree-l1"><a class="reference internal" href="postgres_key_value_service_config.html">Postgres Key Value Service Configuration</a></li>
-</ul>
+  <div class="section" id="postgres-key-value-service-configuration">
+<h1>Postgres Key Value Service Configuration<a class="headerlink" href="#postgres-key-value-service-configuration" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="enabling-postgres-for-your-application">
+<h2>Enabling Postgres for your Application<a class="headerlink" href="#enabling-postgres-for-your-application" title="Permalink to this headline">¶</a></h2>
+<p>To enable your application to be backed by postgres, you just need to add DB KVS as a runtime dependency. In gradle this looks like:</p>
+<div class="highlight-groovy"><div class="highlight"><pre><span></span><span class="n">runtime</span> <span class="s1">&#39;com.palantir.atlasdb:atlasdb-dbkvs:&lt;atlas version&gt;&#39;</span>
+</pre></div>
+</div>
+<p>e.g.</p>
+<div class="highlight-groovy"><div class="highlight"><pre><span></span><span class="n">runtime</span> <span class="s1">&#39;com.palantir.atlasdb:atlasdb-dbkvs:0.7.0&#39;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="configuring-a-running-application-to-use-postgres">
+<h2>Configuring a Running Application to Use Postgres<a class="headerlink" href="#configuring-a-running-application-to-use-postgres" title="Permalink to this headline">¶</a></h2>
+<p>A minimal atlas configuration for running against postgres will look like :</p>
+<div class="highlight-yaml"><div class="highlight"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">keyValueService</span><span class="p p-Indicator">:</span>
+  <span class="l l-Scalar l-Scalar-Plain">type</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">relational</span>
+  <span class="l l-Scalar l-Scalar-Plain">ddl</span><span class="p p-Indicator">:</span>
+    <span class="l l-Scalar l-Scalar-Plain">type</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">postgres</span>
+  <span class="l l-Scalar l-Scalar-Plain">connection</span><span class="p p-Indicator">:</span>
+    <span class="l l-Scalar l-Scalar-Plain">type</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">postgres</span>
+    <span class="l l-Scalar l-Scalar-Plain">host</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">dbhost</span>
+    <span class="l l-Scalar l-Scalar-Plain">port</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">5432</span>
+    <span class="l l-Scalar l-Scalar-Plain">dbName</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">atlas</span>
+    <span class="l l-Scalar l-Scalar-Plain">dbLogin</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">palantir</span>
+    <span class="l l-Scalar l-Scalar-Plain">dbPassword</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">palantir</span>
+</pre></div>
+</div>
 </div>
 </div>
 
@@ -161,10 +187,10 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="cassandra_config.html" class="btn btn-neutral float-right" title="Cassandra Configuration" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="../cluster_management/index.html" class="btn btn-neutral float-right" title="Cluster Management" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="../transactions/transaction_protocol.html" class="btn btn-neutral" title="Transaction Protocol" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="enabling_cassandra_tracing.html" class="btn btn-neutral" title="Enabling Cassandra Tracing" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

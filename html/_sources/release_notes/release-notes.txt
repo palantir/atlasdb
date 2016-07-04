@@ -34,12 +34,19 @@ v0.7.0
     *    - Type
          - Change
 
+    *    - |new|
+         - Atlas can now be backed by Postgres via DB KVS. This is a very early release for this feature, so please contact us if you
+           plan on using it. Please see `the documentation <http://palantir.github.io/atlasdb/html/configuration/postgres_key_value_service_config.html>`_ for more details.
+
     *    - |fixed|
-         - The in-memory key-value store now makes defensive copies of any data stored or retrieved.
-           This may lead to a slight performance degradation to users of InMemoryKVS (#552)
+         - The In Memory Key Value Service now makes defensive copies of any data stored or retrieved. This may lead to a slight performance degradation to users of In Memory Key Value Service.
+           In Memory Key Value Service is recommended for testing environments only and production instances should use DB KVS or Cassandra KVS for data that needs to be persisted.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/552>`__)
 
     *    - |improved|
-         - Reduced memory footprint of Cassandra KVS, esp. for workflows of many consecutive large reads (#568)
+         - Read heavy workflows with Cassandra KVS will now use substantially less heap. In worst-case testing this change resulted in a 10-100x reduction in client side heap size.
+           However, this is very dependent on the particular scenario AtlasDB is being used in and most consumers should not expect a difference of this size.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/568>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------>>>>
 
