@@ -346,7 +346,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         } catch (PaxosRoundFailureException e) {
             // We have failed trying to become the leader.
             leaderLog.warn("Leadership was not gained.\n"
-                    + "This should happen rarely and we should recover automatically. If this recurs often, try to \n"
+                    + "We should recover automatically. If this recurs often, try to \n"
                     + "  (1) ensure that most other nodes are reachable over the network, and \n"
                     + "  (2) increase the randomWaitBeforeProposingLeadershipMs timeout in your configuration.\n"
                     + "See the debug-level log for more details.");
