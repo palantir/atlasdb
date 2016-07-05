@@ -17,7 +17,6 @@ package com.palantir.atlasdb.config;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Iterator;
 
 import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -29,7 +28,8 @@ import com.google.common.base.Strings;
 import io.dropwizard.jackson.DiscoverableSubtypeResolver;
 
 public final class AtlasDbConfigs {
-    public static final String ATLASDB_CONFIG_ROOT = "atlasdb";
+
+    public static final String ATLASDB_CONFIG_ROOT = "/atlasdb";
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper(new YAMLFactory());
 
@@ -43,22 +43,22 @@ public final class AtlasDbConfigs {
     }
 
     public static AtlasDbConfig load(File configFile) throws IOException {
-        return load(configFile, ATLASDB_CONFIG_ROOT, false);
+        return load(configFile, ATLASDB_CONFIG_ROOT);
     }
 
-    public static AtlasDbConfig load(File configFile, String configRoot, boolean rootIsPath) throws IOException {
-        JsonNode rootNode = getConfigNode(configFile, configRoot, rootIsPath);
+    public static AtlasDbConfig load(File configFile, String configRoot) throws IOException {
+        JsonNode rootNode = getConfigNode(configFile, configRoot);
         return OBJECT_MAPPER.treeToValue(rootNode, AtlasDbConfig.class);
     }
 
-    public static AtlasDbConfig loadFromString(String fileContents, String configRoot, boolean rootIsPath) throws IOException {
-        JsonNode rootNode = getConfigNode(fileContents, configRoot, rootIsPath);
+    public static AtlasDbConfig loadFromString(String fileContents, String configRoot) throws IOException {
+        JsonNode rootNode = getConfigNode(fileContents, configRoot);
         return OBJECT_MAPPER.treeToValue(rootNode, AtlasDbConfig.class);
     }
 
-    private static JsonNode getConfigNode(File configFile, String configRoot, boolean rootIsPath) throws IOException {
+    private static JsonNode getConfigNode(File configFile, String configRoot) throws IOException {
         JsonNode node = OBJECT_MAPPER.readTree(configFile);
-        JsonNode configNode = findRoot(node, configRoot, rootIsPath);
+        JsonNode configNode = findRoot(node, configRoot);
 
         if (configNode == null) {
             throw new IllegalArgumentException("Could not find " + configRoot + " in yaml file " + configFile);
@@ -67,9 +67,9 @@ public final class AtlasDbConfigs {
         return configNode;
     }
 
-    private static JsonNode getConfigNode(String fileContents, String configRoot, boolean rootIsPath) throws IOException {
+    private static JsonNode getConfigNode(String fileContents, String configRoot) throws IOException {
         JsonNode node = OBJECT_MAPPER.readTree(fileContents);
-        JsonNode configNode = findRoot(node, configRoot, rootIsPath);
+        JsonNode configNode = findRoot(node, configRoot);
 
         if (configNode == null) {
             throw new IllegalArgumentException("Could not find " + configRoot + " in given string");
@@ -78,36 +78,15 @@ public final class AtlasDbConfigs {
         return configNode;
     }
 
-    private static JsonNode findRoot(JsonNode node, String configRoot, boolean rootIsPath) {
+    private static JsonNode findRoot(JsonNode node, String configRoot) {
         if (Strings.isNullOrEmpty(configRoot)) {
             return node;
-        } else if (rootIsPath) {
-            return findRootPath(node, configRoot);
-        } else {
-            return findRootObject(node, configRoot);
         }
-    }
 
-    private static JsonNode findRootPath(JsonNode node, String configRoot) {
         JsonNode root = node.at(JsonPointer.valueOf(configRoot));
         if (root.isMissingNode()) {
             return null;
         }
         return root;
-    }
-    
-    private static JsonNode findRootObject(JsonNode node, String configRoot) {
-        if (node.has(configRoot)) {
-            return node.get(configRoot);
-        } else {
-            Iterator<String> iter = node.fieldNames();
-            while (iter.hasNext()) {
-                JsonNode root = findRootObject(node.get(iter.next()), configRoot);
-                if (root != null) {
-                    return root;
-                }
-            }
-            return null;
-        }
     }
 }

@@ -31,8 +31,8 @@ public class ServicesConfigModule {
 
     private final ServicesConfig config;
 
-    public static ServicesConfigModule create(File configFile, String configRoot, boolean rootIsPath) throws IOException {
-        return ServicesConfigModule.create(AtlasDbConfigs.load(configFile, configRoot, rootIsPath));
+    public static ServicesConfigModule create(File configFile, String configRoot) throws IOException {
+        return ServicesConfigModule.create(AtlasDbConfigs.load(configFile, configRoot));
     }
 
     public static ServicesConfigModule create(AtlasDbConfig atlasDbConfig) {
