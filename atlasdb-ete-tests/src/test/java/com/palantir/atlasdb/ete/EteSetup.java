@@ -15,13 +15,12 @@
  */
 package com.palantir.atlasdb.ete;
 
-import static com.google.common.base.Throwables.propagate;
-
 import javax.net.ssl.SSLSocketFactory;
 
 import org.junit.rules.RuleChain;
 
 import com.google.common.base.Optional;
+import com.google.common.base.Throwables;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.todo.TodoResource;
 import com.palantir.docker.compose.DockerComposition;
@@ -42,7 +41,7 @@ public class EteSetup {
             DockerPort port = dockerComposition.portOnContainerWithInternalMapping("ete1", ETE_PORT);
             return createClientFor(clazz, port);
         } catch (Exception e) {
-            throw propagate(e);
+            throw Throwables.propagate(e);
         }
     }
 
