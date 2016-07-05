@@ -24,13 +24,11 @@ import java.util.concurrent.Callable;
 
 import org.apache.commons.lang.ArrayUtils;
 
+import com.palantir.atlasdb.cli.AtlasCli;
 import com.palantir.atlasdb.cli.command.SingleBackendCommand;
 import com.palantir.atlasdb.cli.services.AtlasDbServices;
 import com.palantir.atlasdb.cli.services.AtlasDbServicesFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
-
-import io.airlift.airline.Cli;
-import io.airlift.airline.Command;
 
 public abstract class AbstractTestRunner <S extends AtlasDbServices> implements SingleBackendCliTestRunner {
 
@@ -47,15 +45,14 @@ public abstract class AbstractTestRunner <S extends AtlasDbServices> implements 
 
     @Override
     public S connect(AtlasDbServicesFactory factory) throws Exception {
-        cmd = buildCli(cmdClass).parse(buildArgs());
+        cmd = buildCommand(cmdClass, buildArgs());
         services = cmd.connect(factory);
         return services;
     }
 
     private String[] buildArgs() throws URISyntaxException {
         String filePath = getResourcePath(getKvsConfigFileName());
-        String cmdName = cmdClass.getAnnotation(Command.class).name();
-        String[] initArgs = new String[] { cmdName, "-c", filePath };
+        String[] initArgs = new String[] { "-c", filePath };
         return (String[]) ArrayUtils.addAll(initArgs, args);
     }
 
@@ -101,12 +98,8 @@ public abstract class AbstractTestRunner <S extends AtlasDbServices> implements 
         return Paths.get(AbstractTestRunner.class.getClassLoader().getResource(fileName).toURI()).toString();
     }
 
-    public static <T extends Callable<Integer>> Cli<T> buildCli(Class<T> cmd) {
-        Cli.CliBuilder<T> builder = Cli.<T>builder("tester")
-                .withDescription("Testing " + cmd)
-                .withDefaultCommand(cmd)
-                .withCommands(cmd);
-        return builder.build();
+    public static <T extends Callable<Integer>> T buildCommand(Class<T> cmd, String... args) {
+        return (T) AtlasCli.buildCli().parse(args);
     }
 
 }

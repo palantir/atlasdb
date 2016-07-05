@@ -22,6 +22,7 @@ import java.nio.file.Files;
 import java.util.List;
 import java.util.Scanner;
 
+import org.joda.time.format.ISODateTimeFormat;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -98,14 +99,16 @@ public class TestTimestampCommand {
     }
 
     private void genericTest(boolean isImmutable, boolean isToFile) throws Exception {
-        List<String> cliArgs = Lists.newArrayList();//"-d"); //always test datetime
-        if (isImmutable) {
-            cliArgs.add("-i");
-        }
+        List<String> cliArgs = Lists.newArrayList("timestamp"); //group command
         if (isToFile) {
             cliArgs.add("-f");
             cliArgs.add(TIMESTAMP_FILE_PATH);
         }
+        cliArgs.add("fetch");
+        if (isImmutable) {
+            cliArgs.add("-i");
+        }
+        cliArgs.add("-d"); //always test datetime
 
         try (SingleBackendCliTestRunner runner = makeRunner(cliArgs.toArray(new String[0]))) {
             TestAtlasDbServices services = runner.connect(moduleFactory);
@@ -138,21 +141,21 @@ public class TestTimestampCommand {
 
         // run the stuff
         long timestamp;
-        //String datetime;
+        String datetime;
         Scanner scanner = new Scanner(runner.run(true, false));
         if (!isToFile) {
             timestamp = Long.parseLong(scanner.findInLine("\\d+"));
-            //datetime = scanner.findInLine("\\d+.*").trim();
+            datetime = scanner.findInLine("\\d+.*").trim();
         } else {
             Preconditions.checkArgument(TIMESTAMP_FILE.exists(), "Timestamp file doesn't exist.");
             List<String> lines = Files.readAllLines(TIMESTAMP_FILE.toPath(), StandardCharsets.UTF_8);
             timestamp = Long.parseLong(lines.get(0));
-            //datetime = lines.get(1).trim();
+            datetime = lines.get(1).trim();
         }
         scanner.close();
 
         // verify correctness
-        //ISODateTimeFormat.dateTimeNoMillis().parseDateTime(datetime);
+        ISODateTimeFormat.dateTimeNoMillis().parseDateTime(datetime);
         if (isImmutable) {
             Preconditions.checkArgument(timestamp == immutableTs);
             Preconditions.checkArgument(timestamp < lastFreshTs);
