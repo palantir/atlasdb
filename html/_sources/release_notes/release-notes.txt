@@ -20,6 +20,22 @@ Changelog
 .. toctree::
   :hidden:
 
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.8.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Some logging was missing important information due to use of the wrong substitution placeholder. This version should be taken in preference to 0.7.0 to ensure logging is correct.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/642>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
