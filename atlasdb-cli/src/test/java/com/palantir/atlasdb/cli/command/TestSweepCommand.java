@@ -45,6 +45,8 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.timestamp.TimestampService;
 
+import io.airlift.airline.Command;
+
 public class TestSweepCommand {
 
     private static final Namespace NS1 = Namespace.create("test");
@@ -53,6 +55,7 @@ public class TestSweepCommand {
     private static final TableReference TABLE_TWO = TableReference.create(NS1, "two");
     private static final TableReference TABLE_THREE = TableReference.create(NS2, "one");
     private static final String COL = "c";
+    private static final String SWEEP_COMMAND = SweepCommand.class.getAnnotation(Command.class).name();
 
     private static AtomicLong sweepTimestamp;
     private static AtlasDbServicesFactory moduleFactory;
@@ -77,7 +80,7 @@ public class TestSweepCommand {
 
     @Test
     public void testSweepTable() throws Exception {
-        try (SingleBackendCliTestRunner runner = makeRunner("-t", TABLE_ONE.getQualifiedName())) {
+        try (SingleBackendCliTestRunner runner = makeRunner(SWEEP_COMMAND, "-t", TABLE_ONE.getQualifiedName())) {
             TestAtlasDbServices services = runner.connect(moduleFactory);
             SerializableTransactionManager txm = services.getTransactionManager();
             TimestampService tss = services.getTimestampService();
@@ -110,7 +113,7 @@ public class TestSweepCommand {
 
     @Test
     public void testSweepNamespace() throws Exception {
-        try (SingleBackendCliTestRunner runner = makeRunner("-n", NS1.getName())) {
+        try (SingleBackendCliTestRunner runner = makeRunner(SWEEP_COMMAND, "-n", NS1.getName())) {
             TestAtlasDbServices services = runner.connect(moduleFactory);
             SerializableTransactionManager txm = services.getTransactionManager();
             TimestampService tss = services.getTimestampService();
@@ -142,7 +145,7 @@ public class TestSweepCommand {
 
     @Test
     public void testSweepAll() throws Exception {
-        try (SingleBackendCliTestRunner runner = makeRunner("-a")) {
+        try (SingleBackendCliTestRunner runner = makeRunner(SWEEP_COMMAND, "-a")) {
             TestAtlasDbServices services = runner.connect(moduleFactory);
             SerializableTransactionManager txm = services.getTransactionManager();
             TimestampService tss = services.getTimestampService();
@@ -174,7 +177,7 @@ public class TestSweepCommand {
 
     @Test
     public void testSweepStartRow() throws Exception {
-        try (SingleBackendCliTestRunner runner = makeRunner("-t", TABLE_ONE.getQualifiedName(), "-r", BaseEncoding.base16().encode("foo".getBytes()))) {
+        try (SingleBackendCliTestRunner runner = makeRunner(SWEEP_COMMAND, "-t", TABLE_ONE.getQualifiedName(), "-r", BaseEncoding.base16().encode("foo".getBytes()))) {
             TestAtlasDbServices services = runner.connect(moduleFactory);
             SerializableTransactionManager txm = services.getTransactionManager();
             TimestampService tss = services.getTimestampService();
