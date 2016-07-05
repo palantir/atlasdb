@@ -70,7 +70,7 @@ public class FetchTimestamp extends AbstractTimestampCommand {
             long timeMillis = KeyValueServicePuncherStore.getMillisForTimestamp(
                     services.getKeyValueService(), timestamp);
             DateTime dt = new DateTime(timeMillis);
-            stringTime = ISODateTimeFormat.dateTimeNoMillis().print(dt);
+            stringTime = ISODateTimeFormat.dateTime().print(dt);
             log.info("Wall clock datetime of {} timestamp is: {}", name, stringTime);
         }
 

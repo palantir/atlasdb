@@ -50,6 +50,10 @@ public abstract class AbstractTestRunner <S extends AtlasDbServices> implements 
         return services;
     }
 
+    public void freshCommand() throws URISyntaxException {
+        cmd = buildCommand(cmdClass, buildArgs());
+    }
+
     private String[] buildArgs() throws URISyntaxException {
         String filePath = getResourcePath(getKvsConfigFileName());
         String[] initArgs = new String[] { "-c", filePath };
