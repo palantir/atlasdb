@@ -15,6 +15,11 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import static org.hamcrest.CoreMatchers.hasItem;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -24,6 +29,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.SortedMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutionException;
@@ -579,8 +585,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         final Cell cell = Cell.create("row1".getBytes(), "column1".getBytes());
         Transaction t1 = txManager.createNewTransaction();
         Transaction t2 = txManager.createNewTransaction();
-        t1.put(TABLE, ImmutableMap.of(cell, PtBytes.EMPTY_BYTE_ARRAY));
-        t2.put(TABLE, ImmutableMap.of(cell, PtBytes.EMPTY_BYTE_ARRAY));
+        t1.delete(TABLE, ImmutableSet.of(cell));
+        t2.delete(TABLE, ImmutableSet.of(cell));
         t1.commit();
         t2.commit();
     }
@@ -591,7 +597,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         final Cell cell = Cell.create("row1".getBytes(), "column1".getBytes());
         Transaction t1 = txManager.createNewTransaction();
         Transaction t2 = txManager.createNewTransaction();
-        t1.put(TABLE, ImmutableMap.of(cell, PtBytes.EMPTY_BYTE_ARRAY));
+        t1.delete(TABLE, ImmutableSet.of(cell));
         t2.put(TABLE, ImmutableMap.of(cell, new byte[1]));
         t1.commit();
         try {
@@ -603,7 +609,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         t1 = txManager.createNewTransaction();
         t2 = txManager.createNewTransaction();
-        t1.put(TABLE, ImmutableMap.of(cell, PtBytes.EMPTY_BYTE_ARRAY));
+        t1.delete(TABLE, ImmutableSet.of(cell));
         t2.put(TABLE, ImmutableMap.of(cell, new byte[1]));
         t2.commit();
         try {
@@ -615,7 +621,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         t1 = txManager.createNewTransaction();
         t2 = txManager.createNewTransaction();
-        t2.put(TABLE, ImmutableMap.of(cell, PtBytes.EMPTY_BYTE_ARRAY));
+        t2.delete(TABLE, ImmutableSet.of(cell));
         t1.put(TABLE, ImmutableMap.of(cell, new byte[1]));
         t2.commit();
         try {
@@ -627,7 +633,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         t1 = txManager.createNewTransaction();
         t2 = txManager.createNewTransaction();
-        t2.put(TABLE, ImmutableMap.of(cell, PtBytes.EMPTY_BYTE_ARRAY));
+        t2.delete(TABLE, ImmutableSet.of(cell));
         t1.put(TABLE, ImmutableMap.of(cell, new byte[1]));
         t1.commit();
         try {
@@ -644,8 +650,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         final Cell cell = Cell.create("row1".getBytes(), "column1".getBytes());
         Transaction t1 = txManager.createNewTransaction();
         Transaction t2 = txManager.createNewTransaction();
-        t1.put(TABLE, ImmutableMap.of(cell, PtBytes.EMPTY_BYTE_ARRAY));
-        t2.put(TABLE, ImmutableMap.of(cell, PtBytes.EMPTY_BYTE_ARRAY));
+        t1.delete(TABLE, ImmutableSet.of(cell));
+        t2.delete(TABLE, ImmutableSet.of(cell));
         t1.commit();
         try {
             t2.commit();
@@ -653,6 +659,39 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         } catch (TransactionConflictException e) {
             // good
         }
+    }
+
+    @Test (expected = IllegalArgumentException.class)
+    public void disallowPutOnEmptyObject() {
+        final Cell cell = Cell.create("row1".getBytes(), "column1".getBytes());
+        Transaction t1 = txManager.createNewTransaction();
+        t1.put(TABLE, ImmutableMap.of(cell, PtBytes.EMPTY_BYTE_ARRAY));
+    }
+
+    @Test
+    public void partiallyFilledRowsShouldBeVisible() {
+        byte[] defaultRow = "row1".getBytes();
+        final Cell emptyCell = Cell.create(defaultRow, "column1".getBytes());
+        final Cell writtenCell = Cell.create(defaultRow, "column2".getBytes());
+        writeCells(TABLE, ImmutableMap.of(writtenCell, PtBytes.toBytes("writtenCell")));
+
+        RowResult<byte[]> rowResult = readRow(defaultRow);
+
+        assertThat(rowResult, is(notNullValue()));
+        assertThat(rowResult.getCellSet(), hasItem(writtenCell));
+        assertThat(rowResult.getCellSet(), not(hasItem(emptyCell)));
+    }
+
+    private void writeCells(TableReference table, ImmutableMap<Cell, byte[]> cellsToWrite) {
+        Transaction writeTransaction = txManager.createNewTransaction();
+        writeTransaction.put(table, cellsToWrite);
+        writeTransaction.commit();
+    }
+
+    private RowResult<byte[]> readRow(byte[] defaultRow) {
+        Transaction readTransaction = txManager.createNewTransaction();
+        SortedMap<byte[], RowResult<byte[]>> allRows = readTransaction.getRows(TABLE, ImmutableSet.of(defaultRow), ColumnSelection.all());
+        return allRows.get(defaultRow);
     }
 
     private HeldLocksToken getFakeHeldLocksToken() {
