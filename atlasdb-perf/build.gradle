@@ -1,0 +1,25 @@
+apply from: '../gradle/shared.gradle'
+
+apply plugin: 'application'
+mainClassName = 'com.palantir.atlasdb.performance.AtlasPerfCLI'
+applicationName = 'atlasdb-perf'
+
+dependencies {
+  compile project(':atlasdb-spi')
+  compile project(':atlasdb-dbkvs')
+
+  compile group: 'io.airlift', name: 'airline', version: '0.7'
+  compile group: 'org.reflections', name: 'reflections', version: '0.9.10'
+  compile group: 'com.palantir.docker.compose', name: 'docker-compose-rule', version: '0.16.0'
+  compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.1.7'
+}
+
+configurations.matching({ it.name in ['compile', 'runtime'] }).all {
+      resolutionStrategy {
+          force 'com.google.code.findbugs:annotations:2.0.3'
+          force 'org.slf4j:slf4j-api:' + libVersions.slf4j
+          force 'org.apache.commons:commons-lang3:' + libVersions.commons_lang3
+          force 'commons-io:commons-io:' + libVersions.commons_io
+          force 'joda-time:joda-time:' + libVersions.joda_time
+      }
+}
