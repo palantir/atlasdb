@@ -33,35 +33,38 @@ v0.9.0
     :widths: 5 40
     :header-rows: 1
 
-    *   - Type
-        - Change
+    *    - Type
+         - Change
 
-    *   - |breaking|
-        - Inserting an empty (size = 0) value into a ``Cell`` will now throw an ``IllegalArgumentException``. (#156) Likely empty
-          values include empty strings and empty protobufs.
+    *    - |breaking|
+         - Inserting an empty (size = 0) value into a ``Cell`` will now throw an ``IllegalArgumentException``. (#156) Likely empty
+           values include empty strings and empty protobufs.
 
-          Atlas cannot currently distinguish between empty and deleted cells. In previous versions of Atlas, inserting
-          an empty value into a ``Cell`` would delete that cell. Thus, in this snippet,
+           Atlas cannot currently distinguish between empty and deleted cells. In previous versions of Atlas, inserting
+           an empty value into a ``Cell`` would delete that cell. Thus, in this snippet,
 
-          .. code-block:: java
+           .. code-block:: java
 
-              Transaction.put(table, ImmutableMap.of(myCell, new byte[0]))
-              Transaction.get(table, ImmutableSet.of(myCell)).get(myCell)
+               Transaction.put(table, ImmutableMap.of(myCell, new byte[0]))
+               Transaction.get(table, ImmutableSet.of(myCell)).get(myCell)
 
-          the second line will return ``null`` instead of a zero-length byte array.
+           the second line will return ``null`` instead of a zero-length byte array.
 
-          To minimize confusion, we explicitly disallow inserting an empty value into a cell by throwing an
-          ``IllegalArgumentException``.
+           To minimize confusion, we explicitly disallow inserting an empty value into a cell by throwing an
+           ``IllegalArgumentException``.
 
-          In particular, this change will break calls to ``Transaction.put(TableReference tableRef, Map<Cell, byte[]> values)``,
-          as well as generated code which uses this method, if any entry in ``values`` contains a zero-byte array. If your
-          product does not need to distinguish between empty and non-existent values, simply make sure all the ``values``
-          entries have positive length. If the distinction is necessary, you will need to explicitly differentiate the
-          two cases (for example, by introducing a sentinel value for empty cells).
+           In particular, this change will break calls to ``Transaction.put(TableReference tableRef, Map<Cell, byte[]> values)``,
+           as well as generated code which uses this method, if any entry in ``values`` contains a zero-byte array. If your
+           product does not need to distinguish between empty and non-existent values, simply make sure all the ``values``
+           entries have positive length. If the distinction is necessary, you will need to explicitly differentiate the
+           two cases (for example, by introducing a sentinel value for empty cells).
 
-          If any code deletes cells by calling ``Transaction.put(...)`` with an empty array, use
-          ``Transaction.delete(...)`` instead.
+           If any code deletes cells by calling ``Transaction.put(...)`` with an empty array, use
+           ``Transaction.delete(...)`` instead.
 
+    *    - |improved|
+         - The warning emitted when an attempted leadership election fails is now more descriptive.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/630>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
