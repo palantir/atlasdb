@@ -1461,7 +1461,7 @@ public final class UserProfileTable implements
 
             @Override
             public int hashCode() {
-                return Objects.hashCode(rowName, columnName, id);
+                return Arrays.deepHashCode(new Object[]{ rowName, columnName, id });
             }
 
             @Override
@@ -2097,7 +2097,7 @@ public final class UserProfileTable implements
 
             @Override
             public int hashCode() {
-                return Objects.hashCode(rowName, columnName, id);
+                return Arrays.deepHashCode(new Object[]{ rowName, columnName, id });
             }
 
             @Override
@@ -2733,7 +2733,7 @@ public final class UserProfileTable implements
 
             @Override
             public int hashCode() {
-                return Objects.hashCode(rowName, columnName, id);
+                return Arrays.deepHashCode(new Object[]{ rowName, columnName, id });
             }
 
             @Override
@@ -3204,5 +3204,5 @@ public final class UserProfileTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "O3BBdePYKzyTMAnT96FW7Q==";
+    static String __CLASS_HASH = "LjckbG527Xe+RMNMCj4hqg==";
 }

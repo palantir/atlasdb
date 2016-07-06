@@ -222,7 +222,7 @@ public final class UserPhotosStreamValueTable implements
 
         @Override
         public int hashCode() {
-            return Objects.hashCode(id, blockId);
+            return Arrays.deepHashCode(new Object[]{ id, blockId });
         }
 
         @Override
@@ -700,5 +700,5 @@ public final class UserPhotosStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "UzI7TXUlWL5M9KqjP/k4WA==";
+    static String __CLASS_HASH = "8reAvAhB/1n2+5eHWVeohQ==";
 }
