@@ -151,6 +151,43 @@
 <h1>Changelog<a class="headerlink" href="#changelog" title="Permalink to this headline">¶</a></h1>
 <div class="toctree-wrapper compound">
 </div>
+<div class="section" id="v0-9-0">
+<h2>v0.9.0<a class="headerlink" href="#v0-9-0" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-breaking">BREAKING</span></td>
+<td><p class="first">Inserting an empty (size = 0) value into a <code class="docutils literal"><span class="pre">Cell</span></code> will now throw an <code class="docutils literal"><span class="pre">IllegalArgumentException</span></code>. (#156) Likely empty
+values include empty strings and empty protobufs.</p>
+<p>Atlas cannot currently distinguish between empty and deleted cells. In previous versions of Atlas, inserting
+an empty value into a <code class="docutils literal"><span class="pre">Cell</span></code> would delete that cell. Thus, in this snippet,</p>
+<div class="highlight-java"><div class="highlight"><pre><span></span><span class="n">Transaction</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="n">table</span><span class="o">,</span> <span class="n">ImmutableMap</span><span class="o">.</span><span class="na">of</span><span class="o">(</span><span class="n">myCell</span><span class="o">,</span> <span class="k">new</span> <span class="kt">byte</span><span class="o">[</span><span class="mi">0</span><span class="o">]))</span>
+<span class="n">Transaction</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="n">table</span><span class="o">,</span> <span class="n">ImmutableSet</span><span class="o">.</span><span class="na">of</span><span class="o">(</span><span class="n">myCell</span><span class="o">)).</span><span class="na">get</span><span class="o">(</span><span class="n">myCell</span><span class="o">)</span>
+</pre></div>
+</div>
+<p>the second line will return <code class="docutils literal"><span class="pre">null</span></code> instead of a zero-length byte array.</p>
+<p>To minimize confusion, we explicitly disallow inserting an empty value into a cell by throwing an
+<code class="docutils literal"><span class="pre">IllegalArgumentException</span></code>.</p>
+<p>In particular, this change will break calls to <code class="docutils literal"><span class="pre">Transaction.put(TableReference</span> <span class="pre">tableRef,</span> <span class="pre">Map&lt;Cell,</span> <span class="pre">byte[]&gt;</span> <span class="pre">values)</span></code>,
+as well as generated code which uses this method, if any entry in <code class="docutils literal"><span class="pre">values</span></code> contains a zero-byte array. If your
+product does not need to distinguish between empty and non-existent values, simply make sure all the <code class="docutils literal"><span class="pre">values</span></code>
+entries have positive length. If the distinction is necessary, you will need to explicitly differentiate the
+two cases (for example, by introducing a sentinel value for empty cells).</p>
+<p class="last">If any code deletes cells by calling <code class="docutils literal"><span class="pre">Transaction.put(...)</span></code> with an empty array, use
+<code class="docutils literal"><span class="pre">Transaction.delete(...)</span></code> instead.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
 <div class="section" id="v0-8-0">
 <h2>v0.8.0<a class="headerlink" href="#v0-8-0" title="Permalink to this headline">¶</a></h2>
 <table border="1" class="docutils">
