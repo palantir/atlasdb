@@ -15,6 +15,8 @@
  */
 package com.palantir.paxos;
 
+import static com.google.common.collect.ImmutableList.copyOf;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -40,8 +42,8 @@ public class PaxosProposerImpl implements PaxosProposer {
     private static final Logger log = LoggerFactory.getLogger(PaxosProposerImpl.class);
 
     public static PaxosProposer newProposer(PaxosLearner localLearner,
-                                            ImmutableList<PaxosAcceptor> allAcceptors,
-                                            ImmutableList<PaxosLearner> allLearners,
+                                            List<PaxosAcceptor> allAcceptors,
+                                            List<PaxosLearner> allLearners,
                                             int quorumSize,
                                             ExecutorService executor) {
         return new PaxosProposerImpl(
@@ -63,8 +65,8 @@ public class PaxosProposerImpl implements PaxosProposer {
     private final ExecutorService executor;
 
     private PaxosProposerImpl(PaxosLearner localLearner,
-                              ImmutableList<PaxosAcceptor> acceptors,
-                              ImmutableList<PaxosLearner> learners,
+                              List<PaxosAcceptor> acceptors,
+                              List<PaxosLearner> learners,
                               int quorumSize,
                               String uuid,
                               ExecutorService executor) {
@@ -72,8 +74,8 @@ public class PaxosProposerImpl implements PaxosProposer {
                 quorumSize > acceptors.size() / 2,
                 "quorum size needs to be at least the majority of acceptors");
         this.localLearner = localLearner;
-        this.allAcceptors = acceptors;
-        this.allLearners = learners;
+        this.allAcceptors = copyOf(acceptors);
+        this.allLearners = copyOf(learners);
         this.quorumSize = quorumSize;
         this.uuid = uuid;
         this.proposalNum = new AtomicLong();

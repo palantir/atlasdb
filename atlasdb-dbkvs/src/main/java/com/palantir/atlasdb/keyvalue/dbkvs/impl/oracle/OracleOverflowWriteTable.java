@@ -24,13 +24,13 @@ import java.util.Map.Entry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Supplier;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbWriteTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
@@ -43,17 +43,14 @@ public class OracleOverflowWriteTable implements DbWriteTable {
 
     private final String tableName;
     private final ConnectionSupplier conns;
-    private final Supplier<Long> overflowIds;
-    private final OverflowMigrationState migrationState;
+    private final OracleDdlConfig config;
 
     public OracleOverflowWriteTable(String tableName,
                                     ConnectionSupplier conns,
-                                    Supplier<Long> overflowIds,
-                                    OverflowMigrationState migrationState) {
+                                    OracleDdlConfig config) {
         this.tableName = tableName;
         this.conns = conns;
-        this.overflowIds = overflowIds;
-        this.migrationState = migrationState;
+        this.config = config;
     }
 
     @Override
@@ -66,7 +63,7 @@ public class OracleOverflowWriteTable implements DbWriteTable {
             if (val.length <= 2000) {
                 args.add(new Object[] { cell.getRowName(), cell.getColumnName(), ts, val, null });
             } else {
-                long overflowId = overflowIds.get();
+                long overflowId = config.overflowIds().get();
                 overflowArgs.add(new Object[] { overflowId, val });
                 args.add(new Object[] { cell.getRowName(), cell.getColumnName(), ts, null , overflowId });
             }
@@ -84,7 +81,7 @@ public class OracleOverflowWriteTable implements DbWriteTable {
             if (val.getContents().length <= 2000) {
                 args.add(new Object[] { cell.getRowName(), cell.getColumnName(), val.getTimestamp(), val.getContents(), null });
             } else {
-                long overflowId = overflowIds.get();
+                long overflowId = config.overflowIds().get();
                 overflowArgs.add(new Object[] { overflowId, val.getContents() });
                 args.add(new Object[] { cell.getRowName(), cell.getColumnName(), val.getTimestamp(), null , overflowId });
             }
@@ -94,22 +91,22 @@ public class OracleOverflowWriteTable implements DbWriteTable {
 
     private void put(List<Object[]> args, List<Object[]> overflowArgs) {
         if (!overflowArgs.isEmpty()) {
-            if (migrationState == OverflowMigrationState.UNSTARTED) {
+            if (config.overflowMigrationState() == OverflowMigrationState.UNSTARTED) {
                 conns.get().insertManyUnregisteredQuery(
-                        "/* SQL_MET_INSERT_OVERFLOW */" +
-                        " INSERT INTO pt_metropolis_overflow (id, val) VALUES (?, ?) ",
+                        "/* INSERT_OVERFLOW */" +
+                        " INSERT INTO " + config.singleOverflowTable() + " (id, val) VALUES (?, ?) ",
                         overflowArgs);
             } else {
                 conns.get().insertManyUnregisteredQuery(
-                        "/* SQL_MET_INSERT_OVERFLOW (" + tableName + ") */" +
-                        " INSERT INTO pt_mo_" + tableName + " (id, val) VALUES (?, ?) ",
+                        "/* INSERT_OVERFLOW (" + tableName + ") */" +
+                        " INSERT INTO " + prefixedOverflowTableName() + " (id, val) VALUES (?, ?) ",
                         overflowArgs);
             }
         }
         try {
             conns.get().insertManyUnregisteredQuery(
-                    "/* SQL_MET_INSERT_ONE (" + tableName + ") */" +
-                    " INSERT INTO pt_met_" + tableName + " (row_name, col_name, ts, val, overflow) " +
+                    "/* INSERT_ONE (" + tableName + ") */" +
+                    " INSERT INTO " + prefixedTableName() + " (row_name, col_name, ts, val, overflow) " +
                     " VALUES (?, ?, ?, ?, ?) ",
                     args);
         } catch (PalantirSqlException e) {
@@ -133,10 +130,10 @@ public class OracleOverflowWriteTable implements DbWriteTable {
             while (true) {
                 try {
                     conns.get().insertManyUnregisteredQuery(
-                            "/* SQL_MET_INSERT_WHERE_NOT_EXISTS (" + tableName + ") */" +
-                            " INSERT INTO pt_met_" + tableName + " (row_name, col_name, ts, val, overflow) " +
+                            "/* INSERT_WHERE_NOT_EXISTS (" + tableName + ") */" +
+                            " INSERT INTO " + prefixedTableName() + " (row_name, col_name, ts, val, overflow) " +
                             " SELECT ?, ?, ?, ?, ? FROM DUAL" +
-                            " WHERE NOT EXISTS (SELECT * FROM pt_met_" + tableName + " WHERE" +
+                            " WHERE NOT EXISTS (SELECT * FROM " + prefixedTableName() + " WHERE" +
                             " row_name = ? AND" +
                             " col_name = ? AND" +
                             " ts = ?)",
@@ -159,20 +156,20 @@ public class OracleOverflowWriteTable implements DbWriteTable {
             Cell cell = entry.getKey();
             args.add(new Object[] {cell.getRowName(), cell.getColumnName(), entry.getValue()});
         }
-        switch (migrationState) {
+        switch (config.overflowMigrationState()) {
         case UNSTARTED:
-            deleteOverflow("pt_metropolis_overflow", args);
+            deleteOverflow(config.singleOverflowTable(), args);
             break;
         case IN_PROGRESS:
-            deleteOverflow("pt_metropolis_overflow", args);
-            deleteOverflow("pt_mo_" + tableName, args);
+            deleteOverflow(config.singleOverflowTable(), args);
+            deleteOverflow(prefixedOverflowTableName(), args);
             break;
         case FINISHING: // fall through
         case FINISHED:
-            deleteOverflow("pt_mo_" + tableName, args);
+            deleteOverflow(prefixedOverflowTableName(), args);
             break;
         default:
-            throw new EnumConstantNotPresentException(OverflowMigrationState.class, migrationState.name());
+            throw new EnumConstantNotPresentException(OverflowMigrationState.class, config.overflowMigrationState().name());
         }
         SqlConnection conn = conns.get();
         try {
@@ -183,9 +180,9 @@ public class OracleOverflowWriteTable implements DbWriteTable {
             //
         }
         conn.updateManyUnregisteredQuery(
-                " /* SQL_MET_DELETE_ONE (" + tableName + ") */ " +
-                " DELETE /*+ INDEX(m pk_pt_met_" + tableName + ") */ " +
-                " FROM pt_met_" + tableName + " m " +
+                " /* DELETE_ONE (" + tableName + ") */ " +
+                " DELETE /*+ INDEX(m pk_" + prefixedTableName() + ") */ " +
+                " FROM " + prefixedTableName() + " m " +
                 " WHERE m.row_name = ? " +
                 "  AND m.col_name = ? " +
                 "  AND m.ts = ?",
@@ -194,16 +191,24 @@ public class OracleOverflowWriteTable implements DbWriteTable {
 
     private void deleteOverflow(String overflowTable, List<Object[]> args) {
         conns.get().updateManyUnregisteredQuery(
-                " /* SQL_MET_DELETE_ONE_OVERFLOW (" + tableName + ") */ " +
+                " /* DELETE_ONE_OVERFLOW (" + tableName + ") */ " +
                 " DELETE /*+ INDEX(m pk_" + overflowTable + ") */ " +
                 "   FROM " + overflowTable + " m " +
-                "  WHERE m.id IN (SELECT /*+ INDEX(i pk_pt_met_" + tableName + ") */ " +
+                "  WHERE m.id IN (SELECT /*+ INDEX(i pk_" + prefixedTableName() + ") */ " +
                 "                        i.overflow " +
-                "                   FROM pt_met_" + tableName + " i " +
+                "                   FROM " + prefixedTableName() + " i " +
                 "                  WHERE i.row_name = ? " +
                 "                    AND i.col_name = ? " +
                 "                    AND i.ts = ? " +
                 "                    AND i.overflow IS NOT NULL)",
                 args);
+    }
+
+    private String prefixedTableName() {
+        return config.tablePrefix() + tableName;
+    }
+
+    private String prefixedOverflowTableName() {
+        return config.overflowTablePrefix() + tableName;
     }
 }

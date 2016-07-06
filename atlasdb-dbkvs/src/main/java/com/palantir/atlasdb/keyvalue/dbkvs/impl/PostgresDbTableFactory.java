@@ -20,19 +20,21 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfiguration;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.dbkvs.PostgresDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresDdlTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresQueryFactory;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresTableInitializer;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.nexus.db.DBType;
 
 public class PostgresDbTableFactory implements DbTableFactory {
 
-    private final DbKeyValueServiceConfiguration config;
+    private final PostgresDdlConfig config;
     private final ExecutorService exec;
 
-    public PostgresDbTableFactory(DbKeyValueServiceConfiguration config) {
+    public PostgresDbTableFactory(PostgresDdlConfig config) {
         this.config = config;
         int poolSize = config.poolSize();
         this.exec = newFixedThreadPool(poolSize);
@@ -50,22 +52,27 @@ public class PostgresDbTableFactory implements DbTableFactory {
 
     @Override
     public DbMetadataTable createMetadata(String tableName, ConnectionSupplier conns) {
-        return new SimpleDbMetadataTable(tableName, conns);
+        return new SimpleDbMetadataTable(tableName, conns, config);
     }
 
     @Override
-    public DbDdlTable createDdl(String tableName, ConnectionSupplier conns) {
-        return new PostgresDdlTable(tableName, conns);
+    public DbDdlTable createDdl(TableReference tableName, ConnectionSupplier conns) {
+        return new PostgresDdlTable(tableName, conns, config);
+    }
+
+    @Override
+    public DbTableInitializer createInitializer(ConnectionSupplier conns) {
+        return new PostgresTableInitializer(conns);
     }
 
     @Override
     public DbReadTable createRead(String tableName, ConnectionSupplier conns) {
-        return new BatchedDbReadTable(conns, new PostgresQueryFactory(tableName), exec, config);
+        return new BatchedDbReadTable(conns, new PostgresQueryFactory(tableName, config), exec, config);
     }
 
     @Override
     public DbWriteTable createWrite(String tableName, ConnectionSupplier conns) {
-        return new SimpleDbWriteTable(tableName, conns);
+        return new SimpleDbWriteTable(tableName, conns, config);
     }
 
     @Override

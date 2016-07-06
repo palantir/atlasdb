@@ -19,44 +19,50 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Supplier;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfiguration;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleDdlTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleOverflowQueryFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleOverflowWriteTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleRawQueryFactory;
 import com.palantir.common.base.Throwables;
-import com.palantir.db.oracle.JdbcHandler;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 
 public class OracleDbTableFactory implements DbTableFactory {
     private final Cache<String, TableSize> tableSizeByTableName = CacheBuilder.newBuilder().build();
-    private final DbKeyValueServiceConfiguration config;
-    private final JdbcHandler jdbcHandler;
-    private final Supplier<Long> overflowIds;
-    private final OverflowMigrationState migrationState;
+    private final OracleDdlConfig config;
 
-    public OracleDbTableFactory(DbKeyValueServiceConfiguration config,
-                                JdbcHandler jdbcHandler,
-                                Supplier<Long> overflowIds,
-                                OverflowMigrationState migrationState) {
+    public OracleDbTableFactory(OracleDdlConfig config) {
         this.config = config;
-        this.jdbcHandler = jdbcHandler;
-        this.overflowIds = overflowIds;
-        this.migrationState = migrationState;
     }
 
     @Override
     public DbMetadataTable createMetadata(String tableName, ConnectionSupplier conns) {
-        return new SimpleDbMetadataTable(tableName, conns);
+        return new SimpleDbMetadataTable(tableName, conns, config);
     }
 
     @Override
-    public DbDdlTable createDdl(String tableName, ConnectionSupplier conns) {
-        return new OracleDdlTable(tableName, conns, migrationState, config);
+    public DbDdlTable createDdl(TableReference tableName, ConnectionSupplier conns) {
+        return new OracleDdlTable(tableName, conns, config);
+    }
+
+    @Override
+    public DbTableInitializer createInitializer(ConnectionSupplier conns) {
+        /* No initialization required for Oracle */
+        return new DbTableInitializer() {
+            @Override
+            public void createUtilityTables() {
+                //no op
+            }
+
+            @Override
+            public void createMetadataTable(String metadataTableName) {
+                //no op - will be required for Oracle to work
+            }
+        };
     }
 
     @Override
@@ -65,10 +71,10 @@ public class OracleDbTableFactory implements DbTableFactory {
         DbQueryFactory queryFactory;
         switch (tableSize) {
         case OVERFLOW:
-            queryFactory = new OracleOverflowQueryFactory(tableName, migrationState, jdbcHandler);
+            queryFactory = new OracleOverflowQueryFactory(tableName, config);
             break;
         case RAW:
-            queryFactory = new OracleRawQueryFactory(tableName, jdbcHandler);
+            queryFactory = new OracleRawQueryFactory(tableName, config);
             break;
         default:
             throw new EnumConstantNotPresentException(TableSize.class, tableSize.name());
@@ -81,9 +87,9 @@ public class OracleDbTableFactory implements DbTableFactory {
         TableSize tableSize = getTableSize(conns, tableName);
         switch (tableSize) {
         case OVERFLOW:
-            return new OracleOverflowWriteTable(tableName, conns, overflowIds, migrationState);
+            return new OracleOverflowWriteTable(tableName, conns, config);
         case RAW:
-            return new SimpleDbWriteTable(tableName, conns);
+            return new SimpleDbWriteTable(tableName, conns, config);
         default:
             throw new EnumConstantNotPresentException(TableSize.class, tableSize.name());
         }
@@ -95,7 +101,7 @@ public class OracleDbTableFactory implements DbTableFactory {
                 @Override
                 public TableSize call() {
                     AgnosticResultSet results = conns.get().selectResultSetUnregisteredQuery(
-                            "SELECT table_size FROM pt_metropolis_table_meta WHERE table_name = ?",
+                            "SELECT table_size FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?",
                             tableName);
                     Preconditions.checkArgument(
                             !results.rows().isEmpty(),

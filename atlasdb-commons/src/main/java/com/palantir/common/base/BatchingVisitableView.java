@@ -30,7 +30,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
-import com.palantir.util.Visitor;
+import com.palantir.common.visitor.Visitor;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 public abstract class BatchingVisitableView<T> extends ForwardingObject implements BatchingVisitable<T> {

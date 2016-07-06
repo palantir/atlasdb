@@ -15,27 +15,38 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
+import com.google.auto.service.AutoService;
 import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
+import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.TimestampService;
 
+@AutoService(AtlasDbFactory.class)
 public class DbAtlasDbFactory implements AtlasDbFactory {
+    public static final String TYPE = "relational";
     @Override
     public String getType() {
-        return "db";
+        return TYPE;
     }
 
     @Override
     public KeyValueService createRawKeyValueService(KeyValueServiceConfig config) {
-        Preconditions.checkArgument(config instanceof DbKeyValueServiceConfiguration,
+        Preconditions.checkArgument(config instanceof DbKeyValueServiceConfig,
                 "DbAtlasDbFactory expects a configuration of type DbKeyValueServiceConfiguration, found %s", config.getClass());
-        throw new UnsupportedOperationException("Cannot instantiate a relational key value service.");
+        return ConnectionManagerAwareDbKvs.create((DbKeyValueServiceConfig) config);
     }
 
     @Override
     public TimestampService createTimestampService(KeyValueService rawKvs) {
-        throw new UnsupportedOperationException("Cannot instantiate a TimestampService from a relational key value service.");
+        Preconditions.checkArgument(rawKvs instanceof ConnectionManagerAwareDbKvs,
+                "DbAtlasDbFactory expects a raw kvs of type ConnectionManagerAwareDbKvs, found %s", rawKvs.getClass());
+        ConnectionManagerAwareDbKvs dbkvs = (ConnectionManagerAwareDbKvs) rawKvs;
+        return PersistentTimestampService.create(
+                InDbTimestampBoundStore.create(dbkvs.getConnectionManager(), AtlasDbConstants.TIMESTAMP_TABLE));
     }
 }

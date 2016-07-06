@@ -36,11 +36,7 @@ import java.lang.annotation.Target;
  * but it wont be accessible to anyone else.
  */
 @Retention(RetentionPolicy.RUNTIME) // We need runtime for static analasys.
-@Target({ ElementType.TYPE,
-          ElementType.ANNOTATION_TYPE,
-          ElementType.METHOD,
-          ElementType.CONSTRUCTOR
-          })
+@Target({ ElementType.TYPE })
 @PgPublicApi // not part of the api, but must be in the api jar
 public @interface PgPublicApi {
     // marker annotation

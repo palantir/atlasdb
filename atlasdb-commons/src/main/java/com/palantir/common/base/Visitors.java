@@ -15,7 +15,7 @@
  */
 package com.palantir.common.base;
 
-import com.palantir.util.Visitor;
+import com.palantir.common.visitor.Visitor;
 
 /**
  * Useful methods for Visitor.

@@ -20,20 +20,17 @@ import java.util.List;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.FullQuery;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowValue;
-import com.palantir.db.oracle.JdbcHandler;
 import com.palantir.db.oracle.JdbcHandler.ArrayHandler;
 
 public class OracleOverflowQueryFactory extends OracleQueryFactory {
-    private final OverflowMigrationState migrationState;
 
     public OracleOverflowQueryFactory(String tableName,
-                                      OverflowMigrationState migrationState,
-                                      JdbcHandler jdbcHandler) {
-        super(tableName, jdbcHandler);
-        this.migrationState = migrationState;
+                                      OracleDdlConfig config) {
+        super(tableName, config);
     }
 
     @Override
@@ -52,8 +49,10 @@ public class OracleOverflowQueryFactory extends OracleQueryFactory {
         for (OverflowValue overflowId : overflowIds) {
             oraRows.add(new Object[] { null, null, overflowId.id });
         }
-        ArrayHandler arg = jdbcHandler.createStructArray("PT_MET_CELL_TS", "PT_MET_CELL_TS_TABLE", oraRows);
-        switch (migrationState) {
+        ArrayHandler arg = config.jdbcHandler().createStructArray(
+                structArrayPrefix() + "CELL_TS",
+                structArrayPrefix() + "CELL_TS_TABLE", oraRows);
+        switch (config.overflowMigrationState()) {
         case UNSTARTED:
             return ImmutableList.of(getOldOverflowQuery(arg));
         case IN_PROGRESS:
@@ -62,27 +61,35 @@ public class OracleOverflowQueryFactory extends OracleQueryFactory {
         case FINISHED:
             return ImmutableList.of(getNewOverflowQuery(arg));
         default:
-            throw new EnumConstantNotPresentException(OverflowMigrationState.class, migrationState.name());
+            throw new EnumConstantNotPresentException(OverflowMigrationState.class, config.overflowMigrationState().name());
         }
     }
 
     private FullQuery getOldOverflowQuery(ArrayHandler arg) {
         String query =
-                " /*SQL_MET_SELECT_OVERFLOW */ " +
-                " SELECT /*+ USE_NL(t o) LEADING(t o) INDEX(o pk_pt_metropolis_overflow) */ " +
+                " /* SELECT_OVERFLOW */ " +
+                " SELECT /*+ USE_NL(t o) LEADING(t o) INDEX(o pk_" + config.singleOverflowTable() + ") */ " +
                 "   o.id, o.val " +
-                " FROM pt_metropolis_overflow o, TABLE(CAST(? AS PT_MET_CELL_TS_TABLE)) t " +
+                " FROM " + config.singleOverflowTable() + " o, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t " +
                 " WHERE t.max_ts = o.id ";
         return new FullQuery(query).withArg(arg);
     }
 
     private FullQuery getNewOverflowQuery(ArrayHandler arg) {
         String query =
-                " /*SQL_MET_SELECT_OVERFLOW (" + tableName + ") */ " +
-                " SELECT /*+ USE_NL(t o) LEADING(t o) INDEX(o pk_pt_mo_" + tableName + ") */ " +
+                " /* SELECT_OVERFLOW (" + tableName + ") */ " +
+                " SELECT /*+ USE_NL(t o) LEADING(t o) INDEX(o pk_" + prefixedOverflowTableName() + ") */ " +
                 "   o.id, o.val " +
-                " FROM pt_mo_" + tableName + " o, TABLE(CAST(? AS PT_MET_CELL_TS_TABLE)) t " +
+                " FROM " + prefixedOverflowTableName() + " o, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t " +
                 " WHERE t.max_ts = o.id ";
         return new FullQuery(query).withArg(arg);
+    }
+
+    private String prefixedOverflowTableName() {
+        return config.overflowTablePrefix() + tableName;
+    }
+
+    private String structArrayPrefix() {
+        return config.tablePrefix().toUpperCase();
     }
 }

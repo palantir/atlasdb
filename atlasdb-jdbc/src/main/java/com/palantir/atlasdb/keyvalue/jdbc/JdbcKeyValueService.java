@@ -55,6 +55,7 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -127,6 +128,7 @@ import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 public class JdbcKeyValueService implements KeyValueService {
+    private final static int PARTITION_SIZE = 1000;
     private final String tablePrefix;
     private final SQLDialect sqlDialect;
     private final DataSource dataSource;
@@ -193,6 +195,17 @@ public class JdbcKeyValueService implements KeyValueService {
                                     Iterable<byte[]> rows,
                                     ColumnSelection columnSelection,
                                     long timestamp) {
+        HashMap<Cell, Value> ret = Maps.newHashMap();
+        for (List<byte[]> part : Iterables.partition(rows, PARTITION_SIZE)) {
+            ret.putAll(getRowsPartition(tableRef, part, columnSelection, timestamp));
+        }
+        return ret;
+    }
+
+    private Map<Cell, Value> getRowsPartition(TableReference tableRef,
+                                              List<byte[]> rows,
+                                              ColumnSelection columnSelection,
+                                              long timestamp) {
         if (columnSelection.allColumnsSelected()) {
             return getRowsAllColumns(tableRef, rows, timestamp);
         } else {

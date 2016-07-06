@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.cassandra;
 
+import com.google.auto.service.AutoService;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
@@ -25,8 +26,9 @@ import com.palantir.atlasdb.versions.AtlasDbVersion;
 import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.TimestampService;
 
+@AutoService(AtlasDbFactory.class)
 public class CassandraAtlasDbFactory implements AtlasDbFactory {
-    
+
     @Override
     public KeyValueService createRawKeyValueService(KeyValueServiceConfig config) {
         AtlasDbVersion.ensureVersionReported();
@@ -34,7 +36,7 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
                 "CassandraAtlasDbFactory expects a configuration of type CassandraKeyValueServiceConfig, found %s", config.getClass());
         return createKv((CassandraKeyValueServiceConfig) config);
     }
-    
+
     private static CassandraKeyValueService createKv(CassandraKeyValueServiceConfig config) {
         return CassandraKeyValueService.create(CassandraKeyValueServiceConfigManager.createSimpleManager(config));
     }
@@ -46,7 +48,7 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
                 "TimestampService must be created from an instance of CassandraKeyValueService, found %s", rawKvs.getClass());
         return PersistentTimestampService.create(CassandraTimestampBoundStore.create((CassandraKeyValueService) rawKvs));
     }
-    
+
     @Override
     public String getType() {
         return CassandraKeyValueServiceConfig.TYPE;

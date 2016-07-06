@@ -19,9 +19,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfiguration;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbDdlTable;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableSize;
 import com.palantir.atlasdb.table.description.TableMetadata;
@@ -31,26 +33,23 @@ import com.palantir.util.VersionStrings;
 
 public class OracleDdlTable implements DbDdlTable {
     private static final Logger log = LoggerFactory.getLogger(OracleDdlTable.class);
-    private final String tableName;
+    private final TableReference tableName;
     private final ConnectionSupplier conns;
-    private final OverflowMigrationState migrationState;
-    private final DbKeyValueServiceConfiguration config;
+    private final OracleDdlConfig config;
 
-    public OracleDdlTable(String tableName,
+    public OracleDdlTable(TableReference tableName,
                           ConnectionSupplier conns,
-                          OverflowMigrationState migrationState,
-                          DbKeyValueServiceConfiguration config) {
+                          OracleDdlConfig config) {
         this.tableName = tableName;
         this.conns = conns;
-        this.migrationState = migrationState;
         this.config = config;
     }
 
     @Override
     public void create(byte[] tableMetadata) {
         if (conns.get().selectExistsUnregisteredQuery(
-                "SELECT 1 FROM pt_metropolis_table_meta WHERE table_name = ?",
-                tableName)) {
+                "SELECT 1 FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?",
+                tableName.getQualifiedName())) {
             return;
         }
 
@@ -61,42 +60,42 @@ public class OracleDdlTable implements DbDdlTable {
         }
 
         executeIgnoringError(
-                "CREATE TABLE pt_met_" + tableName + " (" +
+                "CREATE TABLE " + prefixedTableName() + " (" +
                 "  row_name   RAW(" + Cell.MAX_NAME_LENGTH + ") NOT NULL," +
                 "  col_name   RAW(" + Cell.MAX_NAME_LENGTH + ") NOT NULL," +
                 "  ts         NUMBER(20) NOT NULL," +
                 "  val        RAW(2000), " +
                 (needsOverflow ? "  overflow   NUMBER(38), " : "") +
-                "  CONSTRAINT pk_pt_met_" + tableName + " PRIMARY KEY (row_name, col_name, ts) " +
+                "  CONSTRAINT pk_" + prefixedTableName() + " PRIMARY KEY (row_name, col_name, ts) " +
                 ") organization index compress overflow",
                 "ORA-00955");
-        if (needsOverflow && migrationState != OverflowMigrationState.UNSTARTED) {
+        if (needsOverflow && config.overflowMigrationState() != OverflowMigrationState.UNSTARTED) {
             executeIgnoringError(
-                    "CREATE TABLE pt_mo_" + tableName + " (" +
+                    "CREATE TABLE " + prefixedOverflowTableName() + " (" +
                     "  id  NUMBER(38) NOT NULL, " +
                     "  val BLOB NOT NULL," +
-                    "  CONSTRAINT pk_pt_mo_" + tableName + " PRIMARY KEY (id)" +
+                    "  CONSTRAINT pk_" + prefixedOverflowTableName() + " PRIMARY KEY (id)" +
                     ")",
                     "ORA-00955");
         }
         conns.get().insertOneUnregisteredQuery(
-                "INSERT INTO pt_metropolis_table_meta (table_name, table_size) VALUES (?, ?)",
-                tableName,
+                "INSERT INTO " + config.metadataTable().getQualifiedName() + " (table_name, table_size) VALUES (?, ?)",
+                tableName.getQualifiedName(),
                 (needsOverflow ? TableSize.OVERFLOW.getId() : TableSize.RAW.getId()));
     }
 
     @Override
     public void drop() {
-        executeIgnoringError("DROP TABLE pt_met_" + tableName + " PURGE", "ORA-00942");
-        executeIgnoringError("DROP TABLE pt_mo_" + tableName + " PURGE", "ORA-00942");
+        executeIgnoringError("DROP TABLE " + prefixedTableName() + " PURGE", "ORA-00942");
+        executeIgnoringError("DROP TABLE " + prefixedOverflowTableName() + " PURGE", "ORA-00942");
         conns.get().executeUnregisteredQuery(
-                "DELETE FROM pt_metropolis_table_meta WHERE table_name = ?", tableName);
+                "DELETE FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?", tableName.getQualifiedName());
     }
 
     @Override
     public void truncate() {
-        executeIgnoringError("TRUNCATE TABLE pt_met_" + tableName, "ORA-00942");
-        executeIgnoringError("TRUNCATE TABLE pt_mo_" + tableName, "ORA-00942");
+        executeIgnoringError("TRUNCATE TABLE " + prefixedTableName(), "ORA-00942");
+        executeIgnoringError("TRUNCATE TABLE " + prefixedOverflowTableName(), "ORA-00942");
     }
 
     @Override
@@ -129,7 +128,7 @@ public class OracleDdlTable implements DbDdlTable {
     public void compactInternally() {
         if (config.enableOracleEnterpriseFeatures()) {
             try {
-                conns.get().executeUnregisteredQuery("ALTER TABLE pt_met_" + tableName + " MOVE ONLINE");
+                conns.get().executeUnregisteredQuery("ALTER TABLE " + prefixedTableName() + " MOVE ONLINE");
             } catch (PalantirSqlException e) {
                 log.error("Tried to clean up " + tableName + " bloat after a sweep operation, "
                         + "but underlying Oracle database or configuration does not support this "
@@ -139,5 +138,13 @@ public class OracleDdlTable implements DbDdlTable {
                         + "Underlying error was: " + e.getMessage());
             }
         }
+    }
+
+    private String prefixedTableName() {
+        return config.tablePrefix() + DbKvs.internalTableName(tableName);
+    }
+
+    private String prefixedOverflowTableName() {
+        return config.overflowTablePrefix() + DbKvs.internalTableName(tableName);
     }
 }

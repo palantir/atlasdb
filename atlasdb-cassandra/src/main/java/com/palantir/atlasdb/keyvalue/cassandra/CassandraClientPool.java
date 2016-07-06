@@ -19,11 +19,13 @@ import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
@@ -45,10 +47,12 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableRangeMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -83,7 +87,11 @@ import com.palantir.common.concurrent.PTExecutors;
  **/
 public class CassandraClientPool {
     private static final Logger log = LoggerFactory.getLogger(CassandraClientPool.class);
-    private static final int MAX_TRIES_SAME_HOST = 2;
+    /**
+     * This is the maximum number of times we'll accept connection failures to one host before blacklisting it. Note
+     * that subsequent hosts we try in the same call will actually be blacklisted after one connection failure
+     */
+    private static final int MAX_TRIES_SAME_HOST = 3;
     private static final int MAX_TRIES_TOTAL = 6;
 
     volatile RangeMap<LightweightOPPToken, List<InetSocketAddress>> tokenMap = ImmutableRangeMap.of();
@@ -112,6 +120,8 @@ public class CassandraClientPool {
 
     public CassandraClientPool(CassandraKeyValueServiceConfig config) {
         this.config = config;
+        config.servers().forEach((server) -> currentPools.put(server, new CassandraClientPoolingContainer(server, config)));
+
         refreshDaemon = PTExecutors.newScheduledThreadPool(1, new ThreadFactoryBuilder().setDaemon(true).setNameFormat("CassandraClientPoolRefresh-%d").build());
         refreshDaemon.scheduleWithFixedDelay(new Runnable() {
             @Override
@@ -124,7 +134,6 @@ public class CassandraClientPool {
             }
         }, config.poolRefreshIntervalSeconds(), config.poolRefreshIntervalSeconds(), TimeUnit.SECONDS);
 
-        config.servers().forEach((server) -> currentPools.put(server, new CassandraClientPoolingContainer(server, config)));
         refreshPool(); // ensure we've initialized before returning
     }
 
@@ -148,7 +157,7 @@ public class CassandraClientPool {
             }
         }
 
-        serversToAdd = Sets.difference(Sets.difference(serversToAdd, currentPools.keySet()), blacklistedHosts.keySet());
+        serversToAdd = Sets.difference(serversToAdd, currentPools.keySet());
 
         if (!config.autoRefreshNodes()) { // (we would just add them back in)
             serversToRemove = Sets.difference(currentPools.keySet(), config.servers());
@@ -159,16 +168,7 @@ public class CassandraClientPool {
         }
 
         for (InetSocketAddress removedServerAddress : serversToRemove) {
-            CassandraClientPoolingContainer removedServer = currentPools.get(removedServerAddress);
-            if (removedServer != null) {
-                try {
-                    removedServer.shutdownPooling();
-                } catch (Exception e) {
-                    log.warn("While removing a host ({}) from the pool, we were unable to gently cleanup resources.", removedServerAddress, e);
-                }
-
-                currentPools.remove(removedServerAddress);
-            }
+            removePool(removedServerAddress);
         }
 
         if (!(serversToAdd.isEmpty() && serversToRemove.isEmpty())) { // if we made any changes
@@ -180,6 +180,16 @@ public class CassandraClientPool {
 
         log.debug("Cassandra pool refresh added hosts {}, removed hosts {}.", serversToAdd, serversToRemove);
         debugLogStateOfPool();
+    }
+
+    private void removePool(InetSocketAddress removedServerAddress) {
+        blacklistedHosts.remove(removedServerAddress);
+        try {
+            currentPools.get(removedServerAddress).shutdownPooling();
+        } catch (Exception e) {
+            log.warn("While removing a host ({}) from the pool, we were unable to gently cleanup resources.", removedServerAddress, e);
+        }
+        currentPools.remove(removedServerAddress);
     }
 
     private void debugLogStateOfPool() {
@@ -218,23 +228,19 @@ public class CassandraClientPool {
 
     private void addToBlacklist(InetSocketAddress badHost) {
         blacklistedHosts.put(badHost, System.currentTimeMillis());
+        log.info("Blacklisted host '{}'", badHost);
     }
 
     private boolean isHostHealthy(InetSocketAddress host) {
-        CassandraClientPoolingContainer testingContainer = null;
         try {
-            testingContainer = new CassandraClientPoolingContainer(host, config);
+            CassandraClientPoolingContainer testingContainer = currentPools.get(host);
             testingContainer.runWithPooledResource(describeRing);
             testingContainer.runWithPooledResource(validatePartitioner);
+            return true;
         } catch (Exception e) {
             log.error("We tried to add {} back into the pool, but got an exception that caused to us distrust this host further.", host, e);
             return false;
-        } finally {
-            if (testingContainer != null) {
-                testingContainer.shutdownPooling();
-            }
         }
-        return true;
     }
 
     private CassandraClientPoolingContainer getRandomGoodHost() {
@@ -246,7 +252,7 @@ public class CassandraClientPool {
             livingHosts = pools.keySet();
         }
 
-        return pools.get(ImmutableList.copyOf(livingHosts).get(ThreadLocalRandom.current().nextInt(livingHosts.size())));
+        return pools.get(getRandomHostByActiveConnections(Maps.filterKeys(currentPools, livingHosts::contains)));
     }
 
     public InetSocketAddress getRandomHostForKey(byte[] key) {
@@ -254,7 +260,9 @@ public class CassandraClientPool {
         SetView<InetSocketAddress> liveOwnerHosts;
 
         if (hostsForKey == null) {
-            log.warn("Cluster not fully initialized, not routing query to correct host as not token map found.");
+            log.debug(
+                    "We attempted to route your query to a cassandra host that already contains the relevant data. " +
+                    "However, the mapping of which host contains which data is not available yet. We will choose a random host instead.");
             return getRandomGoodHost().getHost();
         } else {
             liveOwnerHosts = Sets.difference(ImmutableSet.copyOf(hostsForKey), blacklistedHosts.keySet());
@@ -263,11 +271,16 @@ public class CassandraClientPool {
         if (liveOwnerHosts.isEmpty()) {
             log.warn("Perf / cluster stability issue. Token aware query routing has failed because there are no known " +
                     "live hosts that claim ownership of the given range. Falling back to choosing a random live node. " +
-                    "For debugging, our current ring view is: {} and our current host blacklist is {}", tokenMap, blacklistedHosts);
+                    "Current state logged at DEBUG");
+            log.debug("Current ring view is: {} and our current host blacklist is {}", tokenMap, blacklistedHosts);
             return getRandomGoodHost().getHost();
         } else {
-            return currentPools.get(ImmutableList.copyOf(liveOwnerHosts).get(ThreadLocalRandom.current().nextInt(liveOwnerHosts.size()))).getHost();
+            return getRandomHostByActiveConnections(Maps.filterKeys(currentPools, liveOwnerHosts::contains));
         }
+    }
+
+    private static InetSocketAddress getRandomHostByActiveConnections(Map<InetSocketAddress, CassandraClientPoolingContainer> pools) {
+        return WeightedHosts.create(pools).getRandomHost();
     }
 
     public void runOneTimeStartupChecks() {
@@ -280,27 +293,27 @@ public class CassandraClientPool {
 
         Map<InetSocketAddress, Exception> completelyUnresponsiveHosts = Maps.newHashMap(), aliveButInvalidPartitionerHosts = Maps.newHashMap();
         boolean thisHostResponded, atLeastOneHostResponded = false, atLeastOneHostSaidWeHaveALockTable = false;
-        for (InetSocketAddress liveHost : Sets.difference(currentPools.keySet(), blacklistedHosts.keySet())) {
+        for (InetSocketAddress host : currentPools.keySet()) {
             thisHostResponded = false;
             try {
-                runOnHost(liveHost, CassandraVerifier.healthCheck);
+                runOnHost(host, CassandraVerifier.healthCheck);
                 thisHostResponded = true;
                 atLeastOneHostResponded = true;
             } catch (Exception e) {
-                completelyUnresponsiveHosts.put(liveHost, e);
-                addToBlacklist(liveHost);
+                completelyUnresponsiveHosts.put(host, e);
+                addToBlacklist(host);
             }
 
 
             if (thisHostResponded) {
                 try {
-                    runOnHost(liveHost, validatePartitioner);
+                    runOnHost(host, validatePartitioner);
                 } catch (Exception e) {
-                    aliveButInvalidPartitionerHosts.put(liveHost, e);
+                    aliveButInvalidPartitionerHosts.put(host, e);
                 }
 
                 try {
-                    runOnHost(liveHost, createInternalLockTable);
+                    runOnHost(host, createInternalLockTable);
                     atLeastOneHostSaidWeHaveALockTable = true;
                 } catch (Exception e) {
                     // don't fail here, want to give the user all the errors at once at the end
@@ -360,28 +373,35 @@ public class CassandraClientPool {
 
     private void refreshTokenRanges() {
         try {
+            ImmutableRangeMap.Builder<LightweightOPPToken, List<InetSocketAddress>> newTokenRing = ImmutableRangeMap.builder();
+
+            // grab latest token ring view from a random node in the cluster
             List<TokenRange> tokenRanges = getRandomGoodHost().runWithPooledResource(describeRing);
 
-            ImmutableRangeMap.Builder<LightweightOPPToken, List<InetSocketAddress>> newTokenRing = ImmutableRangeMap.builder();
-            for (TokenRange tokenRange : tokenRanges) {
-                List<InetSocketAddress> hosts = Lists.transform(tokenRange.getEndpoints(), new Function<String, InetSocketAddress>() {
-                    @Override
-                    public InetSocketAddress apply(String endpoint) {
+            if (tokenRanges.size() == 1) { // RangeMap needs a little help with weird 1-node, 1-vnode, this-entire-feature-is-useless case
+                String onlyEndpoint = Iterables.getOnlyElement(Iterables.getOnlyElement(tokenRanges).getEndpoints());
+                InetSocketAddress onlyHost = new InetSocketAddress(onlyEndpoint, CassandraConstants.DEFAULT_THRIFT_PORT);
+                newTokenRing.put(Range.all(), ImmutableList.of(onlyHost));
+            } else { // normal case, large cluster with many vnodes
+                for (TokenRange tokenRange : tokenRanges) {
+                    List<InetSocketAddress> hosts = Lists.transform(tokenRange.getEndpoints(), new Function<String, InetSocketAddress>() {
+                        @Override
+                        public InetSocketAddress apply(String endpoint) {
                             return new InetSocketAddress(endpoint, CassandraConstants.DEFAULT_THRIFT_PORT);
+                        }
+                    });
+                    LightweightOPPToken startToken = new LightweightOPPToken(BaseEncoding.base16().decode(tokenRange.getStart_token().toUpperCase()));
+                    LightweightOPPToken endToken = new LightweightOPPToken(BaseEncoding.base16().decode(tokenRange.getEnd_token().toUpperCase()));
+                    if (startToken.compareTo(endToken) <= 0) {
+                        newTokenRing.put(Range.openClosed(startToken, endToken), hosts);
+                    } else {
+                        // Handle wrap-around
+                        newTokenRing.put(Range.greaterThan(startToken), hosts);
+                        newTokenRing.put(Range.atMost(endToken), hosts);
                     }
-                });
-                LightweightOPPToken startToken = new LightweightOPPToken(BaseEncoding.base16().decode(tokenRange.getStart_token().toUpperCase()));
-                LightweightOPPToken endToken = new LightweightOPPToken(BaseEncoding.base16().decode(tokenRange.getEnd_token().toUpperCase()));
-                if (startToken.compareTo(endToken) <= 0) {
-                    newTokenRing.put(Range.openClosed(startToken, endToken), hosts);
-                } else {
-                    // Handle wrap-around
-                    newTokenRing.put(Range.greaterThan(startToken), hosts);
-                    newTokenRing.put(Range.atMost(endToken), hosts);
                 }
             }
             tokenMap = newTokenRing.build();
-
         } catch (Exception e) {
             log.error("Couldn't grab new token ranges for token aware cassandra mapping!", e);
         }
@@ -420,7 +440,8 @@ public class CassandraClientPool {
         return runOnHost(getRandomGoodHost().getHost(), f);
     }
 
-    public <V, K extends Exception> V runOnHost(InetSocketAddress specifiedHost, FunctionCheckedException<Cassandra.Client, V, K> f) throws K {
+    private <V, K extends Exception> V runOnHost(InetSocketAddress specifiedHost,
+                                                 FunctionCheckedException<Cassandra.Client, V, K> f) throws K {
         CassandraClientPoolingContainer hostPool = currentPools.get(specifiedHost);
         return hostPool.runWithPooledResource(f);
     }
@@ -545,4 +566,63 @@ public class CassandraClientPool {
         }
     };
 
+    /**
+     * Weights hosts inversely by the number of active connections. {@link #getRandomHost()} should then be used to
+     * pick a random host
+     */
+    @VisibleForTesting
+    static class WeightedHosts {
+        final TreeMap<Integer, InetSocketAddress> hosts;
+
+        private WeightedHosts(TreeMap<Integer, InetSocketAddress> hosts) {
+            this.hosts = hosts;
+        }
+
+        static WeightedHosts create(Map<InetSocketAddress, CassandraClientPoolingContainer> pools) {
+            Preconditions.checkArgument(!pools.isEmpty(), "pools should be non-empty");
+            return new WeightedHosts(buildHostsWeightedByActiveConnections(pools));
+        }
+
+        /**
+         * The key for a host is the open upper bound of the weight. Since the domain is intended to be contiguous, the
+         * closed lower bound of that weight is the key of the previous entry.
+         * <p>
+         * The closed lower bound of the first entry is 0.
+         * <p>
+         * Every weight is guaranteed to be non-zero in size. That is, every key is guaranteed to be at least one larger
+         * than the previous key.
+         */
+        private static TreeMap<Integer, InetSocketAddress> buildHostsWeightedByActiveConnections(
+                Map<InetSocketAddress, CassandraClientPoolingContainer> pools) {
+
+            Map<InetSocketAddress, Integer> activeConnectionsByHost = new HashMap<>(pools.size());
+            int totalActiveConnections = 0;
+            for (Entry<InetSocketAddress, CassandraClientPoolingContainer> poolEntry : pools.entrySet()) {
+                int activeConnections = Math.max(poolEntry.getValue().getPoolUtilization(), 0);
+                activeConnectionsByHost.put(poolEntry.getKey(), activeConnections);
+                totalActiveConnections += activeConnections;
+            }
+
+            int lowerBoundInclusive = 0;
+            TreeMap<Integer, InetSocketAddress> weightedHosts = new TreeMap<>();
+            for (Entry<InetSocketAddress, Integer> entry : activeConnectionsByHost.entrySet()) {
+                // We want the weight to be inversely proportional to the number of active connections so that we pick
+                // less-active hosts. We add 1 to make sure that all ranges are non-empty
+                int weight = totalActiveConnections - entry.getValue() + 1;
+                weightedHosts.put(lowerBoundInclusive + weight, entry.getKey());
+                lowerBoundInclusive += weight;
+            }
+            return weightedHosts;
+        }
+
+        InetSocketAddress getRandomHost() {
+            int index = ThreadLocalRandom.current().nextInt(hosts.lastKey());
+            return getRandomHostInternal(index);
+        }
+
+        // This basically exists for testing
+        InetSocketAddress getRandomHostInternal(int index) {
+            return hosts.higherEntry(index).getValue();
+        }
+    }
 }

@@ -26,7 +26,7 @@ Changelog
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
-v0.7.0
+v0.9.0
 =======
 
 .. list-table::
@@ -37,7 +37,7 @@ v0.7.0
         - Change
 
     *   - |breaking|
-        - Inserting an empty (size = 0) value into a ``Cell`` will now throw an ``IllegalArgumentException``. (#156) Likely empty 
+        - Inserting an empty (size = 0) value into a ``Cell`` will now throw an ``IllegalArgumentException``. (#156) Likely empty
           values include empty strings and empty protobufs.
 
           Atlas cannot currently distinguish between empty and deleted cells. In previous versions of Atlas, inserting
@@ -54,9 +54,9 @@ v0.7.0
           ``IllegalArgumentException``.
 
           In particular, this change will break calls to ``Transaction.put(TableReference tableRef, Map<Cell, byte[]> values)``,
-          as well as generated code which uses this method, if any entry in ``values`` contains a zero-byte array. If your 
-          product does not need to distinguish between empty and non-existent values, simply make sure all the ``values`` 
-          entries have positive length. If the distinction is necessary, you will need to explicitly differentiate the 
+          as well as generated code which uses this method, if any entry in ``values`` contains a zero-byte array. If your
+          product does not need to distinguish between empty and non-existent values, simply make sure all the ``values``
+          entries have positive length. If the distinction is necessary, you will need to explicitly differentiate the
           two cases (for example, by introducing a sentinel value for empty cells).
 
           If any code deletes cells by calling ``Transaction.put(...)`` with an empty array, use
@@ -64,6 +64,54 @@ v0.7.0
 
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.8.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Some logging was missing important information due to use of the wrong substitution placeholder. This version should be taken in preference to 0.7.0 to ensure logging is correct.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/642>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.7.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |new|
+         - Atlas can now be backed by Postgres via DB KVS. This is a very early release for this feature, so please contact us if you
+           plan on using it. Please see `the documentation <http://palantir.github.io/atlasdb/html/configuration/postgres_key_value_service_config.html>`_ for more details.
+
+    *    - |fixed|
+         - The In Memory Key Value Service now makes defensive copies of any data stored or retrieved. This may lead to a slight performance degradation to users of In Memory Key Value Service.
+           In Memory Key Value Service is recommended for testing environments only and production instances should use DB KVS or Cassandra KVS for data that needs to be persisted.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/552>`__)
+
+    *    - |fixed|
+         - Atlas will no longer log incorrect errors stating "Couldn't grab new token ranges for token aware cassandra mapping" when running against a single node and single token Cassandra cluster.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/634>`__)
+
+    *    - |improved|
+         - Read heavy workflows with Cassandra KVS will now use substantially less heap. In worst-case testing this change resulted in a 10-100x reduction in client side heap size.
+           However, this is very dependent on the particular scenario AtlasDB is being used in and most consumers should not expect a difference of this size.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/568>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------>>>>
 
 =======
 v0.6.0

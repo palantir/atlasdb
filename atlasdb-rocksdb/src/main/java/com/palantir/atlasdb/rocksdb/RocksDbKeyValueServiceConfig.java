@@ -23,6 +23,7 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.auto.service.AutoService;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.rocksdb.impl.ImmutableWriteOpts;
@@ -30,6 +31,7 @@ import com.palantir.atlasdb.keyvalue.rocksdb.impl.RocksComparatorName;
 import com.palantir.atlasdb.keyvalue.rocksdb.impl.WriteOpts;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
+@AutoService(KeyValueServiceConfig.class)
 @JsonDeserialize(as = ImmutableRocksDbKeyValueServiceConfig.class)
 @JsonSerialize(as = ImmutableRocksDbKeyValueServiceConfig.class)
 @JsonTypeName(RocksDbKeyValueServiceConfig.TYPE)

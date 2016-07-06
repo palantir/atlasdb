@@ -17,6 +17,7 @@ package com.palantir.nexus.db.sql;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -49,7 +50,7 @@ import com.palantir.util.sql.SqlStats;
  *
  * @author jweel
  */
-final class SqlConnectionHelper {
+public final class SqlConnectionHelper {
 
     private static final Logger log = LogManager.getLogger(SqlConnectionHelper.class);
     private static final int TEMP_IDS_LOGGING_THRESHOLD = 100000;
@@ -488,8 +489,54 @@ final class SqlConnectionHelper {
             }
             Iterable<Object[]> args = idsToArguments(tempIds);
             String sqlInsert = TextUtils.format(SQL_INSERT_INTO_PT_TEMP_IDS, tableName);
-            insertManyUnregisteredQuery(c, sqlInsert, args); // dynamic query
+            try {
+                insertManyUnregisteredQuery(c, sqlInsert, args); // dynamic query
+            } catch (PalantirSqlException e) {
+                assert checkRepeatedInsert(e, c, tableName, tempIds, clearStyle);
+                throw e;
+            }
         }
+    }
+
+    /**
+     * Check if the temp table has this exact set of tempIds already, for debugging purposes.
+     * This should be behind an assert so it does not run in production.
+     */
+    private boolean checkRepeatedInsert(PalantirSqlException e, Connection c, String tableName, Iterable<Long> tempIds, ClearStyle clearStyle) {
+        AgnosticResultSet results = selectResultSetUnregisteredQuery(c, "SELECT id FROM " + tableName);
+        Set<Long> attempt = Sets.newHashSet(tempIds);
+        Set<Long> current = Sets.newHashSet();
+        String isInTransaction = transactionAsString(c);
+        for (AgnosticResultRow row: results.rows()) {
+            current.add(row.getLong("id"));
+        }
+        if (attempt.equals(current)) {
+            String message = String.format("Tried to insert %s temp IDs into table %s, but that exact set of temp IDs was already there. (%s) (ClearStyle: %s)",
+                    attempt.size(), tableName, isInTransaction, clearStyle);
+            throw new RuntimeException(message, e);
+        } else {
+            Set<Long> onlyInAttempt = Sets.difference(attempt, current);
+            Set<Long> onlyInCurrent = Sets.difference(current, attempt);
+            String message = String.format(
+                    "Tried to insert %s temp IDs into table %s, but %s temp IDs were already there.  %s were only in our attempt, while " +
+                            "%s were only in the set already present. (%s) (ClearStyle: %s)",
+                    attempt.size(), tableName, current.size(), onlyInAttempt.size(), onlyInCurrent.size(), isInTransaction, clearStyle);
+            throw new RuntimeException(message, e);
+        }
+    }
+
+    private String transactionAsString(Connection c) {
+        String isInTransaction;
+        try {
+            if (c.getAutoCommit()) {
+                isInTransaction = "Not in transaction";
+            } else {
+                isInTransaction = "In transaction";
+            }
+        } catch (SQLException sqle) {
+            isInTransaction = "Unknown transaction status";
+        }
+        return isInTransaction;
     }
 
     private Iterable<Object[]> idsToArguments(Iterable<Long> tempIds) {
@@ -552,6 +599,28 @@ final class SqlConnectionHelper {
 
     void clearTempTable(Connection c, String tempTable, ClearStyle clearStyle)
             throws PalantirSqlException {
+        attemptToClearTempTable(c, tempTable, clearStyle);
+        if (ClearStyle.TRUNCATE.equals(clearStyle)) {
+            // We have noticed that TRUNCATE can fail silently on Oracle SE 11.2.0.4.0
+            // So we must always confirm
+            if (!isTableEmpty(c, tempTable)) {
+                log.error(
+                        String.format("On first attempt, did not clear temp table %s using style TRUNCATE.  Retrying.",
+                        tempTable));
+                attemptToClearTempTable(c, tempTable, clearStyle);
+                if (!isTableEmpty(c, tempTable)) {
+                    throw new RuntimeException(
+                            String.format("On multiple attempts with clear style TRUNCATE, did not clear temp table %s",
+                                    tempTable));
+                }
+            }
+        } else {
+            // We have never seen DELETE fail silently, so we will only confirm if assertions are enabled.
+            assert verifyTableCleared(c, tempTable, clearStyle);
+        }
+    }
+
+    private void attemptToClearTempTable(Connection c, String tempTable, ClearStyle clearStyle) {
         if (clearStyle == ClearStyle.DELETE) {
             clearTempTableUsingDelete(c, tempTable);
         } else if (clearStyle == ClearStyle.TRUNCATE) {
@@ -561,9 +630,81 @@ final class SqlConnectionHelper {
         }
     }
 
+    private boolean isTableEmpty(Connection c, String table) {
+        return !selectExistsUnregisteredQuery(c, "SELECT 1 from " + table);
+    }
+
+    /**
+     * If the table was not cleared, try to diagnose the reason and throw an informative error message.
+     * In the future, we may want to allow the thread to continue executing if we eventually clear the temp table,
+     * but for now we will always throw if the initial attempt failed.
+     */
+    private boolean verifyTableCleared(Connection c, String tempTable, ClearStyle clearStyle) {
+        if (selectCount(c, tempTable) != 0) {
+
+            // Try again
+            attemptToClearTempTable(c, tempTable, clearStyle);
+            if (selectCount(c, tempTable) == 0) {
+
+                String message = "On first attempt, did not clear temp table " + tempTable
+                        + " using style " + clearStyle.toString()
+                        + " and transaction status: " + transactionAsString(c)
+                        + ".  Second attempt was successful.";
+                throw new RuntimeException(message);
+
+            } else {
+
+                if (clearStyle.equals(ClearStyle.TRUNCATE)) {
+                    attemptToClearTempTable(c, tempTable, ClearStyle.DELETE);
+                    if (selectCount(c, tempTable) == 0) {
+                        String message = "On multiple attempts with clear style TRUNCATE, did not clear temp table " + tempTable
+                                + ", however an attempt with clear style DELETE was successful."
+                                + "Transaction status: " + transactionAsString(c) + ".";
+                        throw new RuntimeException(message);
+
+                    } else {
+                        String message = "On multiple attempts, did not clear temp table " + tempTable
+                                + " using both clear styles "
+                                + " and transaction status: " + transactionAsString(c) + ".";
+                        throw new RuntimeException(message);
+                    }
+                } else {
+                    String message = "On multiple attempts, did not clear temp table " + tempTable
+                            + " using style " + clearStyle.toString()
+                            + " and transaction status: " + transactionAsString(c) + ".";
+                    throw new RuntimeException(message);
+
+                }
+            }
+        }
+
+        return true;
+    }
+
+
     void clearTempTableUsingDelete(Connection c, String tempTable) throws PalantirSqlException {
         String sqlDelete = TextUtils.format(SQL_DELETE_PT_TEMP_IDS, tempTable);
-        executeUnregisteredQuery(c, sqlDelete, new Object[] {}); // dynamic query
+        try {
+            executeUnregisteredQuery(c, sqlDelete, new Object[]{}); // dynamic query
+        } catch (PalantirSqlException e) {
+            if (e.getMessage().contains("ORA-08102")) { // "index key not found"
+                // Try again
+                try {
+                    executeUnregisteredQuery(c, sqlDelete, new Object[]{}); // dynamic query
+                    // Worked the second time
+                    // In production we can continue, but if asserts are on let's fail with an informative message to help diagnosis
+                    assert false: String.format("Tried to delete temp table %s, got ORA-08102, then tried again and it worked: %s",
+                            tempTable, sqlDelete);
+                } catch (PalantirSqlException e2) {
+                    // Repeated failure
+                    throw new RuntimeException(String.format(
+                            "Repeatedly failed to delete temp table %s: %s.  First exception was ORA-08102.  Second was: %s",
+                            tempTable, sqlDelete, e2.getMessage()), e2);
+                }
+            } else {
+                throw e;
+            }
+        }
         SqlStats.INSTANCE.incrementClearTempTableByDelete();
     }
 

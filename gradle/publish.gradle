@@ -39,7 +39,7 @@ bintray {
 }
 
 bintrayUpload.onlyIf {
-    System.getenv('BINTRAY_USERNAME') && System.getenv('BINTRAY_PASSWORD') && project.version ==~ /\d+\.\d+\.\d+(-pre\d+)?/
+    System.getenv('BINTRAY_USERNAME') && System.getenv('BINTRAY_PASSWORD') && project.version ==~ /\d+\.\d+\.\d+(-alpha|-beta)?(\+\d{3})?/
 }
 
 bintrayUpload.dependsOn { generatePomFileForBintrayPublication }

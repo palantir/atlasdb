@@ -460,6 +460,7 @@ public abstract class AbstractTransactionTest {
         assertEquals(1, ranges.get(oneRange).getResults().size());
     }
 
+    @Test
     public void testKeyValueRangesMany2() {
         putDirect("row1", "col1", "", 0);
         putDirect("row2", "col1", "", 0);
@@ -1216,15 +1217,5 @@ public abstract class AbstractTransactionTest {
         keyValueService.putMetadataForTable(TEST_TABLE, bytes);
         bytesRead = keyValueService.getMetadataForTable(TEST_TABLE);
         assertTrue(Arrays.equals(bytes, bytesRead));
-    }
-
-    @Test
-    public void testReadsBlockOnEarlierWrites() {
-        //
-    }
-
-    @Test
-    public void testReadsDontBlockOnLaterWrites() {
-        //
     }
 }

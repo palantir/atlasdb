@@ -107,7 +107,7 @@ import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.Throwables;
-import com.palantir.util.Visitor;
+import com.palantir.common.visitor.Visitor;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -293,7 +293,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
             return;
         }
 
-        createTables(ImmutableMap.of(CassandraConstants.METADATA_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA));
+        createTables(ImmutableMap.of(AtlasDbConstants.METADATA_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA));
     }
 
     private String getLocalDataCenter() {
@@ -934,7 +934,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
 
         CQLKeyValueServices.waitForSchemaVersionsToCoalesce("dropTables(" + tablesToDrop.size() + " tables)", this);
 
-        put(CassandraConstants.METADATA_TABLE, Maps.toMap(
+        put(AtlasDbConstants.METADATA_TABLE, Maps.toMap(
                         Lists.transform(Lists.newArrayList(tablesToDrop), new Function<TableReference, Cell>() {
                             @Override
                             public Cell apply(TableReference tableRef) {
@@ -977,15 +977,15 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     public void createTables(final Map<TableReference, byte[]> tableRefsToTableMetadata) {
         final CassandraKeyValueServiceConfig config = configManager.getConfig();
         Collection<com.datastax.driver.core.TableMetadata> tables = cluster.getMetadata().getKeyspace(config.keyspace()).getTables();
-        Set<String> existingTables = Sets.newHashSet(Iterables.transform(tables, new Function<com.datastax.driver.core.TableMetadata, String>() {
+        Set<TableReference> existingTables = Sets.newHashSet(Iterables.transform(tables, new Function<com.datastax.driver.core.TableMetadata, TableReference>() {
             @Override
-            public String apply(com.datastax.driver.core.TableMetadata input) {
-                return input.getName();
+            public TableReference apply(com.datastax.driver.core.TableMetadata input) {
+                return TableReference.createUnsafe(input.getName());
             }
         }));
 
-        if (!existingTables.contains(CassandraConstants.METADATA_TABLE)) { // ScrubberStore likes to call createTable before our setup gets called...
-            cqlKeyValueServices.createTableWithSettings(CassandraConstants.METADATA_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA, this);
+        if (!existingTables.contains(AtlasDbConstants.METADATA_TABLE)) { // ScrubberStore likes to call createTable before our setup gets called...
+            cqlKeyValueServices.createTableWithSettings(AtlasDbConstants.METADATA_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA, this);
         }
 
         Sets.SetView<TableReference> tablesToCreate = Sets.difference(tableRefsToTableMetadata.keySet(), existingTables);
@@ -1029,7 +1029,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     @Override
     public byte[] getMetadataForTable(TableReference tableRef) {
         Cell cell = CQLKeyValueServices.getMetadataCell(tableRef);
-        Value v = get(CassandraConstants.METADATA_TABLE, ImmutableMap.of(cell, Long.MAX_VALUE)).get(
+        Value v = get(AtlasDbConstants.METADATA_TABLE, ImmutableMap.of(cell, Long.MAX_VALUE)).get(
                 cell);
         if (v == null) {
             return new byte[0];
@@ -1060,7 +1060,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
             }
         }
         if (!cellToMetadata.isEmpty()) {
-            put(CassandraConstants.METADATA_TABLE, cellToMetadata, System.currentTimeMillis());
+            put(AtlasDbConstants.METADATA_TABLE, cellToMetadata, System.currentTimeMillis());
             if (possiblyNeedToPerformSettingsChanges) {
                 CQLKeyValueServices.waitForSchemaVersionsToCoalesce("putMetadataForTables(" + tableNameToMetadata.size() +" tables)", this);
             }

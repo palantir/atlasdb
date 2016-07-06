@@ -25,15 +25,18 @@ import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.dbkvs.PostgresDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbQueryFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.FullQuery;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowValue;
 
 public class PostgresQueryFactory implements DbQueryFactory {
     private final String tableName;
+    private final PostgresDdlConfig config;
 
-    public PostgresQueryFactory(String tableName) {
+    public PostgresQueryFactory(String tableName, PostgresDdlConfig config) {
         this.tableName = tableName;
+        this.config = config;
     }
 
     @Override
@@ -42,15 +45,15 @@ public class PostgresQueryFactory implements DbQueryFactory {
                                        ColumnSelection columns,
                                        boolean includeValue) {
         String query =
-                " /* SQL_MET_GET_LATEST_ROW_INNER (" + tableName + ") */ " +
+                " /* GET_LATEST_ROW_INNER (" + tableName + ") */ " +
                 " SELECT m.row_name, m.col_name, max(m.ts) as ts " +
-                "   FROM pt_met_" + tableName + " m " +
+                "   FROM " + prefixedTableName() + " m " +
                 "  WHERE m.row_name = ? " +
                 "    AND m.ts < ? " +
                 (columns.allColumnsSelected() ? "" :
                     "    AND m.col_name IN " + nParams(Iterables.size(columns.getSelectedColumns()))) +
                 " GROUP BY m.row_name, m.col_name";
-        query = wrapQueryWithIncludeValue("SQL_MET_GET_LATEST_ROW", query, includeValue);
+        query = wrapQueryWithIncludeValue("GET_LATEST_ROW", query, includeValue);
         FullQuery fullQuery = new FullQuery(query).withArgs(row, ts);
         return columns.allColumnsSelected() ? fullQuery : fullQuery.withArgs(columns.getSelectedColumns());
     }
@@ -61,15 +64,15 @@ public class PostgresQueryFactory implements DbQueryFactory {
                                         ColumnSelection columns,
                                         boolean includeValue) {
         String query =
-                " /* SQL_MET_GET_LATEST_ROWS_INNER (" + tableName + ") */ " +
+                " /* GET_LATEST_ROWS_INNER (" + tableName + ") */ " +
                 " SELECT m.row_name, m.col_name, max(m.ts) as ts " +
-                "   FROM pt_met_" + tableName + " m " +
+                "   FROM " + prefixedTableName() + " m " +
                 "  WHERE m.row_name IN " + nParams(Iterables.size(rows)) +
                 "    AND m.ts < ? " +
                 (columns.allColumnsSelected() ? "" :
                     "    AND m.col_name IN " + nParams(Iterables.size(columns.getSelectedColumns()))) +
                 " GROUP BY m.row_name, m.col_name ";
-        query = wrapQueryWithIncludeValue("SQL_MET_GET_LATEST_ROW", query, includeValue);
+        query = wrapQueryWithIncludeValue("GET_LATEST_ROW", query, includeValue);
         FullQuery fullQuery = new FullQuery(query).withArgs(rows).withArg(ts);
         return columns.allColumnsSelected() ? fullQuery : fullQuery.withArgs(columns.getSelectedColumns());
     }
@@ -79,15 +82,15 @@ public class PostgresQueryFactory implements DbQueryFactory {
                                         ColumnSelection columns,
                                         boolean includeValue) {
         String query =
-                " /* SQL_MET_GET_LATEST_ROWS_INNER (" + tableName + ") */ " +
+                " /* GET_LATEST_ROWS_INNER (" + tableName + ") */ " +
                 " SELECT m.row_name, m.col_name, max(m.ts) as ts " +
-                "   FROM pt_met_" + tableName + " m, (VALUES " + nkParams(2, rows.size()) + ") t(row_name, ts) " +
+                "   FROM " + prefixedTableName() + " m, (VALUES " + nkParams(2, rows.size()) + ") t(row_name, ts) " +
                 "  WHERE m.row_name = t.row_name " +
                 "    AND m.ts < t.ts " +
                 (columns.allColumnsSelected() ? "" :
                     "    AND m.col_name IN " + nParams(Iterables.size(columns.getSelectedColumns()))) +
                 " GROUP BY m.row_name, m.col_name ";
-        query = wrapQueryWithIncludeValue("SQL_MET_GET_LATEST_ROW", query, includeValue);
+        query = wrapQueryWithIncludeValue("GET_LATEST_ROW", query, includeValue);
         FullQuery fullQuery = addRowTsArgs(new FullQuery(query), rows);
         return columns.allColumnsSelected() ? fullQuery : fullQuery.withArgs(columns.getSelectedColumns());
     }
@@ -98,9 +101,9 @@ public class PostgresQueryFactory implements DbQueryFactory {
                                     ColumnSelection columns,
                                     boolean includeValue) {
         String query =
-                " /* SQL_MET_GET_ALL_ROW (" + tableName + ") */ " +
+                " /* GET_ALL_ROW (" + tableName + ") */ " +
                 " SELECT m.row_name, m.col_name, m.ts" + (includeValue ? ", m.val " : " ") +
-                "   FROM pt_met_" + tableName + " m " +
+                "   FROM " + prefixedTableName() + " m " +
                 "  WHERE m.row_name = ? " +
                 "    AND m.ts < ? " +
                 (columns.allColumnsSelected() ? "" :
@@ -115,9 +118,9 @@ public class PostgresQueryFactory implements DbQueryFactory {
                                      ColumnSelection columns,
                                      boolean includeValue) {
         String query =
-                " /* SQL_MET_GET_ALL_ROWS (" + tableName + ") */ " +
+                " /* GET_ALL_ROWS (" + tableName + ") */ " +
                 " SELECT m.row_name, m.col_name, m.ts" + (includeValue ? ", m.val " : " ") +
-                "   FROM pt_met_" + tableName + " m " +
+                "   FROM " + prefixedTableName() + " m " +
                 "  WHERE m.row_name IN " + nParams(Iterables.size(rows)) +
                 "    AND m.ts < ? " +
                 (columns.allColumnsSelected() ? "" :
@@ -131,9 +134,9 @@ public class PostgresQueryFactory implements DbQueryFactory {
                                      ColumnSelection columns,
                                      boolean includeValue) {
         String query =
-                " /* SQL_MET_GET_ALL_ROWS (" + tableName + ") */ " +
+                " /* GET_ALL_ROWS (" + tableName + ") */ " +
                 " SELECT m.row_name, m.col_name, m.ts" + (includeValue ? ", m.val " : " ") +
-                "   FROM pt_met_" + tableName + " m, (VALUES " + nkParams(2, rows.size()) + ") t(row_name, ts) " +
+                "   FROM " + prefixedTableName() + " m, (VALUES " + nkParams(2, rows.size()) + ") t(row_name, ts) " +
                 "  WHERE m.row_name = t.row_name " +
                 "    AND m.ts < t.ts " +
                 (columns.allColumnsSelected() ? "" :
@@ -145,52 +148,52 @@ public class PostgresQueryFactory implements DbQueryFactory {
     @Override
     public FullQuery getLatestCellQuery(Cell cell, long ts, boolean includeValue) {
         String query =
-                " /* SQL_MET_GET_LATEST_CELL_INNER (" + tableName + ") */ " +
+                " /* GET_LATEST_CELL_INNER (" + tableName + ") */ " +
                 " SELECT m.row_name, m.col_name, max(m.ts) as ts " +
-                "   FROM pt_met_" + tableName + " m " +
+                "   FROM " + prefixedTableName() + " m " +
                 "  WHERE m.row_name = ? " +
                 "    AND m.col_name = ? " +
                 "    AND m.ts < ? " +
                 " GROUP BY m.row_name, m.col_name " +
                 " LIMIT 1";
-        query = wrapQueryWithIncludeValue("SQL_MET_GET_LATEST_CELL", query, includeValue);
+        query = wrapQueryWithIncludeValue("GET_LATEST_CELL", query, includeValue);
         return new FullQuery(query).withArgs(cell.getRowName(), cell.getColumnName(), ts);
     }
 
     @Override
     public FullQuery getLatestCellsQuery(Iterable<Cell> cells, long ts, boolean includeValue) {
         String query =
-                " /* SQL_MET_GET_LATEST_CELLS_INNER (" + tableName + ") */ " +
+                " /* GET_LATEST_CELLS_INNER (" + tableName + ") */ " +
                 " SELECT m.row_name, m.col_name, max(m.ts) as ts " +
-                "   FROM pt_met_" + tableName + " m, (VALUES " + nkParams(2, Iterables.size(cells)) + ") t(row_name, col_name) " +
+                "   FROM " + prefixedTableName() + " m, (VALUES " + nkParams(2, Iterables.size(cells)) + ") t(row_name, col_name) " +
                 "  WHERE m.row_name = t.row_name " +
                 "    AND m.col_name = t.col_name " +
                 "    AND m.ts < ? " +
                 " GROUP BY m.row_name, m.col_name ";
-        query = wrapQueryWithIncludeValue("SQL_MET_GET_LATEST_CELLS", query, includeValue);
+        query = wrapQueryWithIncludeValue("GET_LATEST_CELLS", query, includeValue);
         return addCellArgs(new FullQuery(query), cells).withArg(ts);
     }
 
     @Override
     public FullQuery getLatestCellsQuery(Collection<Entry<Cell, Long>> cells, boolean includeValue) {
         String query =
-                " /* SQL_MET_GET_LATEST_CELLS_INNER (" + tableName + ") */ " +
+                " /* GET_LATEST_CELLS_INNER (" + tableName + ") */ " +
                 " SELECT m.row_name, m.col_name, max(m.ts) as ts " +
-                "   FROM pt_met_" + tableName + " m, (VALUES " + nkParams(3, Iterables.size(cells)) + ") t(row_name, col_name, ts) " +
+                "   FROM " + prefixedTableName() + " m, (VALUES " + nkParams(3, Iterables.size(cells)) + ") t(row_name, col_name, ts) " +
                 "  WHERE m.row_name = t.row_name " +
                 "    AND m.col_name = t.col_name " +
                 "    AND m.ts < t.ts " +
                 " GROUP BY m.row_name, m.col_name ";
-        query = wrapQueryWithIncludeValue("SQL_MET_GET_LATEST_CELLS", query, includeValue);
+        query = wrapQueryWithIncludeValue("GET_LATEST_CELLS", query, includeValue);
         return addCellTsArgs(new FullQuery(query), cells);
     }
 
     @Override
     public FullQuery getAllCellQuery(Cell cell, long ts, boolean includeValue) {
         String query =
-                " /* SQL_MET_GET_ALL_CELL (" + tableName + ") */ " +
+                " /* GET_ALL_CELL (" + tableName + ") */ " +
                 " SELECT m.row_name, m.col_name, m.ts" + (includeValue ? ", m.val " : " ") +
-                "   FROM pt_met_" + tableName + " m " +
+                "   FROM " + prefixedTableName() + " m " +
                 "  WHERE m.row_name = ? " +
                 "    AND m.col_name = ? " +
                 "    AND m.ts < ? ";
@@ -200,9 +203,9 @@ public class PostgresQueryFactory implements DbQueryFactory {
     @Override
     public FullQuery getAllCellsQuery(Iterable<Cell> cells, long ts, boolean includeValue) {
         String query =
-                " /* SQL_MET_GET_ALL_CELLS (" + tableName + ") */ " +
+                " /* GET_ALL_CELLS (" + tableName + ") */ " +
                 " SELECT m.row_name, m.col_name, m.ts" + (includeValue ? ", m.val " : " ") +
-                "   FROM pt_met_" + tableName + " m, (VALUES " + nkParams(2, Iterables.size(cells)) + ") t(row_name, col_name) " +
+                "   FROM " + prefixedTableName() + " m, (VALUES " + nkParams(2, Iterables.size(cells)) + ") t(row_name, col_name) " +
                 "  WHERE m.row_name = t.row_name " +
                 "    AND m.col_name = t.col_name " +
                 "    AND m.ts < ? ";
@@ -212,9 +215,9 @@ public class PostgresQueryFactory implements DbQueryFactory {
     @Override
     public FullQuery getAllCellsQuery(Collection<Entry<Cell, Long>> cells, boolean includeValue) {
         String query =
-                " /* SQL_MET_GET_ALL_CELLS (" + tableName + ") */ " +
+                " /* GET_ALL_CELLS (" + tableName + ") */ " +
                 " SELECT m.row_name, m.col_name, m.ts" + (includeValue ? ", m.val " : " ") +
-                "   FROM pt_met_" + tableName + " m, (VALUES " + nkParams(3, Iterables.size(cells)) + ") t(row_name, col_name, ts) " +
+                "   FROM " + prefixedTableName() + " m, (VALUES " + nkParams(3, Iterables.size(cells)) + ") t(row_name, col_name, ts) " +
                 "  WHERE m.row_name = t.row_name " +
                 "    AND m.col_name = t.col_name " +
                 "    AND m.ts < t.ts ";
@@ -236,9 +239,9 @@ public class PostgresQueryFactory implements DbQueryFactory {
             args.add(end);
         }
         String query =
-                " /* SQL_MET_GET_RANGE_ROWS (" + tableName + ") */ " +
+                " /* GET_RANGE_ROWS (" + tableName + ") */ " +
                 " SELECT DISTINCT m.row_name " +
-                " FROM pt_met_" + tableName + " m " +
+                " FROM " + prefixedTableName() + " m " +
                 (bounds.isEmpty() ? "" : " WHERE  " + Joiner.on(" AND ").join(bounds)) +
                 " ORDER BY m.row_name " + (range.isReverse() ? "DESC" : "ASC") + " LIMIT " + maxRows;
         return new FullQuery(query).withArgs(args);
@@ -271,7 +274,7 @@ public class PostgresQueryFactory implements DbQueryFactory {
         }
         return " /* " + wrappedName + " (" + tableName + ") */ " +
                 " SELECT wrap.row_name, wrap.col_name, wrap.ts, wrap.val " +
-                " FROM pt_met_" + tableName + " wrap, ( " + query + " ) i " +
+                " FROM " + prefixedTableName() + " wrap, ( " + query + " ) i " +
                 " WHERE wrap.row_name = i.row_name " +
                 "   AND wrap.col_name = i.col_name " +
                 "   AND wrap.ts = i.ts ";
@@ -297,5 +300,9 @@ public class PostgresQueryFactory implements DbQueryFactory {
             fullQuery.withArgs(cell.getRowName(), cell.getColumnName(), entry.getValue());
         }
         return fullQuery;
+    }
+
+    private String prefixedTableName() {
+        return config.tablePrefix() + tableName;
     }
 }

@@ -18,8 +18,11 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.dbkvs.PostgresDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbDdlTable;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableSize;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
@@ -27,47 +30,50 @@ import com.palantir.util.VersionStrings;
 
 public class PostgresDdlTable implements DbDdlTable {
     private static final Logger log = LoggerFactory.getLogger(PostgresDdlTable.class);
-    private final String tableName;
+    private final TableReference tableName;
     private final ConnectionSupplier conns;
+    private final PostgresDdlConfig config;
 
-    public PostgresDdlTable(String tableName,
-                            ConnectionSupplier conns) {
+    public PostgresDdlTable(TableReference tableName,
+                            ConnectionSupplier conns,
+                            PostgresDdlConfig config) {
         this.tableName = tableName;
         this.conns = conns;
+        this.config = config;
     }
 
     @Override
     public void create(byte[] tableMetadata) {
         if (conns.get().selectExistsUnregisteredQuery(
-                "SELECT 1 FROM pt_metropolis_table_meta WHERE table_name = ?",
-                tableName)) {
+                "SELECT 1 FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?",
+                tableName.getQualifiedName())) {
             return;
         }
         executeIgnoringError(
-                "CREATE TABLE pt_met_" + tableName + " (" +
+                "CREATE TABLE " + prefixedTableName() + " (" +
                 "  row_name   BYTEA NOT NULL," +
                 "  col_name   BYTEA NOT NULL," +
                 "  ts         INT8 NOT NULL," +
                 "  val        BYTEA," +
-                "  CONSTRAINT pk_pt_met_" + tableName + " PRIMARY KEY (row_name, col_name, ts) " +
+                "  CONSTRAINT pk_" + prefixedTableName() + " PRIMARY KEY (row_name, col_name, ts) " +
                 ")",
                 "already exists");
         conns.get().insertOneUnregisteredQuery(
-                "INSERT INTO pt_metropolis_table_meta (table_name, table_size) VALUES (?, ?)",
-                tableName,
+                "INSERT INTO " + config.metadataTable().getQualifiedName() + " (table_name, table_size) VALUES (?, ?)",
+                tableName.getQualifiedName(),
                 TableSize.RAW.getId());
     }
 
     @Override
     public void drop() {
-        executeIgnoringError("DROP TABLE pt_met_" + tableName, "does not exist");
+        executeIgnoringError("DROP TABLE " + prefixedTableName(), "does not exist");
         conns.get().executeUnregisteredQuery(
-                "DELETE FROM pt_metropolis_table_meta WHERE table_name = ?", tableName);
+                "DELETE FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?", tableName.getQualifiedName());
     }
 
     @Override
     public void truncate() {
-        executeIgnoringError("TRUNCATE TABLE pt_met_" + tableName, "does not exist");
+        executeIgnoringError("TRUNCATE TABLE " + prefixedTableName(), "does not exist");
     }
 
     @Override
@@ -96,6 +102,10 @@ public class PostgresDdlTable implements DbDdlTable {
     @Override
     public void compactInternally() {
         // VACUUM FULL is /really/ what we want here, but it takes out a table lock
-        conns.get().executeUnregisteredQuery("VACUUM ANALYZE pt_met_" + tableName);
+        conns.get().executeUnregisteredQuery("VACUUM ANALYZE " + prefixedTableName());
+    }
+
+    private String prefixedTableName() {
+        return config.tablePrefix() + DbKvs.internalTableName(tableName);
     }
 }

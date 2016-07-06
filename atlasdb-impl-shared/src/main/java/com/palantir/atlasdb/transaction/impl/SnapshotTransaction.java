@@ -501,7 +501,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                 }
                             });
                         }
-                        log.info("Processed {} range requests for {} in {}ms",
+                        log.trace("Processed {} range requests for {} in {}ms",
                                 input.size(), tableRef, timer.elapsed(TimeUnit.MILLISECONDS));
                         return ret;
                     }
@@ -1116,7 +1116,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 checkConstraints();
                 commitWrites(transactionService);
             }
-            perfLogger.debug("Commited transaction {} in {}ms",
+            perfLogger.debug("Committed transaction {} in {}ms",
                     getStartTimestamp(),
                     getTrasactionTimer().elapsed(TimeUnit.MILLISECONDS));
             success = true;

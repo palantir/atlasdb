@@ -93,7 +93,14 @@ public class DbSequenceBackedIdGenerator implements IdGenerator {
                 }
                 return null;
             }
-        }, sql);
+        },
+                sql,
+                /*
+                 * This callable grabs the Connection itself, which is a direct violation of the comment on BasicSqlUtils#runUninterruptably,
+                 * which claims that doing so will fail.  There does not seem to be any actual reason to change this.  So, instead of
+                 * creating a connection outside the callable and passing it in this argument, we will simply pass null.
+                 */
+                null);
         return ids.length;
     }
 
