@@ -943,11 +943,25 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     @Override
+    final public void delete(TableReference tableRef, Set<Cell> cells) {
+        put(tableRef, Cells.constantValueMap(cells, PtBytes.EMPTY_BYTE_ARRAY), Cell.INVALID_TTL, Cell.INVALID_TTL_TYPE);
+    }
+
+    @Override
     public void put(TableReference tableRef, Map<Cell, byte[]> values) {
+        ensureNoEmptyValues(values);
         put(tableRef, values, Cell.INVALID_TTL, Cell.INVALID_TTL_TYPE);
     }
 
-    public void put(TableReference tableRef, Map<Cell, byte[]> values, long ttlDuration, TimeUnit ttlUnit) {
+    private void ensureNoEmptyValues(Map<Cell, byte[]> values) {
+        for (Entry<Cell, byte[]> cellEntry : values.entrySet()) {
+            if (cellEntry.getValue().length == 0) {
+                throw new IllegalArgumentException("AtlasDB does not currently support inserting empty (zero-byte) values.");
+            }
+        }
+    }
+
+    private void put(TableReference tableRef, Map<Cell, byte[]> values, long ttlDuration, TimeUnit ttlUnit) {
         Preconditions.checkArgument(!AtlasDbConstants.hiddenTables.contains(tableRef));
         // todo (clockfort) also check if valid table for TTL
         if (ttlDuration != Cell.INVALID_TTL && ttlUnit != Cell.INVALID_TTL_TYPE) {
