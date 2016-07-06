@@ -31,7 +31,10 @@ public class TodoSchema implements AtlasSchema {
     public static final String TEXT_COLUMN = "text";
 
     private static Schema generateSchema() {
-        Schema schema = new Schema();
+        Schema schema = new Schema(
+                TodoSchema.class.getSimpleName(),
+                TodoSchema.class.getPackage().getName() + ".generated",
+                Namespace.DEFAULT_NAMESPACE);
 
         schema.addTableDefinition(TODO_TABLE, new TableDefinition() {{
             rowName();
