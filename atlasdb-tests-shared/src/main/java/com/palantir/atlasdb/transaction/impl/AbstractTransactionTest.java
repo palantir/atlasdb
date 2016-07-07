@@ -831,7 +831,7 @@ public abstract class AbstractTransactionTest {
 
         for (int i = 0 ; i < totalPuts ; i++) {
             if (i % 2 == 1) {
-                put(t, "row1", "col" + i, "");
+                delete(t, "row1", "col" + i);
             }
         }
 
