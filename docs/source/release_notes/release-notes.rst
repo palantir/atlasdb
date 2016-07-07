@@ -62,6 +62,9 @@ v0.9.0
            If any code deletes cells by calling ``Transaction.put(...)`` with an empty array, use
            ``Transaction.delete(...)`` instead.
 
+    *    - |breaking|
+         - Our Feign dependency has been upgraded to 8.17.0 and transitively our OkHttp dependency to 3.2.0.
+
     *    - |improved|
          - The warning emitted when an attempted leadership election fails is now more descriptive.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/630>`__)
