@@ -717,7 +717,7 @@ public abstract class AbstractTransactionTest {
         t.commit();
 
         t = startTransaction();
-        put(t, "row1", "col1", "");
+        delete(t, "row1", "col1");
         columnRange =
                 t.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
         verifyMatchingResult(expected, row, columnRange);
