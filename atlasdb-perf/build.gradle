@@ -1,7 +1,7 @@
 apply from: '../gradle/shared.gradle'
 
 apply plugin: 'application'
-mainClassName = 'com.palantir.atlasdb.performance.AtlasPerfCLI'
+mainClassName = 'com.palantir.atlasdb.performance.cli.AtlasPerfCLI'
 applicationName = 'atlasdb-perf'
 
 dependencies {
