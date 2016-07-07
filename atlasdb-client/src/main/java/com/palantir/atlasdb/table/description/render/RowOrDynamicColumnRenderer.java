@@ -23,6 +23,7 @@ import static com.palantir.atlasdb.table.description.render.ComponentRenderers.v
 import java.util.List;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
@@ -34,12 +35,15 @@ class RowOrDynamicColumnRenderer extends Renderer {
     private final String Name;
     private final NameMetadataDescription desc;
     private final boolean rangeScanAllowed;
+    private final boolean isDynamicColumn;
 
-    public RowOrDynamicColumnRenderer(Renderer parent, String Name, NameMetadataDescription desc, boolean rangeScanAllowed) {
+    public RowOrDynamicColumnRenderer(Renderer parent, String Name, NameMetadataDescription desc, boolean rangeScanAllowed, boolean isDynamicColumn) {
         super(parent);
         this.Name = Name;
         this.desc = desc;
+        Preconditions.checkArgument(!rangeScanAllowed || !isDynamicColumn, "Cannot have row range scans allowed on a dynamic column renderer.");
         this.rangeScanAllowed = rangeScanAllowed;
+        this.isDynamicColumn = isDynamicColumn;
     }
 
     @Override
@@ -68,7 +72,7 @@ class RowOrDynamicColumnRenderer extends Renderer {
             line();
             bytesHydrator();
             line();
-            if (rangeScanAllowed) {
+            if (rangeScanAllowed || isDynamicColumn) {
                 int firstSortedIndex = desc.getRowParts().size() - 1;
                 for ( ; firstSortedIndex > 0; firstSortedIndex--) {
                     if (!desc.getRowParts().get(firstSortedIndex).getType().supportsRangeScans()) {
@@ -76,7 +80,11 @@ class RowOrDynamicColumnRenderer extends Renderer {
                     }
                 }
                 for (int i = 1; i <= desc.getRowParts().size() - 1; i++) {
-                    createPrefixRange(i, firstSortedIndex < i);
+                    if (isDynamicColumn) {
+                        createColumnPrefixRange(i, firstSortedIndex < i);
+                    } else {
+                        createPrefixRange(i, firstSortedIndex < i);
+                    }
                     line();
                     prefix(i, firstSortedIndex < i);
                     line();
@@ -197,23 +205,36 @@ class RowOrDynamicColumnRenderer extends Renderer {
     private void createPrefixRange(int i, boolean isSorted) {
         List<NameComponentDescription> components = getRowPartsWithoutHash().subList(0, i);
         line("public static RangeRequest.Builder createPrefixRange", isSorted ? "" : "Unsorted"); renderParameterList(components); lineEnd(" {"); {
-            List<String> vars = Lists.newArrayList();
-            if (desc.hasFirstComponentHash()) {
-                renderComputeFirstComponentHash();
-                String var = NameMetadataDescription.HASH_ROW_COMPONENT_NAME + "Bytes";
-                vars.add(var);
-                line("byte[] ", var, " = ", ValueType.FIXED_LONG.getPersistCode(NameMetadataDescription.HASH_ROW_COMPONENT_NAME), ";");
-            }
-            for (NameComponentDescription comp : components) {
-                String var = varName(comp) + "Bytes";
-                vars.add(var);
-                line("byte[] ", var, " = ", comp.getType().getPersistCode(varName(comp)), ";");
-                if (comp.getOrder() == ValueByteOrder.DESCENDING) {
-                    line("EncodingUtils.flipAllBitsInPlace(", var, ");");
-                }
-            }
+            List<String> vars = renderComponentBytes(components);
             line("return RangeRequest.builder().prefixRange(EncodingUtils.add(", Joiner.on(", ").join(vars), "));");
         } line("}");
+    }
+
+    private void createColumnPrefixRange(int i, boolean isSorted) {
+        List<NameComponentDescription> components = getRowPartsWithoutHash().subList(0, i);
+        line("public static ColumnRangeSelection createPrefixRange", isSorted ? "" : "Unsorted"); renderParameterList(components); replace(")", ", int batchSize)"); lineEnd(" {"); {
+            List<String> vars = renderComponentBytes(components);
+            line("return ColumnRangeSelections.createPrefixRange(EncodingUtils.add(", Joiner.on(", ").join(vars), "), batchSize);");
+        } line("}");
+    }
+
+    private List<String> renderComponentBytes(List<NameComponentDescription> components) {
+        List<String> vars = Lists.newArrayList();
+        if (desc.hasFirstComponentHash()) {
+            renderComputeFirstComponentHash();
+            String var = NameMetadataDescription.HASH_ROW_COMPONENT_NAME + "Bytes";
+            vars.add(var);
+            line("byte[] ", var, " = ", ValueType.FIXED_LONG.getPersistCode(NameMetadataDescription.HASH_ROW_COMPONENT_NAME), ";");
+        }
+        for (NameComponentDescription comp : components) {
+            String var = varName(comp) + "Bytes";
+            vars.add(var);
+            line("byte[] ", var, " = ", comp.getType().getPersistCode(varName(comp)), ";");
+            if (comp.getOrder() == ValueByteOrder.DESCENDING) {
+                line("EncodingUtils.flipAllBitsInPlace(", var, ");");
+            }
+        }
+        return vars;
     }
 
     private void prefix(int i, boolean isSorted) {
