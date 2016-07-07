@@ -1,21 +1,7 @@
 package com.palantir.atlasdb.performance.cli;
 
-import com.google.common.base.Stopwatch;
-import com.google.common.collect.Iterables;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.performance.api.PerformanceTest;
-import com.palantir.atlasdb.performance.api.PerformanceTestMetadata;
-import com.palantir.atlasdb.performance.backend.PhysicalStore;
-import io.airlift.airline.Command;
-import io.airlift.airline.HelpOption;
-import io.airlift.airline.Option;
-import io.airlift.airline.SingleCommand;
-import org.reflections.Reflections;
-
-import javax.inject.Inject;
 import java.io.File;
 import java.nio.file.Files;
-import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
@@ -24,6 +10,22 @@ import java.time.ZonedDateTime;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+
+import javax.inject.Inject;
+
+import org.reflections.Reflections;
+
+import com.google.common.base.Stopwatch;
+import com.google.common.collect.Iterables;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.performance.api.PerformanceTest;
+import com.palantir.atlasdb.performance.api.PerformanceTestMetadata;
+import com.palantir.atlasdb.performance.backend.PhysicalStore;
+
+import io.airlift.airline.Command;
+import io.airlift.airline.HelpOption;
+import io.airlift.airline.Option;
+import io.airlift.airline.SingleCommand;
 
 /**
  * The Atlas Perf(ormance) CLI is a tool for making and running AtlasDB performance tests.
@@ -93,8 +95,8 @@ public class AtlasPerfCLI {
                 ZonedDateTime now = ZonedDateTime.now(ZoneOffset.UTC);
                 Path resultsFile = Paths.get(OUT_DIR.getPath(), "atlasdb-perf_results.txt");
                 Files.write(resultsFile,
-                            String.format("%s,%s,%d", now, TEST_NAME, timer.elapsed(TimeUnit.MILLISECONDS)).getBytes(),
-                            StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+                            String.format("%s,%s,%s,%s\n", now, TEST_NAME, getTestVersion(test),
+                                    timer.elapsed(TimeUnit.MILLISECONDS)).getBytes(),StandardOpenOption.CREATE, StandardOpenOption.APPEND);
 
             }
         }
@@ -183,5 +185,14 @@ public class AtlasPerfCLI {
         return (PerformanceTest) Iterables.getOnlyElement(getAllTests().stream()
                 .filter(clazz -> clazz.getAnnotation(PerformanceTestMetadata.class).name().equals(testName))
                 .collect(Collectors.toSet())).newInstance();
+    }
+
+    /**
+     * Returns the {@link PerformanceTestMetadata#version()} annotation of the provided test.
+     * @param test the test of which to return the version.
+     * @return the version of the provided test.
+     */
+    private static int getTestVersion(PerformanceTest test) {
+        return test.getClass().getAnnotation(PerformanceTestMetadata.class).version();
     }
 }
