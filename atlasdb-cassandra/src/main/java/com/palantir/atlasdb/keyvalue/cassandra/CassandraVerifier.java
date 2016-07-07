@@ -35,7 +35,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Verify;
-import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -49,7 +48,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.ClientCreationFailedException;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.collect.Maps2;
-import com.palantir.remoting.ssl.SslConfiguration;
 
 public class CassandraVerifier {
     private static final Logger log = LoggerFactory.getLogger(CassandraVerifier.class);

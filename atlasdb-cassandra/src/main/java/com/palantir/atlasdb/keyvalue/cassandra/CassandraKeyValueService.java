@@ -111,8 +111,6 @@ import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.exception.PalantirRuntimeException;
-import com.palantir.common.pooling.PoolingContainer;
-import com.palantir.remoting.ssl.SslConfiguration;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
