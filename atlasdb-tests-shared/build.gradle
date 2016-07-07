@@ -7,8 +7,10 @@ schemas = [
 
 dependencies {
   compile(project(":atlasdb-impl-shared"))
-  compile 'com.netflix.feign:feign-jackson:8.6.1'
-  compile('com.netflix.feign:feign-jaxrs:8.6.1') {
+  compile('com.netflix.feign:feign-jackson:8.17.0') {
+      exclude module: 'jackson-databind'
+  }
+  compile('com.netflix.feign:feign-jaxrs:8.17.0') {
       exclude module: 'jsr311-api'
   }
   testCompile(project(":atlasdb-config"))
