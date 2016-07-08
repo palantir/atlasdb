@@ -37,7 +37,7 @@ v0.9.0
          - Change
 
     *    - |breaking|
-         - Inserting an empty (size = 0) value into a ``Cell`` will now throw an ``IllegalArgumentException``. (#156) Likely empty
+         - Inserting an empty (size = 0) value into a ``Cell`` will now throw an ``IllegalArgumentException``. (`#156 <https://github.com/palantir/atlasdb/issues/156>`__)) Likely empty
            values include empty strings and empty protobufs.
 
            Atlas cannot currently distinguish between empty and deleted cells. In previous versions of Atlas, inserting
@@ -63,10 +63,18 @@ v0.9.0
            ``Transaction.delete(...)`` instead.
            
            *Note*: Existing cells with empty values will be interpreted as deleted cells, and will not lead to Exceptions when read.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/524>`__)
 
     *    - |improved|
          - The warning emitted when an attempted leadership election fails is now more descriptive.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/630>`__)
+           
+    *    - |fixed|
+         - Code generation for the hashCode of ``*IdxColumn`` classes now uses deepHashCode for it's arrays such that it returns
+           correct hashCodes.
+           
+           *Note*: you will need to regenerate you schema code in order to see this fix
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/600>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
