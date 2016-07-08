@@ -1,3 +1,18 @@
+/**
+ * Copyright 2016 Palantir Technologies
+ *
+ * Licensed under the BSD-3 License (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://opensource.org/licenses/BSD-3-Clause
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.palantir.atlasdb.performance.cli;
 
 import java.io.File;
@@ -67,6 +82,8 @@ public class AtlasPerfCLI {
         } else {
             System.exit(1);
         }
+        // TODO (mwakerman): find the non-reaped thread rather than force an exit.
+        System.exit(0);
     }
 
     private void run() throws Exception {
@@ -77,16 +94,21 @@ public class AtlasPerfCLI {
             return;
         }
 
-        try (PhysicalStore physicalStore = PhysicalStore.create(PhysicalStore.Type.valueOf(BACKEND))) {
-            KeyValueService kvs = physicalStore.connect();
+        try (PhysicalStore physicalStore = PhysicalStore.create(PhysicalStore.Type.valueOf(BACKEND));
+             KeyValueService kvs = physicalStore.connect()) {
+
+            if (kvs == null) {
+                System.err.println("Could not run performance test, unable to connect to KVS. Exiting.");
+                System.exit(1);
+            }
+
             PerformanceTest test = getPerformanceTest(TEST_NAME);
             test.setup(kvs);
             Stopwatch timer = Stopwatch.createStarted();
             test.run();
             timer.stop();
             // For now, just print the test duration.
-            System.out.println(
-                    String.format("Test '%s': duration (millis): %d", TEST_NAME, timer.elapsed(TimeUnit.MILLISECONDS)));
+            System.out.println(String.format("Test '%s': duration (millis): %d", TEST_NAME, timer.elapsed(TimeUnit.MILLISECONDS)));
 
             test.tearDown();
 
@@ -94,13 +116,11 @@ public class AtlasPerfCLI {
                 // Always store dates in UTC.
                 ZonedDateTime now = ZonedDateTime.now(ZoneOffset.UTC);
                 Path resultsFile = Paths.get(OUT_DIR.getPath(), "atlasdb-perf_results.txt");
-                Files.write(resultsFile,
-                            String.format("%s,%s,%s,%s\n", now, TEST_NAME, getTestVersion(test),
-                                    timer.elapsed(TimeUnit.MILLISECONDS)).getBytes(),StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+                Files.write(resultsFile,String.format("%s,%s,%s,%s\n", now, TEST_NAME, getTestVersion(test),
+                        timer.elapsed(TimeUnit.MILLISECONDS)).getBytes(),StandardOpenOption.CREATE, StandardOpenOption.APPEND);
 
             }
         }
-
     }
 
 
