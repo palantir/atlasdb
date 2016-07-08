@@ -61,6 +61,8 @@ v0.9.0
 
            If any code deletes cells by calling ``Transaction.put(...)`` with an empty array, use
            ``Transaction.delete(...)`` instead.
+           
+           *Note*: Existing cells with empty values will be interpreted as deleted cells, and will not lead to Exceptions when read.
 
     *    - |improved|
          - The warning emitted when an attempted leadership election fails is now more descriptive.
