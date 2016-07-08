@@ -181,8 +181,9 @@ as well as generated code which uses this method, if any entry in <code class="d
 product does not need to distinguish between empty and non-existent values, simply make sure all the <code class="docutils literal"><span class="pre">values</span></code>
 entries have positive length. If the distinction is necessary, you will need to explicitly differentiate the
 two cases (for example, by introducing a sentinel value for empty cells).</p>
-<p class="last">If any code deletes cells by calling <code class="docutils literal"><span class="pre">Transaction.put(...)</span></code> with an empty array, use
+<p>If any code deletes cells by calling <code class="docutils literal"><span class="pre">Transaction.put(...)</span></code> with an empty array, use
 <code class="docutils literal"><span class="pre">Transaction.delete(...)</span></code> instead.</p>
+<p class="last"><em>Note</em>: Existing cells with empty values will be interpreted as deleted cells, and will not lead to Exceptions when read.</p>
 </td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
