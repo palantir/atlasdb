@@ -10,7 +10,7 @@ dependencies {
 
   compile group: 'io.airlift', name: 'airline', version: '0.7'
   compile group: 'org.reflections', name: 'reflections', version: '0.9.10'
-  compile group: 'com.palantir.docker.compose', name: 'docker-compose-rule', version: '0.16.0'
+  compile group: 'com.palantir.docker.compose', name: 'docker-compose-rule', version: '0.17.1'
   compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.1.7'
 }
 
