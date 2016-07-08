@@ -59,3 +59,8 @@ RocksDB KVS
 -----------
 
 Java RocksDB is not well support and we have seen major corruption, internal ticket QA-95061.
+
+Deleted
+=======
+
+ClusterKeyValueService.java - Intended to be run on top of a MySQL/Cluster
