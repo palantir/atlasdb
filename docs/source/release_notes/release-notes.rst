@@ -37,7 +37,7 @@ v0.10.0
          - Change
 
     *    - |changed|
-         - Updated HikariCP dependency from 2.4.3 to 2.4.7 to complie with updates in internal products
+         - Updated HikariCP dependency from 2.4.3 to 2.4.7 to comply with updates in internal products.  Details of the HikariCP changes can be found `here <https://github.com/brettwooldridge/HikariCP/blob/dev/CHANGES>`__
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
