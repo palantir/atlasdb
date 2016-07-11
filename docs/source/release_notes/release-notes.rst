@@ -73,7 +73,7 @@ v0.9.0
          - Code generation for the ``hashCode`` of ``*IdxColumn`` classes now uses ``deepHashCode`` for its arrays such that it returns
            correct hash codes.
 
-           *Note*: If you are using `Indices <http://palantir.github.io/atlasdb/html/schemas/tables_and_indices.html#indices>`__ we recommend you upgrade.  You will need to regenerate your schema code in order to see this fix.
+           *Note*: If you are using `Indices <https://palantir.github.io/atlasdb/html/schemas/tables_and_indices.html#indices>`__ we recommend you upgrade.  You will need to regenerate your schema code in order to see this fix.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/600>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
