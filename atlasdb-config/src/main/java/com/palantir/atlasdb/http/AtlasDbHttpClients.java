@@ -88,13 +88,14 @@ public class AtlasDbHttpClients {
     }
 
     /**
-     * Returns a feign {@link Client} wrapping a {@link com.squareup.okhttp.OkHttpClient} client with optionally
-     * specified {@link SSLSocketFactory}.
+     * Returns a feign {@link Client} wrapping a {@link okhttp3.OkHttpClient} client with optionally specified {@link SSLSocketFactory}.
      */
     private static Client newOkHttpClient(Optional<SSLSocketFactory> sslSocketFactory) {
-        com.squareup.okhttp.OkHttpClient client = new com.squareup.okhttp.OkHttpClient();
-        client.setSslSocketFactory(sslSocketFactory.orNull());
-        return new OkHttpClient(client);
+        okhttp3.OkHttpClient.Builder client = new okhttp3.OkHttpClient.Builder();
+        if (sslSocketFactory.isPresent()) {
+            client.sslSocketFactory(sslSocketFactory.get());
+        }
+        return new OkHttpClient(client.build());
     }
 
 }

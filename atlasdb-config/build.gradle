@@ -8,12 +8,14 @@ dependencies {
     compile project(':leader-election-impl')
     compile project(':lock-impl')
 
-    compile 'com.netflix.feign:feign-jackson:8.6.1'
-    compile('com.netflix.feign:feign-jaxrs:8.6.1') {
+    compile('com.netflix.feign:feign-jackson:8.17.0') {
+        exclude module: 'jackson-databind'
+    }
+    compile('com.netflix.feign:feign-jaxrs:8.17.0') {
         exclude module: 'jsr311-api'
     }
     // versions below 8.10.0 have a bug where POST requets must have a body
-    compile('com.netflix.feign:feign-okhttp:8.10.1') {
+    compile('com.netflix.feign:feign-okhttp:8.17.0') {
         exclude module: 'feign-core'
     }
     compile 'javax.validation:validation-api:1.1.0.Final'

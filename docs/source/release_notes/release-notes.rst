@@ -64,6 +64,9 @@ v0.9.0
            
            *Note*: Existing cells with empty values will be interpreted as deleted cells, and will not lead to Exceptions when read.
 
+    *    - |breaking|
+         - Our Feign dependency has been upgraded to 8.17.0 and transitively our OkHttp dependency to 3.2.0.
+
     *    - |improved|
          - The warning emitted when an attempted leadership election fails is now more descriptive.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/630>`__)
