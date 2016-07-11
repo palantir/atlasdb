@@ -165,7 +165,7 @@
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-breaking">BREAKING</span></td>
-<td><p class="first">Inserting an empty (size = 0) value into a <code class="docutils literal"><span class="pre">Cell</span></code> will now throw an <code class="docutils literal"><span class="pre">IllegalArgumentException</span></code>. (<a class="reference external" href="https://github.com/palantir/atlasdb/issues/156">#156</a>)) Likely empty
+<td><p class="first">Inserting an empty (size = 0) value into a <code class="docutils literal"><span class="pre">Cell</span></code> will now throw an <code class="docutils literal"><span class="pre">IllegalArgumentException</span></code>. (<a class="reference external" href="https://github.com/palantir/atlasdb/issues/156">#156</a>) Likely empty
 values include empty strings and empty protobufs.</p>
 <p>Atlas cannot currently distinguish between empty and deleted cells. In previous versions of Atlas, inserting
 an empty value into a <code class="docutils literal"><span class="pre">Cell</span></code> would delete that cell. Thus, in this snippet,</p>
@@ -194,7 +194,7 @@ two cases (for example, by introducing a sentinel value for empty cells).</p>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td><p class="first">Code generation for the <code class="docutils literal"><span class="pre">hashCode</span></code> of <code class="docutils literal"><span class="pre">*IdxColumn</span></code> classes now uses <code class="docutils literal"><span class="pre">deepHashCode</span></code> for its arrays such that it returns
 correct hash codes.</p>
-<p class="last"><em>Note</em>: you will need to regenerate your schema code in order to see this fix.
+<p class="last"><em>Note</em>: If you are using <a class="reference external" href="https://palantir.github.io/atlasdb/html/schemas/tables_and_indices.html#indices">Indices</a> we recommend you upgrade.  You will need to regenerate your schema code in order to see this fix.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/600">Pull Request</a>)</p>
 </td>
 </tr>
