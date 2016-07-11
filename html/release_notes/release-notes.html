@@ -193,8 +193,10 @@ two cases (for example, by introducing a sentinel value for empty cells).</p>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td><p class="first">Code generation for the <code class="docutils literal"><span class="pre">hashCode</span></code> of <code class="docutils literal"><span class="pre">*IdxColumn</span></code> classes now uses <code class="docutils literal"><span class="pre">deepHashCode</span></code> for its arrays such that it returns
-correct hash codes.</p>
-<p class="last"><em>Note</em>: If you are using <a class="reference external" href="https://palantir.github.io/atlasdb/html/schemas/tables_and_indices.html#indices">Indices</a> we recommend you upgrade.  You will need to regenerate your schema code in order to see this fix.
+consistent hash codes for use with hash-based collections (HashMap, HashSet, HashTable).
+This issue will only appear if you are instantiating columns in multiple places and storing columns in hash collections.</p>
+<p class="last">If you are using <a class="reference external" href="https://palantir.github.io/atlasdb/html/schemas/tables_and_indices.html#indices">Indices</a> we recommend you upgrade as a precaution and ensure you are not relying on logic related to the <code class="docutils literal"><span class="pre">hashCode</span></code> of auto-generated <code class="docutils literal"><span class="pre">*IdxColumn</span></code> classes.
+You will need to regenerate your schema code in order to see this fix.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/600">Pull Request</a>)</p>
 </td>
 </tr>
