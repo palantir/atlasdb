@@ -26,6 +26,10 @@
   background: #DB3737;
 }
 
+.changetype.changetype-breaking {
+  background: #C70000;
+}
+
 .changetype.changetype-new {
   background: #0F9960;
 }

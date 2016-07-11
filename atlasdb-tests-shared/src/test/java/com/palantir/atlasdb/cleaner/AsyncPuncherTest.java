@@ -40,7 +40,7 @@ public class AsyncPuncherTest {
     @Before
     public void setup() {
         PuncherStore puncherStore = InMemoryPuncherStore.create();
-        Clock clock = SystemClock.create();
+        Clock clock = new SystemClock();
         Puncher puncher = SimplePuncher.create(puncherStore, clock, Suppliers.ofInstance(TRANSACTION_TIMEOUT));
         timestampService = new InMemoryTimestampService();
         asyncPuncher = AsyncPuncher.create(puncher, ASYNC_PUNCHER_INTERVAL);

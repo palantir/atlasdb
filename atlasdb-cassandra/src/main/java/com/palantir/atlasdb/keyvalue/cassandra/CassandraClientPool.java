@@ -46,6 +46,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableRangeMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -113,6 +114,8 @@ public class CassandraClientPool {
 
     public CassandraClientPool(CassandraKeyValueServiceConfig config) {
         this.config = config;
+        config.servers().forEach((server) -> currentPools.put(server, new CassandraClientPoolingContainer(server, config)));
+
         refreshDaemon = PTExecutors.newScheduledThreadPool(1, new ThreadFactoryBuilder().setDaemon(true).setNameFormat("CassandraClientPoolRefresh-%d").build());
         refreshDaemon.scheduleWithFixedDelay(new Runnable() {
             @Override
@@ -125,7 +128,6 @@ public class CassandraClientPool {
             }
         }, config.poolRefreshIntervalSeconds(), config.poolRefreshIntervalSeconds(), TimeUnit.SECONDS);
 
-        config.servers().forEach((server) -> currentPools.put(server, new CassandraClientPoolingContainer(server, config)));
         refreshPool(); // ensure we've initialized before returning
     }
 
@@ -336,28 +338,35 @@ public class CassandraClientPool {
 
     private void refreshTokenRanges() {
         try {
+            ImmutableRangeMap.Builder<LightweightOPPToken, List<InetSocketAddress>> newTokenRing = ImmutableRangeMap.builder();
+
+            // grab latest token ring view from a random node in the cluster
             List<TokenRange> tokenRanges = getRandomGoodHost().runWithPooledResource(describeRing);
 
-            ImmutableRangeMap.Builder<LightweightOPPToken, List<InetSocketAddress>> newTokenRing = ImmutableRangeMap.builder();
-            for (TokenRange tokenRange : tokenRanges) {
-                List<InetSocketAddress> hosts = Lists.transform(tokenRange.getEndpoints(), new Function<String, InetSocketAddress>() {
-                    @Override
-                    public InetSocketAddress apply(String endpoint) {
+            if (tokenRanges.size() == 1) { // RangeMap needs a little help with weird 1-node, 1-vnode, this-entire-feature-is-useless case
+                String onlyEndpoint = Iterables.getOnlyElement(Iterables.getOnlyElement(tokenRanges).getEndpoints());
+                InetSocketAddress onlyHost = new InetSocketAddress(onlyEndpoint, CassandraConstants.DEFAULT_THRIFT_PORT);
+                newTokenRing.put(Range.all(), ImmutableList.of(onlyHost));
+            } else { // normal case, large cluster with many vnodes
+                for (TokenRange tokenRange : tokenRanges) {
+                    List<InetSocketAddress> hosts = Lists.transform(tokenRange.getEndpoints(), new Function<String, InetSocketAddress>() {
+                        @Override
+                        public InetSocketAddress apply(String endpoint) {
                             return new InetSocketAddress(endpoint, CassandraConstants.DEFAULT_THRIFT_PORT);
+                        }
+                    });
+                    LightweightOPPToken startToken = new LightweightOPPToken(BaseEncoding.base16().decode(tokenRange.getStart_token().toUpperCase()));
+                    LightweightOPPToken endToken = new LightweightOPPToken(BaseEncoding.base16().decode(tokenRange.getEnd_token().toUpperCase()));
+                    if (startToken.compareTo(endToken) <= 0) {
+                        newTokenRing.put(Range.openClosed(startToken, endToken), hosts);
+                    } else {
+                        // Handle wrap-around
+                        newTokenRing.put(Range.greaterThan(startToken), hosts);
+                        newTokenRing.put(Range.atMost(endToken), hosts);
                     }
-                });
-                LightweightOPPToken startToken = new LightweightOPPToken(BaseEncoding.base16().decode(tokenRange.getStart_token().toUpperCase()));
-                LightweightOPPToken endToken = new LightweightOPPToken(BaseEncoding.base16().decode(tokenRange.getEnd_token().toUpperCase()));
-                if (startToken.compareTo(endToken) <= 0) {
-                    newTokenRing.put(Range.openClosed(startToken, endToken), hosts);
-                } else {
-                    // Handle wrap-around
-                    newTokenRing.put(Range.greaterThan(startToken), hosts);
-                    newTokenRing.put(Range.atMost(endToken), hosts);
                 }
             }
             tokenMap = newTokenRing.build();
-
         } catch (Exception e) {
             log.error("Couldn't grab new token ranges for token aware cassandra mapping!", e);
         }

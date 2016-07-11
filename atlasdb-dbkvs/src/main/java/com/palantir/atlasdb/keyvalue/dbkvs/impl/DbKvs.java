@@ -38,7 +38,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
-import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
@@ -62,96 +61,43 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.DbKvsGetRanges;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.Throwables;
-import com.palantir.common.base.Visitors;
 import com.palantir.exception.PalantirSqlException;
-import com.palantir.nexus.db.monitoring.timer.SqlTimer;
-import com.palantir.nexus.db.monitoring.timer.SqlTimers;
-import com.palantir.nexus.db.pool.HikariCPConnectionManager;
-import com.palantir.nexus.db.pool.ReentrantManagedConnectionSupplier;
 import com.palantir.nexus.db.sql.AgnosticLightResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
-import com.palantir.nexus.db.sql.SQL;
 import com.palantir.nexus.db.sql.SqlConnection;
-import com.palantir.nexus.db.sql.SqlConnectionHelper;
-import com.palantir.nexus.db.sql.SqlConnectionImpl;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 public class DbKvs extends AbstractKeyValueService {
     private static final Logger log = LoggerFactory.getLogger(DbKvs.class);
-    private final DbKeyValueServiceConfig config;
+    private final DdlConfig config;
     private final DbTableFactory dbTables;
     private final SqlConnectionSupplier connections;
 
-    public static DbKvs create(DbKeyValueServiceConfig config) {
-        Preconditions.checkArgument(config.connection().isPresent(),
-                "Connection configuration is not present. You must have a connection block in your atlas config.");
-        HikariCPConnectionManager connManager = new HikariCPConnectionManager(config.connection().get(), Visitors.emptyVisitor());
-        ReentrantManagedConnectionSupplier connSupplier = new ReentrantManagedConnectionSupplier(connManager);
-        SqlConnectionSupplier sqlConnSupplier = getSimpleTimedSqlConnectionSupplier(connSupplier);
-
-        DbKvs dbKvs = new DbKvs(config, config.tableFactorySupplier().get(), sqlConnSupplier);
-
+    public static DbKvs create(DbKeyValueServiceConfig config, SqlConnectionSupplier sqlConnSupplier) {
+        DbKvs dbKvs = new DbKvs(config.ddl(), config.ddl().tableFactorySupplier().get(), sqlConnSupplier);
         dbKvs.init();
-
         return dbKvs;
     }
 
-    private static SqlConnectionSupplier getSimpleTimedSqlConnectionSupplier(ReentrantManagedConnectionSupplier connectionSupplier) {
-        Supplier<Connection> supplier = () -> connectionSupplier.get();
-        SQL sql = new SQL() {
-            @Override
-            protected SqlConfig getSqlConfig() {
-                return new SqlConfig() {
-                    @Override
-                    public boolean isSqlCancellationDisabled() {
-                        return false;
-                    }
-
-                    protected Iterable<SqlTimer> getSqlTimers() {
-                        return ImmutableList.of(
-                                SqlTimers.createDurationSqlTimer(),
-                                SqlTimers.createSqlStatsSqlTimer());
-                    }
-
-                    @Override
-                    final public SqlTimer getSqlTimer() {
-                        return SqlTimers.createCombinedSqlTimer(getSqlTimers());
-                    }
-                };
-            }
-        };
-
-        return new SqlConnectionSupplier() {
-            @Override
-            public SqlConnection get() {
-                return new SqlConnectionImpl(supplier, new SqlConnectionHelper(sql));
-            }
-
-            @Override
-            public void close() {
-                connectionSupplier.close();
-            }
-        };
-    }
-
     /**
-     * Constructor for a SQL (either Postgres or Oracle) backed key value store.  Exposed as public
-     * for use by a legacy internal product that needs to supply it's own connection supplier.
-     * Use {@link #create(DbKeyValueServiceConfig)} instead.
+     * Constructor for a SQL (either Postgres or Oracle) backed key value store.  This method should not
+     * be used directly and is exposed to support legacy software.  Instead you should prefer the use of
+     * ConnectionManagerAwareDbKvs which will instantiate a properly initialized DbKVS using the above create method
      */
-    public DbKvs(DbKeyValueServiceConfig config,
+    public DbKvs(DdlConfig config,
                  DbTableFactory dbTables,
                  SqlConnectionSupplier connections) {
-        super(AbstractKeyValueService.createFixedThreadPool("Atlas Relational KVS", config.shared().poolSize()));
+        super(AbstractKeyValueService.createFixedThreadPool("Atlas Relational KVS", config.poolSize()));
         this.config = config;
         this.dbTables = dbTables;
         this.connections = connections;
@@ -183,10 +129,6 @@ public class DbKvs extends AbstractKeyValueService {
         });
     }
 
-    public DbKeyValueServiceConfig getConfig() {
-        return config;
-    }
-
     @Override
     public void initializeFromFreshInstance() {
         // do nothing
@@ -210,7 +152,7 @@ public class DbKvs extends AbstractKeyValueService {
                                     final Iterable<byte[]> rows,
                                     final ColumnSelection columnSelection,
                                     final long timestamp) {
-        return runRead(tableRef, new Function<com.palantir.atlasdb.keyvalue.dbkvs.impl.DbReadTable, Map<Cell, Value>>() {
+        return runRead(tableRef, new Function<DbReadTable, Map<Cell, Value>>() {
             @Override
             public Map<Cell, Value> apply(DbReadTable table) {
                 ClosableIterator<AgnosticLightResultRow> iter = table.getLatestRows(rows, columnSelection, timestamp, true);
@@ -336,7 +278,7 @@ public class DbKvs extends AbstractKeyValueService {
 
     private void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp, boolean idempotent) {
         final Iterable<List<Entry<Cell, byte[]>>> batches = partitionByCountAndBytes(
-                values.entrySet(), config.shared().mutationBatchCount(), config.shared().mutationBatchSizeBytes(), tableRef, getByteSizingFunction());
+                values.entrySet(), config.mutationBatchCount(), config.mutationBatchSizeBytes(), tableRef, getByteSizingFunction());
         runWrite(tableRef, new Function<DbWriteTable, Void>() {
             @Override
             public Void apply(DbWriteTable table) {
@@ -413,7 +355,7 @@ public class DbKvs extends AbstractKeyValueService {
     @Override
     public void putWithTimestamps(TableReference tableRef, final Multimap<Cell, Value> cellValues) throws KeyAlreadyExistsException {
         final Iterable<List<Entry<Cell, Value>>> batches = partitionByCountAndBytes(
-                cellValues.entries(), config.shared().mutationBatchCount(), config.shared().mutationBatchSizeBytes(), tableRef, getValueSizingFunction());
+                cellValues.entries(), config.mutationBatchCount(), config.mutationBatchSizeBytes(), tableRef, getValueSizingFunction());
         runWrite(tableRef, new Function<DbWriteTable, Void>() {
             @Override
             public Void apply(DbWriteTable table) {
@@ -472,7 +414,7 @@ public class DbKvs extends AbstractKeyValueService {
     public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(final TableReference tableRef,
                                                                                                            Iterable<RangeRequest> rangeRequests,
                                                                                                            final long timestamp) {
-        return new DbKvsGetRanges(this, dbTables.getDbType(), connections).getFirstBatchForRanges(tableRef, rangeRequests, timestamp);
+        return new DbKvsGetRanges(this, config, dbTables.getDbType(), connections).getFirstBatchForRanges(tableRef, rangeRequests, timestamp);
     }
 
     @Override
@@ -698,7 +640,7 @@ public class DbKvs extends AbstractKeyValueService {
             @Override
             public Set<TableReference> apply(SqlConnection conn) {
                 AgnosticResultSet results = conn.selectResultSetUnregisteredQuery(
-                        "SELECT table_name FROM " + config.shared().metadataTable().getQualifiedName());
+                        "SELECT table_name FROM " + config.metadataTable().getQualifiedName());
                 Set<TableReference> ret = Sets.newHashSetWithExpectedSize(results.size());
                 for (AgnosticResultRow row : results.rows()) {
                     ret.add(TableReference.createUnsafe(row.getString("table_name")));
@@ -736,7 +678,7 @@ public class DbKvs extends AbstractKeyValueService {
             @SuppressWarnings("deprecation")
             public Map<TableReference, byte[]> apply(SqlConnection conn) {
                 AgnosticResultSet results = conn.selectResultSetUnregisteredQuery(
-                        "SELECT table_name, value FROM " + config.shared().metadataTable().getQualifiedName());
+                        "SELECT table_name, value FROM " + config.metadataTable().getQualifiedName());
                 Map<TableReference, byte[]> ret = Maps.newHashMapWithExpectedSize(results.size());
                 for (AgnosticResultRow row : results.rows()) {
                     ret.put(TableReference.createUnsafe(row.getString("table_name")), row.getBytes("value"));
@@ -917,4 +859,5 @@ public class DbKvs extends AbstractKeyValueService {
         }
         return result.get();
     }
+
 }

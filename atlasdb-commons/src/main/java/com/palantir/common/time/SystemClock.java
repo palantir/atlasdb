@@ -22,12 +22,6 @@ package com.palantir.common.time;
  * @author jweel
  */
 public final class SystemClock implements Clock {
-    public static SystemClock create() {
-        return new SystemClock();
-    }
-
-    private SystemClock() {//
-    }
 
     @Override
     public long getTimeMillis() {

@@ -32,7 +32,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Queues;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
-import com.palantir.atlasdb.keyvalue.dbkvs.DbSharedConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.Throwables;
@@ -43,12 +43,12 @@ import com.palantir.nexus.db.sql.SqlConnection;
 public class BatchedDbReadTable extends AbstractDbReadTable {
     private static final Logger log = LoggerFactory.getLogger(BatchedDbReadTable.class);
     private final Executor exec;
-    private final DbSharedConfig config;
+    private final DdlConfig config;
 
     protected BatchedDbReadTable(ConnectionSupplier conns,
                                  DbQueryFactory queryFactory,
                                  Executor exec,
-                                 DbSharedConfig config) {
+                                 DdlConfig config) {
         super(conns, queryFactory);
         this.exec = exec;
         this.config = config;

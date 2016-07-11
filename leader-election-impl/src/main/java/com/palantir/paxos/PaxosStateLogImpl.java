@@ -220,7 +220,7 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
                 long fileSeq = getSeqFromFilename(file);
                 if (fileSeq <= toDeleteInclusive) {
                     if (file.delete()) {
-                        log.warn("failed to delete log file %s", file.getAbsolutePath());
+                        log.warn("failed to delete log file {}", file.getAbsolutePath());
                     }
                 } else {
                     break;

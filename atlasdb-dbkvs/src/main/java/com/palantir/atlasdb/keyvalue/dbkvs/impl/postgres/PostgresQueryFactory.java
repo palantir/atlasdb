@@ -25,16 +25,16 @@ import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
-import com.palantir.atlasdb.keyvalue.dbkvs.PostgresKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.PostgresDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbQueryFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.FullQuery;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowValue;
 
 public class PostgresQueryFactory implements DbQueryFactory {
     private final String tableName;
-    private final PostgresKeyValueServiceConfig config;
+    private final PostgresDdlConfig config;
 
-    public PostgresQueryFactory(String tableName, PostgresKeyValueServiceConfig config) {
+    public PostgresQueryFactory(String tableName, PostgresDdlConfig config) {
         this.tableName = tableName;
         this.config = config;
     }
@@ -303,6 +303,6 @@ public class PostgresQueryFactory implements DbQueryFactory {
     }
 
     private String prefixedTableName() {
-        return config.shared().tablePrefix() + tableName;
+        return config.tablePrefix() + tableName;
     }
 }
