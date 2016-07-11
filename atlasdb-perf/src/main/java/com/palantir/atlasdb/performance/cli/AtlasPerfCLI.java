@@ -66,9 +66,9 @@ public class AtlasPerfCLI {
     @Option(name = {"-l", "--list-tests"}, description = "Lists all available tests.")
     private boolean LIST_TESTS;
 
-    @Option(name = {"-o", "--output-dir"}, description = "The directory in which to store the test results. Leave " +
-                                                         "blank to only write results to console.")
-    private File OUT_DIR;
+    @Option(name = {"-o", "--output"}, description = "The file in which to store the test results. Leave  blank to only write results to " +
+                                                     "the console.")
+    private File OUTPUT_FILE;
 
     //================================================================================================================
     // MAIN & RUN METHODS
@@ -112,10 +112,10 @@ public class AtlasPerfCLI {
 
             test.tearDown();
 
-            if (OUT_DIR != null) {
+            if (OUTPUT_FILE != null) {
                 // Always store dates in UTC.
                 ZonedDateTime now = ZonedDateTime.now(ZoneOffset.UTC);
-                Path resultsFile = Paths.get(OUT_DIR.getPath(), "atlasdb-perf_results.txt");
+                Path resultsFile = OUTPUT_FILE.toPath();
                 Files.write(resultsFile,String.format("%s,%s,%s,%s\n", now, TEST_NAME, getTestVersion(test),
                         timer.elapsed(TimeUnit.MILLISECONDS)).getBytes(),StandardOpenOption.CREATE, StandardOpenOption.APPEND);
 
@@ -151,12 +151,6 @@ public class AtlasPerfCLI {
                 System.err.println("Invalid arguments: test '" + cli.TEST_NAME + "' does not exist.");
                 isValid = false;
             }
-        }
-
-        // Check if output directory exists.
-        if (cli.OUT_DIR != null && !cli.OUT_DIR.exists()) {
-            System.err.println(String.format("Invalid arguments: output directory '%s' does not exist.", cli.OUT_DIR));
-            isValid = false;
         }
 
         // Validate the supplied backend.
