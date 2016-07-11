@@ -27,7 +27,6 @@ import static org.mockito.Mockito.when;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class PersistentTimestampServiceTest {
@@ -35,7 +34,6 @@ public class PersistentTimestampServiceTest {
     private static final long INITIAL_TIMESTAMP = 12345L;
     private static final long TIMESTAMP = 100 * 1000;
     private static final TimestampRange SINGLE_TIMESTAMP_RANGE = TimestampRange.createInclusiveRange(TIMESTAMP, TIMESTAMP);
-    @Ignore // should be fixed as part of #496
 
     private static final TimestampRange RANGE = TimestampRange.createInclusiveRange(100, 200);
 
@@ -43,7 +41,6 @@ public class PersistentTimestampServiceTest {
     private ExecutorService executor = Executors.newSingleThreadExecutor();
     private PersistentTimestampService timestampService = new PersistentTimestampService(availableTimestamps, executor);
 
-    @Ignore // should be fixed as part of #496
     @Test
     public void
     shouldDelegateFastForwardingToAvailableTimestamps() {
