@@ -23,9 +23,6 @@ import javax.ws.rs.core.MediaType;
 
 @Path("/timestamp")
 public interface TimestampService {
-    @SuppressWarnings("unused") // Used in internal product
-    long getUpperLimitTimestampToHandOutInclusive();
-
     /**
      * This will get a fresh timestamp that is guaranteed to be newer than any other timestamp
      * handed out before this method was called.
