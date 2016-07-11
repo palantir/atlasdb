@@ -26,6 +26,22 @@ Changelog
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
+v0.10.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |changed|
+         - Updated HikariCP dependency from 2.4.3 to 2.4.7 to comply with updates in internal products.  Details of the HikariCP changes can be found `here <https://github.com/brettwooldridge/HikariCP/blob/dev/CHANGES>`__
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
 v0.9.0
 =======
 
