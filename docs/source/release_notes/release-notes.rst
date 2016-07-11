@@ -26,6 +26,23 @@ Changelog
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
+v0.10.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - A utility method was removed in the previous release, breaking an internal product that relied on it. This method has now been added back.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/661>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
 v0.9.0
 =======
 
