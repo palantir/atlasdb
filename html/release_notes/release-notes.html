@@ -165,7 +165,7 @@
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-breaking">BREAKING</span></td>
-<td><p class="first">Inserting an empty (size = 0) value into a <code class="docutils literal"><span class="pre">Cell</span></code> will now throw an <code class="docutils literal"><span class="pre">IllegalArgumentException</span></code>. (#156) Likely empty
+<td><p class="first">Inserting an empty (size = 0) value into a <code class="docutils literal"><span class="pre">Cell</span></code> will now throw an <code class="docutils literal"><span class="pre">IllegalArgumentException</span></code>. (<a class="reference external" href="https://github.com/palantir/atlasdb/issues/156">#156</a>)) Likely empty
 values include empty strings and empty protobufs.</p>
 <p>Atlas cannot currently distinguish between empty and deleted cells. In previous versions of Atlas, inserting
 an empty value into a <code class="docutils literal"><span class="pre">Cell</span></code> would delete that cell. Thus, in this snippet,</p>
@@ -183,12 +183,20 @@ entries have positive length. If the distinction is necessary, you will need to 
 two cases (for example, by introducing a sentinel value for empty cells).</p>
 <p>If any code deletes cells by calling <code class="docutils literal"><span class="pre">Transaction.put(...)</span></code> with an empty array, use
 <code class="docutils literal"><span class="pre">Transaction.delete(...)</span></code> instead.</p>
-<p class="last"><em>Note</em>: Existing cells with empty values will be interpreted as deleted cells, and will not lead to Exceptions when read.</p>
+<p class="last"><em>Note</em>: Existing cells with empty values will be interpreted as deleted cells, and will not lead to Exceptions when read.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/524">Pull Request</a>)</p>
 </td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>The warning emitted when an attempted leadership election fails is now more descriptive.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/630">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td><p class="first">Code generation for the <code class="docutils literal"><span class="pre">hashCode</span></code> of <code class="docutils literal"><span class="pre">*IdxColumn</span></code> classes now uses <code class="docutils literal"><span class="pre">deepHashCode</span></code> for its arrays such that it returns
+correct hash codes.</p>
+<p class="last"><em>Note</em>: you will need to regenerate your schema code in order to see this fix.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/600">Pull Request</a>)</p>
+</td>
 </tr>
 </tbody>
 </table>
