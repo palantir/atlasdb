@@ -12,7 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  */
+
 package com.palantir.atlasdb.performance.tests;
 
 import com.google.common.collect.ImmutableMap;
@@ -29,7 +31,7 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * The performance test performs 10,000 single put operations with a randomly generated key and value.
+ * The performance test performs 10,000 single put operations with a randomly generated keys and values.
  *
  * @author mwakerman
  */
