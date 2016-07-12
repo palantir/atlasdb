@@ -12,7 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  */
+
 package com.palantir.atlasdb.performance.cli;
 
 import java.io.File;
@@ -117,7 +119,7 @@ public class AtlasPerfCLI {
                 ZonedDateTime now = ZonedDateTime.now(ZoneOffset.UTC);
                 Path resultsFile = OUTPUT_FILE.toPath();
                 Files.write(resultsFile,String.format("%s,%s,%s,%s\n", now, TEST_NAME, getTestVersion(test),
-                        timer.elapsed(TimeUnit.MILLISECONDS)).getBytes(),StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+                        timer.elapsed(TimeUnit.MILLISECONDS)).getBytes(), StandardOpenOption.CREATE, StandardOpenOption.APPEND);
 
             }
         }
