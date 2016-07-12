@@ -955,8 +955,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     private void ensureNoEmptyValues(Map<Cell, byte[]> values) {
         for (Entry<Cell, byte[]> cellEntry : values.entrySet()) {
-            if (cellEntry.getValue().length == 0) {
-                throw new IllegalArgumentException("AtlasDB does not currently support inserting empty (zero-byte) values.");
+            if ((cellEntry.getValue() == null) || (cellEntry.getValue().length == 0)) {
+                throw new IllegalArgumentException("AtlasDB does not currently support inserting null or empty (zero-byte) values.");
             }
         }
     }
