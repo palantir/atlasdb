@@ -134,7 +134,7 @@ public class LeaderElectionModule {
     @Remote
     public Set<String> provideRemoteLeaders(LeaderConfig config) {
         return config.leaders().stream()
-                .filter(isEqual(config.localServer()).negate())
+                .filter(isEqual(config.localServer().get()).negate())
                 .collect(toSet());
     }
 

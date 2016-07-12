@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.factory;
 
-import java.util.ServiceLoader;
 import java.util.Set;
 
 import javax.net.ssl.SSLSocketFactory;
@@ -24,7 +23,6 @@ import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
@@ -35,14 +33,12 @@ import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.config.AtlasDbConfig;
-import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.NamespacedKeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
-import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.sweep.BackgroundSweeper;
 import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
@@ -71,7 +67,6 @@ public class TransactionManagers {
 
     private static final Logger log = LoggerFactory.getLogger(TransactionManagers.class);
 
-    private static final ServiceLoader<AtlasDbFactory> loader = ServiceLoader.load(AtlasDbFactory.class);
     public static final LockClient LOCK_CLIENT = LockClient.of("atlas instance");
 
     /**
@@ -202,51 +197,20 @@ public class TransactionManagers {
     }
 
     private static LockAndTimestampServices createRawServices(AtlasDbConfig config, Optional<SSLSocketFactory> sslSocketFactory, Environment env, Supplier<RemoteLockService> lock, Supplier<TimestampService> time) {
-        if (config.leader().isPresent()) {
-            LeaderElectionService leader = Leaders.create(sslSocketFactory, env, config.leader().get());
+        if (config.leader().isLeader()) {
+            LeaderElectionService leader = Leaders.create(sslSocketFactory, env, config.leader());
             env.register(AwaitingLeadershipProxy.newProxyInstance(RemoteLockService.class, lock, leader));
             env.register(AwaitingLeadershipProxy.newProxyInstance(TimestampService.class, time, leader));
-
-            warnIf(config.lock().isPresent(), "Ignoring lock server configuration because leadership election is enabled");
-            warnIf(config.timestamp().isPresent(), "Ignoring timestamp server configuration because leadership election is enabled");
-
-            return ImmutableLockAndTimestampServices.builder()
-                    .lock(createService(sslSocketFactory, config.leader().get().leaders(), RemoteLockService.class))
-                    .time(createService(sslSocketFactory, config.leader().get().leaders(), TimestampService.class))
-                    .build();
-        } else {
-            warnIf(config.lock().isPresent() != config.timestamp().isPresent(), "Using embedded instances for one (but not both) of lock and timestamp services");
-
-            return ImmutableLockAndTimestampServices.builder()
-                    .lock(config.lock().transform(new ServiceCreator<>(sslSocketFactory, RemoteLockService.class)).or(lock))
-                    .time(config.timestamp().transform(new ServiceCreator<>(sslSocketFactory, TimestampService.class)).or(time))
-                    .build();
         }
-    }
 
-    private static void warnIf(boolean arg, String warning) {
-        if (arg) {
-            log.warn(warning);
-        }
+        return ImmutableLockAndTimestampServices.builder()
+                .lock(createService(sslSocketFactory, config.leader().leaders(), RemoteLockService.class))
+                .time(createService(sslSocketFactory, config.leader().leaders(), TimestampService.class))
+                .build();
     }
 
     private static <T> T createService(Optional<SSLSocketFactory> sslSocketFactory, Set<String> uris, Class<T> serviceClass) {
         return AtlasDbHttpClients.createProxyWithFailover(sslSocketFactory, uris, serviceClass);
-    }
-
-    private static class ServiceCreator<T> implements Function<ServerListConfig, T> {
-        private Optional<SSLSocketFactory> sslSocketFactory;
-        private Class<T> serviceClass;
-
-        public ServiceCreator(Optional<SSLSocketFactory> sslSocketFactory, Class<T> serviceClass) {
-            this.sslSocketFactory = sslSocketFactory;
-            this.serviceClass = serviceClass;
-        }
-
-        @Override
-        public T apply(ServerListConfig input) {
-            return createService(sslSocketFactory, input.servers(), serviceClass);
-        }
     }
 
     @Value.Immutable

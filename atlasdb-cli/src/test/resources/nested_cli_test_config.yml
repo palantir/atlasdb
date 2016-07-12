@@ -11,6 +11,12 @@ config:
     atlasdb:
       keyValueService:
         type: memory
+      leader:
+        leaderCount: 1
+        localServer: localhost
+        leaders:
+          - localhost
+        isLeader: true
 
 otherConfig:
   - type: otherType

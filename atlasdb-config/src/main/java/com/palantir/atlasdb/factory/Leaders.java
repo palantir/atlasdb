@@ -58,7 +58,7 @@ public class Leaders {
         PaxosLearner ourLearner = PaxosLearnerImpl.newLearner(config.learnerLogDir().getPath());
 
         Set<String> remoteLeaderUris = Sets.newHashSet(config.leaders());
-        remoteLeaderUris.remove(config.localServer());
+        remoteLeaderUris.remove(config.localServer().get());
 
         List<PaxosLearner> learners =
                 AtlasDbHttpClients.createProxies(sslSocketFactory, remoteLeaderUris, PaxosLearner.class);

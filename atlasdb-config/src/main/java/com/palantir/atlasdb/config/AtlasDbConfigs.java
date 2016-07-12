@@ -22,6 +22,7 @@ import java.util.Iterator;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.google.common.base.Strings;
 
 import io.dropwizard.jackson.DiscoverableSubtypeResolver;
@@ -41,6 +42,7 @@ public final class AtlasDbConfigs {
     public static AtlasDbConfig load(File configFile, String configRoot) throws IOException {
         ObjectMapper configMapper = new ObjectMapper(new YAMLFactory());
         configMapper.setSubtypeResolver(new DiscoverableSubtypeResolver());
+        configMapper.registerModule(new GuavaModule());
         JsonNode rootNode = getConfigNode(configMapper, configFile, configRoot);
         return configMapper.treeToValue(rootNode, AtlasDbConfig.class);
     }
