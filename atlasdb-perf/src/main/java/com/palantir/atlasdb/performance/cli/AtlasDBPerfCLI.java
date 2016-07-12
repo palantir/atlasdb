@@ -20,7 +20,6 @@ package com.palantir.atlasdb.performance.cli;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
@@ -50,7 +49,7 @@ import io.airlift.airline.SingleCommand;
  * @author mwakerman, bullman
  */
 @Command(name = "atlasdb-perf", description = "The AtlasDB performance test CLI.")
-public class AtlasPerfCLI {
+public class AtlasDbPerfCLI {
 
     //================================================================================================================
     // CLI OPTIONS
@@ -77,7 +76,7 @@ public class AtlasPerfCLI {
     //================================================================================================================
 
     public static void main(String[] args) throws Exception {
-        AtlasPerfCLI cli = SingleCommand.singleCommand(AtlasPerfCLI.class).parse(args);
+        AtlasDbPerfCLI cli = SingleCommand.singleCommand(AtlasDbPerfCLI.class).parse(args);
         if (cli.helpOption.showHelpIfRequested()) return;
         if (hasValidArguments(cli)) {
             cli.run();
@@ -135,7 +134,7 @@ public class AtlasPerfCLI {
      * @param cli the CLI being validated.
      * @return {@code true} if the command line arguments are valid, otherwise {@code false}
      */
-    private static boolean hasValidArguments(AtlasPerfCLI cli) {
+    private static boolean hasValidArguments(AtlasDbPerfCLI cli) {
         boolean isValid = true;
 
         // Require both a test name and backend.
