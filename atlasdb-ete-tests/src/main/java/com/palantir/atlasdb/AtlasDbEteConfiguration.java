@@ -29,7 +29,7 @@ public class AtlasDbEteConfiguration extends Configuration implements AtlasDbCon
     }
 
     @Override
-    public AtlasDbConfig getAtlasConfig() {
+    public AtlasDbConfig getAtlasDbConfig() {
         return atlasdb;
     }
 }

@@ -80,7 +80,7 @@ public class AtlasDbConsoleCommand<T extends Configuration & AtlasDbConfiguratio
     @Override
     protected void run(Bootstrap<T> bootstrap, Namespace namespace, T configuration) throws Exception {
         AtlasDbConfig configurationWithoutLeader = ImmutableAtlasDbConfig.builder()
-                .from(configuration.getAtlasConfig())
+                .from(configuration.getAtlasDbConfig())
                 .leader(Optional.absent())
                 .build();
 
