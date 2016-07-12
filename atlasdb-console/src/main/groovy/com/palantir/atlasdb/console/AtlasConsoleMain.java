@@ -25,12 +25,14 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Option;
+import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.codehaus.groovy.control.CompilationFailedException;
 import org.codehaus.groovy.tools.shell.Main;
 
+import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.console.module.AtlasCoreModule;
 
 import groovy.lang.Binding;
@@ -47,25 +49,38 @@ public class AtlasConsoleMain {
     private static final String SCRIPT_FLAG_LONG = "script";
     private static final String EVAL_FLAG_SHORT = "e";
     private static final String EVAL_FLAG_LONG = "evaluate";
+    private static final String BIND_FLAG_SHORT = "b";
+    private static final String BIND_FLAG_LONG = "bind";
+
+    public static final Options OPTIONS = new Options()
+            .addOption(HELP_FLAG_SHORT, HELP_FLAG_LONG, false, "Prints help message.")
+            .addOption(SCRIPT_FLAG_SHORT, SCRIPT_FLAG_LONG, false, "Path to .groovy file to execute as non-interactive application")
+            .addOption(EVAL_FLAG_SHORT, EVAL_FLAG_LONG, true, "Groovy code to evaluate prior to startup in interactive mode")
+            .addOption(CLASSPATH_FLAG_SHORT, CLASSPATH_FLAG_LONG, true, "Additional locations to include on the classpath")
+            .addOption(OptionBuilder
+                    .withLongOpt(BIND_FLAG_LONG)
+                    .hasArgs(2)
+                    .withDescription("Additional bindings to include in the cli")
+                    .create(BIND_FLAG_SHORT));
+
+    private static String[] additionalBindingsToSetUp = new String[] {};
 
     protected AtlasConsoleMain() {
     }
 
     public void run(String[] args) {
-        Options options = setupOptions();
-
         try {
             CommandLineParser parser = new GnuParser();
-            CommandLine cli = parser.parse(options, args);
+            CommandLine cli = parser.parse(OPTIONS, args);
             if (cli.hasOption(HELP_FLAG_SHORT)) {
                 usage();
-                new HelpFormatter().printHelp("atlasDBConsole", options, true);
+                new HelpFormatter().printHelp("atlasDBConsole", OPTIONS, true);
                 System.exit(0); // (authorized)
             }
             System.exit(execute(cli));
         } catch (ParseException e) {
             System.out.println("Invalid command line - " + e.getMessage()); // (authorized)
-            new HelpFormatter().printHelp("atlasDBConsole", options, true);
+            new HelpFormatter().printHelp("atlasDBConsole", OPTIONS, true);
             System.exit(1); // (authorized)
         } catch (IOException e) {
             System.out.println("Invalid script file input - " + e.getMessage()); // (authorized)
@@ -82,9 +97,16 @@ public class AtlasConsoleMain {
                     ":set interpreterMode\n" +
                     ":set show-last-result false\n" +
                     getJavaCallbackString();
-            if(cli.hasOption(EVAL_FLAG_SHORT)) {
-                setupScript += "\n" + cli.getOptionValue(EVAL_FLAG_SHORT);
+
+            if(cli.hasOption(BIND_FLAG_SHORT)) {
+                additionalBindingsToSetUp = cli.getOptionValues(BIND_FLAG_SHORT);
+                Preconditions.checkArgument(additionalBindingsToSetUp.length % 2 == 0, "An odd amount of parameters were passed into --bind");
             }
+
+            if(cli.hasOption(EVAL_FLAG_SHORT)) {
+                setupScript += "\n" + Joiner.on('\n').join(cli.getOptionValues(EVAL_FLAG_SHORT));
+            }
+
             setupScript += "\n//AtlasConsole started!";
             List<String> args = new ArrayList<String>(Arrays.asList(cli.getArgs()));
             args.add(setupScript);
@@ -96,15 +118,6 @@ public class AtlasConsoleMain {
             Main.main(groovyArgs);
         }
         return 0;
-    }
-
-    protected Options setupOptions() {
-        Options options = new Options();
-        options.addOption(new Option(HELP_FLAG_SHORT, HELP_FLAG_LONG, false, "Prints help message."));
-        options.addOption(SCRIPT_FLAG_SHORT, SCRIPT_FLAG_LONG, false, "Path to .groovy file to execute as non-interactive application");
-        options.addOption(EVAL_FLAG_SHORT, EVAL_FLAG_LONG, true, "Groovy code to evaluate prior to startup in interactive mode");
-        options.addOption(CLASSPATH_FLAG_SHORT, CLASSPATH_FLAG_LONG, true, "Additional locations to include on the classpath");
-        return options;
     }
 
     protected void usage() {
@@ -136,6 +149,10 @@ public class AtlasConsoleMain {
     }
 
     private static Binding setupBinding(Binding binding) {
+        for(int i = 0; i < additionalBindingsToSetUp.length; i += 2) {
+            binding.setVariable(additionalBindingsToSetUp[i], additionalBindingsToSetUp[i + 1]);
+        }
+
         AtlasConsoleService atlasConsoleService = new DisconnectedAtlasConsoleService();
         AtlasConsoleServiceWrapper atlasConsoleServiceWrapper = AtlasConsoleServiceWrapper.init(atlasConsoleService);
         return AtlasConsoleBinder.create(binding, new AtlasCoreModule(atlasConsoleServiceWrapper));
@@ -154,5 +171,5 @@ public class AtlasConsoleMain {
         System.setSecurityManager(null);
         setupBinding(script.getBinding());
     }
-    
+
 }

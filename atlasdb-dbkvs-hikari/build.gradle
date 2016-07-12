@@ -7,5 +7,5 @@ dependencies {
   compile 'com.fasterxml.jackson.core:jackson-databind:' + libVersions.jackson
   compile 'com.codahale.metrics:metrics-core:3.0.2'
 
-  processor 'org.immutables:value:2.0.21'
+  processor 'org.immutables:value:' + libVersions.immutables
 }

@@ -13,23 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb;
+package com.palantir.atlasdb.dropwizard.commands;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.dropwizard.AtlasDbConfigurationProvider;
 
 import io.dropwizard.Configuration;
+import io.dropwizard.cli.ConfiguredCommand;
 
-public class AtlasDbEteConfiguration extends Configuration implements AtlasDbConfigurationProvider {
-    private final AtlasDbConfig atlasdb;
+public abstract class AtlasDbCommand<T extends Configuration & AtlasDbConfigurationProvider> extends ConfiguredCommand<T> {
+    private final Class<T> configurationClass;
 
-    public AtlasDbEteConfiguration(@JsonProperty("atlasdb") AtlasDbConfig atlasdb) {
-        this.atlasdb = atlasdb;
+    protected AtlasDbCommand(String name, String description, Class<T> configurationClass) {
+        super(name, description);
+
+        this.configurationClass = configurationClass;
     }
 
     @Override
-    public AtlasDbConfig getAtlasDbConfig() {
-        return atlasdb;
+    protected Class<T> getConfigurationClass() {
+        return configurationClass;
     }
 }

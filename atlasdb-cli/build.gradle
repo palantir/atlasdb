@@ -18,7 +18,7 @@ dependencies {
   testCompile project(':atlasdb-rocksdb')
 
   processor 'com.google.dagger:dagger-compiler:2.0.2'
-  processor 'org.immutables:value:2.0.21'
+  processor 'org.immutables:value:' + libVersions.immutables
 }
 
 configurations.matching({ it.name in ['compile', 'runtime'] }).all {

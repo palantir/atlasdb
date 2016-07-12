@@ -17,6 +17,7 @@ package com.palantir.atlasdb;
 
 import com.palantir.atlasdb.cas.CheckAndSetClient;
 import com.palantir.atlasdb.cas.SimpleCheckAndSetResource;
+import com.palantir.atlasdb.dropwizard.AtlasDbBundle;
 import com.palantir.atlasdb.todo.SimpleTodoResource;
 import com.palantir.atlasdb.todo.TodoClient;
 
@@ -34,14 +35,15 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
     @Override
     public void initialize(Bootstrap<AtlasDbEteConfiguration> bootstrap) {
         enableEnvironmentVariablesInConfig(bootstrap);
+        bootstrap.addBundle(new AtlasDbBundle<>());
     }
 
     @Override
     public void run(AtlasDbEteConfiguration config, final Environment environment) throws Exception {
-        TodoClient todoClient = new TodoClient(config.getAtlasConfig(), environment.jersey());
+        TodoClient todoClient = new TodoClient(config.getAtlasDbConfig(), environment.jersey());
         environment.jersey().register(new SimpleTodoResource(todoClient));
 
-        CheckAndSetClient checkAndSetClient = new CheckAndSetClient(config.getAtlasConfig(), environment.jersey());
+        CheckAndSetClient checkAndSetClient = new CheckAndSetClient(config.getAtlasDbConfig(), environment.jersey());
         environment.jersey().register(new SimpleCheckAndSetResource(checkAndSetClient));
     }
 
