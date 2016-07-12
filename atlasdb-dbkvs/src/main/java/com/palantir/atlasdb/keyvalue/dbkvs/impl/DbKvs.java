@@ -162,32 +162,12 @@ public class DbKvs extends AbstractKeyValueService {
                                     final Iterable<byte[]> rows,
                                     final ColumnSelection columnSelection,
                                     final long timestamp) {
-        return runRead(tableRef, new Function<DbReadTable, Map<Cell, Value>>() {
-            @Override
-            public Map<Cell, Value> apply(DbReadTable table) {
-                return extractResults(table, new Supplier<ClosableIterator<AgnosticLightResultRow>>() {
-                    @Override
-                    public ClosableIterator<AgnosticLightResultRow> get() {
-                        return table.getLatestRows(rows, columnSelection, timestamp, true);
-                    }
-                });
-            }
-        });
+        return runRead(tableRef, table -> extractResults(table, () -> table.getLatestRows(rows, columnSelection, timestamp, true)));
     }
 
     @Override
     public Map<Cell, Value> get(TableReference tableRef, final Map<Cell, Long> timestampByCell) {
-        return runRead(tableRef, new Function<DbReadTable, Map<Cell, Value>>() {
-            @Override
-            public Map<Cell, Value> apply(DbReadTable table) {
-                return extractResults(table, new Supplier<ClosableIterator<AgnosticLightResultRow>>() {
-                    @Override
-                    public ClosableIterator<AgnosticLightResultRow> get() {
-                        return table.getLatestCells(timestampByCell, true);
-                    }
-                });
-            }
-        });
+        return runRead(tableRef, table -> extractResults(table, () -> table.getLatestCells(timestampByCell, true)));
     }
 
     @SuppressWarnings("deprecation")
@@ -455,8 +435,7 @@ public class DbKvs extends AbstractKeyValueService {
         Comparator<byte[]> comp = UnsignedBytes.lexicographicalComparator();
         SortedSet<byte[]> rows = Sets.newTreeSet(comp);
         int maxRows = range.getBatchHint() == null ? 100 : (int) (1.1 * range.getBatchHint());
-        ClosableIterator<AgnosticLightResultRow> rangeResults = table.getRange(range, timestamp, maxRows);
-        try {
+        try (ClosableIterator<AgnosticLightResultRow> rangeResults = table.getRange(range, timestamp, maxRows)) {
             while (rows.size() < maxRows && rangeResults.hasNext()) {
                 byte[] rowName = rangeResults.next().getBytes("row_name");
                 if (rowName != null) {
@@ -466,8 +445,6 @@ public class DbKvs extends AbstractKeyValueService {
             if (rows.isEmpty()) {
                 return SimpleTokenBackedResultsPage.create(null, ImmutableList.<RowResult<Value>>of(), false);
             }
-        } finally {
-            rangeResults.close();
         }
         final ColumnSelection columns;
         if (!range.getColumnNames().isEmpty()) {
@@ -475,13 +452,7 @@ public class DbKvs extends AbstractKeyValueService {
         } else {
             columns = ColumnSelection.all();
         }
-        ClosableIterator<AgnosticLightResultRow> rowResults = table.getLatestRows(rows, columns, timestamp, true);
-        Map<Cell, Value> results = extractResults(table, new Supplier<ClosableIterator<AgnosticLightResultRow>>() {
-            @Override
-            public ClosableIterator<AgnosticLightResultRow> get() {
-                return table.getLatestRows(rows, columns, timestamp, true);
-            }
-        });
+        Map<Cell, Value> results = extractResults(table, () -> table.getLatestRows(rows, columns, timestamp, true));
         NavigableMap<byte[], SortedMap<byte[], Value>> cellsByRow = Cells.breakCellsUpByRow(results);
         if (range.isReverse()) {
             cellsByRow = cellsByRow.descendingMap();
