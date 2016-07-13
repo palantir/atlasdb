@@ -19,23 +19,25 @@ package com.palantir.atlasdb.performance.cli;
 
 import java.io.File;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.reflections.Reflections;
 
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.performance.api.ImmutablePerformanceTestResult;
 import com.palantir.atlasdb.performance.api.PerformanceTest;
 import com.palantir.atlasdb.performance.api.PerformanceTestMetadata;
+import com.palantir.atlasdb.performance.api.PerformanceTestResult;
+import com.palantir.atlasdb.performance.api.PerformanceTestUtils;
 import com.palantir.atlasdb.performance.backend.PhysicalStore;
 
 import io.airlift.airline.Command;
@@ -67,7 +69,7 @@ public class AtlasDbPerfCLI {
     @Option(name = {"-l", "--list-tests"}, description = "Lists all available tests.")
     private boolean LIST_TESTS;
 
-    @Option(name = {"-o", "--output"}, description = "The file in which to store the test results. Leave  blank to only write results to " +
+    @Option(name = {"-o", "--output"}, description = "The file in which to store the test results. Leave blank to only write results to " +
                                                      "the console.")
     private File OUTPUT_FILE;
 
@@ -78,6 +80,13 @@ public class AtlasDbPerfCLI {
     public static void main(String[] args) throws Exception {
         AtlasDbPerfCLI cli = SingleCommand.singleCommand(AtlasDbPerfCLI.class).parse(args);
         if (cli.helpOption.showHelpIfRequested()) return;
+
+        // If '--list-tests' is supplied, only print available tests.
+        if (cli.LIST_TESTS) {
+            listTests();
+            return;
+        }
+
         if (hasValidArguments(cli)) {
             cli.run();
         } else {
@@ -88,12 +97,6 @@ public class AtlasDbPerfCLI {
     }
 
     private void run() throws Exception {
-
-        // If '--list-tests' is supplied, only print available tests.
-        if (LIST_TESTS) {
-            listTests();
-            return;
-        }
 
         try (PhysicalStore physicalStore = PhysicalStore.create(PhysicalStore.Type.valueOf(BACKEND));
              KeyValueService kvs = physicalStore.connect()) {
@@ -108,18 +111,20 @@ public class AtlasDbPerfCLI {
             Stopwatch timer = Stopwatch.createStarted();
             test.run();
             timer.stop();
-            // For now, just print the test duration.
-            System.out.println(String.format("Test '%s': duration (millis): %d", TEST_NAME, timer.elapsed(TimeUnit.MILLISECONDS)));
-
             test.tearDown();
 
-            if (OUTPUT_FILE != null) {
-                // Always store dates in UTC.
-                ZonedDateTime now = ZonedDateTime.now(ZoneOffset.UTC);
-                Path resultsFile = OUTPUT_FILE.toPath();
-                Files.write(resultsFile,String.format("%s,%s,%s,%s\n", now, TEST_NAME, getTestVersion(test),
-                        timer.elapsed(TimeUnit.MILLISECONDS)).getBytes(), StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+            PerformanceTestResult result = ImmutablePerformanceTestResult.builder()
+                    .testName(TEST_NAME)
+                    .result(timer.elapsed(TimeUnit.MILLISECONDS))
+                    .testVersion(getTestVersion(test))
+                    .testTime(new DateTime().withZone(DateTimeZone.UTC)) // Always store times in UTC.
+                    .build();
 
+            System.out.println(result);
+
+            if (OUTPUT_FILE != null) {
+                Files.write(OUTPUT_FILE.toPath(), PerformanceTestUtils.toCsvLine(result).getBytes(),
+                        StandardOpenOption.CREATE, StandardOpenOption.APPEND);
             }
         }
     }
@@ -137,29 +142,28 @@ public class AtlasDbPerfCLI {
     private static boolean hasValidArguments(AtlasDbPerfCLI cli) {
         boolean isValid = true;
 
-        // Require both a test name and backend.
-        if (cli.TEST_NAME != null ^ cli.BACKEND != null) {
-            System.err.println("Invalid arguments: both a '--test' and a '--backend' argument are required.");
-            isValid = false;
-        }
-
-        // Ensure the supplied test exists.
-        if (cli.TEST_NAME != null) {
-            boolean testExists = getAllTests().stream().filter(clazz ->
-                    clazz.getAnnotation(PerformanceTestMetadata.class).name().equals(cli.TEST_NAME)).count() > 0;
-
-            if (!testExists) {
-                System.err.println("Invalid arguments: test '" + cli.TEST_NAME + "' does not exist.");
-                isValid = false;
-            }
-        }
-
-        // Validate the supplied backend.
+        // Backend must be present and valid.
         if (cli.BACKEND != null) {
             try {
                 PhysicalStore.Type.valueOf(cli.BACKEND);
             } catch (IllegalArgumentException e) {
                 System.err.println("Invalid arguments: backed '" + cli.BACKEND + "' does not exist.");
+                isValid = false;
+            }
+        }
+
+        // A test '-t' must be present.
+        if (cli.TEST_NAME == null) {
+            System.err.println("Invalid arguments: must specify a test to run.");
+            isValid = false;
+        }
+
+        // Ensure the supplied test exists.
+        if (cli.TEST_NAME != null) {
+            try {
+                getPerformanceTest(cli.TEST_NAME);
+            } catch (Exception e) {
+                System.err.println("Invalid arguments: test '" + cli.TEST_NAME + "' does not exist.");
                 isValid = false;
             }
         }
@@ -170,7 +174,7 @@ public class AtlasDbPerfCLI {
     /**
      * Prints all available performance tests (one per line).
      */
-    private void listTests() {
+    private static void listTests() {
         getAllTests().forEach(testClass ->
                 System.out.println(testClass.getAnnotation(PerformanceTestMetadata.class).name()));
     }
