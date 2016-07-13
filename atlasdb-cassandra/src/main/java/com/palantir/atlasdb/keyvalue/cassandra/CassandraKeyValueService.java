@@ -181,6 +181,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             if (InetAddress.getLocalHost().getHostName().equals(configManager.getConfig().lockLeader())) {
                 createLockTable();
             } else {
+                // TODO do we want this to happen all the time?
                 waitForLockTableToBeCreated();
             }
         } catch (Exception e) {
