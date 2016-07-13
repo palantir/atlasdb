@@ -3,8 +3,8 @@ apply plugin: "org.inferred.processors"
 apply from: "../gradle/shared.gradle"
 
 dependencies {
+  compile project(":atlasdb-api")
   compile project(":atlasdb-client")
-  compile project(":atlasdb-spi")
   compile project(":timestamp-impl")
 
   compile "io.dropwizard:dropwizard-jackson:" + libVersions.dropwizard
