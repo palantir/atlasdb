@@ -23,9 +23,9 @@ import java.util.stream.Stream;
 
 public class RandomByteBufferGenerator {
 
-    private int streamLength;
-    private int byteArraySize;
-    private Random rand;
+    private final int streamLength;
+    private final int byteArraySize;
+    private final Random rand;
 
     private RandomByteBufferGenerator(Builder b) {
         this.rand = new Random(b.SEED);
