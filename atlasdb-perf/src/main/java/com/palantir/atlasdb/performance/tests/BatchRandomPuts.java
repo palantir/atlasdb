@@ -17,17 +17,15 @@
 
 package com.palantir.atlasdb.performance.tests;
 
-import java.nio.ByteBuffer;
-import java.util.UUID;
-import java.util.stream.Collectors;
+import java.util.Map;
+import java.util.Random;
 
+import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.performance.api.PerformanceTest;
 import com.palantir.atlasdb.performance.api.PerformanceTestMetadata;
-import com.palantir.atlasdb.performance.generators.RandomByteBufferGenerator;
-import com.palantir.atlasdb.table.description.ValueType;
 
 /**
  * This performance test performs 150 (= 300000 key-values / 2000 batch size) batch puts each of 2000 key-values.
@@ -41,11 +39,11 @@ public class BatchRandomPuts implements PerformanceTest {
 
     // Constants.
     static private final int NUMBER_OF_ENTRIES = 300000;
-    static private final int BYTE_ARRAY_SIZE = 100;
     static private final int BATCH_SIZE = 2000;
-    static private final int RUNS = NUMBER_OF_ENTRIES / BATCH_SIZE;
+    static private final int BYTE_ARRAY_SIZE = 100;
 
-    static private final long VALUE_SEED = 2456L;
+    static private final long SEED = 2456L;
+    static private final Random rand = new Random(SEED);
 
     static private final String TABLE_NAME = "performance.table";
     static private final String ROW_COMPONENT = "key";
@@ -55,12 +53,19 @@ public class BatchRandomPuts implements PerformanceTest {
     // Setup.
     private KeyValueService kvs;
     private TableReference tableRef;
-    private RandomByteBufferGenerator gen;
 
     @Override
     public void run() {
-        for (int i = 0; i < RUNS; i++) {
-            kvs.put(tableRef, gen.stream().limit(BATCH_SIZE).collect(Collectors.toMap(z -> createKey(), ByteBuffer::array)), 1);
+        for (int i=0; i<NUMBER_OF_ENTRIES/BATCH_SIZE; i++) {
+            Map<Cell, byte[]> map = Maps.newHashMap();
+            for (int j=0; j<BATCH_SIZE; j++) {
+                byte[] key = new byte[32];
+                byte[] value = new byte[BYTE_ARRAY_SIZE];
+                rand.nextBytes(key);
+                rand.nextBytes(value);
+                map.put(Cell.create(key, COLUMN_NAME_IN_BYTES), value);
+            }
+            kvs.put(tableRef, map, 1);
         }
     }
 
@@ -68,11 +73,6 @@ public class BatchRandomPuts implements PerformanceTest {
     public void setup(KeyValueService kvs) {
         this.kvs = kvs;
         this.tableRef = TestUtils.createTable(kvs, TABLE_NAME, ROW_COMPONENT, COLUMN_NAME);
-        this.gen = RandomByteBufferGenerator.builder()
-                .length(NUMBER_OF_ENTRIES)
-                .withSeed(VALUE_SEED)
-                .withByteArraySize(BYTE_ARRAY_SIZE)
-                .build();
     }
 
     @Override
@@ -80,7 +80,4 @@ public class BatchRandomPuts implements PerformanceTest {
         kvs.dropTable(tableRef);
     }
 
-    private Cell createKey() {
-        return Cell.create(ValueType.STRING.convertFromString(UUID.randomUUID().toString()), COLUMN_NAME_IN_BYTES);
-    }
 }
