@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
@@ -166,12 +167,25 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     protected void init() {
         clientPool.runOneTimeStartupChecks();
-        createLockTable();
+        ensureLockTableIsCreated();
         supportsCAS = clientPool.runWithRetry(CassandraVerifier.underlyingCassandraClusterSupportsCASOperations);
         createTable(AtlasDbConstants.METADATA_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA);
         lowerConsistencyWhenSafe();
         upgradeFromOlderInternalSchema();
         CassandraKeyValueServices.failQuickInInitializationIfClusterAlreadyInInconsistentState(clientPool, configManager.getConfig());
+    }
+
+    private void ensureLockTableIsCreated() {
+        try {
+            // TODO instead of localHost.getHostname, use the hostname from LeaderConfig.
+            if (InetAddress.getLocalHost().getHostName().equals(configManager.getConfig().lockLeader())) {
+                createLockTable();
+            } else {
+                waitForLockTableToBeCreated();
+            }
+        } catch (Exception e) {
+            throw Throwables.throwUncheckedException(e);
+        }
     }
 
     private void createLockTable() {
@@ -186,6 +200,23 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         createTableInternal(client, CassandraConstants.LOCK_TABLE);
         return null;
     };
+
+    private void waitForLockTableToBeCreated() throws InterruptedException {
+        while (!lockTableExists()) {
+            Thread.sleep(1000);
+        }
+    }
+
+    private boolean lockTableExists() {
+        try {
+            return clientPool.run(doesLockTableExist);
+        } catch (Exception e) {
+            throw Throwables.throwUncheckedException(e);
+        }
+    }
+
+    final FunctionCheckedException<Cassandra.Client, Boolean, Exception> doesLockTableExist = client
+            -> tableAlreadyExists(client, internalTableName(CassandraConstants.LOCK_TABLE));
 
     // for tables internal / implementation specific to this KVS; these also don't get metadata in metadata table, nor do they show up in getTablenames, nor does this use concurrency control
     private void createTableInternal(Cassandra.Client client, TableReference tableRef) throws TException {
