@@ -19,7 +19,6 @@ package com.palantir.atlasdb.performance.tests;
 
 import java.util.Map;
 import java.util.Random;
-import java.util.UUID;
 
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -27,7 +26,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.performance.api.PerformanceTest;
 import com.palantir.atlasdb.performance.api.PerformanceTestMetadata;
-import com.palantir.atlasdb.table.description.ValueType;
 
 /**
  * The performance test performs 10,000 single put operations with a randomly generated keys and values.
@@ -56,9 +54,11 @@ public class SingleRandomPuts implements PerformanceTest {
     @Override
     public void run() {
         for (int i=0; i<NUMBER_OF_PUTS; i++) {
+            byte[] key = new byte[32];
             byte[] value = new byte[BYTE_ARRAY_SIZE];
             RAND.nextBytes(value);
-            Map<Cell, byte[]> map = ImmutableMap.of(Cell.create(ValueType.STRING.convertFromString(UUID.randomUUID().toString()), COLUMN_NAME_IN_BYTES), value);
+            RAND.nextBytes(key);
+            Map<Cell, byte[]> map = ImmutableMap.of(Cell.create(key, COLUMN_NAME_IN_BYTES), value);
             kvs.put(tableRef, map, 1);
         }
     }
