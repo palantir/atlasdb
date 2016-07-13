@@ -1,12 +1,17 @@
+apply plugin: 'org.inferred.processors'
+
 apply from: "../gradle/shared.gradle"
 
 dependencies {
   compile(project(":atlasdb-commons"))
-  compile(project(":atlasdb-config"))
   compile(project(":timestamp-api"))
   compile 'javax.ws.rs:javax.ws.rs-api:2.0.1'
   compile 'org.apache.commons:commons-lang3:3.1'
   compile 'com.fasterxml.jackson.core:jackson-annotations:' + libVersions.jackson_annotation
+
+  processor 'org.immutables:value:2.0.21'
+  compile 'com.fasterxml.jackson.core:jackson-databind:' + libVersions.jackson
+  compile 'javax.validation:validation-api:1.1.0.Final'
 }
 
 task versionInfo << {

@@ -19,6 +19,7 @@ import com.google.auto.service.AutoService;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SimpleKvsTimestampBoundStore;
 import com.palantir.atlasdb.keyvalue.rocksdb.impl.ImmutableWriteOpts;
@@ -38,7 +39,7 @@ public class RocksDbAtlasDbFactory implements AtlasDbFactory {
     }
 
     @Override
-    public RocksDbKeyValueService createRawKeyValueService(KeyValueServiceConfig config) {
+    public RocksDbKeyValueService createRawKeyValueService(KeyValueServiceConfig config, LeaderConfig leaderConfig) {
         AtlasDbVersion.ensureVersionReported();
         Preconditions.checkArgument(config instanceof RocksDbKeyValueServiceConfig,
                 "RocksDbAtlasDbFactory expects a configuration of type RocksDbKeyValueServiceConfig, found %s", config.getClass());

@@ -50,8 +50,8 @@ public class RocksDbUpgrader {
         }
 
         RocksDbAtlasDbFactory factory = new RocksDbAtlasDbFactory();
-        RocksDbKeyValueService oldKvs = factory.createRawKeyValueService(oldConfig);
-        RocksDbKeyValueService newKvs = factory.createRawKeyValueService(newConfig);
+        RocksDbKeyValueService oldKvs = factory.createRawKeyValueService(oldConfig, null);
+        RocksDbKeyValueService newKvs = factory.createRawKeyValueService(newConfig, null);
 
         for (TableReference table : oldKvs.getAllTableNames()) {
             newKvs.createTable(table, AtlasDbConstants.EMPTY_TABLE_METADATA);

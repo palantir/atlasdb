@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.spi;
 
+import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.timestamp.TimestampService;
 
