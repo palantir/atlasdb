@@ -220,7 +220,10 @@ public class TableRemappingKeyValueService extends ForwardingObject implements
 
     @Override
     public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows, ColumnRangeSelection columnRangeSelection, long timestamp) {
-        return delegate().getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp);
+        return delegate().getRowsColumnRange(tableMapper.getMappedTableName(tableRef),
+                rows,
+                columnRangeSelection,
+                timestamp);
     }
 
     @Override
