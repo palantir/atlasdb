@@ -26,6 +26,22 @@ Changelog
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
+v0.10.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |changed|
+         - Updated HikariCP dependency from 2.4.3 to 2.4.7 to comply with updates in internal products.  Details of the HikariCP changes can be found `here <https://github.com/brettwooldridge/HikariCP/blob/dev/CHANGES>`__
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
 v0.9.0
 =======
 
@@ -71,9 +87,11 @@ v0.9.0
 
     *    - |fixed|
          - Code generation for the ``hashCode`` of ``*IdxColumn`` classes now uses ``deepHashCode`` for its arrays such that it returns
-           correct hash codes.
+           consistent hash codes for use with hash-based collections (HashMap, HashSet, HashTable). 
+           This issue will only appear if you are instantiating columns in multiple places and storing columns in hash collections.
 
-           *Note*: If you are using `Indices <https://palantir.github.io/atlasdb/html/schemas/tables_and_indices.html#indices>`__ we recommend you upgrade.  You will need to regenerate your schema code in order to see this fix.
+           If you are using `Indices <https://palantir.github.io/atlasdb/html/schemas/tables_and_indices.html#indices>`__ we recommend you upgrade as a precaution and ensure you are not relying on logic related to the ``hashCode`` of auto-generated ``*IdxColumn`` classes.
+           You will need to regenerate your schema code in order to see this fix.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/600>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>

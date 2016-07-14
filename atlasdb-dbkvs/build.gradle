@@ -12,6 +12,6 @@ dependencies {
 
   testCompile project(':atlasdb-config')
 
-  processor 'org.immutables:value:2.0.21'
+  processor 'org.immutables:value:' + libVersions.immutables
   processor "com.google.auto.service:auto-service:1.0-rc2"
 }

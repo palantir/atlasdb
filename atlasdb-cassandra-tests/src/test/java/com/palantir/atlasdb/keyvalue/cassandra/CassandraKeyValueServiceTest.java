@@ -19,6 +19,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.util.Set;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.base.Preconditions;
@@ -26,15 +27,38 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.AbstractAtlasDbKeyValueServiceTest;
 
-public class CassandraKeyValueServiceTest {
+public class CassandraKeyValueServiceTest extends AbstractAtlasDbKeyValueServiceTest {
 
     private KeyValueService keyValueService;
 
     @Before
     public void setupKVS() {
-        keyValueService = CassandraKeyValueService.create(
+        keyValueService = getKeyValueService();
+    }
+
+    @Override
+    protected KeyValueService getKeyValueService() {
+        return CassandraKeyValueService.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.CASSANDRA_KVS_CONFIG), CassandraTestSuite.LEADER_CONFIG);
+    }
+
+    @Override
+    protected boolean reverseRangesSupported() {
+        return false;
+    }
+
+    @Override
+    @Ignore
+    public void testGetRangeWithHistory() {
+        //
+    }
+
+    @Override
+    @Ignore
+    public void testGetAllTableNames() {
+        //
     }
 
     @Test

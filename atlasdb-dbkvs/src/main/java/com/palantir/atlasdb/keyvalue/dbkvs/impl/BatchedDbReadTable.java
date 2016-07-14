@@ -29,8 +29,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Queues;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
 import com.palantir.common.base.ClosableIterator;
@@ -138,6 +140,16 @@ public class BatchedDbReadTable extends AbstractDbReadTable {
         Queue<Future<ClosableIterator<AgnosticLightResultRow>>> futures = Queues.newArrayDeque();
         for (final List<Entry<Cell, Long>> batch : Iterables.partition(cells.entrySet(), getBatchSize())) {
             futures.add(submit(exec, queryFactory.getAllCellsQuery(batch, includeValue)));
+        }
+        return new LazyClosableIterator<AgnosticLightResultRow>(futures);
+    }
+
+    @Override
+    public ClosableIterator<AgnosticLightResultRow> getRowsColumnRange(List<byte[]> rows, long ts,
+                                                                       ColumnRangeSelection columnRangeSelection) {
+        Queue<Future<ClosableIterator<AgnosticLightResultRow>>> futures = Queues.newArrayDeque();
+        for (final List<byte[]> batch : Lists.partition(rows, getBatchSize())) {
+            futures.add(submit(exec, queryFactory.getRowsColumnRangeQuery(batch, ts, columnRangeSelection)));
         }
         return new LazyClosableIterator<AgnosticLightResultRow>(futures);
     }

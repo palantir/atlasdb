@@ -19,6 +19,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -62,17 +63,20 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
+import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbPerformanceConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
+import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
@@ -339,6 +343,59 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
         validateExternalAndCommitLocksIfNecessary(tableRef);
         return results;
+    }
+
+    @Override
+    public Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> getRowsColumnRange(TableReference tableRef,
+                                                                                                Iterable<byte[]> rows,
+                                                                                                ColumnRangeSelection columnRangeSelection) {
+        if (Iterables.isEmpty(rows)) {
+            return ImmutableMap.of();
+        }
+        Map<byte[], RowColumnRangeIterator> rawResults = keyValueService.getRowsColumnRange(tableRef, rows,
+                columnRangeSelection, getStartTimestamp());
+        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> postfilteredResults = Maps.newHashMapWithExpectedSize(rawResults.size());
+        for (Entry<byte[], RowColumnRangeIterator> e : rawResults.entrySet()) {
+            byte[] row = e.getKey();
+            RowColumnRangeIterator rawIterator = e.getValue();
+            Iterator<Map.Entry<Cell, byte[]>> postfilterIterator = getRowColumnRangePostfiltered(tableRef, row, columnRangeSelection, rawIterator);
+            SortedMap<Cell, byte[]> localWrites = getLocalWritesForColumnRange(tableRef, columnRangeSelection, row);
+            Iterator<Map.Entry<Cell, byte[]>> localIterator = localWrites.entrySet().iterator();
+            Iterator<Map.Entry<Cell, byte[]>> mergedIterator = IteratorUtils.mergeIterators(localIterator,
+                    postfilterIterator,
+                    Ordering.from(UnsignedBytes.lexicographicalComparator()).onResultOf(entry -> entry.getKey().getColumnName()),
+                    from -> from.getLhSide());
+            // Filter empty columns.
+            Iterator<Map.Entry<Cell, byte[]>> filteredIterator = Iterators.filter(mergedIterator, entry -> entry.getValue().length > 0);
+            postfilteredResults.put(row, BatchingVisitableFromIterable.create(filteredIterator));
+        }
+        return postfilteredResults;
+    }
+
+    private Iterator<Map.Entry<Cell, byte[]>> getRowColumnRangePostfiltered(TableReference tableRef, byte[] row, ColumnRangeSelection columnRangeSelection,
+                                                                           RowColumnRangeIterator rawIterator) {
+        ColumnRangeBatchProvider batchProvider = new ColumnRangeBatchProvider(keyValueService, tableRef, row, columnRangeSelection, getStartTimestamp());
+        BatchSizeIncreasingIterator<Map.Entry<Cell, Value>> batchIterator =
+                new BatchSizeIncreasingIterator<>(batchProvider, columnRangeSelection.getBatchHint(), ClosableIterators.wrap(rawIterator));
+        Iterator<Iterator<Map.Entry<Cell, byte[]>>> postfilteredBatches = new AbstractIterator<Iterator<Map.Entry<Cell, byte[]>>>() {
+            @Override
+            protected Iterator<Map.Entry<Cell, byte[]>> computeNext() {
+                ImmutableMap.Builder<Cell, Value> rawBuilder = ImmutableMap.builder();
+                List<Map.Entry<Cell, Value>> batch = batchIterator.getBatch();
+                for (Map.Entry<Cell, Value> result : batch) {
+                    rawBuilder.put(result);
+                }
+                Map<Cell, Value> raw = rawBuilder.build();
+                if (raw.isEmpty()) {
+                    return endOfData();
+                }
+                Map<Cell, byte[]> post = new LinkedHashMap<Cell, byte[]>();
+                getWithPostfiltering(tableRef, raw, post, Value.GET_VALUE);
+                batchIterator.markNumResultsNotDeleted(post.keySet().size());
+                return post.entrySet().iterator();
+            }
+        };
+        return Iterators.concat(postfilteredBatches);
     }
 
     @Override
@@ -646,7 +703,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                                                     RangeRequest range,
                                                                     int preFilterBatchSize,
                                                                     final Function<Value, T> transformer) {
-        final BatchSizeIncreasingRangeIterator results = new BatchSizeIncreasingRangeIterator(tableRef, range, preFilterBatchSize);
+        RowRangeBatchProvider batchProvider = new RowRangeBatchProvider(keyValueService, tableRef, range, getStartTimestamp());
+        final BatchSizeIncreasingIterator<RowResult<Value>> results = new BatchSizeIncreasingIterator(batchProvider, preFilterBatchSize, null);
         Iterator<Iterator<RowResult<T>>> batchedPostfiltered = new AbstractIterator<Iterator<RowResult<T>>>() {
             @Override
             protected Iterator<RowResult<T>> computeNext() {
@@ -655,7 +713,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     return endOfData();
                 }
                 SortedMap<Cell, T> postFilter = postFilterRows(tableRef, batch, transformer);
-                results.markNumRowsNotDeleted(Cells.getRows(postFilter.keySet()).size());
+                results.markNumResultsNotDeleted(Cells.getRows(postFilter.keySet()).size());
                 return Cells.createRowView(postFilter.entrySet());
             }
         };
@@ -674,97 +732,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 }
             }
         };
-    }
-
-    private class BatchSizeIncreasingRangeIterator {
-        final TableReference tableRef;
-        final RangeRequest range;
-        final int originalBatchSize;
-
-        long numReturned = 0;
-        long numNotDeleted = 0;
-
-        ClosableIterator<RowResult<Value>> results = null;
-        int lastBatchSize;
-        byte[] lastRow = null;
-
-        public BatchSizeIncreasingRangeIterator(TableReference tableRef,
-                                                RangeRequest range,
-                                                int originalBatchSize) {
-            Validate.isTrue(originalBatchSize > 0);
-            this.tableRef = tableRef;
-            this.range = range;
-            this.originalBatchSize = originalBatchSize;
-        }
-
-        public void markNumRowsNotDeleted(int rowsInBatch) {
-            numNotDeleted += rowsInBatch;
-            AssertUtils.assertAndLog(numNotDeleted <= numReturned, "NotDeleted is bigger than the number of rows we returned.");
-        }
-
-        int getBestBatchSize() {
-            if (numReturned == 0) {
-                return originalBatchSize;
-            }
-            final long batchSize;
-            if (numNotDeleted == 0) {
-                // If everything we've seen has been deleted, we should be aggressive about getting more rows.
-                batchSize = numReturned*4;
-            } else {
-                batchSize = (long)Math.ceil(originalBatchSize * (numReturned / (double)numNotDeleted));
-            }
-            return (int)Math.min(batchSize, AtlasDbPerformanceConstants.MAX_BATCH_SIZE);
-        }
-
-        private void updateResultsIfNeeded() {
-            if (results == null) {
-                results = keyValueService.getRange(tableRef, range.withBatchHint(originalBatchSize), getStartTimestamp());
-                lastBatchSize = originalBatchSize;
-                return;
-            }
-
-            Validate.isTrue(lastRow != null);
-
-            // If the last row we got was the maximal row, then we are done.
-            if (RangeRequests.isTerminalRow(range.isReverse(), lastRow)) {
-                results = ClosableIterators.wrap(ImmutableList.<RowResult<Value>>of().iterator());
-                return;
-            }
-
-            int bestBatchSize = getBestBatchSize();
-            // Only close and throw away our old iterator if the batch size has changed by a factor of 2 or more.
-            if (bestBatchSize >= lastBatchSize*2 || bestBatchSize <= lastBatchSize/2) {
-                byte[] nextStartRow = RangeRequests.getNextStartRow(range.isReverse(), lastRow);
-                if (Arrays.equals(nextStartRow, range.getEndExclusive())) {
-                    results = ClosableIterators.wrap(ImmutableList.<RowResult<Value>>of().iterator());
-                    return;
-                }
-                RangeRequest.Builder newRange = range.getBuilder();
-                newRange.startRowInclusive(nextStartRow);
-                newRange.batchHint(bestBatchSize);
-                results.close();
-                results = keyValueService.getRange(tableRef, newRange.build(), getStartTimestamp());
-                lastBatchSize = bestBatchSize;
-            }
-        }
-
-        public List<RowResult<Value>> getBatch() {
-            updateResultsIfNeeded();
-            Validate.isTrue(lastBatchSize > 0);
-            ImmutableList<RowResult<Value>> list = ImmutableList.copyOf(Iterators.limit(results, lastBatchSize));
-            numReturned += list.size();
-            if (!list.isEmpty()) {
-                lastRow = list.get(list.size()-1).getRowName();
-            }
-            return list;
-        }
-
-        public void close() {
-            if (results != null) {
-                results.close();
-            }
-        }
-
     }
 
     private ConcurrentNavigableMap<Cell, byte[]> getLocalWrites(TableReference tableRef) {
@@ -790,6 +757,28 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (endRow.length != 0) {
             writes = writes.headMap(Cells.createSmallestCellForRow(endRow));
         }
+        return writes;
+    }
+
+    private SortedMap<Cell, byte[]> getLocalWritesForColumnRange(TableReference tableRef, ColumnRangeSelection columnRangeSelection, byte[] row) {
+        SortedMap<Cell, byte[]> writes = getLocalWrites(tableRef);
+        Cell startCell;
+        if (columnRangeSelection.getStartCol().length != 0) {
+            startCell = Cell.create(row, columnRangeSelection.getStartCol());
+        } else {
+            startCell = Cells.createSmallestCellForRow(row);
+        }
+        writes = writes.tailMap(startCell);
+        if (RangeRequests.isLastRowName(row)) {
+            return writes;
+        }
+        Cell endCell;
+        if (columnRangeSelection.getEndCol().length != 0) {
+            endCell = Cell.create(row, columnRangeSelection.getEndCol());
+        } else {
+            endCell = Cells.createSmallestCellForRow(RangeRequests.nextLexicographicName(row));
+        }
+        writes = writes.headMap(endCell);
         return writes;
     }
 
@@ -955,8 +944,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     private void ensureNoEmptyValues(Map<Cell, byte[]> values) {
         for (Entry<Cell, byte[]> cellEntry : values.entrySet()) {
-            if (cellEntry.getValue().length == 0) {
-                throw new IllegalArgumentException("AtlasDB does not currently support inserting empty (zero-byte) values.");
+            if ((cellEntry.getValue() == null) || (cellEntry.getValue().length == 0)) {
+                throw new IllegalArgumentException("AtlasDB does not currently support inserting null or empty (zero-byte) values.");
             }
         }
     }

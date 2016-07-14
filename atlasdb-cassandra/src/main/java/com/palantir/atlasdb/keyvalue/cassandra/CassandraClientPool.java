@@ -384,11 +384,12 @@ public class CassandraClientPool {
 
     public <V, K extends Exception> V runWithRetryOnHost(InetSocketAddress specifiedHost, FunctionCheckedException<Cassandra.Client, V, K> f) throws K {
         int numTries = 0;
+        boolean shouldRetryOnDifferentHost = false;
         while (true) {
             CassandraClientPoolingContainer hostPool = currentPools.get(specifiedHost);
 
-            if (blacklistedHosts.containsKey(specifiedHost) || hostPool == null) {
-                log.warn("Randomly redirected a query intended for host {} because it was not currently a live member of the pool.", specifiedHost);
+            if (blacklistedHosts.containsKey(specifiedHost) || hostPool == null || shouldRetryOnDifferentHost) {
+                log.warn("Randomly redirected a query intended for host {}.", specifiedHost);
                 hostPool = getRandomGoodHost();
             }
 
@@ -397,6 +398,17 @@ public class CassandraClientPool {
             } catch (Exception e) {
                 numTries++;
                 this.<K>handleException(numTries, hostPool.getHost(), e);
+                if (isRetriableWithBackoffException(e)) {
+                    log.warn("Retrying with backoff a query intended for host {}.", hostPool.getHost(), e);
+                    try {
+                        Thread.sleep(numTries * 1000);
+                    } catch (InterruptedException i) {
+                        throw new RuntimeException(i);
+                    }
+                    if (numTries >= MAX_TRIES_SAME_HOST) {
+                        shouldRetryOnDifferentHost = true;
+                    }
+                }
             }
         }
     }
@@ -413,7 +425,7 @@ public class CassandraClientPool {
 
         @SuppressWarnings("unchecked")
     private <K extends Exception> void handleException(int numTries, InetSocketAddress host, Exception e) throws K {
-        if (isRetriableException(e)) {
+        if (isRetriableException(e) || isRetriableWithBackoffException(e)) {
             if (numTries >= MAX_TRIES_TOTAL) {
                 if (e instanceof TTransportException
                         && e.getCause() != null
@@ -500,8 +512,6 @@ public class CassandraClientPool {
         return t != null
                 && (t instanceof SocketTimeoutException
                 || t instanceof ClientCreationFailedException
-                || t instanceof UnavailableException
-                || t instanceof NoSuchElementException
                 || isConnectionException(t.getCause()));
     }
 
@@ -513,6 +523,14 @@ public class CassandraClientPool {
                 || t instanceof InsufficientConsistencyException
                 || isConnectionException(t)
                 || isRetriableException(t.getCause()));
+    }
+
+    @VisibleForTesting
+    static boolean isRetriableWithBackoffException(Throwable t) {
+        return t != null
+                && (t instanceof NoSuchElementException // pool for this node is fully in use
+                || t instanceof UnavailableException // remote cassandra node couldn't talk to enough other remote cassandra nodes to answer
+                || isRetriableWithBackoffException(t.getCause()));
     }
 
     final FunctionCheckedException<Cassandra.Client, Void, Exception> validatePartitioner = new FunctionCheckedException<Cassandra.Client, Void, Exception>() {
