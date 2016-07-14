@@ -26,6 +26,29 @@ Changelog
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
+v0.10.1-internal
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |breaking|
+         - Added paging through wide rows, which requires regenerating schema generated code.
+
+    *    - |fixed|
+         - The breaking change to throw when doing empty puts has been reverted and switched to a log message for internal testing.
+
+    *    - |fixed|
+         - A utility method was removed in the previous release, breaking an internal product that relied on it. This method has now been added back.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/661>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
 v0.10.0
 =======
 
