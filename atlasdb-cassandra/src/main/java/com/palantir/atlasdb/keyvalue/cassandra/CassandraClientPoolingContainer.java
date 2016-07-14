@@ -20,6 +20,7 @@ import java.net.InetSocketAddress;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.NoSuchElementException;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -175,6 +176,27 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
                 .toString();
     }
 
+    /**
+     * Pool size:
+     *    Always keep {@code config.poolSize()} (default 20) connections around, per host.
+     *    Allow bursting up to poolSize * 5 (default 100) connections per host under load.
+     *
+     * Borrowing from pool:
+     *    On borrow, check if the connection is actually open. If it is not,
+     *       immediately discard this connection from the pool, and try to take another.
+     *    Borrow attempts against a fully in-use pool immediately throw a NoSuchElementException.
+     *       {@code CassandraClientPool} when it sees this will:
+     *          Follow an exponential backoff as a method of back pressure.
+     *          Try 3 times against this host, and then give up and try against different hosts 3 additional times.
+     *
+     *
+     * In an asynchronous thread:
+     *    Every approximately 1 minute, examine approximately a third of the connections in pool.
+     *    Discard any connections in this third of the pool whose TCP connections are closed.
+     *    Discard any connections in this third of the pool that have been idle for more than 3 minutes,
+     *       while still keeping a minimum number of idle connections around for fast borrows.
+     *
+     */
     private GenericObjectPool<Client> createClientPool() {
         CassandraClientFactory cassandraClientFactory =
                 new CassandraClientFactory(host,
@@ -184,17 +206,24 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
                         config.socketTimeoutMillis(),
                         config.socketQueryTimeoutMillis());
         GenericObjectPoolConfig poolConfig = new GenericObjectPoolConfig();
+
         poolConfig.setMinIdle(config.poolSize());
-        poolConfig.setTestOnBorrow(true);
-        poolConfig.setBlockWhenExhausted(true);
-        // TODO: Should we make these configurable/are these intelligent values?
-        poolConfig.setMaxTotal(5 * config.poolSize());
         poolConfig.setMaxIdle(5 * config.poolSize());
-        poolConfig.setMinEvictableIdleTimeMillis(TimeUnit.MILLISECONDS.convert(1, TimeUnit.MINUTES));
-        poolConfig.setTimeBetweenEvictionRunsMillis(TimeUnit.MILLISECONDS.convert(1, TimeUnit.MINUTES));
-        poolConfig.setNumTestsPerEvictionRun(-1); // Test all idle objects for eviction
-        poolConfig.setJmxNamePrefix(host.getHostString());
+        poolConfig.setMaxTotal(5 * config.poolSize());
+
+        poolConfig.setBlockWhenExhausted(false); // immediately throw when we try and borrow from a full pool; dealt with at higher level
         poolConfig.setMaxWaitMillis(config.socketTimeoutMillis());
+
+        poolConfig.setTestOnBorrow(true); // this test is free/just checks a boolean and does not block; borrow is still fast
+
+        poolConfig.setMinEvictableIdleTimeMillis(TimeUnit.MILLISECONDS.convert(3, TimeUnit.MINUTES));
+        // the randomness here is to prevent all of the pools for all of the hosts evicting all at at once, which isn't great for C*.
+        poolConfig.setTimeBetweenEvictionRunsMillis(TimeUnit.MILLISECONDS.convert(60 + ThreadLocalRandom.current().nextInt(10), TimeUnit.SECONDS));
+        poolConfig.setNumTestsPerEvictionRun(-3); // test one third of objects per eviction run  // (Apache Commons Pool has the worst API)
+        poolConfig.setTestWhileIdle(true);
+
+        poolConfig.setJmxNamePrefix(host.getHostString());
+
         return new GenericObjectPool<Client>(cassandraClientFactory, poolConfig);
     }
 }

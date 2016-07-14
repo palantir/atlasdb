@@ -120,6 +120,7 @@ class AtlasCoreModule implements AtlasConsoleModule {
                 'pp': this.&pp,
                 'pptable': this.&pptable,
                 'connect': this.&connect,
+                'connectInline': this.&connectInline
         ]
     }
 
@@ -134,7 +135,14 @@ class AtlasCoreModule implements AtlasConsoleModule {
     }
 
     public connect(String yamlFilePath) {
-        AtlasDbConfig config = AtlasDbConfigs.load(new File(yamlFilePath));
+        setupConnection(AtlasDbConfigs.load(new File(yamlFilePath)));
+    }
+
+    public connectInline(String fileContents) {
+        setupConnection(AtlasDbConfigs.loadFromString(fileContents, null));
+    }
+
+    private setupConnection(AtlasDbConfig config) {
         SerializableTransactionManager tm = TransactionManagers.create(config, Optional.<SSLSocketFactory>absent(), ImmutableSet.<Schema>of(),
                 new com.palantir.atlasdb.factory.TransactionManagers.Environment() {
                     @Override

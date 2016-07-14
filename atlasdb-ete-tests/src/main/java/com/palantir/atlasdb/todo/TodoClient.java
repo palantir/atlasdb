@@ -21,33 +21,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-import javax.net.ssl.SSLSocketFactory;
-
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.config.AtlasDbConfig;
-import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.ValueType;
-import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.base.BatchingVisitable;
 
-import io.dropwizard.jersey.setup.JerseyEnvironment;
-
 public class TodoClient {
-    private static final boolean DONT_SHOW_HIDDEN_TABLES = false;
-    private static final Optional<SSLSocketFactory> NO_SSL = Optional.absent();
-
-    private final SerializableTransactionManager transactionManager;
+    private final TransactionManager transactionManager;
     private final Random random = new Random();
 
-    public TodoClient(AtlasDbConfig config, JerseyEnvironment environment) {
-        Schema schema = TodoSchema.getSchema();
-        transactionManager = TransactionManagers.create(config, NO_SSL, schema, environment::register, DONT_SHOW_HIDDEN_TABLES);
+    public TodoClient(TransactionManager transactionManager) {
+        this.transactionManager = transactionManager;
     }
 
     public void addTodo(Todo todo) {
