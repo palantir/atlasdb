@@ -180,9 +180,12 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     private void ensureLockTableIsCreated() {
         try {
-            if (leaderConfig.localServer().equals(configManager.getConfig().lockLeader())) {
+            String lockLeader = configManager.getConfig().lockLeader();
+            if (leaderConfig.localServer().equals(lockLeader)) {
+                log.info("Creating lock table because this is the lock leader: " + lockLeader);
                 createLockTable();
             } else {
+                log.info("Waiting for " + lockLeader + " to create lock table");
                 waitForLockTableToBeCreated();
             }
         } catch (Exception e) {
