@@ -82,6 +82,7 @@ import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
+import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -148,7 +149,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     private final ConsistencyLevel writeConsistency = ConsistencyLevel.EACH_QUORUM;
     private final ConsistencyLevel deleteConsistency = ConsistencyLevel.ALL;
 
-    public static CassandraKeyValueService create(CassandraKeyValueServiceConfigManager configManager) {
+    public static CassandraKeyValueService create(CassandraKeyValueServiceConfigManager configManager, LeaderConfig leaderConfig) {
         Optional<CassandraJmxCompactionManager> compactionManager = CassandraJmxCompaction.createJmxCompactionManager(configManager);
         CassandraKeyValueService ret = new CassandraKeyValueService(configManager, compactionManager);
         ret.init();

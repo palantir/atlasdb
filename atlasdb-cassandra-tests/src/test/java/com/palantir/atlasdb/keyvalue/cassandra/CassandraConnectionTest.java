@@ -23,9 +23,12 @@ import org.apache.cassandra.thrift.InvalidRequestException;
 import org.junit.Test;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.config.ImmutableLeaderConfig;
+import com.palantir.atlasdb.config.LeaderConfig;
 
 public class CassandraConnectionTest {
 
@@ -42,13 +45,20 @@ public class CassandraConnectionTest {
             .fetchBatchCount(1000)
             .safetyDisabled(false)
             .autoRefreshNodes(false)
+            .lockLeader("localhost")
             .build();
-            
-    
+
+    private static final LeaderConfig LEADER_CONFIG = ImmutableLeaderConfig
+            .builder()
+            .quorumSize(0)
+            .localServer("localhost")
+            .leaders(Sets.newHashSet("localhost"))
+            .build();
+
     @Test
     public void testAuthProvided() {
         CassandraKeyValueService kv = CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.CASSANDRA_KVS_CONFIG));
+                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.CASSANDRA_KVS_CONFIG), LEADER_CONFIG);
         kv.teardown();
         assert true; // getting here implies authentication succeeded
     }
@@ -57,7 +67,7 @@ public class CassandraConnectionTest {
     public void testAuthMissing() {
         try {
             CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(NO_CREDS_CKVS_CONFIG));
+                CassandraKeyValueServiceConfigManager.createSimpleManager(NO_CREDS_CKVS_CONFIG), LEADER_CONFIG);
             fail();
         } catch (RuntimeException e) {
             boolean threwIRE = false;

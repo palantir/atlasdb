@@ -63,7 +63,8 @@ public class CassandraClientPoolTest {
                                 .fetchBatchCount(1000)
                                 .safetyDisabled(true)
                                 .autoRefreshNodes(true)
-                                .build()));
+                                .build()),
+                CassandraTestSuite.LEADER_CONFIG);
         kv.initializeFromFreshInstance();
         kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
     }

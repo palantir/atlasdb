@@ -34,7 +34,7 @@ public class CassandraKeyValueServiceTest {
     @Before
     public void setupKVS() {
         keyValueService = CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.CASSANDRA_KVS_CONFIG));
+                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.CASSANDRA_KVS_CONFIG), CassandraTestSuite.LEADER_CONFIG);
     }
 
     @Test
