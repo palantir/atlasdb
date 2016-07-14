@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
@@ -142,6 +141,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     private final Optional<CassandraJmxCompactionManager> compactionManager;
     protected final CassandraClientPool clientPool;
     private final SchemaMutationLock schemaMutationLock;
+    private final LeaderConfig leaderConfig;
 
     protected boolean supportsCAS = false;
 
@@ -151,19 +151,21 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     public static CassandraKeyValueService create(CassandraKeyValueServiceConfigManager configManager, LeaderConfig leaderConfig) {
         Optional<CassandraJmxCompactionManager> compactionManager = CassandraJmxCompaction.createJmxCompactionManager(configManager);
-        CassandraKeyValueService ret = new CassandraKeyValueService(configManager, compactionManager);
+        CassandraKeyValueService ret = new CassandraKeyValueService(configManager, compactionManager, leaderConfig);
         ret.init();
         return ret;
     }
 
     protected CassandraKeyValueService(CassandraKeyValueServiceConfigManager configManager,
-                                       Optional<CassandraJmxCompactionManager> compactionManager) {
+                                       Optional<CassandraJmxCompactionManager> compactionManager,
+                                       LeaderConfig leaderConfig) {
         super(AbstractKeyValueService.createFixedThreadPool("Atlas Cassandra KVS",
                 configManager.getConfig().poolSize() * configManager.getConfig().servers().size()));
         this.configManager = configManager;
         this.clientPool = new CassandraClientPool(configManager.getConfig());
         this.compactionManager = compactionManager;
         this.schemaMutationLock = new SchemaMutationLock(supportsCAS, configManager, clientPool, writeConsistency);
+        this.leaderConfig = leaderConfig;
     }
 
     protected void init() {
@@ -178,11 +180,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     private void ensureLockTableIsCreated() {
         try {
-            // TODO instead of localHost.getHostname, use the hostname from LeaderConfig.
-            if (InetAddress.getLocalHost().getHostName().equals(configManager.getConfig().lockLeader())) {
+            if (leaderConfig.localServer().equals(configManager.getConfig().lockLeader())) {
                 createLockTable();
             } else {
-                // TODO do we want this to happen all the time?
                 waitForLockTableToBeCreated();
             }
         } catch (Exception e) {
