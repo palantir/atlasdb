@@ -27,6 +27,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import com.google.common.base.Optional;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
@@ -36,7 +37,7 @@ public class ServiceDiscoveringAtlasSupplierTest {
     private final KeyValueServiceConfig kvsConfig = () -> AutoServiceAnnotatedAtlasDbFactory.TYPE;
     private final KeyValueServiceConfig invalidKvsConfig = () -> "should not be found kvs";
     private final AtlasDbFactory delegate = new AutoServiceAnnotatedAtlasDbFactory();
-    private final LeaderConfig leaderConfig = mock(LeaderConfig.class);
+    private final Optional<LeaderConfig> leaderConfig = Optional.of(mock(LeaderConfig.class));
 
     @Rule
     public final ExpectedException exception = ExpectedException.none();
@@ -47,7 +48,7 @@ public class ServiceDiscoveringAtlasSupplierTest {
 
         assertThat(
                 atlasSupplier.getKeyValueService(),
-                is(delegate.createRawKeyValueService(kvsConfig, leaderConfig)));
+                is(delegate.createRawKeyValueService(kvsConfig, leaderConfig.get())));
     }
 
     @Test

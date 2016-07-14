@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock.server.modules;
 
 import javax.inject.Singleton;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.factory.ServiceDiscoveringAtlasSupplier;
@@ -36,7 +37,7 @@ public class TimeAndLockModule {
     @Provides
     @Singleton
     public ServiceDiscoveringAtlasSupplier provideAtlasSupplier(KeyValueServiceConfig kvsConfig, LeaderConfig leaderConfig) {
-        return new ServiceDiscoveringAtlasSupplier(kvsConfig, leaderConfig);
+        return new ServiceDiscoveringAtlasSupplier(kvsConfig, Optional.fromNullable(leaderConfig));
     }
 
     @Provides
