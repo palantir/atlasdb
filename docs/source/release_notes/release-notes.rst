@@ -52,7 +52,7 @@ v0.10.0
     *    - |new|
          - Products using Dropwizard bundles can now deploy `AtlasDB Console <http://palantir.github.io/atlasdb/html/cluster_management/console.html>`__ with their applications.
            AtlasDB Console enables engineers to examine the internals of a running AtlasDB instance to allow for easier debugging.
-           Products simply need to add ``bootstrap.addBundle(new AtlasDbBundle<>())`` to their Dropwizard ``Appliaction``.
+           Products simply need to add ``bootstrap.addBundle(new AtlasDbBundle<>())`` to their Dropwizard ``Application``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/629>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
