@@ -15,10 +15,9 @@ dependencies {
   compile group: 'com.palantir.docker.compose', name: 'docker-compose-rule', version: '0.17.1'
   compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.1.7'
 
-  compileOnly group: 'org.immutables', name:'value', version:'2.2.10'
+  processor 'org.immutables:value:2.0.21'
 
   testCompile project(":atlasdb-tests-shared")
-
 }
 
 configurations.matching({ it.name in ['compile', 'runtime'] }).all {
