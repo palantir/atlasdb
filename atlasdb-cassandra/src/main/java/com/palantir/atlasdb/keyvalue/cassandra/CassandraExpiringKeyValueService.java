@@ -31,6 +31,7 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
+import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ExpiringKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
@@ -45,18 +46,19 @@ import com.palantir.common.collect.Maps2;
 
 public class CassandraExpiringKeyValueService extends CassandraKeyValueService implements ExpiringKeyValueService{
 
-    public static CassandraExpiringKeyValueService create(CassandraKeyValueServiceConfigManager configManager) {
+    public static CassandraExpiringKeyValueService create(CassandraKeyValueServiceConfigManager configManager, LeaderConfig leaderConfig) {
         Preconditions.checkState(!configManager.getConfig().servers().isEmpty(), "address list was empty");
 
         Optional<CassandraJmxCompactionManager> compactionManager = CassandraJmxCompaction.createJmxCompactionManager(configManager);
-        CassandraExpiringKeyValueService kvs = new CassandraExpiringKeyValueService(configManager, compactionManager);
+        CassandraExpiringKeyValueService kvs = new CassandraExpiringKeyValueService(configManager, compactionManager,leaderConfig);
         kvs.init();
         return kvs;
     }
 
     protected CassandraExpiringKeyValueService(CassandraKeyValueServiceConfigManager configManager,
-                                               Optional<CassandraJmxCompactionManager> compactionManager) {
-        super(configManager, compactionManager);
+                                               Optional<CassandraJmxCompactionManager> compactionManager,
+                                               LeaderConfig leaderConfig) {
+        super(configManager, compactionManager, leaderConfig);
     }
 
     @Override
