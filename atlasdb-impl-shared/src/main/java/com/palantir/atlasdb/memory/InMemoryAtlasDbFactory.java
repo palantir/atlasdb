@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.memory;
 
 import com.google.auto.service.AutoService;
+import com.google.common.base.Optional;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cleaner.Cleaner;
@@ -69,7 +70,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
     }
 
     @Override
-    public InMemoryKeyValueService createRawKeyValueService(KeyValueServiceConfig config, LeaderConfig leaderConfig) {
+    public InMemoryKeyValueService createRawKeyValueService(KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig) {
         AtlasDbVersion.ensureVersionReported();
         return new InMemoryKeyValueService(false);
     }

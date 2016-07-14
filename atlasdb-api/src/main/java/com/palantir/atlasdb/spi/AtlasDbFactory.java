@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.spi;
 
+import com.google.common.base.Optional;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.timestamp.TimestampService;
@@ -22,7 +23,7 @@ import com.palantir.timestamp.TimestampService;
 public interface AtlasDbFactory {
     String getType();
 
-    KeyValueService createRawKeyValueService(KeyValueServiceConfig config, LeaderConfig leaderConfig);
+    KeyValueService createRawKeyValueService(KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig);
 
     TimestampService createTimestampService(KeyValueService rawKvs);
 

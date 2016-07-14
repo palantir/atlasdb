@@ -47,7 +47,7 @@ public class ServiceDiscoveringAtlasSupplier {
                     "No atlas provider for KeyValueService type " + config.type() + " could be found. " +
                             "Have you annotated it with @AutoService(AtlasDbFactory.class)?"
                 ));
-        keyValueService = memoize(() -> atlasFactory.createRawKeyValueService(config, leaderConfig.get()));
+        keyValueService = memoize(() -> atlasFactory.createRawKeyValueService(config, leaderConfig));
         timestampService = () -> atlasFactory.createTimestampService(getKeyValueService());
     }
 

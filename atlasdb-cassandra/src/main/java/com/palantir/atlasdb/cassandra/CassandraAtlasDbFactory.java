@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.cassandra;
 
 import com.google.auto.service.AutoService;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -31,11 +32,11 @@ import com.palantir.timestamp.TimestampService;
 public class CassandraAtlasDbFactory implements AtlasDbFactory {
 
     @Override
-    public KeyValueService createRawKeyValueService(KeyValueServiceConfig config, LeaderConfig leaderConfig) {
+    public KeyValueService createRawKeyValueService(KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig) {
         AtlasDbVersion.ensureVersionReported();
         Preconditions.checkArgument(config instanceof CassandraKeyValueServiceConfig,
                 "CassandraAtlasDbFactory expects a configuration of type CassandraKeyValueServiceConfig, found %s", config.getClass());
-        return createKv((CassandraKeyValueServiceConfig) config, leaderConfig);
+        return createKv((CassandraKeyValueServiceConfig) config, leaderConfig.get());
     }
 
     private static CassandraKeyValueService createKv(CassandraKeyValueServiceConfig config, LeaderConfig leaderConfig) {

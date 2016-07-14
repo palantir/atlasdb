@@ -48,7 +48,7 @@ public class ServiceDiscoveringAtlasSupplierTest {
 
         assertThat(
                 atlasSupplier.getKeyValueService(),
-                is(delegate.createRawKeyValueService(kvsConfig, leaderConfig.get())));
+                is(delegate.createRawKeyValueService(kvsConfig, leaderConfig)));
     }
 
     @Test

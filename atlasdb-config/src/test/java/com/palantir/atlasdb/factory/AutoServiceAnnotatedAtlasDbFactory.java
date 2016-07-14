@@ -21,6 +21,7 @@ import java.util.List;
 import org.jmock.Mockery;
 
 import com.google.auto.service.AutoService;
+import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -43,7 +44,7 @@ public class AutoServiceAnnotatedAtlasDbFactory implements AtlasDbFactory {
     }
 
     @Override
-    public KeyValueService createRawKeyValueService(KeyValueServiceConfig config, LeaderConfig leaderConfig) {
+    public KeyValueService createRawKeyValueService(KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig) {
         return keyValueService;
     }
 
