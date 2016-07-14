@@ -37,7 +37,23 @@ v0.10.0
          - Change
 
     *    - |changed|
-         - Updated HikariCP dependency from 2.4.3 to 2.4.7 to comply with updates in internal products.  Details of the HikariCP changes can be found `here <https://github.com/brettwooldridge/HikariCP/blob/dev/CHANGES>`__
+         - Updated HikariCP dependency from 2.4.3 to 2.4.7 to comply with updates in internal products.
+           Details of the HikariCP changes can be found `here <https://github.com/brettwooldridge/HikariCP/blob/dev/CHANGES>`__.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/662>`__)
+
+    *    - |new|
+         - AtlasDB currently allows you to create dynamic columns (wide rows), but you can only retrieve entire rows or specific columns.
+           Typically with dynamic columns, you do not know all the columns you have in advance, and this features allows you to page through dynamic columns per row, reducing pressure on the underlying KVS.
+           Products or features (such as AtlasDB Sweep) making using of wide rows should now use ``getRowsColumnRange`` instead of ``getRows`` in ``KeyValueService``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/582>`__)
+
+           Note: AtlasDB Sweep is not currently using paging.
+
+    *    - |new|
+         - Products using Dropwizard bundles can now deploy `AtlasDB Console <http://palantir.github.io/atlasdb/html/cluster_management/console.html>`__ with their applications.
+           AtlasDB Console enables engineers to examine the internals of a running AtlasDB instance to allow for easier debugging.
+           Products simply need to add ``Bootstrap.addBundle(new AtlasDbBundle<>())`` to make the ``atlasDBConsole``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/629>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
