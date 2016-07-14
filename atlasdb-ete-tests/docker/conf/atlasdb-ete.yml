@@ -26,6 +26,7 @@ atlasdb:
     fetchBatchCount: 1000
     safetyDisabled: false
     autoRefreshNodes: false
+    lockLeader: http://ete1:3828
 
   leader:
     quorumSize: 2
