@@ -37,7 +37,6 @@ public class ServiceDiscoveringAtlasSupplier {
     private final Supplier<KeyValueService> keyValueService;
     private final Supplier<TimestampService> timestampService;
 
-    // TODO take an Optional<LeaderConfig> ?
     public ServiceDiscoveringAtlasSupplier(KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig) {
         this.config = config;
         AtlasDbFactory atlasFactory = stream(loader.spliterator(), false)
