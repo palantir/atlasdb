@@ -88,7 +88,7 @@ public class AtlasDbConsoleCommand<T extends Configuration & AtlasDbConfiguratio
                 .filter(entry -> entry.getKey().startsWith("--"))
                 .filter(entry -> entry.getValue() != null)
                 .flatMap(entry -> {
-                    if(entry.getValue() instanceof List) {
+                    if (entry.getValue() instanceof List) {
                         return Stream.concat(Stream.of(entry.getKey()), ((List<String>) entry.getValue()).stream());
                     } else {
                         return Stream.of(entry.getKey(), (String) entry.getValue());
