@@ -44,16 +44,14 @@ v0.10.0
     *    - |new|
          - AtlasDB currently allows you to create dynamic columns (wide rows), but you can only retrieve entire rows or specific columns.
            Typically with dynamic columns, you do not know all the columns you have in advance, and this features allows you to page through dynamic columns per row, reducing pressure on the underlying KVS.
-           Products or features (such as AtlasDB Sweep) making use of wide rows should now use ``getRowsColumnRange`` instead of ``getRows`` in ``KeyValueService``.
+           Products or clients (such as AtlasDB Sweep) making use of wide rows should consider using ``getRowsColumnRange`` instead of ``getRows`` in ``KeyValueService``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/582>`__)
 
-           Note: AtlasDB Sweep is not currently using dynamic column paging.
+           Note: This is considered a beta feature and is not yet being used by AtlasDB Sweep.
 
-    *    - |new|
-         - Products using Dropwizard bundles can now deploy `AtlasDB Console <http://palantir.github.io/atlasdb/html/cluster_management/console.html>`__ with their applications.
-           AtlasDB Console enables engineers to examine the internals of a running AtlasDB instance to allow for easier debugging.
-           Products simply need to add ``bootstrap.addBundle(new AtlasDbBundle<>())`` to their Dropwizard ``Application``.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/629>`__)
+    *    - |fixed|
+         - We properly check that cells are not set to empty (zero-byte) or null.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/663>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
