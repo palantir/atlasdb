@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.ExecutorService;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -193,7 +194,7 @@ public class KeyValueServices {
             byte[] rowName = hashesToBytes.get(row.getKey());
             results.put(hashesToBytes.get(row.getKey()),
                     new LocalRowColumnRangeIterator(Iterators.transform(subMap.iterator(), e ->
-                            Iterables.getOnlyElement(ImmutableMap.of(Cell.create(rowName, e.getKey()), e.getValue()).entrySet()))));
+                            Pair.<Cell, Value>of(Cell.create(rowName, e.getKey()), e.getValue()))));
         }
         return results;
     }
