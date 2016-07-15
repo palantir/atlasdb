@@ -294,14 +294,14 @@ public abstract class OracleQueryFactory implements DbQueryFactory {
     private FullQuery getRowsColumnRangeSubQuery(byte[] row, long ts, ColumnRangeSelection columnRangeSelection) {
         String query =
                 " /* GET_ROWS_COLUMN_RANGE (" + tableName + ") */ " +
-                        " SELECT m.row_name, m.col_name, max(m.ts) as ts" +
+                        "SELECT * FROM ( SELECT m.row_name, m.col_name, max(m.ts) as ts" +
                         "   FROM " + prefixedTableName() + " m" +
                         "  WHERE m.row_name = ?" +
                         "    AND m.ts < ? " +
                         (columnRangeSelection.getStartCol().length > 0 ? " AND m.col_name >= ?" : "") +
                         (columnRangeSelection.getEndCol().length > 0 ? " AND m.col_name < ?" : "") +
                         " GROUP BY m.row_name, m.col_name" +
-                        "  WHERE rownum <= " + columnRangeSelection.getBatchHint();
+                        " ORDER BY m.col_name ASC ) WHERE rownum <= " + columnRangeSelection.getBatchHint();
         FullQuery fullQuery = new FullQuery(wrapQueryWithIncludeValue("GET_ROWS_COLUMN_RANGE", query, true)).withArg(row).withArg(ts);
         if (columnRangeSelection.getStartCol().length > 0) {
             fullQuery = fullQuery.withArg(columnRangeSelection.getStartCol());

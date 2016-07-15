@@ -335,7 +335,7 @@ public class PostgresQueryFactory implements DbQueryFactory {
                         (columnRangeSelection.getStartCol().length > 0 ? " AND m.col_name >= ?" : "") +
                         (columnRangeSelection.getEndCol().length > 0 ? " AND m.col_name < ?" : "") +
                         " GROUP BY m.row_name, m.col_name" +
-                        " LIMIT " + columnRangeSelection.getBatchHint();
+                        " ORDER BY m.col_name ASC LIMIT " + columnRangeSelection.getBatchHint();
         FullQuery fullQuery = new FullQuery(wrapQueryWithIncludeValue("GET_ROWS_COLUMN_RANGE", query, true)).withArg(row).withArg(ts);
         if (columnRangeSelection.getStartCol().length > 0) {
             fullQuery = fullQuery.withArg(columnRangeSelection.getStartCol());
