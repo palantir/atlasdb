@@ -15,25 +15,14 @@
  */
 package com.palantir.atlasdb.cas;
 
-import javax.net.ssl.SSLSocketFactory;
-
 import com.google.common.base.Optional;
-import com.palantir.atlasdb.config.AtlasDbConfig;
-import com.palantir.atlasdb.factory.TransactionManagers;
-import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 
-import io.dropwizard.jersey.setup.JerseyEnvironment;
-
 public class CheckAndSetClient {
-    private static final boolean DONT_SHOW_HIDDEN_TABLES = false;
-    private static final Optional<SSLSocketFactory> NO_SSL = Optional.absent();
-
     private final TransactionManager transactionManager;
 
-    public CheckAndSetClient(AtlasDbConfig config, JerseyEnvironment environment) {
-        Schema schema = CheckAndSetSchema.getSchema();
-        transactionManager = TransactionManagers.create(config, NO_SSL, schema, environment::register, DONT_SHOW_HIDDEN_TABLES);
+    public CheckAndSetClient(TransactionManager transactionManager) {
+        this.transactionManager = transactionManager;
     }
 
     public Optional<Long> get() {

@@ -17,8 +17,6 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.junit.Assert.fail;
 
-import java.net.InetSocketAddress;
-
 import org.apache.cassandra.thrift.InvalidRequestException;
 import org.junit.Test;
 
@@ -31,7 +29,7 @@ public class CassandraConnectionTest {
 
     private static final CassandraKeyValueServiceConfig NO_CREDS_CKVS_CONFIG = ImmutableCassandraKeyValueServiceConfig
             .builder()
-            .addServers(new InetSocketAddress("localhost", 9160))
+            .addServers(CassandraTestSuite.CASSANDRA_THRIFT_ADDRESS)
             .poolSize(20)
             .keyspace("atlasdb")
             .credentials(Optional.absent())
@@ -43,8 +41,8 @@ public class CassandraConnectionTest {
             .safetyDisabled(false)
             .autoRefreshNodes(false)
             .build();
-            
-    
+
+
     @Test
     public void testAuthProvided() {
         CassandraKeyValueService kv = CassandraKeyValueService.create(
@@ -57,7 +55,7 @@ public class CassandraConnectionTest {
     public void testAuthMissing() {
         try {
             CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(NO_CREDS_CKVS_CONFIG));
+                    CassandraKeyValueServiceConfigManager.createSimpleManager(NO_CREDS_CKVS_CONFIG));
             fail();
         } catch (RuntimeException e) {
             boolean threwIRE = false;

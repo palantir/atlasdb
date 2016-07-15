@@ -6,12 +6,17 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
 public class StreamTestWithHashIndexCleanupTask implements OnCleanupTask {
 
-    private final StreamTestTableFactory tables = StreamTestTableFactory.of();
+    private final StreamTestTableFactory tables;
+
+    public StreamTestWithHashIndexCleanupTask(Namespace namespace) {
+        tables = StreamTestTableFactory.of(namespace);
+    }
 
     @Override
     public boolean cellsCleanedUp(Transaction t, Set<Cell> cells) {

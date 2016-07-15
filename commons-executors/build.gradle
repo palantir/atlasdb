@@ -13,5 +13,5 @@ repositories {
 
 libsDirName = file('build/artifacts')
 dependencies {
-    compile group: 'com.google.guava', name: 'guava', version: libVersions.guava
+    testCompile group: 'com.google.guava', name: 'guava', version: libVersions.guava
 }

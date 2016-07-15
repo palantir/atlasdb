@@ -8,3 +8,4 @@ Cluster Management
 
    clis
    console
+   backup-restore
