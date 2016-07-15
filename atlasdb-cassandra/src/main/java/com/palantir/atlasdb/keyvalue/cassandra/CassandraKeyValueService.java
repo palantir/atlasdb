@@ -389,8 +389,13 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                             ThreadSafeResultVisitor v,
                             ConsistencyLevel consistency) throws Exception {
         List<Callable<Void>> tasks = Lists.newArrayList();
-        for (Map.Entry<InetSocketAddress, List<Cell>> hostAndCells : partitionByHost(cells,
-                                                                               Cells.getRowFunction()).entrySet()) {
+        Map<InetSocketAddress, List<Cell>> hostsAndCells =  partitionByHost(cells, Cells.getRowFunction());
+        int i = 1;
+        int size = hostsAndCells.keySet().size();
+        for (Map.Entry<InetSocketAddress, List<Cell>> hostAndCells : hostsAndCells.entrySet()) {
+            log.trace("Making request {} of {} for a loadWithTs call.  It is against host {} and table {}",
+                    i, size, hostAndCells.getKey().getHostName(), tableRef.toString());
+            i++;
             tasks.addAll(getLoadWithTsTasksForSingleHost(hostAndCells.getKey(),
                                                          tableRef,
                                                          hostAndCells.getValue(),
@@ -704,13 +709,13 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         if (shouldTraceQuery(tableRefs)) {
             ByteBuffer recv_trace = client.trace_next_query();
             Stopwatch stopwatch = Stopwatch.createStarted();
-            client.batch_mutate(map, consistency);
-            long duration = stopwatch.elapsed(TimeUnit.MILLISECONDS);
-            if (duration > getMinimumDurationToTraceMillis()) {
-                log.error("Traced a call to " + tableRefs + " that took " + duration + " ms."
-                        + " It will appear in system_traces with UUID="
-                        + CassandraKeyValueServices.convertCassandraByteBufferUUIDtoString(recv_trace));
+            try {
+                client.batch_mutate(map, consistency);
+            } catch (Exception e) {
+                logTraceResults(stopwatch.elapsed(TimeUnit.MILLISECONDS), tableRefs, recv_trace, true);
+                throw e;
             }
+            logTraceResults(stopwatch.elapsed(TimeUnit.MILLISECONDS), tableRefs, recv_trace, false);
         } else {
             client.batch_mutate(map, consistency);
         }
@@ -725,6 +730,31 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         return false;
     }
 
+    private void logTraceResults(long duration, TableReference tableRef, ByteBuffer recv_trace, boolean failed) {
+        if (failed || duration > getMinimumDurationToTraceMillis()) {
+            log.error("Traced a call to {} that {}took {} ms. It will appear in system_traces with UUID={}",
+                    tableRef.getQualifiedName(),
+                    failed ? "failed and " : "",
+                    duration,
+                    CassandraKeyValueServices.convertCassandraByteBufferUUIDtoString(recv_trace));
+        }
+    }
+
+    private void logFailedCall(TableReference tableRef, Exception e) {
+        log.error("A call to {} failed with an exception.", tableRef.toString());// of type {}", tableRef.toString(), e.getClass());
+    }
+
+    private void logTraceResults(long duration, Set<TableReference> tableRefs, ByteBuffer recv_trace, boolean failed) {
+        if (failed || duration > getMinimumDurationToTraceMillis()) {
+            log.error("Traced a call to {} that {}took {} ms. It will appear in system_traces with UUID={}",
+                    // TODO: figure out how to nicely go from set of TableReference to comma separated string of TableReference.getQualifiedName()
+                    tableRefs,
+                    failed ? "failed and " : "",
+                    duration,
+                    CassandraKeyValueServices.convertCassandraByteBufferUUIDtoString(recv_trace));
+        }
+    }
+
     private Map<ByteBuffer, List<ColumnOrSuperColumn>> multigetInternal(Client client,
                                                                         TableReference tableRef,
                                                                         List<ByteBuffer> rowNames,
@@ -735,15 +765,21 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         if (shouldTraceQuery(tableRef)) {
             ByteBuffer recv_trace = client.trace_next_query();
             Stopwatch stopwatch = Stopwatch.createStarted();
-            results = client.multiget_slice(rowNames, colFam, pred, consistency);
-            long duration = stopwatch.elapsed(TimeUnit.MILLISECONDS);
-            if (duration > getMinimumDurationToTraceMillis()) {
-                log.error("Traced a call to " + tableRef.getQualifiedName() + " that took " + duration + " ms."
-                        + " It will appear in system_traces with UUID="
-                        + CassandraKeyValueServices.convertCassandraByteBufferUUIDtoString(recv_trace));
+            try {
+                results = client.multiget_slice(rowNames, colFam, pred, consistency);
+            } catch (Exception e) {
+                logFailedCall(tableRef, e);
+                logTraceResults(stopwatch.elapsed(TimeUnit.MILLISECONDS), tableRef, recv_trace, true);
+                throw e;
             }
+            logTraceResults(stopwatch.elapsed(TimeUnit.MILLISECONDS), tableRef, recv_trace, false);
         } else {
-            results = client.multiget_slice(rowNames, colFam, pred, consistency);
+            try {
+                results = client.multiget_slice(rowNames, colFam, pred, consistency);
+            } catch (Exception e) {
+                logFailedCall(tableRef, e);
+                throw e;
+            }
         }
         return results;
     }
@@ -764,12 +800,13 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                             if (shouldTraceQuery(tableRef)) {
                                 ByteBuffer recv_trace = client.trace_next_query();
                                 Stopwatch stopwatch = Stopwatch.createStarted();
-                                truncateInternal(client, tableRef);
-                                long duration = stopwatch.elapsed(TimeUnit.MILLISECONDS);
-                                if (duration > getMinimumDurationToTraceMillis()) {
-                                    log.error("Traced a call to " + tableRef.getQualifiedName() + " that took " + duration + " ms."
-                                            + " It will appear in system_traces with UUID=" + CassandraKeyValueServices.convertCassandraByteBufferUUIDtoString(recv_trace));
+                                try {
+                                    truncateInternal(client, tableRef);
+                                } catch (Exception e) {
+                                    logTraceResults(stopwatch.elapsed(TimeUnit.MILLISECONDS), tableRef, recv_trace, true);
+                                    throw e;
                                 }
+                                logTraceResults(stopwatch.elapsed(TimeUnit.MILLISECONDS), tableRef, recv_trace, false);
                             } else {
                                 truncateInternal(client, tableRef);
                             }
@@ -1024,12 +1061,13 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                                     if (shouldTraceQuery(tableRef)) {
                                         ByteBuffer recv_trace = client.trace_next_query();
                                         Stopwatch stopwatch = Stopwatch.createStarted();
-                                        firstPage = client.get_range_slices(colFam, pred, keyRange, consistency);
-                                        long duration = stopwatch.elapsed(TimeUnit.MILLISECONDS);
-                                        if (duration > getMinimumDurationToTraceMillis()) {
-                                            log.error("Traced a call to " + tableRef.getQualifiedName() + " that took " + duration + " ms."
-                                                    + " It will appear in system_traces with UUID=" + CassandraKeyValueServices.convertCassandraByteBufferUUIDtoString(recv_trace));
+                                        try {
+                                            firstPage = client.get_range_slices(colFam, pred, keyRange, consistency);
+                                        } catch (Exception e) {
+                                            logTraceResults(stopwatch.elapsed(TimeUnit.MILLISECONDS), tableRef, recv_trace, true);
+                                            throw e;
                                         }
+                                        logTraceResults(stopwatch.elapsed(TimeUnit.MILLISECONDS), tableRef, recv_trace, false);
                                     } else {
                                         firstPage = client.get_range_slices(colFam, pred, keyRange, consistency);
                                     }
@@ -1376,19 +1414,19 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                         if (shouldTraceQuery(tableRef)) {
                             ByteBuffer recv_trace = client.trace_next_query();
                             Stopwatch stopwatch = Stopwatch.createStarted();
-                            casResult = client.cas(
-                                    rowName,
-                                    tableRef.getQualifiedName(),
-                                    ImmutableList.<Column>of(),
-                                    ImmutableList.of(col),
-                                    ConsistencyLevel.SERIAL,
-                                    writeConsistency);
-                            long duration = stopwatch.elapsed(TimeUnit.MILLISECONDS);
-                            if (duration > getMinimumDurationToTraceMillis()) {
-                                log.error("Traced a call to " + tableRef + " that took " + duration + " ms."
-                                        + " It will appear in system_traces with UUID="
-                                        + CassandraKeyValueServices.convertCassandraByteBufferUUIDtoString(recv_trace));
+                            try {
+                                casResult = client.cas(
+                                        rowName,
+                                        tableRef.getQualifiedName(),
+                                        ImmutableList.<Column>of(),
+                                        ImmutableList.of(col),
+                                        ConsistencyLevel.SERIAL,
+                                        writeConsistency);
+                            } catch (Exception ex) {
+                                logTraceResults(stopwatch.elapsed(TimeUnit.MILLISECONDS), tableRef, recv_trace, true);
+                                throw ex;
                             }
+                            logTraceResults(stopwatch.elapsed(TimeUnit.MILLISECONDS), tableRef, recv_trace, false);
                         } else {
                             casResult = client.cas(
                                     rowName,
