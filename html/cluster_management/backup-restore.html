@@ -1,0 +1,263 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Backup and Restore &mdash; AtlasDB develop documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  
+
+  
+    <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
+  
+    <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
+  
+
+  
+    <link rel="top" title="AtlasDB develop documentation" href="../index.html"/>
+        <link rel="up" title="Cluster Management" href="index.html"/>
+        <link rel="next" title="Services" href="../services/index.html"/>
+        <link rel="prev" title="Console" href="console.html"/> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> AtlasDB
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                develop
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../overview/index.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../schemas/index.html">Schemas</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../transactions/index.html">Transactions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../configuration/index.html">Configuration</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Cluster Management</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="clis.html">Command Line Utilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="console.html">Console</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Backup and Restore</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../services/index.html">Services</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../miscellaneous/index.html">Miscellaneous</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release_notes/index.html">Releases</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../index.html">AtlasDB</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+ 
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="index.html">Cluster Management</a> &raquo;</li>
+      
+    <li>Backup and Restore</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/cluster_management/backup-restore.rst" class="fa fa-github"> Edit on GitHub</a>
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="backup-and-restore">
+<h1>Backup and Restore<a class="headerlink" href="#backup-and-restore" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+<p>Backup and restore for AtlasDB are non-trivial operations that are not satisfied by simply backing up and restoring the underyling key value store you are using to store your data in.  This page describes how to take advantage of built in AtlasDB utilities, namely the Atlas CLI, in order to perform a live consistent point in time backup and subsequent restore of that backup from total data loss.</p>
+</div>
+<div class="section" id="using-the-atlas-cli">
+<h2>Using the Atlas CLI<a class="headerlink" href="#using-the-atlas-cli" title="Permalink to this headline">¶</a></h2>
+<p>The set of tasks described in this page rely heavily on having a functioning Atlas CLI.  Please see <a class="reference internal" href="clis.html#clis"><span class="std std-ref">Command Line Utilities</span></a> for information in how to deploy and use a functioning Atlas CLI utility.</p>
+</div>
+<div class="section" id="cassandra-and-other-distributed-systems">
+<h2>Cassandra and Other Distributed Systems<a class="headerlink" href="#cassandra-and-other-distributed-systems" title="Permalink to this headline">¶</a></h2>
+<p>A large part of taking a point in time backup of atlas is taking a backup of your underlying storage.  Many distributed systems, like cassandra, do not provide point in time backup utilities across multiple nodes.  Cassandra in particular can have each of its nodes &#8220;snapshot&#8221; at different real and logical points in time in a way that can affect the correctness or completeness of your atlas backup.  The steps in this page will attempt to address when this becomes a concern and how we can address it in our process.</p>
+</div>
+<div class="section" id="taking-a-backup">
+<h2>Taking a Backup<a class="headerlink" href="#taking-a-backup" title="Permalink to this headline">¶</a></h2>
+<p>First we need to define what the logical point in time of our backup is going to be.  We will call this the backup timestamp.  Any transactions that occur after the backup timestamp will not be valid or included in our &#8220;logical&#8221; backup of atlas, even if they complete succesfully before the rest of the backup completes.  To get the backup timestamp simply fetch a fresh timestamp using the CLI:</p>
+<div class="code bash highlight-default"><div class="highlight"><pre><span></span>$ ./bin/atlasdb --config &lt;config-file&gt; --config-root &lt;path-to-atlas-block&gt; timestamp fetch --file &lt;backup-directory&gt;/backup.timestamp
+</pre></div>
+</div>
+<p>Next, we back-up the underlying key value service we&#8217;re using.  For the purposes of this documention we&#8217;re going to blackbox the details of this portion of the process away as it is dependent upon your configuration.</p>
+<p>Finally, we take the fast-forward timestamp.  Like the backup timestamp, the fast-forward timestamp is simply another fresh one that we fetch from atlas.  The purpose of this timestamp is to have a logical point in time for which we can guarantee that any reads or writes that took place during the backup process happened before this.  Fetching it is similar to that of the backup timestamp:</p>
+<div class="code bash highlight-default"><div class="highlight"><pre><span></span>$ ./bin/atlasdb --config &lt;config-file&gt; --config-root &lt;path-to-atlas-block&gt; timestamp fetch --file &lt;backup-directory&gt;/fast-forward.timestamp
+</pre></div>
+</div>
+<p>These two timestamp files and the entirety of your underlying storage&#8217;s backup are your entire atlasdb backup.</p>
+</div>
+<div class="section" id="restoring-from-a-backup">
+<h2>Restoring from a Backup<a class="headerlink" href="#restoring-from-a-backup" title="Permalink to this headline">¶</a></h2>
+<p>The steps of a restore are assumed to be run entirely offline and on a complete empty key value service, i.e. if you&#8217;re running against Cassandra, the keyspace being used should not exist and no other processes should attempt to create or interact with that keyspace during the duration of this process.</p>
+<p>First, restore your underlying key value service.  As mentioned <a class="reference external" href="#cassandra-and-other-distributed-systems">above</a>, there are concerns around your underyling storage not being consistent across its distributed nodes.  In particular, we need to ensure a consistent view of atlas&#8217; _transactions table in order to provide a guarantee that our restore process happens correctly.  The actual steps to ensure this will vary between systems, but for cassandra this simply means running a full repair of that table on every node in your cluster.  An example of this on a single node is:</p>
+<div class="code bash highlight-default"><div class="highlight"><pre><span></span>$ ./bin/nodetool repair --partitioner-range --full -- &lt;atlas-keyspace&gt; _transactions
+</pre></div>
+</div>
+<p>Next, we want to clean out any transactions that were committed after our backup timestamp by deleting them from our _transactions table:</p>
+<div class="code bash highlight-default"><div class="highlight"><pre><span></span>$ ./bin/atlasdb --config &lt;config-file&gt; --config-root &lt;path-to-atlas-block&gt; timestamp clean-transactions --file &lt;backup-directory&gt;/backup.timestamp
+</pre></div>
+</div>
+<p>Finally, we fast-forward the timstamp service to the fast-forward timestamp to ensure that any future transactions we perform don&#8217;t use a timestamp that could have potentially been used and written data to during the time after we took the backup timstamp but before our backup of our underlying kvs completed:</p>
+<div class="code bash highlight-default"><div class="highlight"><pre><span></span>$ ./bin/atlasdb --config &lt;config-file&gt; --config-root &lt;path-to-atlas-block&gt; timestamp fast-forward --file &lt;backup-directory&gt;/fast-forward.timestamp
+</pre></div>
+</div>
+<p>The AtlasDB restore is now complete.</p>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="../services/index.html" class="btn btn-neutral float-right" title="Services" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="console.html" class="btn btn-neutral" title="Console" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2016, Palantir Technologies.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'develop',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
