@@ -396,7 +396,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         for (Map.Entry<InetSocketAddress, List<Cell>> hostAndCells : hostsAndCells.entrySet()) {
             if (log.isTraceEnabled()) {
                 log.trace("Making request {} of {} for a loadWithTs call.  It is against host {} and table {}",
-                        i, size, hostAndCells.getKey().getHostString(), tableRef.toString());
+                        i, size, hostAndCells.getKey().getHostString(), tableRef);
             }
             i++;
             tasks.addAll(getLoadWithTsTasksForSingleHost(hostAndCells.getKey(),
@@ -715,12 +715,18 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             try {
                 client.batch_mutate(map, consistency);
             } catch (Exception e) {
+                logFailedCall(tableRefs);
                 logTraceResults(stopwatch.elapsed(TimeUnit.MILLISECONDS), tableRefs, recv_trace, true);
                 throw e;
             }
             logTraceResults(stopwatch.elapsed(TimeUnit.MILLISECONDS), tableRefs, recv_trace, false);
         } else {
-            client.batch_mutate(map, consistency);
+            try {
+                client.batch_mutate(map, consistency);
+            } catch (Exception e) {
+                logFailedCall(tableRefs);
+                throw e;
+            }
         }
     }
 
@@ -733,8 +739,13 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         return false;
     }
 
-    private void logFailedCall(TableReference tableRef, Exception e) {
-        log.error("A call to {} failed with an exception.", tableRef.toString());// of type {}", tableRef.toString(), e.getClass());
+    private void logFailedCall(TableReference tableRef) {
+        logFailedCall(ImmutableSet.of(tableRef));
+    }
+
+    private void logFailedCall(Set<TableReference> tableRefs) {
+        log.error("A call to table(s) {} failed with an exception.",
+                tableRefs.stream().map(TableReference::getQualifiedName).collect(Collectors.joining(", ")));
     }
 
     private void logTraceResults(long duration, TableReference tableRef, ByteBuffer recv_trace, boolean failed) {
@@ -764,7 +775,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             try {
                 results = client.multiget_slice(rowNames, colFam, pred, consistency);
             } catch (Exception e) {
-                logFailedCall(tableRef, e);
+                logFailedCall(tableRef);
                 logTraceResults(stopwatch.elapsed(TimeUnit.MILLISECONDS), tableRef, recv_trace, true);
                 throw e;
             }
@@ -773,7 +784,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             try {
                 results = client.multiget_slice(rowNames, colFam, pred, consistency);
             } catch (Exception e) {
-                logFailedCall(tableRef, e);
+                logFailedCall(tableRef);
                 throw e;
             }
         }
@@ -799,12 +810,18 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                                 try {
                                     truncateInternal(client, tableRef);
                                 } catch (Exception e) {
+                                    logFailedCall(tableRef);
                                     logTraceResults(stopwatch.elapsed(TimeUnit.MILLISECONDS), tableRef, recv_trace, true);
                                     throw e;
                                 }
                                 logTraceResults(stopwatch.elapsed(TimeUnit.MILLISECONDS), tableRef, recv_trace, false);
                             } else {
-                                truncateInternal(client, tableRef);
+                                try {
+                                    truncateInternal(client, tableRef);
+                                } catch (Exception e) {
+                                    logFailedCall(tableRef);
+                                    throw e;
+                                }
                             }
                         }
                         return null;
@@ -1060,12 +1077,18 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                                         try {
                                             firstPage = client.get_range_slices(colFam, pred, keyRange, consistency);
                                         } catch (Exception e) {
+                                            logFailedCall(tableRef);
                                             logTraceResults(stopwatch.elapsed(TimeUnit.MILLISECONDS), tableRef, recv_trace, true);
                                             throw e;
                                         }
                                         logTraceResults(stopwatch.elapsed(TimeUnit.MILLISECONDS), tableRef, recv_trace, false);
                                     } else {
-                                        firstPage = client.get_range_slices(colFam, pred, keyRange, consistency);
+                                        try {
+                                            firstPage = client.get_range_slices(colFam, pred, keyRange, consistency);
+                                        } catch (Exception e) {
+                                            logFailedCall(tableRef);
+                                            throw e;
+                                        }
                                     }
                                 } catch (UnavailableException e) {
                                     if (consistency.equals(ConsistencyLevel.ALL)) {
@@ -1419,18 +1442,24 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                                         ConsistencyLevel.SERIAL,
                                         writeConsistency);
                             } catch (Exception ex) {
+                                logFailedCall(tableRef);
                                 logTraceResults(stopwatch.elapsed(TimeUnit.MILLISECONDS), tableRef, recv_trace, true);
                                 throw ex;
                             }
                             logTraceResults(stopwatch.elapsed(TimeUnit.MILLISECONDS), tableRef, recv_trace, false);
                         } else {
-                            casResult = client.cas(
-                                    rowName,
-                                    tableRef.getQualifiedName(),
-                                    ImmutableList.<Column>of(),
-                                    ImmutableList.of(col),
-                                    ConsistencyLevel.SERIAL,
-                                    writeConsistency);
+                            try {
+                                casResult = client.cas(
+                                        rowName,
+                                        tableRef.getQualifiedName(),
+                                        ImmutableList.<Column>of(),
+                                        ImmutableList.of(col),
+                                        ConsistencyLevel.SERIAL,
+                                        writeConsistency);
+                            } catch (Exception ex) {
+                                logFailedCall(tableRef);
+                                throw ex;
+                            }
                         }
                         if (!casResult.isSuccess()) {
                             throw new KeyAlreadyExistsException("This transaction row already exists.", ImmutableList.of(e.getKey()));

@@ -1580,7 +1580,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
 
         log.trace("Getting commit timestamps for {} start timestamps in response to read from table {}",
-                gets.size(), tableRef.toString());
+                gets.size(), tableRef);
         Map<Long, Long> rawResults = defaultTransactionService.get(gets);
         for (Map.Entry<Long, Long> e : rawResults.entrySet()) {
             if (e.getValue() != null) {
