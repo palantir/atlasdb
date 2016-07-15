@@ -76,4 +76,7 @@ public class AvailableTimestamps {
         upperLimit.increaseToAtLeast(timestamp);
     }
 
+    public long getUpperLimit() {
+        return upperLimit.get();
+    }
 }

@@ -43,6 +43,10 @@ public class PersistentTimestampService implements TimestampService {
         return new PersistentTimestampService(availableTimestamps, executor);
     }
 
+    public long getUpperLimitTimestampToHandOutInclusive() {
+        return availableTimestamps.getUpperLimit();
+    }
+
     @Override
     public long getFreshTimestamp() {
         return getFreshTimestamps(1).getLowerBound();

@@ -26,6 +26,23 @@ Changelog
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
+v0.11.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - A utility method was removed in the previous release, breaking an internal product that relied on it. This method has now been added back.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/661>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
 v0.10.0
 =======
 
@@ -87,7 +104,7 @@ v0.9.0
 
     *    - |fixed|
          - Code generation for the ``hashCode`` of ``*IdxColumn`` classes now uses ``deepHashCode`` for its arrays such that it returns
-           consistent hash codes for use with hash-based collections (HashMap, HashSet, HashTable). 
+           consistent hash codes for use with hash-based collections (HashMap, HashSet, HashTable).
            This issue will only appear if you are instantiating columns in multiple places and storing columns in hash collections.
 
            If you are using `Indices <https://palantir.github.io/atlasdb/html/schemas/tables_and_indices.html#indices>`__ we recommend you upgrade as a precaution and ensure you are not relying on logic related to the ``hashCode`` of auto-generated ``*IdxColumn`` classes.
