@@ -705,29 +705,17 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         batchMutateInternal(client, ImmutableSet.of(tableRef), map, consistency);
     }
 
-    private void batchMutateInternal(Client client,
-                                     Set<TableReference> tableRefs,
-                                     Map<ByteBuffer, Map<String, List<Mutation>>> map,
-                                     ConsistencyLevel consistency) throws TException {
-        if (shouldTraceQuery(tableRefs)) {
-            ByteBuffer recv_trace = client.trace_next_query();
-            Stopwatch stopwatch = Stopwatch.createStarted();
-            try {
+    private void batchMutateInternal(final Client client,
+                                     final Set<TableReference> tableRefs,
+                                     final Map<ByteBuffer, Map<String, List<Mutation>>> map,
+                                     final ConsistencyLevel consistency) throws TException {
+        run(client, tableRefs, new Action<Void>() {
+            @Override
+            public Void run() throws TException {
                 client.batch_mutate(map, consistency);
-            } catch (Exception e) {
-                logFailedCall(tableRefs);
-                logTraceResults(stopwatch.elapsed(TimeUnit.MILLISECONDS), tableRefs, recv_trace, true);
-                throw e;
+                return null;
             }
-            logTraceResults(stopwatch.elapsed(TimeUnit.MILLISECONDS), tableRefs, recv_trace, false);
-        } else {
-            try {
-                client.batch_mutate(map, consistency);
-            } catch (Exception e) {
-                logFailedCall(tableRefs);
-                throw e;
-            }
-        }
+        });
     }
 
     private boolean shouldTraceQuery(Set<TableReference> tableRefs) {
@@ -768,27 +756,12 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                                                                         ColumnParent colFam,
                                                                         SlicePredicate pred,
                                                                         ConsistencyLevel consistency) throws TException {
-        Map<ByteBuffer, List<ColumnOrSuperColumn>> results;
-        if (shouldTraceQuery(tableRef)) {
-            ByteBuffer recv_trace = client.trace_next_query();
-            Stopwatch stopwatch = Stopwatch.createStarted();
-            try {
-                results = client.multiget_slice(rowNames, colFam, pred, consistency);
-            } catch (Exception e) {
-                logFailedCall(tableRef);
-                logTraceResults(stopwatch.elapsed(TimeUnit.MILLISECONDS), tableRef, recv_trace, true);
-                throw e;
-            }
-            logTraceResults(stopwatch.elapsed(TimeUnit.MILLISECONDS), tableRef, recv_trace, false);
-        } else {
-            try {
-                results = client.multiget_slice(rowNames, colFam, pred, consistency);
-            } catch (Exception e) {
-                logFailedCall(tableRef);
-                throw e;
-            }
-        }
-        return results;
+        return run(client, tableRef, new Action<Map<ByteBuffer, List<ColumnOrSuperColumn>>>() {
+                    @Override
+                    public Map<ByteBuffer, List<ColumnOrSuperColumn>> run() throws TException {
+                        return client.multiget_slice(rowNames, colFam, pred, consistency);
+                    }
+                });
     }
 
     @Override
@@ -804,25 +777,13 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     @Override
                     public Void apply(Client client) throws Exception {
                         for (TableReference tableRef : tablesToTruncate) {
-                            if (shouldTraceQuery(tableRef)) {
-                                ByteBuffer recv_trace = client.trace_next_query();
-                                Stopwatch stopwatch = Stopwatch.createStarted();
-                                try {
+                            run(client, tableRef, new Action<Void>() {
+                                @Override
+                                public Void run() throws TException {
                                     truncateInternal(client, tableRef);
-                                } catch (Exception e) {
-                                    logFailedCall(tableRef);
-                                    logTraceResults(stopwatch.elapsed(TimeUnit.MILLISECONDS), tableRef, recv_trace, true);
-                                    throw e;
+                                    return null;
                                 }
-                                logTraceResults(stopwatch.elapsed(TimeUnit.MILLISECONDS), tableRef, recv_trace, false);
-                            } else {
-                                try {
-                                    truncateInternal(client, tableRef);
-                                } catch (Exception e) {
-                                    logFailedCall(tableRef);
-                                    throw e;
-                                }
-                            }
+                            });
                         }
                         return null;
                     }
@@ -1071,25 +1032,12 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                                 List<KeySlice> firstPage;
 
                                 try {
-                                    if (shouldTraceQuery(tableRef)) {
-                                        ByteBuffer recv_trace = client.trace_next_query();
-                                        Stopwatch stopwatch = Stopwatch.createStarted();
-                                        try {
-                                            firstPage = client.get_range_slices(colFam, pred, keyRange, consistency);
-                                        } catch (Exception e) {
-                                            logFailedCall(tableRef);
-                                            logTraceResults(stopwatch.elapsed(TimeUnit.MILLISECONDS), tableRef, recv_trace, true);
-                                            throw e;
+                                    firstPage = run(client, tableRef, new Action<List<KeySlice>>() {
+                                        @Override
+                                        public List<KeySlice> run() throws TException {
+                                            return client.get_range_slices(colFam, pred, keyRange, consistency);
                                         }
-                                        logTraceResults(stopwatch.elapsed(TimeUnit.MILLISECONDS), tableRef, recv_trace, false);
-                                    } else {
-                                        try {
-                                            firstPage = client.get_range_slices(colFam, pred, keyRange, consistency);
-                                        } catch (Exception e) {
-                                            logFailedCall(tableRef);
-                                            throw e;
-                                        }
-                                    }
+                                    });
                                 } catch (UnavailableException e) {
                                     if (consistency.equals(ConsistencyLevel.ALL)) {
                                         throw new InsufficientConsistencyException("This operation requires all Cassandra nodes to be up and available.", e);
@@ -1429,38 +1377,18 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                         col.setName(colName);
                         col.setValue(contents);
                         col.setTimestamp(timestamp);
-                        CASResult casResult;
-                        if (shouldTraceQuery(tableRef)) {
-                            ByteBuffer recv_trace = client.trace_next_query();
-                            Stopwatch stopwatch = Stopwatch.createStarted();
-                            try {
-                                casResult = client.cas(
+                        CASResult casResult = run(client, tableRef, new Action<CASResult>() {
+                            @Override
+                            public CASResult run() throws TException {
+                                return client.cas(
                                         rowName,
                                         tableRef.getQualifiedName(),
                                         ImmutableList.<Column>of(),
                                         ImmutableList.of(col),
                                         ConsistencyLevel.SERIAL,
                                         writeConsistency);
-                            } catch (Exception ex) {
-                                logFailedCall(tableRef);
-                                logTraceResults(stopwatch.elapsed(TimeUnit.MILLISECONDS), tableRef, recv_trace, true);
-                                throw ex;
                             }
-                            logTraceResults(stopwatch.elapsed(TimeUnit.MILLISECONDS), tableRef, recv_trace, false);
-                        } else {
-                            try {
-                                casResult = client.cas(
-                                        rowName,
-                                        tableRef.getQualifiedName(),
-                                        ImmutableList.<Column>of(),
-                                        ImmutableList.of(col),
-                                        ConsistencyLevel.SERIAL,
-                                        writeConsistency);
-                            } catch (Exception ex) {
-                                logFailedCall(tableRef);
-                                throw ex;
-                            }
-                        }
+                        });
                         if (!casResult.isSuccess()) {
                             throw new KeyAlreadyExistsException("This transaction row already exists.", ImmutableList.of(e.getKey()));
                         }
@@ -1470,6 +1398,43 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             });
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
+        }
+    }
+
+    private interface Action<V> {
+        V run() throws TException;
+    }
+
+    private <V> V run(Client client, Set<TableReference> tableRefs, Action<V> action) throws TException {
+        if (shouldTraceQuery(tableRefs)) {
+            return trace(action, client, tableRefs);
+        } else {
+            try {
+                return action.run();
+            } catch (TException e) {
+                logFailedCall(tableRefs);
+                throw e;
+            }
+        }
+    }
+
+    private <V> V run(Client client, TableReference tableRef, Action<V> action) throws TException {
+        return run(client, ImmutableSet.of(tableRef), action);
+    }
+
+    private <V> V trace(Action<V> action, Client client, Set<TableReference> tableRefs) throws TException {
+        ByteBuffer traceId = client.trace_next_query();
+        Stopwatch stopwatch = Stopwatch.createStarted();
+        boolean failed = false;
+        try {
+            return action.run();
+        } catch (TException e) {
+            failed = true;
+            logFailedCall(tableRefs);
+            throw e;
+        } finally {
+            long duration = stopwatch.elapsed(TimeUnit.MILLISECONDS);
+            logTraceResults(duration, tableRefs, traceId, failed);
         }
     }
 
