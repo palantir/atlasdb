@@ -19,6 +19,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.Callable;
 
+import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
 
@@ -30,9 +31,15 @@ public abstract class AbstractCommand implements Callable<Integer> {
     @Option(name = {"-c", "--config"},
             title = "CONFIG PATH",
             type = OptionType.GLOBAL,
-            description = "path to yaml configuration file for atlasdb",
-            required = true)
+            description = "path to yaml configuration file for atlasdb")
     private File configFile;
+
+    @Option(name = {"--inline-config"},
+            title = "INLINE CONFIG",
+            type = OptionType.GLOBAL,
+            description = "inline configuration file for atlasdb",
+            hidden = true)
+    private String inlineConfig;
 
     @Option(name = {"--config-root"},
             title = "CONFIG ROOT",
@@ -41,17 +48,23 @@ public abstract class AbstractCommand implements Callable<Integer> {
     private String configRoot = AtlasDbConfigs.ATLASDB_CONFIG_ROOT;
 
     private AtlasDbConfig config;
-    
+
     protected AtlasDbConfig getAtlasDbConfig() {
         if (config == null) {
             try {
-                config = AtlasDbConfigs.load(configFile, configRoot);
+                if (configFile != null) {
+                    config = AtlasDbConfigs.load(configFile, configRoot);
+                } else if (inlineConfig != null) {
+                    config = AtlasDbConfigs.loadFromString(inlineConfig, "");
+                } else {
+                    throw new IllegalArgumentException("Required option '-c' is missing");
+                }
             } catch (IOException e) {
                 throw new RuntimeException(String.format("IOException thrown reading configuration file: %s",
                         configFile.getPath()), e);
             }
         }
-        
+
         return config;
     }
 
