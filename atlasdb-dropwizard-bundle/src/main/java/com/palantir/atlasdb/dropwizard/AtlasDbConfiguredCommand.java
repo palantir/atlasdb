@@ -20,6 +20,7 @@ import java.util.Map;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.dropwizard.commands.AtlasDbCommand;
 import com.palantir.atlasdb.dropwizard.commands.AtlasDbConsoleCommand;
+import com.palantir.atlasdb.dropwizard.commands.AtlasDbTimestampCommand;
 
 import io.dropwizard.Configuration;
 import io.dropwizard.cli.ConfiguredCommand;
@@ -40,6 +41,7 @@ public class AtlasDbConfiguredCommand<T extends Configuration & AtlasDbConfigura
         this.configurationClass = configurationClass;
         this.subCommands = ImmutableMap.<String, AtlasDbCommand<T>>builder()
                 .put("console", new AtlasDbConsoleCommand<>(configurationClass))
+                .put("timestamp", new AtlasDbTimestampCommand<>(configurationClass))
                 .build();
     }
 
