@@ -52,6 +52,11 @@ v0.10.0
     *    - |fixed|
          - We properly check that cells are not set to empty (zero-byte) or null.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/663>`__)
+         
+    *    - |improved|
+         - Cassandra client connection pooling will now evict idle connections over a longer period of time and has improved logic
+           for deciding whether or not a node should be blacklisted.  This should result in less connection churn
+           and therefore lower latency.  (`Pull Request <https://github.com/palantir/atlasdb/pull/667>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
