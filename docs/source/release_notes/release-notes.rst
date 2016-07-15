@@ -47,7 +47,7 @@ v0.10.0
            Products or features (such as AtlasDB Sweep) making use of wide rows should now use ``getRowsColumnRange`` instead of ``getRows`` in ``KeyValueService``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/582>`__)
 
-           Note: AtlasDB Sweep is not currently using paging.
+           Note: AtlasDB Sweep is not currently using dynamic column paging.
 
     *    - |new|
          - Products using Dropwizard bundles can now deploy `AtlasDB Console <http://palantir.github.io/atlasdb/html/cluster_management/console.html>`__ with their applications.
