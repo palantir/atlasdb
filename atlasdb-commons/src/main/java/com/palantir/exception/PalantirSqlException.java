@@ -17,8 +17,7 @@ package com.palantir.exception;
 
 import java.sql.SQLException;
 
-import org.apache.commons.lang.exception.ExceptionUtils;
-
+import com.google.common.base.Optional;
 import com.palantir.common.exception.PalantirRuntimeException;
 
 /**
@@ -73,8 +72,8 @@ public class PalantirSqlException extends PalantirRuntimeException {
     }
 
     public static PalantirSqlException create(SQLException e) {
-        // the detail message string of a throwable can be null.
-        return new PalantirSqlException(ExceptionUtils.getMessage(e), e);
+        String msg = Optional.fromNullable(e.getMessage()).or(e.getClass().getName() + "with null message");
+        return new PalantirSqlException(msg, e);
     }
 
     public static PalantirSqlException createForChaining() {
