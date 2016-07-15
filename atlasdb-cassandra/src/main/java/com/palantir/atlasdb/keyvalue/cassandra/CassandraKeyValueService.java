@@ -32,6 +32,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.Cassandra;
@@ -393,8 +394,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         int i = 1;
         int size = hostsAndCells.keySet().size();
         for (Map.Entry<InetSocketAddress, List<Cell>> hostAndCells : hostsAndCells.entrySet()) {
-            log.trace("Making request {} of {} for a loadWithTs call.  It is against host {} and table {}",
-                    i, size, hostAndCells.getKey().getHostName(), tableRef.toString());
+            if (log.isTraceEnabled()) {
+                log.trace("Making request {} of {} for a loadWithTs call.  It is against host {} and table {}",
+                        i, size, hostAndCells.getKey().getHostString(), tableRef.toString());
+            }
             i++;
             tasks.addAll(getLoadWithTsTasksForSingleHost(hostAndCells.getKey(),
                                                          tableRef,
@@ -730,25 +733,18 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         return false;
     }
 
-    private void logTraceResults(long duration, TableReference tableRef, ByteBuffer recv_trace, boolean failed) {
-        if (failed || duration > getMinimumDurationToTraceMillis()) {
-            log.error("Traced a call to {} that {}took {} ms. It will appear in system_traces with UUID={}",
-                    tableRef.getQualifiedName(),
-                    failed ? "failed and " : "",
-                    duration,
-                    CassandraKeyValueServices.convertCassandraByteBufferUUIDtoString(recv_trace));
-        }
-    }
-
     private void logFailedCall(TableReference tableRef, Exception e) {
         log.error("A call to {} failed with an exception.", tableRef.toString());// of type {}", tableRef.toString(), e.getClass());
+    }
+
+    private void logTraceResults(long duration, TableReference tableRef, ByteBuffer recv_trace, boolean failed) {
+        logTraceResults(duration, ImmutableSet.of(tableRef), recv_trace, failed);
     }
 
     private void logTraceResults(long duration, Set<TableReference> tableRefs, ByteBuffer recv_trace, boolean failed) {
         if (failed || duration > getMinimumDurationToTraceMillis()) {
             log.error("Traced a call to {} that {}took {} ms. It will appear in system_traces with UUID={}",
-                    // TODO: figure out how to nicely go from set of TableReference to comma separated string of TableReference.getQualifiedName()
-                    tableRefs,
+                    tableRefs.stream().map(TableReference::getQualifiedName).collect(Collectors.joining(", ")),
                     failed ? "failed and " : "",
                     duration,
                     CassandraKeyValueServices.convertCassandraByteBufferUUIDtoString(recv_trace));
