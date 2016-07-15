@@ -54,7 +54,26 @@ v0.10.0
          - Change
 
     *    - |changed|
-         - Updated HikariCP dependency from 2.4.3 to 2.4.7 to comply with updates in internal products.  Details of the HikariCP changes can be found `here <https://github.com/brettwooldridge/HikariCP/blob/dev/CHANGES>`__
+         - Updated HikariCP dependency from 2.4.3 to 2.4.7 to comply with updates in internal products.
+           Details of the HikariCP changes can be found `here <https://github.com/brettwooldridge/HikariCP/blob/dev/CHANGES>`__.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/662>`__)
+
+    *    - |new|
+         - AtlasDB currently allows you to create dynamic columns (wide rows), but you can only retrieve entire rows or specific columns.
+           Typically with dynamic columns, you do not know all the columns you have in advance, and this features allows you to page through dynamic columns per row, reducing pressure on the underlying KVS.
+           Products or clients (such as AtlasDB Sweep) making use of wide rows should consider using ``getRowsColumnRange`` instead of ``getRows`` in ``KeyValueService``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/582>`__)
+
+           Note: This is considered a beta feature and is not yet being used by AtlasDB Sweep.
+
+    *    - |fixed|
+         - We properly check that cells are not set to empty (zero-byte) or null.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/663>`__)
+         
+    *    - |improved|
+         - Cassandra client connection pooling will now evict idle connections over a longer period of time and has improved logic
+           for deciding whether or not a node should be blacklisted.  This should result in less connection churn
+           and therefore lower latency.  (`Pull Request <https://github.com/palantir/atlasdb/pull/667>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

@@ -185,7 +185,26 @@
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span></td>
-<td>Updated HikariCP dependency from 2.4.3 to 2.4.7 to comply with updates in internal products.  Details of the HikariCP changes can be found <a class="reference external" href="https://github.com/brettwooldridge/HikariCP/blob/dev/CHANGES">here</a></td>
+<td>Updated HikariCP dependency from 2.4.3 to 2.4.7 to comply with updates in internal products.
+Details of the HikariCP changes can be found <a class="reference external" href="https://github.com/brettwooldridge/HikariCP/blob/dev/CHANGES">here</a>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/662">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
+<td><p class="first">AtlasDB currently allows you to create dynamic columns (wide rows), but you can only retrieve entire rows or specific columns.
+Typically with dynamic columns, you do not know all the columns you have in advance, and this features allows you to page through dynamic columns per row, reducing pressure on the underlying KVS.
+Products or clients (such as AtlasDB Sweep) making use of wide rows should consider using <code class="docutils literal"><span class="pre">getRowsColumnRange</span></code> instead of <code class="docutils literal"><span class="pre">getRows</span></code> in <code class="docutils literal"><span class="pre">KeyValueService</span></code>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/582">Pull Request</a>)</p>
+<p class="last">Note: This is considered a beta feature and is not yet being used by AtlasDB Sweep.</p>
+</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>We properly check that cells are not set to empty (zero-byte) or null.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/663">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Cassandra client connection pooling will now evict idle connections over a longer period of time and has improved logic
+for deciding whether or not a node should be blacklisted.  This should result in less connection churn
+and therefore lower latency.  (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/667">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
