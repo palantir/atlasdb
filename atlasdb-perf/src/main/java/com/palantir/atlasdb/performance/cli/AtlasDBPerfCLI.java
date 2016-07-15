@@ -17,29 +17,26 @@
 
 package com.palantir.atlasdb.performance.cli;
 
-import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.StandardOpenOption;
+import java.util.Collection;
+import java.util.List;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
+import org.openjdk.jmh.annotations.BenchmarkMode;
+import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.results.RunResult;
+import org.openjdk.jmh.results.format.ResultFormatType;
+import org.openjdk.jmh.runner.Runner;
+import org.openjdk.jmh.runner.options.ChainedOptionsBuilder;
+import org.openjdk.jmh.runner.options.Options;
+import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.reflections.Reflections;
 
-import com.google.common.base.Stopwatch;
-import com.google.common.collect.Iterables;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.performance.api.ImmutablePerformanceTestResult;
-import com.palantir.atlasdb.performance.api.PerformanceTest;
-import com.palantir.atlasdb.performance.api.PerformanceTestMetadata;
-import com.palantir.atlasdb.performance.api.PerformanceTestResult;
-import com.palantir.atlasdb.performance.api.PerformanceTestUtils;
-import com.palantir.atlasdb.performance.backend.PhysicalStore;
-
+import io.airlift.airline.Arguments;
+import io.airlift.airline.Cli;
 import io.airlift.airline.Command;
 import io.airlift.airline.HelpOption;
 import io.airlift.airline.Option;
@@ -50,8 +47,9 @@ import io.airlift.airline.SingleCommand;
  *
  * @author mwakerman, bullman
  */
-@Command(name = "atlasdb-perf", description = "The AtlasDB performance test CLI.")
+@Command(name = "atlasdb-perf", description = "The AtlasDB performance benchmark CLI.")
 public class AtlasDbPerfCLI {
+
 
     //================================================================================================================
     // CLI OPTIONS
@@ -60,22 +58,25 @@ public class AtlasDbPerfCLI {
     @Inject
     private HelpOption helpOption;
 
-    @Option(name = {"-t", "--test"}, description = "The name of the performance test to run.")
-    private String TEST_NAME;
+    @Arguments(description = "The performance benchmarks to run. Leave blank to run all performance benchmarks.")
+    private static List<String> TESTS;
+
 
     @Option(name = {"-b", "--backend"}, description = "The underlying physical store to use e.g. 'POSTGRES'.")
-    private String BACKEND;
+    private static String BACKEND;
 
     @Option(name = {"-l", "--list-tests"}, description = "Lists all available tests.")
     private boolean LIST_TESTS;
 
     @Option(name = {"-o", "--output"}, description = "The file in which to store the test results. Leave blank to only write results to " +
                                                      "the console.")
-    private File OUTPUT_FILE;
+    private static String OUTPUT_FILE;
 
-    //================================================================================================================
-    // MAIN & RUN METHODS
-    //================================================================================================================
+    // Turn the backend into State that can be handed to the prepare() method of the benchmark classes.
+    @State(Scope.Thread)
+    public static class ThreadState {
+        public volatile String backend = BACKEND;
+    }
 
     public static void main(String[] args) throws Exception {
         AtlasDbPerfCLI cli = SingleCommand.singleCommand(AtlasDbPerfCLI.class).parse(args);
@@ -87,131 +88,75 @@ public class AtlasDbPerfCLI {
             return;
         }
 
-        if (hasValidArguments(cli)) {
-            cli.run();
+        if (hasValidArgs(cli)) {
+            run();
         } else {
             System.exit(1);
         }
-        // TODO (mwakerman): find the non-reaped thread rather than force an exit.
-        System.exit(0);
     }
 
-    private void run() throws Exception {
+    private static void run() throws Exception {
 
-        try (PhysicalStore physicalStore = PhysicalStore.create(PhysicalStore.Type.valueOf(BACKEND));
-             KeyValueService kvs = physicalStore.connect()) {
+        // TODO: explore the other options here?
+        ChainedOptionsBuilder optBuilder = new OptionsBuilder().forks(1);
 
-            if (kvs == null) {
-                System.err.println("Could not run performance test, unable to connect to KVS. Exiting.");
-                System.exit(1);
-            }
-
-            PerformanceTest test = getPerformanceTest(TEST_NAME);
-            test.setup(kvs);
-            Stopwatch timer = Stopwatch.createStarted();
-            test.run();
-            timer.stop();
-            test.tearDown();
-
-            PerformanceTestResult result = ImmutablePerformanceTestResult.builder()
-                    .testName(TEST_NAME)
-                    .result(timer.elapsed(TimeUnit.MILLISECONDS))
-                    .testVersion(getTestVersion(test))
-                    .testTime(new DateTime().withZone(DateTimeZone.UTC)) // Always store times in UTC.
-                    .build();
-
-            System.out.println(result);
-
-            if (OUTPUT_FILE != null) {
-                Files.write(OUTPUT_FILE.toPath(), PerformanceTestUtils.toCsvLine(result).getBytes(),
-                        StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-            }
+        if (TESTS == null) {
+            // Do all tests.
+            getAllTests().stream().forEach(clazz -> optBuilder.include(clazz.getSimpleName()));
+        } else {
+            TESTS.subList(1, TESTS.size()).stream().forEach(testName -> optBuilder.include(testName));
         }
+
+        if (OUTPUT_FILE != null) {
+            optBuilder.resultFormat(ResultFormatType.CSV);
+            optBuilder.result(OUTPUT_FILE);
+        }
+
+        Options opt = optBuilder.build();
+        Collection<RunResult> results = new Runner(opt).run();
+        processResults(results);
     }
-
-
-    //================================================================================================================
-    // UTILITY METHODS
-    //================================================================================================================
 
     /**
-     * Validates the command line arguments.
-     * @param cli the CLI being validated.
-     * @return {@code true} if the command line arguments are valid, otherwise {@code false}
+     *
+     * @param cli
      */
-    private static boolean hasValidArguments(AtlasDbPerfCLI cli) {
+    private static boolean hasValidArgs(AtlasDbPerfCLI cli) {
         boolean isValid = true;
 
-        // Backend must be present and valid.
-        if (cli.BACKEND != null) {
-            try {
-                PhysicalStore.Type.valueOf(cli.BACKEND);
-            } catch (IllegalArgumentException e) {
-                System.err.println("Invalid arguments: backed '" + cli.BACKEND + "' does not exist.");
-                isValid = false;
-            }
-        }
-
-        // A test '-t' must be present.
-        if (cli.TEST_NAME == null) {
-            System.err.println("Invalid arguments: must specify a test to run.");
+        if (cli.BACKEND == null) {
+            System.err.println("Invalid arguments: must specify a --backend.");
             isValid = false;
-        }
-
-        // Ensure the supplied test exists.
-        if (cli.TEST_NAME != null) {
-            try {
-                getPerformanceTest(cli.TEST_NAME);
-            } catch (Exception e) {
-                System.err.println("Invalid arguments: test '" + cli.TEST_NAME + "' does not exist.");
-                isValid = false;
-            }
         }
 
         return isValid;
     }
 
     /**
-     * Prints all available performance tests (one per line).
+     * Prints all available performance benchmarks (one per line).
      */
     private static void listTests() {
         getAllTests().forEach(testClass ->
-                System.out.println(testClass.getAnnotation(PerformanceTestMetadata.class).name()));
+                System.out.println(testClass.getCanonicalName()));
     }
 
     /**
-     * Scans the {@code com.palantir.atlasdb.performance.tests} packed for all classes with
-     * {@link PerformanceTestMetadata} annotations and returns those it finds.
+     * Scans the {@code com.palantir.atlasdb.performance.tests} package for all performance benchmark classes.
      *
-     * @return a set of all performance test classes.
+     * @return a set of all performance benchmark classes.
      */
     private static Set<Class<?>> getAllTests() {
+        // Note that we only allow the parent benchmark classes to be listed and this is the lowest
+        // level of granularity provided with respect to running a subset of the benchmarks.
         Reflections reflections = new Reflections("com.palantir.atlasdb.performance.tests");
-        return reflections.getTypesAnnotatedWith(PerformanceTestMetadata.class);
+        return reflections.getTypesAnnotatedWith(BenchmarkMode.class).stream().filter(
+                clazz -> !clazz.getCanonicalName().contains("generated")).collect(Collectors.toSet());
     }
 
-    /**
-     * Returns an instance of the performance test class for the specified test name.
-     *
-     * @param testName the {@link PerformanceTestMetadata} {@code name} of the performance test being instantiated.
-     * @return an instance of the performance test class identified by the provided test name.
-     * @throws IllegalAccessException if the performance test cannot be instantiated.
-     * @throws InstantiationException if the performance test cannot be instantiated.
-     */
-    private static PerformanceTest getPerformanceTest(String testName)
-            throws IllegalAccessException, InstantiationException {
-
-        return (PerformanceTest) Iterables.getOnlyElement(getAllTests().stream()
-                .filter(clazz -> clazz.getAnnotation(PerformanceTestMetadata.class).name().equals(testName))
-                .collect(Collectors.toSet())).newInstance();
-    }
-
-    /**
-     * Returns the {@link PerformanceTestMetadata#version()} annotation of the provided test.
-     * @param test the test of which to return the version.
-     * @return the version of the provided test.
-     */
-    private static int getTestVersion(PerformanceTest test) {
-        return test.getClass().getAnnotation(PerformanceTestMetadata.class).version();
+    private static void processResults(Collection<RunResult> results) {
+        for (RunResult result : results) {
+            System.out.println("result.getPrimaryResult().getStatistics().getPercentile(2.5) = " + result.getPrimaryResult().getStatistics().getPercentile(2.5));
+            System.out.println("result.getPrimaryResult().getStatistics().getPercentile(2.5) = " + result.getPrimaryResult().getStatistics().getPercentile(97.5));
+        }
     }
 }
