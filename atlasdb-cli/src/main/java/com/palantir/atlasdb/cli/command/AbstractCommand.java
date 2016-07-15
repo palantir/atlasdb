@@ -23,17 +23,20 @@ import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
 
 import io.airlift.airline.Option;
+import io.airlift.airline.OptionType;
 
 public abstract class AbstractCommand implements Callable<Integer> {
 
     @Option(name = {"-c", "--config"},
             title = "CONFIG PATH",
+            type = OptionType.GLOBAL,
             description = "path to yaml configuration file for atlasdb",
             required = true)
     private File configFile;
 
     @Option(name = {"--config-root"},
             title = "CONFIG ROOT",
+            type = OptionType.GLOBAL,
             description = "field in the config yaml file that contains the atlasdb configuration root")
     private String configRoot = AtlasDbConfigs.ATLASDB_CONFIG_ROOT;
 
