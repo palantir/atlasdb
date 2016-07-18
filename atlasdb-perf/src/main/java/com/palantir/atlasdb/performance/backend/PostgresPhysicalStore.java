@@ -48,7 +48,7 @@ public class PostgresPhysicalStore extends PhysicalStore {
 
     static {
         try {
-            File dcFile = PhysicalStoreUtils.writeResourceToTempFile(PostgresPhysicalStore.class,
+            File dcFile = PhysicalStores.writeResourceToTempFile(PostgresPhysicalStore.class,
                     POSTGRES_DOCKER_COMPOSE_PATH);
 
             docker = DockerComposeRule.builder()
