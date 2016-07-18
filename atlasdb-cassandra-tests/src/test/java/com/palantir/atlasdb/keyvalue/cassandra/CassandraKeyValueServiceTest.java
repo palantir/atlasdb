@@ -24,7 +24,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import org.junit.Before;
@@ -96,11 +95,11 @@ public class CassandraKeyValueServiceTest extends AbstractAtlasDbKeyValueService
 
     @Test
     public void testNonLockLeaderDoesNotCreateLockTable() throws InterruptedException, ExecutionException, TimeoutException {
-        Future async = async(this::createKvsAsNonLockLeader);
+        Future async = CassandraTestTools.async(executorService, this::createKvsAsNonLockLeader);
 
         Thread.sleep(5*1000);
 
-        assertThatFutureDidNotSucceedYet(async);
+        CassandraTestTools.assertThatFutureDidNotSucceedYet(async);
     }
 
     private CassandraKeyValueService createKvsAsNonLockLeader() {
@@ -110,18 +109,4 @@ public class CassandraKeyValueServiceTest extends AbstractAtlasDbKeyValueService
                     CassandraTestSuite.LEADER_CONFIG);
     }
 
-    protected Future async(Runnable callable) {
-        return executorService.submit(callable);
-    }
-
-    private void assertThatFutureDidNotSucceedYet(Future future) throws InterruptedException {
-        if (future.isDone()) {
-            try {
-                future.get();
-                throw new AssertionError("Future task should have failed but finished successfully");
-            } catch (ExecutionException e) {
-                // if execution is done, we expect it to have failed
-            }
-        }
-    }
 }

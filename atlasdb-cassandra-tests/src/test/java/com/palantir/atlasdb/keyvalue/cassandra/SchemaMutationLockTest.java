@@ -85,11 +85,13 @@ public class SchemaMutationLockTest {
     @Test
     public void doesNotPerformAnActionIfTheLockIsAlreadyHeld() {
         schemaMutationLock.runWithLock(() -> {
-            Future getLockAgain = async(() -> schemaMutationLock.runWithLock(DO_NOTHING));
+            Future getLockAgain = CassandraTestTools.async(
+                    executorService,
+                    () -> schemaMutationLock.runWithLock(DO_NOTHING));
 
             Thread.sleep(3*1000);
 
-            assertThatFutureDidNotSucceedYet(getLockAgain);
+            CassandraTestTools.assertThatFutureDidNotSucceedYet(getLockAgain);
         });
     }
 
@@ -120,23 +122,10 @@ public class SchemaMutationLockTest {
             expectedException.expect(PalantirRuntimeException.class);
             expectedException.expectMessage(expectedTimeoutErrorMessage);
 
-            Future async = async(() -> schemaMutationLock.runWithLock(DO_NOTHING));
+            Future async = CassandraTestTools.async(
+                    executorService,
+                    () -> schemaMutationLock.runWithLock(DO_NOTHING));
             async.get(10, TimeUnit.SECONDS);
         });
-    }
-
-    protected Future async(Runnable callable) {
-        return executorService.submit(callable);
-    }
-
-    private void assertThatFutureDidNotSucceedYet(Future future) throws InterruptedException {
-        if (future.isDone()) {
-            try {
-                future.get();
-                throw new AssertionError("Future task should have failed but finished successfully");
-            } catch (ExecutionException e) {
-                // if execution is done, we expect it to have failed
-            }
-        }
     }
 }
