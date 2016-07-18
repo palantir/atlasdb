@@ -36,7 +36,6 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.reflections.Reflections;
 
 import io.airlift.airline.Arguments;
-import io.airlift.airline.Cli;
 import io.airlift.airline.Command;
 import io.airlift.airline.HelpOption;
 import io.airlift.airline.Option;
@@ -48,7 +47,7 @@ import io.airlift.airline.SingleCommand;
  * @author mwakerman, bullman
  */
 @Command(name = "atlasdb-perf", description = "The AtlasDB performance benchmark CLI.")
-public class AtlasDbPerfCLI {
+public class AtlasDbPerfCli {
 
 
     //================================================================================================================
@@ -79,7 +78,7 @@ public class AtlasDbPerfCLI {
     }
 
     public static void main(String[] args) throws Exception {
-        AtlasDbPerfCLI cli = SingleCommand.singleCommand(AtlasDbPerfCLI.class).parse(args);
+        AtlasDbPerfCli cli = SingleCommand.singleCommand(AtlasDbPerfCli.class).parse(args);
         if (cli.helpOption.showHelpIfRequested()) return;
 
         // If '--list-tests' is supplied, only print available tests.
@@ -121,7 +120,7 @@ public class AtlasDbPerfCLI {
      *
      * @param cli
      */
-    private static boolean hasValidArgs(AtlasDbPerfCLI cli) {
+    private static boolean hasValidArgs(AtlasDbPerfCli cli) {
         boolean isValid = true;
 
         if (cli.BACKEND == null) {
