@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.mockito.Mockito.mock;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -74,7 +75,7 @@ public class SchemaMutationLockTest {
         ConsistencyLevel writeConsistency = ConsistencyLevel.EACH_QUORUM;
         CassandraClientPool clientPool = new CassandraClientPool(simpleManager.getConfig());
 
-        schemaMutationLock = new SchemaMutationLock(supportsCas, simpleManager, clientPool, writeConsistency);
+        schemaMutationLock = new SchemaMutationLock(supportsCas, simpleManager, clientPool, writeConsistency, mock(HiddenTables.class));
     }
 
     @Test

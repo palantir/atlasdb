@@ -149,7 +149,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     private final CassandraKeyValueServiceConfigManager configManager;
     private final Optional<CassandraJmxCompactionManager> compactionManager;
     protected final CassandraClientPool clientPool;
-    private final SchemaMutationLock schemaMutationLock;
+    private SchemaMutationLock schemaMutationLock;
     private final LeaderConfig leaderConfig;
 
     protected boolean supportsCAS = false;
@@ -174,15 +174,16 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         this.configManager = configManager;
         this.clientPool = new CassandraClientPool(configManager.getConfig());
         this.compactionManager = compactionManager;
-        this.schemaMutationLock = new SchemaMutationLock(supportsCAS, configManager, clientPool, writeConsistency);
         this.leaderConfig = leaderConfig;
     }
 
     protected void init() {
         clientPool.runOneTimeStartupChecks();
         TableReference lockTable = ensureLockTableIsCreated();
+        //TODO - Look into the change of behaviour - initializing supportsCAS before invoking SchemaMutationLock constructor. Was this a bug?
         supportsCAS = clientPool.runWithRetry(CassandraVerifier.underlyingCassandraClusterSupportsCASOperations);
         hiddenTables = new HiddenTables(lockTable);
+        schemaMutationLock = new SchemaMutationLock(supportsCAS, configManager, clientPool, writeConsistency, hiddenTables);
         createTable(AtlasDbConstants.METADATA_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA);
         lowerConsistencyWhenSafe();
         upgradeFromOlderInternalSchema();
