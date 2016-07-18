@@ -30,7 +30,11 @@ import org.apache.commons.io.IOUtils;
  *
  * @author mwakerman
  */
-public class PhysicalStores {
+public final class PhysicalStores {
+
+    private PhysicalStores() {
+        // uninstantiable
+    }
 
     public static File writeResourceToTempFile(Class clazz, String resourcePath) throws IOException {
         URL resource = clazz.getResource(resourcePath);
