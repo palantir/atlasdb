@@ -1441,7 +1441,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     @Override
     public Set<TableReference> getAllTableNames() {
-        return Sets.difference(getAllTablenamesInternal(), HiddenTables.HIDDEN_TABLES);
+        return Sets.filter(getAllTablenamesInternal(), tr -> !HiddenTables.isHidden(tr));
     }
 
     private Set<TableReference> getAllTablenamesInternal() {
@@ -1504,7 +1504,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     } else {
                         contents = value.getContents();
                     }
-                    if (!HiddenTables.HIDDEN_TABLES.contains(tableRef)) {
+                    if (!HiddenTables.isHidden(tableRef)) {
                         tableToMetadataContents.put(tableRef, contents);
                     }
                 }
