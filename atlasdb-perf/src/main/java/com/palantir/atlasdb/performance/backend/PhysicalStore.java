@@ -29,7 +29,7 @@ public abstract class PhysicalStore implements AutoCloseable {
 
     public abstract KeyValueService connect();
 
-    public static PhysicalStore create(PhysicalStore.Type type) {
+    public static PhysicalStore create(KeyValueServiceType type) {
         switch (type) {
             case POSTGRES:
                 return new PostgresPhysicalStore();
@@ -38,12 +38,6 @@ public abstract class PhysicalStore implements AutoCloseable {
                 throw new NotImplementedException();
         }
         throw new NotImplementedException();
-    }
-
-    public enum Type {
-        POSTGRES,
-        ORACLE,
-        CASSANDRA,
     }
 
 }
