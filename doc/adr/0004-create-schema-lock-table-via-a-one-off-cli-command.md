@@ -4,7 +4,7 @@ Date: 18/05/2016
 
 ## Status
 
-Accepted
+Superceded by [6. Create schema lock table using configuration](0006-create-schema-lock-table-using-configuration.md)
 
 ## Context
 
