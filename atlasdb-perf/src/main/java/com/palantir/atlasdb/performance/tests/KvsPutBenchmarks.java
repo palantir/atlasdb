@@ -50,7 +50,7 @@ import com.palantir.atlasdb.performance.backend.KeyValueServiceConnector;
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
 @Warmup(iterations = 5)
 @Measurement(iterations = 5)
-public class KvsPushBenchmarks {
+public class KvsPutBenchmarks {
 
     private static final String TABLE_NAME_1 = "performance.table1";
     private static final String TABLE_NAME_2 = "performance.table2";
@@ -75,8 +75,8 @@ public class KvsPushBenchmarks {
     public void setup(KeyValueServiceConnector connector) {
         this.connector = connector;
         kvs = connector.connect();
-        tableRef1 = TestUtils.createTable(kvs, TABLE_NAME_1, ROW_COMPONENT, COLUMN_NAME);
-        tableRef2 = TestUtils.createTable(kvs, TABLE_NAME_2, ROW_COMPONENT, COLUMN_NAME);
+        tableRef1 = KvsBenchmarks.createTable(kvs, TABLE_NAME_1, ROW_COMPONENT, COLUMN_NAME);
+        tableRef2 = KvsBenchmarks.createTable(kvs, TABLE_NAME_2, ROW_COMPONENT, COLUMN_NAME);
     }
 
     @TearDown
@@ -87,7 +87,7 @@ public class KvsPushBenchmarks {
     }
 
     @Benchmark
-    public void singleRandomPuts() {
+    public void singleRandomPut() {
         byte[] key = new byte[KEY_BYTE_ARRAY_SIZE];
         byte[] value = new byte[VALUE_BYTE_ARRAY_SIZE];
         random.nextBytes(key);
@@ -96,12 +96,12 @@ public class KvsPushBenchmarks {
     }
 
     @Benchmark
-    public void batchRandomPuts() {
+    public void batchRandomPut() {
         kvs.put(tableRef1, createBatch(BATCH_SIZE), DUMMY_TIMESTAMP);
     }
 
     @Benchmark
-    public void batchRandomMultiPuts() {
+    public void batchRandomMultiPut() {
         Map<TableReference, Map<Cell, byte[]>> multiPutMap = Maps.newHashMap();
         multiPutMap.put(tableRef1, createBatch(BATCH_SIZE));
         multiPutMap.put(tableRef2, createBatch(BATCH_SIZE));
