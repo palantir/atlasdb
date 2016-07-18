@@ -22,13 +22,21 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 class HiddenTables {
-    static final TableReference LOCK_TABLE = TableReference.createWithEmptyNamespace("_locks");
-    private static final Set<TableReference> HIDDEN_TABLES = ImmutableSet.of(
-            AtlasDbConstants.TIMESTAMP_TABLE,
-            LOCK_TABLE,
-            AtlasDbConstants.METADATA_TABLE);
+    private final TableReference lockTable;
+    private final Set<TableReference> hiddenTables;
+    static final String LOCK_TABLE_PREFIX = "_locks";
 
-    static boolean isHidden(TableReference tableReference) {
-        return HIDDEN_TABLES.contains(tableReference);
+
+    HiddenTables(TableReference lockTable) {
+        this.lockTable = lockTable;
+        this.hiddenTables = ImmutableSet.of(
+                AtlasDbConstants.TIMESTAMP_TABLE,
+                this.lockTable,
+                AtlasDbConstants.METADATA_TABLE);
     }
+
+    boolean isHidden(TableReference tableReference) {
+        return hiddenTables.contains(tableReference);
+    }
+    TableReference getLockTable() { return lockTable; }
 }

@@ -90,7 +90,7 @@ public class CassandraKeyValueServiceTest extends AbstractAtlasDbKeyValueService
                         CassandraTestSuite.CASSANDRA_KVS_CONFIG.withKeyspace("lockLeader")),
                         CassandraTestSuite.LEADER_CONFIG);
 
-        assertThat(kvs.lockTableExists(), is(true));
+        assertThat(kvs.getLockTable(), is(true));
     }
 
     @Test

@@ -28,10 +28,12 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.Cassandra;
@@ -151,6 +153,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     private final LeaderConfig leaderConfig;
 
     protected boolean supportsCAS = false;
+    protected HiddenTables hiddenTables;
 
     private ConsistencyLevel readConsistency = ConsistencyLevel.LOCAL_QUORUM;
     private final ConsistencyLevel writeConsistency = ConsistencyLevel.EACH_QUORUM;
@@ -177,63 +180,72 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     protected void init() {
         clientPool.runOneTimeStartupChecks();
-        ensureLockTableIsCreated();
+        TableReference lockTable = ensureLockTableIsCreated();
         supportsCAS = clientPool.runWithRetry(CassandraVerifier.underlyingCassandraClusterSupportsCASOperations);
+        hiddenTables = new HiddenTables(lockTable);
         createTable(AtlasDbConstants.METADATA_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA);
         lowerConsistencyWhenSafe();
         upgradeFromOlderInternalSchema();
         CassandraKeyValueServices.failQuickInInitializationIfClusterAlreadyInInconsistentState(clientPool, configManager.getConfig());
     }
 
-    private void ensureLockTableIsCreated() {
-        if (lockTableExists()) {
-            return;
+    private TableReference ensureLockTableIsCreated() {
+        java.util.Optional<TableReference> lockTable = getLockTable();
+        if (lockTable.isPresent()) {
+            return lockTable.get();
         }
 
         try {
             String lockLeader = configManager.getConfig().lockLeader();
             if (leaderConfig.localServer().equals(lockLeader)) {
                 log.info("Creating lock table because this is the lock leader: " + lockLeader);
-                createLockTable();
+                return createLockTable();
             } else {
                 log.info("Waiting for " + lockLeader + " to create lock table");
-                waitForLockTableToBeCreated();
+                return waitForLockTableToBeCreated();
             }
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
     }
 
-    private void createLockTable() {
+    private TableReference createLockTable() {
         try {
-            clientPool.run(createInternalLockTable);
+            return clientPool.run(createInternalLockTable);
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
     }
 
-    private final FunctionCheckedException<Cassandra.Client, Void, Exception> createInternalLockTable = client -> {
-        createTableInternal(client, HiddenTables.LOCK_TABLE);
-        return null;
+    private final FunctionCheckedException<Cassandra.Client, TableReference, Exception> createInternalLockTable = client -> {
+        TableReference lockTable = TableReference.createWithEmptyNamespace(HiddenTables.LOCK_TABLE_PREFIX + UUID.randomUUID());
+        createTableInternal(client, lockTable);
+        return lockTable;
     };
 
-    private void waitForLockTableToBeCreated() throws InterruptedException {
-        while (!lockTableExists()) {
+    private TableReference waitForLockTableToBeCreated() throws InterruptedException {
+        java.util.Optional<TableReference> lockTable = getLockTable();
+        while (!lockTable.isPresent()) {
             Thread.sleep(1000);
+            lockTable = getLockTable();
         }
+        return lockTable.get();
     }
 
     @VisibleForTesting
-    protected boolean lockTableExists() {
-        try {
-            return clientPool.run(doesLockTableExist);
-        } catch (Exception e) {
-            throw Throwables.throwUncheckedException(e);
+    protected java.util.Optional<TableReference> getLockTable() {
+        Set<TableReference> lockTables = getLockTables();
+        if (lockTables.size() > 1) {
+            // TODO figure out remediation - we need to delete all (or all but one) lock table.
+            throw new IllegalStateException("Multiple lock tables have been created. This happens when multiple nodes have themselves as lockLeader in the configuration. Please ensure the lockLeader is the same for each node, and restart Atlas.");
         }
+
+        return lockTables.stream().findAny();
     }
 
-    private final FunctionCheckedException<Cassandra.Client, Boolean, Exception> doesLockTableExist = client
-            -> tableAlreadyExists(client, internalTableName(HiddenTables.LOCK_TABLE));
+    private Set<TableReference> getLockTables() {
+        return getAllTableNames().stream().filter(tr -> tr.getTablename().startsWith(HiddenTables.LOCK_TABLE_PREFIX)).collect(Collectors.toSet());
+    }
 
     // for tables internal / implementation specific to this KVS; these also don't get metadata in metadata table, nor do they show up in getTablenames, nor does this use concurrency control
     private void createTableInternal(Cassandra.Client client, TableReference tableRef) throws TException {
@@ -282,7 +294,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                         log.warn("Upgrading table {} to new internal Cassandra schema", tableRef);
                         tablesToUpgrade.put(tableRef, clusterSideMetadata);
                     }
-                } else if (!(tableRef.equals(AtlasDbConstants.METADATA_TABLE) || tableRef.equals(HiddenTables.LOCK_TABLE))) { // only expected cases
+                } else if (!(tableRef.equals(AtlasDbConstants.METADATA_TABLE) || tableRef.equals(getLockTable()))) { // only expected cases
                     // Possible to get here from a race condition with another service starting up and performing schema upgrades concurrent with us doing this check
                     log.error("Found a table " + tableRef.getQualifiedName() + " that did not have persisted Atlas metadata. "
                             + "If you recently did a Palantir update, try waiting until schema upgrades are completed on all backend CLIs/services etc and restarting this service. "
@@ -1441,7 +1453,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     @Override
     public Set<TableReference> getAllTableNames() {
-        return Sets.filter(getAllTablenamesInternal(), tr -> !HiddenTables.isHidden(tr));
+        return Sets.filter(getAllTablenamesInternal(), tr -> !hiddenTables.isHidden(tr));
     }
 
     private Set<TableReference> getAllTablenamesInternal() {
@@ -1504,7 +1516,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     } else {
                         contents = value.getContents();
                     }
-                    if (!HiddenTables.isHidden(tableRef)) {
+                    if (!hiddenTables.isHidden(tableRef)) {
                         tableToMetadataContents.put(tableRef, contents);
                     }
                 }
