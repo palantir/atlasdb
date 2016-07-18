@@ -37,17 +37,24 @@ import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
  */
 public class PostgresPhysicalStore extends PhysicalStore {
 
+    private static final String POSTGRES_DB_NAME             = "atlas";
+    private static final int    POSTGRES_PORT_NUMBER         = 5432;
+    private static final String POSTGRES_USER_LOGIN          = "palantir";
+    private static final String POSTGRES_USER_PASSWORD       = "palantir";
+    private static final String POSTGRES_DOCKER_COMPOSE_PATH = "/postgres-docker-compose.yml";
+    private static final String POSTGRES_DOCKER_LOGS_DIR     = "container-logs";
+
     private static DockerComposeRule docker = null;
 
     static {
         try {
             File dcFile = PhysicalStoreUtils.writeResourceToTempFile(PostgresPhysicalStore.class,
-                    PhysicalStoreConfig.POSTGRES_DOCKER_COMPOSE_PATH);
+                    POSTGRES_DOCKER_COMPOSE_PATH);
 
             docker = DockerComposeRule.builder()
                     .file(dcFile.getAbsolutePath())
-                    .waitingForHostNetworkedPort(PhysicalStoreConfig.POSTGRES_PORT_NUMBER, toBeOpen())
-                    .saveLogsTo(PhysicalStoreConfig.POSTGRES_DOCKER_LOGS_DIR)
+                    .waitingForHostNetworkedPort(POSTGRES_PORT_NUMBER, toBeOpen())
+                    .saveLogsTo(POSTGRES_DOCKER_LOGS_DIR)
                     .build();
 
         } catch (IOException e) {
@@ -70,11 +77,11 @@ public class PostgresPhysicalStore extends PhysicalStore {
         }
 
         ImmutablePostgresConnectionConfig connectionConfig = ImmutablePostgresConnectionConfig.builder()
-                .dbName(PhysicalStoreConfig.POSTGRES_DB_NAME)
-                .dbLogin(PhysicalStoreConfig.POSTGRES_USER_LOGIN)
-                .dbPassword(PhysicalStoreConfig.POSTGRES_USER_PASSWORD)
+                .dbName(POSTGRES_DB_NAME)
+                .dbLogin(POSTGRES_USER_LOGIN)
+                .dbPassword(POSTGRES_USER_PASSWORD)
                 .host(docker.containers().ip())
-                .port(PhysicalStoreConfig.POSTGRES_PORT_NUMBER)
+                .port(POSTGRES_PORT_NUMBER)
                 .build();
 
         ImmutableDbKeyValueServiceConfig conf = ImmutableDbKeyValueServiceConfig.builder()
