@@ -54,6 +54,7 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Optional;
@@ -185,6 +186,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     private void ensureLockTableIsCreated() {
+        if (lockTableExists()) {
+            return;
+        }
+
         try {
             String lockLeader = configManager.getConfig().lockLeader();
             if (leaderConfig.localServer().equals(lockLeader)) {
@@ -207,7 +212,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         }
     }
 
-    final FunctionCheckedException<Cassandra.Client, Void, Exception> createInternalLockTable = client -> {
+    private final FunctionCheckedException<Cassandra.Client, Void, Exception> createInternalLockTable = client -> {
         createTableInternal(client, CassandraConstants.LOCK_TABLE);
         return null;
     };
@@ -218,7 +223,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         }
     }
 
-    private boolean lockTableExists() {
+    @VisibleForTesting
+    protected boolean lockTableExists() {
         try {
             return clientPool.run(doesLockTableExist);
         } catch (Exception e) {
@@ -226,7 +232,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         }
     }
 
-    final FunctionCheckedException<Cassandra.Client, Boolean, Exception> doesLockTableExist = client
+    private final FunctionCheckedException<Cassandra.Client, Boolean, Exception> doesLockTableExist = client
             -> tableAlreadyExists(client, internalTableName(CassandraConstants.LOCK_TABLE));
 
     // for tables internal / implementation specific to this KVS; these also don't get metadata in metadata table, nor do they show up in getTablenames, nor does this use concurrency control

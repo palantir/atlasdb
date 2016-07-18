@@ -16,7 +16,16 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.junit.Before;
 import org.junit.Ignore;
@@ -30,8 +39,8 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AbstractAtlasDbKeyValueServiceTest;
 
 public class CassandraKeyValueServiceTest extends AbstractAtlasDbKeyValueServiceTest {
-
     private KeyValueService keyValueService;
+    private final ExecutorService executorService = Executors.newFixedThreadPool(4);
 
     @Before
     public void setupKVS() {
@@ -75,4 +84,44 @@ public class CassandraKeyValueServiceTest extends AbstractAtlasDbKeyValueService
         Preconditions.checkArgument(!allTables.contains(table3));
     }
 
+    @Test
+    public void testLockLeaderCreatesLockTable() {
+        CassandraKeyValueService kvs = CassandraKeyValueService.create(
+                CassandraKeyValueServiceConfigManager.createSimpleManager(
+                        CassandraTestSuite.CASSANDRA_KVS_CONFIG.withKeyspace("lockLeader")),
+                        CassandraTestSuite.LEADER_CONFIG);
+
+        assertThat(kvs.lockTableExists(), is(true));
+    }
+
+    @Test
+    public void testNonLockLeaderDoesNotCreateLockTable() throws InterruptedException, ExecutionException, TimeoutException {
+        Future async = async(this::createKvsAsNonLockLeader);
+
+        Thread.sleep(5*1000);
+
+        assertThatFutureDidNotSucceedYet(async);
+    }
+
+    private CassandraKeyValueService createKvsAsNonLockLeader() {
+        return CassandraKeyValueService.create(
+                    CassandraKeyValueServiceConfigManager.createSimpleManager(
+                            CassandraTestSuite.CASSANDRA_KVS_CONFIG.withKeyspace("notLockLeader").withLockLeader("someone-else")),
+                    CassandraTestSuite.LEADER_CONFIG);
+    }
+
+    protected Future async(Runnable callable) {
+        return executorService.submit(callable);
+    }
+
+    private void assertThatFutureDidNotSucceedYet(Future future) throws InterruptedException {
+        if (future.isDone()) {
+            try {
+                future.get();
+                throw new AssertionError("Future task should have failed but finished successfully");
+            } catch (ExecutionException e) {
+                // if execution is done, we expect it to have failed
+            }
+        }
+    }
 }
