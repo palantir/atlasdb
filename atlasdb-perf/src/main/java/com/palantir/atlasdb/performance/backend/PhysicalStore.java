@@ -35,9 +35,9 @@ public abstract class PhysicalStore implements AutoCloseable {
                 return new PostgresPhysicalStore();
             case ORACLE:
             case CASSANDRA:
+            default:
                 throw new NotImplementedException();
         }
-        throw new NotImplementedException();
     }
 
 }
