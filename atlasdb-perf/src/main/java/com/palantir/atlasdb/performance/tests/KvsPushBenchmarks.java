@@ -41,7 +41,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.ImmutableDbKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.ImmutablePostgresDdlConfig;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
-import com.palantir.atlasdb.performance.cli.AtlasDbPerfCLI;
+import com.palantir.atlasdb.performance.cli.AtlasDbPerfCli;
 import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
 
 /**
@@ -75,7 +75,7 @@ public class KvsPushBenchmarks {
 
     // Note: this is run before EACH benchmark. TODO: can this run per 'group'?
     @Setup
-    public void prepare(AtlasDbPerfCLI.ThreadState state) {
+    public void prepare(AtlasDbPerfCli.ThreadState state) {
         System.out.println("state.backend = " + state.backend);
         // TODO: refactor and allow for different physical stores.
         // POSTGRES

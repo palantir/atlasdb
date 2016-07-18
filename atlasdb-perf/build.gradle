@@ -3,7 +3,7 @@ apply plugin: 'org.inferred.processors'
 apply from: '../gradle/shared.gradle'
 
 apply plugin: 'application'
-mainClassName = 'com.palantir.atlasdb.performance.cli.AtlasDbPerfCLI'
+mainClassName = 'com.palantir.atlasdb.performance.cli.AtlasDbPerfCli'
 applicationName = 'atlasdb-perf'
 
 dependencies {
