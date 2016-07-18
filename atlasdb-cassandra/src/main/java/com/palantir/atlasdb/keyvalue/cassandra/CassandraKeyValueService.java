@@ -213,7 +213,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     private final FunctionCheckedException<Cassandra.Client, Void, Exception> createInternalLockTable = client -> {
-        createTableInternal(client, CassandraConstants.LOCK_TABLE);
+        createTableInternal(client, HiddenTables.LOCK_TABLE);
         return null;
     };
 
@@ -233,7 +233,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     private final FunctionCheckedException<Cassandra.Client, Boolean, Exception> doesLockTableExist = client
-            -> tableAlreadyExists(client, internalTableName(CassandraConstants.LOCK_TABLE));
+            -> tableAlreadyExists(client, internalTableName(HiddenTables.LOCK_TABLE));
 
     // for tables internal / implementation specific to this KVS; these also don't get metadata in metadata table, nor do they show up in getTablenames, nor does this use concurrency control
     private void createTableInternal(Cassandra.Client client, TableReference tableRef) throws TException {
@@ -282,7 +282,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                         log.warn("Upgrading table {} to new internal Cassandra schema", tableRef);
                         tablesToUpgrade.put(tableRef, clusterSideMetadata);
                     }
-                } else if (!(tableRef.equals(AtlasDbConstants.METADATA_TABLE) || tableRef.equals(CassandraConstants.LOCK_TABLE))) { // only expected cases
+                } else if (!(tableRef.equals(AtlasDbConstants.METADATA_TABLE) || tableRef.equals(HiddenTables.LOCK_TABLE))) { // only expected cases
                     // Possible to get here from a race condition with another service starting up and performing schema upgrades concurrent with us doing this check
                     log.error("Found a table " + tableRef.getQualifiedName() + " that did not have persisted Atlas metadata. "
                             + "If you recently did a Palantir update, try waiting until schema upgrades are completed on all backend CLIs/services etc and restarting this service. "
@@ -1441,7 +1441,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     @Override
     public Set<TableReference> getAllTableNames() {
-        return Sets.difference(getAllTablenamesInternal(), CassandraConstants.HIDDEN_TABLES);
+        return Sets.difference(getAllTablenamesInternal(), HiddenTables.HIDDEN_TABLES);
     }
 
     private Set<TableReference> getAllTablenamesInternal() {
@@ -1504,7 +1504,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     } else {
                         contents = value.getContents();
                     }
-                    if (!CassandraConstants.HIDDEN_TABLES.contains(tableRef)) {
+                    if (!HiddenTables.HIDDEN_TABLES.contains(tableRef)) {
                         tableToMetadataContents.put(tableRef, contents);
                     }
                 }

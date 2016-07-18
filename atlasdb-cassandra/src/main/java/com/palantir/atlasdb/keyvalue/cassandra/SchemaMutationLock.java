@@ -121,7 +121,7 @@ public class SchemaMutationLock {
                     } else {
                         Column existingValue = Iterables.getOnlyElement(casResult.getCurrent_values(), null);
                         if (existingValue == null) {
-                            throw new IllegalStateException("Something is wrong with underlying locks. Consult support for guidance on manually examining and clearing locks from " + CassandraConstants.LOCK_TABLE + " table.");
+                            throw new IllegalStateException("Something is wrong with underlying locks. Consult support for guidance on manually examining and clearing locks from " + HiddenTables.LOCK_TABLE + " table.");
                         }
                         expected = ImmutableList.of(lockColumnWithValue(Longs.toByteArray(CassandraConstants.GLOBAL_DDL_LOCK_CLEARED_VALUE)));
                     }
@@ -187,7 +187,7 @@ public class SchemaMutationLock {
     private CASResult writeLockWithCAS(Cassandra.Client client, ByteBuffer rowName, List<Column> expectedLockValue, Column newLockValue) throws TException {
         return client.cas(
                 rowName,
-                CassandraConstants.LOCK_TABLE.getQualifiedName(),
+                HiddenTables.LOCK_TABLE.getQualifiedName(),
                 expectedLockValue,
                 ImmutableList.of(newLockValue),
                 ConsistencyLevel.SERIAL,
