@@ -25,8 +25,6 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 
 import org.openjdk.jmh.annotations.BenchmarkMode;
-import org.openjdk.jmh.annotations.Scope;
-import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.results.RunResult;
 import org.openjdk.jmh.results.format.ResultFormatType;
 import org.openjdk.jmh.runner.Runner;
@@ -49,66 +47,53 @@ import io.airlift.airline.SingleCommand;
 @Command(name = "atlasdb-perf", description = "The AtlasDB performance benchmark CLI.")
 public class AtlasDbPerfCli {
 
-
-    //================================================================================================================
-    // CLI OPTIONS
-    //================================================================================================================
-
     @Inject
     private HelpOption helpOption;
 
     @Arguments(description = "The performance benchmarks to run. Leave blank to run all performance benchmarks.")
-    private static List<String> TESTS;
-
+    private List<String> tests;
 
     @Option(name = {"-b", "--backend"}, description = "The underlying physical store to use e.g. 'POSTGRES'.")
-    private static String BACKEND;
+    private String backend;
 
     @Option(name = {"-l", "--list-tests"}, description = "Lists all available tests.")
-    private boolean LIST_TESTS;
+    private boolean listTests;
 
     @Option(name = {"-o", "--output"}, description = "The file in which to store the test results. Leave blank to only write results to " +
                                                      "the console.")
-    private static String OUTPUT_FILE;
-
-    // Turn the backend into State that can be handed to the prepare() method of the benchmark classes.
-    @State(Scope.Thread)
-    public static class ThreadState {
-        public volatile String backend = BACKEND;
-    }
+    private String outputFile;
 
     public static void main(String[] args) throws Exception {
         AtlasDbPerfCli cli = SingleCommand.singleCommand(AtlasDbPerfCli.class).parse(args);
-        if (cli.helpOption.showHelpIfRequested()) return;
 
-        // If '--list-tests' is supplied, only print available tests.
-        if (cli.LIST_TESTS) {
+        if (cli.helpOption.showHelpIfRequested()) {
+            return;
+        }
+
+        if (cli.listTests) {
             listTests();
             return;
         }
 
         if (hasValidArgs(cli)) {
-            run();
+            run(cli);
         } else {
             System.exit(1);
         }
     }
 
-    private static void run() throws Exception {
+    private static void run(AtlasDbPerfCli cli) throws Exception {
+        ChainedOptionsBuilder optBuilder = new OptionsBuilder()
+                .forks(1)
+                .param("backend", cli.backend);
 
-        // TODO: explore the other options here?
-        ChainedOptionsBuilder optBuilder = new OptionsBuilder().forks(1);
-
-        if (TESTS == null) {
-            // Do all tests.
-            getAllTests().stream().forEach(clazz -> optBuilder.include(clazz.getSimpleName()));
-        } else {
-            TESTS.subList(1, TESTS.size()).stream().forEach(testName -> optBuilder.include(testName));
+        if (cli.tests != null) {
+            cli.tests.stream().forEach(testName -> optBuilder.include(testName));
         }
 
-        if (OUTPUT_FILE != null) {
+        if (cli.outputFile != null) {
             optBuilder.resultFormat(ResultFormatType.CSV);
-            optBuilder.result(OUTPUT_FILE);
+            optBuilder.result(cli.outputFile);
         }
 
         Options opt = optBuilder.build();
@@ -116,14 +101,10 @@ public class AtlasDbPerfCli {
         processResults(results);
     }
 
-    /**
-     *
-     * @param cli
-     */
     private static boolean hasValidArgs(AtlasDbPerfCli cli) {
         boolean isValid = true;
 
-        if (cli.BACKEND == null) {
+        if (cli.backend == null) {
             System.err.println("Invalid arguments: must specify a --backend.");
             isValid = false;
         }
@@ -136,7 +117,7 @@ public class AtlasDbPerfCli {
      */
     private static void listTests() {
         getAllTests().forEach(testClass ->
-                System.out.println(testClass.getCanonicalName()));
+                System.out.println(testClass.getSimpleName()));
     }
 
     /**
