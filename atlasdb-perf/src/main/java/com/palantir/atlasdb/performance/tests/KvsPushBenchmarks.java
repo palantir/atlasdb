@@ -26,7 +26,6 @@ import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
-import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
@@ -39,10 +38,7 @@ import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.dbkvs.ImmutableDbKeyValueServiceConfig;
-import com.palantir.atlasdb.keyvalue.dbkvs.ImmutablePostgresDdlConfig;
-import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
-import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
+import com.palantir.atlasdb.performance.backend.KeyValueServiceConnector;
 
 /**
  * Performance benchmarks for KVS put operations.
@@ -52,72 +48,45 @@ import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
 @State(Scope.Thread)
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
+@Warmup(iterations = 5)
+@Measurement(iterations = 5)
 public class KvsPushBenchmarks {
 
-    static private final String TABLE_NAME_1 = "performance.table1";
-    static private final String TABLE_NAME_2 = "performance.table2";
-    static private final String ROW_COMPONENT = "key";
-    static private final String COLUMN_NAME = "value";
-    static private final byte [] COLUMN_NAME_IN_BYTES = COLUMN_NAME.getBytes();
-    static private final long DUMMY_TIMESTAMP = 1L;
+    private static final String TABLE_NAME_1 = "performance.table1";
+    private static final String TABLE_NAME_2 = "performance.table2";
+    private static final String ROW_COMPONENT = "key";
+    private static final String COLUMN_NAME = "value";
+    private static final byte [] COLUMN_NAME_IN_BYTES = COLUMN_NAME.getBytes();
+    private static final long DUMMY_TIMESTAMP = 1L;
 
-    // TODO: are all of the below numbers 'reasonable'?
-    static private final int VALUE_BYTE_ARRAY_SIZE = 100;
-    static private final int KEY_BYTE_ARRAY_SIZE = 32;
-    static private final long VALUE_SEED = 279L;
+    private static final int VALUE_BYTE_ARRAY_SIZE = 100;
+    private static final int KEY_BYTE_ARRAY_SIZE = 32;
+    private static final long VALUE_SEED = 279L;
+    private static final int BATCH_SIZE = 250;
 
-    static private final int BATCH_SIZE = 250;
+    private KeyValueServiceConnector connector;
+    private KeyValueService kvs;
+    private Random random = new Random(VALUE_SEED);
 
-    @Param("POSTGRES")
-    String backend;
+    private TableReference tableRef1;
+    private TableReference tableRef2;
 
-    KeyValueService kvs;
-    TableReference tableRef1;
-    TableReference tableRef2;
-    Random random = new Random(VALUE_SEED);
-
-    // Note: this is run before EACH benchmark. TODO: can this run per 'group'?
     @Setup
-    public void prepare() {
-        System.out.println("state.backend = " + backend);
-        // TODO: refactor and allow for different physical stores.
-        // POSTGRES
-        ImmutablePostgresConnectionConfig connectionConfig = ImmutablePostgresConnectionConfig.builder()
-                .dbName("postgres")
-                .dbLogin("postgres")
-                .dbPassword("palantir")
-                .host("0.0.0.0")
-                .port(5432)
-                .build();
-
-        // ORACLE TODO where the driver at?
-//        ImmutableOracleConnectionConfig connectionConfig = ImmutableOracleConnectionConfig.builder()
-//                .host("0.0.0.0")
-//                .port(1521)
-//                .sid("xe")
-//                .dbLogin("system")
-//                .dbPassword("oracle")
-//                .build();
-
-        ImmutableDbKeyValueServiceConfig conf = ImmutableDbKeyValueServiceConfig.builder()
-                .connection(connectionConfig)
-                .ddl(ImmutablePostgresDdlConfig.builder().build())
-                .build();
-
-//        kvs = ConnectionManagerAwareDbKvs.create(conf);
-
-        // Experiments with other KVSs
-        kvs = new InMemoryKeyValueService(true);
-//        kvs = RocksDbKeyValueService.create("testdb");
-
+    public void setup(KeyValueServiceConnector connector) {
+        this.connector = connector;
+        kvs = connector.connect();
         tableRef1 = TestUtils.createTable(kvs, TABLE_NAME_1, ROW_COMPONENT, COLUMN_NAME);
         tableRef2 = TestUtils.createTable(kvs, TABLE_NAME_2, ROW_COMPONENT, COLUMN_NAME);
     }
 
+    @TearDown
+    public void cleanup() throws Exception {
+        kvs.dropTables(Sets.newHashSet(tableRef1, tableRef2));
+        kvs.close();
+        connector.close();
+    }
+
     @Benchmark
-    @Warmup(iterations = 5)
-    @Measurement(iterations = 5)
-    @OutputTimeUnit(TimeUnit.MICROSECONDS)
     public void singleRandomPuts() {
         byte[] key = new byte[KEY_BYTE_ARRAY_SIZE];
         byte[] value = new byte[VALUE_BYTE_ARRAY_SIZE];
@@ -127,15 +96,11 @@ public class KvsPushBenchmarks {
     }
 
     @Benchmark
-    @Warmup(iterations = 5)
-    @Measurement(iterations = 5)
     public void batchRandomPuts() {
         kvs.put(tableRef1, createBatch(BATCH_SIZE), DUMMY_TIMESTAMP);
     }
 
     @Benchmark
-    @Warmup(iterations = 5)
-    @Measurement(iterations = 5)
     public void batchRandomMultiPuts() {
         Map<TableReference, Map<Cell, byte[]>> multiPutMap = Maps.newHashMap();
         multiPutMap.put(tableRef1, createBatch(BATCH_SIZE));
@@ -155,9 +120,4 @@ public class KvsPushBenchmarks {
         return map;
     }
 
-    @TearDown
-    public void check() {
-        kvs.dropTables(Sets.newHashSet(tableRef1, tableRef2));
-        kvs.close();
-    }
 }

@@ -17,20 +17,20 @@
 
 package com.palantir.atlasdb.performance.backend;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.io.IOUtils;
-
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.IOUtils;
 
 /**
  * Static utilities class for methods pertaining to physical stores.
  *
  * @author mwakerman
  */
-public class PhysicalStoreUtils {
+public class PhysicalStores {
 
     public static File writeResourceToTempFile(Class clazz, String resourcePath) throws IOException {
         URL resource = clazz.getResource(resourcePath);
