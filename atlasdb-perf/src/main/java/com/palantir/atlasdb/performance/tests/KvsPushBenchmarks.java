@@ -26,6 +26,7 @@ import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
+import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
@@ -41,7 +42,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.ImmutableDbKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.ImmutablePostgresDdlConfig;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
-import com.palantir.atlasdb.performance.cli.AtlasDbPerfCli;
 import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
 
 /**
@@ -68,6 +68,9 @@ public class KvsPushBenchmarks {
 
     static private final int BATCH_SIZE = 250;
 
+    @Param("POSTGRES")
+    String backend;
+
     KeyValueService kvs;
     TableReference tableRef1;
     TableReference tableRef2;
@@ -75,8 +78,8 @@ public class KvsPushBenchmarks {
 
     // Note: this is run before EACH benchmark. TODO: can this run per 'group'?
     @Setup
-    public void prepare(AtlasDbPerfCli.ThreadState state) {
-        System.out.println("state.backend = " + state.backend);
+    public void prepare() {
+        System.out.println("state.backend = " + backend);
         // TODO: refactor and allow for different physical stores.
         // POSTGRES
         ImmutablePostgresConnectionConfig connectionConfig = ImmutablePostgresConnectionConfig.builder()
