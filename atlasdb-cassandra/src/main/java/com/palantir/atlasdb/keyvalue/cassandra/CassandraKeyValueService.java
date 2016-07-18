@@ -1678,9 +1678,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         }
     }
 
-
-
-
     @Override
     public void compactInternally(TableReference tableRef) {
         Preconditions.checkArgument(!Strings.isNullOrEmpty(tableRef.getQualifiedName()), "tableRef:[%s] should not be null or empty.", tableRef);
