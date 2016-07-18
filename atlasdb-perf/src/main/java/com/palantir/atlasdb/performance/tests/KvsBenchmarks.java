@@ -27,7 +27,7 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 /**
  * Static utilities class for common performance test procedures.
  */
-public class TestUtils {
+public class KvsBenchmarks {
 
     /**
      * Creates the table and returns a reference to it.
