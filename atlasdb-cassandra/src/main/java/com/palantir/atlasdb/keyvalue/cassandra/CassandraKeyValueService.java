@@ -178,7 +178,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     protected void init() {
         clientPool.runOneTimeStartupChecks();
-        TableReference lockTable = ensureLockTableIsCreated();
+        TableReference lockTable = getOrCreateLockTable();
         hiddenTables = new HiddenTables(lockTable);
 
         boolean supportsCAS = clientPool.runWithRetry(CassandraVerifier.underlyingCassandraClusterSupportsCASOperations);
@@ -190,7 +190,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         CassandraKeyValueServices.failQuickInInitializationIfClusterAlreadyInInconsistentState(clientPool, configManager.getConfig());
     }
 
-    private TableReference ensureLockTableIsCreated() {
+    private TableReference getOrCreateLockTable() {
         java.util.Optional<TableReference> lockTable = getLockTable();
         if (lockTable.isPresent()) {
             return lockTable.get();
