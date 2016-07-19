@@ -174,12 +174,13 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         this.clientPool = new CassandraClientPool(configManager.getConfig());
         this.compactionManager = compactionManager;
         this.leaderConfig = leaderConfig;
+        this.hiddenTables = new HiddenTables();
     }
 
     protected void init() {
         clientPool.runOneTimeStartupChecks();
         TableReference lockTable = getOrCreateLockTable();
-        hiddenTables = new HiddenTables(lockTable);
+        hiddenTables.setLockTable(lockTable);
 
         boolean supportsCAS = clientPool.runWithRetry(CassandraVerifier.underlyingCassandraClusterSupportsCASOperations);
         schemaMutationLock = new SchemaMutationLock(supportsCAS, configManager, clientPool, writeConsistency, hiddenTables);
@@ -200,11 +201,13 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             String lockLeader = configManager.getConfig().lockLeader();
             if (leaderConfig.localServer().equals(lockLeader)) {
                 log.info("Creating lock table because this is the lock leader: " + lockLeader);
-                return createLockTable();
+                createLockTable();
+                return getLockTable().get();
             } else {
                 log.info("Waiting for " + lockLeader + " to create lock table");
                 return waitForLockTableToBeCreated();
             }
+
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
@@ -219,7 +222,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     private final FunctionCheckedException<Cassandra.Client, TableReference, Exception> createInternalLockTable = client -> {
-        TableReference lockTable = TableReference.createWithEmptyNamespace(HiddenTables.LOCK_TABLE_PREFIX + UUID.randomUUID());
+        String lockTableName = (HiddenTables.LOCK_TABLE_PREFIX + UUID.randomUUID()).replace('-','_');;
+        TableReference lockTable = TableReference.createWithEmptyNamespace(lockTableName);
         createTableInternal(client, lockTable);
         return lockTable;
     };
@@ -245,7 +249,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     private Set<TableReference> getLockTables() {
-        return getAllTableNames().stream().filter(tr -> tr.getTablename().startsWith(HiddenTables.LOCK_TABLE_PREFIX)).collect(Collectors.toSet());
+        return getAllTablenamesInternal().stream().filter(tr -> tr.getTablename().startsWith(HiddenTables.LOCK_TABLE_PREFIX)).collect(Collectors.toSet());
     }
 
     // for tables internal / implementation specific to this KVS; these also don't get metadata in metadata table, nor do they show up in getTablenames, nor does this use concurrency control
