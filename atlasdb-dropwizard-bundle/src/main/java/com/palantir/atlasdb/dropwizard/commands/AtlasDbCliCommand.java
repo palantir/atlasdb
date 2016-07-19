@@ -11,14 +11,14 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.cli.command.timestamp.CleanTransactionRange;
-import com.palantir.atlasdb.cli.command.timestamp.FastForwardTimestamp;
-import com.palantir.atlasdb.cli.command.timestamp.FetchTimestamp;
+import com.google.common.collect.Iterables;
+import com.palantir.atlasdb.cli.AtlasCli;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.dropwizard.AtlasDbConfigurationProvider;
 
 import io.airlift.airline.Cli;
+import io.airlift.airline.model.CommandGroupMetadata;
 import io.airlift.airline.model.CommandMetadata;
 import io.airlift.airline.model.OptionMetadata;
 import io.dropwizard.Configuration;
@@ -28,16 +28,10 @@ import net.sourceforge.argparse4j.inf.Argument;
 import net.sourceforge.argparse4j.inf.Namespace;
 import net.sourceforge.argparse4j.inf.Subparser;
 
-public class AtlasDbTimestampCommand<T extends Configuration & AtlasDbConfigurationProvider> extends AtlasDbCommand<T> {
-    private static final String COMMAND_NAME_ATTR = "timestampSubCommand";
+public class AtlasDbCliCommand<T extends Configuration & AtlasDbConfigurationProvider> extends AtlasDbCommand<T> {
+    private static final String COMMAND_NAME_ATTR = "airlineSubCommand";
     private static final Object ZERO_ARITY_ARG_CONSTANT = "<ZERO ARITY ARG CONSTANT>";
-    private static final Cli<Callable> TIMESTAMP_CLI = Cli.<Callable>builder("timestamp")
-            .withDescription("Timestamp-centric commands")
-            .withCommands(
-                    FetchTimestamp.class,
-                    CleanTransactionRange.class,
-                    FastForwardTimestamp.class)
-            .build();
+    private static final Cli<Callable> CLI = AtlasCli.buildCli();
     private static final ObjectMapper OBJECT_MAPPER;
 
     static {
@@ -47,50 +41,62 @@ public class AtlasDbTimestampCommand<T extends Configuration & AtlasDbConfigurat
         OBJECT_MAPPER.registerModule(new GuavaModule());
     }
 
-    public AtlasDbTimestampCommand(Class<T> configurationClass) {
-        super("timestamp", "Get timestamp information", configurationClass);
+    public AtlasDbCliCommand(Class<T> configurationClass) {
+        super(CLI.getMetadata().getName(), CLI.getMetadata().getDescription(), configurationClass);
     }
 
     @Override
     public void configure(Subparser subparser) {
-        for (CommandMetadata subCommand : TIMESTAMP_CLI.getMetadata().getDefaultGroupCommands()) {
+        for (CommandMetadata subCommand : CLI.getMetadata().getDefaultGroupCommands()) {
+            addCommandToParser(subparser, subCommand, ImmutableList.of());
+        }
+
+        for (CommandGroupMetadata commandGroup : CLI.getMetadata().getCommandGroups()) {
             Subparser parser = subparser.addSubparsers()
-                    .addParser(subCommand.getName())
-                    .setDefault(COMMAND_NAME_ATTR, subCommand.getName())
-                    .description(subCommand.getDescription());
+                    .addParser(commandGroup.getName())
+                    .description(commandGroup.getDescription());
+            for (CommandMetadata subCommand : commandGroup.getCommands()) {
+                addCommandToParser(parser, subCommand, ImmutableList.of(commandGroup.getName()));
+            }
+        }
+    }
 
-            List<OptionMetadata> commandOptions = ImmutableList.<OptionMetadata>builder()
-                    .addAll(subCommand.getCommandOptions())
-                    .addAll(subCommand.getGroupOptions())
-                    .build();
+    private void addCommandToParser(Subparser subparser, CommandMetadata subCommand, List<String> commandRoot) {
+        Subparser parser = subparser.addSubparsers()
+                .addParser(subCommand.getName())
+                .description(subCommand.getDescription())
+                .setDefault(COMMAND_NAME_ATTR, ImmutableList.builder().addAll(commandRoot).add(subCommand.getName()).build());
 
-            for (OptionMetadata option : commandOptions) {
-                if (option.isHidden()) {
-                    continue;
-                }
+        List<OptionMetadata> commandOptions = ImmutableList.<OptionMetadata>builder()
+                .addAll(subCommand.getCommandOptions())
+                .addAll(subCommand.getGroupOptions())
+                .build();
 
-                List<String> sortedList = option.getOptions().stream()
-                        .sorted((a, b) -> Integer.compareUnsigned(a.length(), b.length()))
-                        .collect(Collectors.toList());
-
-                String shortOption = sortedList.get(0);
-                String longOption = sortedList.get(1);
-
-                Argument arg = parser.addArgument(shortOption, longOption)
-                        .required(option.isRequired())
-                        .help(option.getDescription())
-                        .dest(longOption);
-
-                if(option.getArity() == 0) {
-                    arg.action(Arguments.storeConst());
-                    arg.setConst(ZERO_ARITY_ARG_CONSTANT);
-                } else {
-                    arg.nargs(option.getArity());
-                }
+        for (OptionMetadata option : commandOptions) {
+            if (option.isHidden()) {
+                continue;
             }
 
-            super.configure(parser);
+            List<String> sortedOptions = option.getOptions().stream()
+                    .sorted((a, b) -> Integer.compareUnsigned(a.length(), b.length()))
+                    .collect(Collectors.toList());
+
+            String longOption = Iterables.getLast(sortedOptions);
+
+            Argument arg = parser.addArgument(sortedOptions.toArray(new String[] {}))
+                    .required(option.isRequired())
+                    .help(option.getDescription())
+                    .dest(longOption);
+
+            if(option.getArity() == 0) {
+                arg.action(Arguments.storeConst());
+                arg.setConst(ZERO_ARITY_ARG_CONSTANT);
+            } else {
+                arg.nargs(option.getArity());
+            }
         }
+
+        super.configure(parser);
     }
 
     @Override
@@ -117,10 +123,10 @@ public class AtlasDbTimestampCommand<T extends Configuration & AtlasDbConfigurat
         List<String> allArgs = ImmutableList.<String>builder()
                 .add("--inline-config")
                 .add(OBJECT_MAPPER.writeValueAsString(configurationWithoutLeader))
-                .add(namespace.getString(COMMAND_NAME_ATTR))
+                .addAll(namespace.getList(COMMAND_NAME_ATTR))
                 .addAll(passedInArgs)
                 .build();
 
-        TIMESTAMP_CLI.parse(allArgs).call();
+        CLI.parse(allArgs).call();
     }
 }
