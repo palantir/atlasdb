@@ -45,6 +45,7 @@ import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelections;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.Prefix;
@@ -1101,6 +1102,28 @@ public final class TwoColumnsTable implements
                 }
             };
 
+            public static ColumnRangeSelection createPrefixRangeUnsorted(byte[] rowName, int batchSize) {
+                byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
+                return ColumnRangeSelections.createPrefixRange(EncodingUtils.add(rowNameBytes), batchSize);
+            }
+
+            public static Prefix prefixUnsorted(byte[] rowName) {
+                byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
+                return new Prefix(EncodingUtils.add(rowNameBytes));
+            }
+
+            public static ColumnRangeSelection createPrefixRange(byte[] rowName, byte[] columnName, int batchSize) {
+                byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
+                byte[] columnNameBytes = EncodingUtils.encodeSizedBytes(columnName);
+                return ColumnRangeSelections.createPrefixRange(EncodingUtils.add(rowNameBytes, columnNameBytes), batchSize);
+            }
+
+            public static Prefix prefix(byte[] rowName, byte[] columnName) {
+                byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
+                byte[] columnNameBytes = EncodingUtils.encodeSizedBytes(columnName);
+                return new Prefix(EncodingUtils.add(rowNameBytes, columnNameBytes));
+            }
+
             @Override
             public String toString() {
                 return MoreObjects.toStringHelper(getClass().getSimpleName())
@@ -1719,6 +1742,28 @@ public final class TwoColumnsTable implements
                 }
             };
 
+            public static ColumnRangeSelection createPrefixRangeUnsorted(byte[] rowName, int batchSize) {
+                byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
+                return ColumnRangeSelections.createPrefixRange(EncodingUtils.add(rowNameBytes), batchSize);
+            }
+
+            public static Prefix prefixUnsorted(byte[] rowName) {
+                byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
+                return new Prefix(EncodingUtils.add(rowNameBytes));
+            }
+
+            public static ColumnRangeSelection createPrefixRange(byte[] rowName, byte[] columnName, int batchSize) {
+                byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
+                byte[] columnNameBytes = EncodingUtils.encodeSizedBytes(columnName);
+                return ColumnRangeSelections.createPrefixRange(EncodingUtils.add(rowNameBytes, columnNameBytes), batchSize);
+            }
+
+            public static Prefix prefix(byte[] rowName, byte[] columnName) {
+                byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
+                byte[] columnNameBytes = EncodingUtils.encodeSizedBytes(columnName);
+                return new Prefix(EncodingUtils.add(rowNameBytes, columnNameBytes));
+            }
+
             @Override
             public String toString() {
                 return MoreObjects.toStringHelper(getClass().getSimpleName())
@@ -2142,6 +2187,7 @@ public final class TwoColumnsTable implements
      * {@link Collection}
      * {@link Collections2}
      * {@link ColumnRangeSelection}
+     * {@link ColumnRangeSelections}
      * {@link ColumnSelection}
      * {@link ColumnValue}
      * {@link ColumnValues}
@@ -2199,5 +2245,5 @@ public final class TwoColumnsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "4mpzPfHF+E+7FZXtSnCrLw==";
+    static String __CLASS_HASH = "OpbV7yNX3760hFqU+xKFeg==";
 }

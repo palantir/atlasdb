@@ -1,4 +1,4 @@
-package com.palantir.atlasdb.cas.generated;
+package com.palantir.atlasdb.todo.generated;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -87,31 +87,31 @@ import com.palantir.util.crypto.Sha256Hash;
 
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-public final class CheckAndSetTable implements
-        AtlasDbMutablePersistentTable<CheckAndSetTable.CheckAndSetRow,
-                                         CheckAndSetTable.CheckAndSetNamedColumnValue<?>,
-                                         CheckAndSetTable.CheckAndSetRowResult>,
-        AtlasDbNamedMutableTable<CheckAndSetTable.CheckAndSetRow,
-                                    CheckAndSetTable.CheckAndSetNamedColumnValue<?>,
-                                    CheckAndSetTable.CheckAndSetRowResult> {
+public final class TodoTable implements
+        AtlasDbMutablePersistentTable<TodoTable.TodoRow,
+                                         TodoTable.TodoNamedColumnValue<?>,
+                                         TodoTable.TodoRowResult>,
+        AtlasDbNamedMutableTable<TodoTable.TodoRow,
+                                    TodoTable.TodoNamedColumnValue<?>,
+                                    TodoTable.TodoRowResult> {
     private final Transaction t;
-    private final List<CheckAndSetTrigger> triggers;
-    private final static String rawTableName = "check_and_set";
+    private final List<TodoTrigger> triggers;
+    private final static String rawTableName = "todo";
     private final TableReference tableRef;
 
-    static CheckAndSetTable of(Transaction t, Namespace namespace) {
-        return new CheckAndSetTable(t, namespace, ImmutableList.<CheckAndSetTrigger>of());
+    static TodoTable of(Transaction t, Namespace namespace) {
+        return new TodoTable(t, namespace, ImmutableList.<TodoTrigger>of());
     }
 
-    static CheckAndSetTable of(Transaction t, Namespace namespace, CheckAndSetTrigger trigger, CheckAndSetTrigger... triggers) {
-        return new CheckAndSetTable(t, namespace, ImmutableList.<CheckAndSetTrigger>builder().add(trigger).add(triggers).build());
+    static TodoTable of(Transaction t, Namespace namespace, TodoTrigger trigger, TodoTrigger... triggers) {
+        return new TodoTable(t, namespace, ImmutableList.<TodoTrigger>builder().add(trigger).add(triggers).build());
     }
 
-    static CheckAndSetTable of(Transaction t, Namespace namespace, List<CheckAndSetTrigger> triggers) {
-        return new CheckAndSetTable(t, namespace, triggers);
+    static TodoTable of(Transaction t, Namespace namespace, List<TodoTrigger> triggers) {
+        return new TodoTable(t, namespace, triggers);
     }
 
-    private CheckAndSetTable(Transaction t, Namespace namespace, List<CheckAndSetTrigger> triggers) {
+    private TodoTable(Transaction t, Namespace namespace, List<TodoTrigger> triggers) {
         this.t = t;
         this.tableRef = TableReference.create(namespace, rawTableName);
         this.triggers = triggers;
@@ -135,19 +135,19 @@ public final class CheckAndSetTable implements
 
     /**
      * <pre>
-     * CheckAndSetRow {
+     * TodoRow {
      *   {@literal Long id};
      * }
      * </pre>
      */
-    public static final class CheckAndSetRow implements Persistable, Comparable<CheckAndSetRow> {
+    public static final class TodoRow implements Persistable, Comparable<TodoRow> {
         private final long id;
 
-        public static CheckAndSetRow of(long id) {
-            return new CheckAndSetRow(id);
+        public static TodoRow of(long id) {
+            return new TodoRow(id);
         }
 
-        private CheckAndSetRow(long id) {
+        private TodoRow(long id) {
             this.id = id;
         }
 
@@ -155,20 +155,20 @@ public final class CheckAndSetTable implements
             return id;
         }
 
-        public static Function<CheckAndSetRow, Long> getIdFun() {
-            return new Function<CheckAndSetRow, Long>() {
+        public static Function<TodoRow, Long> getIdFun() {
+            return new Function<TodoRow, Long>() {
                 @Override
-                public Long apply(CheckAndSetRow row) {
+                public Long apply(TodoRow row) {
                     return row.id;
                 }
             };
         }
 
-        public static Function<Long, CheckAndSetRow> fromIdFun() {
-            return new Function<Long, CheckAndSetRow>() {
+        public static Function<Long, TodoRow> fromIdFun() {
+            return new Function<Long, TodoRow>() {
                 @Override
-                public CheckAndSetRow apply(Long row) {
-                    return CheckAndSetRow.of(row);
+                public TodoRow apply(Long row) {
+                    return TodoRow.of(row);
                 }
             };
         }
@@ -179,13 +179,13 @@ public final class CheckAndSetTable implements
             return EncodingUtils.add(idBytes);
         }
 
-        public static final Hydrator<CheckAndSetRow> BYTES_HYDRATOR = new Hydrator<CheckAndSetRow>() {
+        public static final Hydrator<TodoRow> BYTES_HYDRATOR = new Hydrator<TodoRow>() {
             @Override
-            public CheckAndSetRow hydrateFromBytes(byte[] __input) {
+            public TodoRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
                 Long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 __index += 8;
-                return new CheckAndSetRow(id);
+                return new TodoRow(id);
             }
         };
 
@@ -207,7 +207,7 @@ public final class CheckAndSetTable implements
             if (getClass() != obj.getClass()) {
                 return false;
             }
-            CheckAndSetRow other = (CheckAndSetRow) obj;
+            TodoRow other = (TodoRow) obj;
             return Objects.equal(id, other.id);
         }
 
@@ -217,64 +217,64 @@ public final class CheckAndSetTable implements
         }
 
         @Override
-        public int compareTo(CheckAndSetRow o) {
+        public int compareTo(TodoRow o) {
             return ComparisonChain.start()
                 .compare(this.id, o.id)
                 .result();
         }
     }
 
-    public interface CheckAndSetNamedColumnValue<T> extends NamedColumnValue<T> { /* */ }
+    public interface TodoNamedColumnValue<T> extends NamedColumnValue<T> { /* */ }
 
     /**
      * <pre>
      * Column value description {
-     *   type: Long;
+     *   type: String;
      * }
      * </pre>
      */
-    public static final class Value implements CheckAndSetNamedColumnValue<Long> {
-        private final Long value;
+    public static final class Text implements TodoNamedColumnValue<String> {
+        private final String value;
 
-        public static Value of(Long value) {
-            return new Value(value);
+        public static Text of(String value) {
+            return new Text(value);
         }
 
-        private Value(Long value) {
+        private Text(String value) {
             this.value = value;
         }
 
         @Override
         public String getColumnName() {
-            return "value";
+            return "text";
         }
 
         @Override
         public String getShortColumnName() {
-            return "v";
+            return "t";
         }
 
         @Override
-        public Long getValue() {
+        public String getValue() {
             return value;
         }
 
         @Override
         public byte[] persistValue() {
-            byte[] bytes = PtBytes.toBytes(Long.MIN_VALUE ^ value);
+            byte[] bytes = PtBytes.toBytes(value);
             return CompressionUtils.compress(bytes, Compression.NONE);
         }
 
         @Override
         public byte[] persistColumnName() {
-            return PtBytes.toCachedBytes("v");
+            return PtBytes.toCachedBytes("t");
         }
 
-        public static final Hydrator<Value> BYTES_HYDRATOR = new Hydrator<Value>() {
+        public static final Hydrator<Text> BYTES_HYDRATOR = new Hydrator<Text>() {
             @Override
-            public Value hydrateFromBytes(byte[] bytes) {
+            public Text hydrateFromBytes(byte[] bytes) {
                 bytes = CompressionUtils.decompress(bytes, Compression.NONE);
-                return of(Long.MIN_VALUE ^ PtBytes.toLong(bytes, 0));
+                return of(PtBytes.toString(bytes, 0, bytes.length-0));
             }
         };
 
@@ -286,62 +286,62 @@ public final class CheckAndSetTable implements
         }
     }
 
-    public interface CheckAndSetTrigger {
-        public void putCheckAndSet(Multimap<CheckAndSetRow, ? extends CheckAndSetNamedColumnValue<?>> newRows);
+    public interface TodoTrigger {
+        public void putTodo(Multimap<TodoRow, ? extends TodoNamedColumnValue<?>> newRows);
     }
 
-    public static final class CheckAndSetRowResult implements TypedRowResult {
+    public static final class TodoRowResult implements TypedRowResult {
         private final RowResult<byte[]> row;
 
-        public static CheckAndSetRowResult of(RowResult<byte[]> row) {
-            return new CheckAndSetRowResult(row);
+        public static TodoRowResult of(RowResult<byte[]> row) {
+            return new TodoRowResult(row);
         }
 
-        private CheckAndSetRowResult(RowResult<byte[]> row) {
+        private TodoRowResult(RowResult<byte[]> row) {
             this.row = row;
         }
 
         @Override
-        public CheckAndSetRow getRowName() {
-            return CheckAndSetRow.BYTES_HYDRATOR.hydrateFromBytes(row.getRowName());
+        public TodoRow getRowName() {
+            return TodoRow.BYTES_HYDRATOR.hydrateFromBytes(row.getRowName());
         }
 
-        public static Function<CheckAndSetRowResult, CheckAndSetRow> getRowNameFun() {
-            return new Function<CheckAndSetRowResult, CheckAndSetRow>() {
+        public static Function<TodoRowResult, TodoRow> getRowNameFun() {
+            return new Function<TodoRowResult, TodoRow>() {
                 @Override
-                public CheckAndSetRow apply(CheckAndSetRowResult rowResult) {
+                public TodoRow apply(TodoRowResult rowResult) {
                     return rowResult.getRowName();
                 }
             };
         }
 
-        public static Function<RowResult<byte[]>, CheckAndSetRowResult> fromRawRowResultFun() {
-            return new Function<RowResult<byte[]>, CheckAndSetRowResult>() {
+        public static Function<RowResult<byte[]>, TodoRowResult> fromRawRowResultFun() {
+            return new Function<RowResult<byte[]>, TodoRowResult>() {
                 @Override
-                public CheckAndSetRowResult apply(RowResult<byte[]> rowResult) {
-                    return new CheckAndSetRowResult(rowResult);
+                public TodoRowResult apply(RowResult<byte[]> rowResult) {
+                    return new TodoRowResult(rowResult);
                 }
             };
         }
 
-        public boolean hasValue() {
-            return row.getColumns().containsKey(PtBytes.toCachedBytes("v"));
+        public boolean hasText() {
+            return row.getColumns().containsKey(PtBytes.toCachedBytes("t"));
         }
 
-        public Long getValue() {
-            byte[] bytes = row.getColumns().get(PtBytes.toCachedBytes("v"));
+        public String getText() {
+            byte[] bytes = row.getColumns().get(PtBytes.toCachedBytes("t"));
             if (bytes == null) {
                 return null;
             }
-            Value value = Value.BYTES_HYDRATOR.hydrateFromBytes(bytes);
+            Text value = Text.BYTES_HYDRATOR.hydrateFromBytes(bytes);
             return value.getValue();
         }
 
-        public static Function<CheckAndSetRowResult, Long> getValueFun() {
-            return new Function<CheckAndSetRowResult, Long>() {
+        public static Function<TodoRowResult, String> getTextFun() {
+            return new Function<TodoRowResult, String>() {
                 @Override
-                public Long apply(CheckAndSetRowResult rowResult) {
-                    return rowResult.getValue();
+                public String apply(TodoRowResult rowResult) {
+                    return rowResult.getText();
                 }
             };
         }
@@ -350,96 +350,96 @@ public final class CheckAndSetTable implements
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
                 .add("RowName", getRowName())
-                .add("Value", getValue())
+                .add("Text", getText())
                 .toString();
         }
     }
 
-    public enum CheckAndSetNamedColumn {
-        VALUE {
+    public enum TodoNamedColumn {
+        TEXT {
             @Override
             public byte[] getShortName() {
-                return PtBytes.toCachedBytes("v");
+                return PtBytes.toCachedBytes("t");
             }
         };
 
         public abstract byte[] getShortName();
 
-        public static Function<CheckAndSetNamedColumn, byte[]> toShortName() {
-            return new Function<CheckAndSetNamedColumn, byte[]>() {
+        public static Function<TodoNamedColumn, byte[]> toShortName() {
+            return new Function<TodoNamedColumn, byte[]>() {
                 @Override
-                public byte[] apply(CheckAndSetNamedColumn namedColumn) {
+                public byte[] apply(TodoNamedColumn namedColumn) {
                     return namedColumn.getShortName();
                 }
             };
         }
     }
 
-    public static ColumnSelection getColumnSelection(Collection<CheckAndSetNamedColumn> cols) {
-        return ColumnSelection.create(Collections2.transform(cols, CheckAndSetNamedColumn.toShortName()));
+    public static ColumnSelection getColumnSelection(Collection<TodoNamedColumn> cols) {
+        return ColumnSelection.create(Collections2.transform(cols, TodoNamedColumn.toShortName()));
     }
 
-    public static ColumnSelection getColumnSelection(CheckAndSetNamedColumn... cols) {
+    public static ColumnSelection getColumnSelection(TodoNamedColumn... cols) {
         return getColumnSelection(Arrays.asList(cols));
     }
 
-    private static final Map<String, Hydrator<? extends CheckAndSetNamedColumnValue<?>>> shortNameToHydrator =
-            ImmutableMap.<String, Hydrator<? extends CheckAndSetNamedColumnValue<?>>>builder()
-                .put("v", Value.BYTES_HYDRATOR)
+    private static final Map<String, Hydrator<? extends TodoNamedColumnValue<?>>> shortNameToHydrator =
+            ImmutableMap.<String, Hydrator<? extends TodoNamedColumnValue<?>>>builder()
+                .put("t", Text.BYTES_HYDRATOR)
                 .build();
 
-    public Map<CheckAndSetRow, Long> getValues(Collection<CheckAndSetRow> rows) {
-        Map<Cell, CheckAndSetRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
-        for (CheckAndSetRow row : rows) {
-            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("v")), row);
+    public Map<TodoRow, String> getTexts(Collection<TodoRow> rows) {
+        Map<Cell, TodoRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
+        for (TodoRow row : rows) {
+            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("t")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
-        Map<CheckAndSetRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
+        Map<TodoRow, String> ret = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> e : results.entrySet()) {
-            Long val = Value.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
+            String val = Text.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
             ret.put(cells.get(e.getKey()), val);
         }
         return ret;
     }
 
-    public void putValue(CheckAndSetRow row, Long value) {
-        put(ImmutableMultimap.of(row, Value.of(value)));
+    public void putText(TodoRow row, String value) {
+        put(ImmutableMultimap.of(row, Text.of(value)));
     }
 
-    public void putValue(Map<CheckAndSetRow, Long> map) {
-        Map<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<CheckAndSetRow, Long> e : map.entrySet()) {
-            toPut.put(e.getKey(), Value.of(e.getValue()));
+    public void putText(Map<TodoRow, String> map) {
+        Map<TodoRow, TodoNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
+        for (Entry<TodoRow, String> e : map.entrySet()) {
+            toPut.put(e.getKey(), Text.of(e.getValue()));
         }
         put(Multimaps.forMap(toPut));
     }
 
-    public void putValueUnlessExists(CheckAndSetRow row, Long value) {
-        putUnlessExists(ImmutableMultimap.of(row, Value.of(value)));
+    public void putTextUnlessExists(TodoRow row, String value) {
+        putUnlessExists(ImmutableMultimap.of(row, Text.of(value)));
     }
 
-    public void putValueUnlessExists(Map<CheckAndSetRow, Long> map) {
-        Map<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<CheckAndSetRow, Long> e : map.entrySet()) {
-            toPut.put(e.getKey(), Value.of(e.getValue()));
+    public void putTextUnlessExists(Map<TodoRow, String> map) {
+        Map<TodoRow, TodoNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
+        for (Entry<TodoRow, String> e : map.entrySet()) {
+            toPut.put(e.getKey(), Text.of(e.getValue()));
         }
         putUnlessExists(Multimaps.forMap(toPut));
     }
 
     @Override
-    public void put(Multimap<CheckAndSetRow, ? extends CheckAndSetNamedColumnValue<?>> rows) {
+    public void put(Multimap<TodoRow, ? extends TodoNamedColumnValue<?>> rows) {
         t.useTable(tableRef, this);
         t.put(tableRef, ColumnValues.toCellValues(rows));
-        for (CheckAndSetTrigger trigger : triggers) {
-            trigger.putCheckAndSet(rows);
+        for (TodoTrigger trigger : triggers) {
+            trigger.putTodo(rows);
         }
     }
 
     @Override
-    public void putUnlessExists(Multimap<CheckAndSetRow, ? extends CheckAndSetNamedColumnValue<?>> rows) {
-        Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> toPut = HashMultimap.create();
-        for (Entry<CheckAndSetRow, ? extends CheckAndSetNamedColumnValue<?>> entry : rows.entries()) {
+    public void putUnlessExists(Multimap<TodoRow, ? extends TodoNamedColumnValue<?>> rows) {
+        Multimap<TodoRow, TodoNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
+        Multimap<TodoRow, TodoNamedColumnValue<?>> toPut = HashMultimap.create();
+        for (Entry<TodoRow, ? extends TodoNamedColumnValue<?>> entry : rows.entries()) {
             if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
                 toPut.put(entry.getKey(), entry.getValue());
             }
@@ -447,71 +447,71 @@ public final class CheckAndSetTable implements
         put(toPut);
     }
 
-    public void deleteValue(CheckAndSetRow row) {
-        deleteValue(ImmutableSet.of(row));
+    public void deleteText(TodoRow row) {
+        deleteText(ImmutableSet.of(row));
     }
 
-    public void deleteValue(Iterable<CheckAndSetRow> rows) {
-        byte[] col = PtBytes.toCachedBytes("v");
+    public void deleteText(Iterable<TodoRow> rows) {
+        byte[] col = PtBytes.toCachedBytes("t");
         Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
         t.delete(tableRef, cells);
     }
 
     @Override
-    public void delete(CheckAndSetRow row) {
+    public void delete(TodoRow row) {
         delete(ImmutableSet.of(row));
     }
 
     @Override
-    public void delete(Iterable<CheckAndSetRow> rows) {
+    public void delete(Iterable<TodoRow> rows) {
         List<byte[]> rowBytes = Persistables.persistAll(rows);
         Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("v")));
+        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("t")));
         t.delete(tableRef, cells);
     }
 
     @Override
-    public Optional<CheckAndSetRowResult> getRow(CheckAndSetRow row) {
+    public Optional<TodoRowResult> getRow(TodoRow row) {
         return getRow(row, ColumnSelection.all());
     }
 
     @Override
-    public Optional<CheckAndSetRowResult> getRow(CheckAndSetRow row, ColumnSelection columns) {
+    public Optional<TodoRowResult> getRow(TodoRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
             return Optional.absent();
         } else {
-            return Optional.of(CheckAndSetRowResult.of(rowResult));
+            return Optional.of(TodoRowResult.of(rowResult));
         }
     }
 
     @Override
-    public List<CheckAndSetRowResult> getRows(Iterable<CheckAndSetRow> rows) {
+    public List<TodoRowResult> getRows(Iterable<TodoRow> rows) {
         return getRows(rows, ColumnSelection.all());
     }
 
     @Override
-    public List<CheckAndSetRowResult> getRows(Iterable<CheckAndSetRow> rows, ColumnSelection columns) {
+    public List<TodoRowResult> getRows(Iterable<TodoRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
-        List<CheckAndSetRowResult> rowResults = Lists.newArrayListWithCapacity(results.size());
+        List<TodoRowResult> rowResults = Lists.newArrayListWithCapacity(results.size());
         for (RowResult<byte[]> row : results.values()) {
-            rowResults.add(CheckAndSetRowResult.of(row));
+            rowResults.add(TodoRowResult.of(row));
         }
         return rowResults;
     }
 
     @Override
-    public List<CheckAndSetRowResult> getAsyncRows(Iterable<CheckAndSetRow> rows, ExecutorService exec) {
+    public List<TodoRowResult> getAsyncRows(Iterable<TodoRow> rows, ExecutorService exec) {
         return getAsyncRows(rows, ColumnSelection.all(), exec);
     }
 
     @Override
-    public List<CheckAndSetRowResult> getAsyncRows(final Iterable<CheckAndSetRow> rows, final ColumnSelection columns, ExecutorService exec) {
-        Callable<List<CheckAndSetRowResult>> c =
-                new Callable<List<CheckAndSetRowResult>>() {
+    public List<TodoRowResult> getAsyncRows(final Iterable<TodoRow> rows, final ColumnSelection columns, ExecutorService exec) {
+        Callable<List<TodoRowResult>> c =
+                new Callable<List<TodoRowResult>>() {
             @Override
-            public List<CheckAndSetRowResult> call() {
+            public List<TodoRowResult> call() {
                 return getRows(rows, columns);
             }
         };
@@ -519,18 +519,18 @@ public final class CheckAndSetTable implements
     }
 
     @Override
-    public List<CheckAndSetNamedColumnValue<?>> getRowColumns(CheckAndSetRow row) {
+    public List<TodoNamedColumnValue<?>> getRowColumns(TodoRow row) {
         return getRowColumns(row, ColumnSelection.all());
     }
 
     @Override
-    public List<CheckAndSetNamedColumnValue<?>> getRowColumns(CheckAndSetRow row, ColumnSelection columns) {
+    public List<TodoNamedColumnValue<?>> getRowColumns(TodoRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
             return ImmutableList.of();
         } else {
-            List<CheckAndSetNamedColumnValue<?>> ret = Lists.newArrayListWithCapacity(rowResult.getColumns().size());
+            List<TodoNamedColumnValue<?>> ret = Lists.newArrayListWithCapacity(rowResult.getColumns().size());
             for (Entry<byte[], byte[]> e : rowResult.getColumns().entrySet()) {
                 ret.add(shortNameToHydrator.get(PtBytes.toString(e.getKey())).hydrateFromBytes(e.getValue()));
             }
@@ -539,41 +539,41 @@ public final class CheckAndSetTable implements
     }
 
     @Override
-    public Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> getRowsMultimap(Iterable<CheckAndSetRow> rows) {
+    public Multimap<TodoRow, TodoNamedColumnValue<?>> getRowsMultimap(Iterable<TodoRow> rows) {
         return getRowsMultimapInternal(rows, ColumnSelection.all());
     }
 
     @Override
-    public Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> getRowsMultimap(Iterable<CheckAndSetRow> rows, ColumnSelection columns) {
+    public Multimap<TodoRow, TodoNamedColumnValue<?>> getRowsMultimap(Iterable<TodoRow> rows, ColumnSelection columns) {
         return getRowsMultimapInternal(rows, columns);
     }
 
     @Override
-    public Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> getAsyncRowsMultimap(Iterable<CheckAndSetRow> rows, ExecutorService exec) {
+    public Multimap<TodoRow, TodoNamedColumnValue<?>> getAsyncRowsMultimap(Iterable<TodoRow> rows, ExecutorService exec) {
         return getAsyncRowsMultimap(rows, ColumnSelection.all(), exec);
     }
 
     @Override
-    public Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> getAsyncRowsMultimap(final Iterable<CheckAndSetRow> rows, final ColumnSelection columns, ExecutorService exec) {
-        Callable<Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>>> c =
-                new Callable<Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>>>() {
+    public Multimap<TodoRow, TodoNamedColumnValue<?>> getAsyncRowsMultimap(final Iterable<TodoRow> rows, final ColumnSelection columns, ExecutorService exec) {
+        Callable<Multimap<TodoRow, TodoNamedColumnValue<?>>> c =
+                new Callable<Multimap<TodoRow, TodoNamedColumnValue<?>>>() {
             @Override
-            public Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> call() {
+            public Multimap<TodoRow, TodoNamedColumnValue<?>> call() {
                 return getRowsMultimapInternal(rows, columns);
             }
         };
         return AsyncProxy.create(exec.submit(c), Multimap.class);
     }
 
-    private Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> getRowsMultimapInternal(Iterable<CheckAndSetRow> rows, ColumnSelection columns) {
+    private Multimap<TodoRow, TodoNamedColumnValue<?>> getRowsMultimapInternal(Iterable<TodoRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         return getRowMapFromRowResults(results.values());
     }
 
-    private static Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> rowMap = HashMultimap.create();
+    private static Multimap<TodoRow, TodoNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
+        Multimap<TodoRow, TodoNamedColumnValue<?>> rowMap = HashMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
-            CheckAndSetRow row = CheckAndSetRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
+            TodoRow row = TodoRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
                 rowMap.put(row, shortNameToHydrator.get(PtBytes.toString(e.getKey())).hydrateFromBytes(e.getValue()));
             }
@@ -582,12 +582,12 @@ public final class CheckAndSetTable implements
     }
 
     @Override
-    public Map<CheckAndSetRow, BatchingVisitable<CheckAndSetNamedColumnValue<?>>> getRowsColumnRange(Iterable<CheckAndSetRow> rows, ColumnRangeSelection columnRangeSelection) {
+    public Map<TodoRow, BatchingVisitable<TodoNamedColumnValue<?>>> getRowsColumnRange(Iterable<TodoRow> rows, ColumnRangeSelection columnRangeSelection) {
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-        Map<CheckAndSetRow, BatchingVisitable<CheckAndSetNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        Map<TodoRow, BatchingVisitable<TodoNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
-            CheckAndSetRow row = CheckAndSetRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-            BatchingVisitable<CheckAndSetNamedColumnValue<?>> bv = BatchingVisitables.transform(e.getValue(), result -> {
+            TodoRow row = TodoRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            BatchingVisitable<TodoNamedColumnValue<?>> bv = BatchingVisitables.transform(e.getValue(), result -> {
                 return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
             });
             transformed.put(row, bv);
@@ -595,16 +595,16 @@ public final class CheckAndSetTable implements
         return transformed;
     }
 
-    public BatchingVisitableView<CheckAndSetRowResult> getAllRowsUnordered() {
+    public BatchingVisitableView<TodoRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(ColumnSelection.all());
     }
 
-    public BatchingVisitableView<CheckAndSetRowResult> getAllRowsUnordered(ColumnSelection columns) {
+    public BatchingVisitableView<TodoRowResult> getAllRowsUnordered(ColumnSelection columns) {
         return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder().retainColumns(columns).build()),
-                new Function<RowResult<byte[]>, CheckAndSetRowResult>() {
+                new Function<RowResult<byte[]>, TodoRowResult>() {
             @Override
-            public CheckAndSetRowResult apply(RowResult<byte[]> input) {
-                return CheckAndSetRowResult.of(input);
+            public TodoRowResult apply(RowResult<byte[]> input) {
+                return TodoRowResult.of(input);
             }
         });
     }
@@ -706,5 +706,5 @@ public final class CheckAndSetTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "m8r+jB+WbBueDre5Y1+v7w==";
+    static String __CLASS_HASH = "PDWxNgCA0CO49Ejai81kBQ==";
 }
