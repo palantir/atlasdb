@@ -18,14 +18,21 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.fail;
 
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.IntStream;
 
+import org.apache.thrift.TException;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -33,6 +40,7 @@ import org.junit.Test;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AbstractAtlasDbKeyValueServiceTest;
@@ -70,7 +78,7 @@ public class CassandraKeyValueServiceTest extends AbstractAtlasDbKeyValueService
     }
 
     @Test
-    public void testCreateTableCaseInsensitive() {
+    public void testCreateTableCaseInsensitive() throws TException {
         TableReference table1 = TableReference.createFromFullyQualifiedName("ns.tAbLe");
         TableReference table2 = TableReference.createFromFullyQualifiedName("ns.table");
         TableReference table3 = TableReference.createFromFullyQualifiedName("ns.TABle");
@@ -81,16 +89,22 @@ public class CassandraKeyValueServiceTest extends AbstractAtlasDbKeyValueService
         Preconditions.checkArgument(allTables.contains(table1));
         Preconditions.checkArgument(!allTables.contains(table2));
         Preconditions.checkArgument(!allTables.contains(table3));
+
+        //CassandraTestTools.dropTables(CassandraTestSuite.CASSANDRA_KVS_CONFIG);
     }
 
     @Test
-    public void testLockLeaderCreatesLockTable() {
+    public void testLockLeaderCreateLockTable() throws TException {
+        ImmutableCassandraKeyValueServiceConfig config = CassandraTestSuite.CASSANDRA_KVS_CONFIG.withKeyspace("lockLeaderOther");
         CassandraKeyValueService kvs = CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(
-                        CassandraTestSuite.CASSANDRA_KVS_CONFIG.withKeyspace("lockLeader")),
-                        CassandraTestSuite.LEADER_CONFIG);
+                CassandraKeyValueServiceConfigManager.createSimpleManager(config),
+                CassandraTestSuite.LEADER_CONFIG);
 
-        assertThat(kvs.getLockTable(), is(true));
+        Optional<TableReference> lockTable = kvs.getLockTable();
+        assertThat(lockTable.isPresent(), is(true));
+
+        kvs.dropTable(lockTable.get());
+        CassandraTestTools.dropTables(config);
     }
 
     @Test
@@ -102,11 +116,38 @@ public class CassandraKeyValueServiceTest extends AbstractAtlasDbKeyValueService
         CassandraTestTools.assertThatFutureDidNotSucceedYet(async);
     }
 
+    @Test
+    public void testCreateMultipleLockTables() throws TException {
+        String keyspace = "multipleLockTables";
+        CassandraKeyValueServiceConfigManager configManager = CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.CASSANDRA_KVS_CONFIG.withKeyspace(keyspace));
+
+        try {
+            int threadCount = 3;
+            CyclicBarrier cyclicBarrier = new CyclicBarrier(threadCount);
+            ForkJoinPool threadPool = new ForkJoinPool(threadCount);
+
+            threadPool.submit(() -> {
+                IntStream.range(0, threadCount).parallel().forEach(i -> {
+                    try {
+                        cyclicBarrier.await();
+                        CassandraKeyValueService.create(configManager, CassandraTestSuite.LEADER_CONFIG);
+                    } catch (BrokenBarrierException | InterruptedException e) {
+                        // Do nothing
+                    }
+                });
+            });
+            fail("Expected IllegalStateException when creating multiple lock tables"); // wanted an exception
+        } catch (IllegalStateException e) {
+            // expected
+        } finally {
+            CassandraTestTools.dropTables(configManager.getConfig());
+        }
+    }
+
     private CassandraKeyValueService createKvsAsNonLockLeader() {
         return CassandraKeyValueService.create(
                     CassandraKeyValueServiceConfigManager.createSimpleManager(
                             CassandraTestSuite.CASSANDRA_KVS_CONFIG.withKeyspace("notLockLeader").withLockLeader("someone-else")),
                     CassandraTestSuite.LEADER_CONFIG);
     }
-
 }

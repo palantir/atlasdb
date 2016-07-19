@@ -24,10 +24,15 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.cassandra.thrift.Cassandra;
+import org.apache.cassandra.transport.messages.ResultMessage;
+import org.apache.thrift.TException;
 import org.joda.time.Duration;
 
 import com.jayway.awaitility.Awaitility;
 import com.jayway.awaitility.core.ConditionTimeoutException;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.common.base.FunctionCheckedException;
 
 /**
  * Utilities for ETE tests
@@ -73,5 +78,16 @@ class CassandraTestTools {
                 // if execution is done, we expect it to have failed
             }
         }
+    }
+
+    static void dropTables(final CassandraKeyValueServiceConfig config) throws TException {
+        CassandraClientPool clientPool = new CassandraClientPool(config);
+        clientPool.run(new FunctionCheckedException<Cassandra.Client, Void, TException>() {
+            @Override
+            public Void apply(Cassandra.Client client) throws TException {
+                client.system_drop_keyspace(config.keyspace());
+                return null;
+            }
+        });
     }
 }
