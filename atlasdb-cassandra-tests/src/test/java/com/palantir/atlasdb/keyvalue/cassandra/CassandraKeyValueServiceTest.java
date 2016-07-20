@@ -100,7 +100,7 @@ public class CassandraKeyValueServiceTest extends AbstractAtlasDbKeyValueService
     }
 
     @Test(timeout = 3000L)
-    public void testLockLeaderCreatesLockTable() throws TException {
+    public void testLockLeaderCreatesLockTable() throws TException, InterruptedException {
         ImmutableCassandraKeyValueServiceConfig config = CassandraTestSuite.CASSANDRA_KVS_CONFIG.withKeyspace("lockLeader");
         CassandraKeyValueService kvs = createKVS(config);
 
