@@ -15,7 +15,7 @@
  *
  */
 
-package com.palantir.atlasdb.performance.tests;
+package com.palantir.atlasdb.performance.benchmarks;
 
 import java.util.Map;
 import java.util.Random;
