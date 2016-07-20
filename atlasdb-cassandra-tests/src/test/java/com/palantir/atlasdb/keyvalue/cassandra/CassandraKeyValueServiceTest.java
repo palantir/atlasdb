@@ -127,6 +127,17 @@ public class CassandraKeyValueServiceTest extends AbstractAtlasDbKeyValueService
     public void testCreateMultipleLockTables() throws TException, InterruptedException {
         String keyspace = "multipleLockTables";
         ImmutableCassandraKeyValueServiceConfig config = CassandraTestSuite.CASSANDRA_KVS_CONFIG.withKeyspace(keyspace);
+
+        AtomicInteger timesThrown = new AtomicInteger(0);
+        for (int numAttempts = 0; numAttempts < 10 && timesThrown.get() == 0; numAttempts++) {
+            timesThrown = createMultipleLockTables(config);
+        }
+
+        System.out.println("Times thrown: " + timesThrown.get());
+        assertThat("Expected to throw, but didn't :-(", timesThrown.get() > 0);
+    }
+
+    private AtomicInteger createMultipleLockTables(ImmutableCassandraKeyValueServiceConfig config) throws TException, InterruptedException {
         CassandraKeyValueServiceConfigManager configManager = CassandraKeyValueServiceConfigManager.createSimpleManager(config);
         CassandraTestTools.dropKeyspaceIfExists(config);
 
@@ -155,9 +166,7 @@ public class CassandraKeyValueServiceTest extends AbstractAtlasDbKeyValueService
         threadPool.awaitTermination(2, TimeUnit.SECONDS);
 
         CassandraTestTools.dropKeyspaceIfExists(configManager.getConfig());
-
-        System.out.println("Times thrown: " + timesThrown.get());
-        assertThat("Expected to throw, but didn't :-(", timesThrown.get() > 0);
+        return timesThrown;
     }
 
     private CassandraKeyValueService createKvsAsNonLockLeader() {
