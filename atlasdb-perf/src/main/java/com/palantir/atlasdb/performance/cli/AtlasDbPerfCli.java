@@ -17,6 +17,8 @@
 
 package com.palantir.atlasdb.performance.cli;
 
+import java.io.File;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -24,12 +26,15 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 
 import org.openjdk.jmh.annotations.Benchmark;
-import org.openjdk.jmh.results.format.ResultFormatType;
+import org.openjdk.jmh.results.RunResult;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.options.ChainedOptionsBuilder;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.reflections.Reflections;
 import org.reflections.scanners.MethodAnnotationsScanner;
+
+import com.palantir.atlasdb.performance.BenchmarkParam;
+import com.palantir.atlasdb.performance.PerformanceResults;
 
 import io.airlift.airline.Arguments;
 import io.airlift.airline.Command;
@@ -83,19 +88,16 @@ public class AtlasDbPerfCli {
     private static void run(AtlasDbPerfCli cli) throws Exception {
         ChainedOptionsBuilder optBuilder = new OptionsBuilder()
                 .forks(1)
-                // the parameter name ("type") must match instance variable in KeyValueServiceConnector
-                .param("type", cli.backend);
+                .param(BenchmarkParam.BACKEND.getKey(), cli.backend);
 
         if (cli.tests != null) {
             cli.tests.stream().forEach(testName -> optBuilder.include(testName));
         }
 
+        Collection<RunResult> results = new Runner(optBuilder.build()).run();
         if (cli.outputFile != null) {
-            optBuilder.resultFormat(ResultFormatType.CSV);
-            optBuilder.result(cli.outputFile);
+            new PerformanceResults(results).writeToFile(new File(cli.outputFile));
         }
-
-        new Runner(optBuilder.build()).run();
     }
 
     private static boolean hasValidArgs(AtlasDbPerfCli cli) {
