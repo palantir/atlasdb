@@ -123,7 +123,7 @@ public abstract class ConnectionConfig {
         config.setMaxLifetime(TimeUnit.SECONDS.toMillis(getMaxConnectionAge()));
         config.setIdleTimeout(TimeUnit.SECONDS.toMillis(getMaxIdleTime()));
         config.setLeakDetectionThreshold(getUnreturnedConnectionTimeout());
-        config.setConnectionTimeout(getCheckoutTimeout());
+        config.setConnectionTimeout(TimeUnit.SECONDS.toMillis(getConnectionTimeoutSeconds()));
 
         // TODO: See if driver supports JDBC4 (isValid()) and use it.
         config.setConnectionTestQuery(getTestQuery());
