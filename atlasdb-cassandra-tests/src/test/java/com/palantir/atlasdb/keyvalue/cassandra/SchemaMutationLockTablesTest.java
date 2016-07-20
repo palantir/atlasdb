@@ -27,12 +27,12 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public class SchemaMutationLockTablesTest {
     private ExecutorService executorService;
-    CassandraKeyValueServiceConfigManager configManager = CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.CASSANDRA_KVS_CONFIG);
+    CassandraKeyValueServiceConfig config = CassandraTestSuite.CASSANDRA_KVS_CONFIG;
     private CassandraClientPool clientPool = new CassandraClientPool(CassandraTestSuite.CASSANDRA_KVS_CONFIG);
 
     @Before
@@ -47,22 +47,22 @@ public class SchemaMutationLockTablesTest {
 
     @Test
     public void shouldReturnALockTableIfNoneExist() {
-        SchemaMutationLockTables lockTables = new SchemaMutationLockTables(clientPool, configManager);
+        SchemaMutationLockTables lockTables = new SchemaMutationLockTables(clientPool, config);
 
         assertThat(lockTables.getOnlyTable(), isA(TableReference.class));
     }
 
     @Test
     public void shouldReturnTheSameLockTableOnMultipleCalls() {
-        SchemaMutationLockTables lockTables = new SchemaMutationLockTables(clientPool, configManager);
+        SchemaMutationLockTables lockTables = new SchemaMutationLockTables(clientPool, config);
 
         assertThat(lockTables.getOnlyTable(), is(lockTables.getOnlyTable()));
     }
 
     @Test
     public void newLockTablesObjectsShouldUseAlreadyCreatedTables() {
-        SchemaMutationLockTables lockTables1 = new SchemaMutationLockTables(clientPool, configManager);
-        SchemaMutationLockTables lockTables2 = new SchemaMutationLockTables(clientPool, configManager);
+        SchemaMutationLockTables lockTables1 = new SchemaMutationLockTables(clientPool, config);
+        SchemaMutationLockTables lockTables2 = new SchemaMutationLockTables(clientPool, config);
 
         assertThat(lockTables1.getOnlyTable(), is(lockTables2.getOnlyTable()));
     }

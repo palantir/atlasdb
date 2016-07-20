@@ -1,6 +1,5 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
@@ -12,7 +11,6 @@ import org.apache.thrift.TException;
 
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
@@ -20,15 +18,12 @@ import com.palantir.common.base.Throwables;
 public class SchemaMutationLockTables {
     private static final Predicate<String> IS_LOCK_TABLE = table -> table.startsWith(HiddenTables.LOCK_TABLE_PREFIX);
     private final CassandraClientPool clientPool;
-    private CassandraKeyValueServiceConfigManager configManager;
     private final CassandraKeyValueServiceConfig config;
 
-    private Optional<TableReference> lockTable = Optional.empty();
 
-    public SchemaMutationLockTables(CassandraClientPool clientPool, CassandraKeyValueServiceConfigManager configManager) {
+    public SchemaMutationLockTables(CassandraClientPool clientPool, CassandraKeyValueServiceConfig config) {
         this.clientPool = clientPool;
-        this.configManager = configManager;
-        this.config = configManager.getConfig();
+        this.config = config;
     }
 
     private final FunctionCheckedException<Cassandra.Client, TableReference, Exception> ensureLockTableExists() {
@@ -67,16 +62,12 @@ public class SchemaMutationLockTables {
     };
 
     private void createTableInternal(Cassandra.Client client, TableReference tableRef) throws TException {
-        CassandraKeyValueServiceConfig config = configManager.getConfig();
         CfDef cf = CassandraConstants.getStandardCfDef(config.keyspace(), CassandraKeyValueService.internalTableName(tableRef));
         client.system_add_column_family(cf);
         CassandraKeyValueServices.waitForSchemaVersions(client, tableRef.getQualifiedName(), config.schemaMutationTimeoutMillis());
     }
 
     public TableReference getOnlyTable() {
-        if (!lockTable.isPresent()) {
-            lockTable = Optional.of(getOrCreateLockTable());
-        }
-        return lockTable.get();
+            return getOrCreateLockTable();
     }
 }
