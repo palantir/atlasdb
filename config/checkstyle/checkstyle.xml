@@ -39,6 +39,11 @@
           <property name="option" value="top"/>
           <property name="ordered" value="true"/>
         </module>
+        <module name="RegexpSinglelineJava">
+            <property name="format" value="(?i)log(ger)?\.(debug|info|warn|error)\(.*%[sd]"/>
+            <property name="message" value="SLF4J loggers support '{}' style formatting."/>
+            <property name="ignoreComments" value="true"/>
+        </module>
     </module>
 
 </module>
