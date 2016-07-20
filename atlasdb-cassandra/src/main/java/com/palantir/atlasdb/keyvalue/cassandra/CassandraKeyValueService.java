@@ -242,11 +242,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     protected java.util.Optional<TableReference> getLockTable() {
         Set<TableReference> lockTables = getLockTables();
         if (lockTables.size() > 1) {
-            // TODO figure out remediation - we need to delete all (or all but one) lock table.
             throw new IllegalStateException(
-                    "Multiple lock tables have been created.\n" +
+                    "Multiple schema mutation lock tables have been created.\n" +
                     "This happens when multiple nodes have themselves as lockLeader in the configuration.\n" +
-                    "Please ensure the lockLeader is the same for each node, and restart Atlas.\n" +
+                    "Please ensure the lockLeader is the same for each node, stop all Atlas servers, delete all created schema mutation lock tables, and restart Atlas.\n" +
                     "Tables created: " + lockTables);
         }
 
