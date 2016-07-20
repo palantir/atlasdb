@@ -32,7 +32,7 @@ public abstract class PhysicalStore implements AutoCloseable {
     public static PhysicalStore create(KeyValueServiceType type) {
         switch (type) {
             case POSTGRES:
-                return new PostgresPhysicalStore();
+                return PostgresPhysicalStore.create();
             case ORACLE:
             case CASSANDRA:
             default:
