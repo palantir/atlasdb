@@ -198,7 +198,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         }
 
         try {
-            String lockLeader = configManager.getConfig().lockLeader();
+            String lockLeader = configManager.getConfig().lockLeader().or(leaderConfig.leaders().iterator().next());
             if (leaderConfig.localServer().equals(lockLeader)) {
                 log.info("Creating lock table because this is the lock leader: {}", lockLeader);
                 TableReference createdTable = createLockTable();

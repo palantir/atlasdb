@@ -99,8 +99,8 @@ public class CassandraKeyValueServiceTest extends AbstractAtlasDbKeyValueService
         Preconditions.checkArgument(!allTables.contains(table3));
     }
 
-    @Test
-    public void testLockLeaderCreateLockTable() throws TException {
+    @Test(timeout = 3000L)
+    public void testLockLeaderCreatesLockTable() throws TException {
         ImmutableCassandraKeyValueServiceConfig config = CassandraTestSuite.CASSANDRA_KVS_CONFIG.withKeyspace("lockLeader");
         CassandraKeyValueService kvs = createKVS(config);
 
@@ -140,6 +140,12 @@ public class CassandraKeyValueServiceTest extends AbstractAtlasDbKeyValueService
         assertThat(async.isDone(), is(true));
 
         CassandraTestTools.dropKeyspaceIfExists(config);
+    }
+
+    @Test(timeout = 3000L)
+    public void testNullLockLeaderDefaultsToFirstInLeaderList() {
+        ImmutableCassandraKeyValueServiceConfig config = CassandraTestSuite.CASSANDRA_KVS_CONFIG_NO_LOCK_LEADER.withKeyspace("nullLockLeader");
+        CassandraKeyValueService kvs = createKVS(config);
     }
 
     @Test

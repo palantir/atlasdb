@@ -59,6 +59,8 @@ public class CassandraTestSuite {
 
     static InetSocketAddress CASSANDRA_THRIFT_ADDRESS;
 
+    static ImmutableCassandraKeyValueServiceConfig CASSANDRA_KVS_CONFIG_NO_LOCK_LEADER;
+
     static ImmutableCassandraKeyValueServiceConfig CASSANDRA_KVS_CONFIG;
 
     static LeaderConfig LEADER_CONFIG;
@@ -69,7 +71,7 @@ public class CassandraTestSuite {
         String hostname = port.getIp();
         CASSANDRA_THRIFT_ADDRESS = new InetSocketAddress(hostname, port.getExternalPort());
 
-        CASSANDRA_KVS_CONFIG = ImmutableCassandraKeyValueServiceConfig.builder()
+        CASSANDRA_KVS_CONFIG_NO_LOCK_LEADER = ImmutableCassandraKeyValueServiceConfig.builder()
                 .addServers(CASSANDRA_THRIFT_ADDRESS)
                 .poolSize(20)
                 .keyspace("atlasdb")
@@ -84,8 +86,9 @@ public class CassandraTestSuite {
                 .fetchBatchCount(1000)
                 .safetyDisabled(false)
                 .autoRefreshNodes(false)
-                .lockLeader(hostname)
                 .build();
+
+        CASSANDRA_KVS_CONFIG = CASSANDRA_KVS_CONFIG_NO_LOCK_LEADER.withLockLeader(hostname);
 
         LEADER_CONFIG = ImmutableLeaderConfig
                 .builder()
