@@ -25,14 +25,17 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.cassandra.thrift.Cassandra;
-import org.apache.cassandra.transport.messages.ResultMessage;
+import org.apache.cassandra.thrift.CfDef;
+import org.apache.cassandra.thrift.InvalidRequestException;
+import org.apache.cassandra.thrift.KsDef;
 import org.apache.thrift.TException;
 import org.joda.time.Duration;
 
+import com.google.common.collect.ImmutableList;
 import com.jayway.awaitility.Awaitility;
 import com.jayway.awaitility.core.ConditionTimeoutException;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.common.base.FunctionCheckedException;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 
 /**
  * Utilities for ETE tests
@@ -80,14 +83,32 @@ class CassandraTestTools {
         }
     }
 
-    static void dropTables(final CassandraKeyValueServiceConfig config) throws TException {
-        CassandraClientPool clientPool = new CassandraClientPool(config);
-        clientPool.run(new FunctionCheckedException<Cassandra.Client, Void, TException>() {
-            @Override
-            public Void apply(Cassandra.Client client) throws TException {
-                client.system_drop_keyspace(config.keyspace());
+    static void dropKeyspaceIfExists(final CassandraKeyValueServiceConfig config) throws TException {
+        try {
+            CassandraClientPool clientPool = new CassandraClientPool(config);
+            String keyspace = config.keyspace();
+            clientPool.run(client -> {
+                client.system_drop_keyspace(keyspace);
                 return null;
-            }
-        });
+            });
+        } catch (InvalidRequestException | CassandraClientFactory.ClientCreationFailedException e) {
+            // This happens when the keyspace didn't exist in the first place. In this case, our work is done.
+            System.out.println("Didn't drop keyspace " + config.keyspace() + ", likely because it didn't exist");
+            System.out.println("Message: " + e.getMessage());
+            System.out.println("Cause: " + e.getCause().getMessage());
+        }
+    }
+
+    static void createKeyspace(ImmutableCassandraKeyValueServiceConfig config) throws TException {
+        // Shamelessly copied from CassandraVerifier. TODO does it make sense to deduplicate this code?
+        InetSocketAddress host = config.servers().iterator().next();
+        Cassandra.Client client = CassandraClientFactory.getClientInternal(host, config.credentials(),
+                config.ssl(), config.socketTimeoutMillis(), config.socketQueryTimeoutMillis());
+        KsDef ks = new KsDef(config.keyspace(), CassandraConstants.NETWORK_STRATEGY, ImmutableList.<CfDef>of());
+        CassandraVerifier.checkAndSetReplicationFactor(client, ks, true, config.replicationFactor(), config.safetyDisabled());
+        ks.setDurable_writes(true);
+        System.out.println("Creating keyspace: " + config.keyspace());
+        client.system_add_keyspace(ks);
+        CassandraKeyValueServices.waitForSchemaVersions(client, "(adding the initial empty keyspace)", config.schemaMutationTimeoutMillis());
     }
 }
