@@ -5,15 +5,16 @@ import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.performance.BenchmarkParam;
 
 @State(Scope.Benchmark)
 public class KeyValueServiceConnector extends PhysicalStore {
 
     /**
-     * Edit this instance variable name ("type") with care -- it must match the parameter string in AtlasDbPerfCli
+     * Edit this instance variable name ("backend") with care -- it must match {@link BenchmarkParam.BACKEND}.getKey()
      */
     @Param
-    private KeyValueServiceType type;
+    private KeyValueServiceType backend;
 
     private PhysicalStore store;
 
@@ -22,7 +23,7 @@ public class KeyValueServiceConnector extends PhysicalStore {
         if (store != null) {
             throw new IllegalStateException("connect() has already been called");
         }
-        store = PhysicalStore.create(type);
+        store = PhysicalStore.create(backend);
         return store.connect();
     }
 
