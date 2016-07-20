@@ -17,7 +17,6 @@
 
 package com.palantir.atlasdb.performance.backend;
 
-import java.io.File;
 import java.io.IOException;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -44,22 +43,31 @@ public class PostgresPhysicalStore extends PhysicalStore {
     private static final String POSTGRES_DOCKER_COMPOSE_PATH = "/postgres-docker-compose.yml";
     private static final String POSTGRES_DOCKER_LOGS_DIR     = "container-logs";
 
-    private static DockerComposeRule docker = null;
-
-    static {
-        try {
-            File dcFile = PhysicalStores.writeResourceToTempFile(PostgresPhysicalStore.class,
-                    POSTGRES_DOCKER_COMPOSE_PATH);
-
-            docker = DockerComposeRule.builder()
-                    .file(dcFile.getAbsolutePath())
+    public static PostgresPhysicalStore create() {
+            DockerComposeRule docker = DockerComposeRule.builder()
+                    .file(getDockerComposeFileAbsoluatePath())
                     .waitingForHostNetworkedPort(POSTGRES_PORT_NUMBER, toBeOpen())
                     .saveLogsTo(POSTGRES_DOCKER_LOGS_DIR)
                     .build();
+            return new PostgresPhysicalStore(docker);
+    }
 
+    private static String getDockerComposeFileAbsoluatePath() {
+        try {
+            return PhysicalStores.writeResourceToTempFile(PostgresPhysicalStore.class, POSTGRES_DOCKER_COMPOSE_PATH).getAbsolutePath();
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Unable to write docker compose file to a temporary file.", e);
         }
+    }
+
+    private static HealthCheck<DockerPort> toBeOpen() {
+        return port -> SuccessOrFailure.fromBoolean(port.isListeningNow(), "" + "" + port + " was not open");
+    }
+
+    private final DockerComposeRule docker;
+
+    private PostgresPhysicalStore(DockerComposeRule docker) {
+        this.docker = docker;
     }
 
     @Override
@@ -90,10 +98,6 @@ public class PostgresPhysicalStore extends PhysicalStore {
                 .build();
 
         return ConnectionManagerAwareDbKvs.create(conf);
-    }
-
-    private static HealthCheck<DockerPort> toBeOpen() {
-        return port -> SuccessOrFailure.fromBoolean(port.isListeningNow(), "" + "" + port + " was not open");
     }
 
     @Override
