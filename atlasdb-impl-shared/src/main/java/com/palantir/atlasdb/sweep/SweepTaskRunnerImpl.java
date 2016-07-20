@@ -27,6 +27,7 @@ import org.apache.commons.lang.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.collect.HashMultimap;
@@ -123,24 +124,19 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
         // (1) force old readers to abort (if they read a garbage collection sentinel), or
         // (2) force old writers to retry (note that we must roll back any uncommitted transactions that
         //     we encounter
-        SweepStrategy sweepStrategy = sweepStrategyManager.get().get(tableRef);
-        if (sweepStrategy == null) {
-            sweepStrategy = SweepStrategy.CONSERVATIVE;
-        } else if (sweepStrategy == SweepStrategy.NOTHING) {
+        SweepStrategy sweepStrategy = MoreObjects.firstNonNull(sweepStrategyManager.get().get(tableRef), SweepStrategy.CONSERVATIVE);
+        if (sweepStrategy == SweepStrategy.NOTHING) {
             // This sweep strategy makes transaction table truncation impossible
             return SweepResults.createEmptySweepResult(0L);
         }
-        if (startRow == null) {
-            startRow = new byte[0];
-        }
+
+        startRow = MoreObjects.firstNonNull(startRow, new byte[0]);
         RangeRequest rangeRequest = RangeRequest.builder().startRowInclusive(startRow).batchHint(batchSize).build();
 
         long sweepTimestamp = getSweepTimestamp(sweepStrategy);
 
-        ClosableIterator<RowResult<Value>> valueResults;
-        if (sweepStrategy == SweepStrategy.CONSERVATIVE) {
-            valueResults = ClosableIterators.wrap(ImmutableList.<RowResult<Value>>of().iterator());
-        } else {
+        ClosableIterator<RowResult<Value>> valueResults = ClosableIterators.emptyImmutableClosableIterator();;
+        if (sweepStrategy == SweepStrategy.THOROUGH) {
             valueResults = keyValueService.getRange(tableRef, rangeRequest, sweepTimestamp);
         }
 
