@@ -28,18 +28,15 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public class SchemaMutationLockTablesTest {
-    private KeyValueService keyValueService;
     private ExecutorService executorService;
     CassandraKeyValueServiceConfigManager configManager = CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.CASSANDRA_KVS_CONFIG);
     private CassandraClientPool clientPool = new CassandraClientPool(CassandraTestSuite.CASSANDRA_KVS_CONFIG);
 
     @Before
     public void setupKVS() {
-        keyValueService = getKeyValueService();
         executorService = Executors.newFixedThreadPool(4);
     }
 
@@ -48,15 +45,17 @@ public class SchemaMutationLockTablesTest {
         executorService.shutdown();
     }
 
-    private KeyValueService getKeyValueService() {
-        return CassandraKeyValueService.create(
-                configManager, CassandraTestSuite.LEADER_CONFIG);
-    }
-
     @Test
     public void shouldReturnALockTableIfNoneExist() {
         SchemaMutationLockTables lockTables = new SchemaMutationLockTables(clientPool, configManager);
 
         assertThat(lockTables.getOnlyTable(), isA(TableReference.class));
+    }
+
+    @Test
+    public void shouldReturnTheSameLockTableOnMultipleCalls() {
+        SchemaMutationLockTables lockTables = new SchemaMutationLockTables(clientPool, configManager);
+
+        assertThat(lockTables.getOnlyTable(), is(lockTables.getOnlyTable()));
     }
 }

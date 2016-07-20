@@ -1,5 +1,6 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.util.Optional;
 import java.util.UUID;
 
 import org.apache.cassandra.thrift.Cassandra;
@@ -15,6 +16,7 @@ import com.palantir.common.base.Throwables;
 public class SchemaMutationLockTables {
     private final CassandraClientPool clientPool;
     private CassandraKeyValueServiceConfigManager configManager;
+    private Optional<TableReference> lockTable = Optional.empty();
 
     public SchemaMutationLockTables(CassandraClientPool clientPool, CassandraKeyValueServiceConfigManager configManager) {
         this.clientPool = clientPool;
@@ -38,20 +40,15 @@ public class SchemaMutationLockTables {
 
     private void createTableInternal(Cassandra.Client client, TableReference tableRef) throws TException {
         CassandraKeyValueServiceConfig config = configManager.getConfig();
-        CfDef cf = CassandraConstants.getStandardCfDef(config.keyspace(), internalTableName(tableRef));
+        CfDef cf = CassandraConstants.getStandardCfDef(config.keyspace(), CassandraKeyValueService.internalTableName(tableRef));
         client.system_add_column_family(cf);
         CassandraKeyValueServices.waitForSchemaVersions(client, tableRef.getQualifiedName(), config.schemaMutationTimeoutMillis());
     }
 
-    public static String internalTableName(TableReference tableRef) {
-        String tableName = tableRef.getQualifiedName();
-        if (tableName.startsWith("_")) {
-            return tableName;
-        }
-        return tableName.replaceFirst("\\.", "__");
-    }
-
     public TableReference getOnlyTable() {
-        return createLockTable();
+        if (!lockTable.isPresent()) {
+            lockTable = Optional.of(createLockTable());
+        }
+        return lockTable.get();
     }
 }
