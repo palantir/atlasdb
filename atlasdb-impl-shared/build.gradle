@@ -19,4 +19,6 @@ dependencies {
   compile(project(":lock-impl"))
   processor 'org.immutables:value:' + libVersions.immutables
   processor 'com.google.auto.service:auto-service:1.0-rc2'
+
+  testCompile group: 'org.mockito', name: 'mockito-core', version: libVersions.mockito
 }

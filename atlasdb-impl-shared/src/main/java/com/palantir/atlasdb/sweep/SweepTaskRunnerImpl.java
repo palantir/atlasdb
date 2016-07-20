@@ -27,6 +27,7 @@ import org.apache.commons.lang.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
@@ -293,7 +294,8 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
         return commitTs;
     }
 
-    private void sweepCells(TableReference tableRef,
+    @VisibleForTesting
+    void sweepCells(TableReference tableRef,
                             Multimap<Cell, Long> cellTsPairsToSweep,
                             Set<Cell> sentinelsToAdd) {
         if (cellTsPairsToSweep.isEmpty()) {
