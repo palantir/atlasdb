@@ -85,6 +85,7 @@ public class AtlasDbPerfCli {
     private static void run(AtlasDbPerfCli cli) throws Exception {
         ChainedOptionsBuilder optBuilder = new OptionsBuilder()
                 .forks(1)
+                // the parameter name ("type") must match instance variable in KeyValueServiceConnector
                 .param("type", cli.backend);
 
         if (cli.tests != null) {
