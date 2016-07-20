@@ -9,6 +9,9 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 @State(Scope.Benchmark)
 public class KeyValueServiceConnector extends PhysicalStore {
 
+    /**
+     * Edit this instance variable name ("type") with care -- it must match the parameter string in AtlasDbPerfCli
+     */
     @Param
     private KeyValueServiceType type;
 
