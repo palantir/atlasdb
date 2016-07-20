@@ -980,13 +980,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     @Override
                     public Void apply(Client client) throws Exception {
                         for (TableReference tableRef : tablesToTruncate) {
-                            run(client, tableRef, new Action<Void>() {
-                                @Override
-                                public Void run() throws TException {
-                                    truncateInternal(client, tableRef);
-                                    return null;
-                                }
-                            });
+                            truncateInternal(client, tableRef);
                         }
                         return null;
                     }
@@ -1008,7 +1002,13 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         for (int tries = 1; tries <= CassandraConstants.MAX_TRUNCATION_ATTEMPTS; tries++) {
             boolean successful = true;
             try {
-                client.truncate(internalTableName(tableRef));
+                run(client, tableRef, new Action<Void>() {
+                    @Override
+                    public Void run() throws TException {
+                        client.truncate(internalTableName(tableRef));
+                        return null;
+                    }
+                });
             } catch (TException e) {
                 log.error("Cluster was unavailable while we attempted a truncate for table " + tableRef.getQualifiedName() + "; we will try " + (CassandraConstants.MAX_TRUNCATION_ATTEMPTS - tries) + " additional time(s). (" + e.getMessage() + ")");
                 if (CassandraConstants.MAX_TRUNCATION_ATTEMPTS - tries == 0) {
