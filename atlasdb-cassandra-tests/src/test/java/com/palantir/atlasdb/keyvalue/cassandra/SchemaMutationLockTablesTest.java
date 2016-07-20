@@ -58,4 +58,12 @@ public class SchemaMutationLockTablesTest {
 
         assertThat(lockTables.getOnlyTable(), is(lockTables.getOnlyTable()));
     }
+
+    @Test
+    public void newLockTablesObjectsShouldUseAlreadyCreatedTables() {
+        SchemaMutationLockTables lockTables1 = new SchemaMutationLockTables(clientPool, configManager);
+        SchemaMutationLockTables lockTables2 = new SchemaMutationLockTables(clientPool, configManager);
+
+        assertThat(lockTables1.getOnlyTable(), is(lockTables2.getOnlyTable()));
+    }
 }

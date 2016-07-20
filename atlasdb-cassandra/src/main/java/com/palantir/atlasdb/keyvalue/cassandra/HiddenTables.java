@@ -24,7 +24,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 class HiddenTables {
     private TableReference lockTable;
     private final Set<TableReference> hiddenTables;
-    static final String LOCK_TABLE_PREFIX = "_locks_";
+    public static final String LOCK_TABLE_PREFIX = "_locks_";
 
 
     HiddenTables() {
