@@ -29,7 +29,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 
 import org.apache.thrift.TException;
@@ -104,44 +106,53 @@ public class CassandraKeyValueServiceTest extends AbstractAtlasDbKeyValueService
         assertThat(lockTable.isPresent(), is(true));
 
         kvs.dropTable(lockTable.get());
-        CassandraTestTools.dropTables(config);
+        CassandraTestTools.dropKeyspaceIfExists(config);
     }
 
     @Test
     public void testNonLockLeaderDoesNotCreateLockTable() throws InterruptedException, ExecutionException, TimeoutException {
         Future async = CassandraTestTools.async(executorService, this::createKvsAsNonLockLeader);
 
-        Thread.sleep(5*1000);
+        Thread.sleep(3*1000);
 
         CassandraTestTools.assertThatFutureDidNotSucceedYet(async);
     }
 
     @Test
-    public void testCreateMultipleLockTables() throws TException {
+    public void testCreateMultipleLockTables() throws TException, InterruptedException {
         String keyspace = "multipleLockTables";
-        CassandraKeyValueServiceConfigManager configManager = CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.CASSANDRA_KVS_CONFIG.withKeyspace(keyspace));
+        ImmutableCassandraKeyValueServiceConfig config = CassandraTestSuite.CASSANDRA_KVS_CONFIG.withKeyspace(keyspace);
+        CassandraKeyValueServiceConfigManager configManager = CassandraKeyValueServiceConfigManager.createSimpleManager(config);
+        CassandraTestTools.dropKeyspaceIfExists(config);
 
-        try {
-            int threadCount = 3;
-            CyclicBarrier cyclicBarrier = new CyclicBarrier(threadCount);
-            ForkJoinPool threadPool = new ForkJoinPool(threadCount);
+        // Create the keyspace before going through the loop - doing so within the loop causes the nodes to get out of sync and we don't catch the bug
+        CassandraTestTools.createKeyspace(config);
 
-            threadPool.submit(() -> {
-                IntStream.range(0, threadCount).parallel().forEach(i -> {
-                    try {
-                        cyclicBarrier.await();
-                        CassandraKeyValueService.create(configManager, CassandraTestSuite.LEADER_CONFIG);
-                    } catch (BrokenBarrierException | InterruptedException e) {
-                        // Do nothing
-                    }
-                });
+        AtomicInteger timesThrown = new AtomicInteger(0);
+
+        int threadCount = 3;
+        CyclicBarrier cyclicBarrier = new CyclicBarrier(threadCount);
+        ForkJoinPool threadPool = new ForkJoinPool(threadCount);
+
+        threadPool.submit(() -> {
+            IntStream.range(0, threadCount).parallel().forEach(i -> {
+                try {
+                    cyclicBarrier.await();
+                    CassandraKeyValueService.create(configManager, CassandraTestSuite.LEADER_CONFIG);
+                } catch (BrokenBarrierException | InterruptedException e) {
+                    // Do nothing
+                } catch (IllegalStateException e) {
+                    timesThrown.incrementAndGet();
+                }
             });
-            fail("Expected IllegalStateException when creating multiple lock tables"); // wanted an exception
-        } catch (IllegalStateException e) {
-            // expected
-        } finally {
-            CassandraTestTools.dropTables(configManager.getConfig());
-        }
+        });
+
+        threadPool.awaitTermination(2, TimeUnit.SECONDS);
+
+        CassandraTestTools.dropKeyspaceIfExists(configManager.getConfig());
+
+        System.out.println("Times thrown: " + timesThrown.get());
+        assertThat("Expected to throw, but didn't :-(", timesThrown.get() > 0);
     }
 
     private CassandraKeyValueService createKvsAsNonLockLeader() {
