@@ -114,7 +114,7 @@ public class AtlasDbPerfCli {
     }
 
     private static Set<String> getAllBenchmarks() {
-        Reflections reflections = new Reflections("com.palantir.atlasdb.performance.tests", new MethodAnnotationsScanner());
+        Reflections reflections = new Reflections("com.palantir.atlasdb.performance.benchmarks", new MethodAnnotationsScanner());
         return reflections.getMethodsAnnotatedWith(Benchmark.class).stream()
                 .map(method -> method.getDeclaringClass().getSimpleName() + "." + method.getName())
                 .collect(Collectors.toSet());
