@@ -33,6 +33,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
@@ -169,9 +170,10 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
         }
     }
 
-    private Multimap<Cell, Long> getTimestampsFromRowResults(List<RowResult<Set<Long>>> cellsToSweep,
+    @VisibleForTesting
+    static Multimap<Cell, Long> getTimestampsFromRowResults(List<RowResult<Set<Long>>> cellsToSweep,
                                                              SweepStrategy sweepStrategy) {
-        Multimap<Cell, Long> cellTsMappings = HashMultimap.create();
+        ImmutableMultimap.Builder<Cell, Long> cellTsMappings = ImmutableMultimap.builder();
         for (RowResult<Set<Long>> rowResult : cellsToSweep) {
             for (Map.Entry<Cell, Set<Long>> entry : rowResult.getCells()) {
                 if (sweepStrategy == SweepStrategy.CONSERVATIVE) {
@@ -181,7 +183,7 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
                 }
             }
         }
-        return cellTsMappings;
+        return cellTsMappings.build();
     }
 
     private Multimap<Cell, Long> getCellTsPairsToSweep(Multimap<Cell, Long> cellTsMappings,

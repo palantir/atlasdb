@@ -16,12 +16,14 @@
 
 package com.palantir.atlasdb.sweep;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import java.util.List;
 import java.util.Set;
 
 import org.junit.Test;
@@ -34,12 +36,16 @@ import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
+import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
 public class SweepTaskRunnerImplTest {
     private static final TableReference TABLE_REFERENCE = TableReference.create(Namespace.create("ns"), "testTable");
-    private static final Set<Cell> SINGLE_CELL = ImmutableSet.of(Cell.create("cellRow".getBytes(), "cellCol".getBytes()));
+    private static final Cell SINGLE_CELL = Cell.create("cellRow".getBytes(), "cellCol".getBytes());
+    private static final Set<Cell> SINGLE_CELL_SET = ImmutableSet.of(SINGLE_CELL);
     private static final Multimap<Cell, Long> SINGLE_CELL_TS_PAIR = ImmutableMultimap.<Cell, Long>builder()
             .putAll(Cell.create("cellPairRow".getBytes(), "cellPairCol".getBytes()), ImmutableSet.of(5L, 10L, 15L, 20L))
             .build();
@@ -57,9 +63,9 @@ public class SweepTaskRunnerImplTest {
 
     @Test
     public void ensureSentinelsAreAddedToKVS() {
-        sweepTaskRunner.sweepCells(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR, SINGLE_CELL);
+        sweepTaskRunner.sweepCells(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR, SINGLE_CELL_SET);
 
-        verify(mockKVS).addGarbageCollectionSentinelValues(TABLE_REFERENCE, SINGLE_CELL);
+        verify(mockKVS).addGarbageCollectionSentinelValues(TABLE_REFERENCE, SINGLE_CELL_SET);
     }
 
     @Test
@@ -71,9 +77,9 @@ public class SweepTaskRunnerImplTest {
 
     @Test
     public void sentinelsArentAddedIfNoCellsToSweep() {
-        sweepTaskRunner.sweepCells(TABLE_REFERENCE, ImmutableMultimap.of(), SINGLE_CELL);
+        sweepTaskRunner.sweepCells(TABLE_REFERENCE, ImmutableMultimap.of(), SINGLE_CELL_SET);
 
-        verify(mockKVS, never()).addGarbageCollectionSentinelValues(TABLE_REFERENCE, SINGLE_CELL);
+        verify(mockKVS, never()).addGarbageCollectionSentinelValues(TABLE_REFERENCE, SINGLE_CELL_SET);
     }
 
     @Test
@@ -82,5 +88,64 @@ public class SweepTaskRunnerImplTest {
 
         verify(mockKVS, never()).delete(any(), any());
         verify(mockKVS, never()).addGarbageCollectionSentinelValues(any(), any());
+    }
+
+    @Test
+    public void getTimestampsFromEmptyRowResultsReturnsEmpty() {
+        Multimap<Cell, Long> actualTimestamps = SweepTaskRunnerImpl.getTimestampsFromRowResults(ImmutableList.of(), SweepStrategy.THOROUGH);
+
+        assertThat(actualTimestamps).isEqualTo(ImmutableMultimap.of());
+    }
+
+    @Test
+    public void noValidTimestampsAreFilteredOutWhenGettingTimestampsFromRowResultsInThoroughSweep() {
+        Set<Long> timestampSet = ImmutableSet.of(1L, 2L, 3L);
+        List<RowResult<Set<Long>>> cellsToSweep = ImmutableList.of(RowResult.of(SINGLE_CELL, timestampSet));
+        Multimap<Cell, Long> expectedTimestamps = ImmutableMultimap.<Cell, Long>builder()
+                .putAll(SINGLE_CELL, timestampSet)
+                .build();
+        Multimap<Cell, Long> actualTimestamps = SweepTaskRunnerImpl.getTimestampsFromRowResults(cellsToSweep, SweepStrategy.THOROUGH);
+
+        assertThat(actualTimestamps).isEqualTo(expectedTimestamps);
+    }
+
+    @Test
+    public void invalidTimestampsAreFilteredOutWhenGettingTimestampsFromRowResults() {
+        List<RowResult<Set<Long>>> cellsToSweep = ImmutableList.of(RowResult.of(SINGLE_CELL, ImmutableSet.of(Value.INVALID_VALUE_TIMESTAMP)));
+        Multimap<Cell, Long> actualTimestamps = SweepTaskRunnerImpl.getTimestampsFromRowResults(cellsToSweep, SweepStrategy.CONSERVATIVE);
+
+        assertThat(actualTimestamps).isEqualTo(ImmutableMultimap.of());
+    }
+
+    @Test
+    public void noTimetampsAreFilteredOutWhenGettingTimestampsFromRowResultsInThoroughSweep() {
+        List<RowResult<Set<Long>>> cellsToSweep = ImmutableList.of(RowResult.of(SINGLE_CELL, ImmutableSet.of(Value.INVALID_VALUE_TIMESTAMP, 1L)));
+        Multimap<Cell, Long> expectedTimestamps = ImmutableMultimap.of(
+                SINGLE_CELL, Value.INVALID_VALUE_TIMESTAMP,
+                SINGLE_CELL, 1L);
+        Multimap<Cell, Long> actualTimestamps = SweepTaskRunnerImpl.getTimestampsFromRowResults(cellsToSweep, SweepStrategy.THOROUGH);
+
+        assertThat(actualTimestamps).isEqualTo(expectedTimestamps);
+    }
+
+    @Test
+    public void timetampsAreFilteredOutWhenGettingTimestampsFromRowResultsInConservativeSweep() {
+        List<RowResult<Set<Long>>> cellsToSweep = ImmutableList.of(RowResult.of(SINGLE_CELL, ImmutableSet.of(Value.INVALID_VALUE_TIMESTAMP, 1L)));
+        Multimap<Cell, Long> expectedTimestamps = ImmutableMultimap.of(SINGLE_CELL, 1L);
+        Multimap<Cell, Long> actualTimestamps = SweepTaskRunnerImpl.getTimestampsFromRowResults(cellsToSweep, SweepStrategy.CONSERVATIVE);
+
+        assertThat(actualTimestamps).isEqualTo(expectedTimestamps);
+    }
+
+    @Test
+    public void noValidTimestampsAreFilteredOutWhenGettingTimestampsFromRowResultsInConservativeSweep() {
+        Set<Long> timestampSet = ImmutableSet.of(1L, 2L, 3L);
+        List<RowResult<Set<Long>>> cellsToSweep = ImmutableList.of(RowResult.of(SINGLE_CELL, timestampSet));
+        Multimap<Cell, Long> expectedTimestamps = ImmutableMultimap.<Cell, Long>builder()
+                .putAll(SINGLE_CELL, timestampSet)
+                .build();
+        Multimap<Cell, Long> actualTimestamps = SweepTaskRunnerImpl.getTimestampsFromRowResults(cellsToSweep, SweepStrategy.CONSERVATIVE);
+
+        assertThat(actualTimestamps).isEqualTo(expectedTimestamps);
     }
 }
