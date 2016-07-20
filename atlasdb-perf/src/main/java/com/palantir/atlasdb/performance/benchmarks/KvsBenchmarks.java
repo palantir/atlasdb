@@ -15,7 +15,7 @@
  *
  */
 
-package com.palantir.atlasdb.performance.tests;
+package com.palantir.atlasdb.performance.benchmarks;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
