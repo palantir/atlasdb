@@ -17,21 +17,19 @@
 
 package com.palantir.atlasdb.performance.cli;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
-import org.openjdk.jmh.annotations.BenchmarkMode;
-import org.openjdk.jmh.results.RunResult;
+import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.results.format.ResultFormatType;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.options.ChainedOptionsBuilder;
-import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.reflections.Reflections;
+import org.reflections.scanners.MethodAnnotationsScanner;
 
 import io.airlift.airline.Arguments;
 import io.airlift.airline.Command;
@@ -56,7 +54,7 @@ public class AtlasDbPerfCli {
     @Option(name = {"-b", "--backend"}, description = "The underlying physical store to use e.g. 'POSTGRES'.")
     private String backend;
 
-    @Option(name = {"-l", "--list-tests"}, description = "Lists all available tests.")
+    @Option(name = {"-l", "--list-tests"}, description = "Lists all available benchmarks.")
     private boolean listTests;
 
     @Option(name = {"-o", "--output"}, description = "The file in which to store the test results. Leave blank to only write results to " +
@@ -71,7 +69,7 @@ public class AtlasDbPerfCli {
         }
 
         if (cli.listTests) {
-            listTests();
+            listAllBenchmarks();
             return;
         }
 
@@ -97,9 +95,7 @@ public class AtlasDbPerfCli {
             optBuilder.result(cli.outputFile);
         }
 
-        Options opt = optBuilder.build();
-        Collection<RunResult> results = new Runner(opt).run();
-        processResults(results);
+        new Runner(optBuilder.build()).run();
     }
 
     private static boolean hasValidArgs(AtlasDbPerfCli cli) {
@@ -113,31 +109,15 @@ public class AtlasDbPerfCli {
         return isValid;
     }
 
-    /**
-     * Prints all available performance benchmarks (one per line).
-     */
-    private static void listTests() {
-        getAllTests().forEach(testClass ->
-                System.out.println(testClass.getSimpleName()));
+    private static void listAllBenchmarks() {
+        getAllBenchmarks().forEach(System.out::println);
     }
 
-    /**
-     * Scans the {@code com.palantir.atlasdb.performance.tests} package for all performance benchmark classes.
-     *
-     * @return a set of all performance benchmark classes.
-     */
-    private static Set<Class<?>> getAllTests() {
-        // Note that we only allow the parent benchmark classes to be listed and this is the lowest
-        // level of granularity provided with respect to running a subset of the benchmarks.
-        Reflections reflections = new Reflections("com.palantir.atlasdb.performance.tests");
-        return reflections.getTypesAnnotatedWith(BenchmarkMode.class).stream().filter(
-                clazz -> !clazz.getCanonicalName().contains("generated")).collect(Collectors.toSet());
+    private static Set<String> getAllBenchmarks() {
+        Reflections reflections = new Reflections("com.palantir.atlasdb.performance.tests", new MethodAnnotationsScanner());
+        return reflections.getMethodsAnnotatedWith(Benchmark.class).stream()
+                .map(method -> method.getDeclaringClass().getSimpleName() + "." + method.getName())
+                .collect(Collectors.toSet());
     }
 
-    private static void processResults(Collection<RunResult> results) {
-        for (RunResult result : results) {
-            System.out.println("result.getPrimaryResult().getStatistics().getPercentile(2.5) = " + result.getPrimaryResult().getStatistics().getPercentile(2.5));
-            System.out.println("result.getPrimaryResult().getStatistics().getPercentile(2.5) = " + result.getPrimaryResult().getStatistics().getPercentile(97.5));
-        }
-    }
 }
