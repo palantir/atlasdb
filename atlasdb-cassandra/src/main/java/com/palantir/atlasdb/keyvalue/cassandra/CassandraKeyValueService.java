@@ -200,16 +200,15 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         try {
             String lockLeader = configManager.getConfig().lockLeader();
             if (leaderConfig.localServer().equals(lockLeader)) {
-                log.info("Creating lock table because this is the lock leader: " + lockLeader);
+                log.info("Creating lock table because this is the lock leader: {}", lockLeader);
                 TableReference createdTable = createLockTable();
                 log.info("Successfully created lock table: {}.", createdTable.getTablename());
-                // TODO - implicitly checks that we only have one lock table. should extract this check.
+                // Implicitly checks that we only have one lock table.
                 return getLockTable().get();
             } else {
-                log.info("Waiting for " + lockLeader + " to create lock table");
+                log.info("Waiting for {} to create lock table", lockLeader);
                 return waitForLockTableToBeCreated();
             }
-
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
