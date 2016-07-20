@@ -11,8 +11,8 @@ import java.util.Set;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -24,7 +24,7 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 public class SweepTaskRunnerImplTest {
     private static final TableReference TABLE_REFERENCE = TableReference.create(Namespace.create("ns"), "testTable");
     private static final Set<Cell> SINGLE_CELL = ImmutableSet.of(Cell.create("cellRow".getBytes(), "cellCol".getBytes()));
-    private static final Multimap<Cell, Long> SINGLE_CELL_TS_PAIR = ImmutableSetMultimap.<Cell, Long>builder()
+    private static final Multimap<Cell, Long> SINGLE_CELL_TS_PAIR = ImmutableMultimap.<Cell, Long>builder()
             .putAll(Cell.create("cellPairRow".getBytes(), "cellPairCol".getBytes()), ImmutableSet.of(5L, 10L, 15L, 20L))
             .build();
 
@@ -55,14 +55,14 @@ public class SweepTaskRunnerImplTest {
 
     @Test
     public void sentinelsArentAddedIfNoCellsToSweep() {
-        sweepTaskRunner.sweepCells(TABLE_REFERENCE, ImmutableSetMultimap.of(), SINGLE_CELL);
+        sweepTaskRunner.sweepCells(TABLE_REFERENCE, ImmutableMultimap.of(), SINGLE_CELL);
 
         verify(mockKVS, never()).addGarbageCollectionSentinelValues(TABLE_REFERENCE, SINGLE_CELL);
     }
 
     @Test
     public void ensureNoActionTakenIfNoCellsToSweep() {
-        sweepTaskRunner.sweepCells(TABLE_REFERENCE, ImmutableSetMultimap.of(), ImmutableSet.of());
+        sweepTaskRunner.sweepCells(TABLE_REFERENCE, ImmutableMultimap.of(), ImmutableSet.of());
 
         verify(mockKVS, never()).delete(any(), any());
         verify(mockKVS, never()).addGarbageCollectionSentinelValues(any(), any());

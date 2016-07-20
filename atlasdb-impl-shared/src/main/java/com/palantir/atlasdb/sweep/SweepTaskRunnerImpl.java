@@ -70,7 +70,7 @@ import com.palantir.common.base.ClosableIterators;
  */
 public class SweepTaskRunnerImpl implements SweepTaskRunner {
     private static final Logger log = LoggerFactory.getLogger(SweepTaskRunnerImpl.class);
-    private static final Set<Long> invalidTimestamps = ImmutableSet.of(Value.INVALID_VALUE_TIMESTAMP);
+    private static final Set<Long> INVALID_TIMESTAMPS = ImmutableSet.of(Value.INVALID_VALUE_TIMESTAMP);
 
     private final TransactionManager txManager;
     private final KeyValueService keyValueService;
@@ -136,7 +136,7 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
 
         long sweepTimestamp = getSweepTimestamp(sweepStrategy);
 
-        ClosableIterator<RowResult<Value>> valueResults = ClosableIterators.emptyImmutableClosableIterator();;
+        ClosableIterator<RowResult<Value>> valueResults = ClosableIterators.emptyImmutableClosableIterator();
         if (sweepStrategy == SweepStrategy.THOROUGH) {
             valueResults = keyValueService.getRange(tableRef, rangeRequest, sweepTimestamp);
         }
@@ -175,7 +175,7 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
         for (RowResult<Set<Long>> rowResult : cellsToSweep) {
             for (Map.Entry<Cell, Set<Long>> entry : rowResult.getCells()) {
                 if (sweepStrategy == SweepStrategy.CONSERVATIVE) {
-                    cellTsMappings.putAll(entry.getKey(), Sets.difference(entry.getValue(), invalidTimestamps));
+                    cellTsMappings.putAll(entry.getKey(), Sets.difference(entry.getValue(), INVALID_TIMESTAMPS));
                 } else {
                     cellTsMappings.putAll(entry.getKey(), entry.getValue());
                 }
@@ -272,6 +272,7 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
                 committedTimestampsToSweep.subSet(0L, committedTimestampsToSweep.last()));
     }
 
+
     private long ensureCommitTimestampExists(Long startTs, @Modified Map<Long, Long> startTsToCommitTs) {
         Long commitTs = startTsToCommitTs.get(startTs);
         if (commitTs == null) {
@@ -296,8 +297,8 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
 
     @VisibleForTesting
     void sweepCells(TableReference tableRef,
-                            Multimap<Cell, Long> cellTsPairsToSweep,
-                            Set<Cell> sentinelsToAdd) {
+                    Multimap<Cell, Long> cellTsPairsToSweep,
+                    Set<Cell> sentinelsToAdd) {
         if (cellTsPairsToSweep.isEmpty()) {
             return;
         }
@@ -312,4 +313,6 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
         }
         keyValueService.delete(tableRef, cellTsPairsToSweep);
     }
+
+
 }
