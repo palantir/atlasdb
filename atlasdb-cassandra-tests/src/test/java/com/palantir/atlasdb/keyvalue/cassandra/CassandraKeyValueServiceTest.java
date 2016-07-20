@@ -18,7 +18,6 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.fail;
 
 import java.util.Optional;
 import java.util.Set;
@@ -35,6 +34,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 
 import org.apache.thrift.TException;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -49,11 +49,17 @@ import com.palantir.atlasdb.keyvalue.impl.AbstractAtlasDbKeyValueServiceTest;
 
 public class CassandraKeyValueServiceTest extends AbstractAtlasDbKeyValueServiceTest {
     private KeyValueService keyValueService;
-    private final ExecutorService executorService = Executors.newFixedThreadPool(4);
+    private ExecutorService executorService;
 
     @Before
     public void setupKVS() {
         keyValueService = getKeyValueService();
+        executorService = Executors.newFixedThreadPool(4);
+    }
+
+    @After
+    public void cleanUp() {
+        executorService.shutdown();
     }
 
     @Override
@@ -91,8 +97,6 @@ public class CassandraKeyValueServiceTest extends AbstractAtlasDbKeyValueService
         Preconditions.checkArgument(allTables.contains(table1));
         Preconditions.checkArgument(!allTables.contains(table2));
         Preconditions.checkArgument(!allTables.contains(table3));
-
-        //CassandraTestTools.dropTables(CassandraTestSuite.CASSANDRA_KVS_CONFIG);
     }
 
     @Test
@@ -105,6 +109,7 @@ public class CassandraKeyValueServiceTest extends AbstractAtlasDbKeyValueService
         Optional<TableReference> lockTable = kvs.getLockTable();
         assertThat(lockTable.isPresent(), is(true));
 
+        //noinspection OptionalGetWithoutIsPresent
         kvs.dropTable(lockTable.get());
         CassandraTestTools.dropKeyspaceIfExists(config);
     }
