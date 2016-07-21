@@ -21,14 +21,15 @@ public class PerformanceResults {
 
     public void writeToFile(File file) throws IOException {
         try (BufferedWriter fout = new BufferedWriter(new FileWriter(file))) {
-            fout.write("suite, benchmark, backend, trials, mean, error, units\n");
+            fout.write("date, suite, benchmark, backend, trials, mean, error, units\n");
             for (RunResult r : results) {
                 Statistics stats = r.getPrimaryResult().getStatistics();
                 String[] benchmarkParts = r.getParams().getBenchmark().split("\\.");
                 String benchmarkSuite = benchmarkParts[benchmarkParts.length - 2];
                 String benchmarkName = benchmarkParts[benchmarkParts.length - 1];
                 fout.write(
-                        String.format("%s, %s, %s, %s, %s, %s, %s\n",
+                        String.format("%d, %s, %s, %s, %s, %s, %s, %s\n",
+                                System.currentTimeMillis(),
                                 benchmarkSuite,
                                 benchmarkName,
                                 r.getParams().getParam(BenchmarkParam.BACKEND.getKey()),
