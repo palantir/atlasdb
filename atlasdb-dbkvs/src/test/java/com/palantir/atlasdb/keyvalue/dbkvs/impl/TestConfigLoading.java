@@ -43,9 +43,17 @@ public class TestConfigLoading {
     }
 
     @Test
-    public void testHikariConnectionTimeout() throws IOException {
+    public void testHikariConnectTimeout() throws IOException {
         ConnectionConfig connectionConfig = getConnectionConfig();
         verifyHikariProperty(connectionConfig, "connectTimeout", connectionConfig.getConnectionTimeoutSeconds());
+    }
+
+    @Test
+    public void testHikariConnectionTimeout() throws IOException {
+        // Hikari uses "connectionTimeout" for how long the client will wait for a connection from the pool. In our parlance, this is checkoutTimeout
+        // Our connectionTimeout is instead translated to "connectTimeout", which is how long a connection can be open for.
+        ConnectionConfig connectionConfig = getConnectionConfig();
+        assertThat(connectionConfig.getHikariConfig().getConnectionTimeout(), is((long) connectionConfig.getCheckoutTimeout()));
     }
 
     @Test
