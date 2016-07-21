@@ -20,7 +20,6 @@ import static org.hamcrest.Matchers.is;
 
 import java.io.File;
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.Properties;
 
 import org.junit.Test;
@@ -29,10 +28,7 @@ import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
 import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
-import com.palantir.nexus.db.pool.HikariCPConnectionManager;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
-import com.zaxxer.hikari.HikariConfig;
-import com.zaxxer.hikari.HikariDataSource;
 
 public class TestConfigLoading {
     @Test
@@ -58,17 +54,6 @@ public class TestConfigLoading {
         verifyHikariProperty(connectionConfig, "loginTimeout", connectionConfig.getConnectionTimeoutSeconds());
     }
 
-    @Test
-    public void testHikariProperties() throws IOException, SQLException {
-        ConnectionConfig connectionConfig = getConnectionConfig();
-        HikariCPConnectionManager manager = new HikariCPConnectionManager(connectionConfig);
-
-        HikariConfig hikariConfig = connectionConfig.getHikariConfig();
-        HikariDataSource dataSource = new HikariDataSource(hikariConfig);
-        int loginTimeout = dataSource.getLoginTimeout();
-        assertThat(loginTimeout, is(connectionConfig.getConnectionTimeoutSeconds()));
-    }
-
     private ConnectionConfig getConnectionConfig() throws IOException {
         AtlasDbConfig config = AtlasDbConfigs.load(new File(getClass().getClassLoader().getResource("postgresTestConfig.yml").getFile()));
         KeyValueServiceConfig keyValueServiceConfig = config.keyValueService();
@@ -82,6 +67,6 @@ public class TestConfigLoading {
         assertThat(
                 String.format("Hikari property %s should be populated from connectionConfig", property),
                 Integer.valueOf(hikariProps.getProperty(property)),
-                is(expectedValueSeconds * 1000));
+                is(expectedValueSeconds));
     }
 }
