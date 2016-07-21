@@ -15,12 +15,9 @@
  */
 package com.palantir.atlasdb.dropwizard;
 
-import java.util.Map;
-
-import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.dropwizard.commands.AtlasDbCliCommand;
 import com.palantir.atlasdb.dropwizard.commands.AtlasDbCommand;
 import com.palantir.atlasdb.dropwizard.commands.AtlasDbConsoleCommand;
-import com.palantir.atlasdb.dropwizard.commands.AtlasDbCliCommand;
 
 import io.dropwizard.Configuration;
 import io.dropwizard.cli.ConfiguredCommand;
