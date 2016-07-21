@@ -28,7 +28,17 @@ public class UniqueSchemaMutationLockTable {
             Set<TableReference> tables = schemaMutationLockTables.getAllLockTables();
 
             if (tables.isEmpty()) {
-                return schemaMutationLockTables.createLockTable(UUID.randomUUID());
+                TableReference lockTable =  schemaMutationLockTables.createLockTable(UUID.randomUUID());
+                Set<TableReference> lockTables = schemaMutationLockTables.getAllLockTables();
+                if (schemaMutationLockTables.getAllLockTables().size() > 1) {
+                    throw new IllegalStateException(
+                            "Multiple schema mutation lock tables have been created.\n" +
+                                    "This happens when multiple nodes have themselves as lockLeader in the configuration.\n" +
+                                    "Please ensure the lockLeader is the same for each node, stop all Atlas clients using " +
+                                    "this keyspace, restart your cassandra cluster and delete all created schema mutation lock tables.\n" +
+                                    "The tables that clashed were: " + lockTables);
+                }
+                return lockTable;
             }
 
             return Iterables.getOnlyElement(tables);

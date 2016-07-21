@@ -19,6 +19,8 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.contains;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -90,16 +92,24 @@ public class UniqueSchemaMutationLockTableTest {
         when(lockTables.getAllLockTables()).thenReturn(ImmutableSet.of(lockTable1, lockTable2));
 
         exception.expect(IllegalArgumentException.class);
-        uniqueLockTable.getOnlyTable();
-        verify(lockTables, never()).createLockTable(any(UUID.class));
+        try {
+            uniqueLockTable.getOnlyTable();
+        } finally {
+            verify(lockTables, never()).createLockTable(any(UUID.class));
+        }
     }
 
     @Test
     public void shouldThrowExceptionIfMultipleTablesExistSuddenlyDueToConcurrency() throws Exception {
         when(lockTables.getAllLockTables()).thenReturn(ImmutableSet.of(), ImmutableSet.of(lockTable1, lockTable2));
-
         exception.expect(IllegalStateException.class);
-        uniqueLockTable.getOnlyTable();
-        verify(lockTables).createLockTable(any(UUID.class));
+
+        exception.expectMessage("Multiple schema mutation lock tables have been created.\n");
+        try {
+            uniqueLockTable.getOnlyTable();
+        } finally {
+            verify(lockTables).createLockTable(any(UUID.class));
+        }
     }
 }
+
