@@ -20,9 +20,14 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isA;
 
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ForkJoinPool;
+import java.util.stream.IntStream;
 
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.CfDef;
@@ -33,9 +38,10 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
-public class SchemaMutationLockTablesTest {
+public class UniqueSchemaMutationLockTableTest {
     private ExecutorService executorService;
     private CassandraClientPool clientPool;
 
@@ -55,22 +61,22 @@ public class SchemaMutationLockTablesTest {
 
     @Test
     public void shouldReturnALockTableIfNoneExist() {
-        SchemaMutationLockTables lockTables = new SchemaMutationLockTables(clientPool, CassandraTestSuite.CASSANDRA_KVS_CONFIG);
+        UniqueSchemaMutationLockTable lockTables = new UniqueSchemaMutationLockTable(clientPool, CassandraTestSuite.CASSANDRA_KVS_CONFIG);
 
         assertThat(lockTables.getOnlyTable(), isA(TableReference.class));
     }
 
     @Test
     public void shouldReturnTheSameLockTableOnMultipleCalls() {
-        SchemaMutationLockTables lockTables = new SchemaMutationLockTables(clientPool, CassandraTestSuite.CASSANDRA_KVS_CONFIG);
+        UniqueSchemaMutationLockTable lockTables = new UniqueSchemaMutationLockTable(clientPool, CassandraTestSuite.CASSANDRA_KVS_CONFIG);
 
         assertThat(lockTables.getOnlyTable(), is(lockTables.getOnlyTable()));
     }
 
     @Test
     public void newLockTablesObjectsShouldUseAlreadyCreatedTables() {
-        SchemaMutationLockTables lockTables1 = new SchemaMutationLockTables(clientPool, CassandraTestSuite.CASSANDRA_KVS_CONFIG);
-        SchemaMutationLockTables lockTables2 = new SchemaMutationLockTables(clientPool, CassandraTestSuite.CASSANDRA_KVS_CONFIG);
+        UniqueSchemaMutationLockTable lockTables1 = new UniqueSchemaMutationLockTable(clientPool, CassandraTestSuite.CASSANDRA_KVS_CONFIG);
+        UniqueSchemaMutationLockTable lockTables2 = new UniqueSchemaMutationLockTable(clientPool, CassandraTestSuite.CASSANDRA_KVS_CONFIG);
 
         assertThat(lockTables1.getOnlyTable(), is(lockTables2.getOnlyTable()));
     }
@@ -80,7 +86,7 @@ public class SchemaMutationLockTablesTest {
         String lockTable1 = createRandomLockTable();
         String lockTable2 = createRandomLockTable();
 
-        SchemaMutationLockTables lockTables = new SchemaMutationLockTables(clientPool, CassandraTestSuite.CASSANDRA_KVS_CONFIG);
+        UniqueSchemaMutationLockTable lockTables = new UniqueSchemaMutationLockTable(clientPool, CassandraTestSuite.CASSANDRA_KVS_CONFIG);
         exception.expect(IllegalArgumentException.class);
         try {
             lockTables.getOnlyTable();
@@ -88,6 +94,29 @@ public class SchemaMutationLockTablesTest {
             deleteLockTable(lockTable1);
             deleteLockTable(lockTable2);
         }
+    }
+
+    @Test
+    public void ensureMultipleLockTablesCannotBeCreatedByDifferentSchemaMutationLockTables() {
+        List<UniqueSchemaMutationLockTable> lockTables = Lists.newArrayList();
+
+        int threadCount = 3;
+        CyclicBarrier cyclicBarrier = new CyclicBarrier(threadCount);
+        ForkJoinPool threadPool = new ForkJoinPool(threadCount);
+
+        threadPool.submit(() -> {
+            IntStream.range(0, threadCount).parallel().forEach(i -> {
+                try {
+                    cyclicBarrier.await();
+                    lockTables.set(i, new UniqueSchemaMutationLockTable(clientPool, CassandraTestSuite.CASSANDRA_KVS_CONFIG));
+                    lockTables.get(i).getOnlyTable();
+                } catch (BrokenBarrierException | InterruptedException e) {
+                    System.out.println("Something went wrong with the cyclic barrier. Exception thrown was: " + e);
+                } catch (IllegalStateException e) {
+                    System.out.println(e.getMessage());
+                }
+            });
+        });
     }
 
     private void deleteLockTable(String lockTable) throws TException {
