@@ -44,15 +44,15 @@ public class SchemaMutationLock {
     private final CassandraKeyValueServiceConfigManager configManager;
     private final CassandraClientPool clientPool;
     private final ConsistencyLevel writeConsistency;
-    private final HiddenTables hiddenTables;
+    private final UniqueSchemaMutationLockTable lockTable;
     private final ReentrantLock schemaMutationLockForEarlierVersionsOfCassandra = new ReentrantLock(true);
 
-    public SchemaMutationLock(boolean supportsCAS, CassandraKeyValueServiceConfigManager configManager, CassandraClientPool clientPool, ConsistencyLevel writeConsistency, HiddenTables hiddenTables) {
+    public SchemaMutationLock(boolean supportsCAS, CassandraKeyValueServiceConfigManager configManager, CassandraClientPool clientPool, ConsistencyLevel writeConsistency, UniqueSchemaMutationLockTable lockTable) {
         this.supportsCAS = supportsCAS;
         this.configManager = configManager;
         this.clientPool = clientPool;
         this.writeConsistency = writeConsistency;
-        this.hiddenTables = hiddenTables;
+        this.lockTable = lockTable;
     }
 
     public interface Action {
@@ -123,7 +123,7 @@ public class SchemaMutationLock {
                     } else {
                         Column existingValue = Iterables.getOnlyElement(casResult.getCurrent_values(), null);
                         if (existingValue == null) {
-                            throw new IllegalStateException("Something is wrong with underlying locks. Consult support for guidance on manually examining and clearing locks from " + hiddenTables.getLockTable() + " table.");
+                            throw new IllegalStateException("Something is wrong with underlying locks. Consult support for guidance on manually examining and clearing locks from " + lockTable.getOnlyTable() + " table.");
                         }
                         expected = ImmutableList.of(lockColumnWithValue(Longs.toByteArray(CassandraConstants.GLOBAL_DDL_LOCK_CLEARED_VALUE)));
                     }
@@ -189,7 +189,7 @@ public class SchemaMutationLock {
     private CASResult writeLockWithCAS(Cassandra.Client client, ByteBuffer rowName, List<Column> expectedLockValue, Column newLockValue) throws TException {
         return client.cas(
                 rowName,
-                hiddenTables.getLockTable().getQualifiedName(),
+                lockTable.getOnlyTable().getQualifiedName(),
                 expectedLockValue,
                 ImmutableList.of(newLockValue),
                 ConsistencyLevel.SERIAL,
