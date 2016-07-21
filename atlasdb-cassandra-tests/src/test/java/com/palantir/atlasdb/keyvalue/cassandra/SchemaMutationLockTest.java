@@ -82,9 +82,8 @@ public class SchemaMutationLockTest {
         TableReference locks = TableReference.createWithEmptyNamespace("_locks");
         createTableIfNotExists(clientPool, quickTimeoutConfig.keyspace(), locks);
 
-        HiddenTables hiddenTables = new HiddenTables();
-        hiddenTables.setLockTable(locks);
-        schemaMutationLock = new SchemaMutationLock(supportsCas, simpleManager, clientPool, writeConsistency, hiddenTables);
+        UniqueSchemaMutationLockTable lockTable = UniqueSchemaMutationLockTable.create(new SchemaMutationLockTables(clientPool, quickTimeoutConfig));
+        schemaMutationLock = new SchemaMutationLock(supportsCas, simpleManager, clientPool, writeConsistency, lockTable);
     }
 
     private void createTableIfNotExists(CassandraClientPool clientPool, String keyspace, TableReference table) throws Exception {
