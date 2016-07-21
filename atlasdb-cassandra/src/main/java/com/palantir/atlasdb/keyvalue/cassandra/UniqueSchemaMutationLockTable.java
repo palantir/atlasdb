@@ -12,7 +12,6 @@ import com.palantir.common.base.Throwables;
 public class UniqueSchemaMutationLockTable {
     private final SchemaMutationLockTables schemaMutationLockTables;
 
-
     public UniqueSchemaMutationLockTable(SchemaMutationLockTables schemaMutationLockTables) {
         this.schemaMutationLockTables = schemaMutationLockTables;
     }

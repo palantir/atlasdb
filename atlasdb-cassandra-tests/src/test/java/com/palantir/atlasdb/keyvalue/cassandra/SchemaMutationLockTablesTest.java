@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 
 import java.util.UUID;
@@ -32,15 +33,17 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 
 public class SchemaMutationLockTablesTest {
     private SchemaMutationLockTables lockTables;
+    private CassandraKeyValueServiceConfig config;
+    CassandraClientPool clientPool;
 
     @Rule
     public ExpectedException exception = ExpectedException.none();
 
     @Before
     public void setupKVS() throws TException, InterruptedException {
-        CassandraKeyValueServiceConfig config = CassandraTestSuite.CASSANDRA_KVS_CONFIG
+        config = CassandraTestSuite.CASSANDRA_KVS_CONFIG
                 .withKeyspace(UUID.randomUUID().toString().replace('-', '_'));
-        CassandraClientPool clientPool = new CassandraClientPool(config);
+        clientPool = new CassandraClientPool(config);
         clientPool.runOneTimeStartupChecks();
         lockTables = new SchemaMutationLockTables(clientPool, config);
     }
@@ -48,5 +51,25 @@ public class SchemaMutationLockTablesTest {
     @Test
     public void startsWithNoTables() throws TException {
         assertThat(lockTables.getAllLockTables(), is(empty()));
+    }
+
+    @Test
+    public void tableShouldExistAfterCreation() throws Exception {
+        lockTables.createLockTable(UUID.randomUUID());
+        assertThat(lockTables.getAllLockTables(), hasSize(1));
+    }
+
+    @Test
+    public void multipleLockTablesExistAfterCreation() throws Exception {
+        lockTables.createLockTable(UUID.randomUUID());
+        lockTables.createLockTable(UUID.randomUUID());
+        assertThat(lockTables.getAllLockTables(), hasSize(2));
+    }
+
+    @Test
+    public void multipleSchemaMutationLockTablesObjectsShouldReturnSameLockTables() throws Exception {
+        SchemaMutationLockTables lockTables2 = new SchemaMutationLockTables(clientPool, config);
+        lockTables.createLockTable(UUID.randomUUID());
+        assertThat(lockTables.getAllLockTables(), is(lockTables2.getAllLockTables()));
     }
 }

@@ -34,7 +34,7 @@ public class SchemaMutationLockTables {
                 .collect(Collectors.toSet());
     }
 
-    public final TableReference createLockTable(UUID uuid) throws TException {
+    public TableReference createLockTable(UUID uuid) throws TException {
         return clientPool.run(client -> createInternalLockTable(client, uuid));
     }
 
