@@ -61,22 +61,22 @@ public class UniqueSchemaMutationLockTableTest {
 
     @Test
     public void shouldReturnALockTableIfNoneExist() {
-        UniqueSchemaMutationLockTable lockTables = new UniqueSchemaMutationLockTable(clientPool, CassandraTestSuite.CASSANDRA_KVS_CONFIG);
+        UniqueSchemaMutationLockTable lockTables = new UniqueSchemaMutationLockTable(new SchemaMutationLockTables(clientPool, CassandraTestSuite.CASSANDRA_KVS_CONFIG));
 
         assertThat(lockTables.getOnlyTable(), isA(TableReference.class));
     }
 
     @Test
     public void shouldReturnTheSameLockTableOnMultipleCalls() {
-        UniqueSchemaMutationLockTable lockTables = new UniqueSchemaMutationLockTable(clientPool, CassandraTestSuite.CASSANDRA_KVS_CONFIG);
+        UniqueSchemaMutationLockTable lockTables = new UniqueSchemaMutationLockTable(new SchemaMutationLockTables(clientPool, CassandraTestSuite.CASSANDRA_KVS_CONFIG));
 
         assertThat(lockTables.getOnlyTable(), is(lockTables.getOnlyTable()));
     }
 
     @Test
     public void newLockTablesObjectsShouldUseAlreadyCreatedTables() {
-        UniqueSchemaMutationLockTable lockTables1 = new UniqueSchemaMutationLockTable(clientPool, CassandraTestSuite.CASSANDRA_KVS_CONFIG);
-        UniqueSchemaMutationLockTable lockTables2 = new UniqueSchemaMutationLockTable(clientPool, CassandraTestSuite.CASSANDRA_KVS_CONFIG);
+        UniqueSchemaMutationLockTable lockTables1 = new UniqueSchemaMutationLockTable(new SchemaMutationLockTables(clientPool, CassandraTestSuite.CASSANDRA_KVS_CONFIG));
+        UniqueSchemaMutationLockTable lockTables2 = new UniqueSchemaMutationLockTable(new SchemaMutationLockTables(clientPool, CassandraTestSuite.CASSANDRA_KVS_CONFIG));
 
         assertThat(lockTables1.getOnlyTable(), is(lockTables2.getOnlyTable()));
     }
@@ -86,7 +86,7 @@ public class UniqueSchemaMutationLockTableTest {
         String lockTable1 = createRandomLockTable();
         String lockTable2 = createRandomLockTable();
 
-        UniqueSchemaMutationLockTable lockTables = new UniqueSchemaMutationLockTable(clientPool, CassandraTestSuite.CASSANDRA_KVS_CONFIG);
+        UniqueSchemaMutationLockTable lockTables = new UniqueSchemaMutationLockTable(new SchemaMutationLockTables(clientPool, CassandraTestSuite.CASSANDRA_KVS_CONFIG));
         exception.expect(IllegalArgumentException.class);
         try {
             lockTables.getOnlyTable();
@@ -108,7 +108,7 @@ public class UniqueSchemaMutationLockTableTest {
             IntStream.range(0, threadCount).parallel().forEach(i -> {
                 try {
                     cyclicBarrier.await();
-                    lockTables.set(i, new UniqueSchemaMutationLockTable(clientPool, CassandraTestSuite.CASSANDRA_KVS_CONFIG));
+                    lockTables.set(i, new UniqueSchemaMutationLockTable(new SchemaMutationLockTables(clientPool, CassandraTestSuite.CASSANDRA_KVS_CONFIG)));
                     lockTables.get(i).getOnlyTable();
                 } catch (BrokenBarrierException | InterruptedException e) {
                     System.out.println("Something went wrong with the cyclic barrier. Exception thrown was: " + e);
