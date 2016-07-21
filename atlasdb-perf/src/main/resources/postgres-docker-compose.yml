@@ -3,7 +3,7 @@ version: '2'
 services:
   postgres:
     image: kiasaki/alpine-postgres
-    container_name: postgres
+    container_name: atlas_perf_postgres
     environment:
        POSTGRES_PASSWORD: palantir
        POSTGRES_USER: palantir
