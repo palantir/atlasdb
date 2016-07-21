@@ -20,6 +20,8 @@ import static org.hamcrest.Matchers.is;
 
 import java.io.File;
 import java.io.IOException;
+import java.sql.SQLException;
+import java.util.Properties;
 
 import org.junit.Test;
 
@@ -27,8 +29,10 @@ import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
 import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.nexus.db.pool.HikariCPConnectionManager;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
 import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 
 public class TestConfigLoading {
     @Test
@@ -37,27 +41,47 @@ public class TestConfigLoading {
     }
 
     @Test
-    public void testHikariDefaults() throws IOException {
+    public void testHikariSocketTimeout() throws IOException {
+        ConnectionConfig connectionConfig = getConnectionConfig();
+        verifyHikariProperty(connectionConfig, "socketTimeout", connectionConfig.getSocketTimeoutSeconds());
+    }
+
+    @Test
+    public void testHikariConnectionTimeout() throws IOException {
+        ConnectionConfig connectionConfig = getConnectionConfig();
+        verifyHikariProperty(connectionConfig, "connectTimeout", connectionConfig.getConnectionTimeoutSeconds());
+    }
+
+    @Test
+    public void testHikariLoginTimeout() throws IOException {
+        ConnectionConfig connectionConfig = getConnectionConfig();
+        verifyHikariProperty(connectionConfig, "loginTimeout", connectionConfig.getConnectionTimeoutSeconds());
+    }
+
+    @Test
+    public void testHikariProperties() throws IOException, SQLException {
+        ConnectionConfig connectionConfig = getConnectionConfig();
+        HikariCPConnectionManager manager = new HikariCPConnectionManager(connectionConfig);
+
+        HikariConfig hikariConfig = connectionConfig.getHikariConfig();
+        HikariDataSource dataSource = new HikariDataSource(hikariConfig);
+        int loginTimeout = dataSource.getLoginTimeout();
+        assertThat(loginTimeout, is(connectionConfig.getConnectionTimeoutSeconds()));
+    }
+
+    private ConnectionConfig getConnectionConfig() throws IOException {
         AtlasDbConfig config = AtlasDbConfigs.load(new File(getClass().getClassLoader().getResource("postgresTestConfig.yml").getFile()));
         KeyValueServiceConfig keyValueServiceConfig = config.keyValueService();
         DbKeyValueServiceConfig dbkvsConfig = (DbKeyValueServiceConfig) keyValueServiceConfig;
-        ConnectionConfig connectionConfig = dbkvsConfig.connection();
-        HikariConfig hikariConfig = connectionConfig.getHikariConfig();
+        return dbkvsConfig.connection();
+    }
 
-        // TODO
-//        assertThat(
-//                "Hikari socket timeout should be populated from connectionConfig",
-//                hikariConfig.getConnectionTimeout(),
-//                is(connectionConfig.getConnectionTimeoutSeconds() * 1000));
+    private void verifyHikariProperty(ConnectionConfig connectionConfig, String property, int expectedValueSeconds) {
+        Properties hikariProps = connectionConfig.getHikariConfig().getDataSourceProperties();
 
         assertThat(
-                "Hikari connection timeout should be populated from connectionConfig",
-                hikariConfig.getConnectionTimeout(),
-                is(connectionConfig.getConnectionTimeoutSeconds() * 1000L));
-
-//        assertThat(
-//                "Hikari login timeout should be populated from connectionConfig",
-//                hikariConfig.getConnectionTimeout(),
-//                is(connectionConfig.getConnectionTimeoutSeconds() * 1000));
+                String.format("Hikari property %s should be populated from connectionConfig", property),
+                Integer.valueOf(hikariProps.getProperty(property)),
+                is(expectedValueSeconds * 1000));
     }
 }
