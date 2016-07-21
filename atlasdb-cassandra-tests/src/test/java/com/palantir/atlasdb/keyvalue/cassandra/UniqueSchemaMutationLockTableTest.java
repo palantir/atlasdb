@@ -19,8 +19,6 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.contains;
-import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -28,11 +26,8 @@ import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import org.apache.thrift.TException;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -42,7 +37,6 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public class UniqueSchemaMutationLockTableTest {
-    private ExecutorService executorService;
     private UniqueSchemaMutationLockTable uniqueLockTable;
     private SchemaMutationLockTables lockTables;
     private TableReference lockTable1 = TableReference.createWithEmptyNamespace(HiddenTables.LOCK_TABLE_PREFIX + UUID.randomUUID());
@@ -53,38 +47,40 @@ public class UniqueSchemaMutationLockTableTest {
 
     @Before
     public void setupKVS() throws TException, InterruptedException {
-        executorService = Executors.newFixedThreadPool(4);
         lockTables = mock(SchemaMutationLockTables.class);
         uniqueLockTable = new UniqueSchemaMutationLockTable(lockTables);
     }
 
-    @After
-    public void cleanUp() throws TException, InterruptedException {
-        executorService.shutdown();
-    }
 
     @Test
     public void shouldReturnALockTableIfNoneExist() throws TException {
         when(lockTables.getAllLockTables()).thenReturn(Collections.EMPTY_SET);
         when(lockTables.createLockTable(any(UUID.class))).thenReturn(lockTable1);
 
-        uniqueLockTable.getOnlyTable();
-
-        verify(lockTables).createLockTable(any(UUID.class));
+        assertThat(uniqueLockTable.getOnlyTable(), is(lockTable1));
     }
 
     @Test
-    public void shouldReturnTheSameLockTableOnMultipleCalls() {
+    public void shouldReturnTheSameLockTableOnMultipleCalls() throws TException {
+        when(lockTables.getAllLockTables()).thenReturn(ImmutableSet.of(lockTable1));
+
         assertThat(uniqueLockTable.getOnlyTable(), is(uniqueLockTable.getOnlyTable()));
     }
 
     @Test
-    public void shouldReturnLockTableIfExists() throws Exception {
+    public void shouldNotCreateALockTableIfOneAlreadyExists() throws Exception {
         when(lockTables.getAllLockTables()).thenReturn(ImmutableSet.of(lockTable1));
 
         uniqueLockTable.getOnlyTable();
 
         verify(lockTables, never()).createLockTable(any(UUID.class));
+    }
+
+    @Test
+    public void shouldReturnTheLockTableIfItIsTheOnlyOne() throws TException {
+        when(lockTables.getAllLockTables()).thenReturn(ImmutableSet.of(lockTable1));
+
+        assertThat(uniqueLockTable.getOnlyTable(), is(lockTable1));
     }
 
     @Test
@@ -102,9 +98,10 @@ public class UniqueSchemaMutationLockTableTest {
     @Test
     public void shouldThrowExceptionIfMultipleTablesExistSuddenlyDueToConcurrency() throws Exception {
         when(lockTables.getAllLockTables()).thenReturn(ImmutableSet.of(), ImmutableSet.of(lockTable1, lockTable2));
-        exception.expect(IllegalStateException.class);
 
+        exception.expect(IllegalStateException.class);
         exception.expectMessage("Multiple schema mutation lock tables have been created.\n");
+
         try {
             uniqueLockTable.getOnlyTable();
         } finally {
