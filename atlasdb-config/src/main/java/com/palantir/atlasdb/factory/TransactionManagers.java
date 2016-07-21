@@ -217,9 +217,19 @@ public class TransactionManagers {
         } else {
             warnIf(config.lock().isPresent() != config.timestamp().isPresent(), "Using embedded instances for one (but not both) of lock and timestamp services");
 
+            RemoteLockService lockService = config.lock().transform(new ServiceCreator<>(sslSocketFactory, RemoteLockService.class)).or(lock);
+            TimestampService timeService = config.timestamp().transform(new ServiceCreator<>(sslSocketFactory, TimestampService.class)).or(time);
+
+            if (!config.lock().isPresent()) {
+                env.register(lockService);
+            }
+            if (!config.timestamp().isPresent()) {
+                env.register(timeService);
+            }
+
             return ImmutableLockAndTimestampServices.builder()
-                    .lock(config.lock().transform(new ServiceCreator<>(sslSocketFactory, RemoteLockService.class)).or(lock))
-                    .time(config.timestamp().transform(new ServiceCreator<>(sslSocketFactory, TimestampService.class)).or(time))
+                    .lock(lockService)
+                    .time(timeService)
                     .build();
         }
     }
