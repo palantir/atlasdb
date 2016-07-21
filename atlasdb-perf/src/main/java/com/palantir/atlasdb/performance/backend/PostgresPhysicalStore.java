@@ -45,14 +45,14 @@ public class PostgresPhysicalStore extends PhysicalStore {
 
     public static PostgresPhysicalStore create() {
             DockerComposeRule docker = DockerComposeRule.builder()
-                    .file(getDockerComposeFileAbsoluatePath())
+                    .file(getDockerComposeFileAbsolutePath())
                     .waitingForHostNetworkedPort(POSTGRES_PORT_NUMBER, toBeOpen())
                     .saveLogsTo(POSTGRES_DOCKER_LOGS_DIR)
                     .build();
             return new PostgresPhysicalStore(docker);
     }
 
-    private static String getDockerComposeFileAbsoluatePath() {
+    private static String getDockerComposeFileAbsolutePath() {
         try {
             return PhysicalStores.writeResourceToTempFile(PostgresPhysicalStore.class, POSTGRES_DOCKER_COMPOSE_PATH).getAbsolutePath();
         } catch (IOException e) {
