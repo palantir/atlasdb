@@ -33,11 +33,11 @@ public abstract class AbstractCommand implements Callable<Integer> {
             description = "path to yaml configuration file for atlasdb")
     private File configFile;
 
+    // TODO: Hide this argument once https://github.com/airlift/airline/issues/51 is fixed
     @Option(name = {"--inline-config"},
             title = "INLINE CONFIG",
             type = OptionType.GLOBAL,
-            description = "inline configuration file for atlasdb",
-            hidden = true)
+            description = "inline configuration file for atlasdb")
     private String inlineConfig;
 
     @Option(name = {"--config-root"},
