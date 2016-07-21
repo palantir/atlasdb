@@ -1589,7 +1589,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                             public CASResult run() throws TException {
                                 return client.cas(
                                         rowName,
-                                        tableRef.getQualifiedName(),
+                                        tableName,
                                         ImmutableList.<Column>of(),
                                         ImmutableList.of(col),
                                         ConsistencyLevel.SERIAL,
