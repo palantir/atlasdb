@@ -31,6 +31,10 @@ task clean(type: Delete) {
     delete buildDir
 }
 
+subprojects {
+  task allDeps(type: DependencyReportTask) {}
+}
+
 apply from: 'idea.gradle'
 
 def ideaSetModuleLevel(idea, targetCompatibility) {
