@@ -1,33 +1,39 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import static com.google.common.base.Preconditions.*;
+
 import java.util.Set;
 import java.util.UUID;
 
 import org.apache.thrift.TException;
 
 import com.google.common.collect.Iterables;
-import com.palantir.atlasdb.config.LeaderConfig;
+import com.palantir.atlasdb.config.LockLeader;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.Throwables;
 
 public class UniqueSchemaMutationLockTable {
     private final SchemaMutationLockTables schemaMutationLockTables;
-    private final LeaderConfig leaderConfig;
+    private final LockLeader lockLeader;
 
-    public UniqueSchemaMutationLockTable(SchemaMutationLockTables schemaMutationLockTables, LeaderConfig leaderConfig) {
+    public UniqueSchemaMutationLockTable(SchemaMutationLockTables schemaMutationLockTables, LockLeader lockLeader) {
         this.schemaMutationLockTables = schemaMutationLockTables;
-        this.leaderConfig = leaderConfig;
+        this.lockLeader = checkNotNull(lockLeader, "We must know if we are the lock leader");
     }
 
-    public TableReference getOnlyTable() throws TException {
-        if(leaderConfig.amITheLockLeader()) {
-            return ensureLockTableExistsRethrowingErrors();
+    public TableReference getOnlyTable() {
+        try {
+            switch (lockLeader) {
+                case I_AM_THE_LOCK_LEADER: return ensureLockTableExists();
+                case SOMEONE_ELSE_IS_THE_LOCK_LEADER: return waitForSomeoneElseToCreateLockTable();
+                default: throw new RuntimeException("We encountered an unknown lock leader status, please contact the AtlasDB team");
+            }
+        } catch (TException e) {
+            throw Throwables.rewrapAndThrowUncheckedException(e);
         }
-
-        return waitForSomeoneElseToCreateLockTable();
     }
 
-    zprivate TableReference waitForSomeoneElseToCreateLockTable() throws TException {
+    private TableReference waitForSomeoneElseToCreateLockTable() throws TException {
         while(schemaMutationLockTables.getAllLockTables().isEmpty()) {
             try {
                 Thread.sleep(1000);
@@ -37,14 +43,6 @@ public class UniqueSchemaMutationLockTable {
         }
 
         return Iterables.getOnlyElement(schemaMutationLockTables.getAllLockTables());
-    }
-
-    private TableReference ensureLockTableExistsRethrowingErrors() {
-        try {
-            return ensureLockTableExists();
-        } catch (Exception e) {
-            throw Throwables.throwUncheckedException(e);
-        }
     }
 
     private final TableReference ensureLockTableExists() throws TException {

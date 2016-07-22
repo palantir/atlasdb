@@ -99,19 +99,6 @@ public class CassandraKeyValueServiceTest extends AbstractAtlasDbKeyValueService
         Preconditions.checkArgument(!allTables.contains(table3));
     }
 
-    @Test(timeout = 3000L)
-    public void testLockLeaderCreatesLockTable() throws TException {
-        ImmutableCassandraKeyValueServiceConfig config = CassandraTestSuite.CASSANDRA_KVS_CONFIG.withKeyspace("lockLeader");
-        CassandraKeyValueService kvs = createKVS(config);
-
-        Optional<TableReference> lockTable = kvs.getLockTable();
-        assertThat(lockTable.isPresent(), is(true));
-
-        //noinspection OptionalGetWithoutIsPresent
-        kvs.dropTable(lockTable.get());
-        CassandraTestTools.dropKeyspaceIfExists(config);
-    }
-
     @Test
     public void testNonLockLeaderDoesNotCreateLockTable() throws InterruptedException, ExecutionException, TimeoutException {
         Future async = CassandraTestTools.async(executorService, () -> createKvsAsNonLockLeader("notLockLeader"));
