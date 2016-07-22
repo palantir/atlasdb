@@ -84,7 +84,7 @@ public abstract class LeaderConfig {
     }
 
     @Value.Derived
-    public boolean amITheLockLeader() {
-        return lockCreator().equals(localServer());
+    public LockLeader whoIsTheLockLeader() {
+        return LockLeader.iAmTheLockLeader(lockCreator().equals(localServer()));
     }
 }

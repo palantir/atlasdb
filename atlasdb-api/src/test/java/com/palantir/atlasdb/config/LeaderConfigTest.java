@@ -17,7 +17,7 @@ public class LeaderConfigTest {
                 .lockCreator("me")
                 .build();
 
-        assertThat(config.amITheLockLeader(), is(true));
+        assertThat(config.whoIsTheLockLeader(), is(LockLeader.I_AM_THE_LOCK_LEADER));
     }
 
     @Test
@@ -29,7 +29,7 @@ public class LeaderConfigTest {
                 .lockCreator("not me")
                 .build();
 
-        assertThat(config.amITheLockLeader(), is(false));
+        assertThat(config.whoIsTheLockLeader(), is(LockLeader.SOMEONE_ELSE_IS_THE_LOCK_LEADER));
     }
 
 

@@ -41,6 +41,7 @@ import org.junit.runners.Parameterized;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.config.LockLeader;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.common.base.FunctionCheckedException;
@@ -82,7 +83,7 @@ public class SchemaMutationLockTest {
         TableReference locks = TableReference.createWithEmptyNamespace("_locks");
         createTableIfNotExists(clientPool, quickTimeoutConfig.keyspace(), locks);
 
-        UniqueSchemaMutationLockTable lockTable = new UniqueSchemaMutationLockTable(new SchemaMutationLockTables(clientPool, quickTimeoutConfig), CassandraTestSuite.LEADER_CONFIG);
+        UniqueSchemaMutationLockTable lockTable = new UniqueSchemaMutationLockTable(new SchemaMutationLockTables(clientPool, quickTimeoutConfig), LockLeader.I_AM_THE_LOCK_LEADER);
         schemaMutationLock = new SchemaMutationLock(supportsCas, simpleManager, clientPool, writeConsistency, lockTable);
     }
 
