@@ -42,7 +42,7 @@ v0.11.0
            Changing your config to explicitly use this option is advised, but it is backwards compatible with old configurations. Please see `the cassandra configuration docs <https://palantir.github.io/atlasdb/html/configuration/cassandra_KVS_configuration.html>`__
            for details on how this works.
 
-         - |fixed|
+    *    - |fixed|
          - A utility method was removed in the previous release, breaking an internal product that relied on it. This method has now been added back.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/661>`__)
 
@@ -79,7 +79,7 @@ v0.10.0
     *    - |fixed|
          - We properly check that cells are not set to empty (zero-byte) or null.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/663>`__)
-         
+
     *    - |improved|
          - Cassandra client connection pooling will now evict idle connections over a longer period of time and has improved logic
            for deciding whether or not a node should be blacklisted.  This should result in less connection churn
