@@ -15,7 +15,12 @@
  */
 package com.palantir.atlasdb.dropwizard.commands;
 
+import static com.palantir.atlasdb.dropwizard.commands.AtlasDbCommandUtils.ZERO_ARITY_ARG_CONSTANT;
+
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
@@ -24,12 +29,16 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import com.palantir.atlasdb.cli.AtlasCli;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.dropwizard.AtlasDbConfigurationProvider;
 
 import io.airlift.airline.Cli;
+import io.airlift.airline.OptionType;
 import io.airlift.airline.model.CommandGroupMetadata;
 import io.airlift.airline.model.CommandMetadata;
 import io.airlift.airline.model.OptionMetadata;
@@ -101,7 +110,7 @@ public class AtlasDbCliCommand<T extends Configuration & AtlasDbConfigurationPro
 
             if(option.getArity() == 0) {
                 arg.action(Arguments.storeConst());
-                arg.setConst(AtlasDbCommandUtils.ZERO_ARITY_ARG_CONSTANT);
+                arg.setConst(ZERO_ARITY_ARG_CONSTANT);
             } else {
                 arg.nargs(option.getArity());
             }
@@ -114,13 +123,66 @@ public class AtlasDbCliCommand<T extends Configuration & AtlasDbConfigurationPro
     protected void run(Bootstrap<T> bootstrap, Namespace namespace, T configuration) throws Exception {
         AtlasDbConfig cliConfiguration = AtlasDbCommandUtils.convertServerConfigToClientConfig(configuration.getAtlasDbConfig());
 
+        Map<String, OptionType> optionTypes = getCliOptionTypes();
+
+        Map<String, Object> globalAttrs = Maps.filterKeys(namespace.getAttrs(), (key) -> optionTypes.get(key) == OptionType.GLOBAL);
+        Map<String, Object> groupAttrs = Maps.filterKeys(namespace.getAttrs(), (key) -> optionTypes.get(key) == OptionType.GROUP);
+        Map<String, Object> commandAttrs = Maps.filterKeys(namespace.getAttrs(), (key) -> optionTypes.get(key) == OptionType.COMMAND);
+
+        Iterable<String> groups = Iterables.limit(namespace.getList(COMMAND_NAME_ATTR), 1);
+        Iterable<String> commands = Iterables.skip(namespace.getList(COMMAND_NAME_ATTR), 1);
+
         List<String> allArgs = ImmutableList.<String>builder()
+                .addAll(Objects.equals(namespace.getString("runCliOffline"), ZERO_ARITY_ARG_CONSTANT) ? ImmutableSet.of("--offline") : ImmutableSet.of())
                 .add("--inline-config")
                 .add(OBJECT_MAPPER.writeValueAsString(cliConfiguration))
-                .addAll(namespace.getList(COMMAND_NAME_ATTR))
-                .addAll(AtlasDbCommandUtils.gatherPassedInArguments(namespace.getAttrs()))
+                .addAll(AtlasDbCommandUtils.gatherPassedInArguments(globalAttrs))
+                .addAll(groups)
+                .addAll(AtlasDbCommandUtils.gatherPassedInArguments(groupAttrs))
+                .addAll(commands)
+                .addAll(AtlasDbCommandUtils.gatherPassedInArguments(commandAttrs))
                 .build();
 
         CLI.parse(allArgs).call();
+    }
+
+    private static Map<String, OptionType> getCliOptionTypes() {
+        Map<String, OptionType> optionTypes = new HashMap<>();
+
+        for (CommandMetadata subCommand : CLI.getMetadata().getDefaultGroupCommands()) {
+            optionTypes.putAll(getOptionTypesForCommandMetadata(subCommand));
+        }
+
+        for (CommandGroupMetadata commandGroup : CLI.getMetadata().getCommandGroups()) {
+            for (CommandMetadata subCommand : commandGroup.getCommands()) {
+                optionTypes.putAll(getOptionTypesForCommandMetadata(subCommand));
+            }
+        }
+
+        return ImmutableMap.copyOf(optionTypes);
+    }
+
+    private static Map<String, OptionType> getOptionTypesForCommandMetadata(CommandMetadata subCommand) {
+        Map<String, OptionType> optionTypes = new HashMap<>();
+        List<OptionMetadata> commandOptions = ImmutableList.<OptionMetadata>builder()
+                .addAll(subCommand.getCommandOptions())
+                .addAll(subCommand.getGroupOptions())
+                .build();
+
+        for (OptionMetadata option : commandOptions) {
+            if (option.isHidden()) {
+                continue;
+            }
+
+            List<String> sortedOptions = option.getOptions().stream()
+                    .sorted((a, b) -> Integer.compareUnsigned(a.length(), b.length()))
+                    .collect(Collectors.toList());
+
+            String longOption = Iterables.getLast(sortedOptions);
+
+            optionTypes.put(longOption, option.getOptionType());
+        }
+
+        return ImmutableMap.copyOf(optionTypes);
     }
 }
