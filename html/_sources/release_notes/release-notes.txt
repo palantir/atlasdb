@@ -40,6 +40,10 @@ v0.11.0
          - A utility method was removed in the previous release, breaking an internal product that relied on it. This method has now been added back.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/661>`__)
 
+    *    - |changed|
+         - Updated our cassandra client from 2.2.1 to 2.2.7 (this corresponds to a bump of our cassandra docker testing version from 2.2.6 to 2.2.7).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/699>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
