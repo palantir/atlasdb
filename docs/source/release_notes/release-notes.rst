@@ -26,6 +26,26 @@ Changelog
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
+v0.11.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - The Leader config now contains a new "lockCreator" option. Full details for configuring this are in `the cassandra configuration docs <https://palantir.github.io/atlasdb/html/configuration/cassandra_KVS_configuration.html>`__
+           This field helps us to determine a single node to create the necessary locks table for performing schema mutations without corruption. This safety will still be in place if you have no leader block.
+           Changing your config to explicitly use this option is advised, but it is backwards compatible with old configurations. Please see `the cassandra configuration docs <https://palantir.github.io/atlasdb/html/configuration/cassandra_KVS_configuration.html>`__
+           for details on how this works.
+
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
 v0.10.0
 =======
 
