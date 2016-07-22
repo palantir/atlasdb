@@ -18,18 +18,15 @@ package com.palantir.atlasdb.dropwizard.commands;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.cli.AtlasCli;
 import com.palantir.atlasdb.config.AtlasDbConfig;
-import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.dropwizard.AtlasDbConfigurationProvider;
 
 import io.airlift.airline.Cli;
@@ -45,7 +42,6 @@ import net.sourceforge.argparse4j.inf.Subparser;
 
 public class AtlasDbCliCommand<T extends Configuration & AtlasDbConfigurationProvider> extends AtlasDbCommand<T> {
     private static final String COMMAND_NAME_ATTR = "airlineSubCommand";
-    private static final Object ZERO_ARITY_ARG_CONSTANT = "<ZERO ARITY ARG CONSTANT>";
     private static final Cli<Callable> CLI = AtlasCli.buildCli();
     private static final ObjectMapper OBJECT_MAPPER;
 
@@ -105,7 +101,7 @@ public class AtlasDbCliCommand<T extends Configuration & AtlasDbConfigurationPro
 
             if(option.getArity() == 0) {
                 arg.action(Arguments.storeConst());
-                arg.setConst(ZERO_ARITY_ARG_CONSTANT);
+                arg.setConst(AtlasDbCommandUtils.ZERO_ARITY_ARG_CONSTANT);
             } else {
                 arg.nargs(option.getArity());
             }
@@ -116,30 +112,13 @@ public class AtlasDbCliCommand<T extends Configuration & AtlasDbConfigurationPro
 
     @Override
     protected void run(Bootstrap<T> bootstrap, Namespace namespace, T configuration) throws Exception {
-        AtlasDbConfig configurationWithoutLeader = ImmutableAtlasDbConfig.builder()
-                .from(configuration.getAtlasDbConfig())
-                .leader(Optional.absent())
-                .build();
-
-        List<String> passedInArgs = namespace.getAttrs().entrySet().stream()
-                .filter(entry -> entry.getKey().startsWith("--"))
-                .filter(entry -> entry.getValue() != null)
-                .flatMap(entry -> {
-                    if (entry.getValue() instanceof List) {
-                        return Stream.concat(Stream.of(entry.getKey()), ((List<String>) entry.getValue()).stream());
-                    } else if (entry.getValue().equals(ZERO_ARITY_ARG_CONSTANT)) {
-                        return Stream.of(entry.getKey());
-                    } else {
-                        return Stream.of(entry.getKey(), (String) entry.getValue());
-                    }
-                })
-                .collect(Collectors.toList());
+        AtlasDbConfig cliConfiguration = AtlasDbCommandUtils.convertServerConfigToClientConfig(configuration.getAtlasDbConfig());
 
         List<String> allArgs = ImmutableList.<String>builder()
                 .add("--inline-config")
-                .add(OBJECT_MAPPER.writeValueAsString(configurationWithoutLeader))
+                .add(OBJECT_MAPPER.writeValueAsString(cliConfiguration))
                 .addAll(namespace.getList(COMMAND_NAME_ATTR))
-                .addAll(passedInArgs)
+                .addAll(AtlasDbCommandUtils.gatherPassedInArguments(namespace.getAttrs()))
                 .build();
 
         CLI.parse(allArgs).call();
