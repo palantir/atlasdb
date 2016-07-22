@@ -24,7 +24,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 class HiddenTables {
     private TableReference lockTable;
     private final Set<TableReference> hiddenTables;
-    public static final String LOCK_TABLE_PREFIX = "_locks_";
+    public static final String LOCK_TABLE_PREFIX = "_locks";
 
 
     HiddenTables() {
@@ -34,6 +34,6 @@ class HiddenTables {
     }
 
     boolean isHidden(TableReference tableReference) {
-        return hiddenTables.contains(tableReference) || (tableReference != null && tableReference.equals(lockTable));
+        return hiddenTables.contains(tableReference) || tableReference.getTablename().startsWith(LOCK_TABLE_PREFIX);
     }
 }

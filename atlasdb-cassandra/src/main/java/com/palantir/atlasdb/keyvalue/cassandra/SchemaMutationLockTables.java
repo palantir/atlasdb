@@ -55,11 +55,11 @@ public class SchemaMutationLockTables {
     }
 
     private final TableReference createInternalLockTable(Cassandra.Client client, UUID uuid) throws TException {
-        String lockTableName = HiddenTables.LOCK_TABLE_PREFIX + uuid.toString().replace('-','_');
+        String lockTableName = HiddenTables.LOCK_TABLE_PREFIX + "_" + uuid.toString().replace('-','_');
         TableReference lockTable = TableReference.createWithEmptyNamespace(lockTableName);
         createTableInternal(client, lockTable);
         return lockTable;
-    };
+    }
 
     private void createTableInternal(Cassandra.Client client, TableReference tableRef) throws TException {
         CfDef cf = CassandraConstants.getStandardCfDef(config.keyspace(), CassandraKeyValueService.internalTableName(tableRef));

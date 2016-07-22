@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
@@ -25,19 +26,15 @@ import java.util.UUID;
 
 import org.apache.thrift.TException;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public class SchemaMutationLockTablesTest {
     private SchemaMutationLockTables lockTables;
     private CassandraKeyValueServiceConfig config;
-    CassandraClientPool clientPool;
-
-    @Rule
-    public ExpectedException exception = ExpectedException.none();
+    private CassandraClientPool clientPool;
 
     @Before
     public void setupKVS() throws TException, InterruptedException {
@@ -71,5 +68,15 @@ public class SchemaMutationLockTablesTest {
         SchemaMutationLockTables lockTables2 = new SchemaMutationLockTables(clientPool, config);
         lockTables.createLockTable(UUID.randomUUID());
         assertThat(lockTables.getAllLockTables(), is(lockTables2.getAllLockTables()));
+    }
+
+    @Test
+    public void shouldCreateLockTablesInTheRightFormat() throws TException {
+        UUID uuid = UUID.randomUUID();
+        lockTables.createLockTable(uuid);
+
+        TableReference expectedTable = TableReference.createUnsafe("_locks_" + uuid.toString().replace('-', '_'));
+
+        assertThat(lockTables.getAllLockTables(), contains(expectedTable));
     }
 }
