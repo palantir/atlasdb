@@ -34,9 +34,10 @@ dependencies {
 
 configurations.matching({ it.name in ['compile', 'runtime'] }).all {
     resolutionStrategy {
-        force 'com.google.code.findbugs:jsr305:' + libVersions.jsr305
-        force 'org.slf4j:slf4j-api:' + libVersions.slf4j
-    }
+            force 'net.java.dev.jna:jna:' + libVersions.jna
+            force 'com.google.code.findbugs:jsr305:' + libVersions.jsr305
+            force 'org.slf4j:slf4j-api:' + libVersions.slf4j
+        }
 }
 
 apply from: rootProject.file('gradle/javadoc.gradle'), to: javadoc
