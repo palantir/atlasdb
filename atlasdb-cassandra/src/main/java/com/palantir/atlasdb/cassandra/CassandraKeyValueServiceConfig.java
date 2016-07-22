@@ -40,8 +40,6 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
 
     public abstract Set<InetSocketAddress> servers();
 
-    public abstract Optional<String> lockLeader();
-
     @Value.Default
     public int poolSize() {
         return 20;

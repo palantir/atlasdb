@@ -43,7 +43,6 @@ public class CassandraConnectionTest {
             .fetchBatchCount(1000)
             .safetyDisabled(false)
             .autoRefreshNodes(false)
-            .lockLeader("localhost")
             .build();
 
     private static final Optional<LeaderConfig> LEADER_CONFIG = Optional.of(ImmutableLeaderConfig

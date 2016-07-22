@@ -99,39 +99,9 @@ public class CassandraKeyValueServiceTest extends AbstractAtlasDbKeyValueService
         Preconditions.checkArgument(!allTables.contains(table3));
     }
 
-    @Test
-    public void testNonLockLeaderDoesNotCreateLockTable() throws InterruptedException, ExecutionException, TimeoutException {
-        Future async = CassandraTestTools.async(executorService, () -> createKvsAsNonLockLeader("notLockLeader"));
-
-        Thread.sleep(3*1000);
-
-        CassandraTestTools.assertThatFutureDidNotSucceedYet(async);
-    }
-
-    @Test
-    public void testNonLockLeaderStopsWaitingIfLeaderShowsUp() throws InterruptedException, TException {
-        final String keyspace = "lateLockLeader";
-        Future async = CassandraTestTools.async(executorService, () -> {
-            createKvsAsNonLockLeader(keyspace);
-        });
-
-        Thread.sleep(3*1000);
-
-        CassandraTestTools.assertThatFutureDidNotSucceedYet(async);
-
-        ImmutableCassandraKeyValueServiceConfig config = CassandraTestSuite.CASSANDRA_KVS_CONFIG.withKeyspace(keyspace);
-        createKVS(config);
-
-        Thread.sleep(2*1000);
-
-        assertThat(async.isDone(), is(true));
-
-        CassandraTestTools.dropKeyspaceIfExists(config);
-    }
-
     @Test(timeout = 3000L)
     public void testNullLockLeaderDefaultsToFirstInLeaderList() {
-        ImmutableCassandraKeyValueServiceConfig config = CassandraTestSuite.CASSANDRA_KVS_CONFIG_NO_LOCK_LEADER.withKeyspace("nullLockLeader");
+        ImmutableCassandraKeyValueServiceConfig config = CassandraTestSuite.CASSANDRA_KVS_CONFIG.withKeyspace("nullLockLeader");
         CassandraKeyValueService kvs = createKVS(config);
     }
 
@@ -184,13 +154,6 @@ public class CassandraKeyValueServiceTest extends AbstractAtlasDbKeyValueService
     private CassandraKeyValueService createKVS(ImmutableCassandraKeyValueServiceConfig config) {
         return CassandraKeyValueService.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(config),
-                CassandraTestSuite.LEADER_CONFIG);
-    }
-
-    private CassandraKeyValueService createKvsAsNonLockLeader(String keyspace) {
-        return  CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(
-                        CassandraTestSuite.CASSANDRA_KVS_CONFIG.withKeyspace(keyspace).withLockLeader("someone-else")),
                 CassandraTestSuite.LEADER_CONFIG);
     }
 }
