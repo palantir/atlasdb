@@ -1,5 +1,6 @@
 package com.palantir.example.profile.schema.generated;
 
+import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -32,6 +33,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -44,6 +46,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelections;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
@@ -1133,6 +1136,16 @@ public final class UserProfileTable implements
         return transformed;
     }
 
+    @Override
+    public Iterator<Map.Entry<UserProfileRow, UserProfileNamedColumnValue<?>>> getRowsColumnRange(Iterable<UserProfileRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
+        Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
+        return Iterators.transform(results, e -> {
+            UserProfileRow row = UserProfileRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
+            UserProfileNamedColumnValue<?> colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());
+            return new AbstractMap.SimpleEntry<UserProfileRow, UserProfileNamedColumnValue<?>>(row, colValue);
+        });
+    }
+
     private Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> getAffectedCells(Multimap<UserProfileRow, ? extends UserProfileNamedColumnValue<?>> rows) {
         Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> oldData = getRowsMultimap(rows.keySet());
         Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> cellsAffected = ArrayListMultimap.create();
@@ -1841,6 +1854,18 @@ public final class UserProfileTable implements
             return transformed;
         }
 
+        @Override
+        public Iterator<Map.Entry<CookiesIdxRow, CookiesIdxColumnValue>> getRowsColumnRange(Iterable<CookiesIdxRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
+            Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
+            return Iterators.transform(results, e -> {
+                CookiesIdxRow row = CookiesIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
+                CookiesIdxColumn col = CookiesIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());
+                Long val = CookiesIdxColumnValue.hydrateValue(e.getValue());
+                CookiesIdxColumnValue colValue = CookiesIdxColumnValue.of(col, val);
+                return new AbstractMap.SimpleEntry<CookiesIdxRow, CookiesIdxColumnValue>(row, colValue);
+            });
+        }
+
         public BatchingVisitableView<CookiesIdxRowResult> getRange(RangeRequest range) {
             if (range.getColumnNames().isEmpty()) {
                 range = range.getBuilder().retainColumns(ColumnSelection.all()).build();
@@ -2513,6 +2538,18 @@ public final class UserProfileTable implements
                 transformed.put(row, bv);
             }
             return transformed;
+        }
+
+        @Override
+        public Iterator<Map.Entry<CreatedIdxRow, CreatedIdxColumnValue>> getRowsColumnRange(Iterable<CreatedIdxRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
+            Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
+            return Iterators.transform(results, e -> {
+                CreatedIdxRow row = CreatedIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
+                CreatedIdxColumn col = CreatedIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());
+                Long val = CreatedIdxColumnValue.hydrateValue(e.getValue());
+                CreatedIdxColumnValue colValue = CreatedIdxColumnValue.of(col, val);
+                return new AbstractMap.SimpleEntry<CreatedIdxRow, CreatedIdxColumnValue>(row, colValue);
+            });
         }
 
         public BatchingVisitableView<CreatedIdxRowResult> getRange(RangeRequest range) {
@@ -3189,6 +3226,18 @@ public final class UserProfileTable implements
             return transformed;
         }
 
+        @Override
+        public Iterator<Map.Entry<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue>> getRowsColumnRange(Iterable<UserBirthdaysIdxRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
+            Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
+            return Iterators.transform(results, e -> {
+                UserBirthdaysIdxRow row = UserBirthdaysIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
+                UserBirthdaysIdxColumn col = UserBirthdaysIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());
+                Long val = UserBirthdaysIdxColumnValue.hydrateValue(e.getValue());
+                UserBirthdaysIdxColumnValue colValue = UserBirthdaysIdxColumnValue.of(col, val);
+                return new AbstractMap.SimpleEntry<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue>(row, colValue);
+            });
+        }
+
         public BatchingVisitableView<UserBirthdaysIdxRowResult> getRange(RangeRequest range) {
             if (range.getColumnNames().isEmpty()) {
                 range = range.getBuilder().retainColumns(ColumnSelection.all()).build();
@@ -3256,6 +3305,7 @@ public final class UserProfileTable implements
      * This exists to avoid unused import warnings
      * {@link AbortingVisitor}
      * {@link AbortingVisitors}
+     * {@link AbstractMap}
      * {@link ArrayListMultimap}
      * {@link Arrays}
      * {@link AssertUtils}
@@ -3277,6 +3327,7 @@ public final class UserProfileTable implements
      * {@link Cells}
      * {@link Collection}
      * {@link Collections2}
+     * {@link ColumnRangeSelection}
      * {@link ColumnRangeSelections}
      * {@link ColumnSelection}
      * {@link ColumnValue}
@@ -3304,6 +3355,7 @@ public final class UserProfileTable implements
      * {@link IterableView}
      * {@link Iterables}
      * {@link Iterator}
+     * {@link Iterators}
      * {@link Joiner}
      * {@link List}
      * {@link Lists}
@@ -3336,5 +3388,5 @@ public final class UserProfileTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "+zWKKshRI4wNeoY/BjX8zA==";
+    static String __CLASS_HASH = "x1a+815sQMi5yqfCAfYYRg==";
 }

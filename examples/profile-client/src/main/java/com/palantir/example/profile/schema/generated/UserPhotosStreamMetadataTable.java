@@ -1,5 +1,6 @@
 package com.palantir.example.profile.schema.generated;
 
+import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -32,6 +33,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -44,6 +46,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelections;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
@@ -619,6 +622,16 @@ public final class UserPhotosStreamMetadataTable implements
         return transformed;
     }
 
+    @Override
+    public Iterator<Map.Entry<UserPhotosStreamMetadataRow, UserPhotosStreamMetadataNamedColumnValue<?>>> getRowsColumnRange(Iterable<UserPhotosStreamMetadataRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
+        Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
+        return Iterators.transform(results, e -> {
+            UserPhotosStreamMetadataRow row = UserPhotosStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
+            UserPhotosStreamMetadataNamedColumnValue<?> colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());
+            return new AbstractMap.SimpleEntry<UserPhotosStreamMetadataRow, UserPhotosStreamMetadataNamedColumnValue<?>>(row, colValue);
+        });
+    }
+
     public BatchingVisitableView<UserPhotosStreamMetadataRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(ColumnSelection.all());
     }
@@ -650,6 +663,7 @@ public final class UserPhotosStreamMetadataTable implements
      * This exists to avoid unused import warnings
      * {@link AbortingVisitor}
      * {@link AbortingVisitors}
+     * {@link AbstractMap}
      * {@link ArrayListMultimap}
      * {@link Arrays}
      * {@link AssertUtils}
@@ -671,6 +685,7 @@ public final class UserPhotosStreamMetadataTable implements
      * {@link Cells}
      * {@link Collection}
      * {@link Collections2}
+     * {@link ColumnRangeSelection}
      * {@link ColumnRangeSelections}
      * {@link ColumnSelection}
      * {@link ColumnValue}
@@ -698,6 +713,7 @@ public final class UserPhotosStreamMetadataTable implements
      * {@link IterableView}
      * {@link Iterables}
      * {@link Iterator}
+     * {@link Iterators}
      * {@link Joiner}
      * {@link List}
      * {@link Lists}
@@ -730,5 +746,5 @@ public final class UserPhotosStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "xjFGNKFGaRAxCrJgP4qDSw==";
+    static String __CLASS_HASH = "zDu9Mv8YuniuuCSlBCfHnw==";
 }

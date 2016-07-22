@@ -1,5 +1,6 @@
 package com.palantir.atlasdb.schema.stream.generated;
 
+import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -32,6 +33,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -44,6 +46,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelections;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
@@ -629,6 +632,18 @@ public final class StreamTestWithHashStreamHashAidxTable implements
         return transformed;
     }
 
+    @Override
+    public Iterator<Map.Entry<StreamTestWithHashStreamHashAidxRow, StreamTestWithHashStreamHashAidxColumnValue>> getRowsColumnRange(Iterable<StreamTestWithHashStreamHashAidxRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
+        Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
+        return Iterators.transform(results, e -> {
+            StreamTestWithHashStreamHashAidxRow row = StreamTestWithHashStreamHashAidxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
+            StreamTestWithHashStreamHashAidxColumn col = StreamTestWithHashStreamHashAidxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());
+            Long val = StreamTestWithHashStreamHashAidxColumnValue.hydrateValue(e.getValue());
+            StreamTestWithHashStreamHashAidxColumnValue colValue = StreamTestWithHashStreamHashAidxColumnValue.of(col, val);
+            return new AbstractMap.SimpleEntry<StreamTestWithHashStreamHashAidxRow, StreamTestWithHashStreamHashAidxColumnValue>(row, colValue);
+        });
+    }
+
     public BatchingVisitableView<StreamTestWithHashStreamHashAidxRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(ColumnSelection.all());
     }
@@ -660,6 +675,7 @@ public final class StreamTestWithHashStreamHashAidxTable implements
      * This exists to avoid unused import warnings
      * {@link AbortingVisitor}
      * {@link AbortingVisitors}
+     * {@link AbstractMap}
      * {@link ArrayListMultimap}
      * {@link Arrays}
      * {@link AssertUtils}
@@ -681,6 +697,7 @@ public final class StreamTestWithHashStreamHashAidxTable implements
      * {@link Cells}
      * {@link Collection}
      * {@link Collections2}
+     * {@link ColumnRangeSelection}
      * {@link ColumnRangeSelections}
      * {@link ColumnSelection}
      * {@link ColumnValue}
@@ -708,6 +725,7 @@ public final class StreamTestWithHashStreamHashAidxTable implements
      * {@link IterableView}
      * {@link Iterables}
      * {@link Iterator}
+     * {@link Iterators}
      * {@link Joiner}
      * {@link List}
      * {@link Lists}
@@ -740,5 +758,5 @@ public final class StreamTestWithHashStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "ep/k8DqZrilIF5HpcxS+6Q==";
+    static String __CLASS_HASH = "5ujazefsSxXp6entxBPotw==";
 }

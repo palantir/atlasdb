@@ -1,5 +1,6 @@
 package com.palantir.atlasdb.schema.stream.generated;
 
+import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -32,6 +33,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -44,6 +46,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelections;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
@@ -607,6 +610,16 @@ public final class StreamTestStreamValueTable implements
         return transformed;
     }
 
+    @Override
+    public Iterator<Map.Entry<StreamTestStreamValueRow, StreamTestStreamValueNamedColumnValue<?>>> getRowsColumnRange(Iterable<StreamTestStreamValueRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
+        Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
+        return Iterators.transform(results, e -> {
+            StreamTestStreamValueRow row = StreamTestStreamValueRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
+            StreamTestStreamValueNamedColumnValue<?> colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());
+            return new AbstractMap.SimpleEntry<StreamTestStreamValueRow, StreamTestStreamValueNamedColumnValue<?>>(row, colValue);
+        });
+    }
+
     public BatchingVisitableView<StreamTestStreamValueRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(ColumnSelection.all());
     }
@@ -638,6 +651,7 @@ public final class StreamTestStreamValueTable implements
      * This exists to avoid unused import warnings
      * {@link AbortingVisitor}
      * {@link AbortingVisitors}
+     * {@link AbstractMap}
      * {@link ArrayListMultimap}
      * {@link Arrays}
      * {@link AssertUtils}
@@ -659,6 +673,7 @@ public final class StreamTestStreamValueTable implements
      * {@link Cells}
      * {@link Collection}
      * {@link Collections2}
+     * {@link ColumnRangeSelection}
      * {@link ColumnRangeSelections}
      * {@link ColumnSelection}
      * {@link ColumnValue}
@@ -686,6 +701,7 @@ public final class StreamTestStreamValueTable implements
      * {@link IterableView}
      * {@link Iterables}
      * {@link Iterator}
+     * {@link Iterators}
      * {@link Joiner}
      * {@link List}
      * {@link Lists}
@@ -718,5 +734,5 @@ public final class StreamTestStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "L7J3HbgdNZ17YRFXAPcvkA==";
+    static String __CLASS_HASH = "QczntRl3tA56zdmi2UxFAw==";
 }

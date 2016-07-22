@@ -1,5 +1,6 @@
 package com.palantir.example.profile.schema.generated;
 
+import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -32,6 +33,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -44,6 +46,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelections;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
@@ -640,6 +643,18 @@ public final class UserPhotosStreamIdxTable implements
         return transformed;
     }
 
+    @Override
+    public Iterator<Map.Entry<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue>> getRowsColumnRange(Iterable<UserPhotosStreamIdxRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
+        Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
+        return Iterators.transform(results, e -> {
+            UserPhotosStreamIdxRow row = UserPhotosStreamIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
+            UserPhotosStreamIdxColumn col = UserPhotosStreamIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());
+            Long val = UserPhotosStreamIdxColumnValue.hydrateValue(e.getValue());
+            UserPhotosStreamIdxColumnValue colValue = UserPhotosStreamIdxColumnValue.of(col, val);
+            return new AbstractMap.SimpleEntry<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue>(row, colValue);
+        });
+    }
+
     public BatchingVisitableView<UserPhotosStreamIdxRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(ColumnSelection.all());
     }
@@ -671,6 +686,7 @@ public final class UserPhotosStreamIdxTable implements
      * This exists to avoid unused import warnings
      * {@link AbortingVisitor}
      * {@link AbortingVisitors}
+     * {@link AbstractMap}
      * {@link ArrayListMultimap}
      * {@link Arrays}
      * {@link AssertUtils}
@@ -692,6 +708,7 @@ public final class UserPhotosStreamIdxTable implements
      * {@link Cells}
      * {@link Collection}
      * {@link Collections2}
+     * {@link ColumnRangeSelection}
      * {@link ColumnRangeSelections}
      * {@link ColumnSelection}
      * {@link ColumnValue}
@@ -719,6 +736,7 @@ public final class UserPhotosStreamIdxTable implements
      * {@link IterableView}
      * {@link Iterables}
      * {@link Iterator}
+     * {@link Iterators}
      * {@link Joiner}
      * {@link List}
      * {@link Lists}
@@ -751,5 +769,5 @@ public final class UserPhotosStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "YX2KerFr+lsf7zy6F9R9rQ==";
+    static String __CLASS_HASH = "kW6tUrZh993l9Ef6sTTzJQ==";
 }

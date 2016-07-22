@@ -108,6 +108,7 @@ import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.jdbc.config.JdbcDataSourceConfiguration;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
@@ -1096,5 +1097,19 @@ public class JdbcKeyValueService implements KeyValueService {
                                                                   SizedColumnRangeSelection columnRangeSelection,
                                                                   long timestamp) {
         return KeyValueServices.filterGetRowsToColumnRange(this, tableRef, rows, columnRangeSelection, timestamp);
+    }
+
+    @Override
+    public RowColumnRangeIterator getRowsColumnRange(TableReference tableRef,
+                                                     Iterable<byte[]> rows,
+                                                     ColumnRangeSelection columnRangeSelection,
+                                                     int batchHint,
+                                                     long timestamp) {
+        return KeyValueServices.mergeGetRowsColumnRangeIntoSingleIterator(this,
+                                                                          tableRef,
+                                                                          rows,
+                                                                          columnRangeSelection,
+                                                                          batchHint,
+                                                                          timestamp);
     }
 }

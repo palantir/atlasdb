@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.table.description.render;
 
+import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -51,6 +52,7 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -64,13 +66,14 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.SizedColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelections;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.Prefix;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.SizedColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ExpirationStrategy;
@@ -1191,6 +1194,22 @@ public class TableRenderer {
                 } line("}");
                 line("return transformed;");
             } line("}");
+            line();
+            line("@Override");
+            line("public Iterator<Map.Entry<", Row, ", ", ColumnValue, ">> getRowsColumnRange(Iterable<", Row, "> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {"); {
+                line("Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);");
+                line("return Iterators.transform(results, e -> {"); {
+                    line(Row, " row = ", Row, ".BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());"); 
+                    if (isDynamic) {
+                        line(Column," col = ", Column, ".BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());");
+                        line(table.getColumns().getDynamicColumn().getValue().getJavaObjectTypeName(), " val = ", ColumnValue, ".hydrateValue(e.getValue());");
+                        line(ColumnValue, " colValue = ", ColumnValue, ".of(col, val);");
+                    } else {
+                        line(ColumnValue, " colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());");
+                    }
+                    line("return new AbstractMap.SimpleEntry<", Row, ", ", ColumnValue, ">(row, colValue);");
+                } line("});");
+            } line("}");
         }
 
         private void renderFindConstraintFailures() {
@@ -1359,5 +1378,8 @@ public class TableRenderer {
         TableReference.class,
         SizedColumnRangeSelection.class,
         ColumnRangeSelections.class,
+        ColumnRangeSelection.class,
+        Iterators.class,
+        AbstractMap.class,
     };
 }
