@@ -19,6 +19,8 @@ import com.palantir.atlasdb.dropwizard.AtlasDbConfigurationProvider;
 
 import io.dropwizard.Configuration;
 import io.dropwizard.cli.ConfiguredCommand;
+import net.sourceforge.argparse4j.impl.Arguments;
+import net.sourceforge.argparse4j.inf.Subparser;
 
 public abstract class AtlasDbCommand<T extends Configuration & AtlasDbConfigurationProvider> extends ConfiguredCommand<T> {
     private final Class<T> configurationClass;
@@ -32,5 +34,17 @@ public abstract class AtlasDbCommand<T extends Configuration & AtlasDbConfigurat
     @Override
     protected Class<T> getConfigurationClass() {
         return configurationClass;
+    }
+
+    @Override
+    public void configure(Subparser subparser) {
+        super.configure(subparser);
+
+        subparser.addArgument("--offline")
+                .help("run this cli offline")
+                .dest("runCliOffline")
+                .required(false)
+                .action(Arguments.storeConst())
+                .setConst(AtlasDbCommandUtils.ZERO_ARITY_ARG_CONSTANT);
     }
 }

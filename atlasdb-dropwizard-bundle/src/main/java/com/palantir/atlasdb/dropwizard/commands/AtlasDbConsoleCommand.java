@@ -27,8 +27,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.config.AtlasDbConfig;
+import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.console.AtlasConsoleMain;
 import com.palantir.atlasdb.dropwizard.AtlasDbConfigurationProvider;
 
@@ -54,8 +56,6 @@ public class AtlasDbConsoleCommand<T extends Configuration & AtlasDbConfiguratio
 
     @Override
     public void configure(Subparser subparser) {
-        super.configure(subparser);
-
         for (Option option : (Collection<Option>) AtlasConsoleMain.OPTIONS.getOptions()) {
             int numArgs = option.getArgs();
             if(option.getOpt().equals("h")) {
@@ -71,11 +71,23 @@ public class AtlasDbConsoleCommand<T extends Configuration & AtlasDbConfiguratio
                 arg.nargs(numArgs);
             }
         }
+
+        super.configure(subparser);
     }
 
     @Override
     protected void run(Bootstrap<T> bootstrap, Namespace namespace, T configuration) throws Exception {
         AtlasDbConfig cliConfiguration = AtlasDbCommandUtils.convertServerConfigToClientConfig(configuration.getAtlasDbConfig());
+
+        // We do this here because there's no flag to connect to an offline cluster in atlasdb-console (since this is passed in through bind)
+        if(namespace.getAttrs().containsKey("runCliOffline")) {
+            cliConfiguration = ImmutableAtlasDbConfig.builder()
+                    .from(cliConfiguration)
+                    .leader(Optional.absent())
+                    .lock(Optional.absent())
+                    .timestamp(Optional.absent())
+                    .build();
+        }
 
         List<String> allArgs = ImmutableList.<String>builder()
                 .add("--bind")
