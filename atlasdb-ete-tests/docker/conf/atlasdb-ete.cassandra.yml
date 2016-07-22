@@ -32,6 +32,7 @@ atlasdb:
     learnerLogDir: var/data/paxosLog/learner1
     acceptorLogDir: var/data/paxosLog/acceptor1
     localServer: http://${ME}:3828
+    lockCreator: http://ete1:3828
     leaders:
       - http://ete1:3828
       - http://ete2:3828

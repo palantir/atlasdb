@@ -37,6 +37,12 @@ v0.11.0
          - Change
 
     *    - |fixed|
+         - The Leader config now contains a new "lockCreator" option. Full details for configuring this are in `the cassandra configuration docs <https://palantir.github.io/atlasdb/html/configuration/cassandra_KVS_configuration.html>`__
+           This field helps us to determine a single node to create the necessary locks table for performing schema mutations without corruption. This safety will still be in place if you have no leader block.
+           Changing your config to explicitly use this option is advised, but it is backwards compatible with old configurations. Please see `the cassandra configuration docs <https://palantir.github.io/atlasdb/html/configuration/cassandra_KVS_configuration.html>`__
+           for details on how this works.
+
+    *    - |fixed|
          - A utility method was removed in the previous release, breaking an internal product that relied on it. This method has now been added back.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/661>`__)
 
@@ -73,7 +79,7 @@ v0.10.0
     *    - |fixed|
          - We properly check that cells are not set to empty (zero-byte) or null.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/663>`__)
-         
+
     *    - |improved|
          - Cassandra client connection pooling will now evict idle connections over a longer period of time and has improved logic
            for deciding whether or not a node should be blacklisted.  This should result in less connection churn

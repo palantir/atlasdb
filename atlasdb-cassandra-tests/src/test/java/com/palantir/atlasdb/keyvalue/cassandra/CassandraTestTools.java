@@ -19,6 +19,9 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import org.joda.time.Duration;
@@ -55,5 +58,20 @@ class CassandraTestTools {
                 return false;
             }
         };
+    }
+
+    static Future async(ExecutorService executorService, Runnable callable) {
+        return executorService.submit(callable);
+    }
+
+    static void assertThatFutureDidNotSucceedYet(Future future) throws InterruptedException {
+        if (future.isDone()) {
+            try {
+                future.get();
+                throw new AssertionError("Future task should have failed but finished successfully");
+            } catch (ExecutionException e) {
+                // if execution is done, we expect it to have failed
+            }
+        }
     }
 }

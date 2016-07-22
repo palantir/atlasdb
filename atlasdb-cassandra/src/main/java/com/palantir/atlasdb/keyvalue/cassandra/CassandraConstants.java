@@ -26,7 +26,6 @@ import org.apache.cassandra.thrift.TriggerDef;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public class CassandraConstants {
@@ -86,12 +85,6 @@ public class CassandraConstants {
 
     static final String LEVELED_COMPACTION_STRATEGY = "org.apache.cassandra.db.compaction.LeveledCompactionStrategy";
     static final String SIZE_TIERED_COMPACTION_STRATEGY = "org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy";
-
-    public static final TableReference LOCK_TABLE = TableReference.createWithEmptyNamespace("_locks");
-    public static final Set<TableReference> HIDDEN_TABLES = ImmutableSet.of(
-            AtlasDbConstants.TIMESTAMP_TABLE,
-            CassandraConstants.LOCK_TABLE,
-            AtlasDbConstants.METADATA_TABLE);
 
     public static final String GLOBAL_DDL_LOCK = "Global DDL lock";
     public static final String GLOBAL_DDL_LOCK_COLUMN_NAME = "id_with_lock";

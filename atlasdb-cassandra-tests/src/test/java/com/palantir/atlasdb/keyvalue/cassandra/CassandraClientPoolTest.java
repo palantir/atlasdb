@@ -65,7 +65,8 @@ public class CassandraClientPoolTest {
                                 .fetchBatchCount(1000)
                                 .safetyDisabled(true)
                                 .autoRefreshNodes(true)
-                                .build()));
+                                .build()),
+                CassandraTestSuite.LEADER_CONFIG);
         kv.initializeFromFreshInstance();
         kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
     }
@@ -74,7 +75,6 @@ public class CassandraClientPoolTest {
     public void tearDown() {
         kv.teardown();
     }
-
 
     // This is a dumb test in the current test suite that has just one local Cassandra node.
     // Pretty legit test if run manually or if we go back to multi-node tests

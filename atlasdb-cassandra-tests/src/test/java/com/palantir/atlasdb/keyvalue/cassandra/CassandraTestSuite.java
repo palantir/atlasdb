@@ -25,11 +25,15 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableSet;
 import com.jayway.awaitility.Awaitility;
 import com.jayway.awaitility.Duration;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.config.ImmutableLeaderConfig;
+import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.docker.compose.DockerComposition;
 import com.palantir.docker.compose.connection.DockerPort;
 import com.palantir.docker.compose.connection.waiting.HealthCheck;
@@ -38,12 +42,13 @@ import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 @RunWith(Suite.class)
 @SuiteClasses({
         CassandraConnectionTest.class,
+        CassandraKeyValueServiceTableCreationTest.class,
         CassandraKeyValueServiceSerializableTransactionTest.class,
         CassandraKeyValueServiceSweeperTest.class,
         CassandraTimestampTest.class,
         CassandraKeyValueServiceTest.class,
-        CassandraDbLockTest.class,
-        CassandraLegacyLockTest.class
+        SchemaMutationLockTest.class,
+        SchemaMutationLockTablesTest.class,
 })
 public class CassandraTestSuite {
 
@@ -56,12 +61,17 @@ public class CassandraTestSuite {
 
     static InetSocketAddress CASSANDRA_THRIFT_ADDRESS;
 
+    static ImmutableCassandraKeyValueServiceConfig CASSANDRA_KVS_CONFIG_NO_LOCK_LEADER;
+
     static ImmutableCassandraKeyValueServiceConfig CASSANDRA_KVS_CONFIG;
+
+    static Optional<LeaderConfig> LEADER_CONFIG;
 
     @BeforeClass
     public static void waitUntilCassandraIsUp() throws IOException, InterruptedException {
         DockerPort port = composition.hostNetworkedPort(THRIFT_PORT_NUMBER);
-        CASSANDRA_THRIFT_ADDRESS = new InetSocketAddress(port.getIp(), port.getExternalPort());
+        String hostname = port.getIp();
+        CASSANDRA_THRIFT_ADDRESS = new InetSocketAddress(hostname, port.getExternalPort());
 
         CASSANDRA_KVS_CONFIG = ImmutableCassandraKeyValueServiceConfig.builder()
                 .addServers(CASSANDRA_THRIFT_ADDRESS)
@@ -80,6 +90,13 @@ public class CassandraTestSuite {
                 .autoRefreshNodes(false)
                 .build();
 
+        LEADER_CONFIG = Optional.of(ImmutableLeaderConfig
+                .builder()
+                .quorumSize(1)
+                .localServer(hostname)
+                .leaders(ImmutableSet.of(hostname))
+                .build());
+
         Awaitility.await()
                 .atMost(Duration.ONE_MINUTE)
                 .pollInterval(Duration.ONE_SECOND)
@@ -91,7 +108,7 @@ public class CassandraTestSuite {
             @Override
             public Boolean call() throws Exception {
                 try {
-                    CassandraKeyValueService.create(CassandraKeyValueServiceConfigManager.createSimpleManager(CASSANDRA_KVS_CONFIG));
+                    CassandraKeyValueService.create(CassandraKeyValueServiceConfigManager.createSimpleManager(CASSANDRA_KVS_CONFIG), LEADER_CONFIG);
                     return true;
                 } catch (Exception e) {
                     return false;
