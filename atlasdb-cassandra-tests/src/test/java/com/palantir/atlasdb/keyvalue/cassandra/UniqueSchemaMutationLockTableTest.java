@@ -56,7 +56,7 @@ public class UniqueSchemaMutationLockTableTest {
 
     @Test
     public void shouldReturnALockTableIfNoneExist() throws TException {
-        when(lockTables.getAllLockTables()).thenReturn(Collections.EMPTY_SET);
+        when(lockTables.getAllLockTables()).thenReturn(Collections.EMPTY_SET, ImmutableSet.of(lockTable1));
         when(lockTables.createLockTable(any(UUID.class))).thenReturn(lockTable1);
 
         assertThat(uniqueLockTable.getOnlyTable(), is(lockTable1));
@@ -89,7 +89,9 @@ public class UniqueSchemaMutationLockTableTest {
     public void shouldThrowExceptionIfMultipleTablesExist() throws Exception {
         when(lockTables.getAllLockTables()).thenReturn(ImmutableSet.of(lockTable1, lockTable2));
 
-        exception.expect(IllegalArgumentException.class);
+        exception.expect(IllegalStateException.class);
+        exception.expectMessage("Multiple schema mutation lock tables have been created.\n");
+
         try {
             uniqueLockTable.getOnlyTable();
         } finally {
@@ -122,11 +124,32 @@ public class UniqueSchemaMutationLockTableTest {
         verify(lockTables, never()).createLockTable(any(UUID.class));
     }
 
+    @Test
+    public void shouldThrowAnExceptionIfMultipleLockTablesAreCreatedWhenWeAreNotTheLockTable() throws TException {
+        when(lockTables.getAllLockTables()).thenReturn(ImmutableSet.of(lockTable1, lockTable2));
+
+        uniqueLockTable = new UniqueSchemaMutationLockTable(lockTables, LockLeader.SOMEONE_ELSE_IS_THE_LOCK_LEADER);
+
+        exception.expect(IllegalStateException.class);
+        exception.expectMessage("Multiple schema mutation lock tables have been created.\n");
+
+        uniqueLockTable.getOnlyTable();
+    }
+
     @Test(expected = RuntimeException.class)
     public void shouldWrapThriftExceptions() throws TException {
         when(lockTables.createLockTable(any(UUID.class))).thenThrow(TException.class);
 
         uniqueLockTable.getOnlyTable();
+    }
+
+    @Test
+    public void shouldWaitWhenNotTheLockLeader() throws TException {
+        when(lockTables.getAllLockTables()).thenReturn(ImmutableSet.of(), ImmutableSet.of(lockTable1));
+
+        uniqueLockTable = new UniqueSchemaMutationLockTable(lockTables, LockLeader.SOMEONE_ELSE_IS_THE_LOCK_LEADER);
+
+        assertThat(uniqueLockTable.getOnlyTable(), is(lockTable1));
     }
 }
 

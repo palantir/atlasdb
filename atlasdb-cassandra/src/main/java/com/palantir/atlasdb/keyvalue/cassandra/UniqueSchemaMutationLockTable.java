@@ -24,17 +24,20 @@ public class UniqueSchemaMutationLockTable {
     public TableReference getOnlyTable() {
         try {
             switch (lockLeader) {
-                case I_AM_THE_LOCK_LEADER: return ensureLockTableExists();
-                case SOMEONE_ELSE_IS_THE_LOCK_LEADER: return waitForSomeoneElseToCreateLockTable();
-                default: throw new RuntimeException("We encountered an unknown lock leader status, please contact the AtlasDB team");
+                case I_AM_THE_LOCK_LEADER:
+                    return ensureLockTableExists();
+                case SOMEONE_ELSE_IS_THE_LOCK_LEADER:
+                    return waitForSomeoneElseToCreateLockTable();
+                default:
+                    throw new RuntimeException("We encountered an unknown lock leader status, please contact the AtlasDB team");
             }
         } catch (TException e) {
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }
     }
 
-    private TableReference waitForSomeoneElseToCreateLockTable() throws TException {
-        while(schemaMutationLockTables.getAllLockTables().isEmpty()) {
+    private synchronized TableReference waitForSomeoneElseToCreateLockTable() throws TException {
+        while (schemaMutationLockTables.getAllLockTables().isEmpty()) {
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
@@ -42,27 +45,32 @@ public class UniqueSchemaMutationLockTable {
             }
         }
 
-        return Iterables.getOnlyElement(schemaMutationLockTables.getAllLockTables());
+        return getSingleTable();
     }
 
-    private final TableReference ensureLockTableExists() throws TException {
-            Set<TableReference> tables = schemaMutationLockTables.getAllLockTables();
+    private synchronized final TableReference ensureLockTableExists() throws TException {
+        Set<TableReference> tables = schemaMutationLockTables.getAllLockTables();
 
-            if (tables.isEmpty()) {
-                TableReference lockTable =  schemaMutationLockTables.createLockTable(UUID.randomUUID());
+        if (tables.isEmpty()) {
+            schemaMutationLockTables.createLockTable(UUID.randomUUID());
+        }
 
-                Set<TableReference> lockTables = schemaMutationLockTables.getAllLockTables();
-                if (schemaMutationLockTables.getAllLockTables().size() > 1) {
-                    throw new IllegalStateException(
-                            "Multiple schema mutation lock tables have been created.\n" +
-                                    "This happens when multiple nodes have themselves as lockLeader in the configuration.\n" +
-                                    "Please ensure the lockLeader is the same for each node, stop all Atlas clients using " +
-                                    "this keyspace, restart your cassandra cluster and delete all created schema mutation lock tables.\n" +
-                                    "The tables that clashed were: " + lockTables);
-                }
-                return lockTable;
-            }
-
-            return Iterables.getOnlyElement(tables);
+        return getSingleTable();
     }
+
+    private TableReference getSingleTable() throws TException {
+        Set<TableReference> lockTables = schemaMutationLockTables.getAllLockTables();
+
+        if (lockTables.size() > 1) {
+            throw new IllegalStateException(
+                    "Multiple schema mutation lock tables have been created.\n" +
+                            "This happens when multiple nodes have themselves as lockLeader in the configuration.\n" +
+                            "Please ensure the lockLeader is the same for each node, stop all Atlas clients using " +
+                            "this keyspace, restart your cassandra cluster and delete all created schema mutation lock tables.\n" +
+                            "The tables that clashed were: " + lockTables);
+        }
+
+        return Iterables.getOnlyElement(lockTables);
+    }
+
 }
