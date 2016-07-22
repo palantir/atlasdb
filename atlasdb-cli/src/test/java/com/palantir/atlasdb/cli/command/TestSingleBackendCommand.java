@@ -49,6 +49,11 @@ public class TestSingleBackendCommand {
         String flag2;
 
         @Override
+        public boolean isOnlineRunSupported() {
+            return true;
+        }
+
+        @Override
         public int execute(AtlasDbServices services) {
             // test a method on each of the services
             if (flag1 != null) {

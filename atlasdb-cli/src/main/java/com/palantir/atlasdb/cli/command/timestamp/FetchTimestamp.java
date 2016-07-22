@@ -48,6 +48,11 @@ public class FetchTimestamp extends AbstractTimestampCommand {
     private static final String FRESH_STRING = "Fresh";
 
     @Override
+    public boolean isOnlineRunSupported() {
+        return true;
+    }
+
+    @Override
     protected boolean requireTimestamp() {
         return false;
     }
