@@ -85,7 +85,7 @@ public class SQLString extends BasicSQLString {
      * Runs the provided callable while holding the lock for the override caches.
      * Callers replacing the caches should hold this lock.
      */
-    protected <T, E extends Exception> T runWithCacheLock(CallableCheckedException<T, E> callable) throws E {
+    protected static <T, E extends Exception> T runWithCacheLock(CallableCheckedException<T, E> callable) throws E {
         synchronized (cacheLock) {
             return callable.call();
         }

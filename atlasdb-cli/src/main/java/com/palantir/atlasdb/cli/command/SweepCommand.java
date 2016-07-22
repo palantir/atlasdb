@@ -22,6 +22,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.base.Functions;
 import com.google.common.base.Optional;
 import com.google.common.base.Stopwatch;
@@ -43,6 +46,8 @@ import io.airlift.airline.Option;
 
 @Command(name = "sweep", description = "Sweep old table rows")
 public class SweepCommand extends SingleBackendCommand {
+
+    private static final Logger log = LoggerFactory.getLogger(SweepCommand.class);
 
     @Option(name = {"-n", "--namespace"},
             description = "An atlas namespace to sweep")
@@ -73,11 +78,11 @@ public class SweepCommand extends SingleBackendCommand {
         SweepTaskRunner sweepRunner = services.getSweepTaskRunner();
 
         if (!((namespace != null) ^ (table != null) ^ sweepAllTables)) {
-            System.err.println("Specify one of --namespace, --table, or --all options.");
+            log.error("Specify one of --namespace, --table, or --all options.");
             return 1;
         }
         if ((namespace != null) && (row != null)) {
-            System.err.println("Cannot specify a start row (" + row + ") when sweeping multiple tables (in namespace " + namespace + ")");
+            log.error("Cannot specify a start row (" + row + ") when sweeping multiple tables (in namespace " + namespace + ")");
             return 1;
         }
 
@@ -114,10 +119,10 @@ public class SweepCommand extends SingleBackendCommand {
             while (startRow.isPresent()) {
                 Stopwatch watch = Stopwatch.createStarted();
                 SweepResults results = sweepRunner.run(table, batchSize, startRow.get());
-                System.out.println(String.format("Swept from %s to %s in table %s in %d ms, examined %d unique cells, deleted %d cells.",
+                log.info("Swept from {} to {} in table {} in {} ms, examined {} unique cells, deleted {} cells.",
                         encodeStartRow(startRow), encodeEndRow(results.getNextStartRow()),
                         table, watch.elapsed(TimeUnit.MILLISECONDS),
-                        results.getCellsExamined(), results.getCellsDeleted()));
+                        results.getCellsExamined(), results.getCellsDeleted());
                 startRow = results.getNextStartRow();
                 cellsDeleted.addAndGet(results.getCellsDeleted());
                 cellsExamined.addAndGet(results.getCellsExamined());
@@ -132,14 +137,14 @@ public class SweepCommand extends SingleBackendCommand {
                 priorityTable.putCellsExamined(row1, cellsExamined.get());
                 priorityTable.putLastSweepTime(row1, System.currentTimeMillis());
 
-                System.out.println(String.format("Finished sweeping %s, examined %d unique cells, deleted %d cells.",
-                        table, cellsExamined.get(), cellsDeleted.get()));
+                log.info("Finished sweeping {}, examined {} unique cells, deleted {} cells.",
+                        table, cellsExamined.get(), cellsDeleted.get());
 
                 if (cellsDeleted.get() > 0) {
                     Stopwatch watch = Stopwatch.createStarted();
                     services.getKeyValueService().compactInternally(table);
-                    System.out.println(String.format("Finished performing compactInternally on %s in %d ms.",
-                            table, watch.elapsed(TimeUnit.MILLISECONDS)));
+                    log.info("Finished performing compactInternally on {} in {} ms.",
+                            table, watch.elapsed(TimeUnit.MILLISECONDS));
                 }
                 return null;
             });

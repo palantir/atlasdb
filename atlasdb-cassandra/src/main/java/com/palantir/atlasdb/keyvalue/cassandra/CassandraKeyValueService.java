@@ -1320,7 +1320,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                             client.system_drop_column_family(internalTableName(table));
                             putMetadataWithoutChangingSettings(table, PtBytes.EMPTY_BYTE_ARRAY);
                         } else {
-                            log.warn(String.format("Ignored call to drop a table (%s) that did not exist.", table));
+                            log.warn("Ignored call to drop a table ({}) that did not exist.", table);
                         }
                     }
                     CassandraKeyValueServices.waitForSchemaVersions(client, "(all tables in a call to dropTables)", configManager.getConfig().schemaMutationTimeoutMillis());
@@ -1368,7 +1368,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     if (!existingTablesLowerCased.contains(tableRefLowerCased)) {
                         client.system_add_column_family(getCfForTable(table, tableNamesToTableMetadata.get(table)));
                     } else {
-                        log.warn(String.format("Ignored call to create a table (%s) that already existed (case insensitive).", table));
+                        log.warn("Ignored call to create a table ({}) that already existed (case insensitive).", table);
                     }
                 }
                 if (!tablesToCreate.isEmpty()) {

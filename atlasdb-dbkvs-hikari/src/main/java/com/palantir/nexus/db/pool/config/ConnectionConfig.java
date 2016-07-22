@@ -123,6 +123,9 @@ public abstract class ConnectionConfig {
         config.setMaxLifetime(TimeUnit.SECONDS.toMillis(getMaxConnectionAge()));
         config.setIdleTimeout(TimeUnit.SECONDS.toMillis(getMaxIdleTime()));
         config.setLeakDetectionThreshold(getUnreturnedConnectionTimeout());
+        // Not a bug - we don't want to use connectionTimeout here, since Hikari uses a different terminology.
+        // See https://github.com/brettwooldridge/HikariCP/wiki/Configuration - connectionTimeout = how long to wait for a connection to be opened.
+        // ConnectionConfig.connectionTimeoutSeconds is passed in via getHikariProperties(), in subclasses.
         config.setConnectionTimeout(getCheckoutTimeout());
 
         // TODO: See if driver supports JDBC4 (isValid()) and use it.

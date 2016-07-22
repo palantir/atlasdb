@@ -23,15 +23,14 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.ExecutorService;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.UnsignedBytes;
@@ -193,7 +192,7 @@ public class KeyValueServices {
             byte[] rowName = hashesToBytes.get(row.getKey());
             results.put(hashesToBytes.get(row.getKey()),
                     new LocalRowColumnRangeIterator(Iterators.transform(subMap.iterator(), e ->
-                            Iterables.getOnlyElement(ImmutableMap.of(Cell.create(rowName, e.getKey()), e.getValue()).entrySet()))));
+                            Pair.<Cell, Value>of(Cell.create(rowName, e.getKey()), e.getValue()))));
         }
         return results;
     }
