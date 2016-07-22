@@ -18,25 +18,10 @@ package com.palantir.atlasdb.config;
 import java.io.File;
 import java.io.IOException;
 
-import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.fasterxml.jackson.datatype.guava.GuavaModule;
-import com.google.common.base.Strings;
-
-import io.dropwizard.jackson.DiscoverableSubtypeResolver;
 
 public final class AtlasDbConfigs {
-
     public static final String ATLASDB_CONFIG_ROOT = "/atlasdb";
-
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper(new YAMLFactory());
-
-    static {
-        OBJECT_MAPPER.setSubtypeResolver(new DiscoverableSubtypeResolver());
-        OBJECT_MAPPER.registerModule(new GuavaModule());
-    }
 
     private AtlasDbConfigs() {
         // uninstantiable
@@ -47,46 +32,12 @@ public final class AtlasDbConfigs {
     }
 
     public static AtlasDbConfig load(File configFile, String configRoot) throws IOException {
-        JsonNode rootNode = getConfigNode(configFile, configRoot);
-        return OBJECT_MAPPER.treeToValue(rootNode, AtlasDbConfig.class);
+        ConfigFinder finder = new ConfigFinder(configRoot);
+        return finder.getConfig(configFile);
     }
 
     public static AtlasDbConfig loadFromString(String fileContents, String configRoot) throws IOException {
-        JsonNode rootNode = getConfigNode(fileContents, configRoot);
-        return OBJECT_MAPPER.treeToValue(rootNode, AtlasDbConfig.class);
-    }
-
-    private static JsonNode getConfigNode(File configFile, String configRoot) throws IOException {
-        JsonNode node = OBJECT_MAPPER.readTree(configFile);
-        JsonNode configNode = findRoot(node, configRoot);
-
-        if (configNode == null) {
-            throw new IllegalArgumentException("Could not find " + configRoot + " in yaml file " + configFile);
-        }
-
-        return configNode;
-    }
-
-    private static JsonNode getConfigNode(String fileContents, String configRoot) throws IOException {
-        JsonNode node = OBJECT_MAPPER.readTree(fileContents);
-        JsonNode configNode = findRoot(node, configRoot);
-
-        if (configNode == null) {
-            throw new IllegalArgumentException("Could not find " + configRoot + " in given string");
-        }
-
-        return configNode;
-    }
-
-    private static JsonNode findRoot(JsonNode node, String configRoot) {
-        if (Strings.isNullOrEmpty(configRoot)) {
-            return node;
-        }
-
-        JsonNode root = node.at(JsonPointer.valueOf(configRoot));
-        if (root.isMissingNode()) {
-            return null;
-        }
-        return root;
+        ConfigFinder finder = new ConfigFinder(configRoot);
+        return finder.getConfig(fileContents);
     }
 }
