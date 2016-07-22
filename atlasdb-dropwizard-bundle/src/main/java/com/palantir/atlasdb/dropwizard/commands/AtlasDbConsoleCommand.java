@@ -30,9 +30,12 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
+import com.palantir.atlasdb.config.ImmutableServerListConfig;
+import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.console.AtlasConsoleMain;
 import com.palantir.atlasdb.dropwizard.AtlasDbConfigurationProvider;
 
@@ -79,9 +82,17 @@ public class AtlasDbConsoleCommand<T extends Configuration & AtlasDbConfiguratio
 
     @Override
     protected void run(Bootstrap<T> bootstrap, Namespace namespace, T configuration) throws Exception {
-        AtlasDbConfig configurationWithoutLeader = ImmutableAtlasDbConfig.builder()
+        Preconditions.checkArgument(configuration.getAtlasDbConfig().leader().isPresent(), "CLIs can only be run with a leader block");
+
+        ServerListConfig leaders = ImmutableServerListConfig.builder()
+                .servers(configuration.getAtlasDbConfig().leader().get().leaders())
+                .build();
+
+        AtlasDbConfig cliConfiguration = ImmutableAtlasDbConfig.builder()
                 .from(configuration.getAtlasDbConfig())
                 .leader(Optional.absent())
+                .lock(leaders)
+                .timestamp(leaders)
                 .build();
 
         List<String> passedInArgs = namespace.getAttrs().entrySet().stream()
@@ -99,7 +110,7 @@ public class AtlasDbConsoleCommand<T extends Configuration & AtlasDbConfiguratio
         List<String> allArgs = ImmutableList.<String>builder()
                 .add("--bind")
                 .add("dropwizardAtlasDb")
-                .add(OBJECT_MAPPER.writeValueAsString(configurationWithoutLeader))
+                .add(OBJECT_MAPPER.writeValueAsString(cliConfiguration))
                 .add("--evaluate")
                 .add("connectInline dropwizardAtlasDb")
                 .addAll(passedInArgs)
