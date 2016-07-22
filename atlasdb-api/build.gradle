@@ -12,6 +12,14 @@ dependencies {
   processor 'org.immutables:value:2.0.21'
   compile 'com.fasterxml.jackson.core:jackson-databind:' + libVersions.jackson
   compile 'javax.validation:validation-api:1.1.0.Final'
+
+
+  testCompile(group: 'junit', name: 'junit', version: libVersions.junit) {
+    exclude group: 'org.hamcrest'
+  }
+
+  testCompile 'org.hamcrest:hamcrest-core:' + libVersions.hamcrest
+  testCompile 'org.hamcrest:hamcrest-library:' + libVersions.hamcrest
 }
 
 task versionInfo << {

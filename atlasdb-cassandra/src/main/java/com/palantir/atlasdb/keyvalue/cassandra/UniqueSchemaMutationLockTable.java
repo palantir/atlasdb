@@ -6,23 +6,40 @@ import java.util.UUID;
 import org.apache.thrift.TException;
 
 import com.google.common.collect.Iterables;
+import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.Throwables;
 
 public class UniqueSchemaMutationLockTable {
     private final SchemaMutationLockTables schemaMutationLockTables;
+    private final LeaderConfig leaderConfig;
 
-    public static UniqueSchemaMutationLockTable create(SchemaMutationLockTables schemaMutationLockTables) {
-        UniqueSchemaMutationLockTable uniqueSchemaMutationLockTable = new UniqueSchemaMutationLockTable(schemaMutationLockTables);
-        uniqueSchemaMutationLockTable.getOnlyTable();
-        return uniqueSchemaMutationLockTable;
-    }
-
-    protected UniqueSchemaMutationLockTable(SchemaMutationLockTables schemaMutationLockTables) {
+    public UniqueSchemaMutationLockTable(SchemaMutationLockTables schemaMutationLockTables, LeaderConfig leaderConfig) {
         this.schemaMutationLockTables = schemaMutationLockTables;
+        this.leaderConfig = leaderConfig;
     }
 
-    public TableReference getOnlyTable() {
+    public TableReference getOnlyTable() throws TException {
+        if(leaderConfig.amITheLockLeader()) {
+            return ensureLockTableExistsRethrowingErrors();
+        }
+
+        return waitForSomeoneElseToCreateLockTable();
+    }
+
+    zprivate TableReference waitForSomeoneElseToCreateLockTable() throws TException {
+        while(schemaMutationLockTables.getAllLockTables().isEmpty()) {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return Iterables.getOnlyElement(schemaMutationLockTables.getAllLockTables());
+    }
+
+    private TableReference ensureLockTableExistsRethrowingErrors() {
         try {
             return ensureLockTableExists();
         } catch (Exception e) {
@@ -35,6 +52,7 @@ public class UniqueSchemaMutationLockTable {
 
             if (tables.isEmpty()) {
                 TableReference lockTable =  schemaMutationLockTables.createLockTable(UUID.randomUUID());
+
                 Set<TableReference> lockTables = schemaMutationLockTables.getAllLockTables();
                 if (schemaMutationLockTables.getAllLockTables().size() > 1) {
                     throw new IllegalStateException(

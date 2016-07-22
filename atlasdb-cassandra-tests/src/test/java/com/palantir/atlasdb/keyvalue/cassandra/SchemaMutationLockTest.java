@@ -82,7 +82,7 @@ public class SchemaMutationLockTest {
         TableReference locks = TableReference.createWithEmptyNamespace("_locks");
         createTableIfNotExists(clientPool, quickTimeoutConfig.keyspace(), locks);
 
-        UniqueSchemaMutationLockTable lockTable = UniqueSchemaMutationLockTable.create(new SchemaMutationLockTables(clientPool, quickTimeoutConfig));
+        UniqueSchemaMutationLockTable lockTable = new UniqueSchemaMutationLockTable(new SchemaMutationLockTables(clientPool, quickTimeoutConfig), CassandraTestSuite.LEADER_CONFIG);
         schemaMutationLock = new SchemaMutationLock(supportsCas, simpleManager, clientPool, writeConsistency, lockTable);
     }
 
