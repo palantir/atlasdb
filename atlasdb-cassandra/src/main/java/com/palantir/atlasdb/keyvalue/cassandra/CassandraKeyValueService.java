@@ -150,8 +150,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     private SchemaMutationLock schemaMutationLock;
     private final Optional<LeaderConfig> leaderConfig;
 
-    private HiddenTables hiddenTables;
-    private UniqueSchemaMutationLockTable schemaMutationLockTable;
+    private final HiddenTables hiddenTables;
+    private final UniqueSchemaMutationLockTable schemaMutationLockTable;
 
     private ConsistencyLevel readConsistency = ConsistencyLevel.LOCAL_QUORUM;
     private final ConsistencyLevel writeConsistency = ConsistencyLevel.EACH_QUORUM;
@@ -176,7 +176,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         this.hiddenTables = new HiddenTables();
 
         SchemaMutationLockTables lockTables = new SchemaMutationLockTables(clientPool, configManager.getConfig());
-        schemaMutationLockTable = new UniqueSchemaMutationLockTable(lockTables, whoIsTheLockCreator());
+        this.schemaMutationLockTable = new UniqueSchemaMutationLockTable(lockTables, whoIsTheLockCreator());
     }
 
     private LockLeader whoIsTheLockCreator() {

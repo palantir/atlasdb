@@ -52,7 +52,7 @@ public abstract class LeaderConfig {
     @JsonProperty("lockCreator")
     @Value.Default
     public String lockCreator() {
-        if(leaders().isEmpty()) {
+        if (leaders().isEmpty()) {
             throw new IllegalStateException("The leaders block cannot be empty");
         }
         return leaders().iterator().next();
