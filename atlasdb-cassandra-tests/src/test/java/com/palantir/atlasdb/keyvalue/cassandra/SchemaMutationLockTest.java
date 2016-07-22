@@ -28,10 +28,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.cassandra.thrift.Cassandra;
-import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.ConsistencyLevel;
-import org.apache.thrift.TException;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -42,9 +39,6 @@ import org.junit.runners.Parameterized;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.config.LockLeader;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
-import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.exception.PalantirRuntimeException;
 
 @RunWith(Parameterized.class)
@@ -80,28 +74,9 @@ public class SchemaMutationLockTest {
         CassandraKeyValueServiceConfigManager simpleManager = CassandraKeyValueServiceConfigManager.createSimpleManager(quickTimeoutConfig);
         ConsistencyLevel writeConsistency = ConsistencyLevel.EACH_QUORUM;
         CassandraClientPool clientPool = new CassandraClientPool(simpleManager.getConfig());
-        TableReference locks = TableReference.createWithEmptyNamespace("_locks");
-        createTableIfNotExists(clientPool, quickTimeoutConfig.keyspace(), locks);
 
         UniqueSchemaMutationLockTable lockTable = new UniqueSchemaMutationLockTable(new SchemaMutationLockTables(clientPool, quickTimeoutConfig), LockLeader.I_AM_THE_LOCK_LEADER);
         schemaMutationLock = new SchemaMutationLock(supportsCas, simpleManager, clientPool, writeConsistency, lockTable);
-    }
-
-    private void createTableIfNotExists(CassandraClientPool clientPool, String keyspace, TableReference table) throws Exception {
-        clientPool.run((FunctionCheckedException<Cassandra.Client, Void, Exception>) client -> {
-            String internalTableName = AbstractKeyValueService.internalTableName(table);
-            if (tableDoesNotExist(client, keyspace, internalTableName)) {
-                CfDef cf = CassandraConstants.getStandardCfDef(
-                        keyspace,
-                        internalTableName);
-                client.system_add_column_family(cf);
-            }
-            return null;
-        });
-    }
-
-    private boolean tableDoesNotExist(Cassandra.Client client, String keyspace, String internalTableName) throws TException {
-        return client.describe_keyspace(keyspace).cf_defs.stream().noneMatch(cf1 -> cf1.getName().equalsIgnoreCase(internalTableName));
     }
 
     @Test
