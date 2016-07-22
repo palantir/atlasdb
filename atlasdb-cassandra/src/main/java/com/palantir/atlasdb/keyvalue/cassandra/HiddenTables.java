@@ -36,12 +36,4 @@ class HiddenTables {
     boolean isHidden(TableReference tableReference) {
         return hiddenTables.contains(tableReference) || (tableReference != null && tableReference.equals(lockTable));
     }
-
-    TableReference getLockTable() {
-        return lockTable;
-    }
-
-    void setLockTable(TableReference lockTable) {
-        this.lockTable = lockTable;
-    }
 }

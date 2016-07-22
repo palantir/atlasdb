@@ -37,7 +37,7 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
         Preconditions.checkArgument(config instanceof CassandraKeyValueServiceConfig,
                 "CassandraAtlasDbFactory expects a configuration of type CassandraKeyValueServiceConfig, found %s", config.getClass());
         checkLeaderConfigIsPresent(leaderConfig);
-        return createKv((CassandraKeyValueServiceConfig) config, leaderConfig.get());
+        return createKv((CassandraKeyValueServiceConfig) config, leaderConfig);
     }
 
     private void checkLeaderConfigIsPresent(Optional<LeaderConfig> leaderConfig) {
@@ -47,7 +47,7 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
         }
     }
 
-    private static CassandraKeyValueService createKv(CassandraKeyValueServiceConfig config, LeaderConfig leaderConfig) {
+    private static CassandraKeyValueService createKv(CassandraKeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig) {
         return CassandraKeyValueService.create(CassandraKeyValueServiceConfigManager.createSimpleManager(config), leaderConfig);
     }
 

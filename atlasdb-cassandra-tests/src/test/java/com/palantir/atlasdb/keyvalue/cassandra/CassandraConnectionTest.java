@@ -46,12 +46,12 @@ public class CassandraConnectionTest {
             .lockLeader("localhost")
             .build();
 
-    private static final LeaderConfig LEADER_CONFIG = ImmutableLeaderConfig
+    private static final Optional<LeaderConfig> LEADER_CONFIG = Optional.of(ImmutableLeaderConfig
             .builder()
             .quorumSize(0)
             .localServer("localhost")
             .leaders(Sets.newHashSet("localhost"))
-            .build();
+            .build());
 
     @Test
     public void testAuthProvided() {

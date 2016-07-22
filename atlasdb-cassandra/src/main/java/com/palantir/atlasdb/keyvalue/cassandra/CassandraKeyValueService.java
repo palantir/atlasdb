@@ -28,12 +28,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.Cassandra;
@@ -56,7 +54,6 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Optional;
@@ -88,6 +85,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.config.LeaderConfig;
+import com.palantir.atlasdb.config.LockLeader;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -150,15 +148,16 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     private final Optional<CassandraJmxCompactionManager> compactionManager;
     protected final CassandraClientPool clientPool;
     private SchemaMutationLock schemaMutationLock;
-    private final LeaderConfig leaderConfig;
+    private final Optional<LeaderConfig> leaderConfig;
 
     private HiddenTables hiddenTables;
+    private UniqueSchemaMutationLockTable schemaMutationLockTable;
 
     private ConsistencyLevel readConsistency = ConsistencyLevel.LOCAL_QUORUM;
     private final ConsistencyLevel writeConsistency = ConsistencyLevel.EACH_QUORUM;
     private final ConsistencyLevel deleteConsistency = ConsistencyLevel.ALL;
 
-    public static CassandraKeyValueService create(CassandraKeyValueServiceConfigManager configManager, LeaderConfig leaderConfig) {
+    public static CassandraKeyValueService create(CassandraKeyValueServiceConfigManager configManager, Optional<LeaderConfig> leaderConfig) {
         Optional<CassandraJmxCompactionManager> compactionManager = CassandraJmxCompaction.createJmxCompactionManager(configManager);
         CassandraKeyValueService ret = new CassandraKeyValueService(configManager, compactionManager, leaderConfig);
         ret.init();
@@ -167,7 +166,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     protected CassandraKeyValueService(CassandraKeyValueServiceConfigManager configManager,
                                        Optional<CassandraJmxCompactionManager> compactionManager,
-                                       LeaderConfig leaderConfig) {
+                                       Optional<LeaderConfig> leaderConfig) {
         super(AbstractKeyValueService.createFixedThreadPool("Atlas Cassandra KVS",
                 configManager.getConfig().poolSize() * configManager.getConfig().servers().size()));
         this.configManager = configManager;
@@ -175,106 +174,28 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         this.compactionManager = compactionManager;
         this.leaderConfig = leaderConfig;
         this.hiddenTables = new HiddenTables();
+
+        SchemaMutationLockTables lockTables = new SchemaMutationLockTables(clientPool, configManager.getConfig());
+        schemaMutationLockTable = new UniqueSchemaMutationLockTable(lockTables, whoIsTheLockCreator());
+    }
+
+    private LockLeader whoIsTheLockCreator() {
+        return leaderConfig
+                .transform((config) -> config.whoIsTheLockLeader())
+                .or(LockLeader.I_AM_THE_LOCK_LEADER);
     }
 
     protected void init() {
         clientPool.runOneTimeStartupChecks();
-        TableReference lockTable = getOrCreateLockTable();
-        hiddenTables.setLockTable(lockTable);
 
         boolean supportsCAS = clientPool.runWithRetry(CassandraVerifier.underlyingCassandraClusterSupportsCASOperations);
-        schemaMutationLock = new SchemaMutationLock(supportsCAS, configManager, clientPool, writeConsistency, hiddenTables);
+
+        schemaMutationLock = new SchemaMutationLock(supportsCAS, configManager, clientPool, writeConsistency, schemaMutationLockTable);
 
         createTable(AtlasDbConstants.METADATA_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA);
         lowerConsistencyWhenSafe();
         upgradeFromOlderInternalSchema();
         CassandraKeyValueServices.failQuickInInitializationIfClusterAlreadyInInconsistentState(clientPool, configManager.getConfig());
-    }
-
-    private TableReference getOrCreateLockTable() {
-        java.util.Optional<TableReference> lockTable = getLockTable();
-        if (lockTable.isPresent()) {
-            return lockTable.get();
-        }
-
-        try {
-            String lockLeader = configManager.getConfig().lockLeader().or(leaderConfig.leaders().iterator().next());
-            if (leaderConfig.localServer().equals(lockLeader)) {
-                log.info("Creating lock table because this is the lock leader: {}", lockLeader);
-                TableReference createdTable = createLockTable();
-                log.info("Successfully created lock table: {}.", createdTable.getTablename());
-                // Implicitly checks that we only have one lock table.
-                return getLockTable().get();
-            } else {
-                log.info("Waiting for {} to create lock table", lockLeader);
-                return waitForLockTableToBeCreated();
-            }
-        } catch (Exception e) {
-            throw Throwables.throwUncheckedException(e);
-        }
-    }
-
-    private TableReference createLockTable() {
-        try {
-            return clientPool.run(createInternalLockTable);
-        } catch (Exception e) {
-            throw Throwables.throwUncheckedException(e);
-        }
-    }
-
-    private final FunctionCheckedException<Cassandra.Client, TableReference, Exception> createInternalLockTable = client -> {
-        String lockTableName = (HiddenTables.LOCK_TABLE_PREFIX + UUID.randomUUID()).replace('-','_');;
-        TableReference lockTable = TableReference.createWithEmptyNamespace(lockTableName);
-        createTableInternal(client, lockTable);
-        return lockTable;
-    };
-
-    private TableReference waitForLockTableToBeCreated() throws InterruptedException {
-        java.util.Optional<TableReference> lockTable = getLockTable();
-        while (!lockTable.isPresent()) {
-            Thread.sleep(1000);
-            lockTable = getLockTable();
-        }
-        return lockTable.get();
-    }
-
-    @VisibleForTesting
-    protected java.util.Optional<TableReference> getLockTable() {
-        Set<TableReference> lockTables = getLockTables();
-        if (lockTables.size() > 1) {
-            throw new IllegalStateException(
-                    "Multiple schema mutation lock tables have been created.\n" +
-                    "This happens when multiple nodes have themselves as lockLeader in the configuration.\n" +
-                    "Please ensure the lockLeader is the same for each node, stop all Atlas clients using this keyspace, restart your cassandra cluster and delete all created schema mutation lock tables.\n" +
-                    "The tables that clashed were: " + lockTables);
-        }
-
-        return lockTables.stream().findAny();
-    }
-
-    private Set<TableReference> getLockTables() {
-        return getAllTablenamesInternal().stream().filter(tr -> tr.getTablename().startsWith(HiddenTables.LOCK_TABLE_PREFIX)).collect(Collectors.toSet());
-    }
-
-    // for tables internal / implementation specific to this KVS; these also don't get metadata in metadata table, nor do they show up in getTablenames, nor does this use concurrency control
-    private void createTableInternal(Cassandra.Client client, TableReference tableRef) throws TException {
-        CassandraKeyValueServiceConfig config = configManager.getConfig();
-        if (tableAlreadyExists(client, internalTableName(tableRef))) {
-            return;
-        }
-        CfDef cf = CassandraConstants.getStandardCfDef(config.keyspace(), internalTableName(tableRef));
-        client.system_add_column_family(cf);
-        CassandraKeyValueServices.waitForSchemaVersions(client, tableRef.getQualifiedName(), config.schemaMutationTimeoutMillis());
-    }
-
-    private boolean tableAlreadyExists(Cassandra.Client client, String caseInsensitiveTableName) throws TException {
-        KsDef ks = client.describe_keyspace(configManager.getConfig().keyspace());
-        for (CfDef cf : ks.getCf_defs()) {
-            if (cf.getName().equalsIgnoreCase(caseInsensitiveTableName)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     @Override
@@ -303,7 +224,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                         log.warn("Upgrading table {} to new internal Cassandra schema", tableRef);
                         tablesToUpgrade.put(tableRef, clusterSideMetadata);
                     }
-                } else if (!(tableRef.equals(AtlasDbConstants.METADATA_TABLE) || tableRef.equals(getLockTable()))) { // only expected cases
+                } else if (!(tableRef.equals(AtlasDbConstants.METADATA_TABLE) || tableRef.equals(schemaMutationLockTable.getOnlyTable()))) { // only expected cases
                     // Possible to get here from a race condition with another service starting up and performing schema upgrades concurrent with us doing this check
                     log.error("Found a table " + tableRef.getQualifiedName() + " that did not have persisted Atlas metadata. "
                             + "If you recently did a Palantir update, try waiting until schema upgrades are completed on all backend CLIs/services etc and restarting this service. "
