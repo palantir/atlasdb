@@ -331,6 +331,12 @@ public abstract class AbstractSweeperTest {
     }
 
     @Test
+    @Ignore
+    /*
+     * These tests have been ignored pending internal ticket 94009
+     * They are fragile when run with test suites that do not properly
+     * clean up tables from the kvs.
+     */
     public void testBackgroundSweepWritesPriorityTable() {
         createTable(SweepStrategy.CONSERVATIVE);
         put("foo", "bar", 50);
@@ -348,6 +354,7 @@ public abstract class AbstractSweeperTest {
     }
 
     @Test
+    @Ignore
     public void testBackgroundSweepWritesPriorityTableWithDifferentTime() {
         createTable(SweepStrategy.CONSERVATIVE);
         put("foo", "bar", 50);
@@ -375,6 +382,7 @@ public abstract class AbstractSweeperTest {
     }
 
     @Test
+    @Ignore
     public void testBackgroundSweeperWritesToProgressTable() {
         setupBackgroundSweeper(2);
         createTable(SweepStrategy.CONSERVATIVE);
@@ -397,6 +405,7 @@ public abstract class AbstractSweeperTest {
     }
 
     @Test
+    @Ignore
     public void testBackgroundSweeperDoesNotOverwriteProgressMinimumTimestamp() {
         setupBackgroundSweeper(2);
         createTable(SweepStrategy.CONSERVATIVE);
@@ -439,6 +448,7 @@ public abstract class AbstractSweeperTest {
     }
 
     @Test
+    @Ignore
     public void testBackgroundSweeperWritesFromProgressToPriority() {
         setupBackgroundSweeper(3);
         createTable(SweepStrategy.CONSERVATIVE);
@@ -470,6 +480,7 @@ public abstract class AbstractSweeperTest {
     }
 
     @Test
+    @Ignore
     public void testBackgroundSweepCanHandleNegativeImmutableTimestamp() {
         createTable(SweepStrategy.CONSERVATIVE);
         put("foo", "bar", 50);
