@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -62,6 +63,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
+import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -70,7 +72,7 @@ import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.SizedColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -78,9 +80,11 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.SizedColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
+import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.impl.RowResults;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.table.description.exceptions.AtlasDbConstraintException;
@@ -347,8 +351,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     @Override
     public Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> getRowsColumnRange(TableReference tableRef,
-                                                                                                Iterable<byte[]> rows,
-                                                                                                SizedColumnRangeSelection columnRangeSelection) {
+                                                                                      Iterable<byte[]> rows,
+                                                                                      SizedColumnRangeSelection columnRangeSelection) {
         if (Iterables.isEmpty(rows)) {
             return ImmutableMap.of();
         }
@@ -358,18 +362,29 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         for (Entry<byte[], RowColumnRangeIterator> e : rawResults.entrySet()) {
             byte[] row = e.getKey();
             RowColumnRangeIterator rawIterator = e.getValue();
-            Iterator<Map.Entry<Cell, byte[]>> postfilterIterator = getRowColumnRangePostfiltered(tableRef, row, columnRangeSelection, rawIterator);
-            SortedMap<Cell, byte[]> localWrites = getLocalWritesForColumnRange(tableRef, columnRangeSelection, row);
-            Iterator<Map.Entry<Cell, byte[]>> localIterator = localWrites.entrySet().iterator();
-            Iterator<Map.Entry<Cell, byte[]>> mergedIterator = IteratorUtils.mergeIterators(localIterator,
-                    postfilterIterator,
-                    Ordering.from(UnsignedBytes.lexicographicalComparator()).onResultOf(entry -> entry.getKey().getColumnName()),
-                    from -> from.getLhSide());
-            // Filter empty columns.
-            Iterator<Map.Entry<Cell, byte[]>> filteredIterator = Iterators.filter(mergedIterator, entry -> entry.getValue().length > 0);
-            postfilteredResults.put(row, BatchingVisitableFromIterable.create(filteredIterator));
+            Iterator<Map.Entry<Cell, byte[]>> postfilteredIterator =
+                    getPostfilteredColumns(tableRef, columnRangeSelection, row, rawIterator);
+            postfilteredResults.put(row, BatchingVisitableFromIterable.create(postfilteredIterator));
         }
         return postfilteredResults;
+    }
+
+    private Iterator<Map.Entry<Cell, byte[]>> getPostfilteredColumns(TableReference tableRef,
+                                                                     SizedColumnRangeSelection sizedColumnRangeSelection,
+                                                                     byte[] row,
+                                                                     RowColumnRangeIterator rawIterator) {
+        Iterator<Map.Entry<Cell, byte[]>> postfilterIterator =
+                getRowColumnRangePostfiltered(tableRef, row, sizedColumnRangeSelection, rawIterator);
+        SortedMap<Cell, byte[]> localWrites = getLocalWritesForColumnRange(tableRef, sizedColumnRangeSelection, row);
+        Iterator<Map.Entry<Cell, byte[]>> localIterator = localWrites.entrySet().iterator();
+        Iterator<Map.Entry<Cell, byte[]>> mergedIterator =
+                IteratorUtils.mergeIterators(localIterator,
+                                             postfilterIterator,
+                                             Ordering.from(UnsignedBytes.lexicographicalComparator())
+                                                     .onResultOf(entry -> entry.getKey().getColumnName()),
+                                             from -> from.getLhSide());
+        // Filter empty columns.
+        return Iterators.filter(mergedIterator, entry -> entry.getValue().length > 0);
     }
 
     private Iterator<Map.Entry<Cell, byte[]>> getRowColumnRangePostfiltered(TableReference tableRef, byte[] row, SizedColumnRangeSelection columnRangeSelection,
@@ -396,6 +411,83 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             }
         };
         return Iterators.concat(postfilteredBatches);
+    }
+
+    @Override
+    public Iterator<Map.Entry<Cell, byte[]>> getRowsColumnRange(TableReference tableRef,
+                                                                Iterable<byte[]> rows,
+                                                                ColumnRangeSelection columnRangeSelection,
+                                                                int batchHint) {
+        if (Iterables.isEmpty(rows)) {
+            return Collections.emptyIterator();
+        }
+        RowColumnRangeIterator rawResults =
+                keyValueService.getRowsColumnRange(tableRef,
+                                                   rows,
+                                                   columnRangeSelection,
+                                                   batchHint,
+                                                   getStartTimestamp());
+        Iterator<Map.Entry<byte[], RowColumnRangeIterator>> rawResultsByRow = partitionByRow(rawResults);
+        Iterator<Iterator<Map.Entry<Cell, byte[]>>> postfiltered = Iterators.transform(rawResultsByRow, e -> {
+            byte[] row = e.getKey();
+            RowColumnRangeIterator rawIterator = e.getValue();
+            SizedColumnRangeSelection sizedColumnRangeSelection =
+                    new SizedColumnRangeSelection(columnRangeSelection.getStartCol(),
+                                                  columnRangeSelection.getEndCol(),
+                                                  batchHint);
+            return getPostfilteredColumns(tableRef, sizedColumnRangeSelection, row, rawIterator);
+        });
+        return Iterators.concat(postfiltered);
+    }
+
+    /**
+     * Partitions a {@link RowColumnRangeIterator} into contiguous blocks that share the same row name.
+     * {@link KeyValueService#getRowsColumnRange(TableReference, Iterable, ColumnRangeSelection, int, long)} guarantees
+     * that all columns for a single row are adjacent, so this method will return an {@link Iterator} with exactly one
+     * entry per non-empty row.
+     */
+    private Iterator<Map.Entry<byte[], RowColumnRangeIterator>> partitionByRow(RowColumnRangeIterator rawResults) {
+        PeekingIterator<Map.Entry<Cell, Value>> peekableRawResults = Iterators.peekingIterator(rawResults);
+        return new AbstractIterator<Map.Entry<byte[], RowColumnRangeIterator>>() {
+            byte[] prevRowName;
+
+            @Override
+            protected Map.Entry<byte[], RowColumnRangeIterator> computeNext() {
+                finishConsumingPreviousRow(peekableRawResults);
+                if (!peekableRawResults.hasNext()) {
+                    return endOfData();
+                }
+                byte[] nextRowName = peekableRawResults.peek().getKey().getRowName();
+                Iterator<Map.Entry<Cell, Value>> columnsIterator =
+                        new AbstractIterator<Map.Entry<Cell, Value>>() {
+                    @Override
+                    protected Map.Entry<Cell, Value> computeNext() {
+                        if (!peekableRawResults.hasNext()
+                                || !Arrays.equals(peekableRawResults.peek().getKey().getRowName(), nextRowName)) {
+                            return endOfData();
+                        }
+                        return peekableRawResults.next();
+                    }
+                };
+                prevRowName = nextRowName;
+                return new AbstractMap.SimpleEntry<byte[], RowColumnRangeIterator>(
+                        nextRowName,
+                        new LocalRowColumnRangeIterator(columnsIterator));
+            }
+
+            private void finishConsumingPreviousRow(PeekingIterator<Map.Entry<Cell, Value>> iter) {
+                int numConsumed = 0;
+                while (iter.hasNext() && Arrays.equals(iter.peek().getKey().getRowName(), prevRowName)) {
+                    iter.next();
+                    numConsumed++;
+                }
+                if (numConsumed > 0) {
+                    log.warn("Not all columns for row {} were read. {} columns were discarded.",
+                             Arrays.toString(prevRowName),
+                             numConsumed);
+                }
+            }
+        };
     }
 
     @Override

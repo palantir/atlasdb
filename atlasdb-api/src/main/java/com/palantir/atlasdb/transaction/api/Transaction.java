@@ -15,15 +15,17 @@
  */
 package com.palantir.atlasdb.transaction.api;
 
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.SizedColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.SizedColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.annotation.Idempotent;
@@ -41,8 +43,14 @@ public interface Transaction {
 
     @Idempotent
     Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> getRowsColumnRange(TableReference tableRef,
-                                                                                        Iterable<byte[]> rows,
-                                                                                        SizedColumnRangeSelection columnRangeSelection);
+                                                                               Iterable<byte[]> rows,
+                                                                               SizedColumnRangeSelection columnRangeSelection);
+
+    @Idempotent
+    Iterator<Map.Entry<Cell, byte[]>> getRowsColumnRange(TableReference tableRef,
+                                                         Iterable<byte[]> rows,
+                                                         ColumnRangeSelection columnRangeSelection,
+                                                         int batchHint);
 
     @Idempotent
     Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells);

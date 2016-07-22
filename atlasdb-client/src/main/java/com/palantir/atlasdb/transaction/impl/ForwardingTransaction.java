@@ -15,16 +15,19 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 
 import com.google.common.collect.ForwardingObject;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.SizedColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.SizedColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -55,6 +58,14 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
                                                                                      Iterable<byte[]> rows,
                                                                                      SizedColumnRangeSelection columnRangeSelection) {
         return delegate().getRowsColumnRange(tableRef, rows, columnRangeSelection);
+    }
+
+    @Override
+    public Iterator<Entry<Cell, byte[]>> getRowsColumnRange(TableReference tableRef,
+                                                            Iterable<byte[]> rows,
+                                                            ColumnRangeSelection columnRangeSelection,
+                                                            int batchHint) {
+        return delegate().getRowsColumnRange(tableRef, rows, columnRangeSelection, batchHint);
     }
 
     @Override
