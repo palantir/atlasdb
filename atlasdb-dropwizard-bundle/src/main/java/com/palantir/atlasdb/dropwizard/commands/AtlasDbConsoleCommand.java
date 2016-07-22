@@ -17,8 +17,6 @@ package com.palantir.atlasdb.dropwizard.commands;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.apache.commons.cli.Option;
 
@@ -26,13 +24,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.config.AtlasDbConfig;
-import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
-import com.palantir.atlasdb.config.ImmutableServerListConfig;
-import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.console.AtlasConsoleMain;
 import com.palantir.atlasdb.dropwizard.AtlasDbConfigurationProvider;
 
@@ -79,30 +72,7 @@ public class AtlasDbConsoleCommand<T extends Configuration & AtlasDbConfiguratio
 
     @Override
     protected void run(Bootstrap<T> bootstrap, Namespace namespace, T configuration) throws Exception {
-        Preconditions.checkArgument(configuration.getAtlasDbConfig().leader().isPresent(), "CLIs can only be run with a leader block");
-
-        ServerListConfig leaders = ImmutableServerListConfig.builder()
-                .servers(configuration.getAtlasDbConfig().leader().get().leaders())
-                .build();
-
-        AtlasDbConfig cliConfiguration = ImmutableAtlasDbConfig.builder()
-                .from(configuration.getAtlasDbConfig())
-                .leader(Optional.absent())
-                .lock(leaders)
-                .timestamp(leaders)
-                .build();
-
-        List<String> passedInArgs = namespace.getAttrs().entrySet().stream()
-                .filter(entry -> entry.getKey().startsWith("--"))
-                .filter(entry -> entry.getValue() != null)
-                .flatMap(entry -> {
-                    if (entry.getValue() instanceof List) {
-                        return Stream.concat(Stream.of(entry.getKey()), ((List<String>) entry.getValue()).stream());
-                    } else {
-                        return Stream.of(entry.getKey(), (String) entry.getValue());
-                    }
-                })
-                .collect(Collectors.toList());
+        AtlasDbConfig cliConfiguration = AtlasDbCommandUtils.convertServerConfigToClientConfig(configuration.getAtlasDbConfig());
 
         List<String> allArgs = ImmutableList.<String>builder()
                 .add("--bind")
@@ -110,9 +80,8 @@ public class AtlasDbConsoleCommand<T extends Configuration & AtlasDbConfiguratio
                 .add(OBJECT_MAPPER.writeValueAsString(cliConfiguration))
                 .add("--evaluate")
                 .add("connectInline dropwizardAtlasDb")
-                .addAll(passedInArgs)
+                .addAll(AtlasDbCommandUtils.gatherPassedInArguments(namespace.getAttrs()))
                 .build();
-
 
         AtlasConsoleMain.main(allArgs.toArray(new String[] {}));
     }
