@@ -22,6 +22,7 @@ import javax.validation.constraints.Size;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
@@ -48,6 +49,15 @@ public abstract class LeaderConfig {
     @Size(min=1)
     public abstract Set<String> leaders();
 
+    @JsonProperty("lockCreator")
+    @Value.Default
+    public String lockCreator() {
+        if(leaders().isEmpty()) {
+            throw new IllegalStateException("The leaders block cannot be empty");
+        }
+        return leaders().iterator().next();
+    }
+
     @Value.Default
     public long pingRateMs() {
         return 5000l;
@@ -73,4 +83,8 @@ public abstract class LeaderConfig {
                 "Acceptor log directory '%s' does not exist and cannot be created.", acceptorLogDir());
     }
 
+    @Value.Derived
+    public boolean amITheLockLeader() {
+        return lockCreator().equals(localServer());
+    }
 }
