@@ -73,6 +73,11 @@ public class SweepCommand extends SingleBackendCommand {
             description = "Time to wait in milliseconds after each sweep batch (throttles long-running sweep jobs, default: 0)")
     long sleepTimeInMs = 0;
 
+    @Override
+    public boolean isOnlineRunSupported() {
+        return true;
+    }
+
 	@Override
 	public int execute(final AtlasDbServices services) {
         SweepTaskRunner sweepRunner = services.getSweepTaskRunner();

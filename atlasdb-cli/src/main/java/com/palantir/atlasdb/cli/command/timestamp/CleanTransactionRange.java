@@ -39,6 +39,11 @@ public class CleanTransactionRange extends AbstractTimestampCommand {
     private static final Logger log = LoggerFactory.getLogger(CleanTransactionRange.class);
 
     @Override
+    public boolean isOnlineRunSupported() {
+        return false;
+    }
+
+    @Override
     protected boolean requireTimestamp() {
         return true;
     }
