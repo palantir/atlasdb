@@ -25,6 +25,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.jayway.awaitility.Awaitility;
 import com.jayway.awaitility.Duration;
@@ -47,7 +48,6 @@ import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
         CassandraTimestampTest.class,
         CassandraKeyValueServiceTest.class,
         SchemaMutationLockTest.class,
-        UniqueSchemaMutationLockTableTest.class,
         SchemaMutationLockTablesTest.class,
 })
 public class CassandraTestSuite {
@@ -65,7 +65,7 @@ public class CassandraTestSuite {
 
     static ImmutableCassandraKeyValueServiceConfig CASSANDRA_KVS_CONFIG;
 
-    static LeaderConfig LEADER_CONFIG;
+    static Optional<LeaderConfig> LEADER_CONFIG;
 
     @BeforeClass
     public static void waitUntilCassandraIsUp() throws IOException, InterruptedException {
@@ -73,7 +73,7 @@ public class CassandraTestSuite {
         String hostname = port.getIp();
         CASSANDRA_THRIFT_ADDRESS = new InetSocketAddress(hostname, port.getExternalPort());
 
-        CASSANDRA_KVS_CONFIG_NO_LOCK_LEADER = ImmutableCassandraKeyValueServiceConfig.builder()
+        CASSANDRA_KVS_CONFIG = ImmutableCassandraKeyValueServiceConfig.builder()
                 .addServers(CASSANDRA_THRIFT_ADDRESS)
                 .poolSize(20)
                 .keyspace("atlasdb")
@@ -90,14 +90,12 @@ public class CassandraTestSuite {
                 .autoRefreshNodes(false)
                 .build();
 
-        CASSANDRA_KVS_CONFIG = CASSANDRA_KVS_CONFIG_NO_LOCK_LEADER.withLockLeader(hostname);
-
-        LEADER_CONFIG = ImmutableLeaderConfig
+        LEADER_CONFIG = Optional.of(ImmutableLeaderConfig
                 .builder()
                 .quorumSize(1)
                 .localServer(hostname)
                 .leaders(ImmutableSet.of(hostname))
-                .build();
+                .build());
 
         Awaitility.await()
                 .atMost(Duration.ONE_MINUTE)
