@@ -82,33 +82,4 @@ class CassandraTestTools {
             }
         }
     }
-
-    static void dropKeyspaceIfExists(final CassandraKeyValueServiceConfig config) throws TException {
-        try {
-            CassandraClientPool clientPool = new CassandraClientPool(config);
-            String keyspace = config.keyspace();
-            clientPool.run(client -> {
-                client.system_drop_keyspace(keyspace);
-                return null;
-            });
-        } catch (InvalidRequestException | CassandraClientFactory.ClientCreationFailedException e) {
-            // This happens when the keyspace didn't exist in the first place. In this case, our work is done.
-            System.out.println("Didn't drop keyspace " + config.keyspace() + ", likely because it didn't exist");
-            System.out.println("Message: " + e.getMessage());
-            System.out.println("Cause: " + e.getCause().getMessage());
-        }
-    }
-
-    static void createKeyspace(ImmutableCassandraKeyValueServiceConfig config) throws TException {
-        // Shamelessly copied from CassandraVerifier. TODO does it make sense to deduplicate this code?
-        InetSocketAddress host = config.servers().iterator().next();
-        Cassandra.Client client = CassandraClientFactory.getClientInternal(host, config.credentials(),
-                config.ssl(), config.socketTimeoutMillis(), config.socketQueryTimeoutMillis());
-        KsDef ks = new KsDef(config.keyspace(), CassandraConstants.NETWORK_STRATEGY, ImmutableList.<CfDef>of());
-        CassandraVerifier.checkAndSetReplicationFactor(client, ks, true, config.replicationFactor(), config.safetyDisabled());
-        ks.setDurable_writes(true);
-        System.out.println("Creating keyspace: " + config.keyspace());
-        client.system_add_keyspace(ks);
-        CassandraKeyValueServices.waitForSchemaVersions(client, "(adding the initial empty keyspace)", config.schemaMutationTimeoutMillis());
-    }
 }
