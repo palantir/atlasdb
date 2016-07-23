@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -24,9 +25,10 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.SizedColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.api.SizedColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbQueryFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.FullQuery;
@@ -274,20 +276,44 @@ public abstract class OracleQueryFactory implements DbQueryFactory {
     }
 
     @Override
-    public FullQuery getRowsColumnRangeQuery(List<byte[]> rows, long ts, SizedColumnRangeSelection columnRangeSelection) {
-        List<String> subQueries = Lists.newArrayListWithCapacity(rows.size());
-        int argsPerRow = 2 + ((columnRangeSelection.getStartCol().length > 0) ? 1 : 0) +
-                ((columnRangeSelection.getEndCol().length > 0) ? 1 : 0);
-        List<Object> args = Lists.newArrayListWithCapacity(rows.size() * argsPerRow);
-        for (byte[] row : rows) {
-            FullQuery query = getRowsColumnRangeSubQuery(row, ts, columnRangeSelection);
+    public FullQuery getRowsColumnRangeCountsQuery(Iterable<byte[]> rows, long ts, ColumnRangeSelection columnRangeSelection) {
+        String query =
+                " /* GET_ROWS_COLUMN_RANGE_COUNT(" + tableName + ") */" +
+                        " SELECT m.row_name, COUNT(m.col_name) AS column_count " +
+                        "   FROM " + prefixedTableName() + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t " +
+                        "  WHERE m.row_name = t.row_name " +
+                        "    AND m.ts < ? " +
+                        (columnRangeSelection.getStartCol().length > 0 ? " AND m.col_name >= ?" : "") +
+                        (columnRangeSelection.getEndCol().length > 0 ? " AND m.col_name < ?" : "") +
+                        " GROUP BY m.row_name";
+        FullQuery fullQuery = new FullQuery(query).withArgs(rowsToOracleArray(rows), ts);
+        if (columnRangeSelection.getStartCol().length > 0) {
+            fullQuery = fullQuery.withArg(columnRangeSelection.getStartCol());
+        }
+        if (columnRangeSelection.getEndCol().length > 0) {
+            fullQuery = fullQuery.withArg(columnRangeSelection.getEndCol());
+        }
+        return fullQuery;
+    }
+
+    @Override
+    public FullQuery getRowsColumnRangeQuery(Map<byte[], SizedColumnRangeSelection> columnRangeSelectionsByRow, long ts) {
+        List<String> subQueries = new ArrayList<>(columnRangeSelectionsByRow.size());
+        int totalArgs = 0;
+        for (SizedColumnRangeSelection columnRangeSelection : columnRangeSelectionsByRow.values()) {
+            totalArgs += 2 + ((columnRangeSelection.getStartCol().length > 0) ? 1 : 0)
+                    + ((columnRangeSelection.getEndCol().length > 0) ? 1 : 0);
+        }
+        List<Object> args = new ArrayList<>(totalArgs);
+        for (Map.Entry<byte[], SizedColumnRangeSelection> entry : columnRangeSelectionsByRow.entrySet()) {
+            FullQuery query = getRowsColumnRangeSubQuery(entry.getKey(), ts, entry.getValue());
             subQueries.add(query.getQuery());
             for (Object arg : query.getArgs()) {
                 args.add(arg);
             }
         }
         String query = Joiner.on(") UNION ALL (").appendTo(new StringBuilder("("), subQueries).append(")")
-                .append(" ORDER BY wrap.row_name ASC, wrap.col_name ASC").toString();
+                .append(" ORDER BY row_name ASC, col_name ASC").toString();
         return new FullQuery(query).withArgs(args);
     }
 

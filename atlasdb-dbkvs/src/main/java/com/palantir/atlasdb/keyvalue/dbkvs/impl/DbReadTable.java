@@ -20,9 +20,10 @@ import java.util.List;
 import java.util.Map;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.SizedColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.api.SizedColumnRangeSelection;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.nexus.db.sql.AgnosticLightResultRow;
 
@@ -36,7 +37,10 @@ public interface DbReadTable {
     ClosableIterator<AgnosticLightResultRow> getAllCells(Iterable<Cell> cells, long ts, boolean includeValue);
     ClosableIterator<AgnosticLightResultRow> getAllCells(Map<Cell, Long> cells, boolean includeValue);
     ClosableIterator<AgnosticLightResultRow> getRange(RangeRequest range, long ts, int maxRows);
-    ClosableIterator<AgnosticLightResultRow> getRowsColumnRange(List<byte[]> rows, long ts, SizedColumnRangeSelection columnRangeSelection);
+
+    ClosableIterator<AgnosticLightResultRow> getRowsColumnRangeCounts(List<byte[]> rows, long ts, ColumnRangeSelection columnRangeSelection);
+    ClosableIterator<AgnosticLightResultRow> getRowsColumnRange(Map<byte[], SizedColumnRangeSelection> columnRangeSelectionsByRow, long ts);
+
     boolean hasOverflowValues();
     ClosableIterator<AgnosticLightResultRow> getOverflow(Collection<OverflowValue> overflowIds);
 }

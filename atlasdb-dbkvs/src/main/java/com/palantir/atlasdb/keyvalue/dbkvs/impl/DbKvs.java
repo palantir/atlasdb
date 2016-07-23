@@ -17,14 +17,19 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -38,9 +43,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
+import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Suppliers;
+import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -58,13 +65,14 @@ import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.Atomics;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.SizedColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.SizedColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
@@ -646,13 +654,19 @@ public class DbKvs extends AbstractKeyValueService {
         }
     }
 
+    private Map<byte[], List<Entry<Cell, Value>>> extractRowColumnRangePage(DbReadTable table,
+                                                                            SizedColumnRangeSelection columnRangeSelection,
+                                                                            long ts,
+                                                                            List<byte[]> rows) {
+        return extractRowColumnRangePage(table, Maps.toMap(rows, Functions.constant(columnRangeSelection)), ts);
+    }
+
     private Map<byte[], List<Map.Entry<Cell, Value>>> extractRowColumnRangePage(DbReadTable table,
-                                                                                SizedColumnRangeSelection columnRangeSelection,
-                                                                                long ts,
-                                                                                List<byte[]> rows) {
-        Map<Sha256Hash, byte[]> hashesToBytes = Maps.newHashMapWithExpectedSize(rows.size());
+                                                                                Map<byte[], SizedColumnRangeSelection> columnRangeSelectionsByRow,
+                                                                                long ts) {
+        Map<Sha256Hash, byte[]> hashesToBytes = Maps.newHashMapWithExpectedSize(columnRangeSelectionsByRow.size());
         Map<Sha256Hash, List<Cell>> cellsByRow = Maps.newHashMap();
-        for (byte[] row : rows) {
+        for (byte[] row : columnRangeSelectionsByRow.keySet()) {
             Sha256Hash rowHash = Sha256Hash.computeHash(row);
             hashesToBytes.put(rowHash, row);
             cellsByRow.put(rowHash, Lists.newArrayList());
@@ -662,7 +676,7 @@ public class DbKvs extends AbstractKeyValueService {
         Map<Cell, Value> values = Maps.newHashMap();
         Map<Cell, OverflowValue> overflowValues = Maps.newHashMap();
 
-        try (ClosableIterator<AgnosticLightResultRow> iter = table.getRowsColumnRange(rows, ts, columnRangeSelection)) {
+        try (ClosableIterator<AgnosticLightResultRow> iter = table.getRowsColumnRange(columnRangeSelectionsByRow, ts)) {
             while (iter.hasNext()) {
                 AgnosticLightResultRow row = iter.next();
                 Cell cell = Cell.create(row.getBytes("row_name"), row.getBytes("col_name"));
@@ -687,7 +701,8 @@ public class DbKvs extends AbstractKeyValueService {
 
         fillOverflowValues(table, overflowValues, values);
 
-        Map<byte[], List<Map.Entry<Cell, Value>>> results = Maps.newHashMapWithExpectedSize(rows.size());
+        Map<byte[], List<Map.Entry<Cell, Value>>> results =
+                Maps.newHashMapWithExpectedSize(columnRangeSelectionsByRow.size());
         for (Entry<Sha256Hash, List<Cell>> e : cellsByRow.entrySet()) {
             List<Map.Entry<Cell, Value>> fullResults = Lists.newArrayListWithExpectedSize(e.getValue().size());
             for (Cell c : e.getValue()) {
@@ -701,7 +716,8 @@ public class DbKvs extends AbstractKeyValueService {
     private void fillOverflowValues(DbReadTable table,
                                     Map<Cell, OverflowValue> overflowValues,
                                     @Output Map<Cell, Value> values) {
-        for (Iterator<Entry<Cell, OverflowValue>> entryIter = overflowValues.entrySet().iterator(); entryIter.hasNext(); ) {
+        for (Iterator<Entry<Cell, OverflowValue>> entryIter =
+                overflowValues.entrySet().iterator(); entryIter.hasNext();) {
             Entry<Cell, OverflowValue> entry = entryIter.next();
             Value value = values.get(entry.getKey());
             if (value != null && value.getTimestamp() > entry.getValue().ts) {
@@ -728,6 +744,126 @@ public class DbKvs extends AbstractKeyValueService {
                 values.put(cell, Value.create(val, ov.ts));
             }
         }
+    }
+
+    @Override
+    public RowColumnRangeIterator getRowsColumnRange(TableReference tableRef,
+                                                     Iterable<byte[]> rows,
+                                                     ColumnRangeSelection columnRangeSelection,
+                                                     int batchHint,
+                                                     long timestamp) {
+        List<byte[]> rowList = ImmutableList.copyOf(rows);
+        Map<Sha256Hash, byte[]> hashesToBytes = Maps.uniqueIndex(rowList, Sha256Hash::computeHash);
+
+        LinkedHashMap<Sha256Hash, Integer> ordered =
+                getColumnCounts(tableRef, rowList, columnRangeSelection, timestamp);
+
+        Iterator<LinkedHashMap<Sha256Hash, Integer>> batches = partitionByTotalCount(ordered, batchHint).iterator();
+        Iterator<Iterator<Map.Entry<Cell, Value>>> results = new AbstractIterator<Iterator<Map.Entry<Cell, Value>>>() {
+            private Sha256Hash lastRowHashInPreviousBatch = null;
+            private byte[] lastColumnInPreviousBatch = null;
+
+            @Override
+            protected Iterator<Map.Entry<Cell, Value>> computeNext() {
+                if (!batches.hasNext()) {
+                    return endOfData();
+                }
+                LinkedHashMap<Sha256Hash, Integer> currBatch = batches.next();
+                Map<byte[], SizedColumnRangeSelection> columnRangeSelectionsByRow = new HashMap<>(currBatch.size());
+                for (Map.Entry<Sha256Hash, Integer> entry : currBatch.entrySet()) {
+                    Sha256Hash rowHash = entry.getKey();
+                    byte[] startCol = Objects.equals(lastRowHashInPreviousBatch, rowHash)
+                        ? RangeRequests.nextLexicographicName(lastColumnInPreviousBatch): columnRangeSelection.getStartCol();
+                    SizedColumnRangeSelection sizedColumnRangeSelection =
+                            new SizedColumnRangeSelection(startCol, columnRangeSelection.getEndCol(), entry.getValue());
+                    columnRangeSelectionsByRow.put(hashesToBytes.get(rowHash), sizedColumnRangeSelection);
+                }
+
+                Map<byte[], List<Map.Entry<Cell, Value>>> resultsByRow =
+                        runRead(tableRef,
+                                dbReadTable -> extractRowColumnRangePage(dbReadTable, columnRangeSelectionsByRow, timestamp));
+                int totalEntries = resultsByRow.values().stream().mapToInt(List::size).sum();
+                if (totalEntries == 0) {
+                    return Collections.emptyIterator();
+                }
+                // Ensure order matches that of the provided batch.
+                List<Map.Entry<Cell, Value>> ret = new ArrayList<>(totalEntries);
+                for (Sha256Hash rowHash : currBatch.keySet()) {
+                    byte[] row = hashesToBytes.get(rowHash);
+                    ret.addAll(resultsByRow.get(row));
+                }
+                Cell lastCell = Iterables.getLast(ret).getKey();
+                lastRowHashInPreviousBatch = Sha256Hash.computeHash(lastCell.getRowName());
+                lastColumnInPreviousBatch = lastCell.getColumnName();
+                return ret.iterator();
+            }
+        };
+        return new LocalRowColumnRangeIterator(Iterators.concat(results));
+    }
+
+    private LinkedHashMap<Sha256Hash, Integer> getColumnCounts(TableReference tableRef,
+                                                               List<byte[]> rowList,
+                                                               ColumnRangeSelection columnRangeSelection,
+                                                               long timestamp) {
+        Map<Sha256Hash, Integer> countsByRow = runRead(tableRef, dbReadTable -> {
+            Map<Sha256Hash, Integer> counts = new HashMap<>(rowList.size());
+            try (ClosableIterator<AgnosticLightResultRow> iter =
+                    dbReadTable.getRowsColumnRangeCounts(rowList, timestamp, columnRangeSelection)) {
+                while (iter.hasNext()) {
+                    AgnosticLightResultRow row = iter.next();
+                    Sha256Hash rowHash = Sha256Hash.computeHash(row.getBlob("row_name"));
+                    counts.put(rowHash, row.getInteger("column_count"));
+                }
+            }
+            return counts;
+        });
+        // Make iteration order of the returned map match the provided list.
+        LinkedHashMap<Sha256Hash, Integer> ordered = new LinkedHashMap<>(countsByRow.size());
+        for (byte[] row : rowList) {
+            Sha256Hash rowHash = Sha256Hash.computeHash(row);
+            ordered.put(rowHash, countsByRow.getOrDefault(rowHash, 0));
+        }
+        return ordered;
+    }
+
+    /**
+     * Partitions the provided map into batches, where the total count of every batch except the last is {@code limit}.
+     * Note this means that a single element may be split into multiple batches. The ordering of the batches matches the
+     * ordering of the provided counts, i.e. if x appears before y in {@code counts}, then no batch containing x will
+     * appear after a batch containing y, and if a batch contains both, then x will appear before y in that batch.
+     */
+    private <T> List<LinkedHashMap<T, Integer>> partitionByTotalCount(Map<T, Integer> counts, int limit) {
+        List<LinkedHashMap<T, Integer>> batches = new ArrayList<>();
+        LinkedHashMap<T, Integer> currentBatch = new LinkedHashMap<>();
+        batches.add(currentBatch);
+        int currBatchColumns = 0;
+
+        T currElem = null;
+        int remainingCountForCurrElem = 0;
+        Iterator<T> iter = counts.keySet().iterator();
+        while (remainingCountForCurrElem > 0 || iter.hasNext()) {
+            if (remainingCountForCurrElem == 0) {
+                currElem = iter.next();
+                remainingCountForCurrElem = counts.getOrDefault(currElem, 0);
+            }
+
+            if (currBatchColumns + remainingCountForCurrElem > limit) {
+                // Fill up current batch
+                int columnsToInclude = limit - currBatchColumns;
+                currentBatch.put(currElem, columnsToInclude);
+                remainingCountForCurrElem -= columnsToInclude;
+
+                // Create new batch
+                currentBatch = new LinkedHashMap<>();
+                batches.add(currentBatch);
+                currBatchColumns = 0;
+            } else {
+                currentBatch.put(currElem, remainingCountForCurrElem);
+                currBatchColumns += remainingCountForCurrElem;
+                remainingCountForCurrElem = 0;
+            }
+        }
+        return batches;
     }
 
     @Override

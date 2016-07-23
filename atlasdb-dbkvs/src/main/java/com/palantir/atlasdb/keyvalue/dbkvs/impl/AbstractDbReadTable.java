@@ -30,9 +30,10 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Queues;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.SizedColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.api.SizedColumnRangeSelection;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.nexus.db.sql.AgnosticLightResultRow;
@@ -210,10 +211,21 @@ public abstract class AbstractDbReadTable implements DbReadTable {
     }
 
     @Override
-    public ClosableIterator<AgnosticLightResultRow> getRowsColumnRange(List<byte[]> rows, long ts, SizedColumnRangeSelection columnRangeSelection) {
-        FullQuery query = queryFactory.getRowsColumnRangeQuery(rows, ts, columnRangeSelection);
+    public ClosableIterator<AgnosticLightResultRow> getRowsColumnRangeCounts(List<byte[]> rows,
+                                                                             long ts,
+                                                                             ColumnRangeSelection columnRangeSelection) {
+        FullQuery query = queryFactory.getRowsColumnRangeCountsQuery(rows, ts, columnRangeSelection);
         AgnosticLightResultSet results = conns.get().selectLightResultSetUnregisteredQuery(query.getQuery(), query.getArgs());
-        results.setFetchSize(columnRangeSelection.getBatchHint() * rows.size());
+        results.setFetchSize(rows.size());
+        return ClosableIterators.wrap(results.iterator(), results);
+    }
+
+    @Override
+    public ClosableIterator<AgnosticLightResultRow> getRowsColumnRange(Map<byte[], SizedColumnRangeSelection> columnRangeSelectionsByRow, long ts) {
+        FullQuery query = queryFactory.getRowsColumnRangeQuery(columnRangeSelectionsByRow, ts);
+        AgnosticLightResultSet results = conns.get().selectLightResultSetUnregisteredQuery(query.getQuery(), query.getArgs());
+        int totalSize = columnRangeSelectionsByRow.values().stream().mapToInt(SizedColumnRangeSelection::getBatchHint).sum();
+        results.setFetchSize(totalSize);
         return ClosableIterators.wrap(results.iterator(), results);
     }
 
