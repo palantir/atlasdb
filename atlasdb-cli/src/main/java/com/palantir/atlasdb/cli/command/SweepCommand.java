@@ -119,10 +119,10 @@ public class SweepCommand extends SingleBackendCommand {
             while (startRow.isPresent()) {
                 Stopwatch watch = Stopwatch.createStarted();
                 SweepResults results = sweepRunner.run(table, batchSize, startRow.get());
-                log.info(String.format("Swept from %s to %s in table %s in %d ms, examined %d unique cells, deleted %d cells.",
+                log.info("Swept from {} to {} in table {} in {} ms, examined {} unique cells, deleted {} cells.",
                         encodeStartRow(startRow), encodeEndRow(results.getNextStartRow()),
                         table, watch.elapsed(TimeUnit.MILLISECONDS),
-                        results.getCellsExamined(), results.getCellsDeleted()));
+                        results.getCellsExamined(), results.getCellsDeleted());
                 startRow = results.getNextStartRow();
                 cellsDeleted.addAndGet(results.getCellsDeleted());
                 cellsExamined.addAndGet(results.getCellsExamined());
@@ -137,14 +137,14 @@ public class SweepCommand extends SingleBackendCommand {
                 priorityTable.putCellsExamined(row1, cellsExamined.get());
                 priorityTable.putLastSweepTime(row1, System.currentTimeMillis());
 
-                log.info(String.format("Finished sweeping %s, examined %d unique cells, deleted %d cells.",
-                        table, cellsExamined.get(), cellsDeleted.get()));
+                log.info("Finished sweeping {}, examined {} unique cells, deleted {} cells.",
+                        table, cellsExamined.get(), cellsDeleted.get());
 
                 if (cellsDeleted.get() > 0) {
                     Stopwatch watch = Stopwatch.createStarted();
                     services.getKeyValueService().compactInternally(table);
-                    log.info(String.format("Finished performing compactInternally on %s in %d ms.",
-                            table, watch.elapsed(TimeUnit.MILLISECONDS)));
+                    log.info("Finished performing compactInternally on {} in {} ms.",
+                            table, watch.elapsed(TimeUnit.MILLISECONDS));
                 }
                 return null;
             });

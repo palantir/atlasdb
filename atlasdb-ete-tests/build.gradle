@@ -36,6 +36,7 @@ dependencies {
         exclude(module:'hibernate-validator')
         exclude(module:'libthrift')
         exclude(module:'commons-cli')
+        exclude(module:'jna')
     }
 
     compile 'org.apache.thrift:libthrift:' + libVersions.libthrift

@@ -22,7 +22,9 @@ import static com.google.common.base.Suppliers.memoize;
 import java.util.ServiceLoader;
 import java.util.function.Predicate;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
+import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
@@ -35,7 +37,7 @@ public class ServiceDiscoveringAtlasSupplier {
     private final Supplier<KeyValueService> keyValueService;
     private final Supplier<TimestampService> timestampService;
 
-    public ServiceDiscoveringAtlasSupplier(KeyValueServiceConfig config) {
+    public ServiceDiscoveringAtlasSupplier(KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig) {
         this.config = config;
         AtlasDbFactory atlasFactory = stream(loader.spliterator(), false)
                 .filter(producesCorrectType())
@@ -44,7 +46,7 @@ public class ServiceDiscoveringAtlasSupplier {
                     "No atlas provider for KeyValueService type " + config.type() + " could be found. " +
                             "Have you annotated it with @AutoService(AtlasDbFactory.class)?"
                 ));
-        keyValueService = memoize(() -> atlasFactory.createRawKeyValueService(config));
+        keyValueService = memoize(() -> atlasFactory.createRawKeyValueService(config, leaderConfig));
         timestampService = () -> atlasFactory.createTimestampService(getKeyValueService());
     }
 

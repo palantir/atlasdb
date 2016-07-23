@@ -17,7 +17,11 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
+import org.apache.thrift.TException;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -30,18 +34,24 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AbstractAtlasDbKeyValueServiceTest;
 
 public class CassandraKeyValueServiceTest extends AbstractAtlasDbKeyValueServiceTest {
-
     private KeyValueService keyValueService;
+    private ExecutorService executorService;
 
     @Before
     public void setupKVS() {
         keyValueService = getKeyValueService();
+        executorService = Executors.newFixedThreadPool(4);
+    }
+
+    @After
+    public void cleanUp() {
+        executorService.shutdown();
     }
 
     @Override
     protected KeyValueService getKeyValueService() {
         return CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.CASSANDRA_KVS_CONFIG));
+                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.CASSANDRA_KVS_CONFIG), CassandraTestSuite.LEADER_CONFIG);
     }
 
     @Override
@@ -62,7 +72,7 @@ public class CassandraKeyValueServiceTest extends AbstractAtlasDbKeyValueService
     }
 
     @Test
-    public void testCreateTableCaseInsensitive() {
+    public void testCreateTableCaseInsensitive() throws TException {
         TableReference table1 = TableReference.createFromFullyQualifiedName("ns.tAbLe");
         TableReference table2 = TableReference.createFromFullyQualifiedName("ns.table");
         TableReference table3 = TableReference.createFromFullyQualifiedName("ns.TABle");

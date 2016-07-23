@@ -17,88 +17,43 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.stream.IntStream;
 
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
-abstract public class AbstractCassandraLockTest {
-    protected static final long GLOBAL_DDL_LOCK_NEVER_ALLOCATED_VALUE = Long.MAX_VALUE - 1;
+public class CassandraKeyValueServiceTableCreationTest {
+    public static final TableReference GOOD_TABLE = TableReference.createFromFullyQualifiedName("foo.bar");
+    public static final TableReference BAD_TABLE = TableReference.createFromFullyQualifiedName("foo.b@r");
+
     protected CassandraKeyValueService kvs;
     protected CassandraKeyValueService slowTimeoutKvs;
-    private final ExecutorService executorService = Executors.newFixedThreadPool(4);
-    public static final TableReference BAD_TABLE = TableReference.createFromFullyQualifiedName("foo.b@r");
-    public static final TableReference GOOD_TABLE = TableReference.createFromFullyQualifiedName("foo.bar");
 
     @Before
     public void setUp() {
         ImmutableCassandraKeyValueServiceConfig quickTimeoutConfig = CassandraTestSuite.CASSANDRA_KVS_CONFIG
                 .withSchemaMutationTimeoutMillis(500);
         kvs = CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(quickTimeoutConfig));
+                CassandraKeyValueServiceConfigManager.createSimpleManager(quickTimeoutConfig), CassandraTestSuite.LEADER_CONFIG);
 
         ImmutableCassandraKeyValueServiceConfig slowTimeoutConfig = CassandraTestSuite.CASSANDRA_KVS_CONFIG
                 .withSchemaMutationTimeoutMillis(60 * 1000);
         slowTimeoutKvs = CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(slowTimeoutConfig));
+                CassandraKeyValueServiceConfigManager.createSimpleManager(slowTimeoutConfig), CassandraTestSuite.LEADER_CONFIG);
 
         kvs.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
     }
 
-    @Rule
-    public ExpectedException exception = ExpectedException.none();
-
     @After
     public void tearDown() {
         kvs.teardown();
-    }
-
-    @Test
-    public void testLockAndUnlockWithoutContention() {
-        long ourId = kvs.waitForSchemaMutationLock();
-        kvs.schemaMutationUnlock(ourId);
-    }
-
-    @Test
-    public void testOnlyOneLockCanBeLockedAtATime() throws InterruptedException, ExecutionException, TimeoutException {
-        long firstLock = kvs.waitForSchemaMutationLock();
-
-        Future tryToAcquireSecondLock = async(() -> kvs.waitForSchemaMutationLock());
-
-        Thread.sleep(3 * 1000);
-        assertThatFutureDidNotSucceedYet(tryToAcquireSecondLock);
-
-        tryToAcquireSecondLock.cancel(true);
-        kvs.schemaMutationUnlock(firstLock);
-    }
-
-    @Test
-    public void testUnlockIsSuccessful() throws InterruptedException, TimeoutException, ExecutionException {
-        long id = kvs.waitForSchemaMutationLock();
-        Future future = async(() -> {
-            long newId = kvs.waitForSchemaMutationLock();
-            kvs.schemaMutationUnlock(newId);
-        });
-        Thread.sleep(100);
-        Assert.assertFalse(future.isDone());
-        kvs.schemaMutationUnlock(id);
-        future.get(3, TimeUnit.SECONDS);
     }
 
     @Test (timeout = 10 * 1000)
@@ -130,21 +85,6 @@ abstract public class AbstractCassandraLockTest {
         });
 
         slowTimeoutKvs.dropTable(GOOD_TABLE);
-    }
-
-    protected Future async(Runnable callable) {
-        return executorService.submit(callable);
-    }
-
-    private void assertThatFutureDidNotSucceedYet(Future future) throws InterruptedException {
-        if (future.isDone()) {
-            try {
-                future.get();
-                throw new AssertionError("Future task should have failed but finished successfully");
-            } catch (ExecutionException e) {
-                // if execution is done, we expect it to have failed
-            }
-        }
     }
 
     @Test
