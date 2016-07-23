@@ -107,7 +107,7 @@ public interface KeyValueService extends AutoCloseable {
     @Idempotent
     Map<byte[], RowColumnRangeIterator> getRowsColumnRange(@QueryParam("tableRef") TableReference tableRef,
                                                            Iterable<byte[]> rows,
-                                                           @QueryParam("columnRangeSelection") ColumnRangeSelection columnRangeSelection,
+                                                           @QueryParam("columnRangeSelection") SizedColumnRangeSelection columnRangeSelection,
                                                            @QueryParam("timestamp") long timestamp);
 
     /**

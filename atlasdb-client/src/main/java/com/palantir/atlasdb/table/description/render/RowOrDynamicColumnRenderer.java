@@ -212,7 +212,7 @@ class RowOrDynamicColumnRenderer extends Renderer {
 
     private void createColumnPrefixRange(int i, boolean isSorted) {
         List<NameComponentDescription> components = getRowPartsWithoutHash().subList(0, i);
-        line("public static ColumnRangeSelection createPrefixRange", isSorted ? "" : "Unsorted"); renderParameterList(components); replace(")", ", int batchSize)"); lineEnd(" {"); {
+        line("public static SizedColumnRangeSelection createPrefixRange", isSorted ? "" : "Unsorted"); renderParameterList(components); replace(")", ", int batchSize)"); lineEnd(" {"); {
             List<String> vars = renderComponentBytes(components);
             line("return ColumnRangeSelections.createPrefixRange(EncodingUtils.add(", Joiner.on(", ").join(vars), "), batchSize);");
         } line("}");

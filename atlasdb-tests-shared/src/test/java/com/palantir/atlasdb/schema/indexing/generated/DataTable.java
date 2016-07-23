@@ -44,13 +44,13 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelections;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.Prefix;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.SizedColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
@@ -721,7 +721,7 @@ public final class DataTable implements
     }
 
     @Override
-    public Map<DataRow, BatchingVisitable<DataNamedColumnValue<?>>> getRowsColumnRange(Iterable<DataRow> rows, ColumnRangeSelection columnRangeSelection) {
+    public Map<DataRow, BatchingVisitable<DataNamedColumnValue<?>>> getRowsColumnRange(Iterable<DataRow> rows, SizedColumnRangeSelection columnRangeSelection) {
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
         Map<DataRow, BatchingVisitable<DataNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
@@ -1072,7 +1072,7 @@ public final class DataTable implements
                 }
             };
 
-            public static ColumnRangeSelection createPrefixRangeUnsorted(byte[] rowName, int batchSize) {
+            public static SizedColumnRangeSelection createPrefixRangeUnsorted(byte[] rowName, int batchSize) {
                 byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
                 return ColumnRangeSelections.createPrefixRange(EncodingUtils.add(rowNameBytes), batchSize);
             }
@@ -1082,7 +1082,7 @@ public final class DataTable implements
                 return new Prefix(EncodingUtils.add(rowNameBytes));
             }
 
-            public static ColumnRangeSelection createPrefixRange(byte[] rowName, byte[] columnName, int batchSize) {
+            public static SizedColumnRangeSelection createPrefixRange(byte[] rowName, byte[] columnName, int batchSize) {
                 byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
                 byte[] columnNameBytes = EncodingUtils.encodeSizedBytes(columnName);
                 return ColumnRangeSelections.createPrefixRange(EncodingUtils.add(rowNameBytes, columnNameBytes), batchSize);
@@ -1120,7 +1120,7 @@ public final class DataTable implements
 
             @Override
             public int hashCode() {
-                return Objects.hashCode(rowName, columnName, id);
+                return Arrays.deepHashCode(new Object[]{ rowName, columnName, id });
             }
 
             @Override
@@ -1447,7 +1447,7 @@ public final class DataTable implements
         }
 
         @Override
-        public Map<Index1IdxRow, BatchingVisitable<Index1IdxColumnValue>> getRowsColumnRange(Iterable<Index1IdxRow> rows, ColumnRangeSelection columnRangeSelection) {
+        public Map<Index1IdxRow, BatchingVisitable<Index1IdxColumnValue>> getRowsColumnRange(Iterable<Index1IdxRow> rows, SizedColumnRangeSelection columnRangeSelection) {
             Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
             Map<Index1IdxRow, BatchingVisitable<Index1IdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
             for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
@@ -1671,7 +1671,7 @@ public final class DataTable implements
 
             @Override
             public int hashCode() {
-                return Objects.hashCode(value, id);
+                return Arrays.deepHashCode(new Object[]{ value, id });
             }
 
             @Override
@@ -1749,7 +1749,7 @@ public final class DataTable implements
                 }
             };
 
-            public static ColumnRangeSelection createPrefixRangeUnsorted(byte[] rowName, int batchSize) {
+            public static SizedColumnRangeSelection createPrefixRangeUnsorted(byte[] rowName, int batchSize) {
                 byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
                 return ColumnRangeSelections.createPrefixRange(EncodingUtils.add(rowNameBytes), batchSize);
             }
@@ -1784,7 +1784,7 @@ public final class DataTable implements
 
             @Override
             public int hashCode() {
-                return Objects.hashCode(rowName, columnName);
+                return Arrays.deepHashCode(new Object[]{ rowName, columnName });
             }
 
             @Override
@@ -2109,7 +2109,7 @@ public final class DataTable implements
         }
 
         @Override
-        public Map<Index2IdxRow, BatchingVisitable<Index2IdxColumnValue>> getRowsColumnRange(Iterable<Index2IdxRow> rows, ColumnRangeSelection columnRangeSelection) {
+        public Map<Index2IdxRow, BatchingVisitable<Index2IdxColumnValue>> getRowsColumnRange(Iterable<Index2IdxRow> rows, SizedColumnRangeSelection columnRangeSelection) {
             Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
             Map<Index2IdxRow, BatchingVisitable<Index2IdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
             for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
@@ -2389,7 +2389,7 @@ public final class DataTable implements
                 }
             };
 
-            public static ColumnRangeSelection createPrefixRangeUnsorted(byte[] rowName, int batchSize) {
+            public static SizedColumnRangeSelection createPrefixRangeUnsorted(byte[] rowName, int batchSize) {
                 byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
                 return ColumnRangeSelections.createPrefixRange(EncodingUtils.add(rowNameBytes), batchSize);
             }
@@ -2424,7 +2424,7 @@ public final class DataTable implements
 
             @Override
             public int hashCode() {
-                return Objects.hashCode(rowName, columnName);
+                return Arrays.deepHashCode(new Object[]{ rowName, columnName });
             }
 
             @Override
@@ -2749,7 +2749,7 @@ public final class DataTable implements
         }
 
         @Override
-        public Map<Index3IdxRow, BatchingVisitable<Index3IdxColumnValue>> getRowsColumnRange(Iterable<Index3IdxRow> rows, ColumnRangeSelection columnRangeSelection) {
+        public Map<Index3IdxRow, BatchingVisitable<Index3IdxColumnValue>> getRowsColumnRange(Iterable<Index3IdxRow> rows, SizedColumnRangeSelection columnRangeSelection) {
             Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
             Map<Index3IdxRow, BatchingVisitable<Index3IdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
             for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
@@ -2973,7 +2973,7 @@ public final class DataTable implements
 
             @Override
             public int hashCode() {
-                return Objects.hashCode(value1, value2);
+                return Arrays.deepHashCode(new Object[]{ value1, value2 });
             }
 
             @Override
@@ -3051,7 +3051,7 @@ public final class DataTable implements
                 }
             };
 
-            public static ColumnRangeSelection createPrefixRangeUnsorted(byte[] rowName, int batchSize) {
+            public static SizedColumnRangeSelection createPrefixRangeUnsorted(byte[] rowName, int batchSize) {
                 byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
                 return ColumnRangeSelections.createPrefixRange(EncodingUtils.add(rowNameBytes), batchSize);
             }
@@ -3086,7 +3086,7 @@ public final class DataTable implements
 
             @Override
             public int hashCode() {
-                return Objects.hashCode(rowName, columnName);
+                return Arrays.deepHashCode(new Object[]{ rowName, columnName });
             }
 
             @Override
@@ -3411,7 +3411,7 @@ public final class DataTable implements
         }
 
         @Override
-        public Map<Index4IdxRow, BatchingVisitable<Index4IdxColumnValue>> getRowsColumnRange(Iterable<Index4IdxRow> rows, ColumnRangeSelection columnRangeSelection) {
+        public Map<Index4IdxRow, BatchingVisitable<Index4IdxColumnValue>> getRowsColumnRange(Iterable<Index4IdxRow> rows, SizedColumnRangeSelection columnRangeSelection) {
             Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
             Map<Index4IdxRow, BatchingVisitable<Index4IdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
             for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
@@ -3514,7 +3514,6 @@ public final class DataTable implements
      * {@link Cells}
      * {@link Collection}
      * {@link Collections2}
-     * {@link ColumnRangeSelection}
      * {@link ColumnRangeSelections}
      * {@link ColumnSelection}
      * {@link ColumnValue}
@@ -3563,6 +3562,7 @@ public final class DataTable implements
      * {@link Set}
      * {@link Sets}
      * {@link Sha256Hash}
+     * {@link SizedColumnRangeSelection}
      * {@link SortedMap}
      * {@link Supplier}
      * {@link TableReference}
@@ -3573,5 +3573,5 @@ public final class DataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "dEpk1YZN51VRCSbp/LwXXw==";
+    static String __CLASS_HASH = "RD3YqDrnclWINC+QmedRTA==";
 }

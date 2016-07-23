@@ -25,7 +25,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.SizedColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
@@ -38,10 +38,10 @@ public class ColumnRangeBatchProvider implements BatchProvider<Map.Entry<Cell, V
     private final KeyValueService keyValueService;
     private final TableReference tableRef;
     private final byte[] row;
-    private final ColumnRangeSelection columnRangeSelection;
+    private final SizedColumnRangeSelection columnRangeSelection;
     private final long timestamp;
 
-    public ColumnRangeBatchProvider(KeyValueService keyValueService, TableReference tableRef, byte[] row, ColumnRangeSelection columnRangeSelection, long timestamp) {
+    public ColumnRangeBatchProvider(KeyValueService keyValueService, TableReference tableRef, byte[] row, SizedColumnRangeSelection columnRangeSelection, long timestamp) {
         this.keyValueService = keyValueService;
         this.tableRef = tableRef;
         this.row = row;
@@ -55,7 +55,7 @@ public class ColumnRangeBatchProvider implements BatchProvider<Map.Entry<Cell, V
         if (lastToken != null) {
             startCol = RangeRequests.nextLexicographicName(lastToken);
         }
-        ColumnRangeSelection newRange = new ColumnRangeSelection(startCol, columnRangeSelection.getEndCol(), batchSize);
+        SizedColumnRangeSelection newRange = new SizedColumnRangeSelection(startCol, columnRangeSelection.getEndCol(), batchSize);
         Map<byte[], RowColumnRangeIterator> range = keyValueService.getRowsColumnRange(tableRef, ImmutableList.of(row), newRange, timestamp);
         if (range.isEmpty()) {
             return ClosableIterators.wrap(ImmutableList.<Map.Entry<Cell, Value>>of().iterator());

@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.SizedColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 
@@ -45,5 +45,5 @@ public interface DbQueryFactory {
     boolean hasOverflowValues();
     Collection<FullQuery> getOverflowQueries(Collection<OverflowValue> overflowIds);
 
-    FullQuery getRowsColumnRangeQuery(List<byte[]> row, long ts, ColumnRangeSelection columnRangeSelection);
+    FullQuery getRowsColumnRangeQuery(List<byte[]> row, long ts, SizedColumnRangeSelection columnRangeSelection);
 }

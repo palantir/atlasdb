@@ -25,7 +25,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.encoding.PtBytes;
 
-public class ColumnRangeSelection implements Serializable {
+public class SizedColumnRangeSelection implements Serializable {
     private static final long serialVersionUID = 1L;
 
     // Inclusive start column name.
@@ -35,9 +35,9 @@ public class ColumnRangeSelection implements Serializable {
     private final int batchHint;
 
     @JsonCreator
-    public ColumnRangeSelection(@JsonProperty("startInclusive") byte[] startCol,
-                                @JsonProperty("endExclusive") byte[] endCol,
-                                @JsonProperty("batchHint") int batchHint) {
+    public SizedColumnRangeSelection(@JsonProperty("startInclusive") byte[] startCol,
+                                     @JsonProperty("endExclusive") byte[] endCol,
+                                     @JsonProperty("batchHint") int batchHint) {
         if (startCol == null) {
             this.startCol = PtBytes.EMPTY_BYTE_ARRAY;
         } else {
@@ -68,7 +68,7 @@ public class ColumnRangeSelection implements Serializable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        ColumnRangeSelection that = (ColumnRangeSelection) o;
+        SizedColumnRangeSelection that = (SizedColumnRangeSelection) o;
 
         if (batchHint != that.batchHint) return false;
         if (!Arrays.equals(startCol, that.startCol)) return false;
@@ -86,12 +86,12 @@ public class ColumnRangeSelection implements Serializable {
 
     private static final Pattern deserializeRegex = Pattern.compile("\\s*,\\s*");
 
-    public static ColumnRangeSelection valueOf(String serialized) {
+    public static SizedColumnRangeSelection valueOf(String serialized) {
         String[] split = deserializeRegex.split(serialized);
         byte[] startCol = PtBytes.decodeBase64(split[0]);
         byte[] endCol = PtBytes.decodeBase64(split[1]);
         int batchHint = Integer.valueOf(split[2]);
-        return new ColumnRangeSelection(startCol, endCol, batchHint);
+        return new SizedColumnRangeSelection(startCol, endCol, batchHint);
     }
 
     @Override

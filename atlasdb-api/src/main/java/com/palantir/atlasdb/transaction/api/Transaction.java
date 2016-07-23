@@ -20,7 +20,7 @@ import java.util.Set;
 import java.util.SortedMap;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.SizedColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -42,7 +42,7 @@ public interface Transaction {
     @Idempotent
     Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> getRowsColumnRange(TableReference tableRef,
                                                                                         Iterable<byte[]> rows,
-                                                                                        ColumnRangeSelection columnRangeSelection);
+                                                                                        SizedColumnRangeSelection columnRangeSelection);
 
     @Idempotent
     Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells);

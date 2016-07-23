@@ -23,7 +23,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.SizedColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.dbkvs.PostgresDdlConfig;
@@ -308,7 +308,7 @@ public class PostgresQueryFactory implements DbQueryFactory {
     }
 
     @Override
-    public FullQuery getRowsColumnRangeQuery(List<byte[]> rows, long ts, ColumnRangeSelection columnRangeSelection) {
+    public FullQuery getRowsColumnRangeQuery(List<byte[]> rows, long ts, SizedColumnRangeSelection columnRangeSelection) {
         List<String> subQueries = Lists.newArrayListWithCapacity(rows.size());
         int argsPerRow = 2 + ((columnRangeSelection.getStartCol().length > 0) ? 1 : 0) +
                 ((columnRangeSelection.getEndCol().length > 0) ? 1 : 0);
@@ -325,7 +325,7 @@ public class PostgresQueryFactory implements DbQueryFactory {
         return new FullQuery(query).withArgs(args);
     }
 
-    private FullQuery getRowsColumnRangeSubQuery(byte[] row, long ts, ColumnRangeSelection columnRangeSelection) {
+    private FullQuery getRowsColumnRangeSubQuery(byte[] row, long ts, SizedColumnRangeSelection columnRangeSelection) {
         String query =
                 " /* GET_ROWS_COLUMN_RANGE (" + tableName + ") */ " +
                         " SELECT m.row_name, m.col_name, max(m.ts) as ts" +

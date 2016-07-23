@@ -58,7 +58,7 @@ import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.Atomics;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.SizedColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
@@ -564,7 +564,7 @@ public class DbKvs extends AbstractKeyValueService {
     }
 
     @Override
-    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows, ColumnRangeSelection columnRangeSelection, long timestamp) {
+    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows, SizedColumnRangeSelection columnRangeSelection, long timestamp) {
 
         List<byte[]> rowList = ImmutableList.copyOf(rows);
         Map<byte[], List<Map.Entry<Cell, Value>>> firstPage = getFirstRowsColumnRangePage(tableRef, rowList, columnRangeSelection, timestamp);
@@ -583,7 +583,7 @@ public class DbKvs extends AbstractKeyValueService {
             } else {
                 byte[] nextCol = RangeRequests.nextLexicographicName(lastCol);
                 Iterator<Map.Entry<Cell, Value>> nextPagesIter = getRowColumnRange(tableRef, e.getKey(),
-                        new ColumnRangeSelection(nextCol, columnRangeSelection.getEndCol(), columnRangeSelection.getBatchHint()),
+                        new SizedColumnRangeSelection(nextCol, columnRangeSelection.getEndCol(), columnRangeSelection.getBatchHint()),
                         timestamp);
                 ret.put(e.getKey(), new LocalRowColumnRangeIterator(Iterators.concat(firstPageIter, nextPagesIter)));
             }
@@ -592,7 +592,7 @@ public class DbKvs extends AbstractKeyValueService {
     }
 
     private Iterator<Map.Entry<Cell, Value>> getRowColumnRange(TableReference tableRef, final byte[] row,
-                                                           final ColumnRangeSelection columnRangeSelection, long ts) {
+                                                           final SizedColumnRangeSelection columnRangeSelection, long ts) {
         List<byte[]> rowList = ImmutableList.of(row);
         return ClosableIterators.wrap(new AbstractPagingIterable<Map.Entry<Cell, Value>, TokenBackedBasicResultsPage<Map.Entry<Cell, Value>, byte[]>>() {
             @Override
@@ -606,7 +606,7 @@ public class DbKvs extends AbstractKeyValueService {
             }
 
             TokenBackedBasicResultsPage<Map.Entry<Cell, Value>, byte[]> page(final byte[] startCol) throws Exception {
-                ColumnRangeSelection range = new ColumnRangeSelection(startCol, columnRangeSelection.getEndCol(), columnRangeSelection.getBatchHint());
+                SizedColumnRangeSelection range = new SizedColumnRangeSelection(startCol, columnRangeSelection.getEndCol(), columnRangeSelection.getBatchHint());
                 List<Map.Entry<Cell, Value>> nextPage = runRead(tableRef, new Function<DbReadTable, List<Map.Entry<Cell, Value>>>() {
                     @Override
                     public List<Map.Entry<Cell, Value>> apply(DbReadTable table) {
@@ -632,7 +632,7 @@ public class DbKvs extends AbstractKeyValueService {
     }
 
     private Map<byte[], List<Map.Entry<Cell, Value>>> getFirstRowsColumnRangePage(TableReference tableRef, List<byte[]> rows,
-                                                          ColumnRangeSelection columnRangeSelection, long ts) {
+                                                          SizedColumnRangeSelection columnRangeSelection, long ts) {
         Stopwatch watch = Stopwatch.createStarted();
         try {
             return runRead(tableRef, new Function<DbReadTable, Map<byte[], List<Map.Entry<Cell, Value>>>>() {
@@ -647,7 +647,7 @@ public class DbKvs extends AbstractKeyValueService {
     }
 
     private Map<byte[], List<Map.Entry<Cell, Value>>> extractRowColumnRangePage(DbReadTable table,
-                                                                                ColumnRangeSelection columnRangeSelection,
+                                                                                SizedColumnRangeSelection columnRangeSelection,
                                                                                 long ts,
                                                                                 List<byte[]> rows) {
         Map<Sha256Hash, byte[]> hashesToBytes = Maps.newHashMapWithExpectedSize(rows.size());

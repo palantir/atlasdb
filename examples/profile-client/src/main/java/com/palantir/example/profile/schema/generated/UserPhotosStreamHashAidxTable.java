@@ -44,13 +44,13 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelections;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.Prefix;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.SizedColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
@@ -625,7 +625,7 @@ public final class UserPhotosStreamHashAidxTable implements
     }
 
     @Override
-    public Map<UserPhotosStreamHashAidxRow, BatchingVisitable<UserPhotosStreamHashAidxColumnValue>> getRowsColumnRange(Iterable<UserPhotosStreamHashAidxRow> rows, ColumnRangeSelection columnRangeSelection) {
+    public Map<UserPhotosStreamHashAidxRow, BatchingVisitable<UserPhotosStreamHashAidxColumnValue>> getRowsColumnRange(Iterable<UserPhotosStreamHashAidxRow> rows, SizedColumnRangeSelection columnRangeSelection) {
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
         Map<UserPhotosStreamHashAidxRow, BatchingVisitable<UserPhotosStreamHashAidxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
@@ -692,7 +692,6 @@ public final class UserPhotosStreamHashAidxTable implements
      * {@link Cells}
      * {@link Collection}
      * {@link Collections2}
-     * {@link ColumnRangeSelection}
      * {@link ColumnRangeSelections}
      * {@link ColumnSelection}
      * {@link ColumnValue}
@@ -741,6 +740,7 @@ public final class UserPhotosStreamHashAidxTable implements
      * {@link Set}
      * {@link Sets}
      * {@link Sha256Hash}
+     * {@link SizedColumnRangeSelection}
      * {@link SortedMap}
      * {@link Supplier}
      * {@link TableReference}
@@ -751,5 +751,5 @@ public final class UserPhotosStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "zTTllw/ZumhUkT7F/RmDDA==";
+    static String __CLASS_HASH = "lh/Yhcxm5TlraN33fL2IUA==";
 }

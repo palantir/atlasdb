@@ -33,7 +33,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.SizedColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
@@ -227,7 +227,7 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
 
     @Override
     public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows,
-                                                                  ColumnRangeSelection columnRangeSelection, long timestamp) {
+                                                                  SizedColumnRangeSelection columnRangeSelection, long timestamp) {
         Map<byte[], RowColumnRangeIterator> rowsColumnRange = super.getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp);
         Map<byte[], RowColumnRangeIterator> transformed = Maps.transformValues(rowsColumnRange,
                 it -> {

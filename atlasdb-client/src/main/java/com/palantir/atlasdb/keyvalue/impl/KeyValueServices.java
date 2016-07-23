@@ -35,7 +35,7 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.SizedColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
@@ -157,7 +157,7 @@ public class KeyValueServices {
     }
 
     // TODO: kill this when we can properly implement this on all KVSes
-    public static Map<byte[], RowColumnRangeIterator> filterGetRowsToColumnRange(KeyValueService kvs, TableReference tableRef, Iterable<byte[]> rows, ColumnRangeSelection columnRangeSelection, long timestamp) {
+    public static Map<byte[], RowColumnRangeIterator> filterGetRowsToColumnRange(KeyValueService kvs, TableReference tableRef, Iterable<byte[]> rows, SizedColumnRangeSelection columnRangeSelection, long timestamp) {
         log.warn("Using inefficient postfiltering for getRowsColumnRange because the KVS doesn't support it natively. Production " +
                 "environments should use a KVS with a proper implementation.");
         Map<Cell, Value> allValues = kvs.getRows(tableRef, rows, ColumnSelection.all(), timestamp);
