@@ -935,17 +935,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         return false;
     }
 
-    private void logFailedCall(TableReference tableRef) {
-        logFailedCall(ImmutableSet.of(tableRef));
-    }
-
     private void logFailedCall(Set<TableReference> tableRefs) {
         log.error("A call to table(s) {} failed with an exception.",
                 tableRefs.stream().map(TableReference::getQualifiedName).collect(Collectors.joining(", ")));
-    }
-
-    private void logTraceResults(long duration, TableReference tableRef, ByteBuffer recv_trace, boolean failed) {
-        logTraceResults(duration, ImmutableSet.of(tableRef), recv_trace, failed);
     }
 
     private void logTraceResults(long duration, Set<TableReference> tableRefs, ByteBuffer recv_trace, boolean failed) {
