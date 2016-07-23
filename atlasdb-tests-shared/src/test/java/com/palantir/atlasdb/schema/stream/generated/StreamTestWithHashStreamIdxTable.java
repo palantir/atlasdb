@@ -96,6 +96,7 @@ public final class StreamTestWithHashStreamIdxTable implements
     private final List<StreamTestWithHashStreamIdxTrigger> triggers;
     private final static String rawTableName = "stream_test_with_hash_stream_idx";
     private final TableReference tableRef;
+    private final static ColumnSelection allColumns = ColumnSelection.all();
 
     static StreamTestWithHashStreamIdxTable of(Transaction t, Namespace namespace) {
         return new StreamTestWithHashStreamIdxTable(t, namespace, ImmutableList.<StreamTestWithHashStreamIdxTrigger>of());
@@ -219,7 +220,7 @@ public final class StreamTestWithHashStreamIdxTable implements
 
         @Override
         public int hashCode() {
-            return Objects.hashCode(firstComponentHash, id);
+            return Arrays.deepHashCode(new Object[]{ firstComponentHash, id });
         }
 
         @Override
@@ -557,7 +558,7 @@ public final class StreamTestWithHashStreamIdxTable implements
 
     @Override
     public List<StreamTestWithHashStreamIdxColumnValue> getRowColumns(StreamTestWithHashStreamIdxRow row) {
-        return getRowColumns(row, ColumnSelection.all());
+        return getRowColumns(row, allColumns);
     }
 
     @Override
@@ -579,7 +580,7 @@ public final class StreamTestWithHashStreamIdxTable implements
 
     @Override
     public Multimap<StreamTestWithHashStreamIdxRow, StreamTestWithHashStreamIdxColumnValue> getRowsMultimap(Iterable<StreamTestWithHashStreamIdxRow> rows) {
-        return getRowsMultimapInternal(rows, ColumnSelection.all());
+        return getRowsMultimapInternal(rows, allColumns);
     }
 
     @Override
@@ -589,7 +590,7 @@ public final class StreamTestWithHashStreamIdxTable implements
 
     @Override
     public Multimap<StreamTestWithHashStreamIdxRow, StreamTestWithHashStreamIdxColumnValue> getAsyncRowsMultimap(Iterable<StreamTestWithHashStreamIdxRow> rows, ExecutorService exec) {
-        return getAsyncRowsMultimap(rows, ColumnSelection.all(), exec);
+        return getAsyncRowsMultimap(rows, allColumns, exec);
     }
 
     @Override
@@ -639,7 +640,7 @@ public final class StreamTestWithHashStreamIdxTable implements
     }
 
     public BatchingVisitableView<StreamTestWithHashStreamIdxRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(ColumnSelection.all());
+        return getAllRowsUnordered(allColumns);
     }
 
     public BatchingVisitableView<StreamTestWithHashStreamIdxRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -749,5 +750,5 @@ public final class StreamTestWithHashStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "4ePQez+E3+08ArHuVrdwBg==";
+    static String __CLASS_HASH = "HAqOnZyByviFzuPFwZ99iA==";
 }
