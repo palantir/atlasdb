@@ -31,17 +31,19 @@ import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.SizedColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.SizedColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.table.description.TableMetadata;
@@ -195,5 +197,24 @@ public class KeyValueServices {
                             Pair.<Cell, Value>of(Cell.create(rowName, e.getKey()), e.getValue()))));
         }
         return results;
+    }
+
+    public static RowColumnRangeIterator mergeGetRowsColumnRangeIntoSingleIterator(KeyValueService kvs,
+                                                                                   TableReference tableRef,
+                                                                                   Iterable<byte[]> rows,
+                                                                                   ColumnRangeSelection columnRangeSelection,
+                                                                                   int batchHint,
+                                                                                   long timestamp) {
+        log.warn("This KVS does not support getRowsColumnRange with paging through all results simultaneously. Falling "
+                + "back to the less efficient per-row paging version.");
+        SizedColumnRangeSelection sizedColumnRangeSelection =
+                new SizedColumnRangeSelection(columnRangeSelection.getStartCol(),
+                                              columnRangeSelection.getEndCol(),
+                                              batchHint / Iterables.size(rows));
+        Map<byte[], RowColumnRangeIterator> rowsColumnRanges =
+                kvs.getRowsColumnRange(tableRef, rows, sizedColumnRangeSelection, timestamp);
+        // Return results in the same order as the provided rows.
+        Iterable<RowColumnRangeIterator> orderedRanges = Iterables.transform(rows, rowsColumnRanges::get);
+        return new LocalRowColumnRangeIterator(Iterators.concat(orderedRanges.iterator()));
     }
 }

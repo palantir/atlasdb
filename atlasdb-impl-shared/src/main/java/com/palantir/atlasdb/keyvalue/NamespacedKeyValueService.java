@@ -21,13 +21,14 @@ import java.util.Set;
 
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.SizedColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.SizedColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.annotation.Idempotent;
@@ -55,6 +56,13 @@ public interface NamespacedKeyValueService {
 
     @Idempotent
     Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows, SizedColumnRangeSelection columnRangeSelection, long timestamp);
+
+    @Idempotent
+    RowColumnRangeIterator getRowsColumnRange(TableReference tableRef,
+                                              Iterable<byte[]> rows,
+                                              ColumnRangeSelection columnRangeSelection,
+                                              int batchHint,
+                                              long timestamp);
 
     @Idempotent
     Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell);

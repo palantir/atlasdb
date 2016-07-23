@@ -30,13 +30,14 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.primitives.Longs;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.SizedColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.SizedColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
@@ -465,6 +466,28 @@ public class ProfilingKeyValueService implements KeyValueService {
             return result;
         } else {
             return delegate.getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp);
+        }
+    }
+
+    @Override
+    public RowColumnRangeIterator getRowsColumnRange(TableReference tableRef,
+                                                     Iterable<byte[]> rows,
+                                                     ColumnRangeSelection columnRangeSelection,
+                                                     int batchHint,
+                                                     long timestamp) {
+        if (log.isTraceEnabled()) {
+            Stopwatch stopwatch = Stopwatch.createStarted();
+            RowColumnRangeIterator result =
+                    delegate.getRowsColumnRange(tableRef, rows, columnRangeSelection, batchHint, timestamp);
+            log.trace("Call to KVS.getRowsColumnRange2 on table {} for {} rows with range {} took {} ms.",
+                      tableRef.getQualifiedName(),
+                      Iterables.size(rows),
+                      columnRangeSelection,
+                      stopwatch.elapsed(TimeUnit.MILLISECONDS));
+            logTimeAndTable("getRowsColumnRange2", tableRef.getQualifiedName(), stopwatch);
+            return result;
+        } else {
+            return delegate.getRowsColumnRange(tableRef, rows, columnRangeSelection, batchHint, timestamp);
         }
     }
 }
