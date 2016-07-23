@@ -54,4 +54,20 @@ public final class KvsBenchmarks {
         kvs.createTable(tableRef, tableDef.toTableMetadata().persistToBytes());
         return tableRef;
     }
+
+    public static TableReference createTableWithDynamicColumns(KeyValueService kvs, String tableName, String rowComponent, String columnComponent) {
+        TableReference tableRef = TableReference.createFromFullyQualifiedName(tableName);
+        TableDefinition tableDef = new TableDefinition() {{
+            rowName();
+            rowComponent(rowComponent, ValueType.STRING);
+            dynamicColumns();
+              columnComponent(columnComponent, ValueType.FIXED_LONG);
+              value(ValueType.FIXED_LONG);
+            conflictHandler(ConflictHandler.IGNORE_ALL);
+            sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
+        }};
+        kvs.createTable(tableRef, tableDef.toTableMetadata().persistToBytes());
+        return tableRef;
+    }
+
 }
