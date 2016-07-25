@@ -38,7 +38,6 @@ public class CassandraTimestampTest {
 
     @After
     public void tearDown() {
-        kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
         kv.teardown();
     }
 
