@@ -36,6 +36,9 @@ v0.11.0
     *    - Type
          - Change
 
+    *    - |changed|
+         - Clarified the logging when multiple timestamp servers are running to state that CLIs could be causing the issue.
+
     *    - |fixed|
          - The Leader config now contains a new "lockCreator" option. Full details for configuring this are in `the cassandra configuration docs <https://palantir.github.io/atlasdb/html/configuration/cassandra_KVS_configuration.html>`__
            This field helps us to determine a single node to create the necessary locks table for performing schema mutations without corruption. This safety will still be in place if you have no leader block.
