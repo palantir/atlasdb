@@ -58,6 +58,10 @@ v0.11.0
          - Updated our cassandra client from 2.2.1 to 2.2.7 (this corresponds to a bump of our cassandra docker testing version from 2.2.6 to 2.2.7).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/699>`__)
 
+    *    - |improved|
+         - Updated schema table generation to optimize reads with no ColumnSelection specified against tables with fixed columns.  To benefit from this improvement you will need to re-generate your schemas.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/713>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
