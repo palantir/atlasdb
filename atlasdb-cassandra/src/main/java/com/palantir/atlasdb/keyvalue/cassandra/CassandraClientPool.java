@@ -209,15 +209,24 @@ public class CassandraClientPool {
     private void checkAndUpdateBlacklist() {
         // Check blacklist and re-integrate or continue to wait as necessary
         for (Map.Entry<InetSocketAddress, Long> blacklistedEntry : blacklistedHosts.entrySet()) {
-            long backoffTimeMillis = TimeUnit.SECONDS.toMillis(config.unresponsiveHostBackoffTimeSeconds());
-            if (blacklistedEntry.getValue() + backoffTimeMillis < System.currentTimeMillis()) {
-                InetSocketAddress host = blacklistedEntry.getKey();
-                if (isHostHealthy(host)) {
-                    blacklistedHosts.remove(host);
-                    log.error("Added host {} back into the pool after a waiting period and successful health check.", host);
-                }
+            InetSocketAddress host = blacklistedEntry.getKey();
+            if (canAttemptRemoveHostFromBlacklist(host)) {
+                checkAndUpdateBlacklistOnHostIgnoringBackoff(host);
             }
         }
+    }
+
+    private void checkAndUpdateBlacklistOnHostIgnoringBackoff(InetSocketAddress host) {
+        if (blacklistedHosts.containsKey(host) && isHostHealthy(host)) {
+            blacklistedHosts.remove(host);
+            log.error("Added host {} back into the pool after a waiting period and successful health check.", host);
+        }
+    }
+
+    private boolean canAttemptRemoveHostFromBlacklist(InetSocketAddress host) {
+        Long blacklistTime = blacklistedHosts.get(host);
+        long backoffTimeMillis = TimeUnit.SECONDS.toMillis(config.unresponsiveHostBackoffTimeSeconds());
+        return (blacklistTime == null || blacklistTime + backoffTimeMillis < System.currentTimeMillis());
     }
 
     private void addToBlacklist(InetSocketAddress badHost) {
@@ -394,7 +403,12 @@ public class CassandraClientPool {
             }
 
             try {
-                return hostPool.runWithPooledResource(f);
+                V result = hostPool.runWithPooledResource(f);
+                InetSocketAddress host = hostPool.getHost();
+                if (blacklistedHosts.containsKey(host)) {
+                    refreshDaemon.submit(() -> checkAndUpdateBlacklistOnHostIgnoringBackoff(host));
+                }
+                return result;
             } catch (Exception e) {
                 numTries++;
                 this.<K>handleException(numTries, hostPool.getHost(), e);
