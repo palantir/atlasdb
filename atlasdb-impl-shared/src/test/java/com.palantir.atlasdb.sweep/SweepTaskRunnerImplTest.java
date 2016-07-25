@@ -22,12 +22,14 @@ import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Set;
 
 import org.junit.Test;
 
+import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -53,7 +55,16 @@ public class SweepTaskRunnerImplTest {
 
     private final KeyValueService mockKVS = mock(KeyValueService.class);
     private final Follower mockFollower = mock(Follower.class);
-    private final SweepTaskRunnerImpl sweepTaskRunner = new SweepTaskRunnerImpl(null, mockKVS, null, null, null, null, ImmutableList.of(mockFollower));
+    private final Supplier<Long> mockImmutableTimestampSupplier = mock(Supplier.class);
+    private final Supplier<Long> mockUnreadableTimestampSupplier = mock(Supplier.class);
+    private final SweepTaskRunnerImpl sweepTaskRunner = new SweepTaskRunnerImpl(
+            null,
+            mockKVS,
+            mockUnreadableTimestampSupplier,
+            mockImmutableTimestampSupplier,
+            null,
+            null,
+            ImmutableList.of(mockFollower));
 
     @Test
     public void ensureCellSweepDeletesCells() {
@@ -142,5 +153,28 @@ public class SweepTaskRunnerImplTest {
         Multimap<Cell, Long> actualTimestamps = SweepTaskRunnerImpl.getTimestampsFromRowResults(cellsToSweep, SweepStrategy.CONSERVATIVE);
 
         assertThat(actualTimestamps).isEqualTo(expectedTimestamps);
+    }
+
+    @Test
+    public void thoroughWillReturnTheImmutableTimestamp() {
+        when(mockImmutableTimestampSupplier.get()).thenReturn(VALID_TIMESTAMP);
+
+        assertThat(sweepTaskRunner.getSweepTimestamp(SweepStrategy.THOROUGH)).isEqualTo(VALID_TIMESTAMP);
+    }
+
+    @Test
+    public void conservativeWillReturnTheImmutableTimestampIfItIsLowerThanUnreadableTimestamp() {
+        when(mockImmutableTimestampSupplier.get()).thenReturn(100L);
+        when(mockUnreadableTimestampSupplier.get()).thenReturn(200L);
+
+        assertThat(sweepTaskRunner.getSweepTimestamp(SweepStrategy.CONSERVATIVE)).isEqualTo(100L);
+    }
+
+    @Test
+    public void conservativeWillReturnTheUnreadableTimestampIfItIsLowerThanImmutableTimestamp() {
+        when(mockImmutableTimestampSupplier.get()).thenReturn(200L);
+        when(mockUnreadableTimestampSupplier.get()).thenReturn(100L);
+
+        assertThat(sweepTaskRunner.getSweepTimestamp(SweepStrategy.CONSERVATIVE)).isEqualTo(100L);
     }
 }

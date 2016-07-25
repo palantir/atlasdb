@@ -134,7 +134,10 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
         }
 
         startRow = MoreObjects.firstNonNull(startRow, PtBytes.EMPTY_BYTE_ARRAY);
-        RangeRequest rangeRequest = RangeRequest.builder().startRowInclusive(startRow).batchHint(batchSize).build();
+        RangeRequest rangeRequest = RangeRequest.builder()
+                .startRowInclusive(startRow)
+                .batchHint(batchSize)
+                .build();
 
         long sweepTimestamp = getSweepTimestamp(sweepStrategy);
 
