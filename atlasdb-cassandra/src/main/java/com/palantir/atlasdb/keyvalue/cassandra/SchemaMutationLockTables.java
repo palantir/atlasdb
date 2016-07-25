@@ -55,12 +55,23 @@ public class SchemaMutationLockTables {
     }
 
     public TableReference createLockTable() throws TException {
-        return createLockTable(UUID.randomUUID());
+        return clientPool.run(this::createLockTable);
     }
 
     @VisibleForTesting
     protected TableReference createLockTable(UUID uuid) throws TException {
         return clientPool.run(client -> createInternalLockTable(client, uuid));
+    }
+
+    private TableReference createLockTable(Cassandra.Client client) throws TException {
+        String lockTableName = LOCK_TABLE_PREFIX + "_" + getUniqueSuffix();
+        TableReference lockTable = TableReference.createWithEmptyNamespace(lockTableName);
+        createTableInternal(client, lockTable);
+        return lockTable;
+    }
+
+    private String getUniqueSuffix() {
+        return UUID.randomUUID().toString().replace('-','_');
     }
 
     private TableReference createInternalLockTable(Cassandra.Client client, UUID uuid) throws TException {
