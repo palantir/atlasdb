@@ -149,6 +149,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     protected final CassandraClientPool clientPool;
     private SchemaMutationLock schemaMutationLock;
     private final Optional<LeaderConfig> leaderConfig;
+    private final HiddenTables hiddenTables;
 
     private final UniqueSchemaMutationLockTable schemaMutationLockTable;
 
@@ -172,6 +173,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         this.clientPool = new CassandraClientPool(configManager.getConfig());
         this.compactionManager = compactionManager;
         this.leaderConfig = leaderConfig;
+        this.hiddenTables = new HiddenTables();
 
         SchemaMutationLockTables lockTables = new SchemaMutationLockTables(clientPool, configManager.getConfig());
         this.schemaMutationLockTable = new UniqueSchemaMutationLockTable(lockTables, whoIsTheLockCreator());
@@ -1381,7 +1383,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     @Override
     public Set<TableReference> getAllTableNames() {
-        return Sets.filter(getAllTablenamesInternal(), tr -> !HiddenTables.isHidden(tr));
+        return Sets.filter(getAllTablenamesInternal(), tr -> !hiddenTables.isHidden(tr));
     }
 
     private Set<TableReference> getAllTablenamesInternal() {
@@ -1444,7 +1446,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     } else {
                         contents = value.getContents();
                     }
-                    if (!HiddenTables.isHidden(tableRef)) {
+                    if (!hiddenTables.isHidden(tableRef)) {
                         tableToMetadataContents.put(tableRef, contents);
                     }
                 }
