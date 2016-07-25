@@ -274,7 +274,6 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
                 committedTimestampsToSweep.subSet(0L, committedTimestampsToSweep.last()));
     }
 
-
     private long ensureCommitTimestampExists(Long startTs, @Modified Map<Long, Long> startTsToCommitTs) {
         Long commitTs = startTsToCommitTs.get(startTs);
         if (commitTs == null) {
@@ -298,9 +297,10 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
     }
 
     @VisibleForTesting
-    void sweepCells(TableReference tableRef,
-                    Multimap<Cell, Long> cellTsPairsToSweep,
-                    Set<Cell> sentinelsToAdd) {
+    void sweepCells(
+            TableReference tableRef,
+            Multimap<Cell, Long> cellTsPairsToSweep,
+            Set<Cell> sentinelsToAdd) {
         if (cellTsPairsToSweep.isEmpty()) {
             return;
         }
@@ -315,6 +315,4 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
         }
         keyValueService.delete(tableRef, cellTsPairsToSweep);
     }
-
-
 }
