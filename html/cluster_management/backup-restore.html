@@ -166,7 +166,13 @@
 <div class="code bash highlight-default"><div class="highlight"><pre><span></span>$ ./bin/atlasdb --config &lt;config-file&gt; --config-root &lt;path-to-atlas-block&gt; timestamp fetch --file &lt;backup-directory&gt;/backup.timestamp
 </pre></div>
 </div>
-<p>Next, we back-up the underlying key value service we&#8217;re using.  For the purposes of this documention we&#8217;re going to blackbox the details of this portion of the process away as it is dependent upon your configuration.</p>
+<p>Next, we back-up the underlying key value service we&#8217;re using.  For the purposes of this documention, we will assume you can backup your specific key value service.</p>
+<p>Common KVS layers:</p>
+<ul class="simple">
+<li>Cassandra <a class="reference external" href="https://docs.datastax.com/en/cassandra/2.2/cassandra/operations/opsBackupTakesSnapshot.html">backup</a> and <a class="reference external" href="https://docs.datastax.com/en/cassandra/2.2/cassandra/operations/opsBackupSnapshotRestore.html">restore</a>.</li>
+<li>Postgres <a class="reference external" href="https://www.postgresql.org/docs/9.1/static/backup-dump.html">backup and restore</a>.</li>
+<li>If you are using RocksDB, you can simply compress the database files on disk with <code class="docutils literal"><span class="pre">tar</span> <span class="pre">-czf</span> <span class="pre">backup.tgz</span> <span class="pre">path/to/data</span></code>.</li>
+</ul>
 <p>Finally, we take the fast-forward timestamp.  Like the backup timestamp, the fast-forward timestamp is simply another fresh one that we fetch from atlas.  The purpose of this timestamp is to have a logical point in time for which we can guarantee that any reads or writes that took place during the backup process happened before this.  Fetching it is similar to that of the backup timestamp:</p>
 <div class="code bash highlight-default"><div class="highlight"><pre><span></span>$ ./bin/atlasdb --config &lt;config-file&gt; --config-root &lt;path-to-atlas-block&gt; timestamp fetch --file &lt;backup-directory&gt;/fast-forward.timestamp
 </pre></div>
