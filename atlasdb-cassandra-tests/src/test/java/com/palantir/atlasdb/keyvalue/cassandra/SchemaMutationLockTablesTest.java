@@ -40,6 +40,7 @@ import org.junit.Test;
 
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public class SchemaMutationLockTablesTest {
     private SchemaMutationLockTables lockTables;
@@ -96,7 +97,7 @@ public class SchemaMutationLockTablesTest {
         range(0,2).parallel()
                 .forEach(ignoringExceptions( () -> {
                     barrier.await();
-                    lockTables.createLockTable(UUID.randomUUID());
+                    lockTables.createLockTable();
                     lockTablesSeen.add(lockTables.getAllLockTables());
                     return null;
                 }));
