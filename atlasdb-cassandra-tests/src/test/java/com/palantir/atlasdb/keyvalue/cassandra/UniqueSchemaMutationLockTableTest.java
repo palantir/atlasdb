@@ -41,8 +41,8 @@ public class UniqueSchemaMutationLockTableTest {
 
     private UniqueSchemaMutationLockTable uniqueLockTable;
     private SchemaMutationLockTables lockTables;
-    private TableReference lockTable1 = TableReference.createWithEmptyNamespace(HiddenTables.LOCK_TABLE_PREFIX + UUID.randomUUID());
-    private TableReference lockTable2 = TableReference.createWithEmptyNamespace(HiddenTables.LOCK_TABLE_PREFIX + UUID.randomUUID());
+    private TableReference lockTable1 = TableReference.createWithEmptyNamespace(SchemaMutationLockTables.LOCK_TABLE_PREFIX + UUID.randomUUID());
+    private TableReference lockTable2 = TableReference.createWithEmptyNamespace(SchemaMutationLockTables.LOCK_TABLE_PREFIX + UUID.randomUUID());
 
     @Rule
     public ExpectedException exception = ExpectedException.none();

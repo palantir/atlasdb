@@ -29,9 +29,12 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public class SchemaMutationLockTables {
+    public static final String LOCK_TABLE_PREFIX = "_locks";
+
+    private static final Predicate<String> IS_LOCK_TABLE = table -> table.startsWith(LOCK_TABLE_PREFIX);
+
     private final CassandraClientPool clientPool;
     private final CassandraKeyValueServiceConfig config;
-    private static final Predicate<String> IS_LOCK_TABLE = table -> table.startsWith(HiddenTables.LOCK_TABLE_PREFIX);
 
     public SchemaMutationLockTables(CassandraClientPool clientPool, CassandraKeyValueServiceConfig config) {
         this.clientPool = clientPool;
@@ -54,8 +57,8 @@ public class SchemaMutationLockTables {
         return clientPool.run(client -> createInternalLockTable(client, uuid));
     }
 
-    private final TableReference createInternalLockTable(Cassandra.Client client, UUID uuid) throws TException {
-        String lockTableName = HiddenTables.LOCK_TABLE_PREFIX + "_" + uuid.toString().replace('-','_');
+    private TableReference createInternalLockTable(Cassandra.Client client, UUID uuid) throws TException {
+        String lockTableName = LOCK_TABLE_PREFIX + "_" + uuid.toString().replace('-','_');
         TableReference lockTable = TableReference.createWithEmptyNamespace(lockTableName);
         createTableInternal(client, lockTable);
         return lockTable;

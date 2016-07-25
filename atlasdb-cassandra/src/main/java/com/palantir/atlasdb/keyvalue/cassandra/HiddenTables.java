@@ -26,9 +26,7 @@ class HiddenTables {
             AtlasDbConstants.TIMESTAMP_TABLE,
             AtlasDbConstants.METADATA_TABLE);
 
-    static final String LOCK_TABLE_PREFIX = "_locks";
-
     boolean isHidden(TableReference tableReference) {
-        return HIDDEN_TABLES.contains(tableReference) || tableReference.getTablename().startsWith(LOCK_TABLE_PREFIX);
+        return HIDDEN_TABLES.contains(tableReference) || tableReference.getTablename().startsWith(SchemaMutationLockTables.LOCK_TABLE_PREFIX);
     }
 }
