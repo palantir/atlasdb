@@ -150,7 +150,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     private SchemaMutationLock schemaMutationLock;
     private final Optional<LeaderConfig> leaderConfig;
 
-    private final HiddenTables hiddenTables;
     private final UniqueSchemaMutationLockTable schemaMutationLockTable;
 
     private ConsistencyLevel readConsistency = ConsistencyLevel.LOCAL_QUORUM;
@@ -173,7 +172,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         this.clientPool = new CassandraClientPool(configManager.getConfig());
         this.compactionManager = compactionManager;
         this.leaderConfig = leaderConfig;
-        this.hiddenTables = new HiddenTables();
 
         SchemaMutationLockTables lockTables = new SchemaMutationLockTables(clientPool, configManager.getConfig());
         this.schemaMutationLockTable = new UniqueSchemaMutationLockTable(lockTables, whoIsTheLockCreator());
@@ -1383,7 +1381,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     @Override
     public Set<TableReference> getAllTableNames() {
-        return Sets.filter(getAllTablenamesInternal(), tr -> !hiddenTables.isHidden(tr));
+        return Sets.filter(getAllTablenamesInternal(), tr -> !HiddenTables.isHidden(tr));
     }
 
     private Set<TableReference> getAllTablenamesInternal() {
@@ -1446,7 +1444,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     } else {
                         contents = value.getContents();
                     }
-                    if (!hiddenTables.isHidden(tableRef)) {
+                    if (!HiddenTables.isHidden(tableRef)) {
                         tableToMetadataContents.put(tableRef, contents);
                     }
                 }

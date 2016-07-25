@@ -24,35 +24,33 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public class HiddenTablesTest {
-    private final HiddenTables hiddenTables = new HiddenTables();
-
     @Test public void
     shouldSayTimestampIsHidden() {
-        assertThat(hiddenTables.isHidden(AtlasDbConstants.TIMESTAMP_TABLE), is(true));
+        assertThat(HiddenTables.isHidden(AtlasDbConstants.TIMESTAMP_TABLE), is(true));
     }
 
     @Test public void
     shouldSayMetadataIsHidden() {
-        assertThat(hiddenTables.isHidden(AtlasDbConstants.METADATA_TABLE), is(true));
+        assertThat(HiddenTables.isHidden(AtlasDbConstants.METADATA_TABLE), is(true));
     }
 
     @Test public void
     shouldSayAnOldStyleLocksTableIsHidden() {
-        assertThat(hiddenTables.isHidden(TableReference.createUnsafe("_locks")), is(true));
+        assertThat(HiddenTables.isHidden(TableReference.createUnsafe("_locks")), is(true));
     }
 
     @Test public void
     shouldSayANewStyleLocksTableIsHidden() {
-        assertThat(hiddenTables.isHidden(TableReference.createUnsafe("_locks_aaaa_123")), is(true));
+        assertThat(HiddenTables.isHidden(TableReference.createUnsafe("_locks_aaaa_123")), is(true));
     }
 
     @Test public void
     shouldSayANamespacedTableIsNotHidden() {
-        assertThat(hiddenTables.isHidden(TableReference.createFromFullyQualifiedName("namespace.table")), is(false));
+        assertThat(HiddenTables.isHidden(TableReference.createFromFullyQualifiedName("namespace.table")), is(false));
     }
 
     @Test public void
     shouldSayANonNamespacedVisibleTableIsNotHidden() {
-        assertThat(hiddenTables.isHidden(TableReference.createWithEmptyNamespace("table")), is(false));
+        assertThat(HiddenTables.isHidden(TableReference.createWithEmptyNamespace("table")), is(false));
     }
 }
