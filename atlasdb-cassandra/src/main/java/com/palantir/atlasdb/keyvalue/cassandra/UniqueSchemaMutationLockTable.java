@@ -19,7 +19,6 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Set;
-import java.util.UUID;
 
 import org.apache.thrift.TException;
 
@@ -64,7 +63,7 @@ public class UniqueSchemaMutationLockTable {
         return getSingleTable();
     }
 
-    private synchronized final TableReference ensureLockTableExists() throws TException {
+    private synchronized TableReference ensureLockTableExists() throws TException {
         Set<TableReference> tables = schemaMutationLockTables.getAllLockTables();
 
         if (tables.isEmpty()) {
