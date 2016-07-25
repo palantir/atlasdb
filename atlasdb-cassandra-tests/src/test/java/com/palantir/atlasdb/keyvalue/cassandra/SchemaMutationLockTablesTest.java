@@ -17,10 +17,10 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.startsWith;
 
 import java.util.UUID;
 
@@ -28,8 +28,8 @@ import org.apache.thrift.TException;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public class SchemaMutationLockTablesTest {
     private SchemaMutationLockTables lockTables;
@@ -39,7 +39,7 @@ public class SchemaMutationLockTablesTest {
     @Before
     public void setupKVS() throws TException, InterruptedException {
         config = CassandraTestSuite.CASSANDRA_KVS_CONFIG
-                .withKeyspace(UUID.randomUUID().toString().replace('-', '_'));
+                .withKeyspace(UUID.randomUUID().toString().replace('-', '_')); // Hyphens not allowed in C* schema
         clientPool = new CassandraClientPool(config);
         clientPool.runOneTimeStartupChecks();
         lockTables = new SchemaMutationLockTables(clientPool, config);
@@ -52,31 +52,28 @@ public class SchemaMutationLockTablesTest {
 
     @Test
     public void tableShouldExistAfterCreation() throws Exception {
-        lockTables.createLockTable(UUID.randomUUID());
+        lockTables.createLockTable();
         assertThat(lockTables.getAllLockTables(), hasSize(1));
     }
 
     @Test
     public void multipleLockTablesExistAfterCreation() throws Exception {
-        lockTables.createLockTable(UUID.randomUUID());
-        lockTables.createLockTable(UUID.randomUUID());
+        lockTables.createLockTable();
+        lockTables.createLockTable();
         assertThat(lockTables.getAllLockTables(), hasSize(2));
     }
 
     @Test
     public void multipleSchemaMutationLockTablesObjectsShouldReturnSameLockTables() throws Exception {
         SchemaMutationLockTables lockTables2 = new SchemaMutationLockTables(clientPool, config);
-        lockTables.createLockTable(UUID.randomUUID());
+        lockTables.createLockTable();
         assertThat(lockTables.getAllLockTables(), is(lockTables2.getAllLockTables()));
     }
 
     @Test
-    public void shouldCreateLockTablesInTheRightFormat() throws TException {
-        UUID uuid = UUID.randomUUID();
-        lockTables.createLockTable(uuid);
+    public void shouldCreateLockTablesStartingWithCorrectPrefix() throws TException {
+        lockTables.createLockTable();
 
-        TableReference expectedTable = TableReference.createUnsafe("_locks_" + uuid.toString().replace('-', '_'));
-
-        assertThat(lockTables.getAllLockTables(), contains(expectedTable));
+        assertThat(Iterables.getOnlyElement(lockTables.getAllLockTables()).getTablename(), startsWith("_locks_"));
     }
 }
