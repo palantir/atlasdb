@@ -52,21 +52,21 @@ public class SchemaMutationLockTablesTest {
 
     @Test
     public void tableShouldExistAfterCreation() throws Exception {
-        lockTables.createLockTable(UUID.randomUUID());
+        lockTables.createLockTable();
         assertThat(lockTables.getAllLockTables(), hasSize(1));
     }
 
     @Test
     public void multipleLockTablesExistAfterCreation() throws Exception {
-        lockTables.createLockTable(UUID.randomUUID());
-        lockTables.createLockTable(UUID.randomUUID());
+        lockTables.createLockTable();
+        lockTables.createLockTable();
         assertThat(lockTables.getAllLockTables(), hasSize(2));
     }
 
     @Test
     public void multipleSchemaMutationLockTablesObjectsShouldReturnSameLockTables() throws Exception {
         SchemaMutationLockTables lockTables2 = new SchemaMutationLockTables(clientPool, config);
-        lockTables.createLockTable(UUID.randomUUID());
+        lockTables.createLockTable();
         assertThat(lockTables.getAllLockTables(), is(lockTables2.getAllLockTables()));
     }
 

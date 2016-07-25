@@ -68,7 +68,7 @@ public class UniqueSchemaMutationLockTable {
         Set<TableReference> tables = schemaMutationLockTables.getAllLockTables();
 
         if (tables.isEmpty()) {
-            schemaMutationLockTables.createLockTable(UUID.randomUUID());
+            schemaMutationLockTables.createLockTable();
         }
 
         return getSingleTable();

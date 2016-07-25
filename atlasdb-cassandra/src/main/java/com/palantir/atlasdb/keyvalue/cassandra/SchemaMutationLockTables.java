@@ -25,6 +25,7 @@ import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.thrift.TException;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
@@ -53,7 +54,12 @@ public class SchemaMutationLockTables {
                 .collect(Collectors.toSet());
     }
 
-    public TableReference createLockTable(UUID uuid) throws TException {
+    public TableReference createLockTable() throws TException {
+        return createLockTable(UUID.randomUUID());
+    }
+
+    @VisibleForTesting
+    protected TableReference createLockTable(UUID uuid) throws TException {
         return clientPool.run(client -> createInternalLockTable(client, uuid));
     }
 

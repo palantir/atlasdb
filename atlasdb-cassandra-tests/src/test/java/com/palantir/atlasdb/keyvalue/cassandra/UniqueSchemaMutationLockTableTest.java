@@ -56,7 +56,7 @@ public class UniqueSchemaMutationLockTableTest {
     @Test
     public void shouldReturnALockTableIfNoneExist() throws TException {
         when(lockTables.getAllLockTables()).thenReturn(Collections.EMPTY_SET, ImmutableSet.of(lockTable1));
-        when(lockTables.createLockTable(any(UUID.class))).thenReturn(lockTable1);
+        when(lockTables.createLockTable()).thenReturn(lockTable1);
 
         assertThat(uniqueLockTable.getOnlyTable(), is(lockTable1));
     }
@@ -74,7 +74,7 @@ public class UniqueSchemaMutationLockTableTest {
 
         uniqueLockTable.getOnlyTable();
 
-        verify(lockTables, never()).createLockTable(any(UUID.class));
+        verify(lockTables, never()).createLockTable();
     }
 
     @Test
@@ -94,7 +94,7 @@ public class UniqueSchemaMutationLockTableTest {
         try {
             uniqueLockTable.getOnlyTable();
         } finally {
-            verify(lockTables, never()).createLockTable(any(UUID.class));
+            verify(lockTables, never()).createLockTable();
         }
     }
 
@@ -108,7 +108,7 @@ public class UniqueSchemaMutationLockTableTest {
         try {
             uniqueLockTable.getOnlyTable();
         } finally {
-            verify(lockTables).createLockTable(any(UUID.class));
+            verify(lockTables).createLockTable();
         }
     }
 
@@ -120,7 +120,7 @@ public class UniqueSchemaMutationLockTableTest {
 
         uniqueLockTable.getOnlyTable();
 
-        verify(lockTables, never()).createLockTable(any(UUID.class));
+        verify(lockTables, never()).createLockTable();
     }
 
     @Test
@@ -137,7 +137,7 @@ public class UniqueSchemaMutationLockTableTest {
 
     @Test(expected = RuntimeException.class)
     public void shouldWrapThriftExceptions() throws TException {
-        when(lockTables.createLockTable(any(UUID.class))).thenThrow(TException.class);
+        when(lockTables.createLockTable()).thenThrow(TException.class);
 
         uniqueLockTable.getOnlyTable();
     }
