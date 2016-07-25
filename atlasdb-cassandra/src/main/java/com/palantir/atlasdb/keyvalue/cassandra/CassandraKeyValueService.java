@@ -149,8 +149,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     protected final CassandraClientPool clientPool;
     private SchemaMutationLock schemaMutationLock;
     private final Optional<LeaderConfig> leaderConfig;
-
     private final HiddenTables hiddenTables;
+
     private final UniqueSchemaMutationLockTable schemaMutationLockTable;
 
     private ConsistencyLevel readConsistency = ConsistencyLevel.LOCAL_QUORUM;

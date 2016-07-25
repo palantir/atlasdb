@@ -29,9 +29,12 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public class SchemaMutationLockTables {
+    public static final String LOCK_TABLE_PREFIX = "_locks";
+
+    private static final Predicate<String> IS_LOCK_TABLE = table -> table.startsWith(LOCK_TABLE_PREFIX);
+
     private final CassandraClientPool clientPool;
     private final CassandraKeyValueServiceConfig config;
-    private static final Predicate<String> IS_LOCK_TABLE = table -> table.startsWith(HiddenTables.LOCK_TABLE_PREFIX);
 
     public SchemaMutationLockTables(CassandraClientPool clientPool, CassandraKeyValueServiceConfig config) {
         this.clientPool = clientPool;
@@ -50,15 +53,20 @@ public class SchemaMutationLockTables {
                 .collect(Collectors.toSet());
     }
 
-    public TableReference createLockTable(UUID uuid) throws TException {
-        return clientPool.run(client -> createInternalLockTable(client, uuid));
+    public TableReference createLockTable() throws TException {
+        return clientPool.run(this::createLockTable);
     }
 
-    private final TableReference createInternalLockTable(Cassandra.Client client, UUID uuid) throws TException {
-        String lockTableName = HiddenTables.LOCK_TABLE_PREFIX + "_" + uuid.toString().replace('-','_');
+    private TableReference createLockTable(Cassandra.Client client) throws TException {
+        String lockTableName = LOCK_TABLE_PREFIX + "_" + getUniqueSuffix();
         TableReference lockTable = TableReference.createWithEmptyNamespace(lockTableName);
         createTableInternal(client, lockTable);
         return lockTable;
+    }
+
+    private String getUniqueSuffix() {
+        // We replace '-' with '_' as hyphens are forbidden in Cassandra table names.
+        return UUID.randomUUID().toString().replace('-','_');
     }
 
     private void createTableInternal(Cassandra.Client client, TableReference tableRef) throws TException {

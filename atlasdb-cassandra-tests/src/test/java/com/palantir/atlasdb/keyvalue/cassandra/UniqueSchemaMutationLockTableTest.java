@@ -18,14 +18,12 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
-import java.util.UUID;
 
 import org.apache.thrift.TException;
 import org.junit.Before;
@@ -41,8 +39,8 @@ public class UniqueSchemaMutationLockTableTest {
 
     private UniqueSchemaMutationLockTable uniqueLockTable;
     private SchemaMutationLockTables lockTables;
-    private TableReference lockTable1 = TableReference.createWithEmptyNamespace(HiddenTables.LOCK_TABLE_PREFIX + UUID.randomUUID());
-    private TableReference lockTable2 = TableReference.createWithEmptyNamespace(HiddenTables.LOCK_TABLE_PREFIX + UUID.randomUUID());
+    private TableReference lockTable1 = TableReference.createWithEmptyNamespace(SchemaMutationLockTables.LOCK_TABLE_PREFIX + "_1");
+    private TableReference lockTable2 = TableReference.createWithEmptyNamespace(SchemaMutationLockTables.LOCK_TABLE_PREFIX + "_2");
 
     @Rule
     public ExpectedException exception = ExpectedException.none();
@@ -53,11 +51,10 @@ public class UniqueSchemaMutationLockTableTest {
         uniqueLockTable = new UniqueSchemaMutationLockTable(lockTables, LockLeader.I_AM_THE_LOCK_LEADER);
     }
 
-
     @Test
     public void shouldReturnALockTableIfNoneExist() throws TException {
         when(lockTables.getAllLockTables()).thenReturn(Collections.EMPTY_SET, ImmutableSet.of(lockTable1));
-        when(lockTables.createLockTable(any(UUID.class))).thenReturn(lockTable1);
+        when(lockTables.createLockTable()).thenReturn(lockTable1);
 
         assertThat(uniqueLockTable.getOnlyTable(), is(lockTable1));
     }
@@ -75,7 +72,7 @@ public class UniqueSchemaMutationLockTableTest {
 
         uniqueLockTable.getOnlyTable();
 
-        verify(lockTables, never()).createLockTable(any(UUID.class));
+        verify(lockTables, never()).createLockTable();
     }
 
     @Test
@@ -95,7 +92,7 @@ public class UniqueSchemaMutationLockTableTest {
         try {
             uniqueLockTable.getOnlyTable();
         } finally {
-            verify(lockTables, never()).createLockTable(any(UUID.class));
+            verify(lockTables, never()).createLockTable();
         }
     }
 
@@ -109,7 +106,7 @@ public class UniqueSchemaMutationLockTableTest {
         try {
             uniqueLockTable.getOnlyTable();
         } finally {
-            verify(lockTables).createLockTable(any(UUID.class));
+            verify(lockTables).createLockTable();
         }
     }
 
@@ -121,7 +118,7 @@ public class UniqueSchemaMutationLockTableTest {
 
         uniqueLockTable.getOnlyTable();
 
-        verify(lockTables, never()).createLockTable(any(UUID.class));
+        verify(lockTables, never()).createLockTable();
     }
 
     @Test
@@ -138,7 +135,7 @@ public class UniqueSchemaMutationLockTableTest {
 
     @Test(expected = RuntimeException.class)
     public void shouldWrapThriftExceptions() throws TException {
-        when(lockTables.createLockTable(any(UUID.class))).thenThrow(TException.class);
+        when(lockTables.createLockTable()).thenThrow(TException.class);
 
         uniqueLockTable.getOnlyTable();
     }
