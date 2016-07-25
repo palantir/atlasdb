@@ -16,13 +16,23 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import static java.util.Collections.synchronizedList;
+import static java.util.stream.IntStream.range;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CyclicBarrier;
+import java.util.function.IntConsumer;
 
 import org.apache.thrift.TException;
 import org.junit.Before;
@@ -78,5 +88,32 @@ public class SchemaMutationLockTablesTest {
         TableReference expectedTable = TableReference.createUnsafe("_locks_" + uuid.toString().replace('-', '_'));
 
         assertThat(lockTables.getAllLockTables(), contains(expectedTable));
+    }
+
+    @Test
+    public void whenTablesAreCreatedConcurrentlyAtLeastOneThreadShouldSeeBothTables() {
+        CyclicBarrier barrier = new CyclicBarrier(2);
+
+        List<Set<TableReference>> lockTablesSeen = synchronizedList(new ArrayList<>());
+
+        range(0,2).parallel()
+                .forEach(ignoringExceptions( () -> {
+                    barrier.await();
+                    lockTables.createLockTable(UUID.randomUUID());
+                    lockTablesSeen.add(lockTables.getAllLockTables());
+                    return null;
+                }));
+
+        assertThat("Only one table was seen by both creation threads", lockTablesSeen, hasItem(hasSize(2)));
+    }
+
+    private IntConsumer ignoringExceptions(Callable function) {
+        return (i) -> {
+            try {
+                function.call();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        };
     }
 }
