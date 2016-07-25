@@ -25,7 +25,6 @@ import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.thrift.TException;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
@@ -58,11 +57,6 @@ public class SchemaMutationLockTables {
         return clientPool.run(this::createLockTable);
     }
 
-    @VisibleForTesting
-    protected TableReference createLockTable(UUID uuid) throws TException {
-        return clientPool.run(client -> createInternalLockTable(client, uuid));
-    }
-
     private TableReference createLockTable(Cassandra.Client client) throws TException {
         String lockTableName = LOCK_TABLE_PREFIX + "_" + getUniqueSuffix();
         TableReference lockTable = TableReference.createWithEmptyNamespace(lockTableName);
@@ -71,14 +65,8 @@ public class SchemaMutationLockTables {
     }
 
     private String getUniqueSuffix() {
+        // We replace '-' with '_' as hyphens are forbidden in Cassandra table names.
         return UUID.randomUUID().toString().replace('-','_');
-    }
-
-    private TableReference createInternalLockTable(Cassandra.Client client, UUID uuid) throws TException {
-        String lockTableName = LOCK_TABLE_PREFIX + "_" + uuid.toString().replace('-','_');
-        TableReference lockTable = TableReference.createWithEmptyNamespace(lockTableName);
-        createTableInternal(client, lockTable);
-        return lockTable;
     }
 
     private void createTableInternal(Cassandra.Client client, TableReference tableRef) throws TException {
