@@ -53,7 +53,6 @@ public class UniqueSchemaMutationLockTableTest {
         uniqueLockTable = new UniqueSchemaMutationLockTable(lockTables, LockLeader.I_AM_THE_LOCK_LEADER);
     }
 
-
     @Test
     public void shouldReturnALockTableIfNoneExist() throws TException {
         when(lockTables.getAllLockTables()).thenReturn(Collections.EMPTY_SET, ImmutableSet.of(lockTable1));
