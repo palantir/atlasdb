@@ -5,6 +5,7 @@ apply from: "../gradle/shared.gradle"
 dependencies {
   compile project(":atlasdb-client")
   compile project(":atlasdb-api")
+  compile project(":commons-api")
   compile project(':timestamp-impl')
 
   compile('org.apache.cassandra:cassandra-all:' + libVersions.cassandra) {

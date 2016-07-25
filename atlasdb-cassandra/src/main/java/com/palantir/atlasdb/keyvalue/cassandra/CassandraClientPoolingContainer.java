@@ -17,8 +17,8 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
@@ -76,7 +76,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
         final String origName = Thread.currentThread().getName();
         Thread.currentThread().setName(origName
                 + " calling cassandra host " + host
-                + " started at " + new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").format(new Date())
+                + " started at " + DateTimeFormatter.ISO_INSTANT.format(Instant.now())
                 + " - " + count.getAndIncrement());
         try {
             return runWithGoodResource(f);
