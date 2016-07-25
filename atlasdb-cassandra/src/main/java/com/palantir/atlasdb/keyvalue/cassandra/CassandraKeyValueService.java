@@ -457,38 +457,39 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                         CassandraKeyValueServices.getFilteredStackTrace("com.palantir"));
             }
             for (final List<Cell> partition : Lists.partition(ImmutableList.copyOf(columnCells), fetchBatchCount)) {
+                Callable<Void> multiGetCallable = () -> clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Client, Void, Exception>() {
+                    @Override
+                    public Void apply(Client client) throws Exception {
+                        ByteBuffer start = CassandraKeyValueServices.makeCompositeBuffer(col, startTs - 1);
+                        ByteBuffer end = CassandraKeyValueServices.makeCompositeBuffer(col, -1);
+                        SliceRange slice = new SliceRange(start, end, false, loadAllTs ? Integer.MAX_VALUE : 1);
+                        SlicePredicate predicate = new SlicePredicate();
+                        predicate.setSlice_range(slice);
+
+                        List<ByteBuffer> rowNames = Lists.newArrayListWithCapacity(partition.size());
+                        for (Cell c : partition) {
+                            rowNames.add(ByteBuffer.wrap(c.getRowName()));
+                        }
+
+                        if (log.isTraceEnabled()) {
+                            log.trace("Requesting {} cells from {} {}starting at timestamp {} on {}",
+                                    partition.size(), tableRef, loadAllTs ? "for all timestamps " : "", startTs, host);
+                        }
+
+                        Map<ByteBuffer, List<ColumnOrSuperColumn>> results =
+                                multigetInternal(client, tableRef, rowNames, colFam, predicate, consistency);
+                        v.visit(results);
+                        return null;
+                    }
+
+                    @Override
+                    public String toString() {
+                        return "multiget_slice(" + host + ", " + colFam + ", " + partition.size() + " cells" + ")";
+                    }
+
+                });
                 tasks.add(ThreadNamingCallable.wrapWithThreadName(
-                        () -> clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Client, Void, Exception>() {
-                            @Override
-                            public Void apply(Client client) throws Exception {
-                                ByteBuffer start = CassandraKeyValueServices.makeCompositeBuffer(col, startTs - 1);
-                                ByteBuffer end = CassandraKeyValueServices.makeCompositeBuffer(col, -1);
-                                SliceRange slice = new SliceRange(start, end, false, loadAllTs ? Integer.MAX_VALUE : 1);
-                                SlicePredicate predicate = new SlicePredicate();
-                                predicate.setSlice_range(slice);
-
-                                List<ByteBuffer> rowNames = Lists.newArrayListWithCapacity(partition.size());
-                                for (Cell c : partition) {
-                                    rowNames.add(ByteBuffer.wrap(c.getRowName()));
-                                }
-
-                                if (log.isTraceEnabled()) {
-                                    log.trace("Requesting {} cells from {} {}starting at timestamp {} on {}",
-                                            partition.size(), tableRef, loadAllTs ? "for all timestamps " : "", startTs, host);
-                                }
-
-                                Map<ByteBuffer, List<ColumnOrSuperColumn>> results =
-                                        multigetInternal(client, tableRef, rowNames, colFam, predicate, consistency);
-                                v.visit(results);
-                                return null;
-                            }
-
-                            @Override
-                            public String toString() {
-                                return "multiget_slice(" + host + ", " + colFam + ", " + partition.size() + " cells" + ")";
-                            }
-
-                        }),
+                        multiGetCallable,
                         "Atlas loadWithTs " + partition.size() + " cells from " + tableRef + " on " + host,
                         ThreadNamingCallable.Type.PREPEND));
             }
