@@ -16,6 +16,11 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import static org.mockito.Matchers.startsWith;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -25,6 +30,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.slf4j.Logger;
 
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -36,6 +42,7 @@ import com.palantir.atlasdb.keyvalue.impl.AbstractAtlasDbKeyValueServiceTest;
 public class CassandraKeyValueServiceTest extends AbstractAtlasDbKeyValueServiceTest {
     private KeyValueService keyValueService;
     private ExecutorService executorService;
+    private Logger logger = mock(Logger.class);
 
     @Before
     public void setupKVS() {
@@ -51,7 +58,7 @@ public class CassandraKeyValueServiceTest extends AbstractAtlasDbKeyValueService
     @Override
     protected KeyValueService getKeyValueService() {
         return CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.CASSANDRA_KVS_CONFIG), CassandraTestSuite.LEADER_CONFIG);
+                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.CASSANDRA_KVS_CONFIG), CassandraTestSuite.LEADER_CONFIG, logger);
     }
 
     @Override
@@ -85,4 +92,8 @@ public class CassandraKeyValueServiceTest extends AbstractAtlasDbKeyValueService
         Preconditions.checkArgument(!allTables.contains(table3));
     }
 
+    @Test
+    public void shouldNotErrorForTimestampTableWhenCreatingCassandraKVS() throws Exception {
+        verify(logger, never()).error(startsWith("Found a table " + AtlasDbConstants.TIMESTAMP_TABLE));
+    }
 }
