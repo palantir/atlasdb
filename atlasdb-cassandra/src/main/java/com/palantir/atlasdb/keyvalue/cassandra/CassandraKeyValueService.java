@@ -135,7 +135,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
  */
 public class CassandraKeyValueService extends AbstractKeyValueService {
 
-    static final Logger log = LoggerFactory.getLogger(CassandraKeyValueService.class);
+    private final Logger log;
 
     private static final Function<Entry<Cell, Value>, Long> ENTRY_SIZING_FUNCTION = new Function<Entry<Cell, Value>, Long>() {
         @Override
@@ -158,17 +158,23 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     private final ConsistencyLevel deleteConsistency = ConsistencyLevel.ALL;
 
     public static CassandraKeyValueService create(CassandraKeyValueServiceConfigManager configManager, Optional<LeaderConfig> leaderConfig) {
+        return create(configManager, leaderConfig, LoggerFactory.getLogger(CassandraKeyValueService.class));
+    }
+
+    public static CassandraKeyValueService create(CassandraKeyValueServiceConfigManager configManager, Optional<LeaderConfig> leaderConfig, Logger log) {
         Optional<CassandraJmxCompactionManager> compactionManager = CassandraJmxCompaction.createJmxCompactionManager(configManager);
-        CassandraKeyValueService ret = new CassandraKeyValueService(configManager, compactionManager, leaderConfig);
+        CassandraKeyValueService ret = new CassandraKeyValueService(log, configManager, compactionManager, leaderConfig);
         ret.init();
         return ret;
     }
 
-    protected CassandraKeyValueService(CassandraKeyValueServiceConfigManager configManager,
+    protected CassandraKeyValueService(Logger log,
+                                       CassandraKeyValueServiceConfigManager configManager,
                                        Optional<CassandraJmxCompactionManager> compactionManager,
                                        Optional<LeaderConfig> leaderConfig) {
         super(AbstractKeyValueService.createFixedThreadPool("Atlas Cassandra KVS",
                 configManager.getConfig().poolSize() * configManager.getConfig().servers().size()));
+        this.log = log;
         this.configManager = configManager;
         this.clientPool = new CassandraClientPool(configManager.getConfig());
         this.compactionManager = compactionManager;
@@ -224,7 +230,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                         log.warn("Upgrading table {} to new internal Cassandra schema", tableRef);
                         tablesToUpgrade.put(tableRef, clusterSideMetadata);
                     }
-                } else if (!(tableRef.equals(AtlasDbConstants.METADATA_TABLE) || tableRef.equals(schemaMutationLockTable.getOnlyTable()))) { // only expected cases
+                } else if (!hiddenTables.isHidden(tableRef)) {
                     // Possible to get here from a race condition with another service starting up and performing schema upgrades concurrent with us doing this check
                     log.error("Found a table " + tableRef.getQualifiedName() + " that did not have persisted Atlas metadata. "
                             + "If you recently did a Palantir update, try waiting until schema upgrades are completed on all backend CLIs/services etc and restarting this service. "
