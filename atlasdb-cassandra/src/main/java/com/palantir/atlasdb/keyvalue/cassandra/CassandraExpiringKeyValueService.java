@@ -24,6 +24,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import org.slf4j.LoggerFactory;
+
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
@@ -58,7 +60,7 @@ public class CassandraExpiringKeyValueService extends CassandraKeyValueService i
     protected CassandraExpiringKeyValueService(CassandraKeyValueServiceConfigManager configManager,
                                                Optional<CassandraJmxCompactionManager> compactionManager,
                                                Optional<LeaderConfig> leaderConfig) {
-        super(configManager, compactionManager, leaderConfig);
+        super(LoggerFactory.getLogger(CassandraKeyValueService.class), configManager, compactionManager, leaderConfig);
     }
 
     @Override

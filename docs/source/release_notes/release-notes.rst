@@ -36,15 +36,23 @@ v0.11.0
     *    - Type
          - Change
 
+    *    - |changed|
+         - Clarified the logging when multiple timestamp servers are running to state that CLIs could be causing the issue.
+
     *    - |fixed|
          - The Leader config now contains a new "lockCreator" option. Full details for configuring this are in `the cassandra configuration docs <https://palantir.github.io/atlasdb/html/configuration/cassandra_KVS_configuration.html>`__
            This field helps us to determine a single node to create the necessary locks table for performing schema mutations without corruption. This safety will still be in place if you have no leader block.
            Changing your config to explicitly use this option is advised, but it is backwards compatible with old configurations. Please see `the cassandra configuration docs <https://palantir.github.io/atlasdb/html/configuration/cassandra_KVS_configuration.html>`__
            for details on how this works.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/594>`__)
 
     *    - |fixed|
          - A utility method was removed in the previous release, breaking an internal product that relied on it. This method has now been added back.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/661>`__)
+
+    *    - |fixed|
+         - Remove unnecessary error message for missing _timestamp metadata table.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/716>`__)
 
     *    - |changed|
          - Updated our cassandra client from 2.2.1 to 2.2.7 (this corresponds to a bump of our cassandra docker testing version from 2.2.6 to 2.2.7).

@@ -16,20 +16,30 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import static java.util.Collections.synchronizedList;
+import static java.util.stream.IntStream.range;
+
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.startsWith;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CyclicBarrier;
+import java.util.function.IntConsumer;
 
 import org.apache.thrift.TException;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public class SchemaMutationLockTablesTest {
     private SchemaMutationLockTables lockTables;
@@ -39,7 +49,7 @@ public class SchemaMutationLockTablesTest {
     @Before
     public void setupKVS() throws TException, InterruptedException {
         config = CassandraTestSuite.CASSANDRA_KVS_CONFIG
-                .withKeyspace(UUID.randomUUID().toString().replace('-', '_'));
+                .withKeyspace(UUID.randomUUID().toString().replace('-', '_')); // Hyphens not allowed in C* schema
         clientPool = new CassandraClientPool(config);
         clientPool.runOneTimeStartupChecks();
         lockTables = new SchemaMutationLockTables(clientPool, config);
@@ -52,31 +62,55 @@ public class SchemaMutationLockTablesTest {
 
     @Test
     public void tableShouldExistAfterCreation() throws Exception {
-        lockTables.createLockTable(UUID.randomUUID());
+        lockTables.createLockTable();
         assertThat(lockTables.getAllLockTables(), hasSize(1));
     }
 
     @Test
     public void multipleLockTablesExistAfterCreation() throws Exception {
-        lockTables.createLockTable(UUID.randomUUID());
-        lockTables.createLockTable(UUID.randomUUID());
+        lockTables.createLockTable();
+        lockTables.createLockTable();
         assertThat(lockTables.getAllLockTables(), hasSize(2));
     }
 
     @Test
     public void multipleSchemaMutationLockTablesObjectsShouldReturnSameLockTables() throws Exception {
         SchemaMutationLockTables lockTables2 = new SchemaMutationLockTables(clientPool, config);
-        lockTables.createLockTable(UUID.randomUUID());
+        lockTables.createLockTable();
         assertThat(lockTables.getAllLockTables(), is(lockTables2.getAllLockTables()));
     }
 
     @Test
-    public void shouldCreateLockTablesInTheRightFormat() throws TException {
-        UUID uuid = UUID.randomUUID();
-        lockTables.createLockTable(uuid);
+    public void shouldCreateLockTablesStartingWithCorrectPrefix() throws TException {
+        lockTables.createLockTable();
 
-        TableReference expectedTable = TableReference.createUnsafe("_locks_" + uuid.toString().replace('-', '_'));
+        assertThat(Iterables.getOnlyElement(lockTables.getAllLockTables()).getTablename(), startsWith("_locks_"));
+    }
 
-        assertThat(lockTables.getAllLockTables(), contains(expectedTable));
+    @Test
+    public void whenTablesAreCreatedConcurrentlyAtLeastOneThreadShouldSeeBothTables() {
+        CyclicBarrier barrier = new CyclicBarrier(2);
+
+        List<Set<TableReference>> lockTablesSeen = synchronizedList(new ArrayList<>());
+
+        range(0,2).parallel()
+                .forEach(ignoringExceptions( () -> {
+                    barrier.await();
+                    lockTables.createLockTable(UUID.randomUUID());
+                    lockTablesSeen.add(lockTables.getAllLockTables());
+                    return null;
+                }));
+
+        assertThat("Only one table was seen by both creation threads", lockTablesSeen, hasItem(hasSize(2)));
+    }
+
+    private IntConsumer ignoringExceptions(Callable function) {
+        return (i) -> {
+            try {
+                function.call();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        };
     }
 }
