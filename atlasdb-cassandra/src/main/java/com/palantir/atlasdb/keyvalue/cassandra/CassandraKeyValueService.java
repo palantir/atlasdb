@@ -158,7 +158,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     private final ConsistencyLevel deleteConsistency = ConsistencyLevel.ALL;
 
     public static CassandraKeyValueService create(CassandraKeyValueServiceConfigManager configManager, Optional<LeaderConfig> leaderConfig) {
-        return create(configManager,leaderConfig, LoggerFactory.getLogger(CassandraKeyValueService.class));
+        return create(configManager, leaderConfig, LoggerFactory.getLogger(CassandraKeyValueService.class));
     }
 
     public static CassandraKeyValueService create(CassandraKeyValueServiceConfigManager configManager, Optional<LeaderConfig> leaderConfig, Logger log) {
@@ -168,7 +168,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         return ret;
     }
 
-    protected CassandraKeyValueService(Logger log, CassandraKeyValueServiceConfigManager configManager,
+    protected CassandraKeyValueService(Logger log,
+                                       CassandraKeyValueServiceConfigManager configManager,
                                        Optional<CassandraJmxCompactionManager> compactionManager,
                                        Optional<LeaderConfig> leaderConfig) {
         super(AbstractKeyValueService.createFixedThreadPool("Atlas Cassandra KVS",
