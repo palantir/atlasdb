@@ -18,14 +18,12 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
-import java.util.UUID;
 
 import org.apache.thrift.TException;
 import org.junit.Before;
@@ -41,8 +39,8 @@ public class UniqueSchemaMutationLockTableTest {
 
     private UniqueSchemaMutationLockTable uniqueLockTable;
     private SchemaMutationLockTables lockTables;
-    private TableReference lockTable1 = TableReference.createWithEmptyNamespace(SchemaMutationLockTables.LOCK_TABLE_PREFIX + UUID.randomUUID());
-    private TableReference lockTable2 = TableReference.createWithEmptyNamespace(SchemaMutationLockTables.LOCK_TABLE_PREFIX + UUID.randomUUID());
+    private TableReference lockTable1 = TableReference.createWithEmptyNamespace(SchemaMutationLockTables.LOCK_TABLE_PREFIX + "_1");
+    private TableReference lockTable2 = TableReference.createWithEmptyNamespace(SchemaMutationLockTables.LOCK_TABLE_PREFIX + "_2");
 
     @Rule
     public ExpectedException exception = ExpectedException.none();
