@@ -26,7 +26,13 @@ First we need to define what the logical point in time of our backup is going to
 
      $ ./bin/atlasdb --config <config-file> --config-root <path-to-atlas-block> timestamp fetch --file <backup-directory>/backup.timestamp
 
-Next, we back-up the underlying key value service we're using.  For the purposes of this documention we're going to blackbox the details of this portion of the process away as it is dependent upon your configuration.
+Next, we back-up the underlying key value service we're using.  For the purposes of this documention, we will assume you can backup your specific key value service.
+
+Common KVS layers:
+
+-  Cassandra `backup <https://docs.datastax.com/en/cassandra/2.2/cassandra/operations/opsBackupTakesSnapshot.html>`__ and `restore <https://docs.datastax.com/en/cassandra/2.2/cassandra/operations/opsBackupSnapshotRestore.html>`__.
+-  Postgres `backup and restore <https://www.postgresql.org/docs/9.1/static/backup-dump.html>`__.
+-  If you are using RocksDB, you can simply compress the database files on disk with ``tar -czf backup.tgz path/to/data``.
 
 Finally, we take the fast-forward timestamp.  Like the backup timestamp, the fast-forward timestamp is simply another fresh one that we fetch from atlas.  The purpose of this timestamp is to have a logical point in time for which we can guarantee that any reads or writes that took place during the backup process happened before this.  Fetching it is similar to that of the backup timestamp:
 
