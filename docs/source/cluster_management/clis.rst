@@ -26,10 +26,10 @@ Right now, the best way to get the CLI is by cloning the atlasdb source code and
 .. code:: bash
 
      $ ./gradlew atlasdb-cli:distZip
-     
-     
-     
-Build In Commands
+
+This will create a zip file in ``atlasdb-cli/build/distributions``, which you can unzip on the machine where your AtlasDB server is installed.
+
+Built-In Commands
 =================
 
 The following useful commands come with the vanilla atlasdb-cli.
@@ -43,6 +43,6 @@ Sweep old table rows. This can be useful for improving performance if having too
 timestamp
 ---------
 
-Read or recalculate the immutable timestamp. Run ``./bin/atlasdb help timestamp`` for more information. 
+Read or recalculate the immutable timestamp. Run ``./bin/atlasdb help timestamp`` for more information.
 
 
