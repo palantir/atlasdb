@@ -17,6 +17,8 @@
 package com.palantir.atlasdb.sweep;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.empty;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
@@ -24,16 +26,22 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.hamcrest.MatcherAssert;
 import org.junit.Test;
 
 import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.PeekingIterator;
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -43,6 +51,8 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.common.base.ClosableIterators;
 
 public class SweepTaskRunnerImplTest {
     private static final TableReference TABLE_REFERENCE = TableReference.create(Namespace.create("ns"), "testTable");
@@ -57,12 +67,13 @@ public class SweepTaskRunnerImplTest {
     private final Follower mockFollower = mock(Follower.class);
     private final Supplier<Long> mockImmutableTimestampSupplier = mock(Supplier.class);
     private final Supplier<Long> mockUnreadableTimestampSupplier = mock(Supplier.class);
+    private final TransactionService mockTransactionService = mock(TransactionService.class);
     private final SweepTaskRunnerImpl sweepTaskRunner = new SweepTaskRunnerImpl(
             null,
             mockKVS,
             mockUnreadableTimestampSupplier,
             mockImmutableTimestampSupplier,
-            null,
+            mockTransactionService,
             null,
             ImmutableList.of(mockFollower));
     private final SweepStrategySweeper thoroughStrategySweeper = new ThoroughSweepStrategySweeper(mockKVS, mockImmutableTimestampSupplier);
@@ -178,5 +189,75 @@ public class SweepTaskRunnerImplTest {
         when(mockUnreadableTimestampSupplier.get()).thenReturn(100L);
 
         assertThat(sweepTaskRunner.getSweepTimestamp(SweepStrategy.CONSERVATIVE)).isEqualTo(100L);
+    }
+
+    @Test
+    public void conservative_getTimestampsToSweep_twoEntriesBelowSweepTimestamp_returnsLowerOne() {
+        Multimap<Cell, Long> timestampsPerRow = ImmutableMultimap.of(SINGLE_CELL, 5L, SINGLE_CELL, VALID_TIMESTAMP);
+
+        when(mockTransactionService.get(timestampsPerRow.values())).thenReturn(ImmutableMap.of(5L, 6L, VALID_TIMESTAMP, VALID_TIMESTAMP + 1));
+        long sweepTimestampLowerThanCommitTimestamp = VALID_TIMESTAMP + 2;
+
+        PeekingIterator<RowResult<Value>> values = Iterators.peekingIterator(ClosableIterators.emptyImmutableClosableIterator());
+
+        Multimap<Cell, Long> startTimestampsPerRowToSweep = sweepTaskRunner.getStartTimestampsPerRowToSweep(timestampsPerRow,
+                values,
+                sweepTimestampLowerThanCommitTimestamp,
+                conservativeStrategySweeper,
+                Sets.newHashSet());
+        MatcherAssert.assertThat(startTimestampsPerRowToSweep.get(SINGLE_CELL), contains(5L));
+    }
+
+    @Test
+    public void conservative_getTimestampsToSweep_oneEntryBelowTimestamp_oneAbove_returnsNone() {
+        Multimap<Cell, Long> timestampsPerRow = ImmutableMultimap.of(SINGLE_CELL, 5L, SINGLE_CELL, VALID_TIMESTAMP + 3);
+
+        when(mockTransactionService.get(timestampsPerRow.values())).thenReturn(ImmutableMap.of(5L, 6L, VALID_TIMESTAMP + 3, VALID_TIMESTAMP + 4));
+        long sweepTimestampLowerThanCommitTimestamp = VALID_TIMESTAMP + 2;
+
+        PeekingIterator<RowResult<Value>> values = Iterators.peekingIterator(ClosableIterators.emptyImmutableClosableIterator());
+
+        Multimap<Cell, Long> startTimestampsPerRowToSweep = sweepTaskRunner.getStartTimestampsPerRowToSweep(timestampsPerRow,
+                values,
+                sweepTimestampLowerThanCommitTimestamp,
+                conservativeStrategySweeper,
+                Sets.newHashSet());
+        MatcherAssert.assertThat(startTimestampsPerRowToSweep.get(SINGLE_CELL), empty());
+    }
+
+    @Test
+    public void conservativeGetTimestampToSweepAddsSentinels() {
+        Multimap<Cell, Long> timestampsPerRow = ImmutableMultimap.of(SINGLE_CELL, 5L, SINGLE_CELL, VALID_TIMESTAMP);
+
+        when(mockTransactionService.get(timestampsPerRow.values())).thenReturn(ImmutableMap.of(5L, 6L, VALID_TIMESTAMP, VALID_TIMESTAMP + 1));
+        long sweepTimestampLowerThanCommitTimestamp = VALID_TIMESTAMP + 2;
+
+        PeekingIterator<RowResult<Value>> values = Iterators.peekingIterator(ClosableIterators.emptyImmutableClosableIterator());
+
+        HashSet<Cell> sentinelsToAdd = Sets.newHashSet();
+        sweepTaskRunner.getStartTimestampsPerRowToSweep(timestampsPerRow,
+                values,
+                sweepTimestampLowerThanCommitTimestamp,
+                conservativeStrategySweeper,
+                sentinelsToAdd);
+        MatcherAssert.assertThat(sentinelsToAdd, contains(SINGLE_CELL));
+    }
+
+    @Test
+    public void thoroughGetTimestampToSweepDoesNotAddSentinels() {
+        Multimap<Cell, Long> timestampsPerRow = ImmutableMultimap.of(SINGLE_CELL, 5L, SINGLE_CELL, VALID_TIMESTAMP);
+
+        when(mockTransactionService.get(timestampsPerRow.values())).thenReturn(ImmutableMap.of(5L, 6L, VALID_TIMESTAMP, VALID_TIMESTAMP + 1));
+        long sweepTimestampLowerThanCommitTimestamp = VALID_TIMESTAMP + 2;
+
+        PeekingIterator<RowResult<Value>> values = Iterators.peekingIterator(ClosableIterators.emptyImmutableClosableIterator());
+
+        HashSet<Cell> sentinelsToAdd = Sets.newHashSet();
+        sweepTaskRunner.getStartTimestampsPerRowToSweep(timestampsPerRow,
+                values,
+                sweepTimestampLowerThanCommitTimestamp,
+                thoroughStrategySweeper,
+                sentinelsToAdd);
+        MatcherAssert.assertThat(sentinelsToAdd, empty());
     }
 }
