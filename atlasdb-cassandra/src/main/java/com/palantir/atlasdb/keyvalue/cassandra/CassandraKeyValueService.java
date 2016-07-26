@@ -319,8 +319,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
                         List<ByteBuffer> rowNames = wrap(rows);
 
-                        ColumnParent colFam = new ColumnParent(internalTableName(tableRef));
-                        Map<ByteBuffer, List<ColumnOrSuperColumn>> results = multigetInternal(client, tableRef, rowNames, colFam, pred, readConsistency);
+                        Map<ByteBuffer, List<ColumnOrSuperColumn>> results = multigetInternal(client, tableRef, rowNames, pred, readConsistency);
                         Map<Cell, Value> ret = Maps.newHashMap();
                         new ValueExtractor(ret).extractResults(results, startTs, ColumnSelection.all());
                         return ret;
@@ -482,8 +481,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                                     partition.size(), tableRef, loadAllTs ? "for all timestamps " : "", startTs, host);
                         }
 
-                        Map<ByteBuffer, List<ColumnOrSuperColumn>> results =
-                                multigetInternal(client, tableRef, rowNames, colFam, predicate, consistency);
+                        Map<ByteBuffer, List<ColumnOrSuperColumn>> results = multigetInternal(client, tableRef, rowNames, predicate, consistency);
                         v.visit(results);
                         return null;
                     }
@@ -599,8 +597,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     SlicePredicate pred = new SlicePredicate();
                     pred.setSlice_range(slice);
 
-                    ColumnParent colFam = new ColumnParent(internalTableName(tableRef));
-                    Map<ByteBuffer, List<ColumnOrSuperColumn>> results = multigetInternal(client, tableRef, wrap(rows), colFam, pred, readConsistency);
+                    Map<ByteBuffer, List<ColumnOrSuperColumn>> results = multigetInternal(client, tableRef, wrap(rows), pred, readConsistency);
 
                     RowColumnRangeExtractor extractor = new RowColumnRangeExtractor();
                     extractor.extractResults(results, startTs);
@@ -647,9 +644,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
                         ByteBuffer rowByteBuffer = ByteBuffer.wrap(row);
 
-                        ColumnParent colFam = new ColumnParent(internalTableName(tableRef));
-                        Map<ByteBuffer, List<ColumnOrSuperColumn>> results = multigetInternal(client, tableRef,
-                                ImmutableList.of(rowByteBuffer), colFam, pred, readConsistency);
+                        Map<ByteBuffer, List<ColumnOrSuperColumn>> results = multigetInternal(client, tableRef, ImmutableList.of(rowByteBuffer), pred, readConsistency);
 
                         if (results.isEmpty()) {
                             return SimpleTokenBackedResultsPage.create(startCol, ImmutableList.<Entry<Cell, Value>>of(), false);
@@ -960,11 +955,11 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     private Map<ByteBuffer, List<ColumnOrSuperColumn>> multigetInternal(Client client,
                                                                         TableReference tableRef,
                                                                         List<ByteBuffer> rowNames,
-                                                                        ColumnParent colFam,
                                                                         SlicePredicate pred,
-                                                                        ConsistencyLevel consistency) throws TException {
+                                                                        ConsistencyLevel consistencyLevel) throws TException {
+        ColumnParent colFam = new ColumnParent(internalTableName(tableRef));
         return run(client, tableRef,
-                () -> client.multiget_slice(rowNames, colFam, pred, consistency));
+                () -> client.multiget_slice(rowNames, colFam, pred, consistencyLevel));
     }
 
     @Override
