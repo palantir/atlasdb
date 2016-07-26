@@ -26,6 +26,81 @@ Changelog
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
+v0.11.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |changed|
+         - Clarified the logging when multiple timestamp servers are running to state that CLIs could be causing the issue.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/719>`__)
+
+    *    - |changed|
+         - Updated our cassandra client from 2.2.1 to 2.2.7 (this corresponds to a bump of our cassandra docker testing version from 2.2.6 to 2.2.7).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/699>`__)
+
+    *    - |fixed|
+         - The Leader config now contains a new "lockCreator" option. Full details for configuring this are in `the cassandra configuration docs <https://palantir.github.io/atlasdb/html/configuration/cassandra_KVS_configuration.html>`__
+           This field helps us to determine a single node to create the necessary locks table for performing schema mutations without corruption. This safety will still be in place if you have no leader block.
+           Changing your config to explicitly use this option is advised, but it is backwards compatible with old configurations. Please see `the cassandra configuration docs <https://palantir.github.io/atlasdb/html/configuration/cassandra_KVS_configuration.html>`__
+           for details on how this works.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/594>`__)
+
+    *    - |fixed|
+         - A utility method was removed in the previous release, breaking an internal product that relied on it. This method has now been added back.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/661>`__)
+
+    *    - |fixed|
+         - Remove unnecessary error message for missing _timestamp metadata table.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/716>`__)
+
+    *    - |improved|
+         - Trace logging for cassandra is now used in more places. To enable trace logging for Cassandra, add the following line to your log.properties: ``log4j.logger.com.palantir.atlasdb.keyvalue.cassandra=TRACE``
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/700>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.10.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |changed|
+         - Updated HikariCP dependency from 2.4.3 to 2.4.7 to comply with updates in internal products.
+           Details of the HikariCP changes can be found `here <https://github.com/brettwooldridge/HikariCP/blob/dev/CHANGES>`__.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/662>`__)
+
+    *    - |new|
+         - AtlasDB currently allows you to create dynamic columns (wide rows), but you can only retrieve entire rows or specific columns.
+           Typically with dynamic columns, you do not know all the columns you have in advance, and this features allows you to page through dynamic columns per row, reducing pressure on the underlying KVS.
+           Products or clients (such as AtlasDB Sweep) making use of wide rows should consider using ``getRowsColumnRange`` instead of ``getRows`` in ``KeyValueService``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/582>`__)
+
+           Note: This is considered a beta feature and is not yet being used by AtlasDB Sweep.
+
+    *    - |fixed|
+         - We properly check that cells are not set to empty (zero-byte) or null.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/663>`__)
+
+    *    - |improved|
+         - Cassandra client connection pooling will now evict idle connections over a longer period of time and has improved logic
+           for deciding whether or not a node should be blacklisted.  This should result in less connection churn
+           and therefore lower latency.  (`Pull Request <https://github.com/palantir/atlasdb/pull/667>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
 v0.9.0
 =======
 
@@ -37,7 +112,7 @@ v0.9.0
          - Change
 
     *    - |breaking|
-         - Inserting an empty (size = 0) value into a ``Cell`` will now throw an ``IllegalArgumentException``. (#156) Likely empty
+         - Inserting an empty (size = 0) value into a ``Cell`` will now throw an ``IllegalArgumentException``. (`#156 <https://github.com/palantir/atlasdb/issues/156>`__) Likely empty
            values include empty strings and empty protobufs.
 
            Atlas cannot currently distinguish between empty and deleted cells. In previous versions of Atlas, inserting
@@ -62,9 +137,21 @@ v0.9.0
            If any code deletes cells by calling ``Transaction.put(...)`` with an empty array, use
            ``Transaction.delete(...)`` instead.
 
+           *Note*: Existing cells with empty values will be interpreted as deleted cells, and will not lead to Exceptions when read.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/524>`__)
+
     *    - |improved|
          - The warning emitted when an attempted leadership election fails is now more descriptive.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/630>`__)
+
+    *    - |fixed|
+         - Code generation for the ``hashCode`` of ``*IdxColumn`` classes now uses ``deepHashCode`` for its arrays such that it returns
+           consistent hash codes for use with hash-based collections (HashMap, HashSet, HashTable).
+           This issue will only appear if you are instantiating columns in multiple places and storing columns in hash collections.
+
+           If you are using `Indices <https://palantir.github.io/atlasdb/html/schemas/tables_and_indices.html#indices>`__ we recommend you upgrade as a precaution and ensure you are not relying on logic related to the ``hashCode`` of auto-generated ``*IdxColumn`` classes.
+           You will need to regenerate your schema code in order to see this fix.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/600>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

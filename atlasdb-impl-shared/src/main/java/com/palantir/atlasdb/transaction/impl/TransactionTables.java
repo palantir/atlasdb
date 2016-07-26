@@ -25,4 +25,8 @@ public class TransactionTables {
     public static void deleteTables(KeyValueService keyValueService) {
         keyValueService.dropTable(TransactionConstants.TRANSACTION_TABLE);
     }
+
+    public static void truncateTables(KeyValueService keyValueService) {
+        keyValueService.truncateTable(TransactionConstants.TRANSACTION_TABLE);
+    }
 }

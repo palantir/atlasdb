@@ -24,6 +24,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import org.slf4j.LoggerFactory;
+
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
@@ -31,6 +33,7 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
+import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ExpiringKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
@@ -45,18 +48,19 @@ import com.palantir.common.collect.Maps2;
 
 public class CassandraExpiringKeyValueService extends CassandraKeyValueService implements ExpiringKeyValueService{
 
-    public static CassandraExpiringKeyValueService create(CassandraKeyValueServiceConfigManager configManager) {
+    public static CassandraExpiringKeyValueService create(CassandraKeyValueServiceConfigManager configManager, Optional<LeaderConfig> leaderConfig) {
         Preconditions.checkState(!configManager.getConfig().servers().isEmpty(), "address list was empty");
 
         Optional<CassandraJmxCompactionManager> compactionManager = CassandraJmxCompaction.createJmxCompactionManager(configManager);
-        CassandraExpiringKeyValueService kvs = new CassandraExpiringKeyValueService(configManager, compactionManager);
+        CassandraExpiringKeyValueService kvs = new CassandraExpiringKeyValueService(configManager, compactionManager, leaderConfig);
         kvs.init();
         return kvs;
     }
 
     protected CassandraExpiringKeyValueService(CassandraKeyValueServiceConfigManager configManager,
-                                               Optional<CassandraJmxCompactionManager> compactionManager) {
-        super(configManager, compactionManager);
+                                               Optional<CassandraJmxCompactionManager> compactionManager,
+                                               Optional<LeaderConfig> leaderConfig) {
+        super(LoggerFactory.getLogger(CassandraKeyValueService.class), configManager, compactionManager, leaderConfig);
     }
 
     @Override

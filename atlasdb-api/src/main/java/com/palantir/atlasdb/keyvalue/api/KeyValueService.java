@@ -100,6 +100,16 @@ public interface KeyValueService extends AutoCloseable {
                              @QueryParam("columnSelection") ColumnSelection columnSelection,
                              @QueryParam("timestamp") long timestamp);
 
+    @POST
+    @Path("get-rows-col-range")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Idempotent
+    Map<byte[], RowColumnRangeIterator> getRowsColumnRange(@QueryParam("tableRef") TableReference tableRef,
+                                                           Iterable<byte[]> rows,
+                                                           @QueryParam("columnRangeSelection") ColumnRangeSelection columnRangeSelection,
+                                                           @QueryParam("timestamp") long timestamp);
+
     /**
      * Gets values from the key-value store.
      *

@@ -1,5 +1,6 @@
 #!/usr/local/bin/python
 
+from __future__ import print_function
 import requests
 import json
 import base64
@@ -20,10 +21,16 @@ githubUrl = protocol + domain + baseUrl
 repoUrl = githubUrl + 'repos/'
 auth = (sys.argv[2], sys.argv[3])
 
+def eprint(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
+
 def getAtlasVersion(res):
     jsonRes = json.loads(res.text)
     decodedContent = base64.b64decode(jsonRes['content'])
     match = re.search('atlasVersion|atlasDbVersion', decodedContent)
+    if match == None:
+        eprint("Couldn't find version in <" + decodedContent + ">")
+        return "No AtlasDB version found"
     return decodedContent[match.start():].splitlines()[0]
 
 def requestFile(repo, tag, filePath):
@@ -57,5 +64,3 @@ for productInfo in products:
     for release in getReleases(productInfo):
         versionFile = requestFile(productInfo, release['tag_name'], 'gradle.properties')
         print(productInfo + ':' + release['tag_name'] + ':' + getAtlasVersion(versionFile))
-        
-    

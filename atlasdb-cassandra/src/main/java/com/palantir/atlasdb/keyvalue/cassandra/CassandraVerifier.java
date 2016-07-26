@@ -29,6 +29,7 @@ import org.apache.cassandra.thrift.InvalidRequestException;
 import org.apache.cassandra.thrift.KsDef;
 import org.apache.cassandra.thrift.SchemaDisagreementException;
 import org.apache.cassandra.thrift.TokenRange;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.Validate;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
@@ -153,12 +154,23 @@ public class CassandraVerifier {
                     KsDef ks = new KsDef(config.keyspace(), CassandraConstants.NETWORK_STRATEGY, ImmutableList.<CfDef>of());
                     CassandraVerifier.checkAndSetReplicationFactor(client, ks, true, config.replicationFactor(), config.safetyDisabled());
                     ks.setDurable_writes(true);
+                    log.info("Creating keyspace: {}", config.keyspace());
                     client.system_add_keyspace(ks);
                     CassandraKeyValueServices.waitForSchemaVersions(client, "(adding the initial empty keyspace)", config.schemaMutationTimeoutMillis());
 
                     // if we got this far, we're done, no need to continue on other hosts
                     someHostWasAbleToCreateTheKeyspace = true;
                     break;
+                } catch (InvalidRequestException ire) {
+                    if (attemptedToCreateKeyspaceTwice(ire)) {
+                        log.info("Attempted to create keyspace {} on multiple hosts at once", config.keyspace());
+
+                        // if we got this far, we're done, no need to continue on other hosts
+                        someHostWasAbleToCreateTheKeyspace = true;
+                        break;
+                    } else {
+                        throw ire;
+                    }
                 } catch (Exception f) {
                     log.error("Couldn't use host {} to create keyspace, it returned exception \"{}\" during the attempt.", host, f.toString(), f);
                 }
@@ -169,6 +181,17 @@ public class CassandraVerifier {
                 throw new TException("No host tried was able to create the keyspace requested.");
             }
         }
+    }
+
+    private static boolean attemptedToCreateKeyspaceTwice(InvalidRequestException e) {
+        String exceptionString = e.toString();
+        if (exceptionString.contains("case-insensitively unique")) {
+            String[] keyspaceNames = StringUtils.substringsBetween(exceptionString , "\"", "\"");
+            if (keyspaceNames.length == 2 && keyspaceNames[0].equals(keyspaceNames[1])) {
+                return true;
+            }
+        }
+        return false;
     }
 
     static void checkAndSetReplicationFactor(Cassandra.Client client, KsDef ks, boolean freshInstance, int desiredRf, boolean safetyDisabled)

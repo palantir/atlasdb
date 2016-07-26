@@ -21,11 +21,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NoSuchElementException;
 import java.util.TreeMap;
 
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.cassandra.thrift.TokenRange;
+import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.transport.TTransportException;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -63,7 +65,8 @@ public class CassandraClientPoolTest {
                                 .fetchBatchCount(1000)
                                 .safetyDisabled(true)
                                 .autoRefreshNodes(true)
-                                .build()));
+                                .build()),
+                CassandraTestSuite.LEADER_CONFIG);
         kv.initializeFromFreshInstance();
         kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
     }
@@ -72,7 +75,6 @@ public class CassandraClientPoolTest {
     public void tearDown() {
         kv.teardown();
     }
-
 
     // This is a dumb test in the current test suite that has just one local Cassandra node.
     // Pretty legit test if run manually or if we go back to multi-node tests
@@ -132,6 +134,13 @@ public class CassandraClientPoolTest {
         Assert.assertTrue(CassandraClientPool.isRetriableException(new TimedOutException()));
         Assert.assertTrue(CassandraClientPool.isRetriableException(new TTransportException()));
         Assert.assertTrue(CassandraClientPool.isRetriableException(new TTransportException(new SocketTimeoutException())));
+    }
+
+    @Test
+    public void testIsRetriableWithBackoffException() {
+        Assert.assertTrue(CassandraClientPool.isRetriableWithBackoffException(new NoSuchElementException()));
+        Assert.assertTrue(CassandraClientPool.isRetriableWithBackoffException(new UnavailableException()));
+        Assert.assertTrue(CassandraClientPool.isRetriableWithBackoffException(new TTransportException(new UnavailableException())));
     }
 
     @Test

@@ -15,11 +15,14 @@ dependencies {
     compile project(':lock-impl')
     compile project(':leader-election-impl')
     compile project(':atlasdb-config')
+    compile project(':atlasdb-dropwizard-bundle')
     compile project(':atlasdb-hikari')
     compile project(':atlasdb-rocksdb')
 
     compile "io.dropwizard:dropwizard-core:" + libVersions.dropwizard
     compile 'com.google.dagger:dagger:2.0.2'
+
+    runtime project(':atlasdb-dbkvs')
 
     runtime(project(':atlasdb-cassandra')) {
         exclude(module:'log4j-over-slf4j')
@@ -32,11 +35,13 @@ dependencies {
         exclude(module:'snakeyaml')
         exclude(module:'hibernate-validator')
         exclude(module:'libthrift')
+        exclude(module:'commons-cli')
+        exclude(module:'jna')
     }
 
     compile 'org.apache.thrift:libthrift:' + libVersions.libthrift
 
-    processor 'org.immutables:value:2.0.21'
+    processor 'org.immutables:value:' + libVersions.immutables
     processor('com.google.dagger:dagger-compiler:2.0.2') {
         // We need to explicitly exclude these so that intellij does not label them as provided
         if(gradle.startParameter.taskNames.contains('idea')) {

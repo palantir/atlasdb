@@ -19,20 +19,28 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
+import java.util.SortedMap;
 import java.util.concurrent.ExecutorService;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
+import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
+import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
@@ -41,6 +49,7 @@ import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.BlockingWorkerPool;
+import com.palantir.util.crypto.Sha256Hash;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
@@ -145,5 +154,46 @@ public class KeyValueServices {
                 return Maps.immutableEntry(entry.getKey(), Value.create(entry.getValue(), timestamp));
             }
         });
+    }
+
+    // TODO: kill this when we can properly implement this on all KVSes
+    public static Map<byte[], RowColumnRangeIterator> filterGetRowsToColumnRange(KeyValueService kvs, TableReference tableRef, Iterable<byte[]> rows, ColumnRangeSelection columnRangeSelection, long timestamp) {
+        log.warn("Using inefficient postfiltering for getRowsColumnRange because the KVS doesn't support it natively. Production " +
+                "environments should use a KVS with a proper implementation.");
+        Map<Cell, Value> allValues = kvs.getRows(tableRef, rows, ColumnSelection.all(), timestamp);
+        Map<Sha256Hash, byte[]> hashesToBytes = Maps.newHashMap();
+        Map<Sha256Hash, ImmutableSortedMap.Builder<byte[], Value>> rowsToColumns = Maps.newHashMap();
+
+        for (byte[] row : rows) {
+            Sha256Hash rowHash = Sha256Hash.computeHash(row);
+            hashesToBytes.put(rowHash, row);
+            ImmutableSortedMap.Builder<byte[], Value> builder =
+                    ImmutableSortedMap.<byte[], Value>orderedBy(UnsignedBytes.lexicographicalComparator());
+            rowsToColumns.put(rowHash, builder);
+        }
+        for (Map.Entry<Cell, Value> e : allValues.entrySet()) {
+            Sha256Hash rowHash = Sha256Hash.computeHash(e.getKey().getRowName());
+            rowsToColumns.get(rowHash).put(e.getKey().getColumnName(), e.getValue());
+        }
+
+        Map<byte[], RowColumnRangeIterator> results = Maps.newHashMap();
+        for (Map.Entry<Sha256Hash, ImmutableSortedMap.Builder<byte[], Value>> row : rowsToColumns.entrySet()) {
+            SortedMap<byte[], Value> map = row.getValue().build();
+            Set<Map.Entry<byte[], Value>> subMap;
+            if ((columnRangeSelection.getStartCol().length == 0) && (columnRangeSelection.getEndCol().length == 0)) {
+                subMap = map.entrySet();
+            } else if (columnRangeSelection.getStartCol().length == 0) {
+                subMap = map.headMap(columnRangeSelection.getEndCol()).entrySet();
+            } else if (columnRangeSelection.getEndCol().length == 0) {
+                subMap = map.tailMap(columnRangeSelection.getStartCol()).entrySet();
+            } else {
+                subMap = map.subMap(columnRangeSelection.getStartCol(), columnRangeSelection.getEndCol()).entrySet();
+            }
+            byte[] rowName = hashesToBytes.get(row.getKey());
+            results.put(hashesToBytes.get(row.getKey()),
+                    new LocalRowColumnRangeIterator(Iterators.transform(subMap.iterator(), e ->
+                            Pair.<Cell, Value>of(Cell.create(rowName, e.getKey()), e.getValue()))));
+        }
+        return results;
     }
 }

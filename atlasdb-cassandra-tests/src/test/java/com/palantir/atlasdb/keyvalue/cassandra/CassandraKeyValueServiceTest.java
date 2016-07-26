@@ -16,29 +16,70 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.util.Set;
+import static org.mockito.Matchers.startsWith;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import org.apache.thrift.TException;
+import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
+import org.slf4j.Logger;
 
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.AbstractAtlasDbKeyValueServiceTest;
 
-public class CassandraKeyValueServiceTest {
-
+public class CassandraKeyValueServiceTest extends AbstractAtlasDbKeyValueServiceTest {
     private KeyValueService keyValueService;
+    private ExecutorService executorService;
+    private Logger logger = mock(Logger.class);
 
     @Before
     public void setupKVS() {
-        keyValueService = CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.CASSANDRA_KVS_CONFIG));
+        keyValueService = getKeyValueService();
+        executorService = Executors.newFixedThreadPool(4);
+    }
+
+    @After
+    public void cleanUp() {
+        executorService.shutdown();
+    }
+
+    @Override
+    protected KeyValueService getKeyValueService() {
+        return CassandraKeyValueService.create(
+                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.CASSANDRA_KVS_CONFIG), CassandraTestSuite.LEADER_CONFIG, logger);
+    }
+
+    @Override
+    protected boolean reverseRangesSupported() {
+        return false;
+    }
+
+    @Override
+    @Ignore
+    public void testGetRangeWithHistory() {
+        //
+    }
+
+    @Override
+    @Ignore
+    public void testGetAllTableNames() {
+        //
     }
 
     @Test
-    public void testCreateTableCaseInsensitive() {
+    public void testCreateTableCaseInsensitive() throws TException {
         TableReference table1 = TableReference.createFromFullyQualifiedName("ns.tAbLe");
         TableReference table2 = TableReference.createFromFullyQualifiedName("ns.table");
         TableReference table3 = TableReference.createFromFullyQualifiedName("ns.TABle");
@@ -51,4 +92,8 @@ public class CassandraKeyValueServiceTest {
         Preconditions.checkArgument(!allTables.contains(table3));
     }
 
+    @Test
+    public void shouldNotErrorForTimestampTableWhenCreatingCassandraKVS() throws Exception {
+        verify(logger, never()).error(startsWith("Found a table " + AtlasDbConstants.TIMESTAMP_TABLE));
+    }
 }

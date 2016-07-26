@@ -10,3 +10,5 @@ atlasdb:
       dbName: test
       dbLogin: test
       dbPassword: test
+      connectionTimeoutSeconds: 5
+      socketTimeoutSeconds: 30

@@ -31,16 +31,10 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.cassandra.thrift.Cassandra;
-import org.apache.cassandra.thrift.Cassandra.Client;
-import org.apache.cassandra.thrift.CfDef;
-import org.apache.cassandra.thrift.InvalidRequestException;
-import org.apache.cassandra.thrift.KsDef;
 import org.apache.cassandra.thrift.NotFoundException;
-import org.apache.cassandra.thrift.SchemaDisagreementException;
 import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.cassandra.thrift.TokenRange;
 import org.apache.cassandra.thrift.UnavailableException;
-import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -292,7 +286,7 @@ public class CassandraClientPool {
         }
 
         Map<InetSocketAddress, Exception> completelyUnresponsiveHosts = Maps.newHashMap(), aliveButInvalidPartitionerHosts = Maps.newHashMap();
-        boolean thisHostResponded, atLeastOneHostResponded = false, atLeastOneHostSaidWeHaveALockTable = false;
+        boolean thisHostResponded, atLeastOneHostResponded = false;
         for (InetSocketAddress host : currentPools.keySet()) {
             thisHostResponded = false;
             try {
@@ -304,19 +298,11 @@ public class CassandraClientPool {
                 addToBlacklist(host);
             }
 
-
             if (thisHostResponded) {
                 try {
                     runOnHost(host, validatePartitioner);
                 } catch (Exception e) {
                     aliveButInvalidPartitionerHosts.put(host, e);
-                }
-
-                try {
-                    runOnHost(host, createInternalLockTable);
-                    atLeastOneHostSaidWeHaveALockTable = true;
-                } catch (Exception e) {
-                    // don't fail here, want to give the user all the errors at once at the end
                 }
             }
         }
@@ -334,7 +320,7 @@ public class CassandraClientPool {
                     errorBuilderForEntireCluster.append(String.format("\tHost: %s was marked as invalid partitioner via exception: %s%n", host.toString(), exception.toString())));
         }
 
-        if (atLeastOneHostResponded && atLeastOneHostSaidWeHaveALockTable && aliveButInvalidPartitionerHosts.size() == 0) {
+        if (atLeastOneHostResponded && aliveButInvalidPartitionerHosts.size() == 0) {
             return;
         } else {
             throw new RuntimeException(errorBuilderForEntireCluster.toString());
@@ -348,27 +334,6 @@ public class CassandraClientPool {
             return tableName;
         }
         return tableName.replaceFirst("\\.", "__");
-    }
-
-    // for tables internal / implementation specific to this KVS; these also don't get metadata in metadata table, nor do they show up in getTablenames, nor does this use concurrency control
-    private void createTableInternal(Client client, TableReference tableRef) throws InvalidRequestException, SchemaDisagreementException, TException, NotFoundException {
-        if (tableAlreadyExists(client, internalTableName(tableRef))) {
-            return;
-        }
-        CfDef cf = CassandraConstants.getStandardCfDef(config.keyspace(), internalTableName(tableRef));
-        client.system_add_column_family(cf);
-        CassandraKeyValueServices.waitForSchemaVersions(client, tableRef.getQualifiedName(), config.schemaMutationTimeoutMillis());
-        return;
-    }
-
-    private boolean tableAlreadyExists(Client client, String caseInsensitiveTableName) throws TException {
-        KsDef ks = client.describe_keyspace(config.keyspace());
-        for (CfDef cf : ks.getCf_defs()) {
-            if (cf.getName().equalsIgnoreCase(caseInsensitiveTableName)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private void refreshTokenRanges() {
@@ -419,11 +384,12 @@ public class CassandraClientPool {
 
     public <V, K extends Exception> V runWithRetryOnHost(InetSocketAddress specifiedHost, FunctionCheckedException<Cassandra.Client, V, K> f) throws K {
         int numTries = 0;
+        boolean shouldRetryOnDifferentHost = false;
         while (true) {
             CassandraClientPoolingContainer hostPool = currentPools.get(specifiedHost);
 
-            if (blacklistedHosts.containsKey(specifiedHost) || hostPool == null) {
-                log.warn("Randomly redirected a query intended for host {} because it was not currently a live member of the pool.", specifiedHost);
+            if (blacklistedHosts.containsKey(specifiedHost) || hostPool == null || shouldRetryOnDifferentHost) {
+                log.warn("Randomly redirected a query intended for host {}.", specifiedHost);
                 hostPool = getRandomGoodHost();
             }
 
@@ -432,6 +398,17 @@ public class CassandraClientPool {
             } catch (Exception e) {
                 numTries++;
                 this.<K>handleException(numTries, hostPool.getHost(), e);
+                if (isRetriableWithBackoffException(e)) {
+                    log.warn("Retrying with backoff a query intended for host {}.", hostPool.getHost(), e);
+                    try {
+                        Thread.sleep(numTries * 1000);
+                    } catch (InterruptedException i) {
+                        throw new RuntimeException(i);
+                    }
+                    if (numTries >= MAX_TRIES_SAME_HOST) {
+                        shouldRetryOnDifferentHost = true;
+                    }
+                }
             }
         }
     }
@@ -448,7 +425,7 @@ public class CassandraClientPool {
 
         @SuppressWarnings("unchecked")
     private <K extends Exception> void handleException(int numTries, InetSocketAddress host, Exception e) throws K {
-        if (isRetriableException(e)) {
+        if (isRetriableException(e) || isRetriableWithBackoffException(e)) {
             if (numTries >= MAX_TRIES_TOTAL) {
                 if (e instanceof TTransportException
                         && e.getCause() != null
@@ -535,8 +512,6 @@ public class CassandraClientPool {
         return t != null
                 && (t instanceof SocketTimeoutException
                 || t instanceof ClientCreationFailedException
-                || t instanceof UnavailableException
-                || t instanceof NoSuchElementException
                 || isConnectionException(t.getCause()));
     }
 
@@ -550,18 +525,18 @@ public class CassandraClientPool {
                 || isRetriableException(t.getCause()));
     }
 
+    @VisibleForTesting
+    static boolean isRetriableWithBackoffException(Throwable t) {
+        return t != null
+                && (t instanceof NoSuchElementException // pool for this node is fully in use
+                || t instanceof UnavailableException // remote cassandra node couldn't talk to enough other remote cassandra nodes to answer
+                || isRetriableWithBackoffException(t.getCause()));
+    }
+
     final FunctionCheckedException<Cassandra.Client, Void, Exception> validatePartitioner = new FunctionCheckedException<Cassandra.Client, Void, Exception>() {
         @Override
         public Void apply(Cassandra.Client client) throws Exception {
             CassandraVerifier.validatePartitioner(client, config);
-            return null;
-        }
-    };
-
-    final FunctionCheckedException<Cassandra.Client, Void, Exception> createInternalLockTable = new FunctionCheckedException<Cassandra.Client, Void, Exception>() {
-        @Override
-        public Void apply(Cassandra.Client client) throws Exception {
-            createTableInternal(client, CassandraConstants.LOCK_TABLE);
             return null;
         }
     };

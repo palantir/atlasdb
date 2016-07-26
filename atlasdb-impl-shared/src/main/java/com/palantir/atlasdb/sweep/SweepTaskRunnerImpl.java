@@ -27,10 +27,13 @@ import org.apache.commons.lang.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
@@ -40,6 +43,7 @@ import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Follower;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -68,7 +72,7 @@ import com.palantir.common.base.ClosableIterators;
  */
 public class SweepTaskRunnerImpl implements SweepTaskRunner {
     private static final Logger log = LoggerFactory.getLogger(SweepTaskRunnerImpl.class);
-    private static final Set<Long> invalidTimestamps = ImmutableSet.of(Value.INVALID_VALUE_TIMESTAMP);
+    private static final Set<Long> INVALID_TIMESTAMPS = ImmutableSet.of(Value.INVALID_VALUE_TIMESTAMP);
 
     private final TransactionManager txManager;
     private final KeyValueService keyValueService;
@@ -123,24 +127,19 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
         // (1) force old readers to abort (if they read a garbage collection sentinel), or
         // (2) force old writers to retry (note that we must roll back any uncommitted transactions that
         //     we encounter
-        SweepStrategy sweepStrategy = sweepStrategyManager.get().get(tableRef);
-        if (sweepStrategy == null) {
-            sweepStrategy = SweepStrategy.CONSERVATIVE;
-        } else if (sweepStrategy == SweepStrategy.NOTHING) {
+        SweepStrategy sweepStrategy = MoreObjects.firstNonNull(sweepStrategyManager.get().get(tableRef), SweepStrategy.CONSERVATIVE);
+        if (sweepStrategy == SweepStrategy.NOTHING) {
             // This sweep strategy makes transaction table truncation impossible
             return SweepResults.createEmptySweepResult(0L);
         }
-        if (startRow == null) {
-            startRow = new byte[0];
-        }
+
+        startRow = MoreObjects.firstNonNull(startRow, PtBytes.EMPTY_BYTE_ARRAY);
         RangeRequest rangeRequest = RangeRequest.builder().startRowInclusive(startRow).batchHint(batchSize).build();
 
         long sweepTimestamp = getSweepTimestamp(sweepStrategy);
 
-        ClosableIterator<RowResult<Value>> valueResults;
-        if (sweepStrategy == SweepStrategy.CONSERVATIVE) {
-            valueResults = ClosableIterators.wrap(ImmutableList.<RowResult<Value>>of().iterator());
-        } else {
+        ClosableIterator<RowResult<Value>> valueResults = ClosableIterators.emptyImmutableClosableIterator();
+        if (sweepStrategy == SweepStrategy.THOROUGH) {
             valueResults = keyValueService.getRange(tableRef, rangeRequest, sweepTimestamp);
         }
 
@@ -172,19 +171,20 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
         }
     }
 
-    private Multimap<Cell, Long> getTimestampsFromRowResults(List<RowResult<Set<Long>>> cellsToSweep,
+    @VisibleForTesting
+    static Multimap<Cell, Long> getTimestampsFromRowResults(List<RowResult<Set<Long>>> cellsToSweep,
                                                              SweepStrategy sweepStrategy) {
-        Multimap<Cell, Long> cellTsMappings = HashMultimap.create();
+        ImmutableMultimap.Builder<Cell, Long> cellTsMappings = ImmutableMultimap.builder();
         for (RowResult<Set<Long>> rowResult : cellsToSweep) {
             for (Map.Entry<Cell, Set<Long>> entry : rowResult.getCells()) {
                 if (sweepStrategy == SweepStrategy.CONSERVATIVE) {
-                    cellTsMappings.putAll(entry.getKey(), Sets.difference(entry.getValue(), invalidTimestamps));
+                    cellTsMappings.putAll(entry.getKey(), Sets.difference(entry.getValue(), INVALID_TIMESTAMPS));
                 } else {
                     cellTsMappings.putAll(entry.getKey(), entry.getValue());
                 }
             }
         }
-        return cellTsMappings;
+        return cellTsMappings.build();
     }
 
     private Multimap<Cell, Long> getCellTsPairsToSweep(Multimap<Cell, Long> cellTsMappings,
@@ -297,9 +297,11 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
         return commitTs;
     }
 
-    private void sweepCells(TableReference tableRef,
-                            Multimap<Cell, Long> cellTsPairsToSweep,
-                            Set<Cell> sentinelsToAdd) {
+    @VisibleForTesting
+    void sweepCells(
+            TableReference tableRef,
+            Multimap<Cell, Long> cellTsPairsToSweep,
+            Set<Cell> sentinelsToAdd) {
         if (cellTsPairsToSweep.isEmpty()) {
             return;
         }

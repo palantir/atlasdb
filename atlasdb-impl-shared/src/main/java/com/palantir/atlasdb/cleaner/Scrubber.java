@@ -192,7 +192,7 @@ public final class Scrubber {
                         runBackgroundScrubTask(txManager);
 
                         long sleepDuration = backgroundScrubFrequencyMillisSupplier.get();
-                        log.info(String.format("Sleeping %d millis until next execution of scrub task", sleepDuration));
+                        log.info("Sleeping {} millis until next execution of scrub task", sleepDuration);
                         Thread.sleep(sleepDuration);
                     } catch (InterruptedException e) {
                         if (service.isShutdown()) {

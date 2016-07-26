@@ -27,6 +27,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.regex.Pattern;
 
+import javax.annotation.concurrent.GuardedBy;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.Validate;
 
@@ -42,14 +44,23 @@ import com.palantir.util.TextUtils;
 public class SQLString extends BasicSQLString {
     private static final Pattern ALL_WORD_CHARS_REGEX = Pattern.compile("^[a-zA-Z_0-9\\.\\-]*$"); //$NON-NLS-1$
 
+    /**
+     * Callers changing the value of cachedUnregistered and
+     * cachedKeyed should be synchronized on this lock. Readers
+     * do not need to - the values of those maps are not guaranteed
+     * to be in sync with each other.
+     */
+    private static final Object cacheLock = new Object();
     //TODO (DCohen): Combine cachedKeyed and cachedUnregistered maps into one.
     /**
      * Rewritten unregistered queries.
      * Key: String with all whitespace removed
      * Value: the new SQLString to run instead.
      */
+    @GuardedBy("cacheLock")
     protected static volatile ImmutableMap<String, FinalSQLString> cachedUnregistered = ImmutableMap.of();
     /** Rewritten registered queries */
+    @GuardedBy("cacheLock")
     protected static volatile ImmutableMap<String, FinalSQLString> cachedKeyed = ImmutableMap.of();
     /** All registered queries */
     protected static final ConcurrentMap<String, FinalSQLString> registeredValues = new ConcurrentHashMap<String, FinalSQLString>();
@@ -65,6 +76,20 @@ public class SQLString extends BasicSQLString {
         public void noteUse(SQLString used) {
            //do nothing
         }};
+
+    protected static interface CallableCheckedException<T, E extends Exception> {
+        T call() throws E;
+    }
+
+    /**
+     * Runs the provided callable while holding the lock for the override caches.
+     * Callers replacing the caches should hold this lock.
+     */
+    protected static <T, E extends Exception> T runWithCacheLock(CallableCheckedException<T, E> callable) throws E {
+        synchronized (cacheLock) {
+            return callable.call();
+        }
+    }
 
     /**
      * Call this function to store a query to be used later with the given key.

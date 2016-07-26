@@ -129,8 +129,9 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
         }
         if (!result.isSuccess()) {
             String msg = "Timestamp limit changed underneath us (limit in memory: " + currentLimit
-                    + "). This may indicate that "
-                    + "another timestamp service is running against this cassandra keyspace!";
+                    + "). This may indicate that another timestamp service is running against this cassandra keyspace. "
+                    + "This is likely caused by multiple copies of a service running without a configured set of leaders "
+                    + "or a CLI being run with an embedded timestamp service against an already running service.";
             MultipleRunningTimestampServiceError e = new MultipleRunningTimestampServiceError(msg);
             log.error(msg, e);
             lastWriteException = e;
