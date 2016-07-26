@@ -101,15 +101,11 @@ public class KvsGetDynamicBenchmarks {
 
 
     @Benchmark
-    public void getFirstColumn() {
+    public void getFirstColumnExplicitly() {
         Map<Cell, Value> result = kvs.get(tableRef1, ImmutableMap.of(allCells.iterator().next(), READ_TIMESTAMP));
         Validate.isTrue(result.size() == 1, "Should be 1 result: " + result.size());
         int resultValue = Ints.fromByteArray(Iterables.getOnlyElement(result.values()).getContents());
         Validate.isTrue(0 == resultValue, "Should be 0: " + resultValue);
     }
-
-    // Get one page
-    // Page through all columns
-
 
 }
