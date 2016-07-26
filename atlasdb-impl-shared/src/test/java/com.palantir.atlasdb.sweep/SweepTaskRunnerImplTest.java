@@ -229,7 +229,7 @@ public class SweepTaskRunnerImplTest {
                 Iterators.peekingIterator(ClosableIterators.emptyImmutableClosableIterator()),
                 HIGH_START_TS,
                 conservativeStrategySweeper);
-        Multimap<Cell, Long> timestampsToSweep = sweepCellsAndSentinels.getStartTimestampsToSweepPerCell();
+        Multimap<Cell, Long> timestampsToSweep = sweepCellsAndSentinels.startTimestampsToSweepPerCell();
         MatcherAssert.assertThat(timestampsToSweep.get(SINGLE_CELL), contains(LOW_START_TS));
     }
 
@@ -243,7 +243,7 @@ public class SweepTaskRunnerImplTest {
                 Iterators.peekingIterator(ClosableIterators.wrap(ImmutableList.of(rowResult).iterator())),
                 HIGH_START_TS,
                 thoroughStrategySweeper);
-        Multimap<Cell, Long> timestampsToSweep = sweepCellsAndSentinels.getStartTimestampsToSweepPerCell();
+        Multimap<Cell, Long> timestampsToSweep = sweepCellsAndSentinels.startTimestampsToSweepPerCell();
         MatcherAssert.assertThat(timestampsToSweep.get(SINGLE_CELL), contains(LOW_START_TS));
     }
 
@@ -255,7 +255,7 @@ public class SweepTaskRunnerImplTest {
                 sweepTimestamp,
                 conservativeStrategySweeper);
 
-        return sweepCellsAndSentinels.getStartTimestampsToSweepPerCell();
+        return sweepCellsAndSentinels.startTimestampsToSweepPerCell();
     }
 
     private Multimap<Cell, Long> twoCommittedTimestampsForSingleCell() {
@@ -273,6 +273,6 @@ public class SweepTaskRunnerImplTest {
                 Iterators.peekingIterator(ClosableIterators.emptyImmutableClosableIterator()),
                 sweepTimestampHigherThanCommitTimestamp,
                 sweeper);
-        return sweepCellsAndSentinels.getSentinelsToAdd();
+        return sweepCellsAndSentinels.sentinelsToAdd();
     }
 }
