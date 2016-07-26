@@ -100,6 +100,20 @@ public interface KeyValueService extends AutoCloseable {
                              @QueryParam("columnSelection") ColumnSelection columnSelection,
                              @QueryParam("timestamp") long timestamp);
 
+    /**
+     * Gets values from the key-value store for specific rows, given a column range.
+     *
+     * @param tableRef the name of the table to retrieve values from.
+     * @param rows set containing the rows to retrieve values for.
+     * @param columnRangeSelection specifies the range of columns to fetch.
+     * @param timestamp specifies the maximum timestamp (exclusive) at which to
+     *        retrieve each rows's value.
+     * @return map of retrieved values. Values which do not exist (either
+     *         because they were deleted or never created in the first place)
+     *         are simply not returned.
+     * @throws IllegalArgumentException if any of the requests were invalid
+     *         (e.g., attempting to retrieve values from a non-existent table).
+     */
     @POST
     @Path("get-rows-col-range")
     @Produces(MediaType.APPLICATION_JSON)
