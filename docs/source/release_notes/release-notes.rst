@@ -67,7 +67,9 @@ v0.11.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/700>`__)
 
     *    - |deprecated|
-         - The Cassandra KVS now supports specifying ssl options via configuration as opposed to via system property. The new ``sslConfiguration`` block takes precedence over the now deprecated ``ssl`` property. This is not a breaking change in that ``ssl`` is still supported. However, ``ssl`` will be removed in a future yet to be determined release. Consumers leveraging the C* KVS are encouraged to make the change now before the breaking change would affect them. See the `cassandra ssl configuration <https://palantir.github.io/atlasdb/html/configuration/cassandra_KVS_configuration.html#communicating-over-ssl>`__ docs for more details.
+         - The Cassandra KVS now supports specifying SSL options via the new ``sslConfiguration`` block, which takes precedence over the now deprecated ``ssl`` property. 
+           The ``ssl`` property will be removed in a future release, and consumers leveraging the Cassandra KVS are encouraged to use the ``sslConfiguration`` block instead. 
+           See the `Cassandra SSL Configuration <https://palantir.github.io/atlasdb/html/configuration/cassandra_KVS_configuration.html#communicating-over-ssl>`__ documentation for more details.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/638>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
