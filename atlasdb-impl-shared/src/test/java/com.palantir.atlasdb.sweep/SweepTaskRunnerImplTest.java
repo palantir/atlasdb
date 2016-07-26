@@ -65,6 +65,8 @@ public class SweepTaskRunnerImplTest {
             null,
             null,
             ImmutableList.of(mockFollower));
+    private final SweepStrategySweeper thoroughStrategySweeper = new ThoroughSweepStrategySweeper(mockKVS, mockImmutableTimestampSupplier);
+    private final SweepStrategySweeper conservativeStrategySweeper = new ConservativeSweepStrategySweeper(mockKVS, mockImmutableTimestampSupplier, mockUnreadableTimestampSupplier);
 
     @Test
     public void ensureCellSweepDeletesCells() {
@@ -104,14 +106,14 @@ public class SweepTaskRunnerImplTest {
 
     @Test
     public void getTimestampsFromEmptyRowResultsReturnsEmptyInThoroughSweep() {
-        Multimap<Cell, Long> actualTimestamps = SweepTaskRunnerImpl.getTimestampsFromRowResults(ImmutableList.of(), SweepStrategy.THOROUGH);
+        Multimap<Cell, Long> actualTimestamps = SweepTaskRunnerImpl.getTimestampsFromRowResults(ImmutableList.of(), thoroughStrategySweeper);
 
         assertThat(actualTimestamps).isEqualTo(ImmutableMultimap.of());
     }
 
     @Test
     public void getTimestampsFromEmptyRowResultsReturnsEmptyInConservativeSweep() {
-        Multimap<Cell, Long> actualTimestamps = SweepTaskRunnerImpl.getTimestampsFromRowResults(ImmutableList.of(), SweepStrategy.CONSERVATIVE);
+        Multimap<Cell, Long> actualTimestamps = SweepTaskRunnerImpl.getTimestampsFromRowResults(ImmutableList.of(), conservativeStrategySweeper);
 
         assertThat(actualTimestamps).isEqualTo(ImmutableMultimap.of());
     }
@@ -120,7 +122,7 @@ public class SweepTaskRunnerImplTest {
     public void invalidTimestampsAreFilteredOutWhenGettingTimestampsFromRowResultsInConservativeSweep() {
         List<RowResult<Set<Long>>> cellsToSweep = ImmutableList.of(RowResult.of(SINGLE_CELL, ImmutableSet.of(Value.INVALID_VALUE_TIMESTAMP)));
 
-        Multimap<Cell, Long> actualTimestamps = SweepTaskRunnerImpl.getTimestampsFromRowResults(cellsToSweep, SweepStrategy.CONSERVATIVE);
+        Multimap<Cell, Long> actualTimestamps = SweepTaskRunnerImpl.getTimestampsFromRowResults(cellsToSweep, conservativeStrategySweeper);
 
         assertThat(actualTimestamps).isEqualTo(ImmutableMultimap.of());
     }
@@ -130,7 +132,7 @@ public class SweepTaskRunnerImplTest {
         List<RowResult<Set<Long>>> cellsToSweep = ImmutableList.of(RowResult.of(SINGLE_CELL, ImmutableSet.of(Value.INVALID_VALUE_TIMESTAMP)));
         Multimap<Cell, Long> expectedTimestamps = ImmutableMultimap.of(SINGLE_CELL, Value.INVALID_VALUE_TIMESTAMP);
 
-        Multimap<Cell, Long> actualTimestamps = SweepTaskRunnerImpl.getTimestampsFromRowResults(cellsToSweep, SweepStrategy.THOROUGH);
+        Multimap<Cell, Long> actualTimestamps = SweepTaskRunnerImpl.getTimestampsFromRowResults(cellsToSweep, thoroughStrategySweeper);
 
         assertThat(actualTimestamps).isEqualTo(expectedTimestamps);
     }
@@ -140,7 +142,7 @@ public class SweepTaskRunnerImplTest {
         List<RowResult<Set<Long>>> cellsToSweep = ImmutableList.of(RowResult.of(SINGLE_CELL, ImmutableSet.of(VALID_TIMESTAMP)));
         Multimap<Cell, Long> expectedTimestamps = ImmutableMultimap.of(SINGLE_CELL, VALID_TIMESTAMP);
 
-        Multimap<Cell, Long> actualTimestamps = SweepTaskRunnerImpl.getTimestampsFromRowResults(cellsToSweep, SweepStrategy.THOROUGH);
+        Multimap<Cell, Long> actualTimestamps = SweepTaskRunnerImpl.getTimestampsFromRowResults(cellsToSweep, thoroughStrategySweeper);
 
         assertThat(actualTimestamps).isEqualTo(expectedTimestamps);
     }
@@ -150,7 +152,7 @@ public class SweepTaskRunnerImplTest {
         List<RowResult<Set<Long>>> cellsToSweep = ImmutableList.of(RowResult.of(SINGLE_CELL, ImmutableSet.of(VALID_TIMESTAMP)));
         Multimap<Cell, Long> expectedTimestamps = ImmutableMultimap.of(SINGLE_CELL, VALID_TIMESTAMP);
 
-        Multimap<Cell, Long> actualTimestamps = SweepTaskRunnerImpl.getTimestampsFromRowResults(cellsToSweep, SweepStrategy.CONSERVATIVE);
+        Multimap<Cell, Long> actualTimestamps = SweepTaskRunnerImpl.getTimestampsFromRowResults(cellsToSweep, conservativeStrategySweeper);
 
         assertThat(actualTimestamps).isEqualTo(expectedTimestamps);
     }
