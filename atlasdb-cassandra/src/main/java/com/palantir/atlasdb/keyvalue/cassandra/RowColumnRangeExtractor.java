@@ -29,6 +29,7 @@ import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.util.Pair;
+import com.palantir.util.crypto.Sha256Hash;
 
 class RowColumnRangeExtractor {
     static class RowColumnRangeResult {
@@ -69,10 +70,14 @@ class RowColumnRangeExtractor {
     private final Map<byte[], Integer> rowsToRawColumnCount = Maps.newHashMap();
     private final Set<byte[]> emptyRows = Sets.newHashSet();
 
-    public void extractResults(Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey,
-                                                long startTs) {
+    public void extractResults(Iterable<byte[]> canonicalRows,
+                               Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey,
+                               long startTs) {
+        // Make sure returned maps are keyed by the given rows
+        Map<Sha256Hash, byte[]> canonicalRowsByHash = Maps.uniqueIndex(canonicalRows, Sha256Hash::computeHash);
         for (Map.Entry<ByteBuffer, List<ColumnOrSuperColumn>> colEntry : colsByKey.entrySet()) {
-            byte[] row = CassandraKeyValueServices.getBytesFromByteBuffer(colEntry.getKey());
+            byte[] rawRow = CassandraKeyValueServices.getBytesFromByteBuffer(colEntry.getKey());
+            byte[] row = canonicalRowsByHash.get(Sha256Hash.computeHash(rawRow));
             List<ColumnOrSuperColumn> columns = colEntry.getValue();
             if (!columns.isEmpty()) {
                 rowsToLastCompositeColumns.put(row, columns.get(columns.size() - 1).column);
@@ -87,11 +92,7 @@ class RowColumnRangeExtractor {
         }
     }
 
-    public void internalExtractResult(long startTs,
-                                      byte[] row,
-                                      byte[] col,
-                                      byte[] val,
-                                      long ts) {
+    private void internalExtractResult(long startTs, byte[] row, byte[] col, byte[] val, long ts) {
         if (ts < startTs) {
             Cell cell = Cell.create(row, col);
             if (!collector.containsKey(row)) {

@@ -603,7 +603,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     Map<ByteBuffer, List<ColumnOrSuperColumn>> results = multigetInternal(client, tableRef, wrap(rows), colFam, pred, readConsistency);
 
                     RowColumnRangeExtractor extractor = new RowColumnRangeExtractor();
-                    extractor.extractResults(results, startTs);
+                    extractor.extractResults(rows, results, startTs);
 
                     return extractor.getRowColumnRangeResult();
                 }
