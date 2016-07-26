@@ -40,7 +40,6 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -55,8 +54,13 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.ClosableIterators;
 
 public class SweepTaskRunnerImplTest {
-    private static final TableReference TABLE_REFERENCE = TableReference.create(Namespace.create("ns"), "testTable");
+    private static final long LOW_START_TS = 6L;
+    private static final long LOW_COMMIT_TS = 7L;
+    private static final long HIGH_START_TS = 100L;
+    private static final long HIGH_COMMIT_TS = 102L;
     private static final long VALID_TIMESTAMP = 123L;
+
+    private static final TableReference TABLE_REFERENCE = TableReference.create(Namespace.create("ns"), "testTable");
     private static final Cell SINGLE_CELL = Cell.create("cellRow".getBytes(), "cellCol".getBytes());
     private static final Set<Cell> SINGLE_CELL_SET = ImmutableSet.of(SINGLE_CELL);
     private static final Multimap<Cell, Long> SINGLE_CELL_TS_PAIR = ImmutableMultimap.<Cell, Long>builder()
@@ -193,71 +197,57 @@ public class SweepTaskRunnerImplTest {
 
     @Test
     public void conservative_getTimestampsToSweep_twoEntriesBelowSweepTimestamp_returnsLowerOne() {
-        Multimap<Cell, Long> timestampsPerRow = ImmutableMultimap.of(SINGLE_CELL, 5L, SINGLE_CELL, VALID_TIMESTAMP);
-
-        when(mockTransactionService.get(timestampsPerRow.values())).thenReturn(ImmutableMap.of(5L, 6L, VALID_TIMESTAMP, VALID_TIMESTAMP + 1));
-        long sweepTimestampLowerThanCommitTimestamp = VALID_TIMESTAMP + 2;
-
-        PeekingIterator<RowResult<Value>> values = Iterators.peekingIterator(ClosableIterators.emptyImmutableClosableIterator());
-
-        Multimap<Cell, Long> startTimestampsPerRowToSweep = sweepTaskRunner.getStartTimestampsPerRowToSweep(timestampsPerRow,
-                values,
-                sweepTimestampLowerThanCommitTimestamp,
-                conservativeStrategySweeper,
-                Sets.newHashSet());
-        MatcherAssert.assertThat(startTimestampsPerRowToSweep.get(SINGLE_CELL), contains(5L));
+        long sweepTimestampHigherThanCommitTimestamp = HIGH_COMMIT_TS + 1;
+        Multimap<Cell, Long> startTimestampsPerRowToSweep = getStartTimestampsToSweep(sweepTimestampHigherThanCommitTimestamp);
+        MatcherAssert.assertThat(startTimestampsPerRowToSweep.get(SINGLE_CELL), contains(LOW_START_TS));
     }
 
     @Test
     public void conservative_getTimestampsToSweep_oneEntryBelowTimestamp_oneAbove_returnsNone() {
-        Multimap<Cell, Long> timestampsPerRow = ImmutableMultimap.of(SINGLE_CELL, 5L, SINGLE_CELL, VALID_TIMESTAMP + 3);
-
-        when(mockTransactionService.get(timestampsPerRow.values())).thenReturn(ImmutableMap.of(5L, 6L, VALID_TIMESTAMP + 3, VALID_TIMESTAMP + 4));
-        long sweepTimestampLowerThanCommitTimestamp = VALID_TIMESTAMP + 2;
-
-        PeekingIterator<RowResult<Value>> values = Iterators.peekingIterator(ClosableIterators.emptyImmutableClosableIterator());
-
-        Multimap<Cell, Long> startTimestampsPerRowToSweep = sweepTaskRunner.getStartTimestampsPerRowToSweep(timestampsPerRow,
-                values,
-                sweepTimestampLowerThanCommitTimestamp,
-                conservativeStrategySweeper,
-                Sets.newHashSet());
+        long sweepTimestampLowerThanCommitTimestamp = HIGH_COMMIT_TS - 1;
+        Multimap<Cell, Long> startTimestampsPerRowToSweep = getStartTimestampsToSweep(sweepTimestampLowerThanCommitTimestamp);
         MatcherAssert.assertThat(startTimestampsPerRowToSweep.get(SINGLE_CELL), empty());
     }
 
     @Test
     public void conservativeGetTimestampToSweepAddsSentinels() {
-        Multimap<Cell, Long> timestampsPerRow = ImmutableMultimap.of(SINGLE_CELL, 5L, SINGLE_CELL, VALID_TIMESTAMP);
-
-        when(mockTransactionService.get(timestampsPerRow.values())).thenReturn(ImmutableMap.of(5L, 6L, VALID_TIMESTAMP, VALID_TIMESTAMP + 1));
-        long sweepTimestampLowerThanCommitTimestamp = VALID_TIMESTAMP + 2;
-
-        PeekingIterator<RowResult<Value>> values = Iterators.peekingIterator(ClosableIterators.emptyImmutableClosableIterator());
-
-        HashSet<Cell> sentinelsToAdd = Sets.newHashSet();
-        sweepTaskRunner.getStartTimestampsPerRowToSweep(timestampsPerRow,
-                values,
-                sweepTimestampLowerThanCommitTimestamp,
-                conservativeStrategySweeper,
-                sentinelsToAdd);
+        HashSet<Cell> sentinelsToAdd = getSentinelsToAdd(conservativeStrategySweeper);
         MatcherAssert.assertThat(sentinelsToAdd, contains(SINGLE_CELL));
     }
 
     @Test
     public void thoroughGetTimestampToSweepDoesNotAddSentinels() {
-        Multimap<Cell, Long> timestampsPerRow = ImmutableMultimap.of(SINGLE_CELL, 5L, SINGLE_CELL, VALID_TIMESTAMP);
+        HashSet<Cell> sentinelsToAdd = getSentinelsToAdd(thoroughStrategySweeper);
+        MatcherAssert.assertThat(sentinelsToAdd, empty());
+    }
 
-        when(mockTransactionService.get(timestampsPerRow.values())).thenReturn(ImmutableMap.of(5L, 6L, VALID_TIMESTAMP, VALID_TIMESTAMP + 1));
-        long sweepTimestampLowerThanCommitTimestamp = VALID_TIMESTAMP + 2;
+    private Multimap<Cell, Long> getStartTimestampsToSweep(long sweepTimestamp) {
+        Multimap<Cell, Long> timestampsPerRow = twoCommittedTimestampsForSingleCell();
 
-        PeekingIterator<RowResult<Value>> values = Iterators.peekingIterator(ClosableIterators.emptyImmutableClosableIterator());
+        return sweepTaskRunner.getStartTimestampsPerRowToSweep(timestampsPerRow,
+                Iterators.peekingIterator(ClosableIterators.emptyImmutableClosableIterator()),
+                sweepTimestamp,
+                conservativeStrategySweeper,
+                Sets.newHashSet());
+    }
+
+    private Multimap<Cell, Long> twoCommittedTimestampsForSingleCell() {
+        Multimap<Cell, Long> timestampsPerRow = ImmutableMultimap.of(SINGLE_CELL, LOW_START_TS, SINGLE_CELL, HIGH_START_TS);
+
+        when(mockTransactionService.get(timestampsPerRow.values())).thenReturn(ImmutableMap.of(LOW_START_TS, LOW_COMMIT_TS, HIGH_START_TS, HIGH_COMMIT_TS));
+        return timestampsPerRow;
+    }
+
+    private HashSet<Cell> getSentinelsToAdd(SweepStrategySweeper sweeper) {
+        long sweepTimestampHigherThanCommitTimestamp = HIGH_COMMIT_TS + 1;
+        Multimap<Cell, Long> timestampsPerRow = twoCommittedTimestampsForSingleCell();
 
         HashSet<Cell> sentinelsToAdd = Sets.newHashSet();
         sweepTaskRunner.getStartTimestampsPerRowToSweep(timestampsPerRow,
-                values,
-                sweepTimestampLowerThanCommitTimestamp,
-                thoroughStrategySweeper,
+                Iterators.peekingIterator(ClosableIterators.emptyImmutableClosableIterator()),
+                sweepTimestampHigherThanCommitTimestamp,
+                sweeper,
                 sentinelsToAdd);
-        MatcherAssert.assertThat(sentinelsToAdd, empty());
+        return sentinelsToAdd;
     }
 }
