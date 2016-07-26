@@ -63,7 +63,6 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.annotation.Modified;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
-import com.palantir.common.base.ClosableIterators;
 
 /**
  * Sweeps one individual table.
@@ -151,11 +150,11 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
             PeekingIterator<RowResult<Value>> peekingValues = Iterators.peekingIterator(valueResults);
             Set<Cell> sentinelsToAdd = Sets.newHashSet();
             Multimap<Cell, Long> rowTimestamps = getTimestampsFromRowResults(rowResultTimestamps, strategySweeper);
-            Multimap<Cell, Long> cellTsPairsToSweep = getCellTsPairsToSweep(rowTimestamps, peekingValues, sweepTimestamp, strategySweeper, sentinelsToAdd);
-            sweepCells(tableRef, cellTsPairsToSweep, sentinelsToAdd);
+            Multimap<Cell, Long> startTimestampsPerRowToSweep = getStartTimestampsPerRowToSweep(rowTimestamps, peekingValues, sweepTimestamp, strategySweeper, sentinelsToAdd);
+            sweepCells(tableRef, startTimestampsPerRowToSweep, sentinelsToAdd);
             byte[] nextRow = rowResultTimestamps.size() < batchSize ? null :
                 RangeRequests.getNextStartRow(false, Iterables.getLast(rowResultTimestamps).getRowName());
-            return new SweepResults(nextRow, rowResultTimestamps.size(), cellTsPairsToSweep.size(), sweepTimestamp);
+            return new SweepResults(nextRow, rowResultTimestamps.size(), startTimestampsPerRowToSweep.size(), sweepTimestamp);
         } finally {
             rowResults.close();
             valueResults.close();
@@ -193,16 +192,16 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
     }
 
     @VisibleForTesting
-    Multimap<Cell, Long> getCellTsPairsToSweep(
-            Multimap<Cell, Long> cellTsMappings,
+    Multimap<Cell, Long> getStartTimestampsPerRowToSweep(
+            Multimap<Cell, Long> startTimestampsPerCell,
             PeekingIterator<RowResult<Value>> values,
             long sweepTimestamp,
             SweepStrategySweeper strategySweeper,
             @Output Set<Cell> sentinelsToAdd) {
-        Multimap<Cell, Long> cellTsMappingsToSweep = HashMultimap.create();
+        Multimap<Cell, Long> startTimestampsToSweepPerCell = HashMultimap.create();
 
-        Map<Long, Long> startTsToCommitTs = transactionService.get(cellTsMappings.values());
-        for (Map.Entry<Cell, Collection<Long>> entry : cellTsMappings.asMap().entrySet()) {
+        Map<Long, Long> startTsToCommitTs = transactionService.get(startTimestampsPerCell.values());
+        for (Map.Entry<Cell, Collection<Long>> entry : startTimestampsPerCell.asMap().entrySet()) {
             Cell cell = entry.getKey();
             Collection<Long> timestamps = entry.getValue();
             boolean sweepLastCommitted = isLatestValueEmpty(cell, values);
@@ -214,9 +213,9 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
                     sweepTimestamp,
                     sweepLastCommitted,
                     strategySweeper);
-            cellTsMappingsToSweep.putAll(entry.getKey(), timestampsToSweep);
+            startTimestampsToSweepPerCell.putAll(cell, timestampsToSweep);
         }
-        return cellTsMappingsToSweep;
+        return startTimestampsToSweepPerCell;
     }
 
     private boolean isLatestValueEmpty(Cell cell, PeekingIterator<RowResult<Value>> values) {
