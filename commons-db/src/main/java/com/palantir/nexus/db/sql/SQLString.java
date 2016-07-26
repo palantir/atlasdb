@@ -366,9 +366,7 @@ public class SQLString extends BasicSQLString {
     }
 
     protected static ImmutableMap<String, FinalSQLString> getCachedUnregistered() {
-        synchronized (cacheLock) {
             return cachedUnregistered;
-        }
     }
 
     protected static void setCachedUnregistered(ImmutableMap<String, FinalSQLString> cachedUnregistered) {
@@ -378,9 +376,7 @@ public class SQLString extends BasicSQLString {
     }
 
     protected static ImmutableMap<String, FinalSQLString> getCachedKeyed() {
-        synchronized (cacheLock) {
             return cachedKeyed;
-        }
     }
 
     protected static void setCachedKeyed(ImmutableMap<String, FinalSQLString> cachedKeyed) {
