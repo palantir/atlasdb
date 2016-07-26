@@ -58,10 +58,10 @@ public class SQLString extends BasicSQLString {
      * Value: the new SQLString to run instead.
      */
     @GuardedBy("cacheLock")
-    protected static volatile ImmutableMap<String, FinalSQLString> cachedUnregistered = ImmutableMap.of();
+    private static volatile ImmutableMap<String, FinalSQLString> cachedUnregistered = ImmutableMap.of();
     /** Rewritten registered queries */
     @GuardedBy("cacheLock")
-    protected static volatile ImmutableMap<String, FinalSQLString> cachedKeyed = ImmutableMap.of();
+    private static volatile ImmutableMap<String, FinalSQLString> cachedKeyed = ImmutableMap.of();
     /** All registered queries */
     protected static final ConcurrentMap<String, FinalSQLString> registeredValues = new ConcurrentHashMap<String, FinalSQLString>();
     /** DB-specific registered queries */
@@ -366,5 +366,29 @@ public class SQLString extends BasicSQLString {
 
     public static RegisteredSQLString getRegisteredQueryByKey(FinalSQLString key) {
          return new RegisteredSQLString(key.delegate);
+    }
+
+    protected static ImmutableMap<String, FinalSQLString> getCachedUnregistered() {
+        synchronized (cacheLock) {
+            return cachedUnregistered;
+        }
+    }
+
+    protected static void setCachedUnregistered(ImmutableMap<String, FinalSQLString> cachedUnregistered) {
+        synchronized (cacheLock) {
+            SQLString.cachedUnregistered = cachedUnregistered;
+        }
+    }
+
+    protected static ImmutableMap<String, FinalSQLString> getCachedKeyed() {
+        synchronized (cacheLock) {
+            return cachedKeyed;
+        }
+    }
+
+    protected static void setCachedKeyed(ImmutableMap<String, FinalSQLString> cachedKeyed) {
+        synchronized (cacheLock) {
+            SQLString.cachedKeyed = cachedKeyed;
+        }
     }
 }
