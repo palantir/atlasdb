@@ -38,6 +38,11 @@ v0.11.0
 
     *    - |changed|
          - Clarified the logging when multiple timestamp servers are running to state that CLIs could be causing the issue.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/719>`__)
+
+    *    - |changed|
+         - Updated our cassandra client from 2.2.1 to 2.2.7 (this corresponds to a bump of our cassandra docker testing version from 2.2.6 to 2.2.7).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/699>`__)
 
     *    - |fixed|
          - The Leader config now contains a new "lockCreator" option. Full details for configuring this are in `the cassandra configuration docs <https://palantir.github.io/atlasdb/html/configuration/cassandra_KVS_configuration.html>`__
@@ -54,9 +59,9 @@ v0.11.0
          - Remove unnecessary error message for missing _timestamp metadata table.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/716>`__)
 
-    *    - |changed|
-         - Updated our cassandra client from 2.2.1 to 2.2.7 (this corresponds to a bump of our cassandra docker testing version from 2.2.6 to 2.2.7).
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/699>`__)
+    *    - |improved|
+         - Trace logging for cassandra is now used in more places. To enable trace logging for Cassandra, add the following line to your log.properties: ``log4j.logger.com.palantir.atlasdb.keyvalue.cassandra=TRACE``
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/700>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
