@@ -201,14 +201,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
      *
      */
     private GenericObjectPool<Client> createClientPool() {
-        CassandraClientFactory cassandraClientFactory =
-                new CassandraClientFactory(host,
-                        config.keyspace(),
-                        config.credentials(),
-                        isSsl,
-                        config.sslConfiguration(),
-                        config.socketTimeoutMillis(),
-                        config.socketQueryTimeoutMillis());
+        CassandraClientFactory cassandraClientFactory = new CassandraClientFactory(host, config);
         GenericObjectPoolConfig poolConfig = new GenericObjectPoolConfig();
 
         poolConfig.setMinIdle(config.poolSize());

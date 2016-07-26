@@ -146,6 +146,11 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
         return TYPE;
     }
 
+    @Value.Derived
+    public boolean usingSsl() {
+        return (ssl().isPresent() && ssl().get()) || sslConfiguration().isPresent();
+    }
+
     @Value.Check
     protected final void check() {
         Preconditions.checkState(!servers().isEmpty(), "'servers' must have at least one entry");
