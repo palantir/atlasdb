@@ -232,7 +232,6 @@ public class SQLString extends BasicSQLString {
      * Creates an appropriate comment string for the beginning of a SQL statement
      * @param keyString Identifier for the SQL; will be null if the SQL is unregistered
      * @param dbType
-     * @param fromDB
      */
     private static String makeCommentString(String keyString, DBType dbType) {
         String registrationState;
@@ -296,9 +295,7 @@ public class SQLString extends BasicSQLString {
      * @param sqlFormat format string which takes one argument which is the
      * conjunction of clauses (from <code>clauses</code>) which modify the
      * query variant
-     * @param baseClause the filter required for all instances of the search type
      * @param type database type the search is for, null for all DBs
-     * @param keys keys for clauses that can be added to the search
      * @param clauses clauses (in the same order as their keys) which can narrow
      * the search
      */
@@ -346,7 +343,7 @@ public class SQLString extends BasicSQLString {
         /**
          * Should only be called inside SQLString because this class essentially verifies that we've
          * checked for updates.
-         * @param delegate
+         * @param sqlstring
          */
         private RegisteredSQLString(BasicSQLString sqlstring) {
             this.delegate = sqlstring;
