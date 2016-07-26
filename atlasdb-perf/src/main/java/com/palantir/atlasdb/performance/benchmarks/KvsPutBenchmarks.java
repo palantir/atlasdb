@@ -48,8 +48,8 @@ import com.palantir.atlasdb.performance.backend.KeyValueServiceConnector;
 @State(Scope.Thread)
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
-@Warmup(iterations = 5)
-@Measurement(iterations = 5)
+@Warmup(iterations = 50)
+@Measurement(iterations = 50)
 public class KvsPutBenchmarks {
 
     private static final String TABLE_NAME_1 = "performance.table1";
