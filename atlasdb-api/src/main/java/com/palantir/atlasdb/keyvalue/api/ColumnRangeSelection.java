@@ -78,7 +78,8 @@ public class ColumnRangeSelection implements Serializable {
     private static final Pattern deserializeRegex = Pattern.compile("\\s*,\\s*");
 
     public static ColumnRangeSelection valueOf(String serialized) {
-        String[] split = deserializeRegex.split(serialized);
+        // Pass in -1 to split so that it doesn't discard empty strings
+        String[] split = deserializeRegex.split(serialized, -1);
         byte[] startCol = PtBytes.decodeBase64(split[0]);
         byte[] endCol = PtBytes.decodeBase64(split[1]);
         return new ColumnRangeSelection(startCol, endCol);

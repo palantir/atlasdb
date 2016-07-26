@@ -100,7 +100,7 @@ public class RemoteRowColumnRangeIterator implements RowColumnRangeIterator {
         SizedColumnRangeSelection newColumnRange = new SizedColumnRangeSelection(nextCol, columnRangeSelection.getEndCol(), columnRangeSelection.getBatchHint());
         Map<byte[], RowColumnRangeIterator> result = kvs.getRowsColumnRange(tableRef, ImmutableList.of(row), newColumnRange, timestamp);
         if (result.isEmpty()) {
-            new RemoteRowColumnRangeIterator(tableRef, columnRangeSelection, timestamp, false, ImmutableList.of());
+            return new RemoteRowColumnRangeIterator(tableRef, columnRangeSelection, timestamp, false, ImmutableList.of());
         }
         RowColumnRangeIterator it = Iterables.getOnlyElement(result.values());
         List<Map.Entry<Cell, Value>> page = ImmutableList.copyOf(Iterators.limit(it, columnRangeSelection.getBatchHint()));
