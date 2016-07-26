@@ -587,15 +587,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             return clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Client, RowColumnRangeExtractor.RowColumnRangeResult, Exception>() {
                 @Override
                 public RowColumnRangeExtractor.RowColumnRangeResult apply(Client client) throws Exception {
-                    ByteBuffer start = columnRangeSelection.getStartCol().length == 0 ?
-                            ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY) :
-                            CassandraKeyValueServices.makeCompositeBuffer(columnRangeSelection.getStartCol(), startTs - 1);
-                    ByteBuffer end = columnRangeSelection.getEndCol().length == 0 ?
-                            ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY) :
-                            CassandraKeyValueServices.makeCompositeBuffer(RangeRequests.previousLexicographicName(columnRangeSelection.getEndCol()), -1);
-                    SliceRange slice = new SliceRange(start, end, false, columnRangeSelection.getBatchHint());
-                    SlicePredicate pred = new SlicePredicate();
-                    pred.setSlice_range(slice);
+                    SlicePredicate pred = getSlicePredicate(columnRangeSelection, startTs);
 
                     Map<ByteBuffer, List<ColumnOrSuperColumn>> results = multigetInternal(client, tableRef, wrap(rows), pred, readConsistency);
 
@@ -613,6 +605,19 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
+    }
+
+    private SlicePredicate getSlicePredicate(ColumnRangeSelection columnRangeSelection, long startTs) {
+        ByteBuffer start = columnRangeSelection.getStartCol().length == 0 ?
+                ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY) :
+                CassandraKeyValueServices.makeCompositeBuffer(columnRangeSelection.getStartCol(), startTs - 1);
+        ByteBuffer end = columnRangeSelection.getEndCol().length == 0 ?
+                ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY) :
+                CassandraKeyValueServices.makeCompositeBuffer(RangeRequests.previousLexicographicName(columnRangeSelection.getEndCol()), -1);
+        SliceRange slice = new SliceRange(start, end, false, columnRangeSelection.getBatchHint());
+        SlicePredicate pred = new SlicePredicate();
+        pred.setSlice_range(slice);
+        return pred;
     }
 
     private Iterator<Entry<Cell, Value>> getRowColumnRange(InetSocketAddress host, TableReference tableRef, final byte[] row,
