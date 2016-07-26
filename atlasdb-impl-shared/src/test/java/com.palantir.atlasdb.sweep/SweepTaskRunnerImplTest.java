@@ -50,6 +50,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.ClosableIterators;
 
@@ -219,6 +220,33 @@ public class SweepTaskRunnerImplTest {
     public void thoroughGetTimestampToSweepDoesNotAddSentinels() {
         HashSet<Cell> sentinelsToAdd = getSentinelsToAdd(thoroughStrategySweeper);
         MatcherAssert.assertThat(sentinelsToAdd, empty());
+    }
+
+    @Test
+    public void getTimestampsToSweep_onlyTransactionUncommitted_returnsIt() {
+        Multimap<Cell, Long> timestampsPerRow = ImmutableMultimap.of(SINGLE_CELL, LOW_START_TS);
+        when(mockTransactionService.get(timestampsPerRow.values())).thenReturn(ImmutableMap.of(LOW_START_TS, TransactionConstants.FAILED_COMMIT_TS));
+
+        Multimap<Cell, Long> timestampsToSweep = sweepTaskRunner.getStartTimestampsPerRowToSweep(timestampsPerRow,
+                Iterators.peekingIterator(ClosableIterators.emptyImmutableClosableIterator()),
+                HIGH_START_TS,
+                conservativeStrategySweeper,
+                Sets.newHashSet());
+        MatcherAssert.assertThat(timestampsToSweep.get(SINGLE_CELL), contains(LOW_START_TS));
+    }
+
+    @Test
+    public void thorough_getTimestampsToSweep_oneTransaction_emptyValue_returnsIt() {
+        Multimap<Cell, Long> timestampsPerRow = ImmutableMultimap.of(SINGLE_CELL, LOW_START_TS);
+        when(mockTransactionService.get(timestampsPerRow.values())).thenReturn(ImmutableMap.of(LOW_START_TS, LOW_COMMIT_TS));
+        RowResult<Value> rowResult = RowResult.of(SINGLE_CELL, Value.create(null, LOW_START_TS));
+
+        Multimap<Cell, Long> timestampsToSweep = sweepTaskRunner.getStartTimestampsPerRowToSweep(timestampsPerRow,
+                Iterators.peekingIterator(ClosableIterators.wrap(ImmutableList.of(rowResult).iterator())),
+                HIGH_START_TS,
+                thoroughStrategySweeper,
+                Sets.newHashSet());
+        MatcherAssert.assertThat(timestampsToSweep.get(SINGLE_CELL), contains(LOW_START_TS));
     }
 
     private Multimap<Cell, Long> getStartTimestampsToSweep(long sweepTimestamp) {
