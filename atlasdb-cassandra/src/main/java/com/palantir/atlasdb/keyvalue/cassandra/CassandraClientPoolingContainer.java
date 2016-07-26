@@ -48,12 +48,10 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
     private CassandraKeyValueServiceConfig config;
     private final AtomicLong count = new AtomicLong();
     private final GenericObjectPool<Client> clientPool;
-    private final boolean isSsl;
 
     public CassandraClientPoolingContainer(InetSocketAddress host, CassandraKeyValueServiceConfig config) {
         this.host = host;
         this.config = config;
-        this.isSsl = (config.ssl().isPresent() && config.ssl().get()) || config.sslConfiguration().isPresent();
         this.clientPool = createClientPool();
     }
 
@@ -172,7 +170,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
         return MoreObjects.toStringHelper(getClass())
                 .add("host", this.host)
                 .add("keyspace", config.keyspace())
-                .add("isSsl", isSsl)
+                .add("usingSsl", config.usingSsl())
                 .add("sslConfiguration", config.sslConfiguration().isPresent() ? config.sslConfiguration().get() : "unspecified")
                 .add("socketTimeoutMillis", config.socketTimeoutMillis())
                 .add("socketQueryTimeoutMillis", config.socketQueryTimeoutMillis())

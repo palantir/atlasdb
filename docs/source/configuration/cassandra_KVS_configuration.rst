@@ -66,14 +66,14 @@ in the leaders list. If you do not specify a lock creator, the leaders block sho
 Communicating Over SSL
 ======================
 
-Atlas currently supports two different ways of specifying SSL options in the Cassandra KVS configuration: The `sslConfiguration` block and the deprecated `ssl` property.  Both means are supported but `sslConfiguration` is preferred and will always be respected in favor of `ssl` when both are specified.  In the future, support for `ssl` will be removed.
+Atlas currently supports two different ways of specifying SSL options in the Cassandra KVS configuration: The ``sslConfiguration`` block and the deprecated ``ssl`` property.  Both means are supported but ``sslConfiguration`` is preferred and will always be respected in favor of ``ssl`` when both are specified.  In the future, support for ``ssl`` will be removed.
 
 sslConfiguration
 ----------------
 
-This object is specified according to the `palantir/http-remoting <https://github.com/palantir/http-remoting/blob/develop/ssl-config/src/main/java/com/palantir/remoting/ssl/SslConfiguration.java>`__ library. It directly specifies all aspects of the ssl configuration, instead of reading them from system properties.  The only required property is `trustStorePath`, as seen in the example above.  In order to configure 2-way SSL, you would also have to set the optional properties `keyStorePath` and `keyStorePassword`.
+This object is specified according to the `palantir/http-remoting <https://github.com/palantir/http-remoting/blob/develop/ssl-config/src/main/java/com/palantir/remoting/ssl/SslConfiguration.java>`__ library. It directly specifies all aspects of the ssl configuration, instead of reading them from system properties.  The only required property is ``trustStorePath``, as seen in the example above.  In order to configure 2-way SSL, you would also have to set the optional properties ``keyStorePath`` and ``keyStorePassword``.
 
 ssl
 ---
 
-This property is a boolean value saying whether or not to use ssl.  When `true`, it will use java system properties that are passed in as jvm arguments to determine how to set up the ssl connection.  For example, you would use the jvm option `-Djavax.net.ssl.trustStore=<path-to-truststore>` to tell atlas where to find the truststore to use.
+This property is a boolean value saying whether or not to use ssl.  When ``true``, it will use java system properties that are passed in as jvm arguments to determine how to set up the ssl connection.  For example, you would use the jvm option ``-Djavax.net.ssl.trustStore=<path-to-truststore>`` to tell atlas where to find the truststore to use.

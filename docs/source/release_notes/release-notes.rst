@@ -13,12 +13,15 @@ Changelog
     :class: changetype changetype-changed
 .. role:: changetype-improved
     :class: changetype changetype-improved
+.. role:: changetype-deprecated
+    :class: changetype changetype-deprecated
 
 .. |breaking| replace:: :changetype-breaking:`BREAKING`
 .. |new| replace:: :changetype-new:`NEW`
 .. |fixed| replace:: :changetype-fixed:`FIXED`
 .. |changed| replace:: :changetype-changed:`CHANGED`
 .. |improved| replace:: :changetype-improved:`IMPROVED`
+.. |deprecated| replace:: :changetype-deprecated:`DEPRECATED`
 
 .. toctree::
   :hidden:
@@ -63,8 +66,8 @@ v0.11.0
          - Trace logging for cassandra is now used in more places. To enable trace logging for Cassandra, add the following line to your log.properties: ``log4j.logger.com.palantir.atlasdb.keyvalue.cassandra=TRACE``
            (`Pull Request <https://github.com/palantir/atlasdb/pull/700>`__)
 
-    *    - |breaking|
-         - The Cassandra KVS now supports specifying ssl options via configuration as opposed to via system property. The `sslConfiguration` block takes precedence over the now deprecated `ssl` property. This is not a breaking change in that `ssl` is still supported. However, `ssl` will be removed in a future yet to be determined release. Consumers leveraging the C* KVS are encouraged to make the change now before the breaking change would affect them. See the :ref:`Cassandra KVS Configuration <cass-config-ssl>` docs for more details.
+    *    - |deprecated|
+         - The Cassandra KVS now supports specifying ssl options via configuration as opposed to via system property. The new ``sslConfiguration`` block takes precedence over the now deprecated ``ssl`` property. This is not a breaking change in that ``ssl`` is still supported. However, ``ssl`` will be removed in a future yet to be determined release. Consumers leveraging the C* KVS are encouraged to make the change now before the breaking change would affect them. See the `cassandra ssl configuration <https://palantir.github.io/atlasdb/html/configuration/cassandra_KVS_configuration.html#communicating-over-ssl>`__ docs for more details.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/638>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
