@@ -61,7 +61,6 @@ import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.annotation.Modified;
-import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
 
 /**
@@ -197,23 +196,23 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
             PeekingIterator<RowResult<Value>> values,
             long sweepTimestamp,
             SweepStrategySweeper strategySweeper) {
-        Set<Cell> sentinelsToAdd = Sets.newHashSet();
         Multimap<Cell, Long> startTimestampsToSweepPerCell = HashMultimap.create();
+        Set<Cell> sentinelsToAdd = Sets.newHashSet();
 
         Map<Long, Long> startTsToCommitTs = transactionService.get(startTimestampsPerCell.values());
         for (Map.Entry<Cell, Collection<Long>> entry : startTimestampsPerCell.asMap().entrySet()) {
             Cell cell = entry.getKey();
             Collection<Long> timestamps = entry.getValue();
             boolean sweepLastCommitted = isLatestValueEmpty(cell, values);
-            Iterable<? extends Long> timestampsToSweep = getTimestampsToSweep(
+            SweepTimestampsAndSentinels sweepTimestampsAndSentinels = getTimestampsToSweep(
                     cell,
                     timestamps,
                     startTsToCommitTs,
-                    sentinelsToAdd,
                     sweepTimestamp,
                     sweepLastCommitted,
                     strategySweeper);
-            startTimestampsToSweepPerCell.putAll(cell, timestampsToSweep);
+            startTimestampsToSweepPerCell.putAll(cell, sweepTimestampsAndSentinels.getTimestamps());
+            sentinelsToAdd.addAll(sweepTimestampsAndSentinels.getSentinelsToAdd());
         }
         return new SweepCellsAndSentinels(startTimestampsToSweepPerCell, sentinelsToAdd);
     }
@@ -234,18 +233,17 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
         return false;
     }
 
-    private Set<Long> getTimestampsToSweep(Cell cell,
-                                           Collection<Long> timestamps /* start timestamps */,
-                                           @Modified Map<Long, Long> startTsToCommitTs,
-                                           @Output Set<Cell> sentinelsToAdd,
-                                           long sweepTimestamp,
-                                           boolean sweepLastCommitted,
-                                           SweepStrategySweeper strategySweeper) {
+    private SweepTimestampsAndSentinels getTimestampsToSweep(Cell cell,
+                                                             Collection<Long> startTimestamps,
+                                                             @Modified Map<Long, Long> startTsToCommitTs,
+                                                             long sweepTimestamp,
+                                                             boolean sweepLastCommitted,
+                                                             SweepStrategySweeper strategySweeper) {
         Set<Long> uncommittedTimestamps = Sets.newHashSet();
         SortedSet<Long> committedTimestampsToSweep = Sets.newTreeSet();
         long maxStartTs = TransactionConstants.FAILED_COMMIT_TS;
         boolean maxStartTsIsCommitted = false;
-        for (long startTs : timestamps) {
+        for (long startTs : startTimestamps) {
             long commitTs = ensureCommitTimestampExists(startTs, startTsToCommitTs);
 
             if (startTs > maxStartTs && commitTs < sweepTimestamp) {
@@ -265,20 +263,23 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
         }
 
         if (committedTimestampsToSweep.isEmpty()) {
-            return uncommittedTimestamps;
+            return new SweepTimestampsAndSentinels(uncommittedTimestamps, ImmutableSet.of());
         }
 
+        Set<Cell> sentinelsToAdd = Sets.newHashSet();
         if (strategySweeper.shouldAddSentinels() && committedTimestampsToSweep.size() > 1) {
             // We need to add a sentinel if we are removing a committed value
             sentinelsToAdd.add(cell);
         }
 
         if (sweepLastCommitted && maxStartTsIsCommitted) {
-            return Sets.union(uncommittedTimestamps, committedTimestampsToSweep);
+            Set<Long> sweepTimestamps = Sets.union(uncommittedTimestamps, committedTimestampsToSweep);
+            return new SweepTimestampsAndSentinels(sweepTimestamps, sentinelsToAdd);
         }
-        return Sets.union(
+        Set<Long> sweepTimestamps = Sets.union(
                 uncommittedTimestamps,
                 committedTimestampsToSweep.subSet(0L, committedTimestampsToSweep.last()));
+        return new SweepTimestampsAndSentinels(sweepTimestamps, sentinelsToAdd);
     }
 
     private long ensureCommitTimestampExists(Long startTs, @Modified Map<Long, Long> startTsToCommitTs) {
