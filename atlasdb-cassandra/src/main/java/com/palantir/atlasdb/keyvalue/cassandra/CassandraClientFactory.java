@@ -91,7 +91,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
         Client ret = getClientInternal(addr, config);
         try {
             ret.set_keyspace(config.keyspace());
-            log.debug("Created new client for {}/{} {} {}", addr, config.keyspace(), (config.usingSsl() ? "over SSL" : ""),
+            log.debug("Created new client for {}/{}{}{}", addr, config.keyspace(), (config.usingSsl() ? " over SSL" : ""),
                     config.credentials().isPresent() ? " as user " + config.credentials().get().username() : "");
             return ret;
         } catch (Exception e) {
