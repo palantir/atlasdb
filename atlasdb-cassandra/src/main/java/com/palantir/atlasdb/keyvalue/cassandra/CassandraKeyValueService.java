@@ -1173,6 +1173,12 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         return getRangeWithPageCreator(tableRef, rangeRequest, timestamp, readConsistency, ValueExtractor.SUPPLIER);
     }
 
+    /* TODO: Plan of attack
+    1. Start with a RangeRequest (starting row, num rows per batch)
+    2. Use rangeRequest, only get 1 column per row, and just return the list of row keys
+    3. Using this list, and a ColumnRangeSelection, get all the columns/timestamps for that batch of rows (ColumnRangeSelection.batchHint at a time)
+    4. Repeat 2 + 3 with the rest of the rows (RangeRequest: starting row_n+1, num rows per batch), until done.
+     */
     @Override
     @Idempotent
     public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
