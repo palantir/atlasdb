@@ -25,6 +25,8 @@ services:
       - ME=ete2
     depends_on:
       - ete1
+    ports:
+      - "3828"
 
   ete3:
     build: .
@@ -33,3 +35,5 @@ services:
       - ME=ete3
     depends_on:
       - ete1
+    ports:
+      - "3828"

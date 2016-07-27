@@ -28,6 +28,7 @@ import com.google.auto.service.AutoService;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.remoting.ssl.SslConfiguration;
 
 @AutoService(KeyValueServiceConfig.class)
 @JsonDeserialize(as = ImmutableCassandraKeyValueServiceConfig.class)
@@ -59,7 +60,22 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
 
     public abstract Optional<CassandraCredentialsConfig> credentials();
 
-    public abstract boolean ssl();
+    /**
+     * A boolean declaring whether or not to use ssl to communicate with cassandra.
+     * This configuration value is deprecated in favor of using sslConfiguration.  If
+     * true, read in trust and key store information from system properties unless
+     * the sslConfiguration object is specified.
+     */
+    @Deprecated
+    public abstract Optional<Boolean> ssl();
+
+    /**
+     * An object for specifying ssl configuration details.  The lack of existence of this
+     * object implies ssl is not to be used to connect to cassandra.
+     *
+     * The existence of this object overrides any configuration made via the ssl config value.
+     */
+    public abstract Optional<SslConfiguration> sslConfiguration();
 
     public abstract int replicationFactor();
 
@@ -128,6 +144,11 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     @Override
     public final String type() {
         return TYPE;
+    }
+
+    @Value.Derived
+    public boolean usingSsl() {
+        return (ssl().isPresent() && ssl().get()) || sslConfiguration().isPresent();
     }
 
     @Value.Check

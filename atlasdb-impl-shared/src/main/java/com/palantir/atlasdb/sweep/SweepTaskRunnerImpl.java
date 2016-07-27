@@ -61,9 +61,7 @@ import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.annotation.Modified;
-import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
-import com.palantir.common.base.ClosableIterators;
 
 /**
  * Sweeps one individual table.
@@ -134,82 +132,85 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
         }
 
         startRow = MoreObjects.firstNonNull(startRow, PtBytes.EMPTY_BYTE_ARRAY);
-        RangeRequest rangeRequest = RangeRequest.builder().startRowInclusive(startRow).batchHint(batchSize).build();
+        RangeRequest rangeRequest = RangeRequest.builder()
+                .startRowInclusive(startRow)
+                .batchHint(batchSize)
+                .build();
 
-        long sweepTimestamp = getSweepTimestamp(sweepStrategy);
+        SweepStrategySweeper strategySweeper = getStrategySweeperFor(sweepStrategy);
 
-        ClosableIterator<RowResult<Value>> valueResults = ClosableIterators.emptyImmutableClosableIterator();
-        if (sweepStrategy == SweepStrategy.THOROUGH) {
-            valueResults = keyValueService.getRange(tableRef, rangeRequest, sweepTimestamp);
-        }
+        long sweepTimestamp = strategySweeper.getSweepTimestamp();
 
-        ClosableIterator<RowResult<Set<Long>>> rowResults =
-                keyValueService.getRangeOfTimestamps(tableRef, rangeRequest, sweepTimestamp);
 
-        try {
+        try (ClosableIterator<RowResult<Value>> valueResults = strategySweeper.getValues(tableRef, rangeRequest, sweepTimestamp);
+             ClosableIterator<RowResult<Set<Long>>> rowResults = strategySweeper.getCellTimestamps(tableRef, rangeRequest, sweepTimestamp)) {
             List<RowResult<Set<Long>>> rowResultTimestamps = ImmutableList.copyOf(Iterators.limit(rowResults, batchSize));
             PeekingIterator<RowResult<Value>> peekingValues = Iterators.peekingIterator(valueResults);
-            Set<Cell> sentinelsToAdd = Sets.newHashSet();
-            Multimap<Cell, Long> rowTimestamps = getTimestampsFromRowResults(rowResultTimestamps, sweepStrategy);
-            Multimap<Cell, Long> cellTsPairsToSweep = getCellTsPairsToSweep(rowTimestamps, peekingValues, sweepTimestamp, sweepStrategy, sentinelsToAdd);
-            sweepCells(tableRef, cellTsPairsToSweep, sentinelsToAdd);
+            Multimap<Cell, Long> rowTimestamps = getTimestampsFromRowResults(rowResultTimestamps, strategySweeper);
+            SweepCellsAndSentinels sweepCellsAndSentinels = getStartTimestampsPerRowToSweep(rowTimestamps, peekingValues, sweepTimestamp, strategySweeper);
+            Multimap<Cell, Long> startTimestampsToSweepPerCell = sweepCellsAndSentinels.startTimestampsToSweepPerCell();
+            sweepCells(tableRef, startTimestampsToSweepPerCell, sweepCellsAndSentinels.sentinelsToAdd());
             byte[] nextRow = rowResultTimestamps.size() < batchSize ? null :
                 RangeRequests.getNextStartRow(false, Iterables.getLast(rowResultTimestamps).getRowName());
-            return new SweepResults(nextRow, rowResultTimestamps.size(), cellTsPairsToSweep.size(), sweepTimestamp);
-        } finally {
-            rowResults.close();
-            valueResults.close();
+            return new SweepResults(nextRow, rowResultTimestamps.size(), startTimestampsToSweepPerCell.size(), sweepTimestamp);
+        }
+    }
+
+    private SweepStrategySweeper getStrategySweeperFor(SweepStrategy sweepStrategy) {
+        switch (sweepStrategy) {
+            case NOTHING:
+                return new NothingSweepStrategySweeper();
+            case CONSERVATIVE:
+                return new ConservativeSweepStrategySweeper(keyValueService, immutableTimestampSupplier, unreadableTimestampSupplier);
+            case THOROUGH:
+                return new ThoroughSweepStrategySweeper(keyValueService, immutableTimestampSupplier);
+            default:
+                throw new IllegalArgumentException("Unknown sweep strategy: " + sweepStrategy);
         }
     }
 
     @Override
     public long getSweepTimestamp(SweepStrategy sweepStrategy) {
-        if (sweepStrategy == SweepStrategy.CONSERVATIVE) {
-            return Math.min(unreadableTimestampSupplier.get(), immutableTimestampSupplier.get());
-        } else {
-            return immutableTimestampSupplier.get();
-        }
+        return getStrategySweeperFor(sweepStrategy).getSweepTimestamp();
     }
 
     @VisibleForTesting
-    static Multimap<Cell, Long> getTimestampsFromRowResults(List<RowResult<Set<Long>>> cellsToSweep,
-                                                             SweepStrategy sweepStrategy) {
+    static Multimap<Cell, Long> getTimestampsFromRowResults(List<RowResult<Set<Long>>> cellsToSweep, SweepStrategySweeper strategySweeper) {
+        Set<Long> timestampsToIgnore = strategySweeper.getTimestampsToIgnore();
         ImmutableMultimap.Builder<Cell, Long> cellTsMappings = ImmutableMultimap.builder();
         for (RowResult<Set<Long>> rowResult : cellsToSweep) {
             for (Map.Entry<Cell, Set<Long>> entry : rowResult.getCells()) {
-                if (sweepStrategy == SweepStrategy.CONSERVATIVE) {
-                    cellTsMappings.putAll(entry.getKey(), Sets.difference(entry.getValue(), INVALID_TIMESTAMPS));
-                } else {
-                    cellTsMappings.putAll(entry.getKey(), entry.getValue());
-                }
+                cellTsMappings.putAll(entry.getKey(), Sets.difference(entry.getValue(), timestampsToIgnore));
             }
         }
         return cellTsMappings.build();
     }
 
-    private Multimap<Cell, Long> getCellTsPairsToSweep(Multimap<Cell, Long> cellTsMappings,
-                                                       PeekingIterator<RowResult<Value>> values,
-                                                       long sweepTimestamp,
-                                                       SweepStrategy sweepStrategy,
-                                                       @Output Set<Cell> sentinelsToAdd) {
-        Multimap<Cell, Long> cellTsMappingsToSweep = HashMultimap.create();
+    @VisibleForTesting
+    SweepCellsAndSentinels getStartTimestampsPerRowToSweep(
+            Multimap<Cell, Long> startTimestampsPerCell,
+            PeekingIterator<RowResult<Value>> values,
+            long sweepTimestamp,
+            SweepStrategySweeper strategySweeper) {
+        Multimap<Cell, Long> startTimestampsToSweepPerCell = HashMultimap.create();
+        Set<Cell> sentinelsToAdd = Sets.newHashSet();
 
-        Map<Long, Long> startTsToCommitTs = transactionService.get(cellTsMappings.values());
-        for (Map.Entry<Cell, Collection<Long>> entry : cellTsMappings.asMap().entrySet()) {
+        Map<Long, Long> startTsToCommitTs = transactionService.get(startTimestampsPerCell.values());
+        for (Map.Entry<Cell, Collection<Long>> entry : startTimestampsPerCell.asMap().entrySet()) {
             Cell cell = entry.getKey();
             Collection<Long> timestamps = entry.getValue();
             boolean sweepLastCommitted = isLatestValueEmpty(cell, values);
-            Iterable<? extends Long> timestampsToSweep = getTimestampsToSweep(
+            SweepTimestampsAndSentinels sweepTimestampsAndSentinels = getTimestampsToSweep(
                     cell,
                     timestamps,
                     startTsToCommitTs,
-                    sentinelsToAdd,
                     sweepTimestamp,
                     sweepLastCommitted,
-                    sweepStrategy);
-            cellTsMappingsToSweep.putAll(entry.getKey(), timestampsToSweep);
+                    strategySweeper);
+            startTimestampsToSweepPerCell.putAll(cell, sweepTimestampsAndSentinels.timestamps());
+            sentinelsToAdd.addAll(sweepTimestampsAndSentinels.sentinelsToAdd());
         }
-        return cellTsMappingsToSweep;
+        return SweepCellsAndSentinels.of(startTimestampsToSweepPerCell, sentinelsToAdd);
     }
 
     private boolean isLatestValueEmpty(Cell cell, PeekingIterator<RowResult<Value>> values) {
@@ -228,18 +229,17 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
         return false;
     }
 
-    private Set<Long> getTimestampsToSweep(Cell cell,
-                                           Collection<Long> timestamps /* start timestamps */,
-                                           @Modified Map<Long, Long> startTsToCommitTs,
-                                           @Output Set<Cell> sentinelsToAdd,
-                                           long sweepTimestamp,
-                                           boolean sweepLastCommitted,
-                                           SweepStrategy sweepStrategy) {
+    private SweepTimestampsAndSentinels getTimestampsToSweep(Cell cell,
+                                                             Collection<Long> startTimestamps,
+                                                             @Modified Map<Long, Long> startTsToCommitTs,
+                                                             long sweepTimestamp,
+                                                             boolean sweepLastCommitted,
+                                                             SweepStrategySweeper strategySweeper) {
         Set<Long> uncommittedTimestamps = Sets.newHashSet();
         SortedSet<Long> committedTimestampsToSweep = Sets.newTreeSet();
         long maxStartTs = TransactionConstants.FAILED_COMMIT_TS;
         boolean maxStartTsIsCommitted = false;
-        for (long startTs : timestamps) {
+        for (long startTs : startTimestamps) {
             long commitTs = ensureCommitTimestampExists(startTs, startTsToCommitTs);
 
             if (startTs > maxStartTs && commitTs < sweepTimestamp) {
@@ -259,20 +259,18 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
         }
 
         if (committedTimestampsToSweep.isEmpty()) {
-            return uncommittedTimestamps;
+            return SweepTimestampsAndSentinels.of(uncommittedTimestamps, ImmutableSet.of());
         }
 
-        if (sweepStrategy == SweepStrategy.CONSERVATIVE && committedTimestampsToSweep.size() > 1) {
-            // We need to add a sentinel if we are removing a committed value
-            sentinelsToAdd.add(cell);
-        }
+        Set<Long> sweepTimestamps = (sweepLastCommitted && maxStartTsIsCommitted)
+                ? Sets.union(uncommittedTimestamps, committedTimestampsToSweep)
+                : Sets.union(uncommittedTimestamps, committedTimestampsToSweep.subSet(0L, committedTimestampsToSweep.last()));
 
-        if (sweepLastCommitted && maxStartTsIsCommitted) {
-            return Sets.union(uncommittedTimestamps, committedTimestampsToSweep);
-        }
-        return Sets.union(
-                uncommittedTimestamps,
-                committedTimestampsToSweep.subSet(0L, committedTimestampsToSweep.last()));
+        Set<Cell> sentinelsToAdd = (strategySweeper.shouldAddSentinels() && committedTimestampsToSweep.size() > 1)
+                ? ImmutableSet.of(cell) // We need to add a sentinel if we are removing a committed value
+                : ImmutableSet.of();
+
+        return SweepTimestampsAndSentinels.of(sweepTimestamps, sentinelsToAdd);
     }
 
     private long ensureCommitTimestampExists(Long startTs, @Modified Map<Long, Long> startTsToCommitTs) {

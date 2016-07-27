@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.palantir.atlasdb.ete.todo;
 
 import org.junit.ClassRule;
@@ -21,12 +22,12 @@ import org.junit.rules.RuleChain;
 import com.palantir.atlasdb.ete.EteSetup;
 import com.palantir.timestamp.TimestampService;
 
-public class DbKvsTodoEteTest extends TodoEteTest {
+public class CassandraNoLeaderTodoEteTest extends TodoEteTest {
     @ClassRule
-    public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition("docker-compose.dbkvs.yml");
+    public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition("docker-compose.no-leader.cassandra.yml");
 
     @Override
     protected TimestampService createTimestampClient() {
-        return createClientToMultipleNodes(TimestampService.class, "ete1", "ete2", "ete3");
+        return createClientToSingleNode(TimestampService.class);
     }
 }
