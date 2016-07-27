@@ -262,10 +262,10 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
             return SweepTimestampsAndSentinels.of(uncommittedTimestamps, ImmutableSet.of());
         }
 
-        Set<Cell> sentinelsToAdd = Sets.newHashSet();
+        Set<Cell> sentinelsToAdd = ImmutableSet.of();
         if (strategySweeper.shouldAddSentinels() && committedTimestampsToSweep.size() > 1) {
             // We need to add a sentinel if we are removing a committed value
-            sentinelsToAdd.add(cell);
+            sentinelsToAdd = ImmutableSet.of(cell);
         }
 
         if (sweepLastCommitted && maxStartTsIsCommitted) {
