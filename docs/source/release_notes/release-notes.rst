@@ -29,6 +29,24 @@ Changelog
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
+v0.12.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |breaking|
+         - If you do not specify a leader block in your config, AtlasDB will now still try to register the timestamp and lock endpoints necessary for
+           other clients or CLIs to run in the same keyspace. This may require changes in setup logic for applications that have previously
+           only ever run with no leader block.
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
 v0.11.0
 =======
 
