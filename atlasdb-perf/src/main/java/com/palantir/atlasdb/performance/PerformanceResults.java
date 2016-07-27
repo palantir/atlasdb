@@ -5,13 +5,11 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.stream.Collectors;
 
 import org.openjdk.jmh.results.RunResult;
-import org.openjdk.jmh.util.Statistics;
 
 public class PerformanceResults {
-
-    private static final double CONFIDENCE_INTERVAL = 0.975;
 
     private final Collection<RunResult> results;
 
@@ -21,24 +19,33 @@ public class PerformanceResults {
 
     public void writeToFile(File file) throws IOException {
         try (BufferedWriter fout = new BufferedWriter(new FileWriter(file))) {
-            fout.write("date, suite, benchmark, backend, trials, mean, error, units\n");
+            fout.write("date, suite, benchmark, backend, runs, units\n");
             for (RunResult r : results) {
-                Statistics stats = r.getPrimaryResult().getStatistics();
                 String[] benchmarkParts = r.getParams().getBenchmark().split("\\.");
                 String benchmarkSuite = benchmarkParts[benchmarkParts.length - 2];
                 String benchmarkName = benchmarkParts[benchmarkParts.length - 1];
                 fout.write(
-                        String.format("%d, %s, %s, %s, %s, %s, %s, %s\n",
+                        String.format("%d, %s, %s, %s, [%s], %s\n",
                                 System.currentTimeMillis(),
                                 benchmarkSuite,
                                 benchmarkName,
                                 r.getParams().getParam(BenchmarkParam.BACKEND.getKey()),
-                                stats.getN(),
-                                stats.getMean(),
-                                stats.getMeanErrorAt(CONFIDENCE_INTERVAL),
+                                getResultsFromRun(r)
+                                        .stream()
+                                        .map(d -> Double.toString(d))
+                                        .collect(Collectors.joining(" ")),
                                 r.getParams().getTimeUnit())
                 );
             }
         }
     }
+
+    private Collection<Double> getResultsFromRun(RunResult r) {
+        return r.getBenchmarkResults()
+                .stream()
+                .flatMap(rb -> rb.getIterationResults().stream())
+                .map(ir -> ir.getPrimaryResult().getScore())
+                .collect(Collectors.toList());
+    }
+
 }
