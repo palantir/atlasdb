@@ -170,7 +170,8 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
         return MoreObjects.toStringHelper(getClass())
                 .add("host", this.host)
                 .add("keyspace", config.keyspace())
-                .add("isSsl", config.ssl())
+                .add("usingSsl", config.usingSsl())
+                .add("sslConfiguration", config.sslConfiguration().isPresent() ? config.sslConfiguration().get() : "unspecified")
                 .add("socketTimeoutMillis", config.socketTimeoutMillis())
                 .add("socketQueryTimeoutMillis", config.socketQueryTimeoutMillis())
                 .toString();
@@ -198,13 +199,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
      *
      */
     private GenericObjectPool<Client> createClientPool() {
-        CassandraClientFactory cassandraClientFactory =
-                new CassandraClientFactory(host,
-                        config.keyspace(),
-                        config.credentials(),
-                        config.ssl(),
-                        config.socketTimeoutMillis(),
-                        config.socketQueryTimeoutMillis());
+        CassandraClientFactory cassandraClientFactory = new CassandraClientFactory(host, config);
         GenericObjectPoolConfig poolConfig = new GenericObjectPoolConfig();
 
         poolConfig.setMinIdle(config.poolSize());

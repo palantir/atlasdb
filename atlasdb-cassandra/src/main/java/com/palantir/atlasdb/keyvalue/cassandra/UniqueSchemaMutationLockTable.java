@@ -21,6 +21,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.util.Set;
 
 import org.apache.thrift.TException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.config.LockLeader;
@@ -28,6 +30,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.Throwables;
 
 public class UniqueSchemaMutationLockTable {
+    private static final Logger log = LoggerFactory.getLogger(UniqueSchemaMutationLockTable.class);
     private final SchemaMutationLockTables schemaMutationLockTables;
     private final LockLeader lockLeader;
 
@@ -56,7 +59,7 @@ public class UniqueSchemaMutationLockTable {
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                log.error("Interrupted while waiting for lock table to be created", e);
             }
         }
 

@@ -37,7 +37,8 @@ in the leaders list. If you do not specify a lock creator, the leaders block sho
         credentials:
           username: cassandra
           password: cassandra
-        ssl: false
+        sslConfiguration:
+            trustStorePath: var/security/truststore.jks
         replicationFactor: 1
         mutationBatchCount: 10000
         mutationBatchSizeBytes: 10000000
@@ -46,12 +47,33 @@ in the leaders list. If you do not specify a lock creator, the leaders block sho
         autoRefreshNodes: false
 
       leader:
-        quorumSize: 2 # This should be at least half the number of nodes in your cluster
-        learnerLogDir: var/data/paxosLog/learner1
-        acceptorLogDir: var/data/paxosLog/acceptor1
-        localServer: http://<yourhost>:3828 # This should be different for every node
-        lockCreator: http://host1:3828 # This should be the same for every node
-        leaders: # This should be the same for every node
+        # This should be at least half the number of nodes in your cluster
+        quorumSize: 2
+        learnerLogDir: var/data/paxosLogs
+        acceptorLogDir: var/data/paxosLogs
+        # This should be different for every node
+        localServer: http://<yourhost>:3828
+        # This should be the same for every node
+        lockCreator: http://host1:3828
+        # This should be the same for every node
+        leaders:
           - http://host1:3828
           - http://host2:3828
           - http://host3:3828
+
+.. _cass-config-ssl:
+
+Communicating Over SSL
+======================
+
+Atlas currently supports two different ways of specifying SSL options in the Cassandra KVS configuration: The ``sslConfiguration`` block and the deprecated ``ssl`` property.  Both means are supported but ``sslConfiguration`` is preferred and will always be respected in favor of ``ssl`` when both are specified.  In the future, support for ``ssl`` will be removed.
+
+sslConfiguration
+----------------
+
+This object is specified according to the `palantir/http-remoting <https://github.com/palantir/http-remoting/blob/develop/ssl-config/src/main/java/com/palantir/remoting1/config/ssl/SslConfiguration.java>`__ library. It directly specifies all aspects of the ssl configuration, instead of reading them from system properties.  The only required property is ``trustStorePath``, as seen in the example above.  In order to configure 2-way SSL, you would also have to set the optional properties ``keyStorePath`` and ``keyStorePassword``.
+
+ssl
+---
+
+This property is a boolean value saying whether or not to use ssl.  When ``true``, it will use java system properties that are passed in as jvm arguments to determine how to set up the ssl connection.  For example, you would use the jvm option ``-Djavax.net.ssl.trustStore=<path-to-truststore>`` to tell atlas where to find the truststore to use.

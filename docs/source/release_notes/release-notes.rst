@@ -13,15 +13,36 @@ Changelog
     :class: changetype changetype-changed
 .. role:: changetype-improved
     :class: changetype changetype-improved
+.. role:: changetype-deprecated
+    :class: changetype changetype-deprecated
 
 .. |breaking| replace:: :changetype-breaking:`BREAKING`
 .. |new| replace:: :changetype-new:`NEW`
 .. |fixed| replace:: :changetype-fixed:`FIXED`
 .. |changed| replace:: :changetype-changed:`CHANGED`
 .. |improved| replace:: :changetype-improved:`IMPROVED`
+.. |deprecated| replace:: :changetype-deprecated:`DEPRECATED`
 
 .. toctree::
   :hidden:
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.12.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |breaking|
+         - If you do not specify a leader block in your config, AtlasDB will now still try to register the timestamp and lock endpoints necessary for
+           other clients or CLIs to run in the same keyspace. This may require changes in setup logic for applications that have previously
+           only ever run with no leader block.
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -36,27 +57,45 @@ v0.11.0
     *    - Type
          - Change
 
-    *    - |changed|
+    *    - |improved|
          - Clarified the logging when multiple timestamp servers are running to state that CLIs could be causing the issue.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/719>`__)
+
+    *    - |changed|
+         - Updated cassandra client from 2.2.1 to 2.2.7 and cassandra docker testing version from 2.2.6 to 2.2.7.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/699>`__)
 
     *    - |fixed|
-         - The Leader config now contains a new "lockCreator" option. Full details for configuring this are in `the cassandra configuration docs <https://palantir.github.io/atlasdb/html/configuration/cassandra_KVS_configuration.html>`__
-           This field helps us to determine a single node to create the necessary locks table for performing schema mutations without corruption. This safety will still be in place if you have no leader block.
-           Changing your config to explicitly use this option is advised, but it is backwards compatible with old configurations. Please see `the cassandra configuration docs <https://palantir.github.io/atlasdb/html/configuration/cassandra_KVS_configuration.html>`__
-           for details on how this works.
+         - The leader config now contains a new ``lockCreator`` option, which specifies the single node that creates the locks table when starting your cluster for the very first time.
+           This configuration prevents an extremely unlikely race condition where multiple clients can create the locks table simultaneously.
+           Full details on the failure scenario can be found on `#444 <https://github.com/palantir/atlasdb/issues/444#issuecomment-221612886>`__.
+
+           If left blank, ``lockCreator`` will default to the first host in the ``leaders`` list, but we recommend setting this explicitly to ensure that the lockCreater is the same value across all your clients for a specific service.
+           This configuration is only relevant for new clusters and does not affect existing AtlasDB clusters.
+
+           Full details for configuring the leader block, see `cassandra configuration <https://palantir.github.io/atlasdb/html/configuration/cassandra_KVS_configuration.html>`__.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/594>`__)
 
     *    - |fixed|
-         - A utility method was removed in the previous release, breaking an internal product that relied on it. This method has now been added back.
+         - A utility method was removed in the previous release, breaking an internal product that relied on it.
+           This method has now been added back.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/661>`__)
 
     *    - |fixed|
-         - Remove unnecessary error message for missing _timestamp metadata table.
+         - Removed unnecessary error message for missing _timestamp metadata table.
+           _timestamp is a hidden table, and it is expected that _timestamp metadata should not be retrievable from public API.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/716>`__)
 
-    *    - |changed|
-         - Updated our cassandra client from 2.2.1 to 2.2.7 (this corresponds to a bump of our cassandra docker testing version from 2.2.6 to 2.2.7).
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/699>`__)
+    *    - |improved|
+         - Trace logging is more informative and will log all failed calls.
+           To enable trace logging, see `Enabling Cassandra Tracing <https://palantir.github.io/atlasdb/html/configuration/enabling_cassandra_tracing.html#enabling-cassandra-tracing>`__.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/700>`__)
+
+    *    - |deprecated|
+         - The Cassandra KVS now supports specifying SSL options via the new ``sslConfiguration`` block, which takes precedence over the now deprecated ``ssl`` property. 
+           The ``ssl`` property will be removed in a future release, and consumers leveraging the Cassandra KVS are encouraged to use the ``sslConfiguration`` block instead. 
+           See the `Cassandra SSL Configuration <https://palantir.github.io/atlasdb/html/configuration/cassandra_KVS_configuration.html#communicating-over-ssl>`__ documentation for more details.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/638>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
