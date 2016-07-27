@@ -84,10 +84,10 @@ public class TestTimestampCommand {
     }
 
     @Parameterized.Parameter(value = 0)
-    public boolean immutable;
+    public boolean isImmutable;
 
     @Parameterized.Parameter(value = 1)
-    public boolean toFile;
+    public boolean isToFile;
 
     @Parameterized.Parameters
     public static Collection<Object[]> parameters() {
@@ -127,12 +127,12 @@ public class TestTimestampCommand {
     @Test
     public void genericTest() throws Exception {
         List<String> cliArgs = Lists.newArrayList("timestamp"); //group command
-        if (toFile) {
+        if (isToFile) {
             cliArgs.add("-f");
             cliArgs.add(TIMESTAMP_FILE_PATH);
         }
         cliArgs.add("fetch");
-        if (immutable) {
+        if (isImmutable) {
             cliArgs.add("-i");
         }
         cliArgs.add("-d"); //always test datetime
@@ -160,19 +160,19 @@ public class TestTimestampCommand {
                     .withLockedInVersionId(immutableTs).doNotBlock().build();
             LockRefreshToken token = rls.lock(client.getClientId(), request);
             long lastFreshTs = tss.getFreshTimestamps(1000).getUpperBound();
-            runAndVerify(runner, tss, immutable, toFile, immutableTs, lastFreshTs, prePunch, postPunch);
+            runAndVerify(runner, tss, isImmutable, immutableTs, lastFreshTs, prePunch, postPunch);
 
             rls.unlock(token);
             lastFreshTs = tss.getFreshTimestamps(1000).getUpperBound();
             // there are no locks so we now expect immutable to just be a fresh
             runner.freshCommand();
-            runAndVerify(runner, tss, false, toFile, lastFreshTs, lastFreshTs, prePunch, postPunch);
+            runAndVerify(runner, tss, false, lastFreshTs, lastFreshTs, prePunch, postPunch);
         }
     }
 
     private void runAndVerify(SingleBackendCliTestRunner runner, TimestampService tss,
-            boolean isImmutable, boolean isToFile, long immutableTs, long lastFreshTs,
-            long prePunch, long postPunch) throws IOException {
+                              boolean immutable, long immutableTs, long lastFreshTs,
+                              long prePunch, long postPunch) throws IOException {
         // prep
         if (isToFile && TIMESTAMP_FILE.exists()) {
             TIMESTAMP_FILE.delete();
@@ -200,7 +200,7 @@ public class TestTimestampCommand {
         // verify correctness
         Preconditions.checkArgument(datetime.isAfter(prePunch));
         Preconditions.checkArgument(datetime.isBefore(postPunch));
-        if (isImmutable) {
+        if (immutable) {
             Preconditions.checkArgument(timestamp == immutableTs);
             Preconditions.checkArgument(timestamp < lastFreshTs);
             Preconditions.checkArgument(timestamp < tss.getFreshTimestamp());
