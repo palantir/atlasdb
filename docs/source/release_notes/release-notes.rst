@@ -44,6 +44,10 @@ v0.12.0
            other clients or CLIs to run in the same keyspace. This may require changes in setup logic for applications that have previously
            only ever run with no leader block.
 
+    *    - |improved|
+         - Updated schema table generation to optimize reads with no ColumnSelection specified against tables with fixed columns.  To benefit from this improvement you will need to re-generate your schemas.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/713>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
@@ -96,10 +100,6 @@ v0.11.0
            The ``ssl`` property will be removed in a future release, and consumers leveraging the Cassandra KVS are encouraged to use the ``sslConfiguration`` block instead. 
            See the `Cassandra SSL Configuration <https://palantir.github.io/atlasdb/html/configuration/cassandra_KVS_configuration.html#communicating-over-ssl>`__ documentation for more details.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/638>`__)
-
-    *    - |improved|
-         - Updated schema table generation to optimize reads with no ColumnSelection specified against tables with fixed columns.  To benefit from this improvement you will need to re-generate your schemas.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/713>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
