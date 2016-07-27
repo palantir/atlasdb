@@ -51,7 +51,7 @@ public class StartTsToCommitTsCacheLoader extends CacheLoader<Long, Long> {
             String msg = "Could not roll back transaction with start timestamp " + startTs + "; either" +
                     " it was already rolled back (by a different transaction), or it committed successfully" +
                     " before we could roll it back.";
-            log.error("This isn't a bug but it should be very infrequent. " + msg,
+            log.warn("This isn't a bug but it should be very infrequent. " + msg,
                     new TransactionFailedRetriableException(msg, e));
         }
 
