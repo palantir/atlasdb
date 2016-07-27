@@ -34,7 +34,7 @@ ext.libVersions =
     // Severe performance regressions in 1202,3,4.
     // Severe correctness issues in 1204,5,6.
     // Update with care and caution.
-    postgresql: '9.4.1207.jre7',
+    postgresql: '9.4.1209',
 
     c3p0: '0.9.5.1',
     log4j: '1.2.17'
