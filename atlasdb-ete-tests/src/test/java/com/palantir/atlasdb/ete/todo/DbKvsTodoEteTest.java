@@ -27,6 +27,6 @@ public class DbKvsTodoEteTest extends TodoEteTest {
 
     @Override
     protected TimestampService createTimestampClient() {
-        return createClientToSingleNode(TimestampService.class);
+        return createClientToMultipleNodes(TimestampService.class, "ete1", "ete2", "ete3");
     }
 }
