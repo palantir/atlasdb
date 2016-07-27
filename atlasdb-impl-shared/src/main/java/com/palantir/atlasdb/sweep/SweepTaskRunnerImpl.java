@@ -262,19 +262,14 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
             return SweepTimestampsAndSentinels.of(uncommittedTimestamps, ImmutableSet.of());
         }
 
-        Set<Cell> sentinelsToAdd = ImmutableSet.of();
-        if (strategySweeper.shouldAddSentinels() && committedTimestampsToSweep.size() > 1) {
-            // We need to add a sentinel if we are removing a committed value
-            sentinelsToAdd = ImmutableSet.of(cell);
-        }
+        Set<Long> sweepTimestamps = (sweepLastCommitted && maxStartTsIsCommitted)
+                ? Sets.union(uncommittedTimestamps, committedTimestampsToSweep)
+                : Sets.union(uncommittedTimestamps, committedTimestampsToSweep.subSet(0L, committedTimestampsToSweep.last()));
 
-        if (sweepLastCommitted && maxStartTsIsCommitted) {
-            Set<Long> sweepTimestamps = Sets.union(uncommittedTimestamps, committedTimestampsToSweep);
-            return SweepTimestampsAndSentinels.of(sweepTimestamps, sentinelsToAdd);
-        }
-        Set<Long> sweepTimestamps = Sets.union(
-                uncommittedTimestamps,
-                committedTimestampsToSweep.subSet(0L, committedTimestampsToSweep.last()));
+        Set<Cell> sentinelsToAdd = (strategySweeper.shouldAddSentinels() && committedTimestampsToSweep.size() > 1)
+                ? ImmutableSet.of(cell) // We need to add a sentinel if we are removing a committed value
+                : ImmutableSet.of();
+
         return SweepTimestampsAndSentinels.of(sweepTimestamps, sentinelsToAdd);
     }
 
