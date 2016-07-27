@@ -14,7 +14,6 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
-import org.openjdk.jmh.infra.Blackhole;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
@@ -23,6 +22,7 @@ import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.performance.backend.KeyValueServiceConnector;
 
 /**
@@ -68,7 +68,6 @@ public class KvsGetDynamicBenchmarks {
             allCells2ReadTimestamp.put(c, READ_TIMESTAMP);
         }
         kvs.put(tableRef1, values, DUMMY_TIMESTAMP);
-
     }
 
     @TearDown
@@ -80,14 +79,14 @@ public class KvsGetDynamicBenchmarks {
 
     @Benchmark
     @OutputTimeUnit(TimeUnit.MILLISECONDS)
-    public void getAllColumns(Blackhole bh) {
-        bh.consume(kvs.get(tableRef1, allCells2ReadTimestamp));
+    public Map<Cell, Value> getAllColumns() {
+        return kvs.get(tableRef1, allCells2ReadTimestamp);
     }
 
     @Benchmark
     @OutputTimeUnit(TimeUnit.MICROSECONDS)
-    public void getFirstColumnExplicitly(Blackhole bh) {
-        bh.consume(kvs.get(tableRef1, firstCell2ReadTimestamp));
+    public Map<Cell, Value> getFirstColumnExplicitly() {
+        return kvs.get(tableRef1, firstCell2ReadTimestamp);
     }
 
 }
