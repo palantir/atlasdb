@@ -124,10 +124,6 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
         // (2) force old writers to retry (note that we must roll back any uncommitted transactions that
         //     we encounter
         SweepStrategy sweepStrategy = sweepStrategyManager.get().getOrDefault(tableRef, SweepStrategy.CONSERVATIVE);
-        if (sweepStrategy == SweepStrategy.NOTHING) {
-            // This sweep strategy makes transaction table truncation impossible
-            return SweepResults.createEmptySweepResult(0L);
-        }
 
         startRow = MoreObjects.firstNonNull(startRow, PtBytes.EMPTY_BYTE_ARRAY);
         RangeRequest rangeRequest = RangeRequest.builder()
@@ -138,7 +134,6 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
         StrategySweeper strategySweeper = getStrategySweeperFor(sweepStrategy);
 
         long sweepTimestamp = strategySweeper.getSweepTimestamp();
-
 
         try (ClosableIterator<RowResult<Value>> valueResults = strategySweeper.getValues(tableRef, rangeRequest, sweepTimestamp);
              ClosableIterator<RowResult<Set<Long>>> rowResults = strategySweeper.getCellTimestamps(tableRef, rangeRequest, sweepTimestamp)) {
@@ -199,7 +194,10 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
         LoadingCache<Long, Long> startTsToCommitTs = CacheBuilder.newBuilder()
                 .build(new StartTsToCommitTsCacheLoader(transactionService));
 
-        startTsToCommitTs.putAll(transactionService.get(startTimestampsPerCell.values()));
+        // Needed because calling transactionService.get(<EMPTY>) is weird (it logs that it is empty too).
+        if(startTimestampsPerCell.isEmpty()) {
+            startTsToCommitTs.putAll(transactionService.get(startTimestampsPerCell.values()));
+        }
 
         for (Map.Entry<Cell, Collection<Long>> entry : startTimestampsPerCell.asMap().entrySet()) {
             Cell cell = entry.getKey();
