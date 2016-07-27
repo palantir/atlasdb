@@ -17,6 +17,9 @@ package com.palantir.atlasdb.ete.todo;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
 
 import org.junit.Test;
 
@@ -24,6 +27,7 @@ import com.palantir.atlasdb.ete.EteSetup;
 import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
+import com.palantir.timestamp.TimestampService;
 
 public abstract class TodoEteTest extends EteSetup {
     private static final Todo TODO = ImmutableTodo.of("some stuff to do");
@@ -34,5 +38,13 @@ public abstract class TodoEteTest extends EteSetup {
 
         todoClient.addTodo(TODO);
         assertThat(todoClient.getTodoList(), contains(TODO));
+    }
+
+    @Test
+    public void
+    shouldExposeATimestampServer() {
+        TimestampService timestampClient = createClient(TimestampService.class);
+
+        assertThat(timestampClient.getFreshTimestamp(), is(not(nullValue())));
     }
 }
