@@ -18,7 +18,7 @@ package com.palantir.atlasdb.config;
 import java.io.File;
 import java.io.IOException;
 
-import javax.annotation.Nullable;
+import com.fasterxml.jackson.databind.JsonNode;
 
 public final class AtlasDbConfigs {
     public static final String ATLASDB_CONFIG_ROOT = "/atlasdb";
@@ -31,12 +31,12 @@ public final class AtlasDbConfigs {
         return load(configFile, ATLASDB_CONFIG_ROOT);
     }
 
-    public static AtlasDbConfig load(File configFile, @Nullable String configRoot) throws IOException {
+    public static AtlasDbConfig load(File configFile, String configRoot) throws IOException {
         ConfigFinder finder = new ConfigFinder(configRoot);
         return finder.getConfig(configFile);
     }
 
-    public static AtlasDbConfig loadFromString(String fileContents, @Nullable String configRoot) throws IOException {
+    public static AtlasDbConfig loadFromString(String fileContents, String configRoot) throws IOException {
         ConfigFinder finder = new ConfigFinder(configRoot);
         return finder.getConfig(fileContents);
     }
