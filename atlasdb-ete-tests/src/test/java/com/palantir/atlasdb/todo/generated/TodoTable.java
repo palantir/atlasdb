@@ -1,6 +1,5 @@
 package com.palantir.atlasdb.todo.generated;
 
-import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -604,7 +603,7 @@ public final class TodoTable implements
         return Iterators.transform(results, e -> {
             TodoRow row = TodoRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
             TodoNamedColumnValue<?> colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());
-            return new AbstractMap.SimpleEntry<TodoRow, TodoNamedColumnValue<?>>(row, colValue);
+            return Maps.immutableEntry(row, colValue);
         });
     }
 
@@ -639,7 +638,6 @@ public final class TodoTable implements
      * This exists to avoid unused import warnings
      * {@link AbortingVisitor}
      * {@link AbortingVisitors}
-     * {@link AbstractMap}
      * {@link ArrayListMultimap}
      * {@link Arrays}
      * {@link AssertUtils}
@@ -722,5 +720,5 @@ public final class TodoTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "goRUdSgG/d3+0ltVpD3o1g==";
+    static String __CLASS_HASH = "JXtzWXF6AZ8lsPSseCLhBg==";
 }

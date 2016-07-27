@@ -40,6 +40,8 @@ import com.palantir.nexus.db.sql.AgnosticLightResultRow;
 import com.palantir.nexus.db.sql.AgnosticLightResultSet;
 
 public abstract class AbstractDbReadTable implements DbReadTable {
+    private static final int MAX_ROW_COLUMN_RANGES_FETCH_SIZE = 1000;
+
     protected final ConnectionSupplier conns;
     protected final DbQueryFactory queryFactory;
 
@@ -216,7 +218,7 @@ public abstract class AbstractDbReadTable implements DbReadTable {
                                                                              ColumnRangeSelection columnRangeSelection) {
         FullQuery query = queryFactory.getRowsColumnRangeCountsQuery(rows, ts, columnRangeSelection);
         AgnosticLightResultSet results = conns.get().selectLightResultSetUnregisteredQuery(query.getQuery(), query.getArgs());
-        results.setFetchSize(rows.size());
+        results.setFetchSize(Math.max(rows.size(), MAX_ROW_COLUMN_RANGES_FETCH_SIZE));
         return ClosableIterators.wrap(results.iterator(), results);
     }
 
@@ -225,7 +227,7 @@ public abstract class AbstractDbReadTable implements DbReadTable {
         FullQuery query = queryFactory.getRowsColumnRangeQuery(columnRangeSelectionsByRow, ts);
         AgnosticLightResultSet results = conns.get().selectLightResultSetUnregisteredQuery(query.getQuery(), query.getArgs());
         int totalSize = columnRangeSelectionsByRow.values().stream().mapToInt(SizedColumnRangeSelection::getBatchHint).sum();
-        results.setFetchSize(totalSize);
+        results.setFetchSize(Math.max(totalSize, MAX_ROW_COLUMN_RANGES_FETCH_SIZE));
         return ClosableIterators.wrap(results.iterator(), results);
     }
 

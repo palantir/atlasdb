@@ -1,6 +1,5 @@
 package com.palantir.atlasdb.schema.stream.generated;
 
-import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -637,7 +636,7 @@ public final class StreamTestWithHashStreamMetadataTable implements
         return Iterators.transform(results, e -> {
             StreamTestWithHashStreamMetadataRow row = StreamTestWithHashStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
             StreamTestWithHashStreamMetadataNamedColumnValue<?> colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());
-            return new AbstractMap.SimpleEntry<StreamTestWithHashStreamMetadataRow, StreamTestWithHashStreamMetadataNamedColumnValue<?>>(row, colValue);
+            return Maps.immutableEntry(row, colValue);
         });
     }
 
@@ -672,7 +671,6 @@ public final class StreamTestWithHashStreamMetadataTable implements
      * This exists to avoid unused import warnings
      * {@link AbortingVisitor}
      * {@link AbortingVisitors}
-     * {@link AbstractMap}
      * {@link ArrayListMultimap}
      * {@link Arrays}
      * {@link AssertUtils}
@@ -755,5 +753,5 @@ public final class StreamTestWithHashStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "o1DST4X8/e19mxJxxnfsgA==";
+    static String __CLASS_HASH = "65OOJc0kd2pBMu/LBfUjcg==";
 }

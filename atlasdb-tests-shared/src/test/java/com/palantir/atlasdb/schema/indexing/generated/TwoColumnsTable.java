@@ -1,6 +1,5 @@
 package com.palantir.atlasdb.schema.indexing.generated;
 
-import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -811,7 +810,7 @@ public final class TwoColumnsTable implements
         return Iterators.transform(results, e -> {
             TwoColumnsRow row = TwoColumnsRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
             TwoColumnsNamedColumnValue<?> colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());
-            return new AbstractMap.SimpleEntry<TwoColumnsRow, TwoColumnsNamedColumnValue<?>>(row, colValue);
+            return Maps.immutableEntry(row, colValue);
         });
     }
 
@@ -1513,7 +1512,7 @@ public final class TwoColumnsTable implements
                 FooToIdCondIdxColumn col = FooToIdCondIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());
                 Long val = FooToIdCondIdxColumnValue.hydrateValue(e.getValue());
                 FooToIdCondIdxColumnValue colValue = FooToIdCondIdxColumnValue.of(col, val);
-                return new AbstractMap.SimpleEntry<FooToIdCondIdxRow, FooToIdCondIdxColumnValue>(row, colValue);
+                return Maps.immutableEntry(row, colValue);
             });
         }
 
@@ -2165,7 +2164,7 @@ public final class TwoColumnsTable implements
                 FooToIdIdxColumn col = FooToIdIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());
                 Long val = FooToIdIdxColumnValue.hydrateValue(e.getValue());
                 FooToIdIdxColumnValue colValue = FooToIdIdxColumnValue.of(col, val);
-                return new AbstractMap.SimpleEntry<FooToIdIdxRow, FooToIdIdxColumnValue>(row, colValue);
+                return Maps.immutableEntry(row, colValue);
             });
         }
 
@@ -2202,7 +2201,6 @@ public final class TwoColumnsTable implements
      * This exists to avoid unused import warnings
      * {@link AbortingVisitor}
      * {@link AbortingVisitors}
-     * {@link AbstractMap}
      * {@link ArrayListMultimap}
      * {@link Arrays}
      * {@link AssertUtils}
@@ -2285,5 +2283,5 @@ public final class TwoColumnsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "qhY5n3qtzkMvblsQrPxG1Q==";
+    static String __CLASS_HASH = "tXgUvOhR94lTqGfvIr3qOQ==";
 }

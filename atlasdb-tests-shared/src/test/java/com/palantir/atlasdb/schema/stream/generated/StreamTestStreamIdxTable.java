@@ -1,6 +1,5 @@
 package com.palantir.atlasdb.schema.stream.generated;
 
-import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -651,7 +650,7 @@ public final class StreamTestStreamIdxTable implements
             StreamTestStreamIdxColumn col = StreamTestStreamIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());
             Long val = StreamTestStreamIdxColumnValue.hydrateValue(e.getValue());
             StreamTestStreamIdxColumnValue colValue = StreamTestStreamIdxColumnValue.of(col, val);
-            return new AbstractMap.SimpleEntry<StreamTestStreamIdxRow, StreamTestStreamIdxColumnValue>(row, colValue);
+            return Maps.immutableEntry(row, colValue);
         });
     }
 
@@ -686,7 +685,6 @@ public final class StreamTestStreamIdxTable implements
      * This exists to avoid unused import warnings
      * {@link AbortingVisitor}
      * {@link AbortingVisitors}
-     * {@link AbstractMap}
      * {@link ArrayListMultimap}
      * {@link Arrays}
      * {@link AssertUtils}
@@ -769,5 +767,5 @@ public final class StreamTestStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "MyBKOs8sJ1gN+yX7EfWpnA==";
+    static String __CLASS_HASH = "fGF+HZPBf/jGX/5AE2V53A==";
 }

@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.impl;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -205,6 +206,9 @@ public class KeyValueServices {
                                                                                    ColumnRangeSelection columnRangeSelection,
                                                                                    int batchHint,
                                                                                    long timestamp) {
+        if (Iterables.isEmpty(rows)) {
+            return new LocalRowColumnRangeIterator(Collections.emptyIterator());
+        }
         log.warn("This KVS does not support getRowsColumnRange with paging through all results simultaneously. Falling "
                 + "back to the less efficient per-row paging version.");
         SizedColumnRangeSelection sizedColumnRangeSelection =

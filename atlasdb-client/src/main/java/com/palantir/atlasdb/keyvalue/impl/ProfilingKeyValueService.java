@@ -479,10 +479,11 @@ public class ProfilingKeyValueService implements KeyValueService {
             Stopwatch stopwatch = Stopwatch.createStarted();
             RowColumnRangeIterator result =
                     delegate.getRowsColumnRange(tableRef, rows, columnRangeSelection, batchHint, timestamp);
-            log.trace("Call to KVS.getRowsColumnRange2 on table {} for {} rows with range {} took {} ms.",
+            log.trace("Call to KVS.getRowsColumnRange2 on table {} for {} rows with range {} and batch hint {} took {} ms.",
                       tableRef.getQualifiedName(),
                       Iterables.size(rows),
                       columnRangeSelection,
+                      batchHint,
                       stopwatch.elapsed(TimeUnit.MILLISECONDS));
             logTimeAndTable("getRowsColumnRange2", tableRef.getQualifiedName(), stopwatch);
             return result;

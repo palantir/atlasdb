@@ -102,6 +102,9 @@ public interface KeyValueService extends AutoCloseable {
 
     /**
      * Each returned {@link RowColumnRangeIterator} returns results in increasing order by column name.
+     * <p/>
+     * Behavior is undefined if {@code rows} contains duplicates (as defined by
+     * {@link java.util.Arrays#equals(byte[], byte[])}).
      */
     @POST
     @Path("get-rows-col-range")
@@ -116,6 +119,9 @@ public interface KeyValueService extends AutoCloseable {
     /**
      * All columns for a given row are adjacent in the returned {@link RowColumnRangeIterator} and sorted by increasing
      * column name. Results for different rows are returned in the same order as they are provided in {@code rows}.
+     * <p/>
+     * Behavior is undefined if {@code rows} contains duplicates (as defined by
+     * {@link java.util.Arrays#equals(byte[], byte[])}).
      */
     @POST
     @Path("get-rows-col-range-2")

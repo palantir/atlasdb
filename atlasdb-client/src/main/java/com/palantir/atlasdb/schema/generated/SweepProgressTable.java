@@ -1,6 +1,5 @@
 package com.palantir.atlasdb.schema.generated;
 
-import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -1160,7 +1159,7 @@ public final class SweepProgressTable implements
         return Iterators.transform(results, e -> {
             SweepProgressRow row = SweepProgressRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
             SweepProgressNamedColumnValue<?> colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());
-            return new AbstractMap.SimpleEntry<SweepProgressRow, SweepProgressNamedColumnValue<?>>(row, colValue);
+            return Maps.immutableEntry(row, colValue);
         });
     }
 
@@ -1195,7 +1194,6 @@ public final class SweepProgressTable implements
      * This exists to avoid unused import warnings
      * {@link AbortingVisitor}
      * {@link AbortingVisitors}
-     * {@link AbstractMap}
      * {@link ArrayListMultimap}
      * {@link Arrays}
      * {@link AssertUtils}
@@ -1278,5 +1276,5 @@ public final class SweepProgressTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "L8vmG1pksK5JB6BnVPniNg==";
+    static String __CLASS_HASH = "eA9xPlFxqwQ9Zp7cbLx8+A==";
 }

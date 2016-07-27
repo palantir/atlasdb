@@ -1,6 +1,5 @@
 package com.palantir.example.profile.schema.generated;
 
-import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -1142,7 +1141,7 @@ public final class UserProfileTable implements
         return Iterators.transform(results, e -> {
             UserProfileRow row = UserProfileRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
             UserProfileNamedColumnValue<?> colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());
-            return new AbstractMap.SimpleEntry<UserProfileRow, UserProfileNamedColumnValue<?>>(row, colValue);
+            return Maps.immutableEntry(row, colValue);
         });
     }
 
@@ -1862,7 +1861,7 @@ public final class UserProfileTable implements
                 CookiesIdxColumn col = CookiesIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());
                 Long val = CookiesIdxColumnValue.hydrateValue(e.getValue());
                 CookiesIdxColumnValue colValue = CookiesIdxColumnValue.of(col, val);
-                return new AbstractMap.SimpleEntry<CookiesIdxRow, CookiesIdxColumnValue>(row, colValue);
+                return Maps.immutableEntry(row, colValue);
             });
         }
 
@@ -2548,7 +2547,7 @@ public final class UserProfileTable implements
                 CreatedIdxColumn col = CreatedIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());
                 Long val = CreatedIdxColumnValue.hydrateValue(e.getValue());
                 CreatedIdxColumnValue colValue = CreatedIdxColumnValue.of(col, val);
-                return new AbstractMap.SimpleEntry<CreatedIdxRow, CreatedIdxColumnValue>(row, colValue);
+                return Maps.immutableEntry(row, colValue);
             });
         }
 
@@ -3234,7 +3233,7 @@ public final class UserProfileTable implements
                 UserBirthdaysIdxColumn col = UserBirthdaysIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());
                 Long val = UserBirthdaysIdxColumnValue.hydrateValue(e.getValue());
                 UserBirthdaysIdxColumnValue colValue = UserBirthdaysIdxColumnValue.of(col, val);
-                return new AbstractMap.SimpleEntry<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue>(row, colValue);
+                return Maps.immutableEntry(row, colValue);
             });
         }
 
@@ -3305,7 +3304,6 @@ public final class UserProfileTable implements
      * This exists to avoid unused import warnings
      * {@link AbortingVisitor}
      * {@link AbortingVisitors}
-     * {@link AbstractMap}
      * {@link ArrayListMultimap}
      * {@link Arrays}
      * {@link AssertUtils}
@@ -3388,5 +3386,5 @@ public final class UserProfileTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "x1a+815sQMi5yqfCAfYYRg==";
+    static String __CLASS_HASH = "YepgjkSA9ex5o1qA/3D3zQ==";
 }

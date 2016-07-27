@@ -1,6 +1,5 @@
 package com.palantir.example.profile.schema.generated;
 
-import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -651,7 +650,7 @@ public final class UserPhotosStreamHashAidxTable implements
             UserPhotosStreamHashAidxColumn col = UserPhotosStreamHashAidxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());
             Long val = UserPhotosStreamHashAidxColumnValue.hydrateValue(e.getValue());
             UserPhotosStreamHashAidxColumnValue colValue = UserPhotosStreamHashAidxColumnValue.of(col, val);
-            return new AbstractMap.SimpleEntry<UserPhotosStreamHashAidxRow, UserPhotosStreamHashAidxColumnValue>(row, colValue);
+            return Maps.immutableEntry(row, colValue);
         });
     }
 
@@ -686,7 +685,6 @@ public final class UserPhotosStreamHashAidxTable implements
      * This exists to avoid unused import warnings
      * {@link AbortingVisitor}
      * {@link AbortingVisitors}
-     * {@link AbstractMap}
      * {@link ArrayListMultimap}
      * {@link Arrays}
      * {@link AssertUtils}
@@ -769,5 +767,5 @@ public final class UserPhotosStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "BlXc00/2HoOBvn7xigftOg==";
+    static String __CLASS_HASH = "j3Dvk22e1w2rrqrlXFEFgA==";
 }

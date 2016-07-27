@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -470,9 +469,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     }
                 };
                 prevRowName = nextRowName;
-                return new AbstractMap.SimpleEntry<byte[], RowColumnRangeIterator>(
-                        nextRowName,
-                        new LocalRowColumnRangeIterator(columnsIterator));
+                return Maps.immutableEntry(nextRowName, new LocalRowColumnRangeIterator(columnsIterator));
             }
 
             private void finishConsumingPreviousRow(PeekingIterator<Map.Entry<Cell, Value>> iter) {

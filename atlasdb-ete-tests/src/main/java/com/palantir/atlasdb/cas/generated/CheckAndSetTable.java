@@ -1,6 +1,5 @@
 package com.palantir.atlasdb.cas.generated;
 
-import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -604,7 +603,7 @@ public final class CheckAndSetTable implements
         return Iterators.transform(results, e -> {
             CheckAndSetRow row = CheckAndSetRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
             CheckAndSetNamedColumnValue<?> colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());
-            return new AbstractMap.SimpleEntry<CheckAndSetRow, CheckAndSetNamedColumnValue<?>>(row, colValue);
+            return Maps.immutableEntry(row, colValue);
         });
     }
 
@@ -639,7 +638,6 @@ public final class CheckAndSetTable implements
      * This exists to avoid unused import warnings
      * {@link AbortingVisitor}
      * {@link AbortingVisitors}
-     * {@link AbstractMap}
      * {@link ArrayListMultimap}
      * {@link Arrays}
      * {@link AssertUtils}
@@ -722,5 +720,5 @@ public final class CheckAndSetTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "6BOfYWjWTEyp/8gLFWPIPQ==";
+    static String __CLASS_HASH = "HklbNe2v4n9Wiz5FF2Fvpg==";
 }

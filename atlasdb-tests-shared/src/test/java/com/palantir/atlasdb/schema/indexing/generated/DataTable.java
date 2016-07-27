@@ -1,6 +1,5 @@
 package com.palantir.atlasdb.schema.indexing.generated;
 
-import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -743,7 +742,7 @@ public final class DataTable implements
         return Iterators.transform(results, e -> {
             DataRow row = DataRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
             DataNamedColumnValue<?> colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());
-            return new AbstractMap.SimpleEntry<DataRow, DataNamedColumnValue<?>>(row, colValue);
+            return Maps.immutableEntry(row, colValue);
         });
     }
 
@@ -1483,7 +1482,7 @@ public final class DataTable implements
                 Index1IdxColumn col = Index1IdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());
                 Long val = Index1IdxColumnValue.hydrateValue(e.getValue());
                 Index1IdxColumnValue colValue = Index1IdxColumnValue.of(col, val);
-                return new AbstractMap.SimpleEntry<Index1IdxRow, Index1IdxColumnValue>(row, colValue);
+                return Maps.immutableEntry(row, colValue);
             });
         }
 
@@ -2157,7 +2156,7 @@ public final class DataTable implements
                 Index2IdxColumn col = Index2IdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());
                 Long val = Index2IdxColumnValue.hydrateValue(e.getValue());
                 Index2IdxColumnValue colValue = Index2IdxColumnValue.of(col, val);
-                return new AbstractMap.SimpleEntry<Index2IdxRow, Index2IdxColumnValue>(row, colValue);
+                return Maps.immutableEntry(row, colValue);
             });
         }
 
@@ -2809,7 +2808,7 @@ public final class DataTable implements
                 Index3IdxColumn col = Index3IdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());
                 Long val = Index3IdxColumnValue.hydrateValue(e.getValue());
                 Index3IdxColumnValue colValue = Index3IdxColumnValue.of(col, val);
-                return new AbstractMap.SimpleEntry<Index3IdxRow, Index3IdxColumnValue>(row, colValue);
+                return Maps.immutableEntry(row, colValue);
             });
         }
 
@@ -3483,7 +3482,7 @@ public final class DataTable implements
                 Index4IdxColumn col = Index4IdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());
                 Long val = Index4IdxColumnValue.hydrateValue(e.getValue());
                 Index4IdxColumnValue colValue = Index4IdxColumnValue.of(col, val);
-                return new AbstractMap.SimpleEntry<Index4IdxRow, Index4IdxColumnValue>(row, colValue);
+                return Maps.immutableEntry(row, colValue);
             });
         }
 
@@ -3554,7 +3553,6 @@ public final class DataTable implements
      * This exists to avoid unused import warnings
      * {@link AbortingVisitor}
      * {@link AbortingVisitors}
-     * {@link AbstractMap}
      * {@link ArrayListMultimap}
      * {@link Arrays}
      * {@link AssertUtils}
@@ -3637,5 +3635,5 @@ public final class DataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "t1u+pcLkgB2oURaP3OL4lw==";
+    static String __CLASS_HASH = "vQhZ7n6MA5+BcFHaD0VhXA==";
 }
