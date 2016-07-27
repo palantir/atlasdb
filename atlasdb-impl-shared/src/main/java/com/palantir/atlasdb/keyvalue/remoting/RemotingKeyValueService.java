@@ -129,7 +129,8 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
                                                                           long timestamp) {
                 Map<byte[], RowColumnRangeIterator> rowsColumnRange =
                         super.getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp);
-                return withKvs(canonicalizeRows(rowsColumnRange, rows), Map.class);
+                return Maps.transformValues(canonicalizeRows(rowsColumnRange, rows),
+                                            iter -> withKvs(iter, RowColumnRangeIterator.class));
             }
 
             private <T> Map<byte[], T> canonicalizeRows(Map<byte[], T> map, Iterable<byte[]> canonicalRows) {
@@ -149,14 +150,12 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
                                                              ColumnRangeSelection columnRangeSelection,
                                                              int batchHint,
                                                              long timestamp) {
-                RowColumnRangeIterator rowsColumnRange =
-                        KeyValueServices.mergeGetRowsColumnRangeIntoSingleIterator(this,
-                                                                                   tableRef,
-                                                                                   rows,
-                                                                                   columnRangeSelection,
-                                                                                   batchHint,
-                                                                                   timestamp);
-                return withKvs(rowsColumnRange, RowColumnRangeIterator.class);
+                return KeyValueServices.mergeGetRowsColumnRangeIntoSingleIterator(this,
+                                                                                  tableRef,
+                                                                                  rows,
+                                                                                  columnRangeSelection,
+                                                                                  batchHint,
+                                                                                  timestamp);
             }
         };
     }

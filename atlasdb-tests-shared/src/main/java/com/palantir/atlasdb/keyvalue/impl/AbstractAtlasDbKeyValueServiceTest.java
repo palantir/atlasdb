@@ -169,10 +169,8 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         Map<Cell, Value> results = Maps.newHashMap();
 
         Iterator<Entry<Cell, Value>> it = Collections.emptyIterator();
-        for (byte[] r : values.keySet()) {
-            if (Arrays.equals(r, row)) {
-                it = Iterators.limit(values.get(r), number);
-            }
+        if (values.containsKey(row)) {
+            it = Iterators.limit(values.get(row), number);
         }
         while (it.hasNext()) {
             Entry<Cell, Value> result = it.next();
@@ -269,6 +267,25 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
     }
 
     @Test
+    public void testGetRowColumnRangeMultipleRows() {
+        putTestDataForSingleTimestamp();
+        Map<byte[], RowColumnRangeIterator> values = keyValueService.getRowsColumnRange(TEST_TABLE,
+                ImmutableList.of(row1, row0, row2),
+                new SizedColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1),
+                TEST_TIMESTAMP + 1);
+        assertEquals(ImmutableSet.of(row0, row1, row2), values.keySet());
+        Map<Cell, Value> row0Values = getValuesForRow(values, row0, 2);
+        assertArrayEquals(value00, row0Values.get(Cell.create(row0, column0)).getContents());
+        assertArrayEquals(value01, row0Values.get(Cell.create(row0, column1)).getContents());
+        Map<Cell, Value> row1Values = getValuesForRow(values, row1, 2);
+        assertArrayEquals(value10, row1Values.get(Cell.create(row1, column0)).getContents());
+        assertArrayEquals(value12, row1Values.get(Cell.create(row1, column2)).getContents());
+        Map<Cell, Value> row2Values = getValuesForRow(values, row2, 2);
+        assertArrayEquals(value21, row2Values.get(Cell.create(row2, column1)).getContents());
+        assertArrayEquals(value22, row2Values.get(Cell.create(row2, column2)).getContents());
+    }
+
+    @Test
     public void testGetRowColumnRange2() {
         putTestDataForSingleTimestamp();
         RowColumnRangeIterator values = keyValueService.getRowsColumnRange(TEST_TABLE,
@@ -307,9 +324,9 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         assertNextElementMatches(values, Cell.create(row1, column2), value12);
         assertFalse(values.hasNext());
     }
-    
+
     @Test
-    public void testGetRowColumnRangeMultipleRows() {
+    public void testGetRowColumnRange2MultipleRows() {
         putTestDataForSingleTimestamp();
         RowColumnRangeIterator values = keyValueService.getRowsColumnRange(TEST_TABLE,
                 ImmutableList.of(row1, row0, row2),
@@ -343,7 +360,7 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         assertNextElementMatches(values, Cell.create(row0, column0), value0_t0);
         assertFalse(values.hasNext());
     }
-    
+
     @Test
     public void testGetRowColumnRange2MultipleHistorical() {
         keyValueService.put(TEST_TABLE,
