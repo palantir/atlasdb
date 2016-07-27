@@ -32,9 +32,11 @@ import com.palantir.timestamp.TimestampService;
 public abstract class TodoEteTest extends EteSetup {
     private static final Todo TODO = ImmutableTodo.of("some stuff to do");
 
+    protected abstract TimestampService createTimestampClient();
+
     @Test
     public void shouldBeAbleToWriteAndListTodos() {
-        TodoResource todoClient = createClient(TodoResource.class);
+        TodoResource todoClient = createClientToSingleNode(TodoResource.class);
 
         todoClient.addTodo(TODO);
         assertThat(todoClient.getTodoList(), contains(TODO));
@@ -43,7 +45,7 @@ public abstract class TodoEteTest extends EteSetup {
     @Test
     public void
     shouldExposeATimestampServer() {
-        TimestampService timestampClient = createClient(TimestampService.class);
+        TimestampService timestampClient = createTimestampClient();
 
         assertThat(timestampClient.getFreshTimestamp(), is(not(nullValue())));
     }
