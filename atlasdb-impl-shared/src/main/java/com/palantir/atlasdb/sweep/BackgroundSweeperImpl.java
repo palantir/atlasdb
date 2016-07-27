@@ -198,7 +198,7 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
 
     @Nullable
     private SweepProgressRowResult chooseNextTableToSweep(SweepTransaction t) {
-        Set<TableReference> allTables = Sets.difference(kvs.getAllTableNames(), AtlasDbConstants.hiddenTables);
+        Set<TableReference> allTables = Sets.difference(kvs.getAllTableNames(), AtlasDbConstants.HIDDEN_TABLES);
         SweepPriorityTable oldPriorityTable = tableFactory.getSweepPriorityTable(t);
         SweepPriorityTable newPriorityTable = tableFactory.getSweepPriorityTable(t.delegate());
 
@@ -261,7 +261,7 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
     }
 
     private double getSweepPriority(SweepPriorityRowResult oldPriority, SweepPriorityRowResult newPriority) {
-        Stream<String> hiddenTableFullNames = AtlasDbConstants.hiddenTables.stream().map(tableRef -> tableRef.getQualifiedName());
+        Stream<String> hiddenTableFullNames = AtlasDbConstants.HIDDEN_TABLES.stream().map(tableRef -> tableRef.getQualifiedName());
         if (hiddenTableFullNames.anyMatch(Predicate.isEqual(newPriority.getRowName().getFullTableName()))) {
             // Never sweep hidden tables
             return 0.0;

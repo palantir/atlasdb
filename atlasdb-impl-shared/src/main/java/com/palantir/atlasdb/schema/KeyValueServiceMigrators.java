@@ -41,7 +41,7 @@ public class KeyValueServiceMigrators {
          * migrated.
          */
         HashSet<TableReference> tableNames = Sets.newHashSet(kvs.getAllTableNames());
-        tableNames.removeAll(AtlasDbConstants.hiddenTables);
+        tableNames.removeAll(AtlasDbConstants.HIDDEN_TABLES);
         tableNames.removeAll(unmigratableTables);
         return tableNames;
     }

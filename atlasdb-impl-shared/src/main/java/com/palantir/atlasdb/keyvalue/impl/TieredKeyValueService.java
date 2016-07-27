@@ -87,7 +87,7 @@ public class TieredKeyValueService implements KeyValueService {
                                   KeyValueService primary,
                                   KeyValueService secondary,
                                   ExecutorService executor) {
-        Set<TableReference> badTables = Sets.intersection(AtlasDbConstants.hiddenTables, tieredTables);
+        Set<TableReference> badTables = Sets.intersection(AtlasDbConstants.HIDDEN_TABLES, tieredTables);
         Preconditions.checkArgument(badTables.isEmpty(), "The hidden tables %s cannot be tiered.", badTables);
         this.tieredTables = ImmutableSet.copyOf(tieredTables);
         this.primary = primary;
@@ -118,7 +118,7 @@ public class TieredKeyValueService implements KeyValueService {
 
     private boolean isNotTiered(TableReference tableRef) {
         if (tieredTables.isEmpty()) {
-            return AtlasDbConstants.hiddenTables.contains(tableRef);
+            return AtlasDbConstants.HIDDEN_TABLES.contains(tableRef);
         }
         return !tieredTables.contains(tableRef);
     }
@@ -150,7 +150,7 @@ public class TieredKeyValueService implements KeyValueService {
 
     public Set<TableReference> getTieredTablenames() {
         if (tieredTables.isEmpty()) {
-            return Sets.difference(getAllTableNames(), AtlasDbConstants.hiddenTables);
+            return Sets.difference(getAllTableNames(), AtlasDbConstants.HIDDEN_TABLES);
         } else {
             return tieredTables;
         }
