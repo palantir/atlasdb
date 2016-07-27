@@ -31,7 +31,7 @@ import com.palantir.atlasdb.performance.backend.KeyValueServiceConnector;
  * @author coda
  *
  */
-@State(Scope.Thread)
+@State(Scope.Benchmark)
 @BenchmarkMode(Mode.SampleTime)
 @Warmup(iterations = 10)
 @Measurement(iterations = 20)
