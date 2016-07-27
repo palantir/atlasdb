@@ -41,6 +41,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -377,6 +378,31 @@ public class CassandraClientPool {
         public List<TokenRange> apply (Cassandra.Client client) throws Exception {
             return client.describe_ring(config.keyspace());
         }};
+
+    // todo add interior retry? currently can't do this with good code re-use because runWithRetryOnHost is too smart and can shift hosts, which we don't want here
+    public <V, K extends Exception> V runOnAllNodesAndEnsureReturnValuesConsistent(FunctionCheckedException<Cassandra.Client, V, K> f) throws IllegalStateException {
+            Map<InetSocketAddress, Exception> exceptionsByHost = Maps.newHashMap();
+            Map<InetSocketAddress, V> returnValuesByHost = Maps.newHashMap();
+
+            for (Entry<InetSocketAddress, CassandraClientPoolingContainer> poolForHost : currentPools.entrySet()) {
+                try {
+                    returnValuesByHost.put(poolForHost.getKey(), poolForHost.getValue().runWithPooledResource(f));
+                } catch (Exception e) {
+                    exceptionsByHost.put(poolForHost.getKey(), e);
+                }
+            }
+
+        ImmutableSet<V> returnValueSet = ImmutableSet.copyOf(returnValuesByHost.values());
+        if (exceptionsByHost.isEmpty() &&
+                returnValueSet.size() == 1) { // no exceptions and single unified return value
+            return Iterables.getOnlyElement(returnValueSet);
+        } else {
+            Joiner.MapJoiner mapPrettyPrinter = Joiner.on(',').withKeyValueSeparator("=");
+            throw new IllegalStateException("Applied a function to entire cluster and received inconsistent results. " +
+                    "\nExceptions amongst function runs: " + mapPrettyPrinter.join(exceptionsByHost) +
+                    "\nValues amongst function runs: " + mapPrettyPrinter.join(returnValuesByHost));
+        }
+    }
 
     public <V, K extends Exception> V runWithRetry(FunctionCheckedException<Cassandra.Client, V, K> f) throws K {
        return runWithRetryOnHost(getRandomGoodHost().getHost(), f);

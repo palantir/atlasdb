@@ -88,6 +88,22 @@ public class CassandraKeyValueServices {
         throw new IllegalStateException(sb.toString());
     }
 
+    static int checkCfIdOnAllHosts(CassandraClientPool clientPool, final String keyspace, final String cfName) {
+        FunctionCheckedException<Cassandra.Client, Integer, Exception> getCfId = new FunctionCheckedException<Cassandra.Client, Integer, Exception>() {
+            @Override
+            public Integer apply (Cassandra.Client client) throws Exception {
+                List<CfDef> cf_defs = client.describe_keyspace(keyspace).getCf_defs();
+                for (CfDef cfDef : cf_defs) {
+                    if (cfDef.getName().equals(cfName)) {
+                        return cfDef.getId();
+                    }
+                }
+                throw new IllegalStateException("Couldn't find the CF we just created (" + cfName + ")");
+            }};
+
+        return clientPool.runOnAllNodesAndEnsureReturnValuesConsistent(getCfId);
+    }
+
     /**
      * This is a request from pbrown / FDEs; basically it's a pain to do DB surgery to get out of failed patch upgrades, the majority of which requires schema mutations; they would find it preferable to stop before starting the actual patch upgrade / setting APPLYING state.
      */
