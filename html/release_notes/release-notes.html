@@ -191,6 +191,12 @@ for details on how this works.
 <td>Trace logging for cassandra is now used in more places. To enable trace logging for Cassandra, add the following line to your log.properties: <code class="docutils literal"><span class="pre">log4j.logger.com.palantir.atlasdb.keyvalue.cassandra=TRACE</span></code>
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/700">Pull Request</a>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-deprecated">DEPRECATED</span></td>
+<td>The Cassandra KVS now supports specifying SSL options via the new <code class="docutils literal"><span class="pre">sslConfiguration</span></code> block, which takes precedence over the now deprecated <code class="docutils literal"><span class="pre">ssl</span></code> property.
+The <code class="docutils literal"><span class="pre">ssl</span></code> property will be removed in a future release, and consumers leveraging the Cassandra KVS are encouraged to use the <code class="docutils literal"><span class="pre">sslConfiguration</span></code> block instead.
+See the <a class="reference external" href="https://palantir.github.io/atlasdb/html/configuration/cassandra_KVS_configuration.html#communicating-over-ssl">Cassandra SSL Configuration</a> documentation for more details.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/638">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>

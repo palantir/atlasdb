@@ -175,7 +175,8 @@ in the leaders list. If you do not specify a lock creator, the leaders block sho
     <span class="l l-Scalar l-Scalar-Plain">credentials</span><span class="p p-Indicator">:</span>
       <span class="l l-Scalar l-Scalar-Plain">username</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">cassandra</span>
       <span class="l l-Scalar l-Scalar-Plain">password</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">cassandra</span>
-    <span class="l l-Scalar l-Scalar-Plain">ssl</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">false</span>
+    <span class="l l-Scalar l-Scalar-Plain">sslConfiguration</span><span class="p p-Indicator">:</span>
+        <span class="l l-Scalar l-Scalar-Plain">trustStorePath</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">var/security/truststore.jks</span>
     <span class="l l-Scalar l-Scalar-Plain">replicationFactor</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">1</span>
     <span class="l l-Scalar l-Scalar-Plain">mutationBatchCount</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">10000</span>
     <span class="l l-Scalar l-Scalar-Plain">mutationBatchSizeBytes</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">10000000</span>
@@ -184,16 +185,32 @@ in the leaders list. If you do not specify a lock creator, the leaders block sho
     <span class="l l-Scalar l-Scalar-Plain">autoRefreshNodes</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">false</span>
 
   <span class="l l-Scalar l-Scalar-Plain">leader</span><span class="p p-Indicator">:</span>
-    <span class="l l-Scalar l-Scalar-Plain">quorumSize</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">2</span> <span class="c1"># This should be at least half the number of nodes in your cluster</span>
-    <span class="l l-Scalar l-Scalar-Plain">learnerLogDir</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">var/data/paxosLog/learner1</span>
-    <span class="l l-Scalar l-Scalar-Plain">acceptorLogDir</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">var/data/paxosLog/acceptor1</span>
-    <span class="l l-Scalar l-Scalar-Plain">localServer</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">http://&lt;yourhost&gt;:3828</span> <span class="c1"># This should be different for every node</span>
-    <span class="l l-Scalar l-Scalar-Plain">lockCreator</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">http://host1:3828</span> <span class="c1"># This should be the same for every node</span>
-    <span class="l l-Scalar l-Scalar-Plain">leaders</span><span class="p p-Indicator">:</span> <span class="c1"># This should be the same for every node</span>
+    <span class="c1"># This should be at least half the number of nodes in your cluster</span>
+    <span class="l l-Scalar l-Scalar-Plain">quorumSize</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">2</span>
+    <span class="l l-Scalar l-Scalar-Plain">learnerLogDir</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">var/data/paxosLogs</span>
+    <span class="l l-Scalar l-Scalar-Plain">acceptorLogDir</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">var/data/paxosLogs</span>
+    <span class="c1"># This should be different for every node</span>
+    <span class="l l-Scalar l-Scalar-Plain">localServer</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">http://&lt;yourhost&gt;:3828</span>
+    <span class="c1"># This should be the same for every node</span>
+    <span class="l l-Scalar l-Scalar-Plain">lockCreator</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">http://host1:3828</span>
+    <span class="c1"># This should be the same for every node</span>
+    <span class="l l-Scalar l-Scalar-Plain">leaders</span><span class="p p-Indicator">:</span>
       <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">http://host1:3828</span>
       <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">http://host2:3828</span>
       <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">http://host3:3828</span>
 </pre></div>
+</div>
+</div>
+<div class="section" id="communicating-over-ssl">
+<span id="cass-config-ssl"></span><h2>Communicating Over SSL<a class="headerlink" href="#communicating-over-ssl" title="Permalink to this headline">¶</a></h2>
+<p>Atlas currently supports two different ways of specifying SSL options in the Cassandra KVS configuration: The <code class="docutils literal"><span class="pre">sslConfiguration</span></code> block and the deprecated <code class="docutils literal"><span class="pre">ssl</span></code> property.  Both means are supported but <code class="docutils literal"><span class="pre">sslConfiguration</span></code> is preferred and will always be respected in favor of <code class="docutils literal"><span class="pre">ssl</span></code> when both are specified.  In the future, support for <code class="docutils literal"><span class="pre">ssl</span></code> will be removed.</p>
+<div class="section" id="sslconfiguration">
+<h3>sslConfiguration<a class="headerlink" href="#sslconfiguration" title="Permalink to this headline">¶</a></h3>
+<p>This object is specified according to the <a class="reference external" href="https://github.com/palantir/http-remoting/blob/develop/ssl-config/src/main/java/com/palantir/remoting1/config/ssl/SslConfiguration.java">palantir/http-remoting</a> library. It directly specifies all aspects of the ssl configuration, instead of reading them from system properties.  The only required property is <code class="docutils literal"><span class="pre">trustStorePath</span></code>, as seen in the example above.  In order to configure 2-way SSL, you would also have to set the optional properties <code class="docutils literal"><span class="pre">keyStorePath</span></code> and <code class="docutils literal"><span class="pre">keyStorePassword</span></code>.</p>
+</div>
+<div class="section" id="ssl">
+<h3>ssl<a class="headerlink" href="#ssl" title="Permalink to this headline">¶</a></h3>
+<p>This property is a boolean value saying whether or not to use ssl.  When <code class="docutils literal"><span class="pre">true</span></code>, it will use java system properties that are passed in as jvm arguments to determine how to set up the ssl connection.  For example, you would use the jvm option <code class="docutils literal"><span class="pre">-Djavax.net.ssl.trustStore=&lt;path-to-truststore&gt;</span></code> to tell atlas where to find the truststore to use.</p>
 </div>
 </div>
 </div>

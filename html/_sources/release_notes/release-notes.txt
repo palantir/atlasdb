@@ -13,12 +13,15 @@ Changelog
     :class: changetype changetype-changed
 .. role:: changetype-improved
     :class: changetype changetype-improved
+.. role:: changetype-deprecated
+    :class: changetype changetype-deprecated
 
 .. |breaking| replace:: :changetype-breaking:`BREAKING`
 .. |new| replace:: :changetype-new:`NEW`
 .. |fixed| replace:: :changetype-fixed:`FIXED`
 .. |changed| replace:: :changetype-changed:`CHANGED`
 .. |improved| replace:: :changetype-improved:`IMPROVED`
+.. |deprecated| replace:: :changetype-deprecated:`DEPRECATED`
 
 .. toctree::
   :hidden:
@@ -62,6 +65,12 @@ v0.11.0
     *    - |improved|
          - Trace logging for cassandra is now used in more places. To enable trace logging for Cassandra, add the following line to your log.properties: ``log4j.logger.com.palantir.atlasdb.keyvalue.cassandra=TRACE``
            (`Pull Request <https://github.com/palantir/atlasdb/pull/700>`__)
+
+    *    - |deprecated|
+         - The Cassandra KVS now supports specifying SSL options via the new ``sslConfiguration`` block, which takes precedence over the now deprecated ``ssl`` property. 
+           The ``ssl`` property will be removed in a future release, and consumers leveraging the Cassandra KVS are encouraged to use the ``sslConfiguration`` block instead. 
+           See the `Cassandra SSL Configuration <https://palantir.github.io/atlasdb/html/configuration/cassandra_KVS_configuration.html#communicating-over-ssl>`__ documentation for more details.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/638>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
