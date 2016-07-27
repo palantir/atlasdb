@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.sweep;
+package com.palantir.atlasdb.sweep.sweepers;
 
 import java.util.Set;
 
@@ -27,12 +27,12 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 
-public class ConservativeStrategySweeper implements StrategySweeper {
+public class ConservativeSweeper implements Sweeper {
     private final KeyValueService keyValueService;
     private final Supplier<Long> immutableTimestampSupplier;
     private final Supplier<Long> unreadableTimestampSupplier;
 
-    public ConservativeStrategySweeper(KeyValueService keyValueService, Supplier<Long> immutableTimestampSupplier, Supplier<Long> unreadableTimestampSupplier) {
+    public ConservativeSweeper(KeyValueService keyValueService, Supplier<Long> immutableTimestampSupplier, Supplier<Long> unreadableTimestampSupplier) {
         this.keyValueService = keyValueService;
         this.immutableTimestampSupplier = immutableTimestampSupplier;
         this.unreadableTimestampSupplier = unreadableTimestampSupplier;

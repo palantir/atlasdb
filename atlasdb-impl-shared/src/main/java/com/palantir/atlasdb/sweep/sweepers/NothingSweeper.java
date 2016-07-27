@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.sweep;
+package com.palantir.atlasdb.sweep.sweepers;
 
 import java.util.Set;
 
@@ -25,7 +25,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 
-public class NothingStrategySweeper implements StrategySweeper {
+public class NothingSweeper implements Sweeper {
     @Override
     public long getSweepTimestamp() {
         return 0;
