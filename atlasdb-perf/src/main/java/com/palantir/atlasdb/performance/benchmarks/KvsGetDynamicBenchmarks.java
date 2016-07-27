@@ -3,7 +3,6 @@ package com.palantir.atlasdb.performance.benchmarks;
 import java.io.UnsupportedEncodingException;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -18,6 +17,7 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
+import org.openjdk.jmh.infra.Blackhole;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -32,51 +32,49 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.performance.backend.KeyValueServiceConnector;
 
 /**
- * Performance benchmarks for KVS put operations.
+ * Performance benchmarks for KVS get with dynamic columns.
  *
- * @author mwakerman
+ * @author coda
+ *
  */
 @State(Scope.Thread)
 @BenchmarkMode(Mode.AverageTime)
-@OutputTimeUnit(TimeUnit.MICROSECONDS)
-@Warmup(iterations = 5)
-@Measurement(iterations = 5)
+@Warmup(iterations = 10)
+@Measurement(iterations = 20)
 public class KvsGetDynamicBenchmarks {
 
-    private static final long VALUE_SEED = 279L;
-    private static final String TABLE_NAME_1 = "performance.table1";
-    private static final String ROW_COMPONENT = "key";
+    private static final String TABLE_NAME_1 = "performance.table2";
+    private static final String ROW_COMPONENT = "BIG_ROW_OF_INTS";
     private static final String COLUMN_COMPONENT = "col";
-    private static final byte [] COLUMN_COMPONENT_IN_BYTES = COLUMN_COMPONENT.getBytes();
     private static final long DUMMY_TIMESTAMP = 1L;
     private static final long READ_TIMESTAMP = 2L;
 
-    private final int NUM_COLS = 100000;
+    private final int NUM_COLS = 50000;
 
     private KeyValueServiceConnector connector;
     private KeyValueService kvs;
-    private Random random = new Random(VALUE_SEED);
 
     private TableReference tableRef1;
 
-    private List<Cell> allCells;
+    private Map<Cell, Long> allCells2ReadTimestamp;
+    private Map<Cell, Long> firstCell2ReadTimestamp;
 
     @Setup
     public void setup(KeyValueServiceConnector connector) throws UnsupportedEncodingException {
         this.connector = connector;
         kvs = connector.connect();
         tableRef1 = KvsBenchmarks.createTableWithDynamicColumns(kvs, TABLE_NAME_1, ROW_COMPONENT, COLUMN_COMPONENT);
-        String rowName = "BIG_ROW_OF_INTS";
-        byte[] rowBytes = rowName.getBytes("UTF-8");
+        byte[] rowBytes = ROW_COMPONENT.getBytes("UTF-8");
         Map<Cell,byte[]> values = Maps.newHashMap();
-        allCells = Lists.newArrayList();
+        allCells2ReadTimestamp = Maps.newHashMap();
+        firstCell2ReadTimestamp = ImmutableMap.of(Cell.create(rowBytes, ("col_0").getBytes("UTF-8")), READ_TIMESTAMP);
         for (int i = 0; i < NUM_COLS; i++) {
             Cell c = Cell.create(rowBytes, ("col_"+i).getBytes("UTF-8"));
-            byte[] bytes = Ints.toByteArray(i);
-            values.put(c, bytes);
-            allCells.add(c);
+            values.put(c, Ints.toByteArray(i));
+            allCells2ReadTimestamp.put(c, READ_TIMESTAMP);
         }
         kvs.put(tableRef1, values, DUMMY_TIMESTAMP);
+
     }
 
     @TearDown
@@ -86,26 +84,16 @@ public class KvsGetDynamicBenchmarks {
         connector.close();
     }
 
-
     @Benchmark
-    public void getAllColumns() {
-        Map<Cell, Value> result = kvs.get(tableRef1, allCells.stream().collect(Collectors.toMap(c -> c, c -> READ_TIMESTAMP)));
-        Validate.isTrue(result.size() == NUM_COLS, String.format("Result.size = %s, NUM_COLS = %s", result.size(), NUM_COLS));
-        for (int i = 0; i < NUM_COLS; i++) {
-            Cell c = allCells.get(i);
-            Value value = result.get(c);
-            int resultValue = Ints.fromByteArray(value.getContents());
-            Validate.isTrue(resultValue == i, String.format("Result value is %s for iteration %s", resultValue, i));
-        }
+    @OutputTimeUnit(TimeUnit.MILLISECONDS)
+    public void getAllColumns(Blackhole bh) {
+        bh.consume(kvs.get(tableRef1, allCells2ReadTimestamp));
     }
 
-
     @Benchmark
-    public void getFirstColumnExplicitly() {
-        Map<Cell, Value> result = kvs.get(tableRef1, ImmutableMap.of(allCells.iterator().next(), READ_TIMESTAMP));
-        Validate.isTrue(result.size() == 1, "Should be 1 result: " + result.size());
-        int resultValue = Ints.fromByteArray(Iterables.getOnlyElement(result.values()).getContents());
-        Validate.isTrue(0 == resultValue, "Should be 0: " + resultValue);
+    @OutputTimeUnit(TimeUnit.MICROSECONDS)
+    public void getFirstColumnExplicitly(Blackhole bh) {
+        bh.consume(kvs.get(tableRef1, firstCell2ReadTimestamp));
     }
 
 }
