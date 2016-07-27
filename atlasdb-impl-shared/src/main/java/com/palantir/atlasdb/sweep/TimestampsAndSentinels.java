@@ -22,9 +22,9 @@ import org.immutables.value.Value;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 
 @Value.Immutable
-public abstract class SweepTimestampsAndSentinels {
-    public static SweepTimestampsAndSentinels of(Set<Long> timestamps, Set<Cell> sentinelsToAdd) {
-        return ImmutableSweepTimestampsAndSentinels.builder()
+public abstract class TimestampsAndSentinels {
+    public static TimestampsAndSentinels of(Set<Long> timestamps, Set<Cell> sentinelsToAdd) {
+        return ImmutableTimestampsAndSentinels.builder()
                 .timestamps(timestamps)
                 .sentinelsToAdd(sentinelsToAdd)
                 .build();

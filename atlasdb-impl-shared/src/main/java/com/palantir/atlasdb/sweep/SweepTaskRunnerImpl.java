@@ -145,10 +145,10 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
             PeekingIterator<RowResult<Value>> peekingValues = Iterators.peekingIterator(valueResults);
 
             Multimap<Cell, Long> rowTimestamps = getTimestampsFromRowResults(rowResultTimestamps, sweeper);
-            SweepCellsAndSentinels sweepCellsAndSentinels = getStartTimestampsPerRowToSweep(rowTimestamps, peekingValues, sweepTimestamp, sweeper);
+            CellsAndSentinels cellsAndSentinels = getStartTimestampsPerRowToSweep(rowTimestamps, peekingValues, sweepTimestamp, sweeper);
 
-            Multimap<Cell, Long> startTimestampsToSweepPerCell = sweepCellsAndSentinels.startTimestampsToSweepPerCell();
-            sweepCells(tableRef, startTimestampsToSweepPerCell, sweepCellsAndSentinels.sentinelsToAdd());
+            Multimap<Cell, Long> startTimestampsToSweepPerCell = cellsAndSentinels.startTimestampsToSweepPerCell();
+            sweepCells(tableRef, startTimestampsToSweepPerCell, cellsAndSentinels.sentinelsToAdd());
 
             byte[] nextRow = rowResultTimestamps.size() < batchSize ? null :
                 RangeRequests.getNextStartRow(false, Iterables.getLast(rowResultTimestamps).getRowName());
@@ -187,7 +187,7 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
     }
 
     @VisibleForTesting
-    SweepCellsAndSentinels getStartTimestampsPerRowToSweep(
+    CellsAndSentinels getStartTimestampsPerRowToSweep(
             Multimap<Cell, Long> startTimestampsPerCell,
             PeekingIterator<RowResult<Value>> values,
             long sweepTimestamp,
@@ -207,17 +207,17 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
             Cell cell = entry.getKey();
             Collection<Long> timestamps = entry.getValue();
             boolean sweepLastCommitted = isLatestValueEmpty(cell, values);
-            SweepTimestampsAndSentinels sweepTimestampsAndSentinels = getTimestampsToSweep(
+            TimestampsAndSentinels timestampsAndSentinels = getTimestampsToSweep(
                     cell,
                     timestamps,
                     startTsToCommitTs,
                     sweepTimestamp,
                     sweepLastCommitted,
                     sweeper);
-            startTimestampsToSweepPerCell.putAll(cell, sweepTimestampsAndSentinels.timestamps());
-            sentinelsToAdd.addAll(sweepTimestampsAndSentinels.sentinelsToAdd());
+            startTimestampsToSweepPerCell.putAll(cell, timestampsAndSentinels.timestamps());
+            sentinelsToAdd.addAll(timestampsAndSentinels.sentinelsToAdd());
         }
-        return SweepCellsAndSentinels.of(startTimestampsToSweepPerCell.build(), sentinelsToAdd.build());
+        return CellsAndSentinels.of(startTimestampsToSweepPerCell.build(), sentinelsToAdd.build());
     }
 
     private boolean isLatestValueEmpty(Cell cell, PeekingIterator<RowResult<Value>> values) {
@@ -236,7 +236,7 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
         return false;
     }
 
-    private SweepTimestampsAndSentinels getTimestampsToSweep(
+    private TimestampsAndSentinels getTimestampsToSweep(
             Cell cell,
             Collection<Long> startTimestamps,
             LoadingCache<Long, Long> startTsToCommitTs,
@@ -274,7 +274,7 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
                 ? ImmutableSet.of(cell) // We need to add a sentinel if we are removing a committed value
                 : ImmutableSet.of();
 
-        return SweepTimestampsAndSentinels.of(sweepTimestamps, sentinelsToAdd);
+        return TimestampsAndSentinels.of(sweepTimestamps, sentinelsToAdd);
     }
 
     @VisibleForTesting
