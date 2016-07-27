@@ -77,8 +77,8 @@ public class SweepTaskRunnerImplTest {
             mockTransactionService,
             null,
             ImmutableList.of(mockFollower));
-    private final SweepStrategySweeper thoroughStrategySweeper = new ThoroughSweepStrategySweeper(mockKVS, mockImmutableTimestampSupplier);
-    private final SweepStrategySweeper conservativeStrategySweeper = new ConservativeSweepStrategySweeper(mockKVS, mockImmutableTimestampSupplier, mockUnreadableTimestampSupplier);
+    private final StrategySweeper thoroughStrategySweeper = new ThoroughStrategySweeper(mockKVS, mockImmutableTimestampSupplier);
+    private final StrategySweeper conservativeStrategySweeper = new ConservativeStrategySweeper(mockKVS, mockImmutableTimestampSupplier, mockUnreadableTimestampSupplier);
 
     @Test
     public void ensureCellSweepDeletesCells() {
