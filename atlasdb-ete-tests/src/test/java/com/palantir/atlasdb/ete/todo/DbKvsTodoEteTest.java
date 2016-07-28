@@ -23,7 +23,7 @@ import com.palantir.timestamp.TimestampService;
 
 public class DbKvsTodoEteTest extends TodoEteTest {
     @ClassRule
-    public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition("docker-compose.dbkvs.yml");
+    public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition("dbkvs", "docker-compose.dbkvs.yml");
 
     @Override
     protected TimestampService createTimestampClient() {
