@@ -151,6 +151,27 @@
 <h1>Changelog<a class="headerlink" href="#changelog" title="Permalink to this headline">¶</a></h1>
 <div class="toctree-wrapper compound">
 </div>
+<div class="section" id="v0-12-0">
+<h2>v0.12.0<a class="headerlink" href="#v0-12-0" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-breaking">BREAKING</span></td>
+<td>If you do not specify a leader block in your config, AtlasDB will now still try to register the timestamp and lock endpoints necessary for
+other clients or CLIs to run in the same keyspace. This may require changes in setup logic for applications that have previously
+only ever run with no leader block.</td>
+</tr>
+</tbody>
+</table>
+</div>
 <div class="section" id="v0-11-0">
 <h2>v0.11.0<a class="headerlink" href="#v0-11-0" title="Permalink to this headline">¶</a></h2>
 <table border="1" class="docutils">
