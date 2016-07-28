@@ -319,8 +319,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
                         List<ByteBuffer> rowNames = wrap(rows);
 
-                        ColumnParent colFam = new ColumnParent(internalTableName(tableRef));
-                        Map<ByteBuffer, List<ColumnOrSuperColumn>> results = multigetInternal(client, tableRef, rowNames, colFam, pred, readConsistency);
+                        Map<ByteBuffer, List<ColumnOrSuperColumn>> results = multigetInternal(client, tableRef, rowNames, pred, readConsistency);
                         Map<Cell, Value> ret = Maps.newHashMap();
                         new ValueExtractor(ret).extractResults(results, startTs, ColumnSelection.all());
                         return ret;
@@ -482,8 +481,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                                     partition.size(), tableRef, loadAllTs ? "for all timestamps " : "", startTs, host);
                         }
 
-                        Map<ByteBuffer, List<ColumnOrSuperColumn>> results =
-                                multigetInternal(client, tableRef, rowNames, colFam, predicate, consistency);
+                        Map<ByteBuffer, List<ColumnOrSuperColumn>> results = multigetInternal(client, tableRef, rowNames, predicate, consistency);
                         v.visit(results);
                         return null;
                     }
@@ -589,18 +587,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             return clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Client, RowColumnRangeExtractor.RowColumnRangeResult, Exception>() {
                 @Override
                 public RowColumnRangeExtractor.RowColumnRangeResult apply(Client client) throws Exception {
-                    ByteBuffer start = columnRangeSelection.getStartCol().length == 0 ?
-                            ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY) :
-                            CassandraKeyValueServices.makeCompositeBuffer(columnRangeSelection.getStartCol(), startTs - 1);
-                    ByteBuffer end = columnRangeSelection.getEndCol().length == 0 ?
-                            ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY) :
-                            CassandraKeyValueServices.makeCompositeBuffer(RangeRequests.previousLexicographicName(columnRangeSelection.getEndCol()), -1);
-                    SliceRange slice = new SliceRange(start, end, false, columnRangeSelection.getBatchHint());
-                    SlicePredicate pred = new SlicePredicate();
-                    pred.setSlice_range(slice);
+                    SlicePredicate pred = getSlicePredicate(columnRangeSelection, startTs);
 
-                    ColumnParent colFam = new ColumnParent(internalTableName(tableRef));
-                    Map<ByteBuffer, List<ColumnOrSuperColumn>> results = multigetInternal(client, tableRef, wrap(rows), colFam, pred, readConsistency);
+                    Map<ByteBuffer, List<ColumnOrSuperColumn>> results = multigetInternal(client, tableRef, wrap(rows), pred, readConsistency);
 
                     RowColumnRangeExtractor extractor = new RowColumnRangeExtractor();
                     extractor.extractResults(results, startTs);
@@ -616,6 +605,19 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
+    }
+
+    private SlicePredicate getSlicePredicate(ColumnRangeSelection columnRangeSelection, long startTs) {
+        ByteBuffer start = columnRangeSelection.getStartCol().length == 0 ?
+                ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY) :
+                CassandraKeyValueServices.makeCompositeBuffer(columnRangeSelection.getStartCol(), startTs - 1);
+        ByteBuffer end = columnRangeSelection.getEndCol().length == 0 ?
+                ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY) :
+                CassandraKeyValueServices.makeCompositeBuffer(RangeRequests.previousLexicographicName(columnRangeSelection.getEndCol()), -1);
+        SliceRange slice = new SliceRange(start, end, false, columnRangeSelection.getBatchHint());
+        SlicePredicate pred = new SlicePredicate();
+        pred.setSlice_range(slice);
+        return pred;
     }
 
     private Iterator<Entry<Cell, Value>> getRowColumnRange(InetSocketAddress host, TableReference tableRef, final byte[] row,
@@ -647,9 +649,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
                         ByteBuffer rowByteBuffer = ByteBuffer.wrap(row);
 
-                        ColumnParent colFam = new ColumnParent(internalTableName(tableRef));
-                        Map<ByteBuffer, List<ColumnOrSuperColumn>> results = multigetInternal(client, tableRef,
-                                ImmutableList.of(rowByteBuffer), colFam, pred, readConsistency);
+                        Map<ByteBuffer, List<ColumnOrSuperColumn>> results = multigetInternal(client, tableRef, ImmutableList.of(rowByteBuffer), pred, readConsistency);
 
                         if (results.isEmpty()) {
                             return SimpleTokenBackedResultsPage.create(startCol, ImmutableList.<Entry<Cell, Value>>of(), false);
@@ -960,11 +960,11 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     private Map<ByteBuffer, List<ColumnOrSuperColumn>> multigetInternal(Client client,
                                                                         TableReference tableRef,
                                                                         List<ByteBuffer> rowNames,
-                                                                        ColumnParent colFam,
                                                                         SlicePredicate pred,
-                                                                        ConsistencyLevel consistency) throws TException {
+                                                                        ConsistencyLevel consistencyLevel) throws TException {
+        ColumnParent colFam = new ColumnParent(internalTableName(tableRef));
         return run(client, tableRef,
-                () -> client.multiget_slice(rowNames, colFam, pred, consistency));
+                () -> client.multiget_slice(rowNames, colFam, pred, consistencyLevel));
     }
 
     @Override
@@ -1173,6 +1173,12 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         return getRangeWithPageCreator(tableRef, rangeRequest, timestamp, readConsistency, ValueExtractor.SUPPLIER);
     }
 
+    /* TODO: Plan of attack
+    1. Start with a RangeRequest (starting row, num rows per batch)
+    2. Use rangeRequest, only get 1 column per row, and just return the list of row keys
+    3. Using this list, and a ColumnRangeSelection, get all the columns/timestamps for that batch of rows (ColumnRangeSelection.batchHint at a time)
+    4. Repeat 2 + 3 with the rest of the rows (RangeRequest: starting row_n+1, num rows per batch), until done.
+     */
     @Override
     @Idempotent
     public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(TableReference tableRef, RangeRequest rangeRequest, long timestamp) {

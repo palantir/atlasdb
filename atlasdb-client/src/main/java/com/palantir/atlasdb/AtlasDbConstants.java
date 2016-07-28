@@ -53,7 +53,7 @@ public class AtlasDbConstants {
     public static final long TRANSACTION_TS = 0L;
 
     // TODO (ejin): Organize constants (maybe into a single class?)
-    public static final Set<TableReference> hiddenTables = ImmutableSet.of(
+    public static final Set<TableReference> HIDDEN_TABLES = ImmutableSet.of(
             TransactionConstants.TRANSACTION_TABLE,
             PUNCH_TABLE,
             SCRUB_TABLE,

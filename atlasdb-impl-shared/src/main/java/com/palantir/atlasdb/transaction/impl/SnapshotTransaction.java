@@ -310,7 +310,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (transactionReadTimeoutMillis != null && System.currentTimeMillis() - timeCreated > transactionReadTimeoutMillis) {
             throw new TransactionFailedRetriableException("Transaction timed out.");
         }
-        Preconditions.checkArgument(allowHiddenTableAccess || !AtlasDbConstants.hiddenTables.contains(tableRef));
+        Preconditions.checkArgument(allowHiddenTableAccess || !AtlasDbConstants.HIDDEN_TABLES.contains(tableRef));
         Preconditions.checkState(state.get() == State.UNCOMMITTED || state.get() == State.COMMITTING,
                 "Transaction must be uncommitted.");
     }
@@ -951,7 +951,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private void put(TableReference tableRef, Map<Cell, byte[]> values, long ttlDuration, TimeUnit ttlUnit) {
-        Preconditions.checkArgument(!AtlasDbConstants.hiddenTables.contains(tableRef));
+        Preconditions.checkArgument(!AtlasDbConstants.HIDDEN_TABLES.contains(tableRef));
         // todo (clockfort) also check if valid table for TTL
         if (ttlDuration != Cell.INVALID_TTL && ttlUnit != Cell.INVALID_TTL_TYPE) {
             values = createExpiringValues(values, ttlDuration, ttlUnit);
