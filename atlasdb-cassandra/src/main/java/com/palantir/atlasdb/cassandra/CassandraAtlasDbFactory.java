@@ -36,15 +36,7 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
         AtlasDbVersion.ensureVersionReported();
         Preconditions.checkArgument(config instanceof CassandraKeyValueServiceConfig,
                 "CassandraAtlasDbFactory expects a configuration of type CassandraKeyValueServiceConfig, found %s", config.getClass());
-        checkLeaderConfigIsPresent(leaderConfig);
         return createKv((CassandraKeyValueServiceConfig) config, leaderConfig);
-    }
-
-    private void checkLeaderConfigIsPresent(Optional<LeaderConfig> leaderConfig) {
-        if (!leaderConfig.isPresent()) {
-            throw new IllegalArgumentException("CassandraAtlasDbFactory expects a LeaderConfig configuration. " +
-                    "This is required to determine which node will create the locks table.");
-        }
     }
 
     private static CassandraKeyValueService createKv(CassandraKeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig) {
