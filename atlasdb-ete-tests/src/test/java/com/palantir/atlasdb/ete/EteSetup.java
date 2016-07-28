@@ -63,10 +63,10 @@ public class EteSetup {
         }
     }
 
-    protected static RuleChain setupComposition(String composeFile) {
+    protected static RuleChain setupComposition(String name, String composeFile) {
         dockerComposition = DockerComposition.of(composeFile)
                 .waitingForService("ete1", toBeReady())
-                .saveLogsTo("container-logs")
+                .saveLogsTo("container-logs/" + name)
                 .build();
 
         return RuleChain
