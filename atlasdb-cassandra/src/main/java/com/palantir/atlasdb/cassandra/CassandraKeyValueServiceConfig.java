@@ -148,7 +148,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
 
     @Value.Derived
     public boolean usingSsl() {
-        return (ssl().isPresent() && ssl().get()) || sslConfiguration().isPresent();
+        return ssl().or(sslConfiguration().isPresent());
     }
 
     @Value.Check

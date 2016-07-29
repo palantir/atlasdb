@@ -29,6 +29,24 @@ Changelog
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
+v0.11.2
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |changed|
+         - The ``ssl`` property now takes precedence over the new ``sslConfiguration`` block. This means that products
+           can add default truststore and keystore configuration to their Atlas config without overriding previously
+           made ssl decisions (setting ``ssl: false`` should cause ssl to not be used).
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
 v0.11.1
 =======
 
