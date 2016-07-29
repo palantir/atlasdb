@@ -47,6 +47,24 @@ v0.12.0
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
+v0.11.1
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Removed a check enforcing a leader block config when one was not required.
+           This prevents AtlasDB 0.11.0 clients from starting if a leader configuration is not specified (i.e. single node clusters).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/741>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
 v0.11.0
 =======
 
