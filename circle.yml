@@ -14,6 +14,7 @@ machine:
 general:
   artifacts:
     - "build/reports/profile"
+    - "atlasdb-ete-tests/container-logs"
 
 dependencies:
   pre:
