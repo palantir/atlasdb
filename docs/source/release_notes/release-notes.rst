@@ -40,9 +40,27 @@ v0.12.0
          - Change
 
     *    - |breaking|
-         - If you do not specify a leader block in your config, AtlasDB will now still try to register the timestamp and lock endpoints necessary for
-           other clients or CLIs to run in the same keyspace. This may require changes in setup logic for applications that have previously
-           only ever run with no leader block.
+         - If you do not specify a leader block in your config, AtlasDB will now still try to register the timestamp and lock endpoints necessary for other clients or CLIs to run in the same keyspace.
+           This may require changes in setup logic for applications that have previously only ever run with no leader block.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/708>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.11.2
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |changed|
+         - The ``ssl`` property now takes precedence over the new ``sslConfiguration`` block to better allow back-compatibility.
+           This means that products can add default truststore and keystore configuration to their AtlasDB config without overriding previously made SSL decisions (setting ``ssl: false`` should cause SSL to not be used).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/745>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
