@@ -59,8 +59,8 @@ public class CassandraServerVersionTest {
 
     @Test public void
     version_18_40_0_does_not_support_cas() {
-        CassandraServerVersion version = new CassandraServerVersion("20.1.0");
-        assertThat(version.supportsCheckAndSet(), is(true));
+        CassandraServerVersion version = new CassandraServerVersion("18.40.0");
+        assertThat(version.supportsCheckAndSet(), is(false));
     }
 
     @Test public void
