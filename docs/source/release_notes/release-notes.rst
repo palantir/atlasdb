@@ -81,7 +81,7 @@ v0.11.2
          - Change
 
     *    - |changed|
-         - The ``ssl`` property now takes precedence over the new ``sslConfiguration`` block to better allow back-compatibility.
+         - The ``ssl`` property now takes precedence over the new ``sslConfiguration`` block to allow back-compatibility.
            This means that products can add default truststore and keystore configuration to their AtlasDB config without overriding previously made SSL decisions (setting ``ssl: false`` should cause SSL to not be used).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/745>`__)
 
