@@ -165,9 +165,51 @@
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-breaking">BREAKING</span></td>
-<td>If you do not specify a leader block in your config, AtlasDB will now still try to register the timestamp and lock endpoints necessary for
-other clients or CLIs to run in the same keyspace. This may require changes in setup logic for applications that have previously
-only ever run with no leader block.</td>
+<td>If you do not specify a leader block in your config, AtlasDB will now still try to register the timestamp and lock endpoints necessary for other clients or CLIs to run in the same keyspace.
+This may require changes in setup logic for applications that have previously only ever run with no leader block.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/708">Pull Request</a>)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-11-2">
+<h2>v0.11.2<a class="headerlink" href="#v0-11-2" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span></td>
+<td>The <code class="docutils literal"><span class="pre">ssl</span></code> property now takes precedence over the new <code class="docutils literal"><span class="pre">sslConfiguration</span></code> block to better allow back-compatibility.
+This means that products can add default truststore and keystore configuration to their AtlasDB config without overriding previously made SSL decisions (setting <code class="docutils literal"><span class="pre">ssl:</span> <span class="pre">false</span></code> should cause SSL to not be used).
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/745">Pull Request</a>)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-11-1">
+<h2>v0.11.1<a class="headerlink" href="#v0-11-1" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Removed a check enforcing a leader block config when one was not required.
+This prevents AtlasDB 0.11.0 clients from starting if a leader configuration is not specified (i.e. single node clusters).
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/741">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
