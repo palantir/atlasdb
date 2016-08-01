@@ -24,7 +24,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
-import com.palantir.docker.compose.DockerComposition;
+import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.DockerPort;
 import com.palantir.docker.compose.connection.waiting.HealthCheck;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
@@ -41,7 +41,8 @@ public class DbkvsTestSuite {
 
     public static final int POSTGRES_PORT_NUMBER = 5432;
     @ClassRule
-    public static final DockerComposition composition = DockerComposition.of("src/test/resources/docker-compose.yml")
+    public static final DockerComposeRule composeRule = DockerComposeRule.builder()
+            .file("src/test/resources/docker-compose.yml")
             .waitingForHostNetworkedPort(POSTGRES_PORT_NUMBER, toBeOpen())
             .saveLogsTo("container-logs")
             .build();
@@ -52,7 +53,7 @@ public class DbkvsTestSuite {
 
     @BeforeClass
     public static void waitUntilDbkvsIsUp() throws IOException, InterruptedException {
-        DockerPort port = composition.hostNetworkedPort(POSTGRES_PORT_NUMBER);
+        DockerPort port = composeRule.hostNetworkedPort(POSTGRES_PORT_NUMBER);
         POSTGRES_ADDRESS = new InetSocketAddress(port.getIp(), port.getExternalPort());
 
 
