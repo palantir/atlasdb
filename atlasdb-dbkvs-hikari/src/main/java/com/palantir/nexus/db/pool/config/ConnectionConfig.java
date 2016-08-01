@@ -41,7 +41,7 @@ public abstract class ConnectionConfig {
     public abstract String type();
 
     public abstract String getDbLogin();
-    public abstract String getDbPassword();
+    public abstract PasswordValue getDbPassword();
 
     public abstract String getUrl();
     public abstract String getDriverClass();

@@ -102,7 +102,7 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
         Properties props = new Properties();
 
         props.setProperty("user", getDbLogin());
-        props.setProperty("password", getDbPassword());
+        props.setProperty("password", getDbPassword().value());
 
         props.setProperty("oracle.net.keepAlive", "true");
         props.setProperty("oracle.jdbc.ReadTimeout", Long.toString(TimeUnit.SECONDS.toMillis(getSocketTimeoutSeconds())));
