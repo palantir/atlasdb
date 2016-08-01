@@ -34,6 +34,7 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.ete.Gradle;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
+import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.DockerComposition;
 import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerPort;
@@ -45,7 +46,8 @@ public class TimelockServerEteTest {
     private static final int TIMELOCK_SERVER_PORT = 3828;
     private static final ImmutableList<String> TIMELOCK_NODES = ImmutableList.of("timelock1", "timelock2", "timelock3");
 
-    public static DockerComposition dockerComposition = DockerComposition.of("docker-compose.yml")
+    public static DockerComposeRule composeRule = DockerComposeRule.builder()
+            .file("docker-compose.yml")
             .waitingForServices(TIMELOCK_NODES, toHaveElectedALeader())
             .saveLogsTo("container-logs")
             .build();
@@ -55,7 +57,7 @@ public class TimelockServerEteTest {
     @ClassRule
     public static RuleChain rules = RuleChain
             .outerRule(gradle)
-            .around(dockerComposition);
+            .around(composeRule);
 
     @Test
     public void shouldBeAbleToGetTimestampsOffAClusterOfServices() throws Exception {
@@ -82,11 +84,7 @@ public class TimelockServerEteTest {
     }
 
     private DockerPort timelockPort(String container) {
-        try {
-            return dockerComposition.portOnContainerWithInternalMapping(container, TIMELOCK_SERVER_PORT);
-        } catch (IOException | InterruptedException e) {
-            throw propagate(e);
-        }
+        return composeRule.containers().container(container).port(TIMELOCK_SERVER_PORT);
     }
 
     private static HealthCheck<List<Container>> toHaveElectedALeader() {
