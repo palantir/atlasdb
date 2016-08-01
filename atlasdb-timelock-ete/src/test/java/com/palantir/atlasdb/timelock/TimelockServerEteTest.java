@@ -21,9 +21,6 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.lessThan;
 
-import static com.google.common.base.Throwables.propagate;
-
-import java.io.IOException;
 import java.util.List;
 
 import org.junit.ClassRule;
@@ -35,7 +32,6 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.ete.Gradle;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.docker.compose.DockerComposeRule;
-import com.palantir.docker.compose.DockerComposition;
 import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerPort;
 import com.palantir.docker.compose.connection.waiting.HealthCheck;
