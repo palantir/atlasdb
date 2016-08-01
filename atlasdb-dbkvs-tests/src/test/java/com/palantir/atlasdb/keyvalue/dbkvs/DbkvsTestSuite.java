@@ -29,6 +29,7 @@ import com.palantir.docker.compose.connection.DockerPort;
 import com.palantir.docker.compose.connection.waiting.HealthCheck;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
+import com.palantir.nexus.db.pool.config.ImmutableMaskedValue;
 import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
 
 @RunWith(Suite.class)
@@ -59,7 +60,7 @@ public class DbkvsTestSuite {
         ConnectionConfig connectionConfig = ImmutablePostgresConnectionConfig.builder()
                 .dbName("atlas")
                 .dbLogin("palantir")
-                .dbPassword("palantir")
+                .dbPassword(ImmutableMaskedValue.of("palantir"))
                 .host(POSTGRES_ADDRESS.getHostName())
                 .port(POSTGRES_ADDRESS.getPort())
                 .build();
