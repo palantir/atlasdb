@@ -16,7 +16,6 @@
 package com.palantir.nexus.db.sql;
 
 import java.sql.SQLException;
-import java.util.Map;
 
 import javax.annotation.Nonnull;
 
@@ -153,17 +152,6 @@ public interface PalantirSqlConnectionRunner {
     public void executeQueryWithTempsIds(Iterable<Long> tempIds, RegisteredSQLString sql, Object ... sqlArgs);
     public void executeAndProcessQueryConvertSqlException(RegisteredSQLString sql, Object[] sqlArgs, Visitor<AgnosticLightResultRow> rowVisitor);
     public <T> void executeAndProcessQueryInChunks(RegisteredSQLString sql, Object[] sqlArgs, int chunkSize, ChunkedRowVisitor<T> visitor);
-
-    /**
-     * Encapsulates much of the boilerplate code required to execute a SQL query
-     * which requires ids to first be loaded into multiple temporary tables.
-     *
-     * @param tempIds the temp ids to load.  Maps from tempTableName to tempIds iterable.
-     * @param key The registred SQL to execute by name
-     * @param sqlArgs the SQL bind variables
-     * @param rowVisitor the AgnosticLightResultRow.Visitor which processes the results of the query
-     */
-    public void executeAndProcessQueryWithTempsIds(Map<String, Iterable<Long>> tempIds, String key, Object[] sqlArgs, Visitor<AgnosticLightResultRow> rowVisitor);
     public void executeAndProcessQueryWithTempsIds(Iterable<Long> tempIds, RegisteredSQLString sql, Object[] sqlArgs, Visitor<AgnosticLightResultRow> rowVisitor);
 
     public <T> void executeAndProcessQueryInChunks(final String sqlKey,
