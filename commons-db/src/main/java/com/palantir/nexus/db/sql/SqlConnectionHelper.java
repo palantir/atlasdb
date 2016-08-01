@@ -23,7 +23,10 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import org.apache.commons.lang.Validate;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -688,22 +691,26 @@ public final class SqlConnectionHelper {
             executeUnregisteredQuery(c, sqlDelete, new Object[]{}); // dynamic query
         } catch (PalantirSqlException e) {
             if (e.getMessage().contains("ORA-08102")) { // "index key not found"
-                // Try again
+                // Gather some information
+                AgnosticResultSet dbaRows = null;
+                String objectIdString = null;
                 try {
-                    executeUnregisteredQuery(c, sqlDelete, new Object[]{}); // dynamic query
-                    // Worked the second time
-                    // In production we can continue, but if asserts are on let's fail with an informative message to help diagnosis
-                    assert false: String.format("Tried to delete temp table %s, got ORA-08102, then tried again and it worked: %s",
-                            tempTable, sqlDelete);
-                } catch (PalantirSqlException e2) {
-                    // Repeated failure
-                    throw new RuntimeException(String.format(
-                            "Repeatedly failed to delete temp table %s: %s.  First exception was ORA-08102.  Second was: %s",
-                            tempTable, sqlDelete, e2.getMessage()), e2);
+                    Pattern p = Pattern.compile(".*ORA-08102: index key not found, obj# (\\d+),.*");
+                    Matcher match = p.matcher(e.getMessage());
+                    Validate.isTrue(match.matches(), "Could not find dba_objects object_id in: " + e.getMessage());
+                    objectIdString = match.group(1);
+                    int objectId = Integer.parseInt(objectIdString);
+                    String sql = "SELECT * FROM dba_objects WHERE object_id = ?";
+                    dbaRows = selectResultSetUnregisteredQuery(c, sql, objectId);
+                } catch (Exception exceptionGettingInfo) {
+                    throw new IllegalArgumentException("Problem diagnosing ORA-08102", exceptionGettingInfo);
                 }
-            } else {
-                throw e;
+                throw new RuntimeException(
+                        String.format("ORA-08102 encountered, selecting object_id %s from dba_objects: %s",
+                                objectIdString, dbaRows),
+                        e);
             }
+            throw e;
         }
         SqlStats.INSTANCE.incrementClearTempTableByDelete();
     }
