@@ -42,7 +42,7 @@ public class TimelockServerEteTest {
     private static final int TIMELOCK_SERVER_PORT = 3828;
     private static final ImmutableList<String> TIMELOCK_NODES = ImmutableList.of("timelock1", "timelock2", "timelock3");
 
-    public static DockerComposeRule composeRule = DockerComposeRule.builder()
+    public static DockerComposeRule docker = DockerComposeRule.builder()
             .file("docker-compose.yml")
             .waitingForServices(TIMELOCK_NODES, toHaveElectedALeader())
             .saveLogsTo("container-logs")
@@ -53,7 +53,7 @@ public class TimelockServerEteTest {
     @ClassRule
     public static RuleChain rules = RuleChain
             .outerRule(gradle)
-            .around(composeRule);
+            .around(docker);
 
     @Test
     public void shouldBeAbleToGetTimestampsOffAClusterOfServices() throws Exception {
@@ -80,7 +80,7 @@ public class TimelockServerEteTest {
     }
 
     private DockerPort timelockPort(String container) {
-        return composeRule.containers().container(container).port(TIMELOCK_SERVER_PORT);
+        return docker.containers().container(container).port(TIMELOCK_SERVER_PORT);
     }
 
     private static HealthCheck<List<Container>> toHaveElectedALeader() {

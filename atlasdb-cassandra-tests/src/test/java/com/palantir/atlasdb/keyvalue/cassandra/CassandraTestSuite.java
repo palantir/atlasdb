@@ -54,7 +54,7 @@ public class CassandraTestSuite {
 
     public static final int THRIFT_PORT_NUMBER = 9160;
     @ClassRule
-    public static final DockerComposeRule composeRule = DockerComposeRule.builder()
+    public static final DockerComposeRule docker = DockerComposeRule.builder()
             .file("src/test/resources/docker-compose.yml")
             .waitingForHostNetworkedPort(THRIFT_PORT_NUMBER, toBeOpen())
             .saveLogsTo("container-logs")
@@ -70,7 +70,7 @@ public class CassandraTestSuite {
 
     @BeforeClass
     public static void waitUntilCassandraIsUp() throws IOException, InterruptedException {
-        DockerPort port = composeRule.hostNetworkedPort(THRIFT_PORT_NUMBER);
+        DockerPort port = docker.hostNetworkedPort(THRIFT_PORT_NUMBER);
         String hostname = port.getIp();
         CASSANDRA_THRIFT_ADDRESS = new InetSocketAddress(hostname, port.getExternalPort());
 

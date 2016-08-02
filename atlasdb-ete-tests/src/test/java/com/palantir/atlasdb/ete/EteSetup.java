@@ -38,7 +38,7 @@ public class EteSetup {
     private static final Optional<SSLSocketFactory> NO_SSL = Optional.absent();
     private static final int ETE_PORT = 3828;
 
-    private static DockerComposeRule composeRule;
+    private static DockerComposeRule docker;
 
     protected <T> T createClientToSingleNode(Class<T> clazz) {
         return createClientFor(clazz, asPort("ete1"));
@@ -54,11 +54,11 @@ public class EteSetup {
     }
 
     private DockerPort asPort(String node) {
-        return composeRule.containers().container(node).port(ETE_PORT);
+        return docker.containers().container(node).port(ETE_PORT);
     }
 
     protected static RuleChain setupComposition(String name, String composeFile) {
-        composeRule = DockerComposeRule.builder()
+        docker = DockerComposeRule.builder()
                 .file(composeFile)
                 .waitingForService("ete1", toBeReady())
                 .saveLogsTo("container-logs/" + name)
@@ -66,7 +66,7 @@ public class EteSetup {
 
         return RuleChain
                 .outerRule(GRADLE_PREPARE_TASK)
-                .around(composeRule);
+                .around(docker);
     }
 
     private static <T> T createClientFor(Class<T> clazz, Container container) {
