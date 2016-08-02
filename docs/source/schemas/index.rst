@@ -118,11 +118,11 @@ buffer GeneratedMessages, and palantir Persistables.
 Primitive ValueTypes
 ~~~~~~~~~~~~~~~~~~~~
 
-For simple data types, AtlasDB represents them by ValueType. Note that a
-java primitive type can have multiple ValueTypes associated with it.
+AtlasDB represents simple data types by ValueType. Note that a
+Java primitive type can have multiple ValueTypes associated with it.
 Each ValueType represents a different method of storing that type in the
 database, and thus affects storage efficiency and search
-characteristics, among others. The types are:
+characteristics, among other things. The supported types are:
 
 +-------------------------------+--------------+---------------+----------------------+----------------+
 | Name                          | Java Type    | Format        | Anywhere in table?   | Range Scans?   |
