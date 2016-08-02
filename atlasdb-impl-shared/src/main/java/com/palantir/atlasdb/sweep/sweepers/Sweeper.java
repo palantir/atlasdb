@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.sweep;
+package com.palantir.atlasdb.sweep.sweepers;
 
 import java.util.Set;
 
@@ -23,7 +23,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 
-public interface SweepStrategySweeper {
+public interface Sweeper {
     long getSweepTimestamp();
 
     ClosableIterator<RowResult<Value>> getValues(TableReference tableReference, RangeRequest rangeRequest, long timestamp);

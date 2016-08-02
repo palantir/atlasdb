@@ -13,41 +13,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.sweep;
+package com.palantir.atlasdb.sweep.sweepers;
 
 import java.util.Set;
 
-import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.common.base.ClosableIterators;
 
-public class ThoroughSweepStrategySweeper implements SweepStrategySweeper {
-    private final KeyValueService keyValueService;
-    private final Supplier<Long> immutableTimestampSupplier;
-
-    public ThoroughSweepStrategySweeper(KeyValueService keyValueService, Supplier<Long> immutableTimestampSupplier) {
-        this.keyValueService = keyValueService;
-        this.immutableTimestampSupplier = immutableTimestampSupplier;
-    }
-
+public class NothingSweeper implements Sweeper {
     @Override
     public long getSweepTimestamp() {
-        return immutableTimestampSupplier.get();
+        return 0;
     }
 
     @Override
     public ClosableIterator<RowResult<Value>> getValues(TableReference tableReference, RangeRequest rangeRequest, long timestamp) {
-        return keyValueService.getRange(tableReference, rangeRequest, timestamp);
+        return ClosableIterators.emptyImmutableClosableIterator();
     }
 
     @Override
     public ClosableIterator<RowResult<Set<Long>>> getCellTimestamps(TableReference tableReference, RangeRequest rangeRequest, long timestamp) {
-        return keyValueService.getRangeOfTimestamps(tableReference, rangeRequest, timestamp);
+        return ClosableIterators.emptyImmutableClosableIterator();
     }
 
     @Override
