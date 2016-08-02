@@ -2,9 +2,18 @@
 Contributing to AtlasDB
 =======================
 
+Contributing Code
+=================
+
 Follow the steps provided in :ref:`running-from-source`.
 We are happy to accept pull requests and could use help
 implementing the AtlasDB API for more underlying physical stores.
+
+In order to ensure your pull request is merged effeciently please keep the foloowing in mind:
+
+* Assign a member of the team for review, if it is incorrect it will be triaged to the correct person
+* Update the :ref:`change-log` with the change if it is public facing.
+* If you are updating logic the expectation is that new tests will be added for the functionality, a lack of testing will likely delay the PR.
 
 Contributing Docs
 =================
