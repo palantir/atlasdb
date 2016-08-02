@@ -77,27 +77,27 @@ Sample Schema File
         private BlankSchema() {
             //private
         }
-     
+
         private static final Schema SCHEMA = generateSchema();
-     
+
         private static Schema generateSchema() {
             // Define the prefix and package for generated code
             Schema schema = new Schema("BlankSchema", "com.palantir.atlasdb.blankschema");
-             
+
             /* Schema definition start */
             schema.addTableDefinition("TableName", new TableDefinition() {{
                 ...
             }});
-     
+
             schema.addIndexDefinition("IndexName", new IndexDefinition() {{
                 ..
             }});
             /* Schema definition end */
-     
+
             schema.validate() // ensure that the schema as constructed is valid.
             return schema;
         }
-     
+
         public static void main (String[] args) {
             // generate the java classes, and write them to the specified source folder.
             SCHEMA.renderTablesWithNamespace(new File("src"), Namespace.create("pt_met"));
@@ -136,6 +136,8 @@ characteristics, among others. The types are:
 | VAR\_LONG                     | long         | byte[len]\*   | YES                  | YES            |
 +-------------------------------+--------------+---------------+----------------------+----------------+
 | VAR\_SIGNED\_LONG             | long         | byte[len\*]   | YES                  | YES            |
++-------------------------------+--------------+---------------+----------------------+----------------+
+| UUID                          | UUID         | byte[16]      | YES                  | YES            |
 +-------------------------------+--------------+---------------+----------------------+----------------+
 | SHA\_256\_HASH                | Sha256Hash   | byte[32]      | YES                  | YES            |
 +-------------------------------+--------------+---------------+----------------------+----------------+
