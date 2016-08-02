@@ -230,7 +230,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     }
                 } else if (!hiddenTables.isHidden(tableRef)) {
                     // Possible to get here from a race condition with another service starting up and performing schema upgrades concurrent with us doing this check
-                    log.error("Found a table " + tableRef.getQualifiedName() + " that did not have persisted Atlas metadata. "
+                    log.error("Found a table " + tableRef.getQualifiedName() + " that did not have persisted AtlasDB metadata. "
                             + "If you recently did a Palantir update, try waiting until schema upgrades are completed on all backend CLIs/services etc and restarting this service. "
                             + "If this error re-occurs on subsequent attempted startups, please contact Palantir support.");
                 }
