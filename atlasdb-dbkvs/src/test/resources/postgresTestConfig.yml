@@ -9,6 +9,6 @@ atlasdb:
       port: 1000
       dbName: test
       dbLogin: test
-      dbPassword: test
+      dbPassword: testpassword
       connectionTimeoutSeconds: 5
       socketTimeoutSeconds: 30
