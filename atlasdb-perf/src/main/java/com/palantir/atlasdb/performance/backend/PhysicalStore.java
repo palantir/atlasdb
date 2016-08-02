@@ -33,8 +33,9 @@ public abstract class PhysicalStore implements AutoCloseable {
         switch (type) {
             case POSTGRES:
                 return PostgresPhysicalStore.create();
-            case ORACLE:
             case CASSANDRA:
+                return CassandraPhysicalStore.create();
+            case ORACLE:
             default:
                 throw new NotImplementedException();
         }
