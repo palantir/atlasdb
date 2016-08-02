@@ -133,35 +133,35 @@ characteristics, among others. The types are:
 +-------------------------------+--------------+---------------+----------------------+----------------+
 | NULLABLE\_FIXED\_LONG         | long         | byte[9]       | YES                  | YES            |
 +-------------------------------+--------------+---------------+----------------------+----------------+
-| VAR\_LONG                     | long         | byte[len]\*   | YES                  | YES            |
+| VAR\_LONG                     | long         | byte[len] \*  | YES                  | YES            |
 +-------------------------------+--------------+---------------+----------------------+----------------+
-| VAR\_SIGNED\_LONG             | long         | byte[len\*]   | YES                  | YES            |
+| VAR\_SIGNED\_LONG             | long         | byte[len] \*  | YES                  | YES            |
 +-------------------------------+--------------+---------------+----------------------+----------------+
 | UUID                          | UUID         | byte[16]      | YES                  | YES            |
 +-------------------------------+--------------+---------------+----------------------+----------------+
 | SHA\_256\_HASH                | Sha256Hash   | byte[32]      | YES                  | YES            |
 +-------------------------------+--------------+---------------+----------------------+----------------+
-| STRING                        | String       | byte[]        | NO\*\*               | YES            |
+| STRING                        | String       | byte[]        | NO \*\*              | YES            |
 +-------------------------------+--------------+---------------+----------------------+----------------+
 | VAR\_STRING                   | String       | byte[len]     | YES                  | NO             |
 +-------------------------------+--------------+---------------+----------------------+----------------+
-| BLOB                          | byte[]       | byte[]        | NO\*\*               | YES            |
+| BLOB                          | byte[]       | byte[]        | NO \*\*              | YES            |
 +-------------------------------+--------------+---------------+----------------------+----------------+
 | SIZED\_BLOB                   | byte[]       | byte[len]     | YES                  | NO             |
 +-------------------------------+--------------+---------------+----------------------+----------------+
 
-note: \* var long: the smaller the value, the fewer bytes used. For
-signed, the closer to zero, the fewer bytes used. negative values for
-VAR\_LONG are always 10 bytes. 0 to 127 are 1 byte for VAR\_LONG. -64 to
-63 are 1 byte or SIGNED\_VAR\_LONG
+.. note:: \*
+  All long data types are signed, but VAR\_SIGNED\_LONG is
+  encoded in a manner which stores negative numbers more efficiently than
+  VAR\_LONG.
+  In particular, 0 to 127 are 1 byte for VAR\_LONG and -64 to 63 are 1 byte for
+  SIGNED\_VAR\_LONG. VAR\_LONG will always use 10 bytes to encode negative
+  numbers.
 
-note: \*\* can only be a row or column component if it is the last
-component of the component list.
+.. note:: \*\*
+  A STRING or BLOB can only be a row or column component
+  if it is the last component of the component list.
 
-Note that all long data types are signed, but VAR\_SIGNED\_LONG is
-encoded in a manner which stores negative numbers more efficiently than
-VAR\_LONG. (The latter will always use 10 bytes to encode negative
-values, but the former will not.)
 
 Protobufs and Persistables
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
