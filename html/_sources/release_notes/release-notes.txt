@@ -43,6 +43,9 @@ v0.12.0
          - If you do not specify a leader block in your config, AtlasDB will now still try to register the timestamp and lock endpoints necessary for other clients or CLIs to run in the same keyspace.
            This may require changes in setup logic for applications that have previously only ever run with no leader block.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/708>`__)
+    *    - |fixed|
+         - DB passwords are no longer output as part of the connection configuration ``toString()`` methods.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/755>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
