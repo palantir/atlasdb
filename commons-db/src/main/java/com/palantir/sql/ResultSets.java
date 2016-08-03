@@ -26,21 +26,17 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Map;
 
-import org.apache.log4j.Logger;
-
 import com.google.common.collect.Maps;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.sql.BasicSQL;
 
 public class ResultSets {
-    private static final Logger sqlExceptionlog = Logger.getLogger("sqlException." + ResultSets.class.getName());
 
     public static Object getObject(ResultSet rs, int col) throws PalantirSqlException {
         try {
             return rs.getObject(col);
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }
@@ -75,7 +71,6 @@ public class ResultSets {
         try {
             return rs.getString(col);
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }
@@ -84,7 +79,6 @@ public class ResultSets {
         try {
             return rs.getLong(col);
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }
@@ -93,7 +87,6 @@ public class ResultSets {
         try {
             return rs.getLong(idColName);
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }
@@ -102,7 +95,6 @@ public class ResultSets {
         try {
             return rs.getDouble(col);
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }
@@ -111,7 +103,6 @@ public class ResultSets {
         try {
             return rs.getInt(col);
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }
@@ -120,7 +111,6 @@ public class ResultSets {
         try {
             return rs.getTimestamp(col);
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }
@@ -129,7 +119,6 @@ public class ResultSets {
         try {
             return rs.getMetaData();
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }
@@ -138,7 +127,6 @@ public class ResultSets {
         try {
             return rs.getMetaData().getColumnCount();
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }
@@ -147,7 +135,6 @@ public class ResultSets {
         try {
             return rs.getMetaData().getColumnLabel(col);
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }
@@ -156,7 +143,6 @@ public class ResultSets {
         try {
             return metaData.getColumnCount();
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }
@@ -165,7 +151,6 @@ public class ResultSets {
         try {
             return metaData.getColumnLabel(col);
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }
@@ -174,7 +159,6 @@ public class ResultSets {
         try {
             return rs.getBlob(col);
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }
@@ -183,7 +167,6 @@ public class ResultSets {
         try {
             return rs.getBytes(col);
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }
@@ -211,7 +194,6 @@ public class ResultSets {
                 }
             };
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }
@@ -220,7 +202,6 @@ public class ResultSets {
         try {
             return rs.next();
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }
@@ -229,7 +210,6 @@ public class ResultSets {
         try {
             rs.close();
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }

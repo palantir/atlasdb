@@ -46,6 +46,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.lang.Validate;
+import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 
@@ -70,6 +71,7 @@ import com.palantir.sql.ResultSets;
 import com.palantir.util.sql.VerboseSQLException;
 
 public abstract class BasicSQL {
+    private static final Logger sqlExceptionlog = Logger.getLogger("sqlException." + PreparedStatements.class.getName());
 
     public interface SqlConfig {
         boolean isSqlCancellationDisabled();
@@ -506,6 +508,8 @@ public abstract class BasicSQL {
 
     public static PalantirSqlException handleInterruptions(long startTime,
             SQLException cause) throws PalantirSqlException {
+        sqlExceptionlog.debug("Caught SQLException", cause);
+
         String message = cause.getMessage().trim();
         //check for oracle and postgres
         if (!message.contains(ORACLE_CANCEL_ERROR) && !message.contains(POSTGRES_CANCEL_ERROR)) {
@@ -770,7 +774,7 @@ public abstract class BasicSQL {
                     }
                     ps.executeBatch();
                 } catch (SQLException sqle) {
-                    SqlLoggers.SQL_EXCEPTION_LOG.info("Caught SQLException", sqle);
+                    SqlLoggers.SQL_EXCEPTION_LOG.debug("Caught SQLException", sqle);
                     throw wrapSQLExceptionWithVerboseLogging(sqle, sql.getQuery(), vs);
                 } finally {
                     closeSilently(ps);
@@ -834,7 +838,7 @@ public abstract class BasicSQL {
 
                     inserted = ps.executeBatch();
                 } catch (SQLException sqle) {
-                    SqlLoggers.SQL_EXCEPTION_LOG.info("Caught SQLException", sqle);
+                    SqlLoggers.SQL_EXCEPTION_LOG.debug("Caught SQLException", sqle);
                     throw wrapSQLExceptionWithVerboseLogging(sqle, sql.getQuery(), vs);
                 } finally {
                     closeSilently(ps);
