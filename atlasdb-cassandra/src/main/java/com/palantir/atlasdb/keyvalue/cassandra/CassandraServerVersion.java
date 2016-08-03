@@ -30,6 +30,7 @@ public class CassandraServerVersion {
         minorVersion = Integer.parseInt(components[1]);
     }
 
+    // This corresponds to the version change in https://github.com/apache/cassandra/commit/8b0e1868e8cf813ddfc98d11448aa2ad363eccc1#diff-2fa34d46c5a51e59f77d866bbe7ca02aR55
     public boolean supportsCheckAndSet() {
         return majorVersion > 19 || (majorVersion == 19 && minorVersion >= 37);
     }
