@@ -129,28 +129,28 @@ characteristics, among other things. The supported types are:
 +-------------------------------------+--------------+---------------+----------------------+----------------+
 | FIXED\_LONG                         | long         | byte[8]       | YES                  | YES            |
 +-------------------------------------+--------------+---------------+----------------------+----------------+
-| FIXED\_LONG\_LITTLE\_ENDIAN \*\*\*  | long         | byte[8]       | YES                  | NO             |
+| FIXED\_LONG\_LITTLE\_ENDIAN [3]_    | long         | byte[8]       | YES                  | NO             |
 +-------------------------------------+--------------+---------------+----------------------+----------------+
 | NULLABLE\_FIXED\_LONG               | long         | byte[9]       | YES                  | YES            |
 +-------------------------------------+--------------+---------------+----------------------+----------------+
-| VAR\_LONG                           | long         | byte[len] \*  | YES                  | YES            |
+| VAR\_LONG                           | long         | byte[len] [1]_| YES                  | YES            |
 +-------------------------------------+--------------+---------------+----------------------+----------------+
-| VAR\_SIGNED\_LONG                   | long         | byte[len] \*  | YES                  | YES            |
+| VAR\_SIGNED\_LONG                   | long         | byte[len] [1]_| YES                  | YES            |
 +-------------------------------------+--------------+---------------+----------------------+----------------+
 | UUID                                | UUID         | byte[16]      | YES                  | YES            |
 +-------------------------------------+--------------+---------------+----------------------+----------------+
 | SHA\_256\_HASH                      | Sha256Hash   | byte[32]      | YES                  | YES            |
 +-------------------------------------+--------------+---------------+----------------------+----------------+
-| STRING                              | String       | byte[]        | NO \*\*              | YES            |
+| STRING                              | String       | byte[]        | NO [2]_              | YES            |
 +-------------------------------------+--------------+---------------+----------------------+----------------+
 | VAR\_STRING                         | String       | byte[len]     | YES                  | NO             |
 +-------------------------------------+--------------+---------------+----------------------+----------------+
-| BLOB                                | byte[]       | byte[]        | NO \*\*              | YES            |
+| BLOB                                | byte[]       | byte[]        | NO [2]_              | YES            |
 +-------------------------------------+--------------+---------------+----------------------+----------------+
 | SIZED\_BLOB                         | byte[]       | byte[len]     | YES                  | NO             |
 +-------------------------------------+--------------+---------------+----------------------+----------------+
 
-.. note:: \*
+.. [1]
   All long data types are signed, but VAR\_SIGNED\_LONG is
   encoded in a manner which stores negative numbers more efficiently than
   VAR\_LONG.
@@ -158,11 +158,11 @@ characteristics, among other things. The supported types are:
   SIGNED\_VAR\_LONG. VAR\_LONG will always use 10 bytes to encode negative
   numbers.
 
-.. note:: \*\*
+.. [2]
   A STRING or BLOB can only be a row or column component
   if it is the last component of the component list.
 
-.. note:: \*\*\*
+.. [3]
   This type can be useful on some key value stores because keys next
   to each other won't be written next to each other.  This can be good because
   it will spread out the load of writes to many different ranges.
