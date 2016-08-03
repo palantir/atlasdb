@@ -17,7 +17,6 @@ package com.palantir.atlasdb.ete;
 
 import static java.util.stream.Collectors.toList;
 
-import java.io.IOException;
 import java.util.Collection;
 
 import javax.net.ssl.SSLSocketFactory;
@@ -25,7 +24,6 @@ import javax.net.ssl.SSLSocketFactory;
 import org.junit.rules.RuleChain;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.todo.TodoResource;
@@ -44,15 +42,6 @@ public class EteSetup {
 
     protected <T> T createClientToSingleNode(Class<T> clazz) {
         return createClientFor(clazz, asPort("ete1"));
-    }
-
-    public <T> T createClientToMultipleNodes(Class<T> clazz, String... nodeNames) {
-        Collection<String> uris = ImmutableList.copyOf(nodeNames).stream()
-                .map(node -> asPort(node))
-                .map(port -> port.inFormat("http://$HOST:$EXTERNAL_PORT"))
-                .collect(toList());
-
-        return AtlasDbHttpClients.createProxyWithFailover(NO_SSL, uris, clazz);
     }
 
     public <T> T createClientToMultipleNodes(Class<T> clazz, String... nodeNames) {
