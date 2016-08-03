@@ -46,7 +46,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.lang.Validate;
-import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 
@@ -71,7 +70,6 @@ import com.palantir.sql.ResultSets;
 import com.palantir.util.sql.VerboseSQLException;
 
 public abstract class BasicSQL {
-    private static final Logger sqlExceptionlog = Logger.getLogger("sqlException." + PreparedStatements.class.getName());
 
     public interface SqlConfig {
         boolean isSqlCancellationDisabled();
@@ -507,8 +505,8 @@ public abstract class BasicSQL {
     }
 
     public static PalantirSqlException handleInterruptions(long startTime,
-            SQLException cause) throws PalantirSqlException {
-        sqlExceptionlog.debug("Caught SQLException", cause);
+                                                           SQLException cause) throws PalantirSqlException {
+        SqlLoggers.SQL_EXCEPTION_LOG.debug("Caught SQLException", cause);
 
         String message = cause.getMessage().trim();
         //check for oracle and postgres
