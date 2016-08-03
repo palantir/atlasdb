@@ -21,20 +21,16 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import org.apache.log4j.Logger;
-
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.BasicSQL;
 
 
 public class Connections  {
-    private static final Logger sqlExceptionlog = Logger.getLogger("sqlException." + Connections.class.getName());
 
     public static String getUrl(Connection c) throws PalantirSqlException {
         try {
             return c.getMetaData().getURL();
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }
@@ -44,7 +40,6 @@ public class Connections  {
         try {
             return c.prepareStatement(sql);
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }
@@ -54,7 +49,6 @@ public class Connections  {
         try {
             return c.createStatement();
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }
@@ -64,7 +58,6 @@ public class Connections  {
         try {
             return c.getMetaData();
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }
@@ -74,7 +67,6 @@ public class Connections  {
         try {
             return c.getMetaData().getUserName();
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }
@@ -83,7 +75,6 @@ public class Connections  {
         try {
             c.close();
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }
@@ -92,7 +83,6 @@ public class Connections  {
         try {
             c.rollback();
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }
@@ -101,7 +91,6 @@ public class Connections  {
         try {
             c.setAutoCommit(condition);
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }
@@ -110,7 +99,6 @@ public class Connections  {
         try {
             return c.getAutoCommit();
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }
@@ -119,7 +107,6 @@ public class Connections  {
         try {
             c.setTransactionIsolation(level);
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }
@@ -128,7 +115,6 @@ public class Connections  {
         try {
             return c.getTransactionIsolation();
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }
@@ -137,7 +123,6 @@ public class Connections  {
         try {
             c.commit();
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }
