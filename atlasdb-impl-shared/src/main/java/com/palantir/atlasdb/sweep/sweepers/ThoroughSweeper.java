@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.sweep;
+package com.palantir.atlasdb.sweep.sweepers;
 
 import java.util.Set;
 
@@ -25,27 +25,24 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
-import com.palantir.common.base.ClosableIterators;
 
-public class ConservativeSweepStrategySweeper implements SweepStrategySweeper {
+public class ThoroughSweeper implements Sweeper {
     private final KeyValueService keyValueService;
     private final Supplier<Long> immutableTimestampSupplier;
-    private final Supplier<Long> unreadableTimestampSupplier;
 
-    public ConservativeSweepStrategySweeper(KeyValueService keyValueService, Supplier<Long> immutableTimestampSupplier, Supplier<Long> unreadableTimestampSupplier) {
+    public ThoroughSweeper(KeyValueService keyValueService, Supplier<Long> immutableTimestampSupplier) {
         this.keyValueService = keyValueService;
         this.immutableTimestampSupplier = immutableTimestampSupplier;
-        this.unreadableTimestampSupplier = unreadableTimestampSupplier;
     }
 
     @Override
     public long getSweepTimestamp() {
-        return Math.min(unreadableTimestampSupplier.get(), immutableTimestampSupplier.get());
+        return immutableTimestampSupplier.get();
     }
 
     @Override
     public ClosableIterator<RowResult<Value>> getValues(TableReference tableReference, RangeRequest rangeRequest, long timestamp) {
-        return ClosableIterators.emptyImmutableClosableIterator();
+        return keyValueService.getRange(tableReference, rangeRequest, timestamp);
     }
 
     @Override
@@ -55,11 +52,11 @@ public class ConservativeSweepStrategySweeper implements SweepStrategySweeper {
 
     @Override
     public Set<Long> getTimestampsToIgnore() {
-        return ImmutableSet.of(Value.INVALID_VALUE_TIMESTAMP);
+        return ImmutableSet.of();
     }
 
     @Override
     public boolean shouldAddSentinels() {
-        return true;
+        return false;
     }
 }

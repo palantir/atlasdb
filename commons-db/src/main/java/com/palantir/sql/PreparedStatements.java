@@ -32,7 +32,6 @@ public class PreparedStatements {
         try {
             return ps.getUpdateCount();
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }
@@ -41,7 +40,6 @@ public class PreparedStatements {
         try {
             return ps.execute();
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }
@@ -50,7 +48,6 @@ public class PreparedStatements {
         try {
             return ps.executeQuery();
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }
@@ -60,7 +57,6 @@ public class PreparedStatements {
         try {
             ps.setObject(index, obj);
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }
@@ -69,7 +65,6 @@ public class PreparedStatements {
         try {
             ps.setBytes(index, bytes);
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }
@@ -78,7 +73,6 @@ public class PreparedStatements {
         try {
             ps.setBinaryStream(index, stream, length);
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }
@@ -87,7 +81,6 @@ public class PreparedStatements {
         try {
             ps.setInt(index, obj);
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }
@@ -96,7 +89,6 @@ public class PreparedStatements {
         try {
             ps.setLong(index, obj);
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }
@@ -105,7 +97,6 @@ public class PreparedStatements {
         try {
             ps.setDouble(index, obj);
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }
@@ -114,7 +105,6 @@ public class PreparedStatements {
         try {
             ps.setFloat(index, obj);
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }
@@ -123,7 +113,6 @@ public class PreparedStatements {
         try {
             ps.setShort(index, obj);
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }
@@ -132,7 +121,6 @@ public class PreparedStatements {
         try {
             ps.setByte(index, obj);
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }
@@ -141,7 +129,6 @@ public class PreparedStatements {
         try {
             ps.setTimestamp(index, obj);
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }
@@ -150,7 +137,6 @@ public class PreparedStatements {
         try {
             ps.cancel();
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }
@@ -159,7 +145,6 @@ public class PreparedStatements {
         try {
             ps.setMaxRows(max);
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }
@@ -168,7 +153,6 @@ public class PreparedStatements {
         try {
             ps.setFetchSize(fetchSize);
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }
@@ -178,7 +162,6 @@ public class PreparedStatements {
         try {
             ps.setNull(index, sqlType, typeName);
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }

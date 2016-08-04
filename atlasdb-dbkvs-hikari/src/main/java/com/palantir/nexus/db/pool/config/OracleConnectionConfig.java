@@ -1,5 +1,5 @@
 /**
- * Copyright 2015 Palantir Technologies
+ * Copyright 2016 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -98,11 +98,12 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
 
     @Override
     @Value.Default
+    @Value.Auxiliary
     public Properties getHikariProperties() {
         Properties props = new Properties();
 
         props.setProperty("user", getDbLogin());
-        props.setProperty("password", getDbPassword());
+        props.setProperty("password", getDbPassword().unmasked());
 
         props.setProperty("oracle.net.keepAlive", "true");
         props.setProperty("oracle.jdbc.ReadTimeout", Long.toString(TimeUnit.SECONDS.toMillis(getSocketTimeoutSeconds())));

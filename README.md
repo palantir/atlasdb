@@ -4,3 +4,6 @@
 See more at [http://palantir.github.io/atlasdb/](http://palantir.github.io/atlasdb/).
 
 We use [ZenHub](https://www.zenhub.io/) for tracking our work inside github.  If you would like to better understand our progress/priorities we recommend installing the browser plugin.
+
+## Contributing
+Please see our docs on [Contributing to AtlasDB](http://palantir.github.io/atlasdb/html/miscellaneous/contributing.html)

@@ -1,3 +1,5 @@
+.. _change-log:
+
 *********
 Changelog
 *********
@@ -40,9 +42,66 @@ v0.12.0
          - Change
 
     *    - |breaking|
-         - If you do not specify a leader block in your config, AtlasDB will now still try to register the timestamp and lock endpoints necessary for
-           other clients or CLIs to run in the same keyspace. This may require changes in setup logic for applications that have previously
-           only ever run with no leader block.
+         - If you do not specify a leader block in your config, AtlasDB will now still try to register the timestamp and lock endpoints necessary for other clients or CLIs to run in the same keyspace.
+           This may require changes in setup logic for applications that have previously only ever run with no leader block.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/708>`__)
+    *    - |fixed|
+         - DB passwords are no longer output as part of the connection configuration ``toString()`` methods.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/755>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.11.4
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Correctly checks the Cassandra client version that determines if Cassandra supports Check And Set operations.
+           This is a critical bug fix that ensures we actually use our implementation from `#436 <https://github.com/palantir/atlasdb/pull/436>`__, which prevents the Cassandra concurrent table creation bug described in `#431 <https://github.com/palantir/atlasdb/issues/431>`__.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/751>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.11.2
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |changed|
+         - The ``ssl`` property now takes precedence over the new ``sslConfiguration`` block to better allow back-compatibility.
+           This means that products can add default truststore and keystore configuration to their AtlasDB config without overriding previously made SSL decisions (setting ``ssl: false`` should cause SSL to not be used).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/745>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.11.1
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Removed a check enforcing a leader block config when one was not required.
+           This prevents AtlasDB 0.11.0 clients from starting if a leader configuration is not specified (i.e. single node clusters).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/741>`__)
 
     *    - |improved|
          - Updated schema table generation to optimize reads with no ColumnSelection specified against tables with fixed columns.  To benefit from this improvement you will need to re-generate your schemas.
@@ -138,9 +197,9 @@ v0.10.0
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
-=======
+======
 v0.9.0
-=======
+======
 
 .. list-table::
     :widths: 5 40
@@ -193,9 +252,9 @@ v0.9.0
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
-=======
+======
 v0.8.0
-=======
+======
 
 .. list-table::
     :widths: 5 40
@@ -210,9 +269,9 @@ v0.8.0
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
-=======
+======
 v0.7.0
-=======
+======
 
 .. list-table::
     :widths: 5 40
@@ -241,9 +300,9 @@ v0.7.0
 
 .. <<<<------------------------------------------------------------------------------------------------------------>>>>
 
-=======
+======
 v0.6.0
-=======
+======
 
 .. list-table::
     :widths: 5 40
@@ -267,9 +326,9 @@ v0.6.0
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
-=======
+======
 v0.5.0
-=======
+======
 
 .. list-table::
     :widths: 5 40
@@ -283,9 +342,9 @@ v0.5.0
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
-=======
+======
 v0.4.1
-=======
+======
 
 .. list-table::
     :widths: 5 40

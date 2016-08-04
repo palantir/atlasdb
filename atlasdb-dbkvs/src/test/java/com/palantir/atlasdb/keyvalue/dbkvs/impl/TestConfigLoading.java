@@ -16,7 +16,10 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 
 import java.io.File;
 import java.io.IOException;
@@ -60,6 +63,15 @@ public class TestConfigLoading {
     public void testHikariLoginTimeout() throws IOException {
         ConnectionConfig connectionConfig = getConnectionConfig();
         verifyHikariProperty(connectionConfig, "loginTimeout", connectionConfig.getConnectionTimeoutSeconds());
+    }
+
+    @Test
+    public void testPasswordIsMasked() throws IOException {
+        ConnectionConfig connectionConfig = getConnectionConfig();
+        assertThat(connectionConfig.getDbPassword().unmasked(), equalTo("testpassword"));
+        assertThat(connectionConfig.getHikariProperties().getProperty("password"), equalTo("testpassword"));
+        assertThat(connectionConfig.toString(), not(containsString("testpassword")));
+        assertThat(connectionConfig.toString(), containsString("REDACTED"));
     }
 
     private ConnectionConfig getConnectionConfig() throws IOException {

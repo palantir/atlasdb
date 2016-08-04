@@ -13,11 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.sweep;
+package com.palantir.atlasdb.sweep.sweepers;
 
 import java.util.Set;
 
+import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -25,10 +27,20 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 
-public class NothingSweepStrategySweeper implements SweepStrategySweeper {
+public class ConservativeSweeper implements Sweeper {
+    private final KeyValueService keyValueService;
+    private final Supplier<Long> immutableTimestampSupplier;
+    private final Supplier<Long> unreadableTimestampSupplier;
+
+    public ConservativeSweeper(KeyValueService keyValueService, Supplier<Long> immutableTimestampSupplier, Supplier<Long> unreadableTimestampSupplier) {
+        this.keyValueService = keyValueService;
+        this.immutableTimestampSupplier = immutableTimestampSupplier;
+        this.unreadableTimestampSupplier = unreadableTimestampSupplier;
+    }
+
     @Override
     public long getSweepTimestamp() {
-        return 0;
+        return Math.min(unreadableTimestampSupplier.get(), immutableTimestampSupplier.get());
     }
 
     @Override
@@ -38,16 +50,16 @@ public class NothingSweepStrategySweeper implements SweepStrategySweeper {
 
     @Override
     public ClosableIterator<RowResult<Set<Long>>> getCellTimestamps(TableReference tableReference, RangeRequest rangeRequest, long timestamp) {
-        return ClosableIterators.emptyImmutableClosableIterator();
+        return keyValueService.getRangeOfTimestamps(tableReference, rangeRequest, timestamp);
     }
 
     @Override
     public Set<Long> getTimestampsToIgnore() {
-        return ImmutableSet.of();
+        return ImmutableSet.of(Value.INVALID_VALUE_TIMESTAMP);
     }
 
     @Override
     public boolean shouldAddSentinels() {
-        return false;
+        return true;
     }
 }

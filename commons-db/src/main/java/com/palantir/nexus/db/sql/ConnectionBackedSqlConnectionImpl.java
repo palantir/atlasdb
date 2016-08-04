@@ -17,9 +17,6 @@ package com.palantir.nexus.db.sql;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
 
 import com.google.common.base.Supplier;
 import com.palantir.exception.PalantirInterruptedException;
@@ -47,19 +44,8 @@ public class ConnectionBackedSqlConnectionImpl implements ConnectionBackedSqlCon
     }
 
     @Override
-    public void clearTempTable(String tempTable) throws PalantirSqlException {
-        sqlConnectionHelper.clearTempTable(c, tempTable, ClearStyle.DELETE);
-    }
-
-    @Override
-    public void deleteIdsFromTempIds(Collection<Long> ids) throws PalantirSqlException {
-        sqlConnectionHelper.deleteIdsFromTempIds(c, ids);
-    }
-
-    @Override
-    public void deleteIdsFromTempIdsForTable(Collection<Long> ids, String tempTable)
-        throws PalantirSqlException {
-        sqlConnectionHelper.deleteIdsFromTempIdsForTable(c, ids, tempTable);
+    public void initializeTempTable(TempTable tempTable) throws PalantirSqlException {
+        tempTable.initialize(c);
     }
 
     @Override
@@ -142,47 +128,6 @@ public class ConnectionBackedSqlConnectionImpl implements ConnectionBackedSqlCon
     public boolean insertOneUnregisteredQuery(String sql, Object... vs)
         throws PalantirSqlException {
         return sqlConnectionHelper.insertOneUnregisteredQuery(c, sql, vs);
-    }
-
-    @Override
-    public void loadTempIdPairsIntoEight(Map<Long, Long> idToField1) throws PalantirSqlException {
-        sqlConnectionHelper.loadTempIdPairsIntoEight(c, idToField1, ClearStyle.DELETE);
-    }
-
-    @Override
-    public void loadEightFieldTempIds(Iterable<Object[]> args) throws PalantirSqlException {
-        sqlConnectionHelper.loadEightFieldTempIds(c, args, ClearStyle.DELETE);
-    }
-
-    @Override
-    public void loadTempIds(Iterable<Long> tempIds, String tableName)
-        throws PalantirSqlException {
-        sqlConnectionHelper.loadTempIds(c, tempIds, tableName, ClearStyle.DELETE);
-    }
-
-    @Override
-    public void loadTempIds(Iterable<Long> tempIds) throws PalantirSqlException {
-        sqlConnectionHelper.loadTempIds(c, tempIds, ClearStyle.DELETE);
-    }
-
-    @Override
-    public void loadIdKeyPairTempIds(Iterable<Object[]> args) throws PalantirSqlException {
-        sqlConnectionHelper.loadIdKeyPairTempIds(c, args, ClearStyle.DELETE);
-    }
-
-    @Override
-    public void loadTempExternalIds(Iterable<Object[]> externalIds) throws PalantirSqlException {
-        sqlConnectionHelper.loadTempExternalIds(c, externalIds, ClearStyle.DELETE);
-    }
-
-    @Override
-    public void loadThreeFieldTempIds(Iterable<Object[]> tempIds) throws PalantirSqlException {
-        sqlConnectionHelper.loadThreeFieldTempIds(c, tempIds, ClearStyle.DELETE);
-    }
-
-    @Override
-    public void loadKeysTempIds(Iterable<String> args) throws PalantirSqlException {
-        sqlConnectionHelper.loadKeysTempIds(c, args, ClearStyle.DELETE);
     }
 
     @Override
@@ -382,17 +327,5 @@ public class ConnectionBackedSqlConnectionImpl implements ConnectionBackedSqlCon
     @Override
     public Connection getUnderlyingConnection() {
         return c;
-    }
-
-    @Override
-    public void loadIdKeyTuplesTempIds(List<Object[]> tempRows)
-            throws PalantirSqlException {
-        sqlConnectionHelper.loadIdKeyTuplesTempIds(c, tempRows);
-    }
-
-    @Override
-    public void loadTempIdPairsIntoIdKeyTuples(Map<Long, Long> idToField1)
-            throws PalantirSqlException {
-        sqlConnectionHelper.loadTempIdPairsIntoIdKeyTuples(c, idToField1);
     }
 }
