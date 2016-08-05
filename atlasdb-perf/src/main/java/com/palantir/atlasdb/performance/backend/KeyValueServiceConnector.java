@@ -5,13 +5,12 @@ import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.performance.BenchmarkParam;
 
 @State(Scope.Benchmark)
 public class KeyValueServiceConnector extends PhysicalStore {
 
     /**
-     * Edit this instance variable name ("backend") with care -- it must match {@link BenchmarkParam.BACKEND}.getKey()
+     * Edit this instance variable name ("backend") with care -- it must match {@code BenchmarkParam.BACKEND}.getKey()
      */
     @Param
     private KeyValueServiceType backend;

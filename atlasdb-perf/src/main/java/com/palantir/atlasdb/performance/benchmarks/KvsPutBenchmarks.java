@@ -45,11 +45,11 @@ import com.palantir.atlasdb.performance.backend.KeyValueServiceConnector;
  *
  * @author mwakerman
  */
-@State(Scope.Thread)
-@BenchmarkMode(Mode.AverageTime)
+@State(Scope.Benchmark)
+@BenchmarkMode(Mode.SampleTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
-@Warmup(iterations = 50)
-@Measurement(iterations = 50)
+@Warmup(iterations = 1, time = 5, timeUnit = TimeUnit.SECONDS)
+@Measurement(iterations = 1, time = 30, timeUnit = TimeUnit.SECONDS)
 public class KvsPutBenchmarks {
 
     private static final String TABLE_NAME_1 = "performance.table1";
@@ -74,47 +74,56 @@ public class KvsPutBenchmarks {
     @Setup
     public void setup(KeyValueServiceConnector connector) {
         this.connector = connector;
-        kvs = connector.connect();
-        tableRef1 = KvsBenchmarks.createTable(kvs, TABLE_NAME_1, ROW_COMPONENT, COLUMN_NAME);
-        tableRef2 = KvsBenchmarks.createTable(kvs, TABLE_NAME_2, ROW_COMPONENT, COLUMN_NAME);
+        this.kvs = connector.connect();
+        this.tableRef1 = KvsBenchmarks.createTable(kvs, TABLE_NAME_1, ROW_COMPONENT, COLUMN_NAME);
+        this.tableRef2 = KvsBenchmarks.createTable(kvs, TABLE_NAME_2, ROW_COMPONENT, COLUMN_NAME);
     }
 
     @TearDown
     public void cleanup() throws Exception {
-        kvs.dropTables(Sets.newHashSet(tableRef1, tableRef2));
-        kvs.close();
-        connector.close();
+        this.kvs.dropTables(Sets.newHashSet(tableRef1, tableRef2));
+        this.kvs.close();
+        this.connector.close();
+        this.tableRef1 = null;
+        this.tableRef2 = null;
     }
 
     @Benchmark
     public void singleRandomPut() {
-        byte[] key = new byte[KEY_BYTE_ARRAY_SIZE];
-        byte[] value = new byte[VALUE_BYTE_ARRAY_SIZE];
-        random.nextBytes(key);
-        random.nextBytes(value);
-        kvs.put(tableRef1, ImmutableMap.of(Cell.create(key, COLUMN_NAME_IN_BYTES), value), DUMMY_TIMESTAMP);
+        byte[] value = generateValue();
+        kvs.put(tableRef1, ImmutableMap.of(Cell.create(generateKey(), COLUMN_NAME_IN_BYTES), value), DUMMY_TIMESTAMP);
     }
 
     @Benchmark
     public void batchRandomPut() {
-        kvs.put(tableRef1, createBatch(BATCH_SIZE), DUMMY_TIMESTAMP);
+        kvs.put(tableRef1, generateBatch(BATCH_SIZE), DUMMY_TIMESTAMP);
     }
 
     @Benchmark
     public void batchRandomMultiPut() {
         Map<TableReference, Map<Cell, byte[]>> multiPutMap = Maps.newHashMap();
-        multiPutMap.put(tableRef1, createBatch(BATCH_SIZE));
-        multiPutMap.put(tableRef2, createBatch(BATCH_SIZE));
+        multiPutMap.put(tableRef1, generateBatch(BATCH_SIZE));
+        multiPutMap.put(tableRef2, generateBatch(BATCH_SIZE));
         kvs.multiPut(multiPutMap, DUMMY_TIMESTAMP);
     }
 
-    private Map<Cell, byte[]> createBatch(int size) {
-        Map<Cell, byte[]> map = Maps.newHashMap();
-        for (int j=0; j<size; j++) {
-            byte[] key = new byte[KEY_BYTE_ARRAY_SIZE];
-            byte[] value = new byte[VALUE_BYTE_ARRAY_SIZE];
-            random.nextBytes(key);
-            random.nextBytes(value);
+    private byte[] generateValue() {
+        byte[] value = new byte[VALUE_BYTE_ARRAY_SIZE];
+        random.nextBytes(value);
+        return value;
+    }
+
+    private byte[] generateKey() {
+        byte[] key = new byte[KEY_BYTE_ARRAY_SIZE];
+        random.nextBytes(key);
+        return key;
+    }
+
+    private Map<Cell, byte[]> generateBatch(int size) {
+        Map<Cell, byte[]> map = Maps.newHashMapWithExpectedSize(size);
+        for (int j = 0; j < size; j++) {
+            byte[] key = generateKey();
+            byte[] value = generateValue();
             map.put(Cell.create(key, COLUMN_NAME_IN_BYTES), value);
         }
         return map;
