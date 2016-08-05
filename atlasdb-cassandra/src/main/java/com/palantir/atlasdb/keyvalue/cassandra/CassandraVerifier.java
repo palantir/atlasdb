@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.net.InetSocketAddress;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -252,21 +251,8 @@ public class CassandraVerifier {
         @Override
         public Boolean apply(Client client) throws UnsupportedOperationException {
             try {
-                String versionString = client.describe_version();
-                String[] components = versionString.split("\\.");
-                if (components.length != 3) {
-                    throw new UnsupportedOperationException(String.format("Illegal version of Thrift protocol detected; expected format '#.#.#', got '%s'", Arrays.toString(components)));
-                }
-                int majorVersion = Integer.parseInt(components[0]);
-                int minorVersion = Integer.parseInt(components[1]);
-                int patchVersion = Integer.parseInt(components[2]);
-
-                // see cassandra's 'interface/cassandra.thrift'
-                if (majorVersion >= 19 && minorVersion >= 37 && patchVersion >= 0) {
-                    return true;
-                } else {
-                    return false;
-                }
+                CassandraApiVersion serverVersion = new CassandraApiVersion(client.describe_version());
+                return serverVersion.supportsCheckAndSet();
             } catch (TException e) {
                 throw new UnsupportedOperationException("Couldn't determine underlying cassandra version; received an exception while checking the thrift version.", e);
             }
