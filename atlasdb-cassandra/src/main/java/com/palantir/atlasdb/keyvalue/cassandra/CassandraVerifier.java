@@ -251,7 +251,7 @@ public class CassandraVerifier {
         @Override
         public Boolean apply(Client client) throws UnsupportedOperationException {
             try {
-                CassandraServerVersion serverVersion = new CassandraServerVersion(client.describe_version());
+                CassandraApiVersion serverVersion = new CassandraApiVersion(client.describe_version());
                 return serverVersion.supportsCheckAndSet();
             } catch (TException e) {
                 throw new UnsupportedOperationException("Couldn't determine underlying cassandra version; received an exception while checking the thrift version.", e);

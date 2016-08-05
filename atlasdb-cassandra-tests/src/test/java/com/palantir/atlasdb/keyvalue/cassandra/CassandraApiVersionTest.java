@@ -20,46 +20,46 @@ import static org.hamcrest.core.Is.is;
 
 import org.junit.Test;
 
-public class CassandraServerVersionTest {
+public class CassandraApiVersionTest {
     @Test public void
     version_19_36_0_does_not_support_cas() {
-        CassandraServerVersion version = new CassandraServerVersion("19.36.0");
+        CassandraApiVersion version = new CassandraApiVersion("19.36.0");
         assertThat(version.supportsCheckAndSet(), is(false));
     }
 
     @Test public void
     version_19_37_0_supports_cas() {
-        CassandraServerVersion version = new CassandraServerVersion("19.37.0");
+        CassandraApiVersion version = new CassandraApiVersion("19.37.0");
         assertThat(version.supportsCheckAndSet(), is(true));
     }
 
     @Test public void
     version_19_38_0_supports_cas() {
-        CassandraServerVersion version = new CassandraServerVersion("19.38.0");
+        CassandraApiVersion version = new CassandraApiVersion("19.38.0");
         assertThat(version.supportsCheckAndSet(), is(true));
     }
 
     @Test public void
     version_20_1_0_supports_cas() {
-        CassandraServerVersion version = new CassandraServerVersion("20.1.0");
+        CassandraApiVersion version = new CassandraApiVersion("20.1.0");
         assertThat(version.supportsCheckAndSet(), is(true));
     }
 
     @Test public void
     version_18_40_0_does_not_support_cas() {
-        CassandraServerVersion version = new CassandraServerVersion("18.40.0");
+        CassandraApiVersion version = new CassandraApiVersion("18.40.0");
         assertThat(version.supportsCheckAndSet(), is(false));
     }
 
     @Test public void
     version_20_40_1_supports_cas() {
-        CassandraServerVersion version = new CassandraServerVersion("20.40.1");
+        CassandraApiVersion version = new CassandraApiVersion("20.40.1");
         assertThat(version.supportsCheckAndSet(), is(true));
     }
 
     @Test(expected=UnsupportedOperationException.class) public void
     invalid_version_strings_throw_an_error() {
-        new CassandraServerVersion("20_4.1");
+        new CassandraApiVersion("20_4.1");
     }
 
 }

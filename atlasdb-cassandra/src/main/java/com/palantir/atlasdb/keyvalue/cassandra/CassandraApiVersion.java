@@ -17,11 +17,18 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.util.Arrays;
 
-public class CassandraServerVersion {
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class CassandraApiVersion {
+    private static final Logger LOGGER = LoggerFactory.getLogger(CassandraApiVersion.class);
+
+    private final String versionString;
     private final int majorVersion;
     private final int minorVersion;
 
-    public CassandraServerVersion(String versionString) {
+    public CassandraApiVersion(String versionString) {
+        this.versionString = versionString;
         String[] components = versionString.split("\\.");
         if (components.length != 3) {
             throw new UnsupportedOperationException(String.format("Illegal version of Thrift protocol detected; expected format '#.#.#', got '%s'", Arrays.toString(components)));
@@ -32,6 +39,12 @@ public class CassandraServerVersion {
 
     // This corresponds to the version change in https://github.com/apache/cassandra/commit/8b0e1868e8cf813ddfc98d11448aa2ad363eccc1#diff-2fa34d46c5a51e59f77d866bbe7ca02aR55
     public boolean supportsCheckAndSet() {
-        return majorVersion > 19 || (majorVersion == 19 && minorVersion >= 37);
+        boolean supportsCheckAndSet = majorVersion > 19 || (majorVersion == 19 && minorVersion >= 37);
+
+        String supportMessage = supportsCheckAndSet ? "supports check and set." : "does not support check and set.";
+
+        LOGGER.info("Your cassandra api version ({}) " + supportMessage, versionString);
+
+        return supportsCheckAndSet;
     }
 }
