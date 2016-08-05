@@ -57,11 +57,11 @@ public class EteSetup {
         return AtlasDbHttpClients.createProxyWithFailover(NO_SSL, uris, clazz);
     }
 
-    protected String runCommand(String... command) throws IOException, InterruptedException {
+    protected String runCommand(String command) throws IOException, InterruptedException {
         return docker.exec(
                 DockerComposeExecOption.options("-T"),
                 FIRST_ETE_CONTAINER,
-                DockerComposeExecArgument.arguments(command));
+                DockerComposeExecArgument.arguments("bash", "-c", command));
     }
 
     protected static RuleChain setupComposition(String name, String composeFile) {
