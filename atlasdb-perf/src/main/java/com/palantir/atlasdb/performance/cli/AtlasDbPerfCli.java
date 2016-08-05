@@ -88,10 +88,13 @@ public class AtlasDbPerfCli {
     private static void run(AtlasDbPerfCli cli) throws Exception {
         ChainedOptionsBuilder optBuilder = new OptionsBuilder()
                 .forks(1)
+                .threads(4)
                 .param(BenchmarkParam.BACKEND.getKey(), cli.backend);
 
-        if (cli.tests != null) {
-            cli.tests.stream().forEach(testName -> optBuilder.include(testName));
+        if (cli.tests == null) {
+            getAllBenchmarks().forEach(b -> optBuilder.include(".*" + b));
+        } else {
+            cli.tests.forEach(b -> optBuilder.include(".*" + b));
         }
 
         Collection<RunResult> results = new Runner(optBuilder.build()).run();

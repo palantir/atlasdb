@@ -14,9 +14,9 @@ dependencies {
   compile group: 'io.airlift', name: 'airline', version: '0.7'
   compile group: 'org.reflections', name: 'reflections', version: '0.9.10'
   compile group: 'com.palantir.docker.compose', name: 'docker-compose-rule', version: '0.17.2'
-  compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.1.7'
+  compile group: 'ch.qos.logback', name: 'logback-classic', version: libVersions.logback
 
-  compile group: 'org.openjdk.jmh', name: 'jmh-core', version: '1.12'
+  compile group: 'org.openjdk.jmh', name: 'jmh-core', version: '1.13'
   processor(group: 'org.openjdk.jmh', name: 'jmh-generator-annprocess', version: '1.12') {
       // We need to explicitly exclude these so that intellij does not label them as provided
       if(gradle.startParameter.taskNames.contains('idea')) {
@@ -33,8 +33,6 @@ configurations.matching({ it.name in ['compile', 'runtime'] }).all {
           force 'commons-io:commons-io:' + libVersions.commons_io
           force 'joda-time:joda-time:' + libVersions.joda_time
           force 'com.googlecode.json-simple:json-simple:' + libVersions.json_simple
-          force 'ch.qos.logback:logback-core:' + libVersions.logback
-          force 'ch.qos.logback:logback-classic:' + libVersions.logback
           force 'org.yaml:snakeyaml:' + libVersions.snakeyaml
           force 'org.apache.thrift:libthrift:' + libVersions.libthrift
           force 'commons-codec:commons-codec:' + libVersions.commons_codec
