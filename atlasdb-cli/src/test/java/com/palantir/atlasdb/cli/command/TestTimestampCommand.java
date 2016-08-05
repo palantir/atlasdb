@@ -171,8 +171,8 @@ public class TestTimestampCommand {
     }
 
     private void runAndVerify(SingleBackendCliTestRunner runner, TimestampService tss,
-                              boolean immutable, long immutableTs, long lastFreshTs,
-                              long prePunch, long postPunch) throws IOException {
+            boolean immutable, long immutableTs, long lastFreshTs,
+            long prePunch, long postPunch) throws IOException {
         // prep
         if (isToFile && TIMESTAMP_FILE.exists()) {
             TIMESTAMP_FILE.delete();
