@@ -7,6 +7,7 @@ ext.libVersions =
     junit:   '4.12',
     jmock:   '2.8.2',
     mockito: '1.10.17',
+    assertj: '3.5.2',
     dropwizard:   '0.8.2',
     dockerComposeRule: '0.17.2',
     commons_lang: '2.6',
