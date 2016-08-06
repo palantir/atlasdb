@@ -45,6 +45,12 @@ v0.12.0
          - If you do not specify a leader block in your config, AtlasDB will now still try to register the timestamp and lock endpoints necessary for other clients or CLIs to run in the same keyspace.
            This may require changes in setup logic for applications that have previously only ever run with no leader block.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/708>`__)
+
+    *    - |new|
+         - There is now a dropwizard bundle which can be added to dropwizard applications. This will add startup commands to launch the AtlasDB console and CLIs including timestamp manipulation,
+           transaction range cleaning, and sweeping. These commands will only work if the server is started with a leader block in its configuration.
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/629>`__ and `Pull Request 2 <https://github.com/palantir/atlasdb/pull/696>`__)
+
     *    - |fixed|
          - DB passwords are no longer output as part of the connection configuration ``toString()`` methods.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/755>`__)
@@ -155,8 +161,8 @@ v0.11.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/700>`__)
 
     *    - |deprecated|
-         - The Cassandra KVS now supports specifying SSL options via the new ``sslConfiguration`` block, which takes precedence over the now deprecated ``ssl`` property. 
-           The ``ssl`` property will be removed in a future release, and consumers leveraging the Cassandra KVS are encouraged to use the ``sslConfiguration`` block instead. 
+         - The Cassandra KVS now supports specifying SSL options via the new ``sslConfiguration`` block, which takes precedence over the now deprecated ``ssl`` property.
+           The ``ssl`` property will be removed in a future release, and consumers leveraging the Cassandra KVS are encouraged to use the ``sslConfiguration`` block instead.
            See the `Cassandra SSL Configuration <https://palantir.github.io/atlasdb/html/configuration/cassandra_KVS_configuration.html#communicating-over-ssl>`__ documentation for more details.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/638>`__)
 
