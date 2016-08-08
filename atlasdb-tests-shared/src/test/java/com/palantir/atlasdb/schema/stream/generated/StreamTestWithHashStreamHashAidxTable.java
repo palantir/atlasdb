@@ -96,6 +96,7 @@ public final class StreamTestWithHashStreamHashAidxTable implements
     private final List<StreamTestWithHashStreamHashAidxTrigger> triggers;
     private final static String rawTableName = "stream_test_with_hash_stream_hash_aidx";
     private final TableReference tableRef;
+    private final static ColumnSelection allColumns = ColumnSelection.all();
 
     static StreamTestWithHashStreamHashAidxTable of(Transaction t, Namespace namespace) {
         return new StreamTestWithHashStreamHashAidxTable(t, namespace, ImmutableList.<StreamTestWithHashStreamHashAidxTrigger>of());
@@ -548,7 +549,7 @@ public final class StreamTestWithHashStreamHashAidxTable implements
 
     @Override
     public List<StreamTestWithHashStreamHashAidxColumnValue> getRowColumns(StreamTestWithHashStreamHashAidxRow row) {
-        return getRowColumns(row, ColumnSelection.all());
+        return getRowColumns(row, allColumns);
     }
 
     @Override
@@ -570,7 +571,7 @@ public final class StreamTestWithHashStreamHashAidxTable implements
 
     @Override
     public Multimap<StreamTestWithHashStreamHashAidxRow, StreamTestWithHashStreamHashAidxColumnValue> getRowsMultimap(Iterable<StreamTestWithHashStreamHashAidxRow> rows) {
-        return getRowsMultimapInternal(rows, ColumnSelection.all());
+        return getRowsMultimapInternal(rows, allColumns);
     }
 
     @Override
@@ -580,7 +581,7 @@ public final class StreamTestWithHashStreamHashAidxTable implements
 
     @Override
     public Multimap<StreamTestWithHashStreamHashAidxRow, StreamTestWithHashStreamHashAidxColumnValue> getAsyncRowsMultimap(Iterable<StreamTestWithHashStreamHashAidxRow> rows, ExecutorService exec) {
-        return getAsyncRowsMultimap(rows, ColumnSelection.all(), exec);
+        return getAsyncRowsMultimap(rows, allColumns, exec);
     }
 
     @Override
@@ -630,7 +631,7 @@ public final class StreamTestWithHashStreamHashAidxTable implements
     }
 
     public BatchingVisitableView<StreamTestWithHashStreamHashAidxRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(ColumnSelection.all());
+        return getAllRowsUnordered(allColumns);
     }
 
     public BatchingVisitableView<StreamTestWithHashStreamHashAidxRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -740,5 +741,5 @@ public final class StreamTestWithHashStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "bY2VC56osPjAZR0vdDJ8Hw==";
+    static String __CLASS_HASH = "wpUjgbnce10Lxgmf3AdZ6A==";
 }
