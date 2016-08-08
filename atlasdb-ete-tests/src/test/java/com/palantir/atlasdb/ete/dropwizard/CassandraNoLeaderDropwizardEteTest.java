@@ -16,12 +16,10 @@
 package com.palantir.atlasdb.ete.dropwizard;
 
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.rules.RuleChain;
 
 import com.palantir.atlasdb.ete.EteSetup;
 
-@Ignore
 public class CassandraNoLeaderDropwizardEteTest extends DropwizardEteTest {
     @ClassRule
     public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition("cassandra-no-leader", "docker-compose.no-leader.cassandra.yml");

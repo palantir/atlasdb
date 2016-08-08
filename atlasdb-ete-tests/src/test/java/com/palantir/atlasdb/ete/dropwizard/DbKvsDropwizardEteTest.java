@@ -16,12 +16,10 @@
 package com.palantir.atlasdb.ete.dropwizard;
 
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.rules.RuleChain;
 
 import com.palantir.atlasdb.ete.EteSetup;
 
-@Ignore
 public class DbKvsDropwizardEteTest extends DropwizardEteTest {
     @ClassRule
     public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition("dbkvs", "docker-compose.dbkvs.yml");
