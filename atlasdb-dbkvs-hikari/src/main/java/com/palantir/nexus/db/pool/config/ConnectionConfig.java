@@ -47,6 +47,7 @@ public abstract class ConnectionConfig {
     public abstract String getDriverClass();
     public abstract String getTestQuery();
 
+    @JsonIgnore
     @Value.Derived
     public abstract DBType getDbType();
 
@@ -95,6 +96,7 @@ public abstract class ConnectionConfig {
         return 45;
     }
 
+    @JsonIgnore
     @Value.Default
     public Visitor<Connection> getOnAcquireConnectionVisitor() {
         return Visitors.emptyVisitor();

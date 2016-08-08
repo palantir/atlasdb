@@ -115,7 +115,7 @@ public class TableRemappingKeyValueService extends ForwardingObject implements
         // We're purposely updating the table mappings after all drops are complete
         for (TableReference tableRef : tableRefs) {
             // Handles the edge case of deleting _namespace when clearing the kvs
-            if (tableRef.getNamespace().equals(Namespace.EMPTY_NAMESPACE)
+            if (tableRef.getNamespace().isEmptyNamespace()
                     && tableRef.equals(AtlasDbConstants.NAMESPACE_TABLE)) {
                 break;
             }

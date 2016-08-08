@@ -75,7 +75,7 @@ public abstract class AbstractCommand implements Callable<Integer> {
                 }
             } catch (IOException e) {
                 throw new RuntimeException(String.format("IOException thrown reading configuration file: %s",
-                        configFile.getPath()), e);
+                        configFile != null ? configFile.getPath() : "null"), e);
             }
         }
 

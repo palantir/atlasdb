@@ -21,6 +21,7 @@ import java.util.Set;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -146,6 +147,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
         return TYPE;
     }
 
+    @JsonIgnore
     @Value.Derived
     public boolean usingSsl() {
         return ssl().or(sslConfiguration().isPresent());
