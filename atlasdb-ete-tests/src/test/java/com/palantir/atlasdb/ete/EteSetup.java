@@ -32,8 +32,8 @@ import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerPort;
 import com.palantir.docker.compose.connection.waiting.HealthCheck;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
-import com.palantir.docker.compose.execution.DockerComposeExecArgument;
-import com.palantir.docker.compose.execution.DockerComposeExecOption;
+import com.palantir.docker.compose.execution.DockerComposeRunArgument;
+import com.palantir.docker.compose.execution.DockerComposeRunOption;
 
 public class EteSetup {
     private static final Gradle GRADLE_PREPARE_TASK = Gradle.ensureTaskHasRun(":atlasdb-ete-tests:prepareForEteTests");
@@ -58,10 +58,10 @@ public class EteSetup {
     }
 
     protected String runCommand(String command) throws IOException, InterruptedException {
-        return docker.exec(
-                DockerComposeExecOption.options("-T"),
-                FIRST_ETE_CONTAINER,
-                DockerComposeExecArgument.arguments("bash", "-c", command));
+        return docker.run(
+                DockerComposeRunOption.options("-T"),
+                "ete-cli",
+                DockerComposeRunArgument.arguments("bash", "-c", command));
     }
 
     protected static RuleChain setupComposition(String name, String composeFile) {

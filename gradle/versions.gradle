@@ -9,7 +9,7 @@ ext.libVersions =
     mockito: '1.10.17',
     assertj: '3.5.2',
     dropwizard:   '0.8.2',
-    dockerComposeRule: '0.17.2',
+    dockerComposeRule: '0.18.0',
     commons_lang: '2.6',
     commons_lang3: '3.1',
     commons_io: '2.1',
