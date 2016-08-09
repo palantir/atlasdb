@@ -20,7 +20,7 @@ public class ConnectionTest {
     // TODO: start postgres in a docker container
     @Test @Ignore
     public void testPostgresConnection() throws ClassNotFoundException, SQLException {
-        connect("postgresTestConfig.yml");
+        connect("dispatchTestConfig.yml");
     }
 
     private void connect(String name) throws ClassNotFoundException, SQLException {
