@@ -8,8 +8,16 @@ import java.sql.Statement;
 
 public class AtlasJdbcStatement implements Statement {
 
+    private final AtlasJdbcConnection atlasJdbcConnection;
+
+    public AtlasJdbcStatement(AtlasJdbcConnection atlasJdbcConnection) {
+
+        this.atlasJdbcConnection = atlasJdbcConnection;
+    }
+
     @Override
     public ResultSet executeQuery(String sql) throws SQLException {
+        // TODO
         return null;
     }
 
@@ -85,7 +93,7 @@ public class AtlasJdbcStatement implements Statement {
 
     @Override
     public ResultSet getResultSet() throws SQLException {
-        return null;
+        return new AtlasJdbcResultSet();
     }
 
     @Override

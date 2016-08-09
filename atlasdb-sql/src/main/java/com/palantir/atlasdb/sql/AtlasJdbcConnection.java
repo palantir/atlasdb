@@ -1,5 +1,7 @@
 package com.palantir.atlasdb.sql;
 
+import java.io.File;
+import java.io.IOException;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.CallableStatement;
@@ -24,6 +26,8 @@ import java.util.stream.Collectors;
 
 import com.palantir.atlasdb.cli.services.AtlasDbServices;
 import com.palantir.atlasdb.cli.services.DaggerAtlasDbServices;
+import com.palantir.atlasdb.cli.services.ServicesConfigModule;
+import com.palantir.atlasdb.config.AtlasDbConfigs;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -34,9 +38,11 @@ public class AtlasJdbcConnection implements Connection {
     private final TransactionManager txManager;
     private Set<TableReference> allTableNames;
 
-    public AtlasJdbcConnection(Properties info) {
-        // TODO: get info from getAtlasDbConfig()
-        final AtlasDbServices services = DaggerAtlasDbServices.builder().build();
+    public AtlasJdbcConnection(Properties info) throws IOException {
+        File configFile = new File((String) info.get("configFile"));
+        final AtlasDbServices services = DaggerAtlasDbServices.builder()
+                .servicesConfigModule(ServicesConfigModule.create(configFile,  AtlasDbConfigs.ATLASDB_CONFIG_ROOT))
+                .build();
         txManager = services.getTransactionManager();
         keyValueService = services.getKeyValueService();
     }
@@ -50,9 +56,10 @@ public class AtlasJdbcConnection implements Connection {
     TransactionManager getTxManager() {
         return txManager;
     }
+
     @Override
-    public Statement createStatement() throws SQLException {
-        return null;
+    public AtlasJdbcStatement createStatement() throws SQLException {
+        return new AtlasJdbcStatement(this);
     }
 
     @Override
