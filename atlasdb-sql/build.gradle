@@ -12,6 +12,22 @@ apply plugin:'ch.raffael.antlr4'
 apply from: "../gradle/shared.gradle"
 
 dependencies {
+  compile(project(":atlasdb-commons"))
+  compile(project(":atlasdb-api"))
+  compile(project(":atlasdb-cli")) {
+        exclude(module:'log4j-over-slf4j')
+        exclude(module:'jcl-over-slf4j')
+        exclude(module:'json-simple')
+        exclude(module:'metrics-core')
+        exclude(module:'logback-core')
+        exclude(module:'logback-classic')
+        exclude(module:'joda-time')
+        exclude(module:'snakeyaml')
+        exclude(module:'hibernate-validator')
+        exclude(module:'libthrift')
+        exclude(module:'commons-cli')
+        exclude(module:'jna')
+  }
   compile "org.jooq:jooq:3.6.4"
   compile "org.antlr:antlr4:4.5"
   compile 'com.google.guava:guava:' + libVersions.guava

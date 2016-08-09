@@ -40,8 +40,16 @@ ext.libVersions =
     log4j: '1.2.17'
 ]
 
+// You can pass in -PnoFail as a gradle arg if you
+// want to toggle off failOnVersionConflict().
+def shouldFail() {
+  return !project.rootProject.hasProperty("noFail")
+}
+
 configurations.matching({ it.name in ['compile', 'runtime'] }).all {
     resolutionStrategy {
-        failOnVersionConflict()
+        if (shouldFail()) {
+            failOnVersionConflict()
+        }
     }
 }

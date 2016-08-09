@@ -6,24 +6,50 @@ import java.sql.CallableStatement;
 import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
-import java.sql.Driver;
-import java.sql.DriverPropertyInfo;
 import java.sql.NClob;
 import java.sql.PreparedStatement;
 import java.sql.SQLClientInfoException;
 import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.sql.Savepoint;
 import java.sql.Statement;
 import java.sql.Struct;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.Executor;
-import java.util.logging.Logger;
+import java.util.stream.Collectors;
+
+import com.palantir.atlasdb.cli.services.AtlasDbServices;
+import com.palantir.atlasdb.cli.services.DaggerAtlasDbServices;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 public class AtlasJdbcConnection implements Connection {
+
+    private final KeyValueService keyValueService;
+    private final TransactionManager txManager;
+    private Set<TableReference> allTableNames;
+
+    public AtlasJdbcConnection(Properties info) {
+        // TODO: get info from getAtlasDbConfig()
+        final AtlasDbServices services = DaggerAtlasDbServices.builder().build();
+        txManager = services.getTransactionManager();
+        keyValueService = services.getKeyValueService();
+    }
+
+    public List<String> getTableNames() throws SQLException {
+        allTableNames = keyValueService.getAllTableNames();
+        final List<String> strings = allTableNames.stream().map(TableReference::getTablename).collect(Collectors.toList());
+        return strings;
+    }
+
+    TransactionManager getTxManager() {
+        return txManager;
+    }
     @Override
     public Statement createStatement() throws SQLException {
         return null;
