@@ -16,6 +16,7 @@ import java.sql.SQLXML;
 import java.sql.Savepoint;
 import java.sql.Statement;
 import java.sql.Struct;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -26,13 +27,17 @@ import java.util.stream.Collectors;
 import com.palantir.atlasdb.cli.services.AtlasDbServices;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.atlasdb.transaction.api.TransactionTask;
 
 public class AtlasJdbcConnection implements Connection {
 
     private final KeyValueService keyValueService;
     private final TransactionManager txManager;
     private Set<TableReference> allTableNames;
+    private boolean autoCommit = true;
+    private List<AtlasJdbcPreparedStatement> preparedStatements = new ArrayList<>();
 
     public AtlasJdbcConnection(AtlasDbServices services) throws IOException {
         txManager = services.getTransactionManager();
@@ -60,7 +65,9 @@ public class AtlasJdbcConnection implements Connection {
 
     @Override
     public PreparedStatement prepareStatement(String sql) throws SQLException {
-        return null;
+        final AtlasJdbcPreparedStatement statement = new AtlasJdbcPreparedStatement(this, sql);
+        preparedStatements.add(statement);
+        return statement;
     }
 
     @Override
@@ -75,17 +82,25 @@ public class AtlasJdbcConnection implements Connection {
 
     @Override
     public void setAutoCommit(boolean autoCommit) throws SQLException {
-
+        this.autoCommit = autoCommit;
     }
 
     @Override
     public boolean getAutoCommit() throws SQLException {
-        return false;
+        return autoCommit;
     }
 
     @Override
     public void commit() throws SQLException {
-
+        txManager.runTaskThrowOnConflict(new TransactionTask<Void, SQLException>() {
+            @Override
+            public Void execute(Transaction t) throws SQLException {
+                for (AtlasJdbcPreparedStatement statement : preparedStatements) {
+                    statement.executeQuery();
+                }
+                return null;
+            }
+        });
     }
 
     @Override
