@@ -6,7 +6,15 @@ options
 
 
 select_clause
-    : SELECT column_clause FROM table_name ( where_clause )?
+    : SELECT column_clause FROM table_reference ( where_clause )?
+    ;
+
+table_reference
+    : ( keyspace DOT )? table_name
+    ;
+
+keyspace
+    : ID
     ;
 
 table_name
