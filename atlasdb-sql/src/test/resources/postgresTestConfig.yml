@@ -1,0 +1,14 @@
+atlasdb:
+  keyValueService:
+    type: relational
+    ddl:
+      type: postgres
+    connection:
+      type: postgres
+      host: postgres.palantir.dev
+      port: 1000
+      dbName: test
+      dbLogin: test
+      dbPassword: testpassword
+      connectionTimeoutSeconds: 5
+      socketTimeoutSeconds: 30

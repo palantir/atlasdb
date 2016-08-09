@@ -14,6 +14,7 @@ dependencies {
 
   runtime project(':atlasdb-cassandra')
   runtime project(':atlasdb-rocksdb')
+  runtime project(':atlasdb-dbkvs')
 
   testCompile project(':atlasdb-rocksdb')
 
