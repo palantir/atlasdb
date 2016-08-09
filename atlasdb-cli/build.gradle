@@ -12,7 +12,12 @@ dependencies {
   compile 'io.airlift:airline:0.7'
   compile 'com.google.dagger:dagger:2.0.2'
 
-  runtime project(':atlasdb-cassandra')
+  runtime(project(':atlasdb-cassandra')) {
+      exclude(module: 'json-simple')
+      exclude(module: 'joda-time')
+      exclude(module: 'snakeyaml')
+      exclude(module: 'logback-classic')
+  }
   runtime project(':atlasdb-rocksdb')
   runtime project(':atlasdb-dbkvs')
 

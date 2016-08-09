@@ -85,6 +85,7 @@ public class AtlasJdbcConnection implements Connection {
         this.autoCommit = autoCommit;
     }
 
+
     @Override
     public boolean getAutoCommit() throws SQLException {
         return autoCommit;
