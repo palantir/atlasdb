@@ -1,5 +1,6 @@
 package com.palantir.atlasdb.sql;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
@@ -15,11 +16,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Charsets;
+import com.palantir.atlasdb.cli.services.AtlasDbServices;
+import com.palantir.atlasdb.cli.services.DaggerAtlasDbServices;
+import com.palantir.atlasdb.cli.services.ServicesConfigModule;
+import com.palantir.atlasdb.config.AtlasDbConfigs;
 
 public class AtlasJdbcDriver implements Driver {
     public final static String URL_PREFIX = "jdbc:atlas";
 
     private final Logger log = LoggerFactory.getLogger(AtlasJdbcDriver.class);
+
+    private static AtlasDbServices services = null;
 
     // This static block inits the driver when the class is loaded by the JVM.
     static {
@@ -62,7 +69,13 @@ public class AtlasJdbcDriver implements Driver {
 
         log.debug("info: {}", info);
         try {
-            return new AtlasJdbcConnection(info);
+            if (services == null) {
+                File configFile = new File((String) info.get("configFile"));
+                services = DaggerAtlasDbServices.builder()
+                        .servicesConfigModule(ServicesConfigModule.create(configFile, AtlasDbConfigs.ATLASDB_CONFIG_ROOT))
+                        .build();
+            }
+            return new AtlasJdbcConnection(services);
         } catch (IOException e) {
             throw new RuntimeException("Cannot open config file", e);
         }

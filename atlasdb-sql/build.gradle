@@ -8,6 +8,7 @@ buildscript {
 }
 
 apply plugin:'ch.raffael.antlr4'
+apply plugin: "org.inferred.processors"
 
 apply from: "../gradle/shared.gradle"
 
@@ -18,6 +19,8 @@ dependencies {
   compile "org.jooq:jooq:3.6.4"
   compile "org.antlr:antlr4:4.5"
   compile 'com.google.guava:guava:' + libVersions.guava
+
+  processor "org.immutables:value:" + libVersions.immutables
 }
 
 antlr4 {

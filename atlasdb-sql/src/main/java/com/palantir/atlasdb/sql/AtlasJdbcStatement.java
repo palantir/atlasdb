@@ -5,20 +5,51 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
+import java.util.List;
+
+import org.antlr.v4.runtime.ANTLRInputStream;
+import org.antlr.v4.runtime.CommonTokenStream;
+
+import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.sql.grammar.SelectClause;
+import com.palantir.atlasdb.sql.grammar.generated.AtlasSQLLexer;
+import com.palantir.atlasdb.sql.grammar.generated.AtlasSQLParser;
+import com.palantir.atlasdb.table.description.TableMetadata;
+import com.palantir.atlasdb.transaction.api.TransactionTask;
+import com.palantir.common.base.BatchingVisitables;
 
 public class AtlasJdbcStatement implements Statement {
 
-    private final AtlasJdbcConnection atlasJdbcConnection;
+    private final AtlasJdbcConnection conn;
 
-    public AtlasJdbcStatement(AtlasJdbcConnection atlasJdbcConnection) {
-
-        this.atlasJdbcConnection = atlasJdbcConnection;
+    public AtlasJdbcStatement(AtlasJdbcConnection conn) {
+        this.conn = conn;
     }
 
     @Override
     public ResultSet executeQuery(String sql) throws SQLException {
-        // TODO
-        return null;
+        AtlasSQLLexer lexer = new AtlasSQLLexer(new ANTLRInputStream(sql.toLowerCase()));
+        CommonTokenStream tokens = new CommonTokenStream(lexer);
+        AtlasSQLParser parser = new AtlasSQLParser(tokens);
+        AtlasSQLParser.Select_clauseContext clause = parser.select_clause();
+        if (clause != null) {
+            return executeSelect(SelectClause.create(clause));
+        } else {
+            throw new UnsupportedOperationException("Unsupported initial clause: " + sql);
+        }
+    }
+
+    private ResultSet executeSelect(SelectClause select) {
+        try {
+            List<RowResult<byte[]>> results =
+                    conn.getTxManager().runTaskReadOnly((TransactionTask<List<RowResult<byte[]>>, Exception>) t ->
+                            BatchingVisitables.copyToList(
+                                    t.getRange(select.table(), select.range())));
+            TableMetadata metadata = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(conn.getKvs().getMetadataForTable(select.table()));
+            return new AtlasJdbcResultSet(metadata, results);
+        } catch (Exception e) {
+            throw new RuntimeException("Problem running read transaction.", e);
+        }
     }
 
     @Override
@@ -93,7 +124,7 @@ public class AtlasJdbcStatement implements Statement {
 
     @Override
     public ResultSet getResultSet() throws SQLException {
-        return new AtlasJdbcResultSet();
+        return null;
     }
 
     @Override

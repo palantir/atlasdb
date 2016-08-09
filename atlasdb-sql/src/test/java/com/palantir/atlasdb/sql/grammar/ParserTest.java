@@ -5,6 +5,8 @@ import org.antlr.v4.runtime.CommonTokenStream;
 import org.junit.Test;
 
 import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.sql.grammar.generated.AtlasSQLLexer;
+import com.palantir.atlasdb.sql.grammar.generated.AtlasSQLParser;
 
 public class ParserTest {
 

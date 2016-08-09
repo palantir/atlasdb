@@ -1,6 +1,5 @@
 package com.palantir.atlasdb.sql;
 
-import java.io.File;
 import java.io.IOException;
 import java.sql.Array;
 import java.sql.Blob;
@@ -25,9 +24,6 @@ import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
 import com.palantir.atlasdb.cli.services.AtlasDbServices;
-import com.palantir.atlasdb.cli.services.DaggerAtlasDbServices;
-import com.palantir.atlasdb.cli.services.ServicesConfigModule;
-import com.palantir.atlasdb.config.AtlasDbConfigs;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -38,11 +34,7 @@ public class AtlasJdbcConnection implements Connection {
     private final TransactionManager txManager;
     private Set<TableReference> allTableNames;
 
-    public AtlasJdbcConnection(Properties info) throws IOException {
-        File configFile = new File((String) info.get("configFile"));
-        final AtlasDbServices services = DaggerAtlasDbServices.builder()
-                .servicesConfigModule(ServicesConfigModule.create(configFile,  AtlasDbConfigs.ATLASDB_CONFIG_ROOT))
-                .build();
+    public AtlasJdbcConnection(AtlasDbServices services) throws IOException {
         txManager = services.getTransactionManager();
         keyValueService = services.getKeyValueService();
     }
@@ -51,6 +43,10 @@ public class AtlasJdbcConnection implements Connection {
         allTableNames = keyValueService.getAllTableNames();
         final List<String> strings = allTableNames.stream().map(TableReference::getTablename).collect(Collectors.toList());
         return strings;
+    }
+
+    KeyValueService getKvs() {
+        return keyValueService;
     }
 
     TransactionManager getTxManager() {
