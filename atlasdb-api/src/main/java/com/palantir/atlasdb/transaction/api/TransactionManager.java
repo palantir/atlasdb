@@ -44,7 +44,7 @@ public interface TransactionManager {
 
     /**
      * {@link #runTaskWithRetry(TransactionTask)} should be preferred over {@link #runTaskThrowOnConflict(TransactionTask)}
-     * This method should be used unless {@link #runTaskWithRetry(TransactionTask)} cannot be used becuase the arguments
+     * This method should be used unless {@link #runTaskWithRetry(TransactionTask)} cannot be used because the arguments
      * passed are not immutable and will be modified by the transaction so doing automatic retry is unsafe.
      *
      * Runs the given {@link TransactionTask}. If the task completes successfully
@@ -67,9 +67,9 @@ public interface TransactionManager {
     /**
      * Most atlasdb TransactionManagers will provide {@link Transaction} objects that have less than full
      * serializability. The most common is snapshot isolation (SI).  SI has a start timestamp and a commit timestamp
-     * and an open transaction can only read values that were committed before it's start timestamp.
+     * and an open transaction can only read values that were committed before its start timestamp.
      * <p>
-     * This method will return a timestamp that is before any uncommited/aborted open start timestamps.
+     * This method will return a timestamp that is before any uncommitted/aborted open start timestamps.
      * <p>
      * Subsequent calls to this method will always be monotonically increasing for a single client.
      * <p>
