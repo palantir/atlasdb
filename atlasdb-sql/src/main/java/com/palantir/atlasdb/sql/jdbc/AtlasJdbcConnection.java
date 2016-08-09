@@ -25,11 +25,13 @@ import com.palantir.atlasdb.api.TransactionToken;
 public class AtlasJdbcConnection implements Connection {
 
     private final AtlasDbService service;
+    private TransactionToken token = null;
+    private boolean isClosed = false;
+    private String creatingURL;
 
-    private TransactionToken token;
-
-    public AtlasJdbcConnection(AtlasDbService service) {
+    public AtlasJdbcConnection(AtlasDbService service, String creatingURL) {
         this.service = service;
+        this.creatingURL = creatingURL;
         this.token = TransactionToken.autoCommit();
     }
 
@@ -37,8 +39,25 @@ public class AtlasJdbcConnection implements Connection {
         return service;
     }
 
+    /**  Transaction token is either a sentinel, an autocommit or is in an open transaction.
+         The first two mean connection is <b>not</b> in transaction.
+     */
     TransactionToken getTransactionToken() {
         return token;
+    }
+
+    private TransactionToken resetTransactionToken() {
+        return token.shouldAutoCommit() ? TransactionToken.autoCommit() : emptyTransactionToken();
+    }
+
+    private TransactionToken emptyTransactionToken() {
+        return null; // TODO implement a sentinel transaction token
+    }
+
+    private void assertConnectionNotInTransaction() throws SQLException {
+        if (token.shouldAutoCommit() || token == emptyTransactionToken()) {
+            throw new SQLException("connection is not allowed to be in transaction at this time.");
+        }
     }
 
     @Override
@@ -48,7 +67,7 @@ public class AtlasJdbcConnection implements Connection {
 
     @Override
     public PreparedStatement prepareStatement(String sql) throws SQLException {
-        return null;
+        return new AtlasJdbcPreparedStatement(this, sql);
     }
 
     @Override
@@ -77,31 +96,50 @@ public class AtlasJdbcConnection implements Connection {
     @Override
     public void commit() throws SQLException {
         service.commit(token);
+        this.token = resetTransactionToken();
+
+//        txManager.runTaskThrowOnConflict(new TransactionTask<Void, SQLException>() {
+//            @Override
+//            public Void execute(Transaction t) throws SQLException {
+//                for (AtlasJdbcPreparedStatement statement : preparedStatements) {
+//                    statement.executeQuery();
+//                }
+//                return null;
+//            }
+//        });
     }
 
     @Override
     public void rollback() throws SQLException {
         service.abort(token);
+        this.token = resetTransactionToken();
     }
 
     @Override
     public void close() throws SQLException {
-
+        isClosed = true;
     }
 
     @Override
     public boolean isClosed() throws SQLException {
-        return false;
+        return isClosed;
+    }
+
+    private void assertConnectionNotClosed() throws SQLException {
+        if (isClosed()) {
+            throw new SQLException("Connection is not allowed to be closed at this time.");
+        }
     }
 
     @Override
     public DatabaseMetaData getMetaData() throws SQLException {
-        return null;
+        return new AtlasJdbcDatabaseMetaData(this);
     }
 
     @Override
     public void setReadOnly(boolean readOnly) throws SQLException {
-
+        assertConnectionNotClosed();
+        assertConnectionNotInTransaction();
     }
 
     @Override
@@ -306,11 +344,22 @@ public class AtlasJdbcConnection implements Connection {
 
     @Override
     public <T> T unwrap(Class<T> iface) throws SQLException {
-        return null;
+        if (iface.isAssignableFrom(getClass())) {
+            return iface.cast(this);
+        }
+        throw new SQLException("Cannot unwrap to " + iface.getName());
     }
 
     @Override
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
-        return false;
+        return iface.isAssignableFrom(getClass());
+    }
+
+    public String getURL() {
+        return creatingURL;
+    }
+
+    public String getUserName() {
+        return "default";
     }
 }

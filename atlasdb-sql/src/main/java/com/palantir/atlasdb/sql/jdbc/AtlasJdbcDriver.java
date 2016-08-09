@@ -32,7 +32,7 @@ public class AtlasJdbcDriver implements Driver {
     private final static String URL_PREFIX = "jdbc:atlas";
     private final static String CONFIG_FILE_KEY = "configFile";
 
-    private static Map<Integer, AtlasDbService> knownSerivceEndpoints = Maps.newHashMap();
+    private static Map<Integer, AtlasDbService> knownServiceEndpoints = Maps.newHashMap();
 
     // visible for testing (hack for allowing easy population of the database)
     public static AtlasDbServices lastKnownAtlasServices = null;
@@ -55,16 +55,16 @@ public class AtlasJdbcDriver implements Driver {
             return null;
         }
 
-        if (knownSerivceEndpoints.containsKey(url.hashCode())) {
-            return new AtlasJdbcConnection(knownSerivceEndpoints.get(url.hashCode()));
+        if (knownServiceEndpoints.containsKey(url.hashCode())) {
+            return new AtlasJdbcConnection(knownServiceEndpoints.get(url.hashCode()), url);
         }
 
         addQueryStringsToProperties(url, info);
 
         log.debug("info: {}", info);
         AtlasDbService service = createAtlasDbService(new File((String) info.get(CONFIG_FILE_KEY)));
-        knownSerivceEndpoints.put(url.hashCode(), service);
-        return new AtlasJdbcConnection(service);
+        knownServiceEndpoints.put(url.hashCode(), service);
+        return new AtlasJdbcConnection(service, url);
     }
 
     private AtlasDbService createAtlasDbService(File configFile) {
@@ -112,14 +112,18 @@ public class AtlasJdbcDriver implements Driver {
         return new DriverPropertyInfo[0];
     }
 
+    public static final int MAJOR_VERSION = 0;
+
     @Override
     public int getMajorVersion() {
-        return 0;
+        return MAJOR_VERSION;
     }
+
+    public static final int MINOR_VERSION = 0;
 
     @Override
     public int getMinorVersion() {
-        return 0;
+        return MINOR_VERSION;
     }
 
     @Override

@@ -1065,15 +1065,14 @@ public class AtlasJdbcResultSet implements ResultSet {
 
     @Override
     public <T> T unwrap(Class<T> iface) throws SQLException {
-        if (isWrapperFor(iface)) {
+        if (iface.isAssignableFrom(getClass())) {
             return iface.cast(this);
         }
-        throw new SQLException("this result set is not a wrapper for " + iface.getSimpleName());
+        throw new SQLException("Cannot unwrap to " + iface.getName());
     }
 
     @Override
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
-        return iface.equals(this.getClass());
+        return iface.isAssignableFrom(getClass());
     }
-
 }
