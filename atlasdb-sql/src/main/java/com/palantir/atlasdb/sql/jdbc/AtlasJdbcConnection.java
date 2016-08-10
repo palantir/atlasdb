@@ -26,12 +26,10 @@ public class AtlasJdbcConnection implements Connection {
 
     private final AtlasDbService service;
 
-    private boolean autoCommit;
     private TransactionToken token;
 
     public AtlasJdbcConnection(AtlasDbService service) {
         this.service = service;
-        this.autoCommit = true;
         this.token = TransactionToken.autoCommit();
     }
 
@@ -65,12 +63,15 @@ public class AtlasJdbcConnection implements Connection {
 
     @Override
     public void setAutoCommit(boolean autoCommit) throws SQLException {
-        this.autoCommit = autoCommit;
+        if (autoCommit == token.shouldAutoCommit()) {
+            return;
+        }
+        this.token = autoCommit ? TransactionToken.autoCommit() : service.startTransaction();
     }
 
     @Override
     public boolean getAutoCommit() throws SQLException {
-        return autoCommit;
+        return token.shouldAutoCommit();
     }
 
     @Override
