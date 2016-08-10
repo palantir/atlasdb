@@ -1,4 +1,4 @@
-package com.palantir.atlasdb.sql;
+package com.palantir.atlasdb.sql.jdbc;
 
 import java.io.File;
 import java.io.IOException;
@@ -10,25 +10,37 @@ import java.sql.DriverManager;
 import java.sql.DriverPropertyInfo;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.util.Map;
 import java.util.Properties;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Charsets;
+import com.google.common.collect.Maps;
+import com.palantir.atlasdb.api.AtlasDbService;
 import com.palantir.atlasdb.cli.services.AtlasDbServices;
 import com.palantir.atlasdb.cli.services.DaggerAtlasDbServices;
 import com.palantir.atlasdb.cli.services.ServicesConfigModule;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
+import com.palantir.atlasdb.impl.AtlasDbServiceImpl;
+import com.palantir.atlasdb.impl.TableMetadataCache;
 
 public class AtlasJdbcDriver implements Driver {
-    public final static String URL_PREFIX = "jdbc:atlas";
-
     private final Logger log = LoggerFactory.getLogger(AtlasJdbcDriver.class);
 
-    private static AtlasDbServices services = null;
+    private final static String URL_PREFIX = "jdbc:atlas";
+    private final static String CONFIG_FILE_KEY = "configFile";
 
-    // This static block inits the driver when the class is loaded by the JVM.
+    private static Map<Integer, AtlasDbService> knownSerivceEndpoints = Maps.newHashMap();
+
+    // visible for testing (hack for allowing easy population of the database)
+    public static AtlasDbServices lastKnownAtlasServices = null;
+    public static AtlasDbServices getLastKnownAtlasServices() {
+        return lastKnownAtlasServices;
+    }
+
+    // initialize the driver when the class is loaded
     static {
         try {
             DriverManager.registerDriver(new AtlasJdbcDriver());
@@ -43,13 +55,35 @@ public class AtlasJdbcDriver implements Driver {
             return null;
         }
 
-        // strip any properties from end of URL and set them as additional
-        // properties
-        String urlProperties;
+        if (knownSerivceEndpoints.containsKey(url.hashCode())) {
+            return new AtlasJdbcConnection(knownSerivceEndpoints.get(url.hashCode()));
+        }
+
+        addQueryStringsToProperties(url, info);
+
+        log.debug("info: {}", info);
+        AtlasDbService service = createAtlasDbService(new File((String) info.get(CONFIG_FILE_KEY)));
+        knownSerivceEndpoints.put(url.hashCode(), service);
+        return new AtlasJdbcConnection(service);
+    }
+
+    private AtlasDbService createAtlasDbService(File configFile) {
+        try {
+            lastKnownAtlasServices = DaggerAtlasDbServices.builder()
+                    .servicesConfigModule(ServicesConfigModule.create(configFile, AtlasDbConfigs.ATLASDB_CONFIG_ROOT))
+                    .build();
+            return new AtlasDbServiceImpl(lastKnownAtlasServices.getKeyValueService(),
+                    lastKnownAtlasServices.getTransactionManager(),
+                    new TableMetadataCache(lastKnownAtlasServices.getKeyValueService()));
+        } catch (IOException e) {
+            throw new RuntimeException("Problem reading atlas configuration file: " + configFile.getAbsolutePath());
+        }
+    }
+
+    private void addQueryStringsToProperties(String url, Properties info) throws SQLException {
         int questionIndex = url.indexOf('?');
         if (questionIndex >= 0) {
-            info = new Properties(info);
-            urlProperties = url.substring(questionIndex);
+            String urlProperties = url.substring(questionIndex);
             String[] split = urlProperties.substring(1).split("&");
             for (String aSplit : split) {
                 String[] property = aSplit.split("=");
@@ -66,24 +100,10 @@ public class AtlasJdbcDriver implements Driver {
                 }
             }
         }
-
-        log.debug("info: {}", info);
-        try {
-            if (services == null) {
-                File configFile = new File((String) info.get("configFile"));
-                services = DaggerAtlasDbServices.builder()
-                        .servicesConfigModule(ServicesConfigModule.create(configFile, AtlasDbConfigs.ATLASDB_CONFIG_ROOT))
-                        .build();
-            }
-            return new AtlasJdbcConnection(services);
-        } catch (IOException e) {
-            throw new RuntimeException("Cannot open config file", e);
-        }
     }
 
     @Override
     public boolean acceptsURL(String url) throws SQLException {
-        log.debug("url:" + url);
         return url.startsWith(URL_PREFIX);
     }
 

@@ -1,22 +1,12 @@
-package com.palantir.atlasdb.sql;
+package com.palantir.atlasdb.sql.jdbc;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
-import java.util.List;
 
-import org.antlr.v4.runtime.ANTLRInputStream;
-import org.antlr.v4.runtime.CommonTokenStream;
-
-import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.sql.grammar.SelectClause;
-import com.palantir.atlasdb.sql.grammar.generated.AtlasSQLLexer;
-import com.palantir.atlasdb.sql.grammar.generated.AtlasSQLParser;
-import com.palantir.atlasdb.table.description.TableMetadata;
-import com.palantir.atlasdb.transaction.api.TransactionTask;
-import com.palantir.common.base.BatchingVisitables;
+import com.palantir.atlasdb.sql.grammar.SelectQuery;
 
 public class AtlasJdbcStatement implements Statement {
 
@@ -28,28 +18,8 @@ public class AtlasJdbcStatement implements Statement {
 
     @Override
     public ResultSet executeQuery(String sql) throws SQLException {
-        AtlasSQLLexer lexer = new AtlasSQLLexer(new ANTLRInputStream(sql.toLowerCase()));
-        CommonTokenStream tokens = new CommonTokenStream(lexer);
-        AtlasSQLParser parser = new AtlasSQLParser(tokens);
-        AtlasSQLParser.QueryContext query = parser.query();
-        if (query.select_query() != null) {
-            return executeSelect(SelectClause.create(query.select_query()));
-        } else {
-            throw new UnsupportedOperationException("Unsupported initial clause: " + sql);
-        }
-    }
-
-    private ResultSet executeSelect(SelectClause select) {
-        try {
-            List<RowResult<byte[]>> results =
-                    conn.getTxManager().runTaskReadOnly((TransactionTask<List<RowResult<byte[]>>, Exception>) t ->
-                            BatchingVisitables.copyToList(
-                                    t.getRange(select.table(), select.range())));
-            TableMetadata metadata = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(conn.getKvs().getMetadataForTable(select.table()));
-            return new AtlasJdbcResultSet(metadata, results);
-        } catch (Exception e) {
-            throw new RuntimeException("Problem running read transaction.", e);
-        }
+        SelectQuery select = SelectQuery.create(sql);
+        return AtlasJdbcResultSet.create(conn.getService(), conn.getTransactionToken(), select);
     }
 
     @Override

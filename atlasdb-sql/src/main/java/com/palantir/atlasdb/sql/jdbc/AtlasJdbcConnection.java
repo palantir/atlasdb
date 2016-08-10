@@ -1,6 +1,5 @@
-package com.palantir.atlasdb.sql;
+package com.palantir.atlasdb.sql.jdbc;
 
-import java.io.IOException;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.CallableStatement;
@@ -16,41 +15,32 @@ import java.sql.SQLXML;
 import java.sql.Savepoint;
 import java.sql.Statement;
 import java.sql.Struct;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 import java.util.concurrent.Executor;
-import java.util.stream.Collectors;
 
-import com.palantir.atlasdb.cli.services.AtlasDbServices;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.atlasdb.api.AtlasDbService;
+import com.palantir.atlasdb.api.TransactionToken;
 
 public class AtlasJdbcConnection implements Connection {
 
-    private final KeyValueService keyValueService;
-    private final TransactionManager txManager;
-    private Set<TableReference> allTableNames;
+    private final AtlasDbService service;
 
-    public AtlasJdbcConnection(AtlasDbServices services) throws IOException {
-        txManager = services.getTransactionManager();
-        keyValueService = services.getKeyValueService();
+    private boolean autoCommit;
+    private TransactionToken token;
+
+    public AtlasJdbcConnection(AtlasDbService service) {
+        this.service = service;
+        this.autoCommit = true;
+        this.token = TransactionToken.autoCommit();
     }
 
-    public List<String> getTableNames() throws SQLException {
-        allTableNames = keyValueService.getAllTableNames();
-        final List<String> strings = allTableNames.stream().map(TableReference::getTablename).collect(Collectors.toList());
-        return strings;
+    AtlasDbService getService() {
+        return service;
     }
 
-    KeyValueService getKvs() {
-        return keyValueService;
-    }
-
-    TransactionManager getTxManager() {
-        return txManager;
+    TransactionToken getTransactionToken() {
+        return token;
     }
 
     @Override
@@ -75,22 +65,22 @@ public class AtlasJdbcConnection implements Connection {
 
     @Override
     public void setAutoCommit(boolean autoCommit) throws SQLException {
-
+        this.autoCommit = autoCommit;
     }
 
     @Override
     public boolean getAutoCommit() throws SQLException {
-        return false;
+        return autoCommit;
     }
 
     @Override
     public void commit() throws SQLException {
-
+        service.commit(token);
     }
 
     @Override
     public void rollback() throws SQLException {
-
+        service.abort(token);
     }
 
     @Override

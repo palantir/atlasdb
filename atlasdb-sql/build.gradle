@@ -16,6 +16,7 @@ dependencies {
   compile(project(":atlasdb-commons"))
   compile(project(":atlasdb-api"))
   compile(project(":atlasdb-cli"))
+  compile(project(":atlasdb-server"))
   compile "org.jooq:jooq:3.6.4"
   compile "org.antlr:antlr4:4.5"
   compile 'com.google.guava:guava:' + libVersions.guava
