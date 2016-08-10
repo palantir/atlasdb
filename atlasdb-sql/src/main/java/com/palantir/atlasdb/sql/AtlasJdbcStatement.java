@@ -10,13 +10,10 @@ import java.util.List;
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CommonTokenStream;
 
-import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.api.TableRowResult;
 import com.palantir.atlasdb.sql.grammar.SelectClause;
 import com.palantir.atlasdb.sql.grammar.generated.AtlasSQLLexer;
 import com.palantir.atlasdb.sql.grammar.generated.AtlasSQLParser;
-import com.palantir.atlasdb.table.description.TableMetadata;
-import com.palantir.atlasdb.transaction.api.TransactionTask;
-import com.palantir.common.base.BatchingVisitables;
 
 public class AtlasJdbcStatement implements Statement {
 
@@ -33,7 +30,7 @@ public class AtlasJdbcStatement implements Statement {
         AtlasSQLParser parser = new AtlasSQLParser(tokens);
         AtlasSQLParser.Select_clauseContext clause = parser.select_clause();
         if (clause != null) {
-            return executeSelect(SelectClause.create(clause));
+            return new AtlasJdbcResultSet(conn.getService(), SelectClause.create(clause));
         } else {
             throw new UnsupportedOperationException("Unsupported initial clause: " + sql);
         }
@@ -41,12 +38,7 @@ public class AtlasJdbcStatement implements Statement {
 
     private ResultSet executeSelect(SelectClause select) {
         try {
-            List<RowResult<byte[]>> results =
-                    conn.getTxManager().runTaskReadOnly((TransactionTask<List<RowResult<byte[]>>, Exception>) t ->
-                            BatchingVisitables.copyToList(
-                                    t.getRange(select.table(), select.range())));
-            TableMetadata metadata = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(conn.getKvs().getMetadataForTable(select.table()));
-            return new AtlasJdbcResultSet(metadata, results);
+            TableRowResult results = conn.execute(select);
         } catch (Exception e) {
             throw new RuntimeException("Problem running read transaction.", e);
         }

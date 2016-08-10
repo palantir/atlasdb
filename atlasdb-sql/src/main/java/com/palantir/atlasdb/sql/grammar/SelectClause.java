@@ -2,6 +2,7 @@ package com.palantir.atlasdb.sql.grammar;
 
 import org.immutables.value.Value;
 
+import com.palantir.atlasdb.api.TableRange;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -31,5 +32,7 @@ public abstract class SelectClause {
     public abstract TableReference table();
 
     public abstract RangeRequest range();
+
+    public abstract TableRange tableRange();
 
 }

@@ -22,40 +22,35 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.Executor;
-import java.util.stream.Collectors;
 
+import com.palantir.atlasdb.api.RangeToken;
+import com.palantir.atlasdb.api.TableRowResult;
+import com.palantir.atlasdb.api.TransactionToken;
 import com.palantir.atlasdb.cli.services.AtlasDbServices;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.impl.AtlasDbServiceImpl;
+import com.palantir.atlasdb.impl.TableMetadataCache;
+import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.transaction.api.Transaction;
-import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.atlasdb.sql.grammar.SelectClause;
+import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
+import com.palantir.common.base.BatchingVisitables;
 
 public class AtlasJdbcConnection implements Connection {
 
-    private final KeyValueService keyValueService;
-    private final TransactionManager txManager;
+    private final AtlasDbServiceImpl service;
     private Set<TableReference> allTableNames;
     private boolean autoCommit = true;
     private List<AtlasJdbcPreparedStatement> preparedStatements = new ArrayList<>();
+    private TransactionToken currentToken;
 
     public AtlasJdbcConnection(AtlasDbServices services) throws IOException {
-        txManager = services.getTransactionManager();
-        keyValueService = services.getKeyValueService();
+        TableMetadataCache cache = new TableMetadataCache(services.getKeyValueService());
+        service = new AtlasDbServiceImpl(services.getKeyValueService(), services.getTransactionManager(), cache);
     }
 
-    public List<String> getTableNames() throws SQLException {
-        allTableNames = keyValueService.getAllTableNames();
-        final List<String> strings = allTableNames.stream().map(TableReference::getTablename).collect(Collectors.toList());
-        return strings;
-    }
-
-    KeyValueService getKvs() {
-        return keyValueService;
-    }
-
-    TransactionManager getTxManager() {
-        return txManager;
+    public AtlasDbServiceImpl getService() {
+        return service;
     }
 
     @Override
@@ -93,20 +88,12 @@ public class AtlasJdbcConnection implements Connection {
 
     @Override
     public void commit() throws SQLException {
-        txManager.runTaskThrowOnConflict(new TransactionTask<Void, SQLException>() {
-            @Override
-            public Void execute(Transaction t) throws SQLException {
-                for (AtlasJdbcPreparedStatement statement : preparedStatements) {
-                    statement.executeQuery();
-                }
-                return null;
-            }
-        });
+        service.commit(currentToken);
     }
 
     @Override
     public void rollback() throws SQLException {
-
+        service.abort(currentToken);
     }
 
     @Override
@@ -337,5 +324,9 @@ public class AtlasJdbcConnection implements Connection {
     @Override
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
         return false;
+    }
+
+    public TableRowResult execute(SelectClause select) {
+
     }
 }

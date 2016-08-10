@@ -20,27 +20,33 @@ import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Calendar;
-import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.Iterators;
+import com.google.common.collect.PeekingIterator;
+import com.palantir.atlasdb.api.RangeToken;
+import com.palantir.atlasdb.api.TableRowResult;
+import com.palantir.atlasdb.impl.AtlasDbServiceImpl;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.table.description.TableMetadata;
+import com.palantir.atlasdb.sql.grammar.SelectClause;
 
 public class AtlasJdbcResultSet implements ResultSet {
 
-   private final TableMetadata metadata;
-   private final List<RowResult<byte[]>> results;
-   private int loc;
+   private final TableRowResult results;
+   private RowResult<byte[]> current;
+   private PeekingIterator<RowResult<byte[]>> it;
 
-   public AtlasJdbcResultSet(TableMetadata metadata, List<RowResult<byte[]>> results) {
-      this.metadata = metadata;
+   public AtlasJdbcResultSet(AtlasDbServiceImpl service, SelectClause selectClause) {
+      final RangeToken rangeToken = service.getRange(currentToken, select.tableRange());
       this.results = results;
-      this.loc = -1;
+      this.it = null; Iterators.peekingIterator(results.getResults().iterator());
    }
 
    @Override
    public boolean next() throws SQLException {
-      return ++loc < results.size();
+//      if (it.hasNext()) {
+//         return it.
+//      }
    }
 
    @Override

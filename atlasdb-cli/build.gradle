@@ -16,7 +16,12 @@ dependencies {
       exclude(module: 'json-simple')
       exclude(module: 'joda-time')
       exclude(module: 'snakeyaml')
-      exclude(module: 'logback-classic')
+      exclude(group: 'ch.qos.logback')
+      exclude(module: 'jsr305')
+      exclude(module: 'slf4j-api')
+      exclude(module: 'commons-lang3')
+      exclude(module: 'validation-api')
+      exclude(module: 'libthrift')
   }
   runtime project(':atlasdb-rocksdb')
   runtime project(':atlasdb-dbkvs')
