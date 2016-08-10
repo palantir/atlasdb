@@ -139,6 +139,11 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
         return 64;
     }
 
+    @Value.Default
+    public boolean scyllaDB() {
+        return false;
+    }
+
     public abstract Optional<CassandraJmxCompactionConfig> jmx();
 
     @Override
