@@ -135,7 +135,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
 
     @Value.Default
     public int cqlPoolTimeoutMillis() {
-        return 5 * 1000;
+        return 20 * 1000;
     }
 
     @Value.Default
@@ -146,6 +146,11 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     @Value.Default
     public int rangesConcurrency() {
         return 64;
+    }
+
+    @Value.Default
+    public boolean scyllaDB() {
+        return false;
     }
 
     public abstract Optional<CassandraJmxCompactionConfig> jmx();

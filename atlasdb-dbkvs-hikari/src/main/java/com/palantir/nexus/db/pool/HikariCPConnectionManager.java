@@ -21,6 +21,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.TimeZone;
+import java.util.concurrent.ThreadLocalRandom;
 
 import javax.management.JMX;
 import javax.management.MBeanServer;
@@ -285,11 +286,21 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
 
     private State initialState() throws SQLException {
         // Print a stack trace whenever we initialize a pool
-        log.info("Initializing connection pool: {}", connConfig, new RuntimeException("Initializing connection pool"));
+        log.debug("Initializing connection pool: {}", connConfig, new RuntimeException("Initializing connection pool"));
 
         HikariDataSource dataSourcePool;
         try {
-            dataSourcePool = new HikariDataSource(connConfig.getHikariConfig());
+            try {
+                dataSourcePool = new HikariDataSource(connConfig.getHikariConfig());
+            } catch (IllegalArgumentException e) {
+                if (e.getMessage().contains("A metric named")) { // allow multiple pools on same JVM
+                    String poolName = connConfig.getHikariConfig().getPoolName();
+                    connConfig.getHikariConfig().setPoolName((poolName + "-" + ThreadLocalRandom.current().nextInt()));
+                    dataSourcePool = new HikariDataSource(connConfig.getHikariConfig());
+                } else {
+                    throw e;
+                }
+            }
         } catch (PoolInitializationException e) {
             log.error("Failed to initialize hikari data source: {}", connConfig.getUrl(), e);
 
