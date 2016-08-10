@@ -20,7 +20,7 @@ repositories {
 }
 
 checkstyle {
-    toolVersion = 6.17
+    toolVersion = 6.18
     configFile rootProject.file('config/checkstyle/checkstyle.xml')
 }
 
@@ -28,7 +28,7 @@ apply from: rootProject.file('gradle/versions.gradle')
 libsDirName = file('build/artifacts')
 
 dependencies {
-    checkstyle 'com.puppycrawl.tools:checkstyle:6.6'
+    checkstyle 'com.puppycrawl.tools:checkstyle:6.18'
     testCompile group: 'junit', name: 'junit', version: libVersions.junit
 }
 
