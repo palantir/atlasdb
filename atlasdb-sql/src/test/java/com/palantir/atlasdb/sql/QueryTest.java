@@ -45,7 +45,7 @@ public class QueryTest {
             rowName();
             rowComponent(ROW_COMP, ValueType.STRING);
             columns();
-            column(COL_NAME, COL_NAME, ValueType.BLOB);
+            column(COL_NAME, COL_NAME, ValueType.STRING);
             conflictHandler(ConflictHandler.IGNORE_ALL);
             sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
         }};
@@ -70,8 +70,12 @@ public class QueryTest {
         try (Connection c = getConnection()) {
             Statement stmt = c.createStatement();
             ResultSet results = stmt.executeQuery(String.format("select col from %s", tableRef.getQualifiedName()));
-            results.next(); Preconditions.checkArgument(Arrays.equals(results.getBytes(COL_NAME), "value1".getBytes()));
-            results.next(); Preconditions.checkArgument(Arrays.equals(results.getBytes(COL_NAME), "value2".getBytes()));
+            results.next();
+            Preconditions.checkArgument(Arrays.equals(results.getBytes(COL_NAME), "value1".getBytes()));
+            Preconditions.checkArgument(results.getString(COL_NAME).equals("value1"));
+            results.next();
+            Preconditions.checkArgument(Arrays.equals(results.getBytes(COL_NAME), "value2".getBytes()));
+            Preconditions.checkArgument(results.getString(COL_NAME).equals("value2"));
             Preconditions.checkArgument(!results.next());
         } catch (ClassNotFoundException | SQLException e) {
             throw new RuntimeException("Failure running select.", e);

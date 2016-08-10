@@ -90,7 +90,7 @@ public class AtlasJdbcResultSet implements ResultSet {
 
     @Override
     public String getString(int columnIndex) throws SQLException {
-        return (String) curResult.get(columnIndex, JdbcReturnType.STRING);
+        return curResult.get(columnIndex, JdbcReturnType.STRING).toString();
     }
 
     @Override
@@ -170,7 +170,7 @@ public class AtlasJdbcResultSet implements ResultSet {
 
     @Override
     public String getString(String columnLabel) throws SQLException {
-        return (String) curResult.get(columnLabel, JdbcReturnType.STRING);
+        return curResult.get(columnLabel, JdbcReturnType.STRING).toString();
     }
 
     @Override

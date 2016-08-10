@@ -13,6 +13,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import com.palantir.atlasdb.table.description.ValueType;
 
 public class ParsedRowResult {
 
@@ -56,12 +57,14 @@ public class ParsedRowResult {
                 return getData(index);
 
             case STRING:
-                // TODO implement string formatting
                 switch (getFormat(index)) {
                     case PERSISTABLE:
                     case PERSISTER:
                     case PROTO:
+                        // TODO implement string formatting for non-value-types
+                        break;
                     case VALUE_TYPE:
+                        return getValueType(index).convertToJava(getData(index), 0);
                 }
                 break;
         }
@@ -69,7 +72,7 @@ public class ParsedRowResult {
         if (getFormat(index) == ColumnValueDescription.Format.VALUE_TYPE) {
             throw new UnsupportedOperationException(String.format("parsing format %s (%s) as type %s is unsupported",
                     getFormat(index),
-                    result.get(index).getColumn().getValue().getValueType(),
+                    getValueType(index),
                     returnType));
         } else {
             throw new UnsupportedOperationException(String.format("parsing format %s as type %s is unsupported", getFormat(index), returnType));
@@ -89,6 +92,10 @@ public class ParsedRowResult {
 
     private ColumnValueDescription.Format getFormat(int index) {
        return result.get(index).getColumn().getValue().getFormat();
+    }
+
+    private ValueType getValueType(int index) {
+        return result.get(index).getColumn().getValue().getValueType();
     }
 
     private byte[] getData(int index) {
