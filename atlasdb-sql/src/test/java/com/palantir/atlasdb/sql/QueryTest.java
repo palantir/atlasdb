@@ -70,8 +70,8 @@ public class QueryTest {
         try (Connection c = getConnection()) {
             Statement stmt = c.createStatement();
             ResultSet results = stmt.executeQuery(String.format("select col from %s", tableRef.getQualifiedName()));
-            results.next(); Preconditions.checkArgument(Arrays.equals(results.getBytes(""), "key1".getBytes()));
-            results.next(); Preconditions.checkArgument(Arrays.equals(results.getBytes(""), "key2".getBytes()));
+            results.next(); Preconditions.checkArgument(Arrays.equals(results.getBytes(COL_NAME), "value1".getBytes()));
+            results.next(); Preconditions.checkArgument(Arrays.equals(results.getBytes(COL_NAME), "value2".getBytes()));
             Preconditions.checkArgument(!results.next());
         } catch (ClassNotFoundException | SQLException e) {
             throw new RuntimeException("Failure running select.", e);

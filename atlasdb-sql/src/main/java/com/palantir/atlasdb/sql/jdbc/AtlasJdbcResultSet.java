@@ -14,6 +14,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.RowId;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.sql.Statement;
@@ -28,24 +29,28 @@ import com.palantir.atlasdb.api.RangeToken;
 import com.palantir.atlasdb.api.TransactionToken;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.sql.grammar.SelectQuery;
+import com.palantir.atlasdb.table.description.TableMetadata;
 
 public class AtlasJdbcResultSet implements ResultSet {
 
     private final AtlasDbService service;
     private final TransactionToken transactionToken;
+    private final TableMetadata metadata;
 
     private RangeToken rangeToken;
     private Iterator<RowResult<byte[]>> curIter;
-    private RowResult<byte[]> curResult;
+    private ParsedRowResult curResult;
 
     public static ResultSet create(AtlasDbService service, TransactionToken transactionToken, SelectQuery select) {
         RangeToken rangeToken = service.getRange(transactionToken, select.tableRange());
-        return new AtlasJdbcResultSet(service, transactionToken, rangeToken);
+        TableMetadata metadata = service.getTableMetadata(rangeToken.getResults().getTableName());
+        return new AtlasJdbcResultSet(service, transactionToken, metadata, rangeToken);
     }
 
-    public AtlasJdbcResultSet(AtlasDbService service, TransactionToken transactionToken, RangeToken rangeToken) {
+    public AtlasJdbcResultSet(AtlasDbService service, TransactionToken transactionToken, TableMetadata metadata, RangeToken rangeToken) {
         this.service = service;
         this.transactionToken = transactionToken;
+        this.metadata = metadata;
         this.rangeToken = rangeToken;
         this.curIter = rangeToken.getResults().getResults().iterator();
         this.curResult = null;
@@ -58,7 +63,7 @@ public class AtlasJdbcResultSet implements ResultSet {
         }
 
         if (curIter.hasNext()) {
-            curResult = curIter.next();
+            curResult = ParsedRowResult.create(curIter.next(), metadata);
             return true;
         } else {
             if (rangeToken.hasMoreResults()) {
@@ -85,7 +90,7 @@ public class AtlasJdbcResultSet implements ResultSet {
 
     @Override
     public String getString(int columnIndex) throws SQLException {
-        return null;
+        return (String) curResult.get(columnIndex, JdbcReturnType.STRING);
     }
 
     @Override
@@ -125,12 +130,12 @@ public class AtlasJdbcResultSet implements ResultSet {
 
     @Override
     public BigDecimal getBigDecimal(int columnIndex, int scale) throws SQLException {
-        return null;
+        throw new SQLFeatureNotSupportedException();
     }
 
     @Override
     public byte[] getBytes(int columnIndex) throws SQLException {
-        return new byte[0];
+        return (byte[]) curResult.get(columnIndex, JdbcReturnType.BYTES);
     }
 
     @Override
@@ -155,7 +160,7 @@ public class AtlasJdbcResultSet implements ResultSet {
 
     @Override
     public InputStream getUnicodeStream(int columnIndex) throws SQLException {
-        return null;
+        throw new SQLFeatureNotSupportedException();
     }
 
     @Override
@@ -165,7 +170,7 @@ public class AtlasJdbcResultSet implements ResultSet {
 
     @Override
     public String getString(String columnLabel) throws SQLException {
-        return null;
+        return (String) curResult.get(columnLabel, JdbcReturnType.STRING);
     }
 
     @Override
@@ -205,12 +210,12 @@ public class AtlasJdbcResultSet implements ResultSet {
 
     @Override
     public BigDecimal getBigDecimal(String columnLabel, int scale) throws SQLException {
-        return null;
+        throw new SQLFeatureNotSupportedException();
     }
 
     @Override
     public byte[] getBytes(String columnLabel) throws SQLException {
-        return curResult.getRowName();
+        return (byte[]) curResult.get(columnLabel, JdbcReturnType.BYTES);
     }
 
     @Override
