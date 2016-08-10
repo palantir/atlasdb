@@ -15,9 +15,11 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -41,6 +43,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -62,6 +65,7 @@ import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.ClientCreationFailedException;
 import com.palantir.common.base.FunctionCheckedException;
+import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 
 /**
@@ -369,6 +373,17 @@ public class CassandraClientPool {
         return tableName.replaceFirst("\\.", "__");
     }
 
+    private InetSocketAddress getHostPortForHost(String host) throws UnknownHostException {
+        InetAddress byName = InetAddress.getByName(host);
+
+        for (InetSocketAddress address : Sets.union(currentPools.keySet(), config.servers())) {
+            if (address.getAddress().equals(byName)) {
+                return address;
+            }
+        }
+        throw new UnknownHostException("Couldn't find the provided host in server list or current servers");
+    }
+
     private void refreshTokenRanges() {
         try {
             ImmutableRangeMap.Builder<LightweightOppToken, List<InetSocketAddress>> newTokenRing =
@@ -380,14 +395,20 @@ public class CassandraClientPool {
             // RangeMap needs a little help with weird 1-node, 1-vnode, this-entire-feature-is-useless case
             if (tokenRanges.size() == 1) {
                 String onlyEndpoint = Iterables.getOnlyElement(Iterables.getOnlyElement(tokenRanges).getEndpoints());
-                InetSocketAddress onlyHost = new InetSocketAddress(
-                        onlyEndpoint,
-                        CassandraConstants.DEFAULT_THRIFT_PORT);
+                InetSocketAddress onlyHost = getHostPortForHost(onlyEndpoint);
                 newTokenRing.put(Range.all(), ImmutableList.of(onlyHost));
             } else { // normal case, large cluster with many vnodes
                 for (TokenRange tokenRange : tokenRanges) {
-                    List<InetSocketAddress> hosts = Lists.transform(tokenRange.getEndpoints(),
-                            endpoint -> new InetSocketAddress(endpoint, CassandraConstants.DEFAULT_THRIFT_PORT));
+                    List<InetSocketAddress> hosts = Lists.transform(tokenRange.getEndpoints(), new Function<String, InetSocketAddress>() {
+                        @Override
+                        public InetSocketAddress apply(String endpoint) {
+                            try {
+                                return getHostPortForHost(endpoint);
+                            } catch (UnknownHostException e) {
+                                throw Throwables.rewrapAndThrowUncheckedException(e);
+                            }
+                        }
+                    });
                     LightweightOppToken startToken = new LightweightOppToken(
                             BaseEncoding.base16().decode(tokenRange.getStart_token().toUpperCase()));
                     LightweightOppToken endToken = new LightweightOppToken(

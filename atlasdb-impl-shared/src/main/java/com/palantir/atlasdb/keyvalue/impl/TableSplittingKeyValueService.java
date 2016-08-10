@@ -175,7 +175,7 @@ public final class TableSplittingKeyValueService implements KeyValueService {
         return getDelegate(tableRef).getAllTimestamps(tableRef, cells, timestamp);
     }
 
-    private KeyValueService getDelegate(TableReference tableRef) {
+    public KeyValueService getDelegate(TableReference tableRef) {
         return tableDelegateFor(tableRef)
                 .or(namespaceDelegateFor(tableRef))
                 .or(delegates.get(0));
