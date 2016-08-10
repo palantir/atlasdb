@@ -129,6 +129,6 @@ public class AtlasJdbcDriver implements Driver {
 
     @Override
     public java.util.logging.Logger getParentLogger() throws SQLFeatureNotSupportedException {
-        return null;
+        throw new SQLFeatureNotSupportedException("not supported");
     }
 }
