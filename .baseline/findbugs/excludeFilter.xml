@@ -10,6 +10,18 @@
         <Bug pattern="NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE" />
     </Match>
 
+    <!-- Custom for Atlas -->
+    <Match>
+        <Or>
+            <Source name="~.*/META-INF/.*" />
+            <Bug pattern="EI_EXPOSE_REP2" />
+            <Bug pattern="PT_EXTENDS_CONCRETE_TYPE" />
+            <Bug pattern="PT_FINAL_TYPE_CONSTRUCTOR" />
+            <Bug pattern="PT_FINAL_TYPE_PARAM" />
+            <Bug pattern="PT_FINAL_TYPE_RETURN" />
+        </Or>
+    </Match>
+
     <!-- Ignore the following bug patterns in test code -->
     <!-- (i.e., classes ending in 'Test' or 'Tests', and inner classes of same) -->
     <Match>

@@ -25,7 +25,28 @@
         <option name="IF_BRACE_FORCE" value="3" />
         <option name="IMPORT_LAYOUT_TABLE">
           <value>
+            <!--
             <package name="" static="true" withSubpackages="true" />
+            <emptyLine />
+            <package name="" static="false" withSubpackages="true" />
+            -->
+            <package name="java" static="true" withSubpackages="true" />
+            <emptyLine />
+            <package name="javax" static="true" withSubpackages="true" />
+            <emptyLine />
+            <package name="org" static="true" withSubpackages="true" />
+            <emptyLine />
+            <package name="com" static="true" withSubpackages="true" />
+            <emptyLine />
+            <package name="" static="true" withSubpackages="true" />
+            <emptyLine />
+            <package name="java" static="false" withSubpackages="true" />
+            <emptyLine />
+            <package name="javax" static="false" withSubpackages="true" />
+            <emptyLine />
+            <package name="org" static="false" withSubpackages="true" />
+            <emptyLine />
+            <package name="com" static="false" withSubpackages="true" />
             <emptyLine />
             <package name="" static="false" withSubpackages="true" />
           </value>

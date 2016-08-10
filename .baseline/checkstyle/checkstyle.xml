@@ -22,7 +22,8 @@
         <property name="lineSeparator" value="lf"/>
     </module>
     <module name="RegexpHeader">
-        <property name="header" value="^/\*$\n^ \* Copyright \d{4} Palantir Technologies, Inc\. All rights reserved\.$"/>
+        <!-- <property name="header" value="^/\*$\n^ \* Copyright \d{4} Palantir Technologies, Inc\. All rights reserved\.$"/> -->
+        <property name="header" value="^/\*\*$\n^ \* Copyright \d{4} Palantir Technologies$"/>
         <property name="fileExtensions" value=".java,.ts"/>
     </module>
     <module name="RegexpMultiline"> <!-- Development Practices: Writing good unit tests -->
@@ -146,7 +147,8 @@
             <property name="illegalClassNames" value="java.util.HashSet, java.util.HashMap, java.util.LinkedHashMap, java.util.LinkedHashSet, java.util.TreeSet, java.util.TreeMap, com.google.common.collect.ArrayListMultimap, com.google.common.collect.ForwardingListMultimap, com.google.common.collect.ForwardingMultimap, com.google.common.collect.ForwardingSetMultimap, com.google.common.collect.ForwardingSortedSetMultimap, com.google.common.collect.HashMultimap, com.google.common.collect.LinkedHashMultimap, com.google.common.collect.LinkedListMultimap, com.google.common.collect.TreeMultimap"/>
         </module>
         <module name="ImportOrder"> <!-- Java Style Guide: Ordering and spacing -->
-            <property name="groups" value="/.*/"/>
+            <!-- <property name="groups" value="/.*/"/> -->
+            <property name="groups" value="java,javax,org,com"/>
             <property name="option" value="top"/>
             <property name="sortStaticImportsAlphabetically" value="true"/>
         </module>
@@ -336,7 +338,7 @@
             <property name="processJavadoc" value="true"/>
         </module>
         <module name="UpperEll"/> <!-- Java Style Guide: Numeric Literals -->
-        <module name="VisibilityModifier"/> <!-- Java Coding Guidelines: Minimize mutability -->
+        <!-- <module name="VisibilityModifier"/> --> <!-- Java Coding Guidelines: Minimize mutability -->
         <module name="WhitespaceAfter"/> <!-- Java Style Guide: Horizontal whitespace -->
         <module name="WhitespaceAround"> <!-- Java Style Guide: Horizontal whitespace -->
             <property name="allowEmptyConstructors" value="true"/>
@@ -354,7 +356,7 @@
             <property name="tagOrder" value="@param, @return, @throws, @deprecated"/>
             <property name="target" value="CLASS_DEF, INTERFACE_DEF, ENUM_DEF, METHOD_DEF, CTOR_DEF, VARIABLE_DEF"/>
         </module>
-        <module name="CyclomaticComplexity"/> <!-- Java Coding Guidelines: Reduce Cyclomatic Complexity -->
+        <!-- <module name="CyclomaticComplexity"/> --> <!-- Java Coding Guidelines: Reduce Cyclomatic Complexity -->
         <module name="JavadocMethod"> <!-- Java Style Guide: Where Javadoc is used -->
             <property name="scope" value="public"/>
             <property name="allowMissingParamTags" value="true"/>

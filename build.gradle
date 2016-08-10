@@ -1,3 +1,5 @@
+import org.gradle.plugins.ide.idea.model.IdeaModel
+
 buildscript {
     repositories {
         mavenCentral()
@@ -36,6 +38,24 @@ subprojects {
 }
 
 apply from: 'idea.gradle'
+
+// Setup copyright notice as JavaDoc and no newline after it
+project.afterEvaluate {
+    def ideaRootModel = project.rootProject.extensions.findByType(IdeaModel)
+    if (ideaRootModel) {
+        ideaRootModel.project.ipr.withXml { provider ->
+            def node = provider.asNode()
+            def copyrightManager = node.component.find { it.'@name' == 'CopyrightManager' }
+            copyrightManager.append(new XmlParser().parseText("""
+                <LanguageOptions name="__TEMPLATE__">
+                    <option name="addBlankAfter" value="false" />
+                    <option name="separateBefore" value="true" />
+                    <option name="lenBefore" value="2" />
+                </LanguageOptions>
+                """.stripIndent()))
+        }
+    }
+}
 
 def ideaSetModuleLevel(idea, targetCompatibility) {
     if (idea == null) return
