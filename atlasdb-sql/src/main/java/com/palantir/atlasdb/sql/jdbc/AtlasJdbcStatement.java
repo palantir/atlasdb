@@ -19,7 +19,7 @@ public class AtlasJdbcStatement implements Statement {
     @Override
     public ResultSet executeQuery(String sql) throws SQLException {
         SelectQuery select = SelectQuery.create(sql);
-        return AtlasJdbcResultSet.create(conn.getService(), conn.getTransactionToken(), select);
+        return AtlasJdbcResultSet.create(conn.getService(), conn.getTransactionToken(), select, this);
     }
 
     @Override

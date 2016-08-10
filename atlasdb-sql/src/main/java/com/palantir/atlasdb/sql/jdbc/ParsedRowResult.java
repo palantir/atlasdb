@@ -88,7 +88,6 @@ public class ParsedRowResult {
         switch (returnType) {
             case BYTES:
                 return r.getValue();
-
             case STRING:
                 switch (r.getFormat()) {
                     case PERSISTABLE:
@@ -99,6 +98,37 @@ public class ParsedRowResult {
                     case VALUE_TYPE:
                         return r.getValueType().convertToJava(r.getValue(), 0);
                 }
+                break;
+            // TODO implement other types
+            case BYTE:
+                break;
+            case BOOLEAN:
+                break;
+            case SHORT:
+                break;
+            case INT:
+                break;
+            case LONG:
+                break;
+            case FLOAT:
+                break;
+            case DOUBLE:
+                break;
+            case BIG_DECIMAL:
+                break;
+            case OBJECT:
+                break;
+            case TIME:
+                break;
+            case TIMESTAMP:
+                break;
+            case DATE:
+                break;
+            case ASCII_STREAM:
+                break;
+            case BINARY_STREAM:
+                break;
+            case CHAR_STREAM:
                 break;
         }
 
@@ -116,7 +146,7 @@ public class ParsedRowResult {
         return get(getIndexFromColumnLabel(col), returnType);
     }
 
-    private int getIndexFromColumnLabel(String col) throws SQLException {
+    public int getIndexFromColumnLabel(String col) throws SQLException {
         int index = colLabels.indexOf(col);
         if (index == -1) {
             throw new SQLException(String.format("column '%s' is not found in results", col));
