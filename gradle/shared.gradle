@@ -5,6 +5,14 @@ apply plugin: 'checkstyle'
 apply plugin: 'jacoco-coverage'
 apply plugin: 'com.github.hierynomus.license'
 
+if ([].contains(project.name)) {
+    apply plugin: 'com.palantir.baseline-checkstyle'
+    apply plugin: 'com.palantir.baseline-findbugs'
+}
+
+apply plugin: 'com.palantir.baseline-eclipse'
+apply plugin: 'com.palantir.baseline-idea'
+
 apply from: "${rootDir}/gradle/publish.gradle"
 
 sourceCompatibility = 1.8
