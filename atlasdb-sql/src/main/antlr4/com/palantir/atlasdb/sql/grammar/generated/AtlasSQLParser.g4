@@ -5,7 +5,12 @@ options
    { tokenVocab = AtlasSQLLexer; }
 
 
-select_clause
+query
+    : select_query
+    ;
+
+
+select_query
     : SELECT column_clause FROM table_reference ( where_clause )?
     ;
 

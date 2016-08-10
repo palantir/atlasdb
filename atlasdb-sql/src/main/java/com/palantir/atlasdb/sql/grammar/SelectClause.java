@@ -10,17 +10,17 @@ import com.palantir.atlasdb.sql.grammar.generated.AtlasSQLParser;
 @Value.Immutable
 public abstract class SelectClause {
 
-    public static SelectClause create(AtlasSQLParser.Select_clauseContext selectClause) {
+    public static SelectClause create(AtlasSQLParser.Select_queryContext query) {
         ImmutableSelectClause.Builder builder = ImmutableSelectClause.builder();
 
-        if (selectClause.table_reference().keyspace() != null) {
+        if (query.table_reference().keyspace() != null) {
             builder.table(
                     TableReference.create(
-                            Namespace.create(selectClause.table_reference().keyspace().getText()),
-                            selectClause.table_reference().table_name().getText()
+                            Namespace.create(query.table_reference().keyspace().getText()),
+                            query.table_reference().table_name().getText()
                     ));
         } else {
-            builder.table(TableReference.createWithEmptyNamespace(selectClause.table_reference().table_name().getText()));
+            builder.table(TableReference.createWithEmptyNamespace(query.table_reference().table_name().getText()));
         }
 
         builder.range(RangeRequest.all());

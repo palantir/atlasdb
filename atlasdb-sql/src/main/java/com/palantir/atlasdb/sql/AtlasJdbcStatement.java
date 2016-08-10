@@ -31,9 +31,9 @@ public class AtlasJdbcStatement implements Statement {
         AtlasSQLLexer lexer = new AtlasSQLLexer(new ANTLRInputStream(sql.toLowerCase()));
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         AtlasSQLParser parser = new AtlasSQLParser(tokens);
-        AtlasSQLParser.Select_clauseContext clause = parser.select_clause();
-        if (clause != null) {
-            return executeSelect(SelectClause.create(clause));
+        AtlasSQLParser.QueryContext query = parser.query();
+        if (query.select_query() != null) {
+            return executeSelect(SelectClause.create(query.select_query()));
         } else {
             throw new UnsupportedOperationException("Unsupported initial clause: " + sql);
         }
