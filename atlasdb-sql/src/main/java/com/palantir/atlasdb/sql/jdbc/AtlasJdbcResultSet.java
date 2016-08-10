@@ -74,12 +74,12 @@ public class AtlasJdbcResultSet implements ResultSet {
         if (curIter.hasNext()) {
             curResult = ParsedRowResult.create(curIter.next(), metadata);
             return true;
-        } else {
+        } else { // page to the next range
             if (rangeToken.hasMoreResults()) {
                 rangeToken = service.getRange(transactionToken, rangeToken.getNextRange());
                 curIter = rangeToken.getResults().getResults().iterator();
                 return next();
-            } else {
+            } else { // all done
                 rangeToken = null;
                 curIter = null;
                 return false;

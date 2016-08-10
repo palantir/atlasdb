@@ -17,6 +17,7 @@ import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
+import com.palantir.common.annotation.Output;
 
 public class ParsedRowResult {
 
@@ -37,8 +38,8 @@ public class ParsedRowResult {
 
     private static void parseColumns(RowResult<byte[]> rawResult,
                                      ColumnMetadataDescription columns,
-                                     ImmutableList.Builder<MetadataAndValue> resultBuilder,
-                                     ImmutableList.Builder<String> indexBuilder) {
+                                     @Output ImmutableList.Builder<MetadataAndValue> resultBuilder,
+                                     @Output ImmutableList.Builder<String> indexBuilder) {
         Map<ByteBuffer, byte[]> wrappedCols = Maps.newHashMap();
         for(Map.Entry<byte[], byte[]> entry : rawResult.getColumns().entrySet()) {
             wrappedCols.put(ByteBuffer.wrap(entry.getKey()), entry.getValue());
@@ -53,8 +54,8 @@ public class ParsedRowResult {
 
     private static void parseRowComponents(byte[] row,
                                            List<NameComponentDescription> rowParts,
-                                           ImmutableList.Builder<MetadataAndValue> resultBuilder,
-                                           ImmutableList.Builder<String> indexBuilder) {
+                                           @Output ImmutableList.Builder<MetadataAndValue> resultBuilder,
+                                           @Output ImmutableList.Builder<String> indexBuilder) {
         int index = 0;
         for (int i = 0; i < rowParts.size(); i++) {
             NameComponentDescription rowComp = rowParts.get(i);
