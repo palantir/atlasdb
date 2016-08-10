@@ -248,7 +248,7 @@ public abstract class AbstractDbReadTable implements DbReadTable {
             return run(Iterables.getOnlyElement(queries));
         }
         Queue<Future<ClosableIterator<AgnosticLightResultRow>>> futures = Queues.newArrayDeque();
-        for (final FullQuery query : queries) {
+        for (FullQuery query : queries) {
             futures.add(submit(MoreExecutors.directExecutor(), query));
         }
         return new LazyClosableIterator<>(futures);
@@ -263,7 +263,7 @@ public abstract class AbstractDbReadTable implements DbReadTable {
         return !iter.hasNext();
     }
 
-    protected Callable<ClosableIterator<AgnosticLightResultRow>> getCallable(final FullQuery query) {
+    protected Callable<ClosableIterator<AgnosticLightResultRow>> getCallable(FullQuery query) {
         return () -> run(query);
     }
 

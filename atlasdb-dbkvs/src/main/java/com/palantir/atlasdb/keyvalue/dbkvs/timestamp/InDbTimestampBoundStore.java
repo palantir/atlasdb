@@ -43,7 +43,7 @@ import com.palantir.timestamp.TimestampBoundStore;
 
 // TODO: switch to using ptdatabase sql running, which more gracefully
 // supports multiple db types.
-public final class InDbTimestampBoundStore implements TimestampBoundStore {
+public class InDbTimestampBoundStore implements TimestampBoundStore {
     private static final Logger log = LoggerFactory.getLogger(InDbTimestampBoundStore.class);
 
     private final ConnectionManager connManager;
@@ -117,10 +117,12 @@ public final class InDbTimestampBoundStore implements TimestampBoundStore {
                 currentLimit = result.getResultValue();
                 return currentLimit;
             case UNKNOWN:
-                // Since the DB's state is unknown, the in-memory state can't be confirmed, so get rid of it.
-                currentLimit = null;
-                // Fall through to failure case, where exceptions are handled.
             case FAILED:
+                if (result.getStatus() == RetriableTransactions.TransactionStatus.UNKNOWN) {
+                    // Since the DB's state is unknown, the in-memory state can't be confirmed, so get rid of it.
+                    currentLimit = null;
+                }
+
                 Throwable error = result.getError();
                 if (error instanceof SQLException) {
                     throw PalantirSqlException.create((SQLException) error);

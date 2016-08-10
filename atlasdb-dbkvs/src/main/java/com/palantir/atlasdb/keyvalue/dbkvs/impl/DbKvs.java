@@ -33,6 +33,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.slf4j.Logger;
@@ -90,6 +91,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 public class DbKvs extends AbstractKeyValueService {
     private static final Logger log = LoggerFactory.getLogger(DbKvs.class);
+
     private final DdlConfig config;
     private final DbTableFactory dbTables;
     private final SqlConnectionSupplier connections;
@@ -123,7 +125,7 @@ public class DbKvs extends AbstractKeyValueService {
         runInitialization(new Function<DbTableInitializer, Void>() {
             @Nullable
             @Override
-            public Void apply(@Nullable DbTableInitializer initializer) {
+            public Void apply(@Nonnull DbTableInitializer initializer) {
                 initializer.createUtilityTables();
                 return null;
             }
@@ -133,7 +135,7 @@ public class DbKvs extends AbstractKeyValueService {
     private void createMetadataTable() {
         runInitialization(new Function<DbTableInitializer, Void>() {
             @Override
-            public Void apply(@Nullable DbTableInitializer initializer) {
+            public Void apply(@Nonnull DbTableInitializer initializer) {
                 initializer.createMetadataTable(AtlasDbConstants.METADATA_TABLE.getQualifiedName());
                 return null;
             }
@@ -159,17 +161,18 @@ public class DbKvs extends AbstractKeyValueService {
     }
 
     @Override
-    public Map<Cell, Value> getRows(TableReference tableRef,
-                                    final Iterable<byte[]> rows,
-                                    final ColumnSelection columnSelection,
-                                    final long timestamp) {
+    public Map<Cell, Value> getRows(
+            TableReference tableRef,
+            Iterable<byte[]> rows,
+            ColumnSelection columnSelection,
+            long timestamp) {
         return runRead(tableRef, table ->
                 extractResults(table, () ->
                         table.getLatestRows(rows, columnSelection, timestamp, true)));
     }
 
     @Override
-    public Map<Cell, Value> get(TableReference tableRef, final Map<Cell, Long> timestampByCell) {
+    public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         return runRead(tableRef, table ->
                 extractResults(table, () ->
                         table.getLatestCells(timestampByCell, true)));
@@ -207,7 +210,7 @@ public class DbKvs extends AbstractKeyValueService {
     }
 
     @Override
-    public Map<Cell, Long> getLatestTimestamps(TableReference tableRef, final Map<Cell, Long> timestampByCell) {
+    public Map<Cell, Long> getLatestTimestamps(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         return runRead(tableRef, new Function<DbReadTable, Map<Cell, Long>>() {
             @Override
             @SuppressWarnings("deprecation")
@@ -268,7 +271,7 @@ public class DbKvs extends AbstractKeyValueService {
     }
 
     @Override
-    public void put(TableReference tableRef, final Map<Cell, byte[]> values, final long timestamp)
+    public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp)
             throws KeyAlreadyExistsException {
         put(tableRef, values, timestamp, true);
     }
@@ -331,7 +334,7 @@ public class DbKvs extends AbstractKeyValueService {
     }
 
     @Override
-    public void putWithTimestamps(TableReference tableRef, final Multimap<Cell, Value> cellValues)
+    public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> cellValues)
             throws KeyAlreadyExistsException {
         Iterable<List<Entry<Cell, Value>>> batches = partitionByCountAndBytes(
                 cellValues.entries(),
@@ -364,7 +367,7 @@ public class DbKvs extends AbstractKeyValueService {
     public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
         // QA-86494: We sort our deletes here because we have seen oracle deadlock errors here.
         ImmutableList<Entry<Cell, Long>> sorted = ORDERING.immutableSortedCopy(keys.entries());
-        final Iterable<List<Entry<Cell, Long>>> partitions = partitionByCountAndBytes(
+        Iterable<List<Entry<Cell, Long>>> partitions = partitionByCountAndBytes(
                 sorted,
                 10000,
                 getMultiPutBatchSizeBytes(),
@@ -425,15 +428,17 @@ public class DbKvs extends AbstractKeyValueService {
     }
 
     @Override
-    public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(TableReference tableRef,
-                                                                       RangeRequest rangeRequest,
-                                                                       long timestamp) {
+    public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(
+            TableReference tableRef,
+            RangeRequest rangeRequest,
+            long timestamp) {
         throw new UnsupportedOperationException();
     }
 
-    private TokenBackedBasicResultsPage<RowResult<Value>, byte[]> getPage(TableReference tableRef,
-                                                                          final RangeRequest range,
-                                                                          final long timestamp) {
+    private TokenBackedBasicResultsPage<RowResult<Value>, byte[]> getPage(
+            TableReference tableRef,
+            RangeRequest range,
+            long timestamp) {
         Stopwatch watch = Stopwatch.createStarted();
         try {
             return runRead(tableRef, table -> getPageInternal(table, range, timestamp));
@@ -491,9 +496,10 @@ public class DbKvs extends AbstractKeyValueService {
     }
 
     @Override
-    public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(final TableReference tableRef,
-                                                                       final RangeRequest rangeRequest,
-                                                                       final long timestamp) {
+    public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(
+            TableReference tableRef,
+            RangeRequest rangeRequest,
+            long timestamp) {
         Iterable<RowResult<Set<Long>>> rows = new AbstractPagingIterable<
                 RowResult<Set<Long>>,
                 TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]>>() {
@@ -506,16 +512,17 @@ public class DbKvs extends AbstractKeyValueService {
             protected TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]> getNextPage(
                     TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]> previous) {
                 byte[] newStartRow = previous.getTokenForNextPage();
-                final RangeRequest newRange = rangeRequest.getBuilder().startRowInclusive(newStartRow).build();
+                RangeRequest newRange = rangeRequest.getBuilder().startRowInclusive(newStartRow).build();
                 return getTimestampsPage(tableRef, newRange, timestamp);
             }
         };
         return ClosableIterators.wrap(rows.iterator());
     }
 
-    private TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]> getTimestampsPage(TableReference tableRef,
-                                                                                        final RangeRequest range,
-                                                                                        final long timestamp) {
+    private TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]> getTimestampsPage(
+            TableReference tableRef,
+            RangeRequest range,
+            long timestamp) {
         Stopwatch watch = Stopwatch.createStarted();
         try {
             return runRead(tableRef, table -> getTimestampsPageInternal(table, range, timestamp));
@@ -613,7 +620,10 @@ public class DbKvs extends AbstractKeyValueService {
     }
 
     private Iterator<Map.Entry<Cell, Value>> getRowColumnRange(
-            TableReference tableRef, final byte[] row, ColumnRangeSelection columnRangeSelection, long ts) {
+            TableReference tableRef,
+            byte[] row,
+            ColumnRangeSelection columnRangeSelection,
+            long ts) {
         List<byte[]> rowList = ImmutableList.of(row);
         return ClosableIterators.wrap(new AbstractPagingIterable<
                 Entry<Cell, Value>,
@@ -629,7 +639,7 @@ public class DbKvs extends AbstractKeyValueService {
                 return page(previous.getTokenForNextPage());
             }
 
-            TokenBackedBasicResultsPage<Map.Entry<Cell, Value>, byte[]> page(final byte[] startCol) throws Exception {
+            TokenBackedBasicResultsPage<Map.Entry<Cell, Value>, byte[]> page(byte[] startCol) throws Exception {
                 ColumnRangeSelection range = new ColumnRangeSelection(
                         startCol,
                         columnRangeSelection.getEndCol(),
@@ -779,7 +789,7 @@ public class DbKvs extends AbstractKeyValueService {
     }
 
     @Override
-    public void createTable(TableReference tableRef, final byte[] tableMetadata) {
+    public void createTable(TableReference tableRef, byte[] tableMetadata) {
         runDdl(tableRef, new Function<DbDdlTable, Void>() {
             @Override
             public Void apply(DbDdlTable table) {
@@ -819,7 +829,7 @@ public class DbKvs extends AbstractKeyValueService {
     }
 
     @Override
-    public void putMetadataForTable(TableReference tableRef, final byte[] metadata) {
+    public void putMetadataForTable(TableReference tableRef, byte[] metadata) {
         runMetadata(tableRef, new Function<DbMetadataTable, Void>() {
             @Override
             public Void apply(DbMetadataTable table) {
@@ -847,7 +857,7 @@ public class DbKvs extends AbstractKeyValueService {
     }
 
     @Override
-    public void addGarbageCollectionSentinelValues(TableReference tableRef, final Set<Cell> cells) {
+    public void addGarbageCollectionSentinelValues(TableReference tableRef, Set<Cell> cells) {
         runWrite(tableRef, new Function<DbWriteTable, Void>() {
             @Override
             public Void apply(DbWriteTable table) {
@@ -858,7 +868,7 @@ public class DbKvs extends AbstractKeyValueService {
     }
 
     @Override
-    public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, final Set<Cell> cells, final long timestamp) {
+    public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long timestamp) {
         return runRead(tableRef, new Function<DbReadTable, Multimap<Cell, Long>>() {
             @Override
             @SuppressWarnings("deprecation")
@@ -962,8 +972,8 @@ public class DbKvs extends AbstractKeyValueService {
         }
     }
 
-    private <T> T runWriteForceAutocommit(final TableReference tableRef, final Function<DbWriteTable, T> runner) {
-        final ConnectionSupplier conns = new ConnectionSupplier(connections);
+    private <T> T runWriteForceAutocommit(TableReference tableRef, Function<DbWriteTable, T> runner) {
+        ConnectionSupplier conns = new ConnectionSupplier(connections);
         try {
             SqlConnection conn = conns.get();
             boolean autocommit;
@@ -994,7 +1004,7 @@ public class DbKvs extends AbstractKeyValueService {
     private <T> T runWriteFreshConnection(
             ConnectionSupplier conns, TableReference tableRef, Function<DbWriteTable, T> runner) {
         log.info("Running in a new thread to turn autocommit on for write");
-        final AtomicReference<T> result = Atomics.newReference();
+        AtomicReference<T> result = Atomics.newReference();
         Thread writeThread = new Thread(() -> {
             SqlConnection freshConn = conns.getFresh();
             try {

@@ -166,14 +166,6 @@ public class DbKvsGetRanges {
             boolean reverse,
             int numRowsToGet,
             int queryNum) {
-        if (startRow.length == 0) {
-            if (reverse) {
-                startRow = LARGEST_NAME;
-            } else {
-                startRow = SMALLEST_NAME;
-            }
-        }
-
         String extraWhere;
         List<Object> args = Lists.newArrayList();
         args.add(queryNum);
@@ -182,7 +174,11 @@ public class DbKvsGetRanges {
         } else {
             extraWhere = " t.row_name >= ? ";
         }
-        args.add(startRow);
+        if (startRow.length > 0) {
+            args.add(startRow);
+        } else {
+            args.add(reverse ? LARGEST_NAME : SMALLEST_NAME);
+        }
 
         if (endRow.length > 0) {
             if (reverse) {
