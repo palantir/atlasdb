@@ -71,9 +71,11 @@ public class QueryTest {
             Statement stmt = c.createStatement();
             ResultSet results = stmt.executeQuery(String.format("select col from %s", tableRef.getQualifiedName()));
             results.next();
+            Preconditions.checkArgument(results.getString(ROW_COMP).equals("key1"));
             Preconditions.checkArgument(Arrays.equals(results.getBytes(COL_NAME), "value1".getBytes()));
             Preconditions.checkArgument(results.getString(COL_NAME).equals("value1"));
             results.next();
+            Preconditions.checkArgument(results.getString(ROW_COMP).equals("key2"));
             Preconditions.checkArgument(Arrays.equals(results.getBytes(COL_NAME), "value2".getBytes()));
             Preconditions.checkArgument(results.getString(COL_NAME).equals("value2"));
             Preconditions.checkArgument(!results.next());
