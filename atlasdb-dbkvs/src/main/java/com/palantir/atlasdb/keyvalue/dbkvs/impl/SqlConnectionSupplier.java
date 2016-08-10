@@ -22,11 +22,9 @@ import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.SqlConnection;
 
 public interface SqlConnectionSupplier extends Supplier<SqlConnection>, Closeable {
+    @Override
+    SqlConnection get();
 
     @Override
-    public SqlConnection get();
-
-    @Override
-    public void close() throws PalantirSqlException;
-
+    void close() throws PalantirSqlException;
 }

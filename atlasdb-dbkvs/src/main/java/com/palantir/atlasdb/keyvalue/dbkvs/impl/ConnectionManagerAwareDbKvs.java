@@ -45,7 +45,8 @@ public class ConnectionManagerAwareDbKvs extends ForwardingKeyValueService {
         return new ConnectionManagerAwareDbKvs(DbKvs.create(config, sqlConnSupplier), connManager);
     }
 
-    private static SqlConnectionSupplier getSimpleTimedSqlConnectionSupplier(ReentrantManagedConnectionSupplier connectionSupplier) {
+    private static SqlConnectionSupplier getSimpleTimedSqlConnectionSupplier(
+            ReentrantManagedConnectionSupplier connectionSupplier) {
         Supplier<Connection> supplier = () -> connectionSupplier.get();
         SQL sql = new SQL() {
             @Override
@@ -63,7 +64,7 @@ public class ConnectionManagerAwareDbKvs extends ForwardingKeyValueService {
                     }
 
                     @Override
-                    final public SqlTimer getSqlTimer() {
+                    public SqlTimer getSqlTimer() {
                         return SqlTimers.createCombinedSqlTimer(getSqlTimers());
                     }
                 };
@@ -75,7 +76,10 @@ public class ConnectionManagerAwareDbKvs extends ForwardingKeyValueService {
             public SqlConnection get() {
                 return new ConnectionBackedSqlConnectionImpl(
                         supplier.get(),
-                        () -> { throw new UnsupportedOperationException("This Sql connection does not provide reliable timestamp."); },
+                        () -> {
+                            throw new UnsupportedOperationException(
+                                    "This SQL connection does not provide reliable timestamp.");
+                        },
                         new SqlConnectionHelper(sql));
             }
 

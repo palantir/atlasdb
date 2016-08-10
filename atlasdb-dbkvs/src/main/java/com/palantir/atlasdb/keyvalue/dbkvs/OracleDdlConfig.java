@@ -31,7 +31,6 @@ import com.palantir.db.oracle.JdbcHandler;
 @JsonTypeName(OracleDdlConfig.TYPE)
 @Value.Immutable
 public abstract class OracleDdlConfig extends DdlConfig {
-
     public static final String TYPE = "oracle";
 
     public abstract JdbcHandler jdbcHandler();
@@ -64,5 +63,4 @@ public abstract class OracleDdlConfig extends DdlConfig {
     public final String type() {
         return TYPE;
     }
-
 }

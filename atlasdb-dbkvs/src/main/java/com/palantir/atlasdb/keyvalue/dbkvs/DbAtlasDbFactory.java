@@ -31,6 +31,7 @@ import com.palantir.timestamp.TimestampService;
 @AutoService(AtlasDbFactory.class)
 public class DbAtlasDbFactory implements AtlasDbFactory {
     public static final String TYPE = "relational";
+
     @Override
     public String getType() {
         return TYPE;
@@ -39,7 +40,8 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
     @Override
     public KeyValueService createRawKeyValueService(KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig) {
         Preconditions.checkArgument(config instanceof DbKeyValueServiceConfig,
-                "DbAtlasDbFactory expects a configuration of type DbKeyValueServiceConfiguration, found %s", config.getClass());
+                "DbAtlasDbFactory expects a configuration of type DbKeyValueServiceConfiguration, found %s",
+                config.getClass());
         return ConnectionManagerAwareDbKvs.create((DbKeyValueServiceConfig) config);
     }
 
