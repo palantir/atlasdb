@@ -12,18 +12,6 @@ apply plugin: "org.inferred.processors"
 
 apply from: "../gradle/shared.gradle"
 
-//create a single Jar with all dependencies
-task fatJar(type: Jar) {
-    manifest {
-      attributes 'Implementation-Title': 'AtlasDB JDBC Driver',
-                 'Implementation-Version': rootProject.version
-    }
-    baseName = project.name + '-all'
-    version = ''
-    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
-    with jar
-}
-
 dependencies {
   compile(project(":atlasdb-commons"))
   compile(project(":atlasdb-api"))
