@@ -1,0 +1,9 @@
+package com.palantir.atlasdb.protos.generated;
+
+message TestObject {
+    required fixed64 id = 1;
+    required int64 type = 2;
+    required bool is_group = 3;
+    required int64 deleted = 4;
+    optional int64 data_event_id = 5;
+}

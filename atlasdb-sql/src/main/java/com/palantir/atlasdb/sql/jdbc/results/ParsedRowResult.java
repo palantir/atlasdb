@@ -3,6 +3,7 @@ package com.palantir.atlasdb.sql.jdbc.results;
 import java.nio.ByteBuffer;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -10,7 +11,9 @@ import java.util.stream.Collectors;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
+import com.google.protobuf.Message;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.proto.fork.ForkedJsonFormat;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.annotation.Output;
@@ -48,9 +51,15 @@ public class ParsedRowResult {
         }
         for (JdbcColumnMetadata meta : colsMeta) {
             Preconditions.checkState(meta.isCol(), "all metadata here is expected to be for columns");
-            ByteBuffer bytes = ByteBuffer.wrap(meta.getName().getBytes());
-            Preconditions.checkState(wrappedCols.containsKey(bytes), String.format("column %s is missing from results", meta.getLabel()));
-            resultBuilder.add(new MetadataAndValue(meta, wrappedCols.get(bytes)));
+            ByteBuffer shortName = ByteBuffer.wrap(meta.getName().getBytes());
+            ByteBuffer longName = ByteBuffer.wrap(meta.getLabel().getBytes());
+            if (wrappedCols.containsKey(shortName)) {
+                resultBuilder.add(MetadataAndValue.create(meta, wrappedCols.get(shortName)));
+            } else if (wrappedCols.containsKey(longName)) {
+                resultBuilder.add(MetadataAndValue.create(meta, wrappedCols.get(longName)));
+            } else {
+                resultBuilder.add(MetadataAndValue.create(meta, null));  // put null for missing columns
+            }
             indexBuilder.add(meta.getName());
         }
     }
@@ -93,17 +102,20 @@ public class ParsedRowResult {
         MetadataAndValue r = result.get(index - 1);
         switch (returnType) {
             case BYTES:
-                return r.getValue();
-            case OBJECT:
+                return r.getValueAsMessage();
             case STRING:
                 switch (r.getFormat()) {
                     case PERSISTABLE:
                     case PERSISTER:
                     case PROTO:
-                        // TODO implement string formatting for non-value-types
-                        break;
+                        if (r.meta.isCol()) {
+                            Message proto = r.getValueAsMessage();
+                            return ForkedJsonFormat.printToString(proto);
+                        } else {
+                            throw new UnsupportedOperationException("Cannot (yet) parse a PROTO row component as a string.");
+                        }
                     case VALUE_TYPE:
-                        return r.getValueType().convertToJava(r.getValue(), 0);
+                        return r.getValueType().convertToJava(r.getRawValue(), 0);
                 }
                 break;
             // TODO implement other types
@@ -116,12 +128,26 @@ public class ParsedRowResult {
             case INT:
                 break;
             case LONG:
-                break;
+                if (!EnumSet.of(ValueType.STRING, ValueType.VAR_STRING).contains(r.getValueType())) {
+                    return r.getValueType().convertToJava(r.getRawValue(), 0);
+                }
             case FLOAT:
                 break;
             case DOUBLE:
                 break;
             case BIG_DECIMAL:
+                break;
+            case OBJECT:
+                switch (r.getFormat()) { // inspired by AtlasSerializers.serialize
+                    case PROTO:
+                        return r.getValueAsMessage();
+                    case PERSISTABLE:
+                        break;
+                    case VALUE_TYPE:
+                        break;
+                    case PERSISTER:
+                        return r.getValueAsMessage();
+                }
                 break;
             case TIME:
                 break;
@@ -161,11 +187,15 @@ public class ParsedRowResult {
 
     private static class MetadataAndValue {
         private final JdbcColumnMetadata meta;
-        private final byte[] val;
+        private final byte[] rawVal;
 
-        MetadataAndValue(JdbcColumnMetadata meta, byte[] val) {
+        static MetadataAndValue create(JdbcColumnMetadata meta, byte[] rawVal) {
+            return new MetadataAndValue(meta, rawVal);
+        }
+
+        MetadataAndValue(JdbcColumnMetadata meta, byte[] rawVal) {
             this.meta = meta;
-            this.val = val;
+            this.rawVal = rawVal;
         }
 
         ColumnValueDescription.Format getFormat() {
@@ -176,10 +206,25 @@ public class ParsedRowResult {
             return meta.getValueType();
         }
 
-        byte[] getValue() {
-            return val;
+        public Message getValueAsMessage() {
+            return meta.hydrateProto(rawVal);
         }
 
+        public Object getValueAsSimpleType() {
+            return getValueType().convertToJava(getRawValue(), 0);
+        }
+
+        public byte[] getRawValue() {
+            return rawVal;
+        }
+
+        @Override
+        public String toString() {
+            return "{" +
+                    "meta=" + meta +
+                    ", rawVal=" + Arrays.toString(rawVal) +
+                    '}';
+        }
     }
 
     @Override

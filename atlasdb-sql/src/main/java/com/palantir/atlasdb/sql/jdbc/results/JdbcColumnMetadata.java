@@ -2,6 +2,7 @@ package com.palantir.atlasdb.sql.jdbc.results;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.protobuf.Message;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
 import com.palantir.atlasdb.table.description.DynamicColumnDescription;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
@@ -66,10 +67,19 @@ public class JdbcColumnMetadata {
         return isRowComp() ? rowComp.get().getComponentName() : col.get().shortName;
     }
 
+    public Message hydrateProto(byte[] val) {
+        if (isCol()) {
+            return col.get().desc.hydrateProto(Thread.currentThread().getContextClassLoader(), val);
+        } else {
+            throw new UnsupportedOperationException("Only columns can contain PROTO");
+        }
+    }
+
     private static class NamedOrDynamicColumnDescription {
         final String longName;
         final String shortName;
         final ColumnValueDescription desc;
+
         public NamedOrDynamicColumnDescription(String longName, String shortName, ColumnValueDescription desc) {
             this.longName = longName;
             this.shortName = shortName;

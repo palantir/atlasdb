@@ -1084,7 +1084,6 @@ public class AtlasJdbcResultSet implements ResultSet {
     public String toString() {
         return "AtlasJdbcResultSet{" +
                 "transactionToken=" + transactionToken +
-                ", metadata=" + metadata +
                 ", rangeToken=" + rangeToken +
                 ", curResult=" + curResult +
                 '}';
